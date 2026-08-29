@@ -400,7 +400,7 @@
 .between-blocks { background: var(--accent); border: 0; border-radius: 50%; color: white; cursor: pointer; height: 22px; left: 50%; opacity: 0; padding: 0; position: absolute; top: -11px; transform: translateX(-50%); transition: opacity .15s; width: 22px; z-index: 3; }
 .block-position:hover > .between-blocks, .between-blocks:focus-visible { opacity: 1; }
 .canvas-block { border: 1px solid transparent; border-radius: 6px; margin: 0; padding: 0; position: relative; }
-.block-position + .block-position .canvas-block.is-paragraph { margin-top: 12px; }
+.block-position + .block-position .canvas-block { margin-top: 20px; }
 .canvas-block:hover { border-color: #d9d7cf; }
 .canvas-block.is-selected { border-color: var(--accent); }
 .canvas-block-toolbar { align-items: center; background: #242629; border-radius: 7px; color: white; display: flex; left: 0; opacity: 0; padding: 3px; position: absolute; top: -34px; transform: translateY(-4px); transition: opacity .15s, transform .15s; z-index: 4; }
