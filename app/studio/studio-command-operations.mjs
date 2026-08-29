@@ -1,7 +1,15 @@
+/** @typedef {import("../content/model").ContentBlock} ContentBlock */
+/** @typedef {import("./editor-model").StudioDocument} StudioDocument */
+
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+/**
+ * @param {StudioDocument} document
+ * @param {(blocks: ContentBlock[]) => ContentBlock[]} update
+ * @returns {StudioDocument}
+ */
 export function updateDocumentBlocks(document, update) {
   return { ...document, blocks: update(document.blocks) };
 }

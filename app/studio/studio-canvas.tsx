@@ -1,12 +1,20 @@
 "use client";
 
-import { useLayoutEffect, useRef, type TextareaHTMLAttributes } from "react";
+import { useLayoutEffect, useRef, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type TextareaHTMLAttributes } from "react";
 import { BlockRenderer } from "../components/content";
-import type { ContentBlock } from "../content/model";
+import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
+import type { ContentBlock, RichTextRun, TextAlignment, TextMark } from "../content/model";
 import type { StudioDocument, InsertableBlockType } from "./editor-model";
 
 function blockLabel(type: ContentBlock["type"]) {
   return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+type TextSelection = { start: number; end: number };
+type EditableTextBlock = Extract<ContentBlock, { type: "paragraph" | "heading" | "quote" }>;
+
+function isEditableTextBlock(block: ContentBlock): block is EditableTextBlock {
+  return block.type === "paragraph" || block.type === "heading" || block.type === "quote";
 }
 
 export type StudioCanvasProps = {
@@ -42,6 +50,41 @@ export type StudioCanvasProps = {
 
 export function StudioCanvas({ activeDocument, previewing, wordCount, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
+  const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
+
+  function setTextSelection(blockId: string, selection: TextSelection | null) {
+    textSelectionsRef.current[blockId] = selection;
+  }
+
+  function setTextAlignment(block: EditableTextBlock, align: TextAlignment) {
+    onUpdateBlock(block.id, () => ({ ...block, align }));
+  }
+
+  function formatSelectedText(block: EditableTextBlock, mark: TextMark, mode: "toggle" | "set" = "toggle") {
+    const selection = textSelectionsRef.current[block.id];
+    if (!selection || selection.start === selection.end) return;
+    const runs = block.runs?.length ? block.runs : textToRuns(block.text);
+    const nextRuns = updateTextMark(runs, selection.start, selection.end, mark, mode);
+    onUpdateBlock(block.id, () => ({ ...block, text: plainTextFromRuns(nextRuns), runs: nextRuns }));
+  }
+
+  function addLink(block: EditableTextBlock) {
+    const selection = textSelectionsRef.current[block.id];
+    if (!selection || selection.start === selection.end) {
+      onSetPublishFeedback("Select text before adding a hyperlink.");
+      return;
+    }
+    const runs = block.runs?.length ? block.runs : textToRuns(block.text);
+    const existing = linkAtTextRange(runs, selection.start, selection.end) ?? "";
+    const input = window.prompt("Link URL", existing);
+    if (input === null) return;
+    const url = safeTextLink(input);
+    if (!url) {
+      onSetPublishFeedback("Use a valid https://, mailto:, /path or #anchor URL.");
+      return;
+    }
+    formatSelectedText(block, { type: "link", url }, "set");
+  }
 
   return (
     <section className="block-editor" aria-label={`${activeDocument.kind} editor`}>
@@ -106,14 +149,22 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, showCoverI
                     <div className="canvas-block-toolbar">
                       <button className="drag-handle" type="button" draggable onClick={() => onSelectBlock(block.id)} onDragStart={(event) => { event.stopPropagation(); draggingIndexRef.current = index; onSetDragOverIndex(null); }} onDragEnd={() => { draggingIndexRef.current = null; onSetDragOverIndex(null); }} aria-label={`Drag to reorder ${blockLabel(block.type)} block`} title="Drag to reorder block">⠿</button>
                       <span>{blockLabel(block.type)}</span>
-                      <div>
+                      {isEditableTextBlock(block) ? <div className="canvas-format-actions" aria-label="Text formatting">
+                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, "left")} aria-label="Align text left" title="Align left"><AlignLeftIcon /></button>
+                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, "centre")} aria-label="Align text centre" title="Align centre"><AlignCentreIcon /></button>
+                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, "right")} aria-label="Align text right" title="Align right"><AlignRightIcon /></button>
+                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-label="Bold selected text" title="Bold"><strong>B</strong></button>
+                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "italic")} aria-label="Italicise selected text" title="Italic"><em>I</em></button>
+                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => addLink(block)} aria-label="Add hyperlink to selected text" title="Add hyperlink"><LinkIcon /></button>
+                      </div> : null}
+                      <div className="canvas-block-actions">
                         <button type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, -1); }} disabled={index === 0} aria-label="Move block up">↑</button>
                         <button type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, 1); }} disabled={index === activeDocument.blocks.length - 1} aria-label="Move block down">↓</button>
                         <button type="button" onClick={(event) => { event.stopPropagation(); onDuplicateBlock(index); }} aria-label="Duplicate block">⧉</button>
                         <button type="button" onClick={(event) => { event.stopPropagation(); onRemoveBlock(block.id); }} aria-label="Remove block">×</button>
                       </div>
                     </div>
-                    <BlockField block={block} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onChange={(next) => onUpdateBlock(block.id, () => next)} />
+                    <BlockField block={block} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTextSelection={(selection) => setTextSelection(block.id, selection)} onChange={(next) => onUpdateBlock(block.id, () => next)} />
                   </article>
                 </div>
               ))}
@@ -147,10 +198,10 @@ function BlockInserter({ inserterQuery, filteredBlocks, onSetQuery, onInsert, on
   );
 }
 
-function BlockField({ block, mediaUrl, onChange }: { block: ContentBlock; mediaUrl?: string; onChange: (block: ContentBlock) => void }) {
-  if (block.type === "paragraph") return <AutoResizeTextarea className={`block-textarea paragraph-field align-${block.align ?? "left"}`} value={block.text} onChange={(event) => onChange({ ...block, text: event.target.value })} placeholder="Start writing…" aria-label="Paragraph text" />;
-  if (block.type === "heading") return <AutoResizeTextarea className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} value={block.text} onChange={(event) => onChange({ ...block, text: event.target.value })} placeholder="Heading" aria-label="Heading text" />;
-  if (block.type === "quote") return <div className="quote-field"><AutoResizeTextarea className="block-textarea" value={block.text} onChange={(event) => onChange({ ...block, text: event.target.value })} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
+function BlockField({ block, mediaUrl, onTextSelection, onChange }: { block: ContentBlock; mediaUrl?: string; onTextSelection: (selection: TextSelection | null) => void; onChange: (block: ContentBlock) => void }) {
+  if (block.type === "paragraph") return <RichTextEditor className={`block-textarea paragraph-field align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} data-placeholder="Start writing…" aria-label="Paragraph text" />;
+  if (block.type === "heading") return <RichTextEditor className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} data-placeholder="Heading" aria-label="Heading text" />;
+  if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}`}><RichTextEditor className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
   if (block.type === "list") return <ListField block={block} onChange={onChange} />;
   if (block.type === "code") return <textarea className="block-textarea code-field" rows={5} value={block.code} onChange={(event) => onChange({ ...block, code: event.target.value })} aria-label="Code" />;
   // User-supplied URLs cannot be known to Next's image optimiser in this local editor.
@@ -159,6 +210,125 @@ function BlockField({ block, mediaUrl, onChange }: { block: ContentBlock; mediaU
   if (block.type === "embed") return <div className="embed-field"><span>↗</span><div><strong>{block.title}</strong><small>{block.url || "Add a URL in Block settings"}</small></div></div>;
   if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`}>{block.label}</span></div>;
   return <div className="divider-field"><span /></div>;
+}
+
+type RichTextEditorProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
+  text: string;
+  runs?: RichTextRun[];
+  onChange: (text: string, runs: RichTextRun[]) => void;
+  onSelectionChange: (selection: TextSelection | null) => void;
+};
+
+function RichTextEditor({ text, runs, onChange, onSelectionChange, className, ...props }: RichTextEditorProps) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const renderedRuns = runs?.length ? runs : textToRuns(text);
+
+  useLayoutEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const html = runsToEditorHtml(renderedRuns);
+    if (editor.innerHTML !== html) editor.innerHTML = html;
+  }, [renderedRuns]);
+
+  function readSelection() {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) {
+      onSelectionChange(null);
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    const start = editorOffset(editor, range.startContainer, range.startOffset);
+    const end = editorOffset(editor, range.endContainer, range.endOffset);
+    onSelectionChange(start <= end ? { start, end } : { start: end, end: start });
+  }
+
+  function handleInput() {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const nextRuns = editorToRuns(editor);
+    onChange(plainTextFromRuns(nextRuns), nextRuns);
+    readSelection();
+  }
+
+  // Prevent editing links from navigating away from the Studio.
+  return <div {...props} ref={editorRef} className={`${className ?? ""} rich-text-editor`} contentEditable role="textbox" tabIndex={0} aria-multiline="true" suppressContentEditableWarning onInput={handleInput} onSelect={readSelection} onKeyUp={readSelection} onMouseUp={readSelection} onFocus={readSelection} onClick={(event) => { if ((event.target as HTMLElement).closest("a")) event.preventDefault(); }} />;
+}
+
+function preserveTextSelection(event: ReactMouseEvent<HTMLButtonElement>) {
+  event.preventDefault();
+}
+
+function editorOffset(root: HTMLElement, container: Node, offset: number) {
+  const range = document.createRange();
+  range.selectNodeContents(root);
+  range.setEnd(container, offset);
+  return range.toString().length;
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function runsToEditorHtml(runs: RichTextRun[]) {
+  return runs.map((run) => {
+    let html = escapeHtml(run.text).replace(/\n/g, "<br>");
+    for (const mark of run.marks ?? []) {
+      if (mark === "bold") html = `<strong>${html}</strong>`;
+      else if (mark === "italic") html = `<em>${html}</em>`;
+      else {
+        const href = safeTextLink(mark.url);
+        if (href) html = `<a href="${escapeHtml(href)}">${html}</a>`;
+      }
+    }
+    return html;
+  }).join("");
+}
+
+function editorToRuns(editor: HTMLElement) {
+  const runs: RichTextRun[] = [];
+  function visit(node: Node, inheritedMarks: TextMark[]) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      if (node.textContent) runs.push({ text: node.textContent, marks: inheritedMarks.length ? inheritedMarks : undefined });
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const element = node as HTMLElement;
+    if (element.tagName === "BR") {
+      runs.push({ text: "\n" });
+      return;
+    }
+    const marks = [...inheritedMarks];
+    if (element.tagName === "STRONG" || element.tagName === "B") marks.push("bold");
+    if (element.tagName === "EM" || element.tagName === "I") marks.push("italic");
+    if (element.tagName === "A") {
+      const href = safeTextLink(element.getAttribute("href") ?? "");
+      if (href) marks.push({ type: "link", url: href });
+    }
+    element.childNodes.forEach((child) => visit(child, marks));
+    if (element.tagName === "DIV" || element.tagName === "P") runs.push({ text: "\n" });
+  }
+  editor.childNodes.forEach((node) => visit(node, []));
+  const nextRuns = normaliseTextRuns(runs);
+  const last = nextRuns[nextRuns.length - 1];
+  if (last?.text.endsWith("\n")) last.text = last.text.slice(0, -1);
+  return normaliseTextRuns(nextRuns);
+}
+
+function AlignLeftIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M3 4h14M3 8h10M3 12h14M3 16h10" /></svg>;
+}
+
+function AlignCentreIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M3 4h14M5 8h10M3 12h14M5 16h10" /></svg>;
+}
+
+function AlignRightIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M3 4h14M7 8h10M3 12h14M7 16h10" /></svg>;
+}
+
+function LinkIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="m8 12 4-4M6.5 14.5l-1 1a3 3 0 0 1-4-4l2-2a3 3 0 0 1 4-0.2M13.5 5.5l1-1a3 3 0 0 1 4 4l-2 2a3 3 0 0 1-4 .2" /></svg>;
 }
 
 function AutoResizeTextarea({ value, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {

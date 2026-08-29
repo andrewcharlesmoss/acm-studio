@@ -1,11 +1,13 @@
 export type ProjectStatus = "Active" | "Exploring" | "Available" | "Prototype";
 
 export type TextAlignment = "left" | "centre" | "right";
+export type TextMark = "bold" | "italic" | { type: "link"; url: string };
+export type RichTextRun = { text: string; marks?: TextMark[] };
 
 export type ContentBlock =
-  | { id: string; type: "paragraph"; text: string; align?: TextAlignment }
-  | { id: string; type: "heading"; level: 2 | 3; text: string; align?: TextAlignment }
-  | { id: string; type: "quote"; text: string; attribution?: string }
+  | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment }
+  | { id: string; type: "heading"; level: 2 | 3; text: string; runs?: RichTextRun[]; align?: TextAlignment }
+  | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; attribution?: string; align?: TextAlignment }
   | { id: string; type: "list"; style: "ordered" | "unordered"; items: string[] }
   | { id: string; type: "code"; language?: string; code: string }
   | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean }

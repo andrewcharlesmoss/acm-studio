@@ -1,51 +1,47 @@
-# ACM publishing foundation
+# ACM Studio
 
-A local, database-free and login-free foundation for the future Andrew Charles
-Moss publishing system.
+ACM Studio is ACM's local editorial management and publishing workspace. It is
+the control plane for structured content, media, drafts, previews and future
+publishing contracts across ACM projects.
 
-The public site places projects at the top of the hierarchy and preserves
-writing as a connected archive. The Studio route provides a Gutenberg-style
-editor for pages and posts, with structured blocks, local autosave, preview and
-portable JSON export. It does not claim to be a production publishing system.
+The separate `andrew-moss` project owns Andrew Moss's public personal
+presentation layer. ACM Studio does not replace that site; it prepares and
+manages the content that future ACM sites may consume through explicit
+contracts.
 
 ## Included
 
-- Project-led homepage and index
-- Individual project routes
-- Writing archive and article routes
-- Typed, portable content records
-- Structured, provider-independent content blocks
+- Gutenberg-style editing for pages and posts
+- Typed, portable content records and structured content blocks
 - Page and post library with create, duplicate and delete actions
-- Searchable nine-block inserter and reorderable editing canvas
+- Searchable block inserter and reorderable editing canvas
 - Document settings, block settings, undo/redo and preview
-- Local autosave and individual or workspace JSON export
+- Browser-local autosave, local publication and update workflows
 - Integrated local file manager with uploads, folders, search and file details
-- Managed image insertion using stable media references
-- Explicit local publish, update and unpublish workflow for posts
-- Browser-local posts in the Writing archive with working public-style URLs
-- Complete backup download containing drafts, publications, folders and files
-- Checked restore preview with explicit replacement confirmation and rollback
-- Responsive ACM presentation using `Inter, sans-serif`
+- Stable media references for managed images
+- Complete browser-local backup and checked restore workflow
+- Local preview and writing routes for testing published snapshots
 
 ## Deliberately excluded
 
 - Hosted database and object storage
 - Login, accounts and permissions
 - Production publishing and deployment
+- Ownership of the Andrew Moss public website
 - WordPress migration
 - Plugins, themes, comments and newsletters
 
-Studio files are stored as real blobs in this browser using IndexedDB. They are
-device-local working files, not backups or securely published media.
-Published posts use a separate browser snapshot, so editing an existing post
-does not change its public version until **Update** is selected.
-The Backup workspace creates a single JSON recovery file. Because it contains
-the actual media data as well as private drafts, it should be stored securely.
+Studio files are stored as blobs in this browser using IndexedDB. They are
+device-local working files, not backups or securely published media. The Backup
+workspace creates a JSON recovery file containing private drafts and original
+media and should therefore be stored securely.
 
-The scope and next decision gate are recorded in
+The architecture and next decision gate are recorded in
 [`docs/FOUNDATION.md`](docs/FOUNDATION.md).
 
 ## Local checks
+
+Run these commands from `/Users/andrewmoss/Documents/Codex/_Projects/acm-studio`:
 
 ```bash
 npm run dev
@@ -53,3 +49,9 @@ npm run build
 npm test
 npm run lint
 ```
+
+## Documentation
+
+- [`AGENTS.md`](AGENTS.md) — project scope, boundaries and verification
+- [`CHANGELOG.md`](CHANGELOG.md) — notable project changes
+- [`docs/FOUNDATION.md`](docs/FOUNDATION.md) — architecture and local limits

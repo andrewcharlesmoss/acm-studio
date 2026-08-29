@@ -18,6 +18,8 @@
   .media-entries.is-grid { grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); }
   .backup-grid { grid-template-columns: 1fr; }
   .backup-panel { min-height: 480px; }
+  .dashboard-site-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-intro, .dashboard-section-heading, .dashboard-boundary { gap: 28px; grid-template-columns: 1fr; }
 }
 
 @media (max-width: 680px) {
@@ -63,7 +65,7 @@
   .block-editor { border-right: 0; min-height: calc(100dvh - 101px); }
   .editor-canvas-scroll { padding: 14px 12px 50px; }
   .block-canvas, .document-preview { min-height: calc(100dvh - 190px); padding: 38px 25px; }
-  .canvas-block-toolbar { opacity: 1; position: static; transform: none; width: max-content; }
+  .canvas-block-toolbar { flex-wrap: wrap; opacity: 1; position: static; transform: none; width: max-content; }
   .canvas-block { margin-bottom: 0; }
   .between-blocks { display: none; }
   .inserter-backdrop { padding: 62px 10px 10px; position: fixed; }
@@ -86,6 +88,15 @@
   .backup-panel { min-height: 0; padding: 18px; }
   .backup-primary-action { margin-top: 28px; }
   .backup-summary { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-main { padding: 0 18px 52px; }
+  .dashboard-intro { padding: 62px 0 52px; }
+  .dashboard-intro h1 { font-size: clamp(45px, 14vw, 68px); }
+  .dashboard-section { padding: 54px 0; }
+  .dashboard-section-heading { margin-bottom: 26px; }
+  .dashboard-site-grid, .dashboard-tool-grid { grid-template-columns: 1fr; }
+  .dashboard-site-card { min-height: 210px; }
+  .dashboard-boundary { padding-top: 54px; }
+  .dashboard-shell .studio-header .studio-actions .button-secondary { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

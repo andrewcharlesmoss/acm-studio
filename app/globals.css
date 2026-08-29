@@ -10,7 +10,7 @@
   --accent: #3158c9;
   --accent-soft: #dfe6fa;
   --green: #0e7c66;
-  --font-sans: Inter, sans-serif;
+  --font-sans: Inter, "Helvetica Neue", "Helvetica", "Arial", sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --max-width: 1240px;
 }

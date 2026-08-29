@@ -15,14 +15,17 @@ async function render(pathname = "/") {
   );
 }
 
-test("renders the project-led ACM homepage", async () => {
+test("renders the ACM Studio control centre at the root route", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /<title>Andrew Charles Moss<\/title>/i);
-  assert.match(html, /Projects with a purpose/);
-  assert.match(html, /Writing archive/);
-  assert.match(html, /href="\/studio"[^>]*>Studio/);
+  assert.match(html, /<title>ACM Studio — Andrew Charles Moss<\/title>/i);
+  assert.match(html, /Everything underneath one roof/);
+  assert.match(html, /Your sites/);
+  assert.match(html, /Andrew Moss/);
+  assert.match(html, /Content Studio/);
+  assert.match(html, /Integration boundary to define/);
+  assert.doesNotMatch(html, /Projects with a purpose/);
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|react-loading-skeleton/i);
 });
 
@@ -88,7 +91,10 @@ test("keeps hosted database, login and starter-preview surfaces out of the found
     readFile(new URL("app/writing/[slug]/local-article-page.tsx", root), "utf8"),
   ]);
 
-  assert.deepEqual(JSON.parse(hosting), { d1: null, r2: null });
+  const hostingConfig = JSON.parse(hosting);
+  assert.equal(hostingConfig.d1, null);
+  assert.equal(hostingConfig.r2, null);
+  assert.equal(typeof hostingConfig.project_id, "string");
   assert.doesNotMatch(packageJson, /drizzle|react-loading-skeleton|db:generate/);
   assert.match(model, /type Project/);
   assert.match(model, /type Article/);

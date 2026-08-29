@@ -1,4 +1,6 @@
-import type { Article, ContentBlock, Project } from "../content/model";
+import { Fragment, type ReactNode } from "react";
+import { safeTextLink, textToRuns } from "../content/rich-text";
+import type { Article, ContentBlock, Project, RichTextRun, TextMark } from "../content/model";
 
 export function StatusPill({ status }: { status: Project["status"] }) {
   return <span className={`status-pill status-${status.toLowerCase()}`}>{status}</span>;
@@ -43,16 +45,16 @@ export function BlockRenderer({ blocks, mediaUrls = {} }: { blocks: ContentBlock
   return (
     <div className="prose">
       {blocks.map((block) => {
-        if (block.type === "paragraph") return <p className={`align-${block.align ?? "left"}`} key={block.id}>{block.text}</p>;
+        if (block.type === "paragraph") return <p className={`align-${block.align ?? "left"}`} key={block.id}>{renderText(block.text, block.runs)}</p>;
         if (block.type === "heading") {
           return block.level === 2
-            ? <h2 className={`align-${block.align ?? "left"}`} key={block.id}>{block.text}</h2>
-            : <h3 className={`align-${block.align ?? "left"}`} key={block.id}>{block.text}</h3>;
+            ? <h2 className={`align-${block.align ?? "left"}`} key={block.id}>{renderText(block.text, block.runs)}</h2>
+            : <h3 className={`align-${block.align ?? "left"}`} key={block.id}>{renderText(block.text, block.runs)}</h3>;
         }
         if (block.type === "quote") {
           return (
-            <figure className="pull-quote" key={block.id}>
-              <blockquote>{block.text}</blockquote>
+            <figure className={`pull-quote align-${block.align ?? "left"}`} key={block.id}>
+              <blockquote>{renderText(block.text, block.runs)}</blockquote>
               {block.attribution ? <figcaption>— {block.attribution}</figcaption> : null}
             </figure>
           );
@@ -94,4 +96,19 @@ export function BlockRenderer({ blocks, mediaUrls = {} }: { blocks: ContentBlock
       })}
     </div>
   );
+}
+
+function renderText(text: string, runs?: RichTextRun[]) {
+  return (runs?.length ? runs : textToRuns(text)).map((run, index) => {
+    let content: ReactNode = run.text;
+    for (const mark of run.marks ?? []) content = renderMark(content, mark);
+    return <Fragment key={`${index}-${run.text}`}>{content}</Fragment>;
+  });
+}
+
+function renderMark(content: ReactNode, mark: TextMark): ReactNode {
+  if (mark === "bold") return <strong>{content}</strong>;
+  if (mark === "italic") return <em>{content}</em>;
+  const href = safeTextLink(mark.url);
+  return href ? <a href={href}>{content}</a> : content;
 }

@@ -1,19 +1,22 @@
-# Andrew Charles Moss web foundation
+# ACM Studio project instructions
 
-## Purpose
+## Purpose and ownership
 
-This repository is the foundation for the Andrew Charles Moss website and its
-future publishing system. The public site presents Andrew as the parent identity,
-with projects first and writing retained as a durable archive.
+ACM Studio is ACM's editorial management and publishing workspace. It owns the
+Gutenberg-style editor, structured content contracts, browser-local files,
+drafts, previews and publishing workflow used by Andrew Moss and future ACM
+projects.
+
+The public personal presentation layer belongs to the separate
+`andrew-moss` project. ACM Studio may render local previews and provide
+portable publishing data, but it does not own the Andrew Moss public site.
 
 ## Shared standards
 
-- Use British English in visible copy and documentation.
-- Put a space either side of an em dash — like this.
-- Use `Inter, sans-serif` as the default typeface.
-- Prefer semantic HTML, keyboard-accessible controls and visible focus states.
-- Keep layouts restrained, readable and responsive rather than ornamental.
-- Treat rendered browser behaviour as the evidence for visual changes.
+This project inherits the workspace `AGENTS.md` and `STYLE_GUIDE.md` baselines.
+Use the shared default font stack, semantic HTML, keyboard-accessible controls,
+visible focus states and restrained responsive layouts. Treat rendered browser
+behaviour as the evidence for visual changes.
 
 ## Foundation boundary
 
@@ -36,10 +39,15 @@ with projects first and writing retained as a durable archive.
   contracts rather than coupling them to the content model.
 - Use stable slugs and make missing records fail clearly.
 
+## Commands
+
+- Run `npm run dev`, `npm run build`, `npm test` and `npm run lint` from the
+  repository root.
+
 ## Verification
 
 - Run the production build and focused tests for every material change.
-- Check representative public and detail routes.
-- Verify the Studio's local edit, preview and export flows in a real browser
-  before treating them as complete.
+- Check representative Studio, preview and detail routes.
+- Verify local editing, selection, reordering, file management, preview and
+  export flows in a real browser before treating visual work as complete.
 - Report anything not tested or intentionally deferred.

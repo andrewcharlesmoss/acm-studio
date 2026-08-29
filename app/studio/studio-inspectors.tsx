@@ -74,11 +74,12 @@ function DocumentInspector({ document, pages, onChange, onPublish, onUnpublish, 
 }
 
 function BlockInspector({ block, onChange, onOpenFiles }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onOpenFiles: () => void }) {
-  const alignment = block.type === "paragraph" || block.type === "heading" ? block.align ?? "left" : null;
+  const alignedBlock = block.type === "paragraph" || block.type === "heading" ? block : null;
+  const alignment = alignedBlock?.align ?? null;
   return (
     <div className="inspector-sections">
       <section><h2>{blockLabel(block.type)} block</h2><p className="setting-note">Changes apply to the selected block.</p></section>
-      {alignment ? <section><h2>Text</h2><label><span>Alignment</span><select value={alignment} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label>{block.type === "heading" ? <label><span>Level</span><select value={block.level} onChange={(event) => onChange({ ...block, level: Number(event.target.value) as 2 | 3 })}><option value={2}>Heading 2</option><option value={3}>Heading 3</option></select></label> : null}</section> : null}
+      {alignedBlock ? <section><h2>Text</h2><label><span>Alignment</span><select value={alignment ?? "left"} onChange={(event) => onChange({ ...alignedBlock, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label>{alignedBlock.type === "heading" ? <label><span>Level</span><select value={alignedBlock.level} onChange={(event) => onChange({ ...alignedBlock, level: Number(event.target.value) as 2 | 3 })}><option value={2}>Heading 2</option><option value={3}>Heading 3</option></select></label> : null}</section> : null}
       {block.type === "quote" ? <section><h2>Quote</h2><label><span>Attribution</span><input value={block.attribution ?? ""} onChange={(event) => onChange({ ...block, attribution: event.target.value })} placeholder="Optional name" /></label></section> : null}
       {block.type === "list" ? <section><h2>List</h2><label><span>Style</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "ordered" | "unordered" })}><option value="unordered">Bullets</option><option value="ordered">Numbers</option></select></label><p className="setting-note">Edit each item directly in the canvas.</p></section> : null}
       {block.type === "code" ? <section><h2>Code</h2><label><span>Language</span><input value={block.language ?? ""} onChange={(event) => onChange({ ...block, language: event.target.value })} placeholder="javascript" /></label></section> : null}
