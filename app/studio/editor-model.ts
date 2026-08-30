@@ -44,6 +44,7 @@ export const blockCatalogue: Array<{
   { type: "heading", label: "Heading", description: "Introduce a new section.", group: "Text", glyph: "H" },
   { type: "list", label: "List", description: "Create an ordered or bullet list.", group: "Text", glyph: "≡" },
   { type: "quote", label: "Quote", description: "Emphasise a quotation.", group: "Text", glyph: "“" },
+  { type: "table", label: "Table", description: "Create structured content in rows and columns.", group: "Text", glyph: "▦" },
   { type: "code", label: "Code", description: "Display code or a formula.", group: "Text", glyph: "‹›" },
   { type: "image", label: "Image", description: "Add an image by URL for now.", group: "Media", glyph: "▧" },
   { type: "embed", label: "Embed", description: "Link to an external resource.", group: "Media", glyph: "↗" },
@@ -127,7 +128,8 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "heading") return { id, type, level: 2, text: "A new section" };
   if (type === "quote") return { id, type, text: "A useful thought worth emphasising." };
   if (type === "list") return { id, type, style: "unordered", items: ["First item", "Second item"] };
-  if (type === "code") return { id, type, language: "text", code: "Add code here" };
+  if (type === "table") return { id, type, rows: [["", "", ""], ["", "", ""]] };
+  if (type === "code") return { id, type, language: "text", code: "" };
   if (type === "image") return { id, type, src: "", alt: "", caption: "" };
   if (type === "embed") return { id, type, url: "", title: "External resource" };
   if (type === "button") return { id, type, label: "Learn more", url: "#", style: "primary" };

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   addDocumentToWorkspace,
@@ -25,6 +26,29 @@ test("block commands preserve order while inserting, moving, duplicating and rem
   const duplicated = duplicateBlockAt(moved, 1, (type) => `${type}-copy`);
   assert.deepEqual(duplicated.blocks.map((block) => block.id), ["b", "a", "paragraph-copy", "c"]);
   assert.deepEqual(removeBlockById(duplicated, "a").blocks.map((block) => block.id), ["b", "paragraph-copy", "c"]);
+});
+
+test("new code blocks start empty for the editor placeholder", async () => {
+  const source = await readFile(new URL("../app/studio/editor-model.ts", import.meta.url), "utf8");
+  assert.match(source, /if \(type === "code"\) return \{ id, type, language: "text", code: "" \};/);
+});
+
+test("new table blocks start with an editable two-row grid", async () => {
+  const source = await readFile(new URL("../app/studio/editor-model.ts", import.meta.url), "utf8");
+  assert.match(source, /if \(type === "table"\) return \{ id, type, rows: \[\["", "", ""\], \["", "", ""\]\] \};/);
+});
+
+test("table editing exposes row and column actions from the toolbar menu", async () => {
+  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(source, /aria-label="Table options"/);
+  assert.match(source, /Insert row before/);
+  assert.match(source, /Delete column/);
+});
+
+test("the block appender exposes Gutenberg's slash prompt and add control", async () => {
+  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(source, /placeholder="Type \/ to choose a block"/);
+  assert.match(source, /aria-label="Add block"/);
 });
 
 test("document commands add, duplicate and delete documents without losing the active selection", () => {

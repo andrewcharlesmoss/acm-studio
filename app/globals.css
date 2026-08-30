@@ -12,6 +12,8 @@
   --green: #0e7c66;
   --font-sans: Inter, "Helvetica Neue", "Helvetica", "Arial", sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --studio-ui-font: -apple-system, system-ui, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --studio-ui-size: 13px;
   --max-width: 1240px;
 }
 
@@ -591,6 +593,9 @@ button, input, textarea, select { font: inherit; }
 .prose h6 { font-size: 18px; margin: 1.4em 0 0.45em; }
 .prose ul, .prose ol { margin: 0 0 1.8em; padding-left: 1.3em; }
 .prose li { margin-bottom: 0.5em; padding-left: 0.35em; }
+.content-table { font-size: .88em; line-height: 1.45; margin: 1.8em 0; }
+.content-table th, .content-table td { padding: .65em .75em; }
+.content-table th { background: #f0f1f2; font-weight: 650; }
 
 .pull-quote {
   border-bottom: 1px solid var(--line);

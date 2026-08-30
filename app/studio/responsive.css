@@ -12,7 +12,7 @@
   .studio-header { grid-template-columns: 210px minmax(120px, 1fr) auto; }
   .studio-state { display: none; }
   .studio-workspace { grid-template-columns: 210px minmax(0, 1fr) 270px; }
-  .studio-breadcrumbs { font-size: 11px; }
+  .studio-breadcrumbs { font-size: var(--studio-ui-size); }
   .block-canvas, .document-preview { padding: 44px 36px; }
   .media-body { grid-template-columns: minmax(0, 1fr) 240px; }
   .media-entries.is-grid { grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); }

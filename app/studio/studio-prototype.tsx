@@ -138,6 +138,7 @@ export function StudioPrototype() {
     setInspectorTab("block");
     setShowInserter(false);
     setInserterQuery("");
+    return block;
   }
 
   function duplicateBlock(blockIndex: number) {
@@ -151,8 +152,9 @@ export function StudioPrototype() {
     setInspectorTab("document");
   }
 
-  function openInserter(afterIndex: number | null) {
+  function openInserter(afterIndex: number | null, query = "") {
     setInsertAfterIndex(afterIndex);
+    setInserterQuery(query);
     setShowInserter(true);
   }
 
@@ -255,6 +257,7 @@ export function StudioPrototype() {
             onOpenCoverMediaLibrary={openCoverMediaLibrary}
             onRemoveCoverImage={media.removeCoverImage}
             onSelectBlock={(blockId) => { setSelectedBlockId(blockId); setInspectorTab("block"); }}
+            onClearBlockSelection={() => { setSelectedBlockId(null); setInspectorTab("document"); }}
             onSetDragOverIndex={setDragOverIndex}
             onMoveBlockTo={blockCommands.moveBlockTo}
             onMoveBlock={blockCommands.moveBlock}

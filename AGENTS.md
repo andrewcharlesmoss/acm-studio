@@ -18,6 +18,22 @@ Use the shared default font stack, semantic HTML, keyboard-accessible controls,
 visible focus states and restrained responsive layouts. Treat rendered browser
 behaviour as the evidence for visual changes.
 
+For editor interactions and visible controls, use WordPress Gutenberg's
+established behaviour and visual language as the default foundation. Adapt it
+to ACM Studio's content model where necessary, but do not invent a wholly new
+editor style unless there is an explicit product decision to do so.
+
+The table-action dropdown deliberately uses Gutenberg's system UI font stack
+and measured compact menu dimensions instead of the shared Inter baseline.
+Its upstream SVG provenance and licence are recorded in
+`docs/third-party/gutenberg.md`. Check that record before distributing these
+assets; do not redraw the icons or infer CSS sizes from Retina screenshots.
+
+Studio interface text uses Gutenberg's 13px system UI baseline through
+`--studio-ui-font` and `--studio-ui-size`. Do not introduce interface text
+smaller than that token: use hierarchy, weight, colour and spacing instead.
+Article and block content may retain their content-specific typography.
+
 ## Foundation boundary
 
 - This phase is deliberately database-free and login-free.

@@ -10,6 +10,7 @@ export type ContentBlock =
   | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment }
   | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; attribution?: string; align?: TextAlignment }
   | { id: string; type: "list"; style: "ordered" | "unordered"; items: string[] }
+  | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean }
   | { id: string; type: "code"; language?: string; code: string }
   | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean }
   | { id: string; type: "embed"; url: string; title: string }

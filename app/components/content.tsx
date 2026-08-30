@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeTextLink, textToRuns } from "../content/rich-text";
 import type { Article, ContentBlock, HeadingLevel, Project, RichTextRun, TextMark } from "../content/model";
 
@@ -63,8 +64,10 @@ export function BlockRenderer({ blocks, mediaUrls = {} }: { blocks: ContentBlock
             ? <ol key={block.id}>{items}</ol>
             : <ul key={block.id}>{items}</ul>;
         }
+        if (block.type === "table") return <ContentTable block={block} key={block.id} />;
         if (block.type === "code") {
-          return <pre key={block.id}><code>{block.code}</code></pre>;
+          const highlighted = highlightCode(block.code, block.language);
+          return <pre key={block.id} data-language={highlighted.language}><code dangerouslySetInnerHTML={{ __html: highlighted.html }} /></pre>;
         }
         if (block.type === "image") {
           const imageSource = block.mediaId ? mediaUrls[block.mediaId] : block.src;
@@ -93,6 +96,25 @@ export function BlockRenderer({ blocks, mediaUrls = {} }: { blocks: ContentBlock
         return <hr className="content-divider" key={block.id} />;
       })}
     </div>
+  );
+}
+
+function ContentTable({ block }: { block: Extract<ContentBlock, { type: "table" }> }) {
+  const rows = block.rows.length ? block.rows : [[""]];
+  const columnCount = Math.max(1, ...rows.map((row) => row.length));
+  const normalisedRows = rows.map((row) => Array.from({ length: columnCount }, (_, index) => row[index] ?? ""));
+  const headerRows = block.hasHeader ? normalisedRows.slice(0, 1) : [];
+  const hasFooterRow = Boolean(block.hasFooter && normalisedRows.length > (block.hasHeader ? 1 : 0));
+  const footerRows = hasFooterRow ? normalisedRows.slice(-1) : [];
+  const bodyStart = block.hasHeader ? 1 : 0;
+  const bodyEnd = hasFooterRow ? Math.max(bodyStart, normalisedRows.length - 1) : normalisedRows.length;
+
+  return (
+    <table className="content-table">
+      {headerRows.length ? <thead>{headerRows.map((row, rowIndex) => <tr key={`header-${rowIndex}`}>{row.map((cell, cellIndex) => <th key={`header-${rowIndex}-${cellIndex}`} scope="col">{cell}</th>)}</tr>)}</thead> : null}
+      <tbody>{normalisedRows.slice(bodyStart, bodyEnd).map((row, rowIndex) => <tr key={`body-${rowIndex}`}>{row.map((cell, cellIndex) => <td key={`body-${rowIndex}-${cellIndex}`}>{cell}</td>)}</tr>)}</tbody>
+      {footerRows.length ? <tfoot>{footerRows.map((row, rowIndex) => <tr key={`footer-${rowIndex}`}>{row.map((cell, cellIndex) => <td key={`footer-${rowIndex}-${cellIndex}`}>{cell}</td>)}</tr>)}</tfoot> : null}
+    </table>
   );
 }
 
