@@ -65,7 +65,7 @@
   .block-editor { border-right: 0; min-height: calc(100dvh - 101px); }
   .editor-canvas-scroll { padding: 14px 12px 50px; }
   .block-canvas, .document-preview { min-height: calc(100dvh - 190px); padding: 38px 25px; }
-  .canvas-block-toolbar { flex-wrap: wrap; opacity: 1; position: static; transform: none; width: max-content; }
+  .canvas-block-toolbar { flex-wrap: wrap; width: max-content; }
   .canvas-block { margin-bottom: 0; }
   .between-blocks { display: none; }
   .inserter-backdrop { padding: 62px 10px 10px; position: fixed; }

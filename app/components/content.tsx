@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import { safeTextLink, textToRuns } from "../content/rich-text";
-import type { Article, ContentBlock, Project, RichTextRun, TextMark } from "../content/model";
+import type { Article, ContentBlock, HeadingLevel, Project, RichTextRun, TextMark } from "../content/model";
 
 export function StatusPill({ status }: { status: Project["status"] }) {
   return <span className={`status-pill status-${status.toLowerCase()}`}>{status}</span>;
@@ -47,9 +47,7 @@ export function BlockRenderer({ blocks, mediaUrls = {} }: { blocks: ContentBlock
       {blocks.map((block) => {
         if (block.type === "paragraph") return <p className={`align-${block.align ?? "left"}`} key={block.id}>{renderText(block.text, block.runs)}</p>;
         if (block.type === "heading") {
-          return block.level === 2
-            ? <h2 className={`align-${block.align ?? "left"}`} key={block.id}>{renderText(block.text, block.runs)}</h2>
-            : <h3 className={`align-${block.align ?? "left"}`} key={block.id}>{renderText(block.text, block.runs)}</h3>;
+          return renderHeading(block.level, `align-${block.align ?? "left"}`, block.id, renderText(block.text, block.runs));
         }
         if (block.type === "quote") {
           return (
@@ -96,6 +94,15 @@ export function BlockRenderer({ blocks, mediaUrls = {} }: { blocks: ContentBlock
       })}
     </div>
   );
+}
+
+function renderHeading(level: HeadingLevel, className: string, key: string, content: ReactNode) {
+  if (level === 1) return <h1 className={className} key={key}>{content}</h1>;
+  if (level === 2) return <h2 className={className} key={key}>{content}</h2>;
+  if (level === 3) return <h3 className={className} key={key}>{content}</h3>;
+  if (level === 4) return <h4 className={className} key={key}>{content}</h4>;
+  if (level === 5) return <h5 className={className} key={key}>{content}</h5>;
+  return <h6 className={className} key={key}>{content}</h6>;
 }
 
 function renderText(text: string, runs?: RichTextRun[]) {

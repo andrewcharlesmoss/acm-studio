@@ -77,6 +77,10 @@ export function StudioPrototype() {
     if (!activeDocument) return 0;
     return activeDocument.blocks.flatMap(blockText).join(" ").trim().split(/\s+/).filter(Boolean).length;
   }, [activeDocument]);
+  const characterCount = useMemo(() => {
+    if (!activeDocument) return 0;
+    return activeDocument.blocks.flatMap(blockText).join(" ").length;
+  }, [activeDocument]);
 
   const filteredBlocks = useMemo(() => {
     const query = inserterQuery.trim().toLowerCase();
@@ -233,6 +237,8 @@ export function StudioPrototype() {
             activeDocument={activeDocument}
             previewing={previewing}
             wordCount={wordCount}
+            characterCount={characterCount}
+            linkTargets={workspace.documents.map((document) => ({ id: document.id, title: document.title, href: document.kind === "page" ? `/${document.slug}` : `/writing/${document.publishedSlug ?? document.slug}`, kind: document.kind }))}
             showCoverImage={showCoverImage}
             coverImageUrl={media.coverImageUrl}
             mediaBlockUrls={media.blockUrls}

@@ -571,6 +571,8 @@ button, input, textarea, select { font: inherit; }
 .article-context strong, .article-context a { font-weight: 650; }
 
 .prose { font-size: 19px; line-height: 1.75; }
+.prose a { color: #2f6eb4; text-decoration-line: underline; text-decoration-thickness: .08em; text-underline-offset: .12em; }
+.prose a:hover { color: #1f4f88; }
 .prose > :first-child { margin-top: 0; }
 .prose p { margin: 0 0 1.5em; }
 
@@ -582,7 +584,11 @@ button, input, textarea, select { font: inherit; }
   margin: 1.8em 0 0.65em;
 }
 
+.prose h1 { font-size: 48px; font-weight: 590; letter-spacing: -0.05em; line-height: 1.05; margin: 1.8em 0 0.65em; }
 .prose h3 { font-size: 28px; letter-spacing: -0.03em; margin: 1.7em 0 0.6em; }
+.prose h4 { font-size: 24px; margin: 1.6em 0 0.55em; }
+.prose h5 { font-size: 21px; margin: 1.5em 0 0.5em; }
+.prose h6 { font-size: 18px; margin: 1.4em 0 0.45em; }
 .prose ul, .prose ol { margin: 0 0 1.8em; padding-left: 1.3em; }
 .prose li { margin-bottom: 0.5em; padding-left: 0.35em; }
 
@@ -604,15 +610,19 @@ button, input, textarea, select { font: inherit; }
 .pull-quote figcaption { color: var(--muted); font-size: 13px; margin-top: 16px; }
 
 .prose pre {
-  background: #1d2024;
-  border-radius: 14px;
-  color: #f4f1e7;
-  font-family: var(--font-mono);
-  font-size: 14px;
-  line-height: 1.7;
-  overflow-x: auto;
-  padding: 24px;
+  background: #e9e9e9;
+  border-radius: 0;
+  color: #2d3748;
+  font-family: "Courier 10 Pitch", Courier, monospace;
+  font-size: 15px;
+  line-height: 24px;
+  overflow: auto;
+  padding: 22.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
+
+.prose pre code { font: inherit; white-space: inherit; }
 
 .article-image img { border-radius: 16px; display: block; max-width: 100%; }
 .article-image figcaption { color: var(--muted); font-size: 12px; margin-top: 8px; }

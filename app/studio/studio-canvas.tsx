@@ -1,9 +1,9 @@
 "use client";
 
-import { useLayoutEffect, useRef, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type TextareaHTMLAttributes } from "react";
+import { useLayoutEffect, useRef, useState, type FormEvent, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type TextareaHTMLAttributes } from "react";
 import { BlockRenderer } from "../components/content";
 import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
-import type { ContentBlock, RichTextRun, TextAlignment, TextMark } from "../content/model";
+import type { ContentBlock, HeadingLevel, RichTextRun, TextAlignment, TextMark } from "../content/model";
 import type { StudioDocument, InsertableBlockType } from "./editor-model";
 
 function blockLabel(type: ContentBlock["type"]) {
@@ -12,6 +12,8 @@ function blockLabel(type: ContentBlock["type"]) {
 
 type TextSelection = { start: number; end: number };
 type EditableTextBlock = Extract<ContentBlock, { type: "paragraph" | "heading" | "quote" }>;
+type LinkTarget = { id: string; title: string; href: string; kind: "page" | "post" };
+type LinkEditorState = { blockId: string; url: string; selection: TextSelection | null; existingUrl: string | null };
 
 function isEditableTextBlock(block: ContentBlock): block is EditableTextBlock {
   return block.type === "paragraph" || block.type === "heading" || block.type === "quote";
@@ -21,6 +23,8 @@ export type StudioCanvasProps = {
   activeDocument: StudioDocument;
   previewing: boolean;
   wordCount: number;
+  characterCount: number;
+  linkTargets: LinkTarget[];
   showCoverImage: boolean;
   coverImageUrl?: string;
   mediaBlockUrls: Record<string, string>;
@@ -48,48 +52,87 @@ export type StudioCanvasProps = {
   onSetInserterQuery: (query: string) => void;
 };
 
-export function StudioCanvas({ activeDocument, previewing, wordCount, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+export function StudioCanvas({ activeDocument, previewing, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
+  const linkInputRef = useRef<HTMLInputElement>(null);
+  const [linkEditor, setLinkEditor] = useState<LinkEditorState | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [headingMenuBlockId, setHeadingMenuBlockId] = useState<string | null>(null);
+
+  useLayoutEffect(() => {
+    if (linkEditor) linkInputRef.current?.focus();
+  }, [linkEditor]);
 
   function setTextSelection(blockId: string, selection: TextSelection | null) {
-    textSelectionsRef.current[blockId] = selection;
+    // Keep the last range when focus briefly moves to the formatting toolbar.
+    if (selection) textSelectionsRef.current[blockId] = selection;
+  }
+
+  function currentTextSelection(blockId: string) {
+    const editor = [...document.querySelectorAll<HTMLElement>("[data-studio-block-id]")].find((element) => element.dataset.studioBlockId === blockId);
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return textSelectionsRef.current[blockId];
+    const range = selection.getRangeAt(0);
+    const start = editorOffset(editor, range.startContainer, range.startOffset);
+    const end = editorOffset(editor, range.endContainer, range.endOffset);
+    const nextSelection = start <= end ? { start, end } : { start: end, end: start };
+    textSelectionsRef.current[blockId] = nextSelection;
+    return nextSelection;
   }
 
   function setTextAlignment(block: EditableTextBlock, align: TextAlignment) {
     onUpdateBlock(block.id, () => ({ ...block, align }));
   }
 
-  function formatSelectedText(block: EditableTextBlock, mark: TextMark, mode: "toggle" | "set" = "toggle") {
-    const selection = textSelectionsRef.current[block.id];
+  function formatSelectedText(block: EditableTextBlock, mark: TextMark, mode: "toggle" | "set" | "remove" = "toggle", selection = textSelectionsRef.current[block.id]) {
     if (!selection || selection.start === selection.end) return;
     const runs = block.runs?.length ? block.runs : textToRuns(block.text);
     const nextRuns = updateTextMark(runs, selection.start, selection.end, mark, mode);
     onUpdateBlock(block.id, () => ({ ...block, text: plainTextFromRuns(nextRuns), runs: nextRuns }));
   }
 
-  function addLink(block: EditableTextBlock) {
-    const selection = textSelectionsRef.current[block.id];
-    if (!selection || selection.start === selection.end) {
-      onSetPublishFeedback("Select text before adding a hyperlink.");
-      return;
-    }
+  function openLinkEditor(block: EditableTextBlock) {
+    const selection = currentTextSelection(block.id);
     const runs = block.runs?.length ? block.runs : textToRuns(block.text);
-    const existing = linkAtTextRange(runs, selection.start, selection.end) ?? "";
-    const input = window.prompt("Link URL", existing);
-    if (input === null) return;
-    const url = safeTextLink(input);
-    if (!url) {
-      onSetPublishFeedback("Use a valid https://, mailto:, /path or #anchor URL.");
+    const hasSelection = Boolean(selection && selection.start !== selection.end);
+    const existing = hasSelection && selection ? linkAtTextRange(runs, selection.start, selection.end) ?? "" : "";
+    setLinkError(hasSelection ? null : "Select the text you want to link, then choose or enter its destination.");
+    setLinkEditor({ blockId: block.id, url: existing, selection, existingUrl: existing || null });
+  }
+
+  function applyLink(event: FormEvent<HTMLFormElement>, block: EditableTextBlock) {
+    event.preventDefault();
+    const editor = linkEditor;
+    if (!editor?.selection || editor.selection.start === editor.selection.end) {
+      setLinkError("Select the text you want to link, then choose or enter its destination.");
       return;
     }
-    formatSelectedText(block, { type: "link", url }, "set");
+    const url = safeTextLink(editor?.url ?? "");
+    if (!url) {
+      setLinkError("Use a full URL, email link, /path or #anchor.");
+      return;
+    }
+    formatSelectedText(block, { type: "link", url }, "set", editor?.selection);
+    setLinkEditor(null);
+    setLinkError(null);
   }
+
+  function removeLink(block: EditableTextBlock) {
+    if (!linkEditor) return;
+    formatSelectedText(block, { type: "link", url: "" }, "remove", linkEditor.selection);
+    setLinkEditor(null);
+    setLinkError(null);
+  }
+
+  const linkSuggestions = linkEditor
+    ? linkTargets.filter((target) => `${target.title} ${target.href} ${target.kind}`.toLowerCase().includes(linkEditor.url.trim().toLowerCase())).slice(0, 5)
+    : [];
 
   return (
     <section className="block-editor" aria-label={`${activeDocument.kind} editor`}>
       <div className="editor-document-bar">
-        <div><span>{activeDocument.kind}</span><strong>{wordCount} words · {activeDocument.blocks.length} blocks</strong></div>
+        <div><span>{activeDocument.kind}</span><strong>{wordCount} words · {characterCount} characters · {activeDocument.blocks.length} blocks</strong></div>
         <button type="button" onClick={() => onOpenInserter(null)}>＋ Add block</button>
       </div>
       {publishFeedback ? <div className="publish-feedback" role="status"><span>{publishFeedback}</span><button type="button" onClick={() => onSetPublishFeedback(null)} aria-label="Dismiss publication message">×</button></div> : null}
@@ -138,7 +181,7 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, showCoverI
               {activeDocument.blocks.map((block, index) => (
                 <div className="block-position" key={block.id}>
                   {dragOverIndex === index ? <div className="drop-indicator" aria-hidden="true" /> : null}
-                  <button className="between-blocks" type="button" onClick={() => onOpenInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}>＋</button>
+                  {index > 0 ? <button className="between-blocks" type="button" onClick={() => onOpenInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true">＋</span></button> : null}
                   <article
                     className={`canvas-block is-${block.type}${selectedBlockId === block.id ? " is-selected" : ""}`}
                     onPointerDown={() => onSelectBlock(block.id)}
@@ -148,14 +191,14 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, showCoverI
                   >
                     <div className="canvas-block-toolbar">
                       <button className="drag-handle" type="button" draggable onClick={() => onSelectBlock(block.id)} onDragStart={(event) => { event.stopPropagation(); draggingIndexRef.current = index; onSetDragOverIndex(null); }} onDragEnd={() => { draggingIndexRef.current = null; onSetDragOverIndex(null); }} aria-label={`Drag to reorder ${blockLabel(block.type)} block`} title="Drag to reorder block">⠿</button>
-                      <span>{blockLabel(block.type)}</span>
+                      {block.type === "heading" ? <div className="heading-level-control"><button className="heading-level-button" type="button" onMouseDown={preserveTextSelection} onClick={() => setHeadingMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={headingMenuBlockId === block.id} aria-label={`Heading level ${block.level}`}><strong>H{block.level}</strong><span aria-hidden="true">⌄</span></button>{headingMenuBlockId === block.id ? <div className="heading-level-menu" role="menu" aria-label="Heading level">{[1, 2, 3, 4, 5, 6].map((level) => <button className={level === block.level ? "is-active" : ""} type="button" role="menuitem" key={level} onMouseDown={preserveTextSelection} onClick={() => { onUpdateBlock(block.id, () => ({ ...block, level: level as HeadingLevel })); setHeadingMenuBlockId(null); }}><strong>H{level}</strong><span>Heading {level}</span></button>)}</div> : null}</div> : <span>{blockLabel(block.type)}</span>}
                       {isEditableTextBlock(block) ? <div className="canvas-format-actions" aria-label="Text formatting">
                         <button type="button" onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, "left")} aria-label="Align text left" title="Align left"><AlignLeftIcon /></button>
                         <button type="button" onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, "centre")} aria-label="Align text centre" title="Align centre"><AlignCentreIcon /></button>
                         <button type="button" onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, "right")} aria-label="Align text right" title="Align right"><AlignRightIcon /></button>
                         <button type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-label="Bold selected text" title="Bold"><strong>B</strong></button>
                         <button type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "italic")} aria-label="Italicise selected text" title="Italic"><em>I</em></button>
-                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => addLink(block)} aria-label="Add hyperlink to selected text" title="Add hyperlink"><LinkIcon /></button>
+                        <button type="button" onMouseDown={(event) => { preserveTextSelection(event); openLinkEditor(block); }} aria-label="Add hyperlink to selected text" title="Add hyperlink"><LinkIcon /></button>
                       </div> : null}
                       <div className="canvas-block-actions">
                         <button type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, -1); }} disabled={index === 0} aria-label="Move block up">↑</button>
@@ -163,7 +206,14 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, showCoverI
                         <button type="button" onClick={(event) => { event.stopPropagation(); onDuplicateBlock(index); }} aria-label="Duplicate block">⧉</button>
                         <button type="button" onClick={(event) => { event.stopPropagation(); onRemoveBlock(block.id); }} aria-label="Remove block">×</button>
                       </div>
-                    </div>
+                      {isEditableTextBlock(block) && linkEditor?.blockId === block.id ? <form className="link-editor-popover" aria-label="Add hyperlink" onSubmit={(event) => applyLink(event, block)}>
+                        <div className="link-editor-input-row"><label><span>Link</span><input ref={linkInputRef} type="text" value={linkEditor.url} onChange={(event) => { setLinkEditor({ ...linkEditor, url: event.target.value }); setLinkError(null); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setLinkEditor(null); setLinkError(null); } }} placeholder="Search or type URL" autoComplete="url" /></label><button className="link-editor-submit-icon" type="submit" aria-label="Apply hyperlink" title="Apply hyperlink">↵</button></div>
+                        <p className="link-editor-selection-state">{linkEditor.selection && linkEditor.selection.start !== linkEditor.selection.end ? "Selected text ready to link." : "Select text in this block, then apply the link."}</p>
+                        {linkError ? <p className="link-editor-error" role="alert">{linkError}</p> : null}
+                        {linkSuggestions.length ? <div className="link-editor-suggestions" role="listbox" aria-label="Internal links">{linkSuggestions.map((target) => <button type="button" key={target.id} onMouseDown={preserveTextSelection} onClick={() => { setLinkEditor({ ...linkEditor, url: target.href }); setLinkError(null); }}><span className="link-target-mark" aria-hidden="true">{target.kind === "page" ? "P" : "A"}</span><span><strong>{target.title}</strong><small>{target.href}</small></span><em>{target.kind}</em></button>)}</div> : null}
+                      <div className="link-editor-actions">{linkEditor.existingUrl ? <button className="link-editor-remove" type="button" onMouseDown={preserveTextSelection} onClick={() => removeLink(block)}>Remove link</button> : <span /> }<span><button type="button" onMouseDown={preserveTextSelection} onClick={() => { setLinkEditor(null); setLinkError(null); }}>Cancel</button><button className="link-editor-apply" type="submit">Apply</button></span></div>
+                      </form> : null}
+                      </div>
                     <BlockField block={block} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTextSelection={(selection) => setTextSelection(block.id, selection)} onChange={(next) => onUpdateBlock(block.id, () => next)} />
                   </article>
                 </div>
@@ -199,11 +249,11 @@ function BlockInserter({ inserterQuery, filteredBlocks, onSetQuery, onInsert, on
 }
 
 function BlockField({ block, mediaUrl, onTextSelection, onChange }: { block: ContentBlock; mediaUrl?: string; onTextSelection: (selection: TextSelection | null) => void; onChange: (block: ContentBlock) => void }) {
-  if (block.type === "paragraph") return <RichTextEditor className={`block-textarea paragraph-field align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} data-placeholder="Start writing…" aria-label="Paragraph text" />;
-  if (block.type === "heading") return <RichTextEditor className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} data-placeholder="Heading" aria-label="Heading text" />;
-  if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}`}><RichTextEditor className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
+  if (block.type === "paragraph") return <RichTextEditor className={`block-textarea paragraph-field align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
+  if (block.type === "heading") return <RichTextEditor className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
+  if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}`}><RichTextEditor className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} data-studio-block-id={block.id} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
   if (block.type === "list") return <ListField block={block} onChange={onChange} />;
-  if (block.type === "code") return <textarea className="block-textarea code-field" rows={5} value={block.code} onChange={(event) => onChange({ ...block, code: event.target.value })} aria-label="Code" />;
+  if (block.type === "code") return <AutoResizeTextarea className="block-textarea code-field" value={block.code} onChange={(event) => onChange({ ...block, code: event.target.value })} aria-label="Code" />;
   // User-supplied URLs cannot be known to Next's image optimiser in this local editor.
   // eslint-disable-next-line @next/next/no-img-element
   if (block.type === "image") return <div className="image-field">{mediaUrl || block.src ? <img src={mediaUrl || block.src} alt={block.alt} /> : <div><span>▧</span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}{block.caption ? <p>{block.caption}</p> : null}</div>;
@@ -227,7 +277,10 @@ function RichTextEditor({ text, runs, onChange, onSelectionChange, className, ..
     const editor = editorRef.current;
     if (!editor) return;
     const html = runsToEditorHtml(renderedRuns);
-    if (editor.innerHTML !== html) editor.innerHTML = html;
+    if (editor.innerHTML === html) return;
+    const selection = selectionWithinEditor(editor);
+    editor.innerHTML = html;
+    if (selection) restoreEditorSelection(editor, selection);
   }, [renderedRuns]);
 
   function readSelection() {
@@ -252,7 +305,14 @@ function RichTextEditor({ text, runs, onChange, onSelectionChange, className, ..
   }
 
   // Prevent editing links from navigating away from the Studio.
-  return <div {...props} ref={editorRef} className={`${className ?? ""} rich-text-editor`} contentEditable role="textbox" tabIndex={0} aria-multiline="true" suppressContentEditableWarning onInput={handleInput} onSelect={readSelection} onKeyUp={readSelection} onMouseUp={readSelection} onFocus={readSelection} onClick={(event) => { if ((event.target as HTMLElement).closest("a")) event.preventDefault(); }} />;
+  return <div {...props} ref={editorRef} className={`${className ?? ""} rich-text-editor`} contentEditable role="textbox" tabIndex={0} aria-multiline="true" suppressContentEditableWarning onInput={handleInput} onSelect={readSelection} onKeyUp={readSelection} onMouseUp={readSelection} onFocus={readSelection} onClick={(event) => {
+    const link = (event.target as HTMLElement).closest("a");
+    if (!link || !editorRef.current?.contains(link)) return;
+    event.preventDefault();
+    const range = document.createRange();
+    range.selectNodeContents(link);
+    onSelectionChange({ start: editorOffset(editorRef.current, range.startContainer, range.startOffset), end: editorOffset(editorRef.current, range.endContainer, range.endOffset) });
+  }} />;
 }
 
 function preserveTextSelection(event: ReactMouseEvent<HTMLButtonElement>) {
@@ -264,6 +324,41 @@ function editorOffset(root: HTMLElement, container: Node, offset: number) {
   range.selectNodeContents(root);
   range.setEnd(container, offset);
   return range.toString().length;
+}
+
+function selectionWithinEditor(editor: HTMLElement): TextSelection | null {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return null;
+  const range = selection.getRangeAt(0);
+  const start = editorOffset(editor, range.startContainer, range.startOffset);
+  const end = editorOffset(editor, range.endContainer, range.endOffset);
+  return start <= end ? { start, end } : { start: end, end: start };
+}
+
+function restoreEditorSelection(editor: HTMLElement, selection: TextSelection) {
+  const start = editorPointAtOffset(editor, selection.start);
+  const end = editorPointAtOffset(editor, selection.end);
+  if (!start || !end) return;
+  const range = document.createRange();
+  range.setStart(start.node, start.offset);
+  range.setEnd(end.node, end.offset);
+  const nativeSelection = window.getSelection();
+  if (!nativeSelection) return;
+  nativeSelection.removeAllRanges();
+  nativeSelection.addRange(range);
+}
+
+function editorPointAtOffset(editor: HTMLElement, targetOffset: number) {
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  let offset = 0;
+  while (node) {
+    const length = node.textContent?.length ?? 0;
+    if (targetOffset <= offset + length) return { node, offset: targetOffset - offset };
+    offset += length;
+    node = walker.nextNode();
+  }
+  return editor.lastChild ? { node: editor.lastChild, offset: editor.lastChild.textContent?.length ?? 0 } : null;
 }
 
 function escapeHtml(value: string) {

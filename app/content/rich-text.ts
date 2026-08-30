@@ -11,6 +11,7 @@ export function plainTextFromRuns(runs: RichTextRun[]): string {
 export function safeTextLink(value: string): string | null {
   const url = value.trim();
   if (/^(https?:\/\/|mailto:)/i.test(url) || url.startsWith("/") || url.startsWith("#")) return url;
+  if (/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+(?:[/:?#][^\s]*)?$/i.test(url)) return `https://${url}`;
   return null;
 }
 
@@ -50,7 +51,7 @@ export function linkAtTextRange(runs: RichTextRun[], start: number, end: number)
   return links.length && links.every((link) => link.url === links[0].url) ? links[0].url : null;
 }
 
-export function updateTextMark(runs: RichTextRun[], start: number, end: number, mark: TextMark, mode: "toggle" | "set" = "toggle"): RichTextRun[] {
+export function updateTextMark(runs: RichTextRun[], start: number, end: number, mark: TextMark, mode: "toggle" | "set" | "remove" = "toggle"): RichTextRun[] {
   const source = normaliseTextRuns(runs);
   if (start >= end) return source;
   const selectedRuns = [] as RichTextRun[];
@@ -83,7 +84,7 @@ export function updateTextMark(runs: RichTextRun[], start: number, end: number, 
       }
       if (selected && typeof mark !== "string") {
         marks = marks.filter((candidate) => typeof candidate === "string" || candidate.type !== "link");
-        marks.push(mark);
+        if (mode !== "remove") marks.push(mark);
       }
       next.push({ text: run.text.slice(segmentStart - runStart, segmentEnd - runStart), marks: marks.length ? marks : undefined });
     }
