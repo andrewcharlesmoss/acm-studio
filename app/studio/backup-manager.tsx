@@ -13,6 +13,7 @@ import {
   type StudioBackupSummary,
 } from "./backup-store";
 import { listMediaLibrary } from "./media-store";
+import { StudioIcon } from "./studio-icons";
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -54,8 +55,8 @@ export function BackupManager({ workspace }: { workspace: StudioWorkspace }) {
       const backup = await createStudioBackup(workspace);
       downloadStudioBackup(backup);
       setStatus(`Complete backup downloaded · ${backup.media.assets.length} ${backup.media.assets.length === 1 ? "file" : "files"} included`);
-    } catch {
-      setStatus("The complete backup could not be created");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "The complete backup could not be created");
     } finally {
       setBusy(false);
     }
@@ -91,9 +92,11 @@ export function BackupManager({ workspace }: { workspace: StudioWorkspace }) {
     try {
       await restoreStudioBackup(selectedBackup);
       window.location.reload();
-    } catch {
+    } catch (error) {
       setBusy(false);
-      setStatus("The backup could not be restored. Keep the backup file and try again.");
+      setStatus(error instanceof AggregateError
+        ? "Restore failed and the original data could not be fully recovered. Keep this page open and retain your backup."
+        : "The backup could not be restored. Keep the backup file and try again.");
     }
   }
 
@@ -116,13 +119,13 @@ export function BackupManager({ workspace }: { workspace: StudioWorkspace }) {
           {selectedFilename ? <p className="backup-filename"><span>Selected file</span><strong>{selectedFilename}</strong></p> : null}
           {selectedSummary ? (
             <div className="restore-preview">
-              <div className="restore-preview-heading"><span>✓</span><div><strong>Valid ACM Studio backup</strong><small>Exported {new Date(selectedSummary.exportedAt).toLocaleString("en-GB")}</small></div></div>
+              <div className="restore-preview-heading"><span><StudioIcon name="check" /></span><div><strong>Valid ACM Studio backup</strong><small>Exported {new Date(selectedSummary.exportedAt).toLocaleString("en-GB")}</small></div></div>
               <BackupSummary summary={selectedSummary} />
               <div className="restore-warning"><strong>This restore replaces current local data.</strong><p>Download a backup of the current Studio first if it contains anything you may need.</p></div>
               <label className="restore-confirmation"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>I understand that this will replace the content and files currently stored by this browser.</span></label>
               <button className="restore-action" type="button" disabled={!confirmed || busy} onClick={() => void restoreBackup()}>{busy ? "Restoring…" : "Restore checked backup"}</button>
             </div>
-          ) : <div className="restore-empty"><span>⇣</span><p>A checked backup summary will appear here before any restore is possible.</p></div>}
+          ) : <div className="restore-empty"><span><StudioIcon name="archive" /></span><p>A checked backup summary will appear here before any restore is possible.</p></div>}
         </article>
       </div>
 

@@ -1,3 +1,5 @@
+import { studioWriteOwnership, type RestorePermit } from "./write-ownership";
+
 export type MediaFolder = {
   id: string;
   name: string;
@@ -45,10 +47,18 @@ function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
-function requestResult<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Media library request failed."));
+function runTransaction<T>(database: IDBDatabase, stores: string | string[], mode: IDBTransactionMode, operation: (transaction: IDBTransaction) => T) {
+  return new Promise<T>((resolve, reject) => {
+    const transaction = database.transaction(stores, mode);
+    let result: T;
+    transaction.oncomplete = () => resolve(result);
+    transaction.onerror = () => reject(transaction.error ?? new Error("Media library transaction failed."));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Media library transaction was cancelled."));
+    try { result = operation(transaction); }
+    catch (error) {
+      try { transaction.abort(); } catch { /* The transaction may already have ended. */ }
+      reject(error);
+    }
   });
 }
 
@@ -59,11 +69,15 @@ async function withStore<T>(
 ) {
   const database = await openDatabase();
   try {
-    const transaction = database.transaction(storeName, mode);
-    return await requestResult(operation(transaction.objectStore(storeName)));
-  } finally {
-    database.close();
-  }
+    let result: T;
+    await runTransaction(database, storeName, mode, (transaction) => {
+      const request = operation(transaction.objectStore(storeName));
+      request.onsuccess = () => { result = request.result; };
+      // Request errors abort the transaction. Do not prevent their default
+      // handling or resolve a write before the transaction has committed.
+    });
+    return result!;
+  } finally { database.close(); }
 }
 
 export async function listMediaLibrary() {
@@ -78,91 +92,95 @@ export async function getMediaAsset(id: string) {
   return withStore(ASSET_STORE, "readonly", (store) => store.get(id)) as Promise<MediaAsset | undefined>;
 }
 
+async function requireMediaFolder(folderId: string | null) {
+  if (folderId === null) return;
+  const folder = await withStore(FOLDER_STORE, "readonly", (store) => store.get(folderId));
+  if (!folder) throw new Error("That folder is no longer available. Choose an existing folder first.");
+}
+
 export async function addMediaFiles(files: File[], folderId: string | null) {
-  const database = await openDatabase();
-  const transaction = database.transaction(ASSET_STORE, "readwrite");
-  const store = transaction.objectStore(ASSET_STORE);
-  const created: MediaAsset[] = [];
-  const timestamp = new Date().toISOString();
-
-  for (const file of files) {
-    const asset: MediaAsset = {
-      id: crypto.randomUUID(),
-      name: file.name,
-      folderId,
-      type: file.type || "application/octet-stream",
-      size: file.size,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      altText: "",
-      caption: "",
-      blob: file,
-    };
-    store.put(asset);
-    created.push(asset);
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("Could not save the selected files."));
-    transaction.onabort = () => reject(transaction.error ?? new Error("File upload was cancelled."));
+  return studioWriteOwnership.write(async () => {
+    await requireMediaFolder(folderId);
+    const database = await openDatabase();
+    try {
+      return await runTransaction(database, ASSET_STORE, "readwrite", (transaction) => {
+        const store = transaction.objectStore(ASSET_STORE);
+        const timestamp = new Date().toISOString();
+        return files.map((file): MediaAsset => {
+          const asset = { id: crypto.randomUUID(), name: file.name, folderId,
+            type: file.type || "application/octet-stream", size: file.size,
+            createdAt: timestamp, updatedAt: timestamp, altText: "", caption: "", blob: file };
+          store.put(asset);
+          return asset;
+        });
+      });
+    } finally { database.close(); }
   });
-  database.close();
-  return created;
 }
 
 export async function createMediaFolder(name: string, parentId: string | null) {
-  const folder: MediaFolder = {
-    id: crypto.randomUUID(),
-    name: name.trim(),
-    parentId,
-    createdAt: new Date().toISOString(),
-  };
-  await withStore(FOLDER_STORE, "readwrite", (store) => store.put(folder));
-  return folder;
+  return studioWriteOwnership.write(async () => {
+    await requireMediaFolder(parentId);
+    const folder: MediaFolder = {
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      parentId,
+      createdAt: new Date().toISOString(),
+    };
+    await withStore(FOLDER_STORE, "readwrite", (store) => store.put(folder));
+    return folder;
+  });
 }
 
 export async function updateMediaAsset(id: string, update: Partial<Pick<MediaAsset, "name" | "folderId" | "altText" | "caption">>) {
-  const asset = await getMediaAsset(id);
-  if (!asset) throw new Error("The selected file could not be found.");
-  const next = { ...asset, ...update, updatedAt: new Date().toISOString() };
-  await withStore(ASSET_STORE, "readwrite", (store) => store.put(next));
-  return next;
+  return studioWriteOwnership.write(async () => {
+    if (update.folderId !== undefined) await requireMediaFolder(update.folderId);
+    const asset = await getMediaAsset(id);
+    if (!asset) throw new Error("The selected file could not be found.");
+    const next = { ...asset, ...update, updatedAt: new Date().toISOString() };
+    await withStore(ASSET_STORE, "readwrite", (store) => store.put(next));
+    return next;
+  });
 }
 
 export async function renameMediaFolder(id: string, name: string) {
-  const folder = await withStore(FOLDER_STORE, "readonly", (store) => store.get(id)) as MediaFolder | undefined;
-  if (!folder) throw new Error("The selected folder could not be found.");
-  const next = { ...folder, name: name.trim() };
-  await withStore(FOLDER_STORE, "readwrite", (store) => store.put(next));
-  return next;
+  return studioWriteOwnership.write(async () => {
+    const folder = await withStore(FOLDER_STORE, "readonly", (store) => store.get(id)) as MediaFolder | undefined;
+    if (!folder) throw new Error("The selected folder could not be found.");
+    const next = { ...folder, name: name.trim() };
+    await withStore(FOLDER_STORE, "readwrite", (store) => store.put(next));
+    return next;
+  });
 }
 
 export async function deleteMediaAsset(id: string) {
-  await withStore(ASSET_STORE, "readwrite", (store) => store.delete(id));
+  return studioWriteOwnership.write(async () => {
+    await withStore(ASSET_STORE, "readwrite", (store) => store.delete(id));
+  });
 }
 
 export async function deleteMediaFolder(id: string) {
-  const { assets, folders } = await listMediaLibrary();
-  if (assets.some((asset) => asset.folderId === id) || folders.some((folder) => folder.parentId === id)) {
-    throw new Error("Move or delete everything inside this folder first.");
-  }
-  await withStore(FOLDER_STORE, "readwrite", (store) => store.delete(id));
+  return studioWriteOwnership.write(async () => {
+    const { assets, folders } = await listMediaLibrary();
+    if (assets.some((asset) => asset.folderId === id) || folders.some((folder) => folder.parentId === id)) {
+      throw new Error("Move or delete everything inside this folder first.");
+    }
+    await withStore(FOLDER_STORE, "readwrite", (store) => store.delete(id));
+  });
 }
 
-export async function replaceMediaLibrary(assets: MediaAsset[], folders: MediaFolder[]) {
-  const database = await openDatabase();
-  const transaction = database.transaction([ASSET_STORE, FOLDER_STORE], "readwrite");
-  const assetStore = transaction.objectStore(ASSET_STORE);
-  const folderStore = transaction.objectStore(FOLDER_STORE);
-  assetStore.clear();
-  folderStore.clear();
-  folders.forEach((folder) => folderStore.put(folder));
-  assets.forEach((asset) => assetStore.put(asset));
-  await new Promise<void>((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("Could not restore the media library."));
-    transaction.onabort = () => reject(transaction.error ?? new Error("Media restore was cancelled."));
-  });
-  database.close();
+export async function replaceMediaLibrary(assets: MediaAsset[], folders: MediaFolder[], permit?: RestorePermit) {
+  return studioWriteOwnership.write(async () => {
+    const database = await openDatabase();
+    try {
+      await runTransaction(database, [ASSET_STORE, FOLDER_STORE], "readwrite", (transaction) => {
+        const assetStore = transaction.objectStore(ASSET_STORE);
+        const folderStore = transaction.objectStore(FOLDER_STORE);
+        assetStore.clear();
+        folderStore.clear();
+        folders.forEach((folder) => folderStore.put(folder));
+        assets.forEach((asset) => assetStore.put(asset));
+      });
+    } finally { database.close(); }
+  }, permit);
 }

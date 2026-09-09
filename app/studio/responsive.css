@@ -13,7 +13,7 @@
   .studio-state { display: none; }
   .studio-workspace { grid-template-columns: 210px minmax(0, 1fr) 270px; }
   .studio-breadcrumbs { font-size: var(--studio-ui-size); }
-  .block-canvas, .document-preview { padding: 44px 36px; }
+  .block-canvas, .document-preview { --studio-canvas-block-padding: 44px; --studio-canvas-inline-padding: 36px; }
   .media-body { grid-template-columns: minmax(0, 1fr) 240px; }
   .media-entries.is-grid { grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); }
   .backup-grid { grid-template-columns: 1fr; }
@@ -49,11 +49,12 @@
   .project-facts { gap: 16px; grid-template-columns: 1fr; margin-left: 0; }
   .project-story { padding: 72px 0; }
   .archive-strip { align-items: flex-start; flex-direction: column; gap: 12px; }
-  .article-hero-meta { flex-wrap: wrap; margin-top: 58px; }
-  .article-hero > p { margin-left: 0; }
-  .article-layout { gap: 42px; grid-template-columns: 1fr; padding: 62px 0 80px; }
-  .article-context { grid-template-columns: auto 1fr; }
-  .article-context span:not(:first-child) { margin-top: 0; }
+  .article-page { margin-top: 18px; padding: 0 24px; }
+  .article-hero { padding-top: 36px; }
+  .article-hero .back-link { margin-bottom: 38px; }
+  .article-byline { gap: 12px 14px; }
+  .article-cover-image { border-radius: 10px; }
+  .article-layout { padding: 46px 0 80px; }
   .prose { font-size: 17px; }
   .pull-quote blockquote { font-size: 26px; }
   .article-end { align-items: start; flex-direction: column; gap: 24px; }
@@ -63,8 +64,13 @@
   .studio-workspace { display: block; height: auto; min-height: calc(100dvh - 101px); }
   .studio-library, .studio-inspector { display: none; }
   .block-editor { border-right: 0; min-height: calc(100dvh - 101px); }
+  .studio-list-view { top: 104px; width: min(320px, calc(100% - 12px)); }
+  .editor-code-toggle { font-size: 0 !important; padding: 0 !important; width: 40px; }
+  .editor-list-toggle { font-size: 0 !important; padding: 0 !important; width: 40px; }
   .editor-canvas-scroll { padding: 14px 12px 50px; }
-  .block-canvas, .document-preview { min-height: calc(100dvh - 190px); padding: 38px 25px; }
+  .studio-code-editor-body { padding: 20px 16px 48px; }
+  .studio-code-source { min-height: 420px; }
+  .block-canvas, .document-preview { --studio-canvas-block-padding: 38px; --studio-canvas-inline-padding: 25px; min-height: calc(100dvh - 190px); }
   .canvas-block-toolbar { flex-wrap: wrap; width: max-content; }
   .canvas-block { margin-bottom: 0; }
   .between-blocks { display: none; }

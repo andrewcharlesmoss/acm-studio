@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { BlockRenderer } from "../../components/content";
-import { PageFrame } from "../../components/site-shell";
-import { LOCAL_PUBLICATIONS_KEY, parseLocallyPublishedArticles, type LocallyPublishedArticle } from "../../content/local-publishing";
+import { readingTimeLabel } from "../../content/reading-time";
+import { ArticleByline, PageFrame } from "../../components/site-shell";
+import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, parseLocallyPublishedArticles, restoreLegacyPublicationCover, type LocallyPublishedArticle } from "../../content/local-publishing";
 import { getMediaAsset } from "../../studio/media-store";
 
 export function LocalArticlePage({ slug }: { slug: string }) {
@@ -14,7 +15,10 @@ export function LocalArticlePage({ slug }: { slug: string }) {
   useEffect(() => {
     let cancelled = false;
     const localArticle = parseLocallyPublishedArticles(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY)).find((item) => item.slug === slug) ?? null;
-    queueMicrotask(() => { if (!cancelled) setArticle(localArticle); });
+    const restoredArticle = localArticle
+      ? restoreLegacyPublicationCover(localArticle, window.localStorage.getItem(LOCAL_WORKSPACE_KEY))
+      : null;
+    queueMicrotask(() => { if (!cancelled) setArticle(restoredArticle); });
     return () => { cancelled = true; };
   }, [slug]);
 
@@ -39,6 +43,15 @@ export function LocalArticlePage({ slug }: { slug: string }) {
     }).catch(() => undefined);
     return () => { cancelled = true; };
   }, [article]);
+
+  // Older local publications predate cover metadata. Treat their missing
+  // value as the same generated cover that Studio shows for posts.
+  const coverImage = article?.coverImage === undefined
+    ? { src: "", alt: "Mock cover image" }
+    : article?.coverImage;
+  const coverImageUrl = coverImage?.mediaId
+    ? mediaUrls[coverImage.mediaId] || coverImage.src
+    : coverImage?.src;
 
   useEffect(() => () => {
     Object.values(mediaUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
@@ -72,14 +85,20 @@ export function LocalArticlePage({ slug }: { slug: string }) {
         <div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This post is visible only in this browser.</span><a href="/studio">Edit in Studio →</a></div>
         <header className="article-hero">
           <a className="back-link" href="/writing">← Writing archive</a>
-          <div className="article-hero-meta"><span>{article.section}</span><time dateTime={article.publishedAt}>{article.displayDate}</time><span>{article.readingTime}</span></div>
           <h1>{article.title}</h1>
-          {article.subtitle ? <p className="article-subtitle">{article.subtitle}</p> : null}
-          <p>{article.summary}</p>
+          {article.subtitle?.trim() ? <p className="article-subtitle">{article.subtitle}</p> : null}
+          <p className="article-reading-time">Reading Time: {readingTimeLabel(article.blocks)}</p>
+          <ArticleByline article={article} />
+          {coverImage ? <figure className="article-cover-image">
+            {coverImageUrl ? (
+              // Local browser-managed media cannot be known to Next's image optimiser.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverImageUrl} alt={coverImage.alt} />
+            ) : <div role="img" aria-label={coverImage.alt} />}
+          </figure> : null}
         </header>
         <div className="article-layout">
-          <aside className="article-context"><span>Written by</span><strong>Andrew Moss</strong><span>Publication</span><strong>Browser-local</strong></aside>
-          <article><BlockRenderer blocks={article.blocks} mediaUrls={mediaUrls} /></article>
+          <article><BlockRenderer blocks={article.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers /></article>
         </div>
         <nav className="article-end" aria-label="Article navigation"><div><span>End of article</span><strong>{article.title}</strong></div><a href="/writing">Return to writing →</a></nav>
       </main>

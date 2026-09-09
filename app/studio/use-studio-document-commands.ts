@@ -1,5 +1,6 @@
 "use client";
 
+import { studioWriteOwnership } from "./write-ownership";
 import { browserPublishingRepository, type PublishingRepository } from "../content/publishing-repository";
 import { createDocument, type StudioDocument, type StudioDocumentKind, type StudioWorkspace } from "./editor-model";
 import { addDocumentToWorkspace, deleteDocumentFromWorkspace, duplicateDocumentWithIds } from "./studio-command-operations.mjs";
@@ -40,6 +41,7 @@ export function useStudioDocumentCommands({
   }
 
   function deleteDocument() {
+    if (publishingRepository === browserPublishingRepository && !studioWriteOwnership.canWrite()) return false;
     if (workspace.documents.length === 1) return false;
     if (activeDocument.kind === "post" && activeDocument.status === "published") {
       publishingRepository.unpublish(activeDocument.id);

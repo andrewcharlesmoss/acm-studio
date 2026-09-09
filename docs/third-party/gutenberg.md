@@ -1,4 +1,4 @@
-# Gutenberg table icons and menu reference
+# Gutenberg icons and menu reference
 
 The seven SVG paths in `app/studio/table-icons.tsx` are copied without geometry
 changes from WordPress Gutenberg's `packages/icons/src/library/` directory at
@@ -15,6 +15,24 @@ ACM Studio on 30 August 2026. No Gutenberg runtime dependency is included.
 
 [Upstream icons](https://github.com/WordPress/gutenberg/tree/1addb122219043a1ac1c38f817c71255ae16d6e3/packages/icons/src/library)
 and [table editor](https://github.com/WordPress/gutenberg/blob/1addb122219043a1ac1c38f817c71255ae16d6e3/packages/block-library/src/table/edit.jsx).
+
+## Shared Studio icons
+
+`app/studio/studio-icons.tsx` uses unchanged SVG path geometry from the same
+Gutenberg revision for Studio interaction controls, including block transforms,
+formatting, link actions, navigation, media, backup and dashboard controls.
+The copied sources include `link.svg`, `link-off.svg`, `globe.svg`,
+`format-bold.svg`, `format-italic.svg`, `drag-handle.svg`, `paragraph.svg`,
+`heading.svg`, `list.svg`, `quote.svg`, `image.svg`, `code.svg`, `button.svg`,
+`separator.svg`, `add.svg`, `close-small.svg`, `undo.svg`, `redo.svg`,
+`copy.svg`, `external.svg`, `more-vertical.svg`, `archive.svg`, `file.svg`,
+`audio.svg`, `video.svg`, `info.svg`, `pencil.svg`, the alignment icons and
+the relevant directional arrows and chevrons.
+
+This central wrapper is the approved source for new Studio interaction icons.
+The settings secret-visibility control also uses `seen.svg` from the same
+`1addb122219043a1ac1c38f817c71255ae16d6e3` revision, retrieved on 8 September 2026.
+Do not use Unicode glyphs or hand-drawn substitutes for those controls.
 
 ## Visual reference
 
@@ -38,4 +56,3 @@ This is a local prototype change. Before publishing or distributing a build
 containing these upstream assets, review the GPL source-distribution and notice
 requirements for the intended release. This record does not relicense ACM Studio
 or claim that an external release has been cleared.
-

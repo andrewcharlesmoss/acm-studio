@@ -14,6 +14,54 @@ export function updateDocumentBlocks(document, update) {
   return { ...document, blocks: update(document.blocks) };
 }
 
+function mapNestedBlocks(blocks, blockId, update, mode = "update") {
+  return blocks.map((block) => {
+    if (block.id === blockId) return mode === "remove" ? null : update(block);
+    if (Array.isArray(block.children)) {
+      const children = mapNestedBlocks(block.children, blockId, update, mode);
+      if (children !== block.children) return { ...block, children: children.filter(Boolean) };
+    }
+    return block;
+  }).filter(Boolean);
+}
+
+export function updateBlockById(document, blockId, update) {
+  return { ...document, blocks: mapNestedBlocks(document.blocks, blockId, update) };
+}
+
+export function removeNestedBlockById(document, blockId) {
+  return { ...document, blocks: mapNestedBlocks(document.blocks, blockId, (block) => block, "remove") };
+}
+
+export function findBlockById(blocks, blockId) {
+  for (const block of blocks) {
+    if (block.id === blockId) return block;
+    if (Array.isArray(block.children)) {
+      const child = findBlockById(block.children, blockId);
+      if (child) return child;
+    }
+  }
+  return null;
+}
+
+export function duplicateNestedBlockById(document, blockId, createBlockId) {
+  function duplicate(block) {
+    const copy = { ...clone(block), id: createBlockId(block.type) };
+    if (Array.isArray(copy.children)) copy.children = copy.children.map(duplicate);
+    return copy;
+  }
+  function insert(blocks) {
+    const next = [];
+    for (const block of blocks) {
+      next.push(block);
+      if (block.id === blockId) next.push(duplicate(block));
+      else if (Array.isArray(block.children)) next[next.length - 1] = { ...block, children: insert(block.children) };
+    }
+    return next;
+  }
+  return { ...document, blocks: insert(document.blocks) };
+}
+
 export function insertBlockAt(document, block, afterIndex) {
   const blocks = [...document.blocks];
   const index = afterIndex === null ? blocks.length : afterIndex + 1;
@@ -32,7 +80,12 @@ export function moveBlockAt(document, from, to) {
 export function duplicateBlockAt(document, blockIndex, createBlockId) {
   const source = document.blocks[blockIndex];
   if (!source) return document;
-  const copy = { ...clone(source), id: createBlockId(source.type) };
+  function duplicate(block) {
+    const copy = { ...clone(block), id: createBlockId(block.type) };
+    if (Array.isArray(copy.children)) copy.children = copy.children.map(duplicate);
+    return copy;
+  }
+  const copy = duplicate(source);
   return insertBlockAt(document, copy, blockIndex);
 }
 
@@ -41,16 +94,22 @@ export function removeBlockById(document, blockId) {
 }
 
 export function duplicateDocumentWithIds(document, createDocumentId, createBlockId) {
+  function duplicate(block) {
+    const copy = { ...clone(block), id: createBlockId(block.type) };
+    if (Array.isArray(copy.children)) copy.children = copy.children.map(duplicate);
+    return copy;
+  }
   return {
     ...clone(document),
     id: createDocumentId(document.kind),
     title: `${document.title} copy`,
     slug: `${document.slug}-copy`,
     status: "draft",
+    publishAt: undefined,
     publishedAt: undefined,
     publishedSlug: undefined,
     updatedAt: new Date().toISOString(),
-    blocks: document.blocks.map((block) => ({ ...block, id: createBlockId(block.type) })),
+    blocks: document.blocks.map(duplicate),
   };
 }
 

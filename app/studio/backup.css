@@ -26,7 +26,8 @@
 .restore-preview { display: grid; gap: 14px; margin-top: 18px; }
 .restore-preview .backup-summary { margin: 0; }
 .restore-preview-heading { align-items: center; display: flex; gap: 9px; }
-.restore-preview-heading > span { align-items: center; background: #dceedd; border-radius: 50%; color: #377144; display: flex; font-size: var(--studio-ui-size); height: 26px; justify-content: center; width: 26px; }
+.restore-preview-heading > span { align-items: center; background: #dceedd; border-radius: 50%; color: #377144; display: flex; height: 26px; justify-content: center; width: 26px; }
+.restore-preview-heading > span svg { height: 16px; width: 16px; }
 .restore-preview-heading > div { display: grid; }
 .restore-preview-heading strong { font-size: var(--studio-ui-size); }
 .restore-preview-heading small { color: var(--muted); font-size: var(--studio-ui-size); margin-top: 2px; }
@@ -34,5 +35,6 @@
 .restore-confirmation input { margin-top: 1px; }
 .restore-action { background: #8d3434; margin-top: 0; }
 .restore-empty { align-items: center; color: var(--muted); display: flex; flex-direction: column; font-size: var(--studio-ui-size); gap: 10px; justify-content: center; min-height: 260px; padding: 30px; text-align: center; }
-.restore-empty > span { font-size: 34px; }
+.restore-empty > span { align-items: center; display: inline-flex; justify-content: center; }
+.restore-empty > span svg { height: 34px; width: 34px; }
 .backup-status { background: #f7f6f2; border: 1px solid #d2d0c8; border-radius: 8px; color: var(--muted); font-size: var(--studio-ui-size); margin: 16px auto 0; max-width: 1080px; padding: 9px 12px; }

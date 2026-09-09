@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { normalisePostSlug, validatePostForPublication } from "../content/local-publishing";
+import { normalisePostSlug, UnreadablePublicationsError, validatePostForPublication } from "../content/local-publishing";
 import { browserPublishingRepository, type PublishingRepository } from "../content/publishing-repository";
 import { articles } from "../content/sample-content";
 import type { StudioDocument, StudioWorkspace } from "./editor-model";
@@ -36,14 +36,14 @@ export function useStudioPublishing({
       ...activeDocument,
       slug,
       status: "published",
-      publishedAt: activeDocument.publishedAt ?? timestamp,
+      publishedAt: activeDocument.publishAt ?? activeDocument.publishedAt ?? timestamp,
       publishedSlug: slug,
       updatedAt: timestamp,
     };
     try {
       publishingRepository.publish(publication);
-    } catch {
-      setPublishFeedback("This browser could not store the published post. Your draft is still safe in Studio.");
+    } catch (error) {
+      setPublishFeedback(error instanceof UnreadablePublicationsError ? error.message : "This browser could not store the published post. Your draft is still safe in Studio.");
       return false;
     }
     updateActiveDocument(() => publication);
@@ -56,8 +56,8 @@ export function useStudioPublishing({
     if (activeDocument.kind !== "post") return false;
     try {
       publishingRepository.unpublish(activeDocument.id);
-    } catch {
-      setPublishFeedback("This browser could not remove the published post.");
+    } catch (error) {
+      setPublishFeedback(error instanceof UnreadablePublicationsError ? error.message : "This browser could not remove the published post.");
       return false;
     }
     updateActiveDocument((document) => ({ ...document, status: "draft" }));

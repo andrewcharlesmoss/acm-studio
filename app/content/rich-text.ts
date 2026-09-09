@@ -20,7 +20,7 @@ function marksEqual(first: TextMark[] = [], second: TextMark[] = []) {
   return first.every((mark, index) => {
     const other = second[index];
     if (typeof mark === "string" || typeof other === "string") return mark === other;
-    return mark.type === other.type && mark.url === other.url;
+    return mark.type === other.type && mark.url === other.url && mark.opensInNewTab === other.opensInNewTab;
   });
 }
 
@@ -40,15 +40,45 @@ function hasMark(marks: TextMark[] | undefined, mark: TextMark) {
   });
 }
 
-export function linkAtTextRange(runs: RichTextRun[], start: number, end: number): string | null {
+export function linkAtTextRange(runs: RichTextRun[], start: number, end: number): Extract<TextMark, { type: "link" }> | null {
   let cursor = 0;
   const links = runs.flatMap((run) => {
     const runStart = cursor;
     cursor += run.text.length;
     if (runStart >= end || cursor <= start) return [];
-    return (run.marks ?? []).filter((mark): mark is { type: "link"; url: string } => typeof mark !== "string" && mark.type === "link");
+    return (run.marks ?? []).filter((mark): mark is Extract<TextMark, { type: "link" }> => typeof mark !== "string" && mark.type === "link");
   });
-  return links.length && links.every((link) => link.url === links[0].url) ? links[0].url : null;
+  return links.length && links.every((link) => link.url === links[0].url && link.opensInNewTab === links[0].opensInNewTab) ? { ...links[0] } : null;
+}
+
+export function replaceTextRange(runs: RichTextRun[], start: number, end: number, replacement: string): RichTextRun[] {
+  const source = normaliseTextRuns(runs);
+  if (start > end) return source;
+  const next: RichTextRun[] = [];
+  let cursor = 0;
+  let inserted = false;
+
+  for (const run of source) {
+    const runStart = cursor;
+    const runEnd = cursor + run.text.length;
+    cursor = runEnd;
+    if (runEnd <= start || runStart >= end) {
+      next.push({ ...run, marks: run.marks?.length ? [...run.marks] : undefined });
+      continue;
+    }
+    if (runStart < start) next.push({ text: run.text.slice(0, start - runStart), marks: run.marks?.length ? [...run.marks] : undefined });
+    if (!inserted && replacement) {
+      next.push({ text: replacement, marks: run.marks?.length ? [...run.marks] : undefined });
+      inserted = true;
+    }
+    if (runEnd > end) next.push({ text: run.text.slice(end - runStart), marks: run.marks?.length ? [...run.marks] : undefined });
+  }
+
+  if (!inserted && replacement) {
+    const before = source.find((run, index) => source.slice(0, index + 1).reduce((length, item) => length + item.text.length, 0) >= start);
+    next.push({ text: replacement, marks: before?.marks?.length ? [...before.marks] : undefined });
+  }
+  return normaliseTextRuns(next);
 }
 
 export function updateTextMark(runs: RichTextRun[], start: number, end: number, mark: TextMark, mode: "toggle" | "set" | "remove" = "toggle"): RichTextRun[] {

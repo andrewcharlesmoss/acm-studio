@@ -1,7 +1,8 @@
 import type { ContentBlock } from "../content/model";
+import type { StudioIconName } from "./studio-icons";
 
 export type StudioDocumentKind = "post" | "page";
-export type StudioDocumentStatus = "draft" | "published";
+export type StudioDocumentStatus = "draft" | "pending" | "private" | "published";
 export type StudioCoverImage = { src: string; mediaId?: string; alt: string };
 
 export type StudioDocument = {
@@ -13,6 +14,8 @@ export type StudioDocument = {
   slug: string;
   excerpt: string;
   status: StudioDocumentStatus;
+  /** The date/time selected for the next local publication. */
+  publishAt?: string;
   publishedAt?: string;
   publishedSlug?: string;
   updatedAt: string;
@@ -31,25 +34,28 @@ export type StudioWorkspace = {
   documents: StudioDocument[];
 };
 
-export type InsertableBlockType = ContentBlock["type"];
+export type InsertableBlockType = Exclude<ContentBlock["type"], "component">;
 
 export const blockCatalogue: Array<{
   type: InsertableBlockType;
   label: string;
   description: string;
   group: "Text" | "Media" | "Design";
-  glyph: string;
+  icon: StudioIconName;
 }> = [
-  { type: "paragraph", label: "Paragraph", description: "Start with ordinary text.", group: "Text", glyph: "¶" },
-  { type: "heading", label: "Heading", description: "Introduce a new section.", group: "Text", glyph: "H" },
-  { type: "list", label: "List", description: "Create an ordered or bullet list.", group: "Text", glyph: "≡" },
-  { type: "quote", label: "Quote", description: "Emphasise a quotation.", group: "Text", glyph: "“" },
-  { type: "table", label: "Table", description: "Create structured content in rows and columns.", group: "Text", glyph: "▦" },
-  { type: "code", label: "Code", description: "Display code or a formula.", group: "Text", glyph: "‹›" },
-  { type: "image", label: "Image", description: "Add an image by URL for now.", group: "Media", glyph: "▧" },
-  { type: "embed", label: "Embed", description: "Link to an external resource.", group: "Media", glyph: "↗" },
-  { type: "button", label: "Button", description: "Add a call to action.", group: "Design", glyph: "▰" },
-  { type: "divider", label: "Divider", description: "Separate two sections.", group: "Design", glyph: "—" },
+  { type: "group", label: "Group", description: "Combine blocks into a stack, row or columns.", group: "Design", icon: "block" },
+  { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Design", icon: "block" },
+  { type: "paragraph", label: "Paragraph", description: "Start with ordinary text.", group: "Text", icon: "paragraph" },
+  { type: "heading", label: "Heading", description: "Introduce a new section.", group: "Text", icon: "heading" },
+  { type: "list", label: "List", description: "Create an ordered or bullet list.", group: "Text", icon: "list" },
+  { type: "quote", label: "Quote", description: "Emphasise a quotation.", group: "Text", icon: "quote" },
+  { type: "table", label: "Table", description: "Create structured content in rows and columns.", group: "Text", icon: "block" },
+  { type: "code", label: "Code", description: "Display code or a formula.", group: "Text", icon: "code" },
+  { type: "image", label: "Image", description: "Add an image by URL for now.", group: "Media", icon: "image" },
+  { type: "embed", label: "Embed", description: "Link to an external resource.", group: "Media", icon: "external" },
+  { type: "button", label: "Button", description: "Add a call to action.", group: "Design", icon: "button" },
+  { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Design", icon: "block" },
+  { type: "divider", label: "Divider", description: "Separate two sections.", group: "Design", icon: "separator" },
 ];
 
 const fixedDate = "2026-08-20T00:00:00.000Z";
@@ -125,6 +131,8 @@ export function cloneWorkspace(workspace: StudioWorkspace): StudioWorkspace {
 }
 
 export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now()}`): ContentBlock {
+  if (type === "group") return { id, type, layout: "stack", children: [] };
+  if (type === "section") return { id, type, layout: "stack", children: [] };
   if (type === "heading") return { id, type, level: 2, text: "A new section" };
   if (type === "quote") return { id, type, text: "A useful thought worth emphasising." };
   if (type === "list") return { id, type, style: "unordered", items: ["First item", "Second item"] };
@@ -133,6 +141,7 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "image") return { id, type, src: "", alt: "", caption: "" };
   if (type === "embed") return { id, type, url: "", title: "External resource" };
   if (type === "button") return { id, type, label: "Learn more", url: "#", style: "primary" };
+  if (type === "field") return { id, type, control: "text", label: "Label", value: "" };
   if (type === "divider") return { id, type };
   return { id, type, text: "Start writing here." };
 }

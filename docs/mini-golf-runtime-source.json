@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "owner": "mini-golf-scorecard",
+  "baseline": "local working tree; hosted equivalence is not assumed",
+  "sourceRevision": "0d2df8bd31f277df31522aa47ca6bf785888c460",
+  "files": {
+    "app/components/score-table.tsx": "9ef0bc2b4ceb91245e795e1aa5719971fa4926ecf27fb819627af15dfc8e8e1b",
+    "app/domain/player-layout.ts": "3d6de853c29fba4bd483c2645d67f62f2c18c68e8cbc2ebc764961593a5bcd56",
+    "app/domain/scorecard.ts": "2579aabe828f392ad70f59536639512a51de823cc009c88ec492ec494578dc5f",
+    "app/exports/copy-html.ts": "817926799e2fcb31e79a4ceb0ace784bb7e58d634eba2f8345c08661e8759c7c",
+    "app/exports/copy-image.ts": "56919fc592c5cd6600c048c9f154a7202ca78bc216522280beef999512d3ab29",
+    "app/exports/csv.ts": "f82d175d81081a59f37bded60d5f4df63345bf0e45b7908563eb602a1ba11107",
+    "app/exports/download-csv.ts": "a3a66cedde5dde8ab794d03e39f0b95d821f0b3eaf5e2afc73c10129343e495a",
+    "app/exports/export-preparation.ts": "53b3c1d9b580ef81eefcf23b56d4b08666df3daef8f7e5c00740cd4369935474",
+    "app/exports/format.ts": "a3f38ed3d3cf360c25f4b8d5dced4b92061452c00460d620c0daaad88b2eb9d0",
+    "app/exports/html.ts": "18bb667f5dd53e947d1f2b608dbe61e48d72e98dbb270caf0e524043360c17f1",
+    "app/exports/image.ts": "00bd8edb2ce0dd0eb9c24e9c7b436822187710c22c014043794786137c43d7b7",
+    "app/hooks/use-column-sizing.ts": "82e156c3da9bec8d01ebd63ec58c3040ede489e7f146d76f33a2dce8e4df1d8f",
+    "app/hooks/use-player-reordering.ts": "19d97b063857dc9a51ba8c7e347b0650b428abd36c67e1ac6a7d7ef696b8847e",
+    "app/scorecard-storage.ts": "10e04c5380420968259c85d4b6ba4aa544c8ff51bf2e42363759742a1e819ffa",
+    "app/studio-integration.ts": "502c0124599db409264408e008b68547de830f5ab393047d2860500d17450803",
+    "app/types.ts": "56e66bc4b3178c598d937e30c0504a11f89e79e913bfe38566e8de2f6f00c67c"
+  }
+}

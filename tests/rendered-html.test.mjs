@@ -71,7 +71,7 @@ test("renders the clearly labelled page and post block editor", async () => {
 });
 
 test("keeps hosted database, login and starter-preview surfaces out of the foundation", async () => {
-  const [hosting, packageJson, model, editorModel, studio, blockCommands, documentCommands, studioMedia, workspaceRepository, mediaStore, mediaManager, backupStore, backupManager, localPublishing, publishingHook, archive, localArticle] = await Promise.all([
+  const [hosting, packageJson, model, editorModel, studio, blockCommands, documentCommands, studioMedia, workspaceRepository, mediaStore, mediaManager, backupStore, backupManager, localPublishing, publishingHook, archive, localArticle, articlePage] = await Promise.all([
     readFile(new URL(".openai/hosting.json", root), "utf8"),
     readFile(new URL("package.json", root), "utf8"),
     readFile(new URL("app/content/model.ts", root), "utf8"),
@@ -89,6 +89,7 @@ test("keeps hosted database, login and starter-preview surfaces out of the found
     readFile(new URL("app/studio/use-studio-publishing.ts", root), "utf8"),
     readFile(new URL("app/writing/writing-archive-list.tsx", root), "utf8"),
     readFile(new URL("app/writing/[slug]/local-article-page.tsx", root), "utf8"),
+    readFile(new URL("app/writing/[slug]/page.tsx", root), "utf8"),
   ]);
 
   const hostingConfig = JSON.parse(hosting);
@@ -129,8 +130,14 @@ test("keeps hosted database, login and starter-preview surfaces out of the found
   assert.match(localPublishing, /acm-studio-publications-v1/);
   assert.match(localPublishing, /validatePostForPublication/);
   assert.match(localPublishing, /publishDocumentLocally/);
+  assert.match(localPublishing, /coverImage/);
+  assert.match(localPublishing, /Mock cover image/);
   assert.match(archive, /parseLocallyPublishedArticles/);
   assert.match(localArticle, /BlockRenderer/);
+  assert.match(localArticle, /variant="studio" hideDividers/);
+  assert.match(localArticle, /article-cover-image/);
+  assert.match(localArticle, /article-subtitle/);
+  assert.match(articlePage, /article-subtitle/);
 
   await Promise.all([
     assert.rejects(access(new URL("app/chatgpt-auth.ts", root))),

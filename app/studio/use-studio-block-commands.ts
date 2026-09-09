@@ -3,11 +3,11 @@
 import type { ContentBlock } from "../content/model";
 import { createBlock, type InsertableBlockType, type StudioDocument } from "./editor-model";
 import {
-  duplicateBlockAt,
+  findBlockById,
   insertBlockAt,
   moveBlockAt,
-  removeBlockById,
-  updateDocumentBlocks,
+  removeNestedBlockById,
+  updateBlockById,
 } from "./studio-command-operations.mjs";
 
 function createUniqueId(prefix: string) {
@@ -22,9 +22,7 @@ export function useStudioBlockCommands({
   updateActiveDocument: (update: (document: StudioDocument) => StudioDocument) => void;
 }) {
   function updateBlock(blockId: string, update: (block: ContentBlock) => ContentBlock) {
-    updateActiveDocument((document) => ({
-      ...updateDocumentBlocks(document, (blocks) => blocks.map((block) => block.id === blockId ? update(block) : block)),
-    }));
+    updateActiveDocument((document) => updateBlockById(document, blockId, update));
   }
 
   function insertBlock(type: InsertableBlockType, afterIndex: number | null) {
@@ -46,14 +44,55 @@ export function useStudioBlockCommands({
 
   function duplicateBlock(blockIndex: number) {
     const source = activeDocument.blocks[blockIndex];
-    const copy = { ...JSON.parse(JSON.stringify(source)) as ContentBlock, id: createUniqueId(source.type) };
-    updateActiveDocument((document) => duplicateBlockAt(document, blockIndex, () => copy.id));
-    return copy;
+    if (!source) return null;
+    const ids: string[] = [];
+    const copy = JSON.parse(JSON.stringify(source)) as ContentBlock;
+    const assignIds = (block: ContentBlock): ContentBlock => {
+      const id = createUniqueId(block.type);
+      ids.push(id);
+      const next = { ...block, id } as ContentBlock;
+      if (next.type === "section" || next.type === "group") return { ...next, children: next.children.map(assignIds) };
+      if (next.type === "component" && next.children) return { ...next, children: next.children.map(assignIds) };
+      return next;
+    };
+    const remapped = assignIds(copy);
+    // Use the precomputed immutable copy in the state update. React may replay
+    // updater functions in Strict Mode; generating IDs inside that updater can
+    // otherwise produce different or exhausted descendant IDs.
+    updateActiveDocument((document) => insertBlockAt(document, remapped, blockIndex));
+    return remapped;
+  }
+
+  function duplicateBlockById(blockId: string) {
+    const source = findBlockById(activeDocument.blocks, blockId);
+    if (!source) return null;
+    const remap = (block: ContentBlock): ContentBlock => {
+      const next = { ...JSON.parse(JSON.stringify(block)) as ContentBlock, id: createUniqueId(block.type) };
+      if (next.type === "section" || next.type === "group") return { ...next, children: next.children.map(remap) };
+      if (next.type === "component" && next.children) return { ...next, children: next.children.map(remap) };
+      return next;
+    };
+    const remapped = remap(source);
+    // The operation receives a stable copy so replaying the updater cannot
+    // consume another set of generated IDs.
+    updateActiveDocument((document) => {
+      function insert(blocks: ContentBlock[]): ContentBlock[] {
+        const next: ContentBlock[] = [];
+        for (const block of blocks) {
+          next.push(block);
+          if (block.id === blockId) next.push(remapped);
+          else if ((block.type === "section" || block.type === "group" || block.type === "component") && Array.isArray(block.children)) next[next.length - 1] = { ...block, children: insert(block.children) } as ContentBlock;
+        }
+        return next;
+      }
+      return { ...document, blocks: insert(document.blocks) };
+    });
+    return remapped;
   }
 
   function removeBlock(blockId: string) {
-    updateActiveDocument((document) => removeBlockById(document, blockId));
+    updateActiveDocument((document) => removeNestedBlockById(document, blockId));
   }
 
-  return { updateBlock, insertBlock, moveBlock, moveBlockTo, duplicateBlock, removeBlock };
+  return { updateBlock, insertBlock, moveBlock, moveBlockTo, duplicateBlock, duplicateBlockById, removeBlock };
 }

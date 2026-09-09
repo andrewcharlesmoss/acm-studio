@@ -1,30 +1,55 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type FormEvent, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type TextareaHTMLAttributes } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type FormEvent, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
 import { BlockRenderer } from "../components/content";
+import { ArticleByline } from "../components/site-shell";
+import { readingTimeLabel } from "../content/reading-time";
 import { highlightCode } from "../content/code-highlighting.mjs";
+import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
+import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
+import { StudioIcon, type StudioIconName } from "./studio-icons";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
-import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
-import type { ContentBlock, HeadingLevel, RichTextRun, TextAlignment, TextMark } from "../content/model";
-import type { StudioDocument, InsertableBlockType } from "./editor-model";
+import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
+import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
+import { createBlock, type StudioDocument, type InsertableBlockType } from "./editor-model";
+import type { StudioPresentation } from "./studio-presentation";
+import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBlock, parseHtmlToBlocks } from "./studio-html-editor";
 
 function blockLabel(type: ContentBlock["type"]) {
   return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+function blockChildren(block: ContentBlock) {
+  return (block.type === "section" || block.type === "group" || block.type === "component") ? (block.children ?? []) : [];
+}
+
+function blockOutlineLabel(block: ContentBlock) {
+  if (block.type === "section" && block.role) return block.role.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+  if (block.siteRole) return `${block.siteRole.replaceAll("-", " ")}: ${"text" in block ? block.text.slice(0, 36) : "label" in block ? block.label : block.type}`;
+  if (block.type === "heading") return `Heading ${block.level}`;
+  if (block.type === "component") return block.component.replace("mini-golf-", "Mini Golf ");
+  return blockLabel(block.type);
 }
 
 type TextSelection = { start: number; end: number };
 type TableCell = { rowIndex: number; columnIndex: number };
 type EditableTextBlock = Extract<ContentBlock, { type: "paragraph" | "heading" | "quote" }>;
 type LinkTarget = { id: string; title: string; href: string; kind: "page" | "post" };
-type LinkEditorState = { blockId: string; url: string; selection: TextSelection | null; existingUrl: string | null };
+type LinkEditorState = { blockId: string; url: string; text: string; selection: TextSelection | null; existingUrl: string | null; opensInNewTab: boolean; advancedOpen: boolean; mode: "preview" | "edit"; anchor: { left: number; top: number } | null };
+type HtmlEditorState = { blockId: string; draft: string; error: string | null };
+type CodeEditorState = { documentId: string; initialDraft: string; initialBlocksSnapshot: string; draft: string; error: string | null };
 
 function isEditableTextBlock(block: ContentBlock): block is EditableTextBlock {
   return block.type === "paragraph" || block.type === "heading" || block.type === "quote";
 }
 
 export type StudioCanvasProps = {
+  className?: string;
+  presentation?: StudioPresentation;
+  writable?: boolean;
   activeDocument: StudioDocument;
   previewing: boolean;
+  onPreviewChange: (previewing: boolean) => void;
   wordCount: number;
   characterCount: number;
   linkTargets: LinkTarget[];
@@ -40,6 +65,8 @@ export type StudioCanvasProps = {
   onOpenInserter: (afterIndex: number | null, query?: string) => void;
   onSetPublishFeedback: (feedback: string | null) => void;
   onDocumentFieldChange: <K extends keyof StudioDocument>(field: K, value: StudioDocument[K]) => void;
+  onApplyDocumentCode: (blocks: ContentBlock[]) => void;
+  onCodeEditorDirtyChange?: (dirty: boolean) => void;
   onFocusDocumentField: () => void;
   onOpenCoverMediaLibrary: () => void;
   onRemoveCoverImage: () => void;
@@ -56,18 +83,48 @@ export type StudioCanvasProps = {
   onSetInserterQuery: (query: string) => void;
 };
 
-export function StudioCanvas({ activeDocument, previewing, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+export function StudioCanvas({ className, presentation, writable = true, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
   const linkInputRef = useRef<HTMLInputElement>(null);
+  const htmlInputRef = useRef<HTMLTextAreaElement>(null);
+  const blockMenuItemRef = useRef<HTMLButtonElement>(null);
+  const htmlEditorTriggerRef = useRef<HTMLButtonElement>(null);
+  const codeEditorToggleRef = useRef<HTMLButtonElement>(null);
+  const codeEditorInputRef = useRef<HTMLTextAreaElement>(null);
+  const listViewToggleRef = useRef<HTMLButtonElement>(null);
   const appenderInputRef = useRef<HTMLInputElement>(null);
   const [linkEditor, setLinkEditor] = useState<LinkEditorState | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [headingMenuBlockId, setHeadingMenuBlockId] = useState<string | null>(null);
+  const [transformMenuBlockId, setTransformMenuBlockId] = useState<string | null>(null);
+  const [alignmentMenuBlockId, setAlignmentMenuBlockId] = useState<string | null>(null);
   const [tableMenuBlockId, setTableMenuBlockId] = useState<string | null>(null);
+  const [blockMenuBlockId, setBlockMenuBlockId] = useState<string | null>(null);
+  const [htmlEditor, setHtmlEditor] = useState<HtmlEditorState | null>(null);
+  const [codeEditor, setCodeEditor] = useState<CodeEditorState | null>(null);
+  const [listViewOpen, setListViewOpen] = useState(false);
+  const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
   const [tableCellSelections, setTableCellSelections] = useState<Record<string, TableCell>>({});
   const [appenderActive, setAppenderActive] = useState(false);
   const [appenderValue, setAppenderValue] = useState("");
+  const showPublicationDetails = presentation?.showPublicationDetails ?? activeDocument.kind === "post";
+  const allowCoverImage = presentation?.allowCoverImage ?? activeDocument.kind === "post";
+
+  function selectBlockFromList(blockId: string) {
+    onSelectBlock(blockId);
+    requestAnimationFrame(() => {
+      const target = [...document.querySelectorAll<HTMLElement>("[data-studio-block-anchor-id], [data-studio-block-id], [data-studio-nested-block-id]")]
+        .find((element) => element.dataset.studioBlockAnchorId === blockId || element.dataset.studioBlockId === blockId || element.dataset.studioNestedBlockId === blockId);
+      target?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }
+
+  function closeListView() {
+    setHoveredBlockId(null);
+    setListViewOpen(false);
+    requestAnimationFrame(() => listViewToggleRef.current?.focus());
+  }
 
   useLayoutEffect(() => {
     if (linkEditor) linkInputRef.current?.focus();
@@ -76,6 +133,85 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, characterC
   useLayoutEffect(() => {
     if (appenderActive) appenderInputRef.current?.focus();
   }, [appenderActive]);
+
+  useLayoutEffect(() => {
+    if (htmlEditor) htmlInputRef.current?.focus();
+  }, [htmlEditor]);
+
+  useLayoutEffect(() => {
+    if (codeEditor) codeEditorInputRef.current?.focus();
+  }, [codeEditor]);
+
+  useLayoutEffect(() => {
+    if (blockMenuBlockId) blockMenuItemRef.current?.focus();
+  }, [blockMenuBlockId]);
+
+  useLayoutEffect(() => {
+    if (!htmlEditor) htmlEditorTriggerRef.current?.focus();
+  }, [htmlEditor]);
+
+  function openHtmlEditor(block: ContentBlock) {
+    setBlockMenuBlockId(null);
+    setHtmlEditor({ blockId: block.id, draft: blockToHtml(block), error: null });
+  }
+
+  function applyHtmlEditor(block: ContentBlock) {
+    if (!htmlEditor || htmlEditor.blockId !== block.id) return;
+    const parsed = parseHtmlToBlock(htmlEditor.draft, block);
+    if ("error" in parsed) {
+      setHtmlEditor((current) => current ? { ...current, error: parsed.error } : current);
+      return;
+    }
+    const originalIds = new Set(collectBlockIds(block));
+    const siblingIds = new Set(activeDocument.blocks.flatMap(collectBlockIds).filter((id) => !originalIds.has(id)));
+    if (collectBlockIds(parsed.block).some((id) => siblingIds.has(id))) {
+      setHtmlEditor((current) => current ? { ...current, error: "That edit would duplicate another block ID." } : current);
+      return;
+    }
+    onUpdateBlock(block.id, () => parsed.block);
+    setHtmlEditor(null);
+  }
+
+  function openCodeEditor() {
+    const initialDraft = formatHtml(blocksToHtml(activeDocument.blocks));
+    setCodeEditor({ documentId: activeDocument.id, initialDraft, initialBlocksSnapshot: JSON.stringify(activeDocument.blocks), draft: initialDraft, error: null });
+    onCodeEditorDirtyChange?.(false);
+    setHoveredBlockId(null);
+    setListViewOpen(false);
+    onSetShowInserter(false);
+    setHtmlEditor(null);
+    setBlockMenuBlockId(null);
+  }
+
+  function closeCodeEditor(confirmDiscard = false) {
+    if (confirmDiscard && codeEditor && codeEditor.draft !== codeEditor.initialDraft && !window.confirm("Discard unsaved code changes?")) return false;
+    setCodeEditor(null);
+    onCodeEditorDirtyChange?.(false);
+    requestAnimationFrame(() => codeEditorToggleRef.current?.focus());
+    return true;
+  }
+
+  function applyCodeEditor() {
+    if (!codeEditor) return;
+    if (codeEditor.documentId !== activeDocument.id) {
+      setCodeEditor((current) => current ? { ...current, error: "This document changed. Reopen the code editor before applying changes." } : current);
+      return;
+    }
+    if (JSON.stringify(activeDocument.blocks) !== codeEditor.initialBlocksSnapshot) {
+      setCodeEditor((current) => current ? { ...current, error: "This document changed outside the code editor. Reopen it before applying changes." } : current);
+      return;
+    }
+    const parsed = parseHtmlToBlocks(codeEditor.draft, activeDocument.blocks);
+    if ("error" in parsed) {
+      setCodeEditor((current) => current ? { ...current, error: parsed.error } : current);
+      return;
+    }
+    onApplyDocumentCode(parsed.blocks);
+    setCodeEditor(null);
+    onCodeEditorDirtyChange?.(false);
+    onClearBlockSelection();
+    requestAnimationFrame(() => codeEditorToggleRef.current?.focus());
+  }
 
   function setTextSelection(blockId: string, selection: TextSelection | null) {
     // Keep the last range when focus briefly moves to the formatting toolbar.
@@ -96,11 +232,19 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, characterC
 
   function setTextAlignment(block: EditableTextBlock, align: TextAlignment) {
     onUpdateBlock(block.id, () => ({ ...block, align }));
+    setAlignmentMenuBlockId(null);
+  }
+
+  function applyBlockTransform(block: ContentBlock, transform: BlockTransform) {
+    onUpdateBlock(block.id, () => transformContentBlock(block, transform));
+    setTransformMenuBlockId(null);
   }
 
   function updateTable(block: Extract<ContentBlock, { type: "table" }>, action: TableAction) {
     const rows = (block.rows.length ? block.rows : [[""]]).map((row) => [...row]);
     const columnCount = Math.max(1, ...rows.map((row) => row.length));
+    const columnWidths = normaliseTableColumnWidths(columnCount, block.columnWidths);
+    const rowHeights = normaliseTableRowHeights(rows.length, block.rowHeights);
     const activeCell = tableCellSelections[block.id] ?? { rowIndex: 0, columnIndex: 0 };
     const rowIndex = Math.min(activeCell.rowIndex, rows.length - 1);
     const columnIndex = Math.min(activeCell.columnIndex, columnCount - 1);
@@ -108,25 +252,36 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, characterC
 
     if (action === "insert-row-before") {
       rows.splice(rowIndex, 0, Array.from({ length: columnCount }, () => ""));
+      rowHeights.splice(rowIndex, 0, DEFAULT_TABLE_ROW_HEIGHT);
     } else if (action === "insert-row-after") {
       rows.splice(rowIndex + 1, 0, Array.from({ length: columnCount }, () => ""));
+      rowHeights.splice(rowIndex + 1, 0, DEFAULT_TABLE_ROW_HEIGHT);
       nextCell = { rowIndex: rowIndex + 1, columnIndex };
     } else if (action === "delete-row") {
       if (rows.length <= 1) return;
       rows.splice(rowIndex, 1);
+      rowHeights.splice(rowIndex, 1);
       nextCell = { rowIndex: Math.min(rowIndex, rows.length - 1), columnIndex };
     } else if (action === "insert-column-before") {
       rows.forEach((row) => row.splice(columnIndex, 0, ""));
+      const width = columnWidths[columnIndex] / 2;
+      columnWidths.splice(columnIndex, 0, width);
+      columnWidths[columnIndex + 1] = width;
     } else if (action === "insert-column-after") {
       rows.forEach((row) => row.splice(columnIndex + 1, 0, ""));
+      const width = columnWidths[columnIndex] / 2;
+      columnWidths[columnIndex] = width;
+      columnWidths.splice(columnIndex + 1, 0, width);
       nextCell = { rowIndex, columnIndex: columnIndex + 1 };
     } else {
       if (columnCount <= 1) return;
       rows.forEach((row) => row.splice(columnIndex, 1));
+      const [removedWidth] = columnWidths.splice(columnIndex, 1);
+      columnWidths[columnIndex === 0 ? 0 : columnIndex - 1] += removedWidth;
       nextCell = { rowIndex, columnIndex: Math.min(columnIndex, columnCount - 2) };
     }
 
-    onUpdateBlock(block.id, () => ({ ...block, rows }));
+    onUpdateBlock(block.id, () => ({ ...block, rows, columnWidths, rowHeights }));
     setTableCellSelections((current) => ({ ...current, [block.id]: nextCell }));
     setTableMenuBlockId(null);
   }
@@ -138,13 +293,25 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, characterC
     onUpdateBlock(block.id, () => ({ ...block, text: plainTextFromRuns(nextRuns), runs: nextRuns }));
   }
 
-  function openLinkEditor(block: EditableTextBlock) {
-    const selection = currentTextSelection(block.id);
+  function linkAnchor(blockId: string) {
+    const editor = [...document.querySelectorAll<HTMLElement>("[data-studio-block-id]")].find((element) => element.dataset.studioBlockId === blockId);
+    const blockElement = editor?.closest<HTMLElement>(".canvas-block");
+    const selection = window.getSelection();
+    if (!editor || !blockElement || !selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return null;
+    const range = selection.getRangeAt(0);
+    const rangeRect = range.getBoundingClientRect();
+    const blockRect = blockElement.getBoundingClientRect();
+    return { left: Math.max(0, rangeRect.left - blockRect.left), top: rangeRect.bottom - blockRect.top + 8 };
+  }
+
+  function openLinkEditor(block: EditableTextBlock, selectionOverride?: TextSelection, mode: LinkEditorState["mode"] = "edit") {
+    const selection = selectionOverride ?? currentTextSelection(block.id);
     const runs = block.runs?.length ? block.runs : textToRuns(block.text);
     const hasSelection = Boolean(selection && selection.start !== selection.end);
-    const existing = hasSelection && selection ? linkAtTextRange(runs, selection.start, selection.end) ?? "" : "";
+    const existing = hasSelection && selection ? linkAtTextRange(runs, selection.start, selection.end) : null;
+    if (mode === "preview" && !existing) return;
     setLinkError(hasSelection ? null : "Select the text you want to link, then choose or enter its destination.");
-    setLinkEditor({ blockId: block.id, url: existing, selection, existingUrl: existing || null });
+    setLinkEditor({ blockId: block.id, url: existing?.url ?? "", text: selection ? block.text.slice(selection.start, selection.end) : "", selection, existingUrl: existing?.url ?? null, opensInNewTab: Boolean(existing?.opensInNewTab), advancedOpen: Boolean(existing?.opensInNewTab), mode, anchor: linkAnchor(block.id) });
   }
 
   function applyLink(event: FormEvent<HTMLFormElement>, block: EditableTextBlock) {
@@ -159,7 +326,12 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, characterC
       setLinkError("Use a full URL, email link, /path or #anchor.");
       return;
     }
-    formatSelectedText(block, { type: "link", url }, "set", editor?.selection);
+    const replacement = editor.text;
+    const source = block.runs?.length ? block.runs : textToRuns(block.text);
+    const replacedRuns = replaceTextRange(source, editor.selection.start, editor.selection.end, replacement);
+    const end = editor.selection.start + replacement.length;
+    const nextRuns = updateTextMark(replacedRuns, editor.selection.start, end, { type: "link", url, opensInNewTab: editor.opensInNewTab || undefined }, "set");
+    onUpdateBlock(block.id, () => ({ ...block, text: plainTextFromRuns(nextRuns), runs: nextRuns }));
     setLinkEditor(null);
     setLinkError(null);
   }
@@ -176,38 +348,53 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, characterC
     : [];
 
   return (
-    <section className="block-editor" aria-label={`${activeDocument.kind} editor`}>
+    <section className={`block-editor${className ? ` ${className}` : ""}`} aria-label={`${activeDocument.kind} editor`} data-readonly={!writable || undefined} onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <div className="editor-document-bar">
-        <div><span>{activeDocument.kind}</span><strong>{wordCount} words · {characterCount} characters · {activeDocument.blocks.length} blocks</strong></div>
-        <button type="button" onClick={() => onOpenInserter(null)}>＋ Add block</button>
+        <div className="editor-document-counts"><span>{activeDocument.kind}</span><strong>{wordCount} words · {characterCount} characters · {activeDocument.blocks.length} blocks</strong></div>
+        <div className="editor-mode-control" role="group" aria-label={`${activeDocument.kind === "post" ? "Post" : "Page"} view`}>
+          <button type="button" aria-pressed={!previewing} onClick={() => onPreviewChange(false)}>Edit</button>
+          <button type="button" aria-pressed={previewing} onClick={() => { if (codeEditor && !closeCodeEditor(true)) return; setHoveredBlockId(null); setListViewOpen(false); onPreviewChange(true); }}>Preview</button>
+        </div>
+      <div className="editor-document-actions" aria-hidden={previewing}>
+          <button ref={codeEditorToggleRef} type="button" className={`editor-code-toggle${codeEditor ? " is-active" : ""}`} disabled={previewing} aria-pressed={Boolean(codeEditor)} aria-label="Code editor" title="Code editor" onClick={() => codeEditor ? closeCodeEditor(true) : openCodeEditor()}><StudioIcon name="code" size={18} />Code</button>
+          <button ref={listViewToggleRef} type="button" className={`editor-list-toggle${listViewOpen ? " is-active" : ""}`} disabled={previewing || Boolean(codeEditor)} aria-pressed={listViewOpen} aria-label="List View" title="List View" onClick={() => { setHoveredBlockId(null); setListViewOpen((current) => !current); }}><StudioIcon name="list" size={18} />List View</button>
+          <button type="button" disabled={previewing || Boolean(codeEditor)} onClick={() => onOpenInserter(null)}><StudioIcon name="add" size={18} />Add block</button>
+        </div>
       </div>
-      {publishFeedback ? <div className="publish-feedback" role="status"><span>{publishFeedback}</span><button type="button" onClick={() => onSetPublishFeedback(null)} aria-label="Dismiss publication message">×</button></div> : null}
+      {publishFeedback ? <div className="publish-feedback" role="status"><span>{publishFeedback}</span><button type="button" onClick={() => onSetPublishFeedback(null)} aria-label="Dismiss publication message"><StudioIcon name="close" size={18} /></button></div> : null}
+      {!previewing && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlockFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} onRemoveBlock={onRemoveBlock} onMoveItem={(parentId, index, direction) => {
+        if (!parentId) { onMoveBlock(index, direction); return; }
+        onUpdateBlock(parentId, (parent) => {
+          if (parent.type !== "section" && parent.type !== "group" && parent.type !== "component") return parent;
+          const children = [...(parent.children ?? [])]; const target = index + direction;
+          if (target < 0 || target >= children.length) return parent;
+          const [moved] = children.splice(index, 1); children.splice(target, 0, moved);
+          return { ...parent, children };
+        });
+      }} /> : null}
 
       <div className="editor-canvas-scroll" onPointerDown={(event) => {
         if (event.target instanceof Element && !event.target.closest(".canvas-block, button, input, textarea, select, [contenteditable=\"true\"]")) onClearBlockSelection();
       }}>
-        {previewing ? (
+        {codeEditor ? <StudioCodeEditor document={activeDocument} writable={writable} state={codeEditor} inputRef={codeEditorInputRef} onChange={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onFormat={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onDocumentFieldChange={onDocumentFieldChange} onApply={applyCodeEditor} onExit={() => closeCodeEditor(true)} /> : previewing ? (
           <article className={`document-preview is-${activeDocument.kind}`}>
-            <div className="preview-meta"><span>{activeDocument.kind}</span><span>{activeDocument.status}</span></div>
-            <h1>{activeDocument.title || `Untitled ${activeDocument.kind}`}</h1>
-            {activeDocument.subtitle ? <p className="preview-subtitle">{activeDocument.subtitle}</p> : null}
-            {showCoverImage ? <div className={`preview-cover-image${coverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
+            {presentation?.renderHeader?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} />}
+            {showPublicationDetails ? <p className="article-reading-time">Reading Time: {readingTimeLabel(activeDocument.blocks)}</p> : null}
+            {allowCoverImage && showCoverImage ? <div className={`preview-cover-image${coverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
               {coverImageUrl ? (
                 // Local browser-managed media cannot be known to Next's image optimiser.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={coverImageUrl} alt={activeDocument.coverImage?.alt || ""} />
               ) : null}
             </div> : null}
-            {activeDocument.excerpt ? <p className="preview-summary">{activeDocument.excerpt}</p> : null}
-            <BlockRenderer blocks={activeDocument.blocks} mediaUrls={mediaBlockUrls} />
+            {presentation?.renderBlock ? activeDocument.blocks.map((block) => presentation.renderBlock?.({ document: activeDocument, block, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockRenderer key={block.id} blocks={[block]} mediaUrls={mediaBlockUrls} variant="studio" hideDividers />) : <BlockRenderer blocks={activeDocument.blocks} mediaUrls={mediaBlockUrls} variant="studio" hideDividers />}
+            {presentation?.renderFooter?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
           </article>
         ) : (
           <div className="block-canvas">
-            <label className="canvas-title-label" htmlFor="document-title">{activeDocument.kind} title</label>
-            <AutoResizeTextarea id="document-title" className="canvas-title" value={activeDocument.title} onFocus={onFocusDocumentField} onChange={(event) => onDocumentFieldChange("title", event.target.value)} placeholder={`Add ${activeDocument.kind} title`} />
-            <label className="canvas-subtitle-label" htmlFor="document-subtitle">Subtitle</label>
-            <AutoResizeTextarea id="document-subtitle" className="canvas-subtitle" value={activeDocument.subtitle ?? ""} onFocus={onFocusDocumentField} onChange={(event) => onDocumentFieldChange("subtitle", event.target.value)} placeholder="Add a subtitle" />
-            {showCoverImage ? <div className="canvas-cover-wrap">
+            {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing={false} onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} />}
+            {showPublicationDetails ? <EditorPublicationDetails document={activeDocument} /> : null}
+            {allowCoverImage && showCoverImage ? <div className="canvas-cover-wrap">
               <div className={`canvas-cover-image${coverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
                 {coverImageUrl ? (
                   // Local browser-managed media cannot be known to Next's image optimiser.
@@ -217,59 +404,90 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, characterC
               </div>
               <div className="canvas-cover-actions">
                 <button className="cover-action-button" type="button" onClick={onOpenCoverMediaLibrary} aria-label="Change cover image" title="Change cover image">
-                  <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9" r="1.5" /><path d="m4 17 5-5 3 3 2-2 6 4" /><path d="M17 3v4m-2-2h4" /></svg>
+                  <StudioIcon name="image" />
                 </button>
                 <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCoverImage} aria-label="Remove cover image" title="Remove cover image">
-                  <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M5 7h14M10 4h4l1 3H9l1-3Zm-3 3 1 13h8l1-13M10 11v6m4-6v6" /></svg>
+                  <StudioIcon name="trash" />
                 </button>
               </div>
-            </div> : <button className="canvas-add-cover" type="button" onClick={onOpenCoverMediaLibrary}>＋ Add cover image</button>}
+            </div> : allowCoverImage ? <button className="canvas-add-cover" type="button" onClick={onOpenCoverMediaLibrary}><StudioIcon name="add" size={18} />Add cover image</button> : null}
 
             <div className="canvas-blocks">
+              {allowCoverImage && showCoverImage ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" onClick={() => onOpenInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
               {activeDocument.blocks.map((block, index) => (
                 <div className="block-position" key={block.id}>
                   {dragOverIndex === index ? <div className="drop-indicator" aria-hidden="true" /> : null}
-                  {index > 0 ? <button className="between-blocks" type="button" onClick={() => onOpenInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true">＋</span></button> : null}
+                  {index > 0 ? <button className="between-blocks" type="button" onClick={() => onOpenInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
                   <article
                     className={`canvas-block is-${block.type}${selectedBlockId === block.id ? " is-selected" : ""}`}
-                    onPointerDown={() => onSelectBlock(block.id)}
-                    onFocusCapture={() => onSelectBlock(block.id)}
+                    data-studio-block-anchor-id={block.id}
+                    data-studio-hovered={hoveredBlockId === block.id}
+                    onPointerDown={(event) => {
+                      onSelectBlock(block.id);
+                      if (!(event.target instanceof Element) || !event.target.closest(".alignment-control")) setAlignmentMenuBlockId(null);
+                      if (!(event.target instanceof Element) || !event.target.closest(".transform-control")) setTransformMenuBlockId(null);
+                      if (event.target instanceof Element && !event.target.closest(".link-editor-popover, .link-preview-popover, .block-options-menu, .html-editor-popover, .rich-text-editor a")) {
+                        setLinkEditor(null);
+                        setLinkError(null);
+                      }
+                      if (!(event.target instanceof Element) || !event.target.closest(".block-options-menu")) setBlockMenuBlockId(null);
+                    }}
+                    onFocusCapture={(event) => {
+                      if (event.target instanceof Element && event.target.closest(".mini-golf-nested-controls, .mini-golf-nested-block")) return;
+                      onSelectBlock(block.id);
+                    }}
                     onDragOver={(event) => { event.preventDefault(); onSetDragOverIndex(draggingIndexRef.current === index ? null : index); }}
                     onDrop={() => { if (draggingIndexRef.current !== null) onMoveBlockTo(draggingIndexRef.current, index); draggingIndexRef.current = null; onSetDragOverIndex(null); }}
                   >
                     <div className="canvas-block-toolbar">
-                      <button className="drag-handle" type="button" draggable onClick={() => onSelectBlock(block.id)} onDragStart={(event) => { event.stopPropagation(); draggingIndexRef.current = index; onSetDragOverIndex(null); }} onDragEnd={() => { draggingIndexRef.current = null; onSetDragOverIndex(null); }} aria-label={`Drag to reorder ${blockLabel(block.type)} block`} title="Drag to reorder block">⠿</button>
-                      {block.type === "heading" ? <div className="heading-level-control"><button className="heading-level-button" type="button" onMouseDown={preserveTextSelection} onClick={() => setHeadingMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={headingMenuBlockId === block.id} aria-label={`Heading level ${block.level}`}><strong>H{block.level}</strong><span aria-hidden="true">⌄</span></button>{headingMenuBlockId === block.id ? <div className="heading-level-menu" role="menu" aria-label="Heading level">{[1, 2, 3, 4, 5, 6].map((level) => <button className={level === block.level ? "is-active" : ""} type="button" role="menuitem" key={level} onMouseDown={preserveTextSelection} onClick={() => { onUpdateBlock(block.id, () => ({ ...block, level: level as HeadingLevel })); setHeadingMenuBlockId(null); }}><strong>H{level}</strong><span>Heading {level}</span></button>)}</div> : null}</div> : block.type === "table" ? <div className="table-control"><button className={`table-control-button${tableMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => setTableMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={tableMenuBlockId === block.id} aria-label="Table options" title="Table options"><TableIcon /></button>{tableMenuBlockId === block.id ? <div className="table-menu" role="menu" aria-label="Table options">
+                      <BlockTransformControl block={block} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} />
+                      <button className="drag-handle" type="button" draggable onClick={() => onSelectBlock(block.id)} onDragStart={(event) => { event.stopPropagation(); draggingIndexRef.current = index; onSetDragOverIndex(null); }} onDragEnd={() => { draggingIndexRef.current = null; onSetDragOverIndex(null); }} aria-label={`Drag to reorder ${blockLabel(block.type)} block`} title="Drag to reorder block"><StudioIcon name="drag-handle" /></button>
+                      <div className="block-move-controls" role="group" aria-label="Move block">
+                        <button className="move-block-up" type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, -1); }} disabled={index === 0} aria-label="Move block up" title="Move up"><StudioIcon name="chevron-down" /></button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, 1); }} disabled={index === activeDocument.blocks.length - 1} aria-label="Move block down" title="Move down"><StudioIcon name="chevron-down" /></button>
+                      </div>
+                      {block.type === "heading" ? <div className="heading-level-control"><button className="heading-level-button" type="button" onMouseDown={preserveTextSelection} onClick={() => setHeadingMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={headingMenuBlockId === block.id} aria-label={`Heading level ${block.level}`}><strong>H{block.level}</strong><StudioIcon name="chevron-down" size={18} /></button>{headingMenuBlockId === block.id ? <div className="heading-level-menu" role="menu" aria-label="Heading level">{[1, 2, 3, 4, 5, 6].map((level) => <button className={level === block.level ? "is-active" : ""} type="button" role="menuitem" key={level} onMouseDown={preserveTextSelection} onClick={() => { onUpdateBlock(block.id, () => ({ ...block, level: level as HeadingLevel })); setHeadingMenuBlockId(null); }}><strong>H{level}</strong><span>Heading {level}</span></button>)}</div> : null}</div> : block.type === "table" ? <div className="table-control"><button className={`table-control-button${tableMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => setTableMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={tableMenuBlockId === block.id} aria-label="Table options" title="Table options"><TableIcon /></button>{tableMenuBlockId === block.id ? <div className="table-menu" role="menu" aria-label="Table options">
                         <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => updateTable(block, "insert-row-before")}><TableActionIcon action="insert-row-before" /><span>Insert row before</span></button>
                         <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => updateTable(block, "insert-row-after")}><TableActionIcon action="insert-row-after" /><span>Insert row after</span></button>
                         <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => updateTable(block, "delete-row")}><TableActionIcon action="delete-row" /><span>Delete row</span></button>
                         <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => updateTable(block, "insert-column-before")}><TableActionIcon action="insert-column-before" /><span>Insert column before</span></button>
                         <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => updateTable(block, "insert-column-after")}><TableActionIcon action="insert-column-after" /><span>Insert column after</span></button>
                         <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => updateTable(block, "delete-column")}><TableActionIcon action="delete-column" /><span>Delete column</span></button>
-                      </div> : null}</div> : <span>{blockLabel(block.type)}</span>}
+                      </div> : null}</div> : null}
                       {isEditableTextBlock(block) ? <div className="canvas-format-actions" aria-label="Text formatting">
-                        <button className={block.align === "left" || !block.align ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, "left")} aria-label="Align text left" aria-pressed={block.align === "left" || !block.align} title="Align left"><AlignLeftIcon /></button>
-                        <button className={block.align === "centre" ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, "centre")} aria-label="Align text centre" aria-pressed={block.align === "centre"} title="Align centre"><AlignCentreIcon /></button>
-                        <button className={block.align === "right" ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, "right")} aria-label="Align text right" aria-pressed={block.align === "right"} title="Align right"><AlignRightIcon /></button>
-                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-label="Bold selected text" title="Bold"><strong>B</strong></button>
-                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "italic")} aria-label="Italicise selected text" title="Italic"><em>I</em></button>
-                        <button type="button" onMouseDown={(event) => { preserveTextSelection(event); openLinkEditor(block); }} aria-label="Add hyperlink to selected text" title="Add hyperlink"><LinkIcon /></button>
+                        <div className="alignment-control"><button className={`alignment-button${alignmentMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => setAlignmentMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={alignmentMenuBlockId === block.id} aria-label="Text alignment" title="Text alignment"><AlignmentIcon align={block.align ?? "left"} /><StudioIcon name="chevron-down" size={16} /></button>{alignmentMenuBlockId === block.id ? <div className="alignment-menu" role="menu" aria-label="Text alignment">{(["left", "centre", "right"] as TextAlignment[]).map((align) => <button className={block.align === align || (!block.align && align === "left") ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={block.align === align || (!block.align && align === "left")} key={align} onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, align)}><AlignmentIcon align={align} /><span>Align text {align}</span></button>)}</div> : null}</div>
+                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-label="Bold selected text" title="Bold"><StudioIcon name="format-bold" /></button>
+                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "italic")} aria-label="Italicise selected text" title="Italic"><StudioIcon name="format-italic" /></button>
+                        <button type="button" onMouseDown={(event) => { preserveTextSelection(event); openLinkEditor(block); }} aria-label="Add hyperlink to selected text" title="Add hyperlink"><StudioIcon name="link" /></button>
                       </div> : null}
                       <div className="canvas-block-actions">
-                        <button type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, -1); }} disabled={index === 0} aria-label="Move block up" title="Move up"><ArrowUpIcon /></button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, 1); }} disabled={index === activeDocument.blocks.length - 1} aria-label="Move block down" title="Move down"><ArrowDownIcon /></button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); onDuplicateBlock(index); }} aria-label="Duplicate block" title="Duplicate block"><DuplicateIcon /></button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); onRemoveBlock(block.id); }} aria-label="Remove block" title="Remove block"><CloseIcon /></button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); onDuplicateBlock(index); }} aria-label="Duplicate block" title="Duplicate block"><StudioIcon name="copy" /></button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); onRemoveBlock(block.id); }} aria-label="Remove block" title="Remove block"><StudioIcon name="close" /></button>
+                        <div className="block-options-control">
+                          <button ref={(element) => { if (element && blockMenuBlockId === block.id) htmlEditorTriggerRef.current = element; }} className={blockMenuBlockId === block.id ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={(event) => { event.stopPropagation(); htmlEditorTriggerRef.current = event.currentTarget; setBlockMenuBlockId((current) => current === block.id ? null : block.id); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); setBlockMenuBlockId(null); } }} aria-haspopup="menu" aria-expanded={blockMenuBlockId === block.id} aria-label="More block options" title="More options"><StudioIcon name="more-vertical" /></button>
+                          {blockMenuBlockId === block.id ? <div className="block-options-menu" role="menu" tabIndex={-1} aria-label="Block options" onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); setBlockMenuBlockId(null); } }}>
+                            <button ref={blockMenuItemRef} type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openHtmlEditor(block)}>Edit as HTML</button>
+                          </div> : null}
+                        </div>
                       </div>
-                      {isEditableTextBlock(block) && linkEditor?.blockId === block.id ? <form className="link-editor-popover" aria-label="Add hyperlink" onSubmit={(event) => applyLink(event, block)}>
-                        <div className="link-editor-input-row"><label><span>Link</span><input ref={linkInputRef} type="text" value={linkEditor.url} onChange={(event) => { setLinkEditor({ ...linkEditor, url: event.target.value }); setLinkError(null); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setLinkEditor(null); setLinkError(null); } }} placeholder="Search or type URL" autoComplete="url" /></label><button className="link-editor-submit-icon" type="submit" aria-label="Apply hyperlink" title="Apply hyperlink">↵</button></div>
-                        <p className="link-editor-selection-state">{linkEditor.selection && linkEditor.selection.start !== linkEditor.selection.end ? "Selected text ready to link." : "Select text in this block, then apply the link."}</p>
+                      </div>
+                      {isEditableTextBlock(block) && linkEditor?.blockId === block.id ? linkEditor.mode === "preview" ? <LinkPreviewPopover editor={linkEditor} onEdit={() => setLinkEditor({ ...linkEditor, mode: "edit" })} onRemove={() => removeLink(block)} /> : <form className="link-editor-popover" aria-label={linkEditor.existingUrl ? "Edit link" : "Add hyperlink"} style={linkEditor.anchor ?? undefined} onSubmit={(event) => applyLink(event, block)}>
+                        <div className="link-editor-fields">
+                          <label><span>Text</span><input type="text" value={linkEditor.text} onChange={(event) => setLinkEditor({ ...linkEditor, text: event.target.value })} /></label>
+                          <label><span>Link</span><input ref={linkInputRef} type="text" value={linkEditor.url} onChange={(event) => { setLinkEditor({ ...linkEditor, url: event.target.value }); setLinkError(null); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setLinkEditor(null); setLinkError(null); } }} placeholder="Search or type URL" autoComplete="url" /></label>
+                        </div>
+                        <details className="link-editor-advanced" open={linkEditor.advancedOpen} onToggle={(event) => setLinkEditor({ ...linkEditor, advancedOpen: event.currentTarget.open })}><summary>Advanced</summary><label className="link-editor-checkbox"><input type="checkbox" checked={linkEditor.opensInNewTab} onChange={(event) => setLinkEditor({ ...linkEditor, opensInNewTab: event.target.checked })} /><span>Open in new tab</span></label></details>
                         {linkError ? <p className="link-editor-error" role="alert">{linkError}</p> : null}
                         {linkSuggestions.length ? <div className="link-editor-suggestions" role="listbox" aria-label="Internal links">{linkSuggestions.map((target) => <button type="button" key={target.id} onMouseDown={preserveTextSelection} onClick={() => { setLinkEditor({ ...linkEditor, url: target.href }); setLinkError(null); }}><span className="link-target-mark" aria-hidden="true">{target.kind === "page" ? "P" : "A"}</span><span><strong>{target.title}</strong><small>{target.href}</small></span><em>{target.kind}</em></button>)}</div> : null}
-                      <div className="link-editor-actions">{linkEditor.existingUrl ? <button className="link-editor-remove" type="button" onMouseDown={preserveTextSelection} onClick={() => removeLink(block)}>Remove link</button> : <span /> }<span><button type="button" onMouseDown={preserveTextSelection} onClick={() => { setLinkEditor(null); setLinkError(null); }}>Cancel</button><button className="link-editor-apply" type="submit">Apply</button></span></div>
+                        <div className="link-editor-actions">{linkEditor.existingUrl ? <button className="link-editor-remove" type="button" onMouseDown={preserveTextSelection} onClick={() => removeLink(block)}>Remove link</button> : <span /> }<span><button type="button" onMouseDown={preserveTextSelection} onClick={() => { setLinkEditor(null); setLinkError(null); }}>Cancel</button><button className="link-editor-apply" type="submit">Apply</button></span></div>
                       </form> : null}
-                      </div>
-                      <BlockField block={block} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onChange={(next) => onUpdateBlock(block.id, () => next)} />
+                      {htmlEditor?.blockId === block.id ? <form className="html-editor-popover" aria-label="Edit block as HTML" onSubmit={(event) => { event.preventDefault(); applyHtmlEditor(block); }}>
+                        <label htmlFor={`html-editor-${block.id}`}><strong>Edit as HTML</strong><span>Supported markup only</span></label>
+                        <textarea ref={htmlInputRef} id={`html-editor-${block.id}`} value={htmlEditor.draft} onChange={(event) => setHtmlEditor({ ...htmlEditor, draft: event.target.value, error: null })} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); setHtmlEditor(null); } }} spellCheck={false} autoCapitalize="off" autoCorrect="off" />
+                        {htmlEditor.error ? <p className="html-editor-error" role="alert">{htmlEditor.error}</p> : null}
+                        <div className="html-editor-actions"><button type="button" onClick={() => setHtmlEditor(null)}>Cancel</button><button className="html-editor-apply" type="submit">Apply</button></div>
+                      </form> : null}
+                      {presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockField block={block} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
                   </article>
                 </div>
               ))}
@@ -300,9 +518,10 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, characterC
                     setAppenderActive(false);
                   }}
                 />
-                {appenderActive ? <button className="canvas-appender-button" type="button" onClick={() => { setAppenderValue(""); setAppenderActive(false); onOpenInserter(activeDocument.blocks.length - 1); }} aria-label="Add block" title="Add block">＋</button> : null}
+                {appenderActive ? <button className="canvas-appender-button" type="button" onClick={() => { setAppenderValue(""); setAppenderActive(false); onOpenInserter(activeDocument.blocks.length - 1); }} aria-label="Add block" title="Add block"><StudioIcon name="add" /></button> : null}
               </div>
             </div>
+            {presentation?.renderFooter?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
           </div>
         )}
       </div>
@@ -312,24 +531,238 @@ export function StudioCanvas({ activeDocument, previewing, wordCount, characterC
   );
 }
 
-function BlockInserter({ inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: InsertableBlockType) => void; onDismiss: () => void }) {
-  const searchInputRef = useRef<HTMLInputElement>(null);
+function StudioCodeEditor({ document, writable, state, inputRef, onChange, onFormat, onDocumentFieldChange, onApply, onExit }: {
+  document: StudioDocument;
+  writable: boolean;
+  state: CodeEditorState;
+  inputRef: RefObject<HTMLTextAreaElement | null>;
+  onChange: (value: string) => void;
+  onFormat: (draft: string) => void;
+  onDocumentFieldChange: StudioCanvasProps["onDocumentFieldChange"];
+  onApply: () => void;
+  onExit: () => void;
+}) {
+  const [wrapText, setWrapText] = useState(true);
+  const [formatNotice, setFormatNotice] = useState<string | null>(null);
+  const highlightRef = useRef<HTMLPreElement>(null);
+  const highlighted = highlightCode(state.draft, "html");
+
+  const syncHighlightScroll = useCallback(() => {
+    const source = inputRef.current;
+    const highlight = highlightRef.current;
+    if (!source || !highlight) return;
+    highlight.scrollTop = source.scrollTop;
+    highlight.scrollLeft = source.scrollLeft;
+  }, [inputRef]);
 
   useLayoutEffect(() => {
+    syncHighlightScroll();
+  }, [state.draft, syncHighlightScroll, wrapText]);
+
+  function handleFormat() {
+    const formatted = formatHtml(state.draft);
+    if (formatted === state.draft) {
+      setFormatNotice("Code is already formatted.");
+      return;
+    }
+    setFormatNotice(null);
+    onFormat(formatted);
+  }
+
+  return <div className="studio-code-editor" aria-label="Code editor" data-readonly={!writable || undefined}>
+    <div className="studio-code-editor-header"><strong>Editing code</strong><button type="button" onClick={onExit}>Exit code editor</button></div>
+    <div className="studio-code-editor-body">
+      <label htmlFor="studio-code-title"><span>Title</span><AutoResizeTextarea id="studio-code-title" className="studio-code-title" value={document.title} onChange={(event) => onDocumentFieldChange("title", event.target.value)} placeholder={`Add ${document.kind} title`} readOnly={!writable} /></label>
+      {document.subtitle !== undefined ? <label htmlFor="studio-code-subtitle"><span>Subtitle</span><AutoResizeTextarea id="studio-code-subtitle" className="studio-code-subtitle" value={document.subtitle ?? ""} onChange={(event) => onDocumentFieldChange("subtitle", event.target.value)} placeholder="Add subtitle" readOnly={!writable} /></label> : null}
+      <div className="studio-code-source-field">
+        <div className="studio-code-source-header">
+          <label htmlFor="studio-code-source">Content</label>
+          <button type="button" className="studio-code-format" onClick={handleFormat} disabled={!writable} title={writable ? "Format supported HTML" : "Formatting unavailable while another Studio tab owns editing"}>Format code</button>
+          <button
+            type="button"
+            className={`studio-code-wrap-toggle${wrapText ? " is-active" : ""}`}
+            aria-pressed={wrapText}
+            aria-label={`${wrapText ? "Disable" : "Enable"} text wrapping`}
+            title={`${wrapText ? "Disable" : "Enable"} text wrapping`}
+            onClick={() => setWrapText((current) => !current)}
+          >Wrap text</button>
+        </div>
+        <div className={`studio-code-source-wrap${wrapText ? " is-wrapped" : " is-unwrapped"}`}>
+          <pre ref={highlightRef} className="studio-code-highlight" aria-hidden="true" data-language={highlighted.language}><code dangerouslySetInnerHTML={{ __html: highlighted.html }} /></pre>
+          <textarea id="studio-code-source" ref={inputRef} className={`studio-code-source${wrapText ? " is-wrapped" : " is-unwrapped"}`} value={state.draft} onChange={(event) => { setFormatNotice(null); onChange(event.target.value); }} onScroll={syncHighlightScroll} spellCheck={false} autoCapitalize="off" autoCorrect="off" aria-label="Document HTML" readOnly={!writable} wrap={wrapText ? "soft" : "off"} />
+        </div>
+      </div>
+      {formatNotice ? <p className="studio-code-status" role="status">{formatNotice}</p> : null}
+      <p className="studio-code-help">{writable ? "Edit supported block markup. Component blocks keep their code-backed implementation." : "Formatting and editing are unavailable while another Studio tab owns this draft."}</p>
+      {state.error ? <p className="html-editor-error" role="alert">{state.error}</p> : null}
+      <div className="html-editor-actions"><button type="button" onClick={onExit}>Cancel</button><button className="html-editor-apply" type="button" onClick={onApply} disabled={!writable}>Apply</button></div>
+    </div>
+  </div>;
+}
+
+function StudioListView({ blocks, selectedBlockId, onSelectBlock, onHoverBlock, onClose, onMoveItem, onRemoveBlock }: {
+  blocks: ContentBlock[];
+  selectedBlockId: string | null;
+  onSelectBlock: (blockId: string) => void;
+  onHoverBlock: (blockId: string | null) => void;
+  onClose: () => void;
+  onMoveItem: (parentId: string | null, index: number, direction: -1 | 1) => void;
+  onRemoveBlock: (blockId: string) => void;
+}) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set(blocks.filter((block) => blockChildren(block).length).map((block) => block.id)));
+
+  useLayoutEffect(() => () => onHoverBlock(null), [onHoverBlock]);
+
+  function toggleExpanded(blockId: string) {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(blockId)) next.delete(blockId);
+      else next.add(blockId);
+      return next;
+    });
+  }
+
+  function renderBlock(block: ContentBlock, index: number, siblings: ContentBlock[], parentId: string | null = null): ReactNode {
+    const children = blockChildren(block);
+    const expanded = expandedIds.has(block.id);
+    return <li key={block.id}>
+      <div className={`studio-list-item${selectedBlockId === block.id ? " is-selected" : ""}`} onPointerEnter={() => onHoverBlock(block.id)} onPointerLeave={() => onHoverBlock(null)}>
+        {children.length ? <button className={`studio-list-disclosure${expanded ? " is-expanded" : ""}`} type="button" aria-label={`${expanded ? "Collapse" : "Expand"} ${blockOutlineLabel(block)}`} aria-expanded={expanded} onClick={() => toggleExpanded(block.id)}><StudioIcon name="chevron-right" size={16} /></button> : <span className="studio-list-disclosure-spacer" aria-hidden="true" />}
+        <button className="studio-list-select" type="button" aria-current={selectedBlockId === block.id ? "true" : undefined} onClick={() => onSelectBlock(block.id)}>
+          <span className="studio-list-icon" aria-hidden="true"><BlockTypeIcon type={block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></span>
+          <span>{blockOutlineLabel(block)}</span>
+        </button>
+        {selectedBlockId === block.id ? <div className="studio-list-actions">
+          <button type="button" aria-label={`Move ${blockOutlineLabel(block)} up`} disabled={index === 0} onClick={() => onMoveItem(parentId, index, -1)}><StudioIcon name="chevron-down" size={16} /></button>
+          <button type="button" aria-label={`Move ${blockOutlineLabel(block)} down`} disabled={index === siblings.length - 1} onClick={() => onMoveItem(parentId, index, 1)}><StudioIcon name="chevron-down" size={16} /></button>
+          <button type="button" aria-label={`Remove ${blockOutlineLabel(block)}`} onClick={() => onRemoveBlock(block.id)}><StudioIcon name="trash" size={16} /></button>
+        </div> : null}
+      </div>
+      {children.length && expanded ? <ol>{children.map((child, index) => renderBlock(child, index, children, block.id))}</ol> : null}
+    </li>;
+  }
+
+  return <aside className="studio-list-view" aria-label="List View">
+    <header><h2>List View</h2><button type="button" onClick={onClose} aria-label="Close List View" title="Close List View"><StudioIcon name="close" size={18} /></button></header>
+    <nav aria-label="Block structure"><ol>{blocks.map((block, index) => renderBlock(block, index, blocks))}</ol></nav>
+  </aside>;
+}
+
+function DocumentHeading({ document, previewing, onChange, onFocus }: {
+  document: StudioDocument;
+  previewing: boolean;
+  onChange: StudioCanvasProps["onDocumentFieldChange"];
+  onFocus: () => void;
+}) {
+  const titleRef = useFittedTextHeight<HTMLHeadingElement>(document.title, previewing);
+  const subtitleRef = useFittedTextHeight<HTMLParagraphElement>(document.subtitle, previewing);
+  return (
+    <header className="document-heading">
+      <div className="document-title-field">
+        {previewing ? <h1 className="preview-title" ref={titleRef}>{document.title || `Untitled ${document.kind}`}</h1> : <>
+          <label className="canvas-title-label" htmlFor="document-title">{document.kind} title</label>
+          <AutoResizeTextarea id="document-title" className="canvas-title" value={document.title} onFocus={onFocus} onChange={(event) => onChange("title", event.target.value)} placeholder={`Add ${document.kind} title`} />
+        </>}
+      </div>
+      {previewing && !document.subtitle?.trim() ? null : <div className="document-subtitle-field">
+        {previewing ? <p className="preview-subtitle" ref={subtitleRef}>{document.subtitle}</p> : <>
+          <label className="canvas-subtitle-label" htmlFor="document-subtitle">Subtitle</label>
+          <AutoResizeTextarea id="document-subtitle" className="canvas-subtitle" value={document.subtitle ?? ""} onFocus={onFocus} onChange={(event) => onChange("subtitle", event.target.value)} placeholder="Add a subtitle" />
+        </>}
+      </div>}
+    </header>
+  );
+}
+
+function EditorPublicationDetails({ document }: { document: StudioDocument }) {
+  const publishedAt = document.publishAt ?? document.publishedAt;
+  const date = publishedAt ? new Date(publishedAt) : null;
+  const validDate = date && !Number.isNaN(date.getTime());
+  const displayDate = validDate
+    ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(date)
+    : "Not yet published";
+  return (
+    <div className="editor-publication-details" aria-label="Publication details preview">
+      <p className="article-reading-time">Reading Time: {readingTimeLabel(document.blocks)}</p>
+      <ArticleByline article={{ publishedAt: validDate ? publishedAt! : "", displayDate }} />
+    </div>
+  );
+}
+
+function LinkPreviewPopover({ editor, onEdit, onRemove }: { editor: LinkEditorState; onEdit: () => void; onRemove: () => void }) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(editor.url);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+  }
+
+  return (
+    <div className="link-preview-popover" role="dialog" aria-label="Link options" style={editor.anchor ?? undefined}>
+      <div className="link-preview-target"><span className="link-preview-mark" aria-hidden="true"><StudioIcon name="globe" size={17} /></span><span><strong>{editor.text || editor.url}</strong><small>{editor.url}</small></span></div>
+      <div className="link-preview-actions"><button type="button" onClick={onEdit} aria-label="Edit link" title="Edit link"><StudioIcon name="pencil" size={18} /></button><button type="button" onClick={onRemove} aria-label="Remove link" title="Remove link"><StudioIcon name="link-off" size={18} /></button><button type="button" onClick={() => void copyLink()} aria-label={copyState === "copied" ? "Link copied" : "Copy link"} title={copyState === "copied" ? "Link copied" : "Copy link"}><StudioIcon name="copy" size={18} /></button></div>
+      {copyState !== "idle" ? <span className="visually-hidden" role="status">{copyState === "copied" ? "Link copied to clipboard." : "Unable to copy link."}</span> : null}
+    </div>
+  );
+}
+
+function BlockTransformControl({ block, open, onOpenChange, onTransform }: { block: ContentBlock; open: boolean; onOpenChange: (open: boolean) => void; onTransform: (transform: BlockTransform) => void }) {
+  const transforms = availableBlockTransforms(block);
+  if (!transforms.length) return null;
+  return <div className="transform-control"><button className={open ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockLabel(block.type)} block`} title="Transform block"><BlockTypeIcon type={block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <div className="transform-menu" role="menu" aria-label="Transform block"><strong>Transform to</strong>{transforms.map((transform) => <button type="button" role="menuitem" key={transform.id} onMouseDown={preserveTextSelection} onClick={() => onTransform(transform)}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</div> : null}</div>;
+}
+
+function TransformIcon({ transform }: { transform: BlockTransform }) {
+  if (transform.target === "heading" && transform.level) return <span className="studio-heading-icon" aria-hidden="true">H{transform.level}</span>;
+  return <StudioIcon name={transform.icon} />;
+}
+
+function BlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"]; headingLevel?: HeadingLevel }) {
+  const icons: Partial<Record<ContentBlock["type"], StudioIconName>> = { button: "button", code: "code", divider: "separator", embed: "external", image: "image", list: "list", paragraph: "paragraph", quote: "quote" };
+  if (type === "heading") return <span className="studio-heading-icon" aria-hidden="true">H{headingLevel ?? 2}</span>;
+  if (type === "table") return <TableIcon />;
+  return <StudioIcon name={icons[type] ?? "block"} />;
+}
+
+function BlockInserter({ inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: InsertableBlockType) => void; onDismiss: () => void }) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const dismiss = useCallback(() => {
+    onDismiss();
+    requestAnimationFrame(() => { if (openerRef.current?.isConnected) openerRef.current.focus(); });
+  }, [onDismiss]);
+
+  useLayoutEffect(() => {
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     searchInputRef.current?.focus();
   }, []);
 
+  useLayoutEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      dismiss();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [dismiss]);
+
   return (
     <div className="inserter-backdrop">
-      <button className="inserter-dismiss" type="button" onClick={onDismiss} aria-label="Close block library" />
+      <button className="inserter-dismiss" type="button" onClick={dismiss} aria-label="Close block library" />
       <section className="block-inserter" role="dialog" aria-modal="true" aria-labelledby="inserter-title">
-        <header><div><p className="eyebrow">Block library</p><h2 id="inserter-title">Choose a block</h2></div><button type="button" onClick={onDismiss} aria-label="Close block library">×</button></header>
+        <header><div><p className="eyebrow">Block library</p><h2 id="inserter-title">Choose a block</h2></div><button type="button" onClick={dismiss} aria-label="Close block library"><StudioIcon name="close" /></button></header>
         <input ref={searchInputRef} type="search" value={inserterQuery} onChange={(event) => onSetQuery(event.target.value)} placeholder="Search blocks" aria-label="Search blocks" />
         <div className="inserter-results">
           {(["Text", "Media", "Design"] as const).map((group) => {
             const items = filteredBlocks.filter((item) => item.group === group);
             if (!items.length) return null;
-            return <div className="inserter-group" key={group}><h3>{group}</h3><div>{items.map((item) => <button type="button" key={item.type} onClick={() => onInsert(item.type)}><span>{item.glyph}</span><strong>{item.label}</strong><small>{item.description}</small></button>)}</div></div>;
+            return <div className="inserter-group" key={group}><h3>{group}</h3><div>{items.map((item) => <button type="button" key={item.type} onClick={() => onInsert(item.type)}><span><BlockTypeIcon type={item.type} /></span><strong>{item.label}</strong><small>{item.description}</small></button>)}</div></div>;
           })}
         </div>
       </section>
@@ -337,18 +770,20 @@ function BlockInserter({ inserterQuery, filteredBlocks, onSetQuery, onInsert, on
   );
 }
 
-function BlockField({ block, mediaUrl, onTableCellFocus, onTextSelection, onChange }: { block: ContentBlock; mediaUrl?: string; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null) => void; onChange: (block: ContentBlock) => void }) {
-  if (block.type === "paragraph") return <RichTextEditor className={`block-textarea paragraph-field align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
-  if (block.type === "heading") return <RichTextEditor className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
-  if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}`}><RichTextEditor className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} data-studio-block-id={block.id} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
+export function BlockField({ block, selectedBlockId, hoveredBlockId, mediaUrl, onTableCellFocus, onTextSelection, onLinkActivate, onChange }: { block: ContentBlock; selectedBlockId?: string | null; hoveredBlockId?: string | null; mediaUrl?: string; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null) => void; onLinkActivate: (selection: TextSelection) => void; onChange: (block: ContentBlock) => void }) {
+  if (block.type === "paragraph") return <RichTextEditor id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
+  if (block.type === "heading") return <RichTextEditor className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
+  if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}`}><RichTextEditor className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
   if (block.type === "list") return <ListField block={block} onChange={onChange} />;
   if (block.type === "table") return <TableField block={block} onCellFocus={onTableCellFocus} onChange={onChange} />;
   if (block.type === "code") return <CodeEditor value={block.code} language={block.language} onChange={(code) => onChange({ ...block, code })} />;
   // User-supplied URLs cannot be known to Next's image optimiser in this local editor.
   // eslint-disable-next-line @next/next/no-img-element
-  if (block.type === "image") return <div className="image-field">{mediaUrl || block.src ? <img src={mediaUrl || block.src} alt={block.alt} /> : <div><span>▧</span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}{block.caption ? <p>{block.caption}</p> : null}</div>;
-  if (block.type === "embed") return <div className="embed-field"><span>↗</span><div><strong>{block.title}</strong><small>{block.url || "Add a URL in Block settings"}</small></div></div>;
+  if (block.type === "image") return <figure className={`image-field${block.wide ? " is-wide" : ""}`}>{mediaUrl || block.src ? <img src={mediaUrl || block.src} alt={block.alt} /> : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}{block.caption ? <figcaption>{block.caption}</figcaption> : null}</figure>;
+  if (block.type === "embed") return <div className="embed-field"><span><StudioIcon name="external" /></span><div><strong>{block.title}</strong><small>{block.url || "Add a URL in Block settings"}</small></div></div>;
   if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`}>{block.label}</span></div>;
+  if (block.type === "field") return <label className="content-field"><span>{block.label}</span>{block.control === "select" ? <select value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })}>{(block.options?.length ? block.options : [block.value]).map((option) => <option key={option}>{option}</option>)}</select> : <input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} />}</label>;
+  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}`} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onChange({ ...block, children: [...block.children, createBlock("paragraph", `nested-paragraph-${crypto.randomUUID()}`)] })}><StudioIcon name="add" size={16} /> Add nested block</button></Group>; }
   return <div className="divider-field"><span /></div>;
 }
 
@@ -360,9 +795,30 @@ function CodeEditor({ value, language, onChange }: { value: string; language?: s
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    textarea.style.height = "0px";
-    textarea.style.height = `${textarea.scrollHeight}px`;
-    syncScroll();
+    const resize = () => {
+      textarea.style.height = "0px";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+      syncScroll();
+    };
+    let animationFrame = 0;
+    const scheduleResize = () => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => {
+        animationFrame = 0;
+        resize();
+      });
+    };
+    scheduleResize();
+    let width = textarea.clientWidth;
+    const observedElement = textarea.parentElement ?? textarea;
+    const observer = new ResizeObserver(() => {
+      if (textarea.clientWidth !== width) { width = textarea.clientWidth; scheduleResize(); }
+    });
+    observer.observe(observedElement);
+    return () => {
+      observer.disconnect();
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+    };
   }, [value, language]);
 
   function syncScroll() {
@@ -393,14 +849,17 @@ function CodeEditor({ value, language, onChange }: { value: string; language?: s
   );
 }
 
-type RichTextEditorProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
+export type RichTextEditorProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
+  as?: "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "span" | "dt" | "dd";
   text: string;
   runs?: RichTextRun[];
   onChange: (text: string, runs: RichTextRun[]) => void;
   onSelectionChange: (selection: TextSelection | null) => void;
+  onLinkActivate: (selection: TextSelection) => void;
 };
 
-function RichTextEditor({ text, runs, onChange, onSelectionChange, className, ...props }: RichTextEditorProps) {
+export function RichTextEditor({ as: elementName = "div", text, runs, onChange, onSelectionChange, onLinkActivate, className, ...props }: RichTextEditorProps) {
+  const Tag = elementName as "div";
   const editorRef = useRef<HTMLDivElement>(null);
   const renderedRuns = runs?.length ? runs : textToRuns(text);
 
@@ -435,14 +894,19 @@ function RichTextEditor({ text, runs, onChange, onSelectionChange, className, ..
     readSelection();
   }
 
-  // Prevent editing links from navigating away from the Studio.
-  return <div {...props} ref={editorRef} className={`${className ?? ""} rich-text-editor`} contentEditable role="textbox" tabIndex={0} aria-multiline="true" suppressContentEditableWarning onInput={handleInput} onSelect={readSelection} onKeyUp={readSelection} onMouseUp={readSelection} onFocus={readSelection} onClick={(event) => {
+  // Select links in-place and show their Gutenberg-style controls instead of navigating away from Studio.
+  return <Tag {...props} ref={editorRef} className={`${className ?? ""} rich-text-editor`} contentEditable role="textbox" tabIndex={0} aria-multiline="true" suppressContentEditableWarning onInput={handleInput} onSelect={readSelection} onKeyUp={readSelection} onMouseUp={readSelection} onFocus={(event) => { props.onFocus?.(event); readSelection(); }} onClick={(event) => {
     const link = (event.target as HTMLElement).closest("a");
     if (!link || !editorRef.current?.contains(link)) return;
     event.preventDefault();
     const range = document.createRange();
     range.selectNodeContents(link);
-    onSelectionChange({ start: editorOffset(editorRef.current, range.startContainer, range.startOffset), end: editorOffset(editorRef.current, range.endContainer, range.endOffset) });
+    const nextSelection = { start: editorOffset(editorRef.current, range.startContainer, range.startOffset), end: editorOffset(editorRef.current, range.endContainer, range.endOffset) };
+    const nativeSelection = window.getSelection();
+    nativeSelection?.removeAllRanges();
+    nativeSelection?.addRange(range);
+    onSelectionChange(nextSelection);
+    onLinkActivate(nextSelection);
   }} />;
 }
 
@@ -471,8 +935,9 @@ function restoreEditorSelection(editor: HTMLElement, selection: TextSelection) {
   const end = editorPointAtOffset(editor, selection.end);
   if (!start || !end) return;
   const range = document.createRange();
-  range.setStart(start.node, start.offset);
-  range.setEnd(end.node, end.offset);
+  const safeOffset = (point: { node: Node; offset: number }) => Math.min(Math.max(0, point.offset), point.node.nodeType === Node.TEXT_NODE ? point.node.nodeValue?.length ?? 0 : point.node.childNodes.length);
+  range.setStart(start.node, safeOffset(start));
+  range.setEnd(end.node, safeOffset(end));
   const nativeSelection = window.getSelection();
   if (!nativeSelection) return;
   nativeSelection.removeAllRanges();
@@ -482,14 +947,19 @@ function restoreEditorSelection(editor: HTMLElement, selection: TextSelection) {
 function editorPointAtOffset(editor: HTMLElement, targetOffset: number) {
   const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
   let node = walker.nextNode();
+  let lastTextNode: Node | null = null;
   let offset = 0;
+  const target = Number.isFinite(targetOffset) ? Math.max(0, Math.trunc(targetOffset)) : 0;
   while (node) {
-    const length = node.textContent?.length ?? 0;
-    if (targetOffset <= offset + length) return { node, offset: targetOffset - offset };
+    const length = node.nodeValue?.length ?? 0;
+    if (target <= offset + length) return { node, offset: target - offset };
     offset += length;
+    lastTextNode = node;
     node = walker.nextNode();
   }
-  return editor.lastChild ? { node: editor.lastChild, offset: editor.lastChild.textContent?.length ?? 0 } : null;
+  // Undo may shorten the content or end it in an inline element. DOM Range
+  // element offsets count child nodes, never characters in textContent.
+  return lastTextNode ? { node: lastTextNode, offset: lastTextNode.nodeValue?.length ?? 0 } : { node: editor, offset: 0 };
 }
 
 function escapeHtml(value: string) {
@@ -504,7 +974,7 @@ function runsToEditorHtml(runs: RichTextRun[]) {
       else if (mark === "italic") html = `<em>${html}</em>`;
       else {
         const href = safeTextLink(mark.url);
-        if (href) html = `<a href="${escapeHtml(href)}">${html}</a>`;
+        if (href) html = `<a href="${escapeHtml(href)}"${mark.opensInNewTab ? " target=\"_blank\" rel=\"noopener noreferrer\"" : ""}>${html}</a>`;
       }
     }
     return html;
@@ -529,7 +999,7 @@ function editorToRuns(editor: HTMLElement) {
     if (element.tagName === "EM" || element.tagName === "I") marks.push("italic");
     if (element.tagName === "A") {
       const href = safeTextLink(element.getAttribute("href") ?? "");
-      if (href) marks.push({ type: "link", url: href });
+      if (href) marks.push({ type: "link", url: href, opensInNewTab: element.getAttribute("target") === "_blank" || undefined });
     }
     element.childNodes.forEach((child) => visit(child, marks));
     if (element.tagName === "DIV" || element.tagName === "P") runs.push({ text: "\n" });
@@ -541,46 +1011,49 @@ function editorToRuns(editor: HTMLElement) {
   return normaliseTextRuns(nextRuns);
 }
 
-function AlignLeftIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M3 4h14M3 8h10M3 12h14M3 16h10" /></svg>;
+function AlignmentIcon({ align }: { align: TextAlignment }) {
+  return <StudioIcon name={align === "centre" ? "align-centre" : align === "right" ? "align-right" : "align-left"} />;
 }
 
-function AlignCentreIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M3 4h14M5 8h10M3 12h14M5 16h10" /></svg>;
-}
-
-function AlignRightIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M3 4h14M7 8h10M3 12h14M7 16h10" /></svg>;
-}
-
-function LinkIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="m8 12 4-4M6.5 14.5l-1 1a3 3 0 0 1-4-4l2-2a3 3 0 0 1 4-0.2M13.5 5.5l1-1a3 3 0 0 1 4 4l-2 2a3 3 0 0 1-4 .2" /></svg>;
-}
-
-function ArrowUpIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M10 16V4m-5 5 5-5 5 5" /></svg>;
-}
-
-function ArrowDownIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M10 4v12m-5-5 5 5 5-5" /></svg>;
-}
-
-function DuplicateIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><rect x="6" y="6" width="10" height="10" rx="1" /><path d="M4 13V4a1 1 0 0 1 1-1h9" /></svg>;
-}
-
-function CloseIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="m5 5 10 10M15 5 5 15" /></svg>;
+// Native textareas include glyph overflow in their height. Apply the same
+// measurement to preview headings so later fields cannot shift between modes.
+// Observe the stable wrapper instead of the element whose height is mutated;
+// this avoids a ResizeObserver feedback loop during layout changes.
+function useFittedTextHeight<T extends HTMLElement>(value: unknown, active = true) {
+  const textRef = useRef<T>(null);
+  useLayoutEffect(() => {
+    const element = textRef.current;
+    if (!element || !active) return;
+    const resize = () => {
+      element.style.height = "0px";
+      // scrollHeight excludes borders, whereas our fields use border-box sizing.
+      element.style.height = `${element.scrollHeight + element.offsetHeight - element.clientHeight}px`;
+    };
+    let animationFrame = 0;
+    const scheduleResize = () => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => {
+        animationFrame = 0;
+        resize();
+      });
+    };
+    scheduleResize();
+    let width = element.clientWidth;
+    const observedElement = element.parentElement ?? element;
+    const observer = new ResizeObserver(() => {
+      if (element.clientWidth !== width) { width = element.clientWidth; scheduleResize(); }
+    });
+    observer.observe(observedElement);
+    return () => {
+      observer.disconnect();
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+    };
+  }, [value, active]);
+  return textRef;
 }
 
 function AutoResizeTextarea({ value, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  useLayoutEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    textarea.style.height = "0px";
-    textarea.style.height = `${textarea.scrollHeight}px`;
-  }, [value]);
+  const textareaRef = useFittedTextHeight<HTMLTextAreaElement>(value);
   return <textarea {...props} ref={textareaRef} rows={1} value={value} />;
 }
 
@@ -600,19 +1073,28 @@ function ListField({ block, onChange }: { block: Extract<ContentBlock, { type: "
       {items.map((item, index) => (
         <div className="list-field-row" key={`${block.id}-item-${index}`}>
           <span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${index + 1}.` : "•"}</span>
-          <textarea rows={Math.max(1, Math.ceil(item.length / 62))} value={item} onChange={(event) => updateItem(index, event.target.value)} aria-label={`${block.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}`} placeholder="List item" />
-          <button className="list-item-remove" type="button" onClick={() => removeItem(index)} aria-label={`Remove list item ${index + 1}`}>×</button>
+          <AutoResizeTextarea value={item} onChange={(event) => updateItem(index, event.target.value)} aria-label={`${block.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}`} placeholder="List item" />
+          <button className="list-item-remove" type="button" onClick={() => removeItem(index)} aria-label={`Remove list item ${index + 1}`}><StudioIcon name="close" size={16} /></button>
         </div>
       ))}
-      <button className="list-item-add" type="button" onClick={() => onChange({ ...block, items: [...items, ""] })}>＋ Add item</button>
+      <button className="list-item-add" type="button" onClick={() => onChange({ ...block, items: [...items, ""] })}><StudioIcon name="add" size={16} />Add item</button>
     </div>
   );
 }
 
-function TableField({ block, onCellFocus, onChange }: { block: Extract<ContentBlock, { type: "table" }>; onCellFocus: (rowIndex: number, columnIndex: number) => void; onChange: (block: ContentBlock) => void }) {
+export function TableField({ block, onCellFocus, onChange }: { block: Extract<ContentBlock, { type: "table" }>; onCellFocus: (rowIndex: number, columnIndex: number) => void; onChange: (block: ContentBlock) => void }) {
   const rows = block.rows.length ? block.rows : [[""]];
   const columnCount = Math.max(1, ...rows.map((row) => row.length));
   const normalisedRows = rows.map((row) => Array.from({ length: columnCount }, (_, index) => row[index] ?? ""));
+  const tableRef = useRef<HTMLTableElement>(null);
+  const [resizeDraft, setResizeDraft] = useState<{ columnWidths: number[]; rowHeights: number[]; kind: "column" | "row"; index: number } | null>(null);
+  const resizeRef = useRef<{
+    pointerId: number; kind: "column" | "row"; index: number; start: number;
+    tableWidth: number; columnWidths: number[]; rowHeights: number[];
+    nextColumns: number[]; nextRows: number[]; moved: boolean;
+  } | null>(null);
+  const columnWidths = resizeDraft?.columnWidths ?? normaliseTableColumnWidths(columnCount, block.columnWidths);
+  const rowHeights = resizeDraft?.rowHeights ?? normaliseTableRowHeights(normalisedRows.length, block.rowHeights);
   const hasFooterRow = Boolean(block.hasFooter && normalisedRows.length > (block.hasHeader ? 1 : 0));
 
   function updateCell(rowIndex: number, columnIndex: number, value: string) {
@@ -621,13 +1103,193 @@ function TableField({ block, onCellFocus, onChange }: { block: Extract<ContentBl
     onChange({ ...block, rows: nextRows });
   }
 
+  function beginResize(event: React.PointerEvent<HTMLButtonElement>, kind: "column" | "row", index: number) {
+    if (event.button !== 0 || !event.isPrimary || !tableRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    resizeRef.current = {
+      pointerId: event.pointerId, kind, index,
+      start: kind === "column" ? event.clientX : event.clientY,
+      tableWidth: tableRef.current.getBoundingClientRect().width,
+      columnWidths, rowHeights, nextColumns: columnWidths, nextRows: rowHeights, moved: false,
+    };
+    setResizeDraft({ columnWidths, rowHeights, kind, index });
+  }
+
+  function moveResize(event: React.PointerEvent<HTMLButtonElement>) {
+    const drag = resizeRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const delta = (drag.kind === "column" ? event.clientX : event.clientY) - drag.start;
+    // Clicks, including a double-click to fit, must not create undo entries.
+    if (!drag.moved && Math.abs(delta) < 2) return;
+    drag.moved = true;
+    if (drag.kind === "column") {
+      drag.nextColumns = resizeTableColumn(drag.columnWidths, drag.index, delta / drag.tableWidth * 100);
+    } else {
+      drag.nextRows = [...drag.rowHeights];
+      drag.nextRows[drag.index] = Math.max(DEFAULT_TABLE_ROW_HEIGHT, drag.rowHeights[drag.index] + delta);
+    }
+    setResizeDraft({ columnWidths: drag.nextColumns, rowHeights: drag.nextRows, kind: drag.kind, index: drag.index });
+  }
+
+  function endResize(event: React.PointerEvent<HTMLButtonElement>, cancelled = false) {
+    const drag = resizeRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    resizeRef.current = null;
+    setResizeDraft(null);
+    if (!cancelled && drag.moved) {
+      onChange(drag.kind === "column" ? { ...block, columnWidths: drag.nextColumns } : { ...block, rowHeights: drag.nextRows });
+    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
+  function optimiseColumn(index: number) {
+    const table = tableRef.current;
+    if (!table) return;
+    const probe = document.createElement("span");
+    Object.assign(probe.style, { position: "absolute", visibility: "hidden", pointerEvents: "none", whiteSpace: "pre", width: "max-content" });
+    table.parentElement?.append(probe);
+    let width = DEFAULT_TABLE_ROW_HEIGHT;
+    try {
+      for (const row of table.rows) {
+        const editor = row.cells[index]?.querySelector("textarea");
+        if (!editor) continue;
+        const style = getComputedStyle(editor);
+        probe.style.font = style.font;
+        probe.style.letterSpacing = style.letterSpacing;
+        probe.style.tabSize = style.tabSize;
+        probe.textContent = editor.value;
+        width = Math.max(width, probe.getBoundingClientRect().width + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight) + 2);
+      }
+    } finally {
+      probe.remove();
+    }
+    onChange({ ...block, columnWidths: fitTableColumn(columnWidths, index, Math.ceil(width) / table.getBoundingClientRect().width * 100) });
+  }
+
+  function optimiseRow(index: number) {
+    const row = tableRef.current?.rows[index];
+    if (!row) return;
+    let height = DEFAULT_TABLE_ROW_HEIGHT;
+    for (const editor of row.querySelectorAll("textarea")) {
+      const previousHeight = editor.style.height;
+      const previousScroll = editor.scrollTop;
+      // Measure wrapped content independently of the row's current height.
+      editor.style.height = "0px";
+      height = Math.max(height, editor.scrollHeight + 1);
+      editor.style.height = previousHeight;
+      editor.scrollTop = previousScroll;
+    }
+    const nextHeights = [...rowHeights];
+    nextHeights[index] = Math.ceil(height);
+    onChange({ ...block, rowHeights: nextHeights });
+  }
+
+  function resizeColumnFromKeyboard(index: number, amount: number) {
+    onChange({ ...block, columnWidths: resizeTableColumn(columnWidths, index, amount) });
+  }
+
+  function resizeRowFromKeyboard(index: number, amount: number) {
+    const nextHeights = [...rowHeights];
+    nextHeights[index] = Math.max(nextHeights[index] + amount, DEFAULT_TABLE_ROW_HEIGHT);
+    onChange({ ...block, rowHeights: nextHeights });
+  }
+
+  function renderRow(row: string[], rowIndex: number, section: "header" | "body" | "footer") {
+    const Cell = section === "header" ? "th" : "td";
+    return (
+      <tr key={`row-${rowIndex}`} style={{ height: rowHeights[rowIndex] }}>
+        {row.map((cell, columnIndex) => (
+          <Cell key={columnIndex} scope={section === "header" ? "col" : undefined}>
+            <textarea
+              rows={1}
+              value={cell}
+              onFocus={() => onCellFocus(rowIndex, columnIndex)}
+              onChange={(event) => updateCell(rowIndex, columnIndex, event.target.value)}
+              aria-label={section === "body" ? `Table row ${rowIndex + 1}, column ${columnIndex + 1}` : `Table ${section} ${columnIndex + 1}`}
+            />
+          </Cell>
+        ))}
+      </tr>
+    );
+  }
+
   return (
-    <div className="table-field">
-      <table className="table-field-grid">
-        {block.hasHeader ? <thead><tr>{normalisedRows[0].map((cell, columnIndex) => <th key={`header-${columnIndex}`}><input value={cell} onFocus={() => onCellFocus(0, columnIndex)} onChange={(event) => updateCell(0, columnIndex, event.target.value)} aria-label={`Table header ${columnIndex + 1}`} /></th>)}</tr></thead> : null}
-        <tbody>{normalisedRows.slice(block.hasHeader ? 1 : 0, hasFooterRow ? -1 : undefined).map((row, rowIndex) => { const actualRowIndex = rowIndex + (block.hasHeader ? 1 : 0); return <tr key={`row-${actualRowIndex}`}>{row.map((cell, columnIndex) => <td key={`${actualRowIndex}-${columnIndex}`}><input value={cell} onFocus={() => onCellFocus(actualRowIndex, columnIndex)} onChange={(event) => updateCell(actualRowIndex, columnIndex, event.target.value)} aria-label={`Table row ${actualRowIndex + 1}, column ${columnIndex + 1}`} /></td>)}</tr>; })}</tbody>
-        {hasFooterRow ? <tfoot><tr>{normalisedRows.at(-1)?.map((cell, columnIndex) => <td key={`footer-${columnIndex}`}><input value={cell} onFocus={() => onCellFocus(normalisedRows.length - 1, columnIndex)} onChange={(event) => updateCell(normalisedRows.length - 1, columnIndex, event.target.value)} aria-label={`Table footer ${columnIndex + 1}`} /></td>)}</tr></tfoot> : null}
+    <div className="table-field" data-studio-nested-block-id={block.id}>
+      <table className="table-field-grid" ref={tableRef}>
+        <colgroup>{columnWidths.map((width, index) => <col key={`column-${index}`} style={{ width: `${width}%` }} />)}</colgroup>
+        {block.hasHeader ? <thead>{renderRow(normalisedRows[0], 0, "header")}</thead> : null}
+        <tbody>{normalisedRows.slice(block.hasHeader ? 1 : 0, hasFooterRow ? -1 : undefined).map((row, rowIndex) => renderRow(row, rowIndex + (block.hasHeader ? 1 : 0), "body"))}</tbody>
+        {hasFooterRow ? <tfoot>{renderRow(normalisedRows[normalisedRows.length - 1], normalisedRows.length - 1, "footer")}</tfoot> : null}
       </table>
+      {columnWidths.slice(0, -1).map((_, index) => (
+        <button
+          className={`table-resize-handle table-column-resize-handle${resizeDraft?.kind === "column" && resizeDraft.index === index ? " is-resizing" : ""}`}
+          key={`column-resize-${index}`} type="button"
+          style={{ left: `${columnWidths.slice(0, index + 1).reduce((total, width) => total + width, 0)}%` }}
+          aria-label={`Resize columns ${index + 1} and ${index + 2}`} title={`Drag to resize. Double-click to fit column ${index + 1}.`}
+          onPointerDown={(event) => beginResize(event, "column", index)} onPointerMove={moveResize}
+          onPointerUp={endResize} onPointerCancel={(event) => endResize(event, true)} onLostPointerCapture={(event) => endResize(event, true)}
+          onDoubleClick={() => optimiseColumn(index)}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); resizeColumnFromKeyboard(index, event.key === "ArrowLeft" ? -2 : 2); }
+            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); optimiseColumn(index); }
+            if (event.key === "Escape") { resizeRef.current = null; setResizeDraft(null); }
+          }}
+        />
+      ))}
+      {rowHeights.map((_, index) => (
+        <button
+          className={`table-resize-handle table-row-resize-handle${resizeDraft?.kind === "row" && resizeDraft.index === index ? " is-resizing" : ""}`}
+          key={`row-resize-${index}`} type="button"
+          style={{ top: `${rowHeights.slice(0, index + 1).reduce((total, height) => total + height, 0)}px` }}
+          aria-label={`Resize row ${index + 1}`} title={`Drag to resize. Double-click to fit row ${index + 1}.`}
+          onPointerDown={(event) => beginResize(event, "row", index)} onPointerMove={moveResize}
+          onPointerUp={endResize} onPointerCancel={(event) => endResize(event, true)} onLostPointerCapture={(event) => endResize(event, true)}
+          onDoubleClick={() => optimiseRow(index)}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowUp" || event.key === "ArrowDown") { event.preventDefault(); resizeRowFromKeyboard(index, event.key === "ArrowUp" ? -8 : 8); }
+            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); optimiseRow(index); }
+            if (event.key === "Escape") { resizeRef.current = null; setResizeDraft(null); }
+          }}
+        />
+      ))}
     </div>
   );
+}
+
+/** The same Gutenberg-style table action menu used by top-level tables. */
+export function TableControls({ block, activeCell = { rowIndex: 0, columnIndex: 0 }, protectEdges = false, onActiveCellChange, onChange }: { block: Extract<ContentBlock, { type: "table" }>; activeCell?: TableCell; protectEdges?: boolean; onActiveCellChange?: (cell: TableCell) => void; onChange: (block: ContentBlock) => void }) {
+  const [open, setOpen] = useState(false);
+  function apply(action: TableAction) {
+    const rows = (block.rows.length ? block.rows : [[""]]).map((row) => [...row]);
+    const columnCount = Math.max(1, ...rows.map((row) => row.length));
+    const widths = normaliseTableColumnWidths(columnCount, block.columnWidths);
+    const heights = normaliseTableRowHeights(rows.length, block.rowHeights);
+    const rowIndex = Math.min(activeCell.rowIndex, rows.length - 1);
+    const columnIndex = Math.min(activeCell.columnIndex, columnCount - 1);
+    let nextCell = { rowIndex, columnIndex };
+    if (action === "insert-row-before" || action === "insert-row-after") {
+      const at = action === "insert-row-before" ? rowIndex : rowIndex + 1;
+      rows.splice(at, 0, Array.from({ length: columnCount }, () => "")); heights.splice(at, 0, DEFAULT_TABLE_ROW_HEIGHT); nextCell = { rowIndex: at, columnIndex };
+    } else if (action === "delete-row") {
+      if (rows.length <= 1) return;
+      rows.splice(rowIndex, 1); heights.splice(rowIndex, 1); nextCell = { rowIndex: Math.min(rowIndex, rows.length - 1), columnIndex };
+    } else if (action === "insert-column-before" || action === "insert-column-after") {
+      const at = action === "insert-column-before" ? columnIndex : columnIndex + 1;
+      rows.forEach((row) => row.splice(at, 0, "")); const width = widths[columnIndex] / 2;
+      if (action === "insert-column-before") { widths.splice(columnIndex, 0, width); widths[columnIndex + 1] = width; }
+      else { widths[columnIndex] = width; widths.splice(columnIndex + 1, 0, width); }
+      nextCell = { rowIndex, columnIndex: at };
+    } else {
+      if (columnCount <= 1) return;
+      rows.forEach((row) => row.splice(columnIndex, 1)); const removed = widths.splice(columnIndex, 1)[0]; widths[Math.max(0, columnIndex - 1)] += removed; nextCell = { rowIndex, columnIndex: Math.min(columnIndex, columnCount - 2) };
+    }
+    onChange({ ...block, rows, columnWidths: widths, rowHeights: heights }); onActiveCellChange?.(nextCell); setOpen(false);
+  }
+  const actions: Array<[TableAction, string]> = [["insert-row-before", "Insert row before"], ["insert-row-after", "Insert row after"], ["delete-row", "Delete row"], ["insert-column-before", "Insert column before"], ["insert-column-after", "Insert column after"], ["delete-column", "Delete column"]];
+  const rowProtected = protectEdges && ((block.hasHeader && activeCell.rowIndex === 0) || (block.hasFooter && activeCell.rowIndex === block.rows.length - 1));
+  const columnProtected = protectEdges && (activeCell.columnIndex === 0 || activeCell.columnIndex === Math.max(0, block.rows[0]?.length - 1));
+  return <div className="table-control"><button className={`table-control-button${open ? " is-active" : ""}`} type="button" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label="Table options" title="Table options"><TableIcon /></button>{open ? <div className="table-menu" role="menu" aria-label="Table options">{actions.map(([action, label]) => { const disabled = (action === "delete-row" && rowProtected) || (action === "delete-column" && columnProtected); return <button type="button" role="menuitem" key={action} onClick={() => apply(action)} disabled={disabled} title={disabled ? "Scorecard header, footer and boundary columns are kept intact." : undefined}><TableActionIcon action={action} /><span>{label}</span></button>; })}</div> : null}</div>;
 }
