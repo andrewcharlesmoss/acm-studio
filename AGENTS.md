@@ -58,6 +58,18 @@ additional body content. Verify both modes when changing a block's appearance.
   analytics, scheduling or multi-user permissions during the foundation phase.
 - Do not publish or deploy without an explicit request.
 
+## Git and deployment mapping
+
+- This repository currently has only `main`; treat it as the production branch
+  and use `Local → Main` unless a documented staging branch or independent
+  staging target is added later.
+- The tracked `.openai/hosting.json` identifies the ACM Studio Sites project.
+  Sites publishing is a separate, explicitly authorised operation; the hosting
+  file does not establish an automatic Git trigger.
+- Before publishing, verify the selected Sites target, exact saved source
+  revision, deployment status and hosted result. Keep any future staging Sites
+  project separate from production and document its mapping before use.
+
 ## Content architecture
 
 - `Project`, `Article`, `MediaReference` and structured `ContentBlock` records
