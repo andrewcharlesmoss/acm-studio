@@ -99,6 +99,7 @@
   negative values like Canva.
 - The rotation cursor is slightly smaller and the live angle badge sits farther
   from it for clearer separation.
+- The live angle badge now has additional clearance from the rotation pointer.
 
 - Replaced the browser resize cursor during canvas rotation with a Canva-style curved two-way SVG cursor.
 
