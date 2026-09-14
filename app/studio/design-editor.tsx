@@ -230,6 +230,29 @@ function shouldKeepResizeRatio(object: DesignObject, shiftKey: boolean) {
   return object.type === "image" && !shiftKey;
 }
 
+function arrowEndpointPagePoint(object: DesignArrowObject, endpoint: "start" | "end") {
+  const local = object[endpoint] ?? (endpoint === "start" ? { x: 0, y: object.height } : { x: object.width, y: 0 });
+  const centre = { x: object.x + object.width / 2, y: object.y + object.height / 2 };
+  const radians = object.rotation * Math.PI / 180;
+  const point = { x: object.x + local.x, y: object.y + local.y };
+  return {
+    x: centre.x + (point.x - centre.x) * Math.cos(radians) - (point.y - centre.y) * Math.sin(radians),
+    y: centre.y + (point.x - centre.x) * Math.sin(radians) + (point.y - centre.y) * Math.cos(radians),
+  };
+}
+
+function resizeArrowEndpoint(object: DesignArrowObject, endpoint: "start" | "end", point: { x: number; y: number }, page: DesignPage): DesignArrowObject {
+  const fixedPoint = arrowEndpointPagePoint(object, endpoint === "start" ? "end" : "start");
+  const movedPoint = { x: Math.max(0, Math.min(page.width, point.x)), y: Math.max(0, Math.min(page.height, point.y)) };
+  const start = endpoint === "start" ? movedPoint : fixedPoint;
+  const end = endpoint === "end" ? movedPoint : fixedPoint;
+  const width = Math.max(1, Math.abs(end.x - start.x));
+  const height = Math.max(1, Math.abs(end.y - start.y));
+  const x = Math.max(0, Math.min(page.width - width, Math.min(start.x, end.x)));
+  const y = Math.max(0, Math.min(page.height - height, Math.min(start.y, end.y)));
+  return { ...object, x, y, width, height, rotation: 0, start: { x: start.x - x, y: start.y - y }, end: { x: end.x - x, y: end.y - y } };
+}
+
 function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], tool = "select", zoom = 100, onCanvasPointerDown, onObjectPointerDown, onResizePointerDown, onRotatePointerDown, onArrowEndpointPointerDown, onResizeKeyDown, onRotateKeyDown, onArrowEndpointKeyDown, svgRef }: {
   page: DesignPage; assets: DesignAsset[]; selectedIds?: string[]; selectionBox?: { x: number; y: number; width: number; height: number } | null; guides?: Guide[]; zoom?: number;
   tool?: Tool;
@@ -261,7 +284,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
       {(object.type === "rectangle" || object.type === "highlight" || object.type === "redaction") ? <rect width={object.width} height={object.height} rx={object.radius ?? 0} fill={object.type === "redaction" ? "#000000" : object.fill} stroke={object.stroke} strokeWidth={object.strokeWidth} /> : null}
       {object.type === "ellipse" ? <ellipse cx={object.width / 2} cy={object.height / 2} rx={object.width / 2} ry={object.height / 2} fill={object.fill} stroke={object.stroke} strokeWidth={object.strokeWidth} /> : null}
       {(object.type === "text" || object.type === "step") ? <>{object.type === "step" ? <circle cx={object.width / 2} cy={object.height / 2} r={Math.min(object.width, object.height) / 2} fill={object.fill ?? "#cc1818"} /> : null}<text x={object.align === "center" ? object.width / 2 : object.align === "right" ? object.width : 0} y={object.fontSize} fill={object.colour} fontFamily={object.fontFamily} fontSize={object.fontSize} fontWeight={object.fontWeight} textAnchor={object.align === "center" ? "middle" : object.align === "right" ? "end" : "start"}>{object.text}</text></> : null}
-      {selectedIds.includes(object.id) ? <>
+      {selectedIds.includes(object.id) && object.type !== "arrow" ? <>
         {resizeHandles.map(({ handle, label }) => {
           const cx = handle.includes("e") ? object.width : handle.includes("w") ? 0 : object.width / 2;
           const cy = handle.includes("s") ? object.height : handle.includes("n") ? 0 : object.height / 2;
@@ -273,7 +296,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
         <g className="design-rotate-icon" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 30 * controlScale})`} pointerEvents="none"><StudioIcon name="rotate" size={14 * controlScale} x={object.width / 2 - 7 * controlScale} y={object.height + 23 * controlScale} /></g>
         <g className="design-rotation-badge" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 72 * controlScale})`} pointerEvents="none"><rect x={object.width / 2 - 28 * controlScale} y={object.height + 60 * controlScale} width={56 * controlScale} height={24 * controlScale} rx={2 * controlScale} /><text x={object.width / 2} y={object.height + 77 * controlScale} style={{ fontSize: `${12 * controlScale}px` }} textAnchor="middle">{rotationLabel(object.rotation)}</text></g>
       </> : null}
-      {selectedIds.includes(object.id) && object.type === "arrow" ? <><circle role="button" tabIndex={0} aria-label="Move arrow start point" className="design-endpoint-handle" cx={object.start?.x ?? 0} cy={object.start?.y ?? object.height} r={7 * controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /><circle role="button" tabIndex={0} aria-label="Move arrow end point" className="design-endpoint-handle" cx={object.end?.x ?? object.width} cy={object.end?.y ?? 0} r={7 * controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /></> : null}
+      {selectedIds.includes(object.id) && object.type === "arrow" ? <><circle role="button" tabIndex={0} aria-label="Resize arrow from start point" className="design-endpoint-handle" cx={object.start?.x ?? 0} cy={object.start?.y ?? object.height} r={7 * controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /><circle role="button" tabIndex={0} aria-label="Resize arrow from end point" className="design-endpoint-handle" cx={object.end?.x ?? object.width} cy={object.end?.y ?? 0} r={7 * controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /></> : null}
     </g>)}
     {selectionBox ? <rect className="design-marquee" x={selectionBox.x} y={selectionBox.y} width={selectionBox.width} height={selectionBox.height} /> : null}
   </svg>;
@@ -600,8 +623,8 @@ export function DesignEditor() {
     const dy = event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0;
     updatePage((page) => ({ ...page, objects: page.objects.map((item) => {
       if (item.id !== object.id || item.type !== "arrow") return item;
-      const current = item[endpoint] ?? (endpoint === "start" ? { x: 0, y: item.height } : { x: item.width, y: 0 });
-      return { ...item, [endpoint]: { x: Math.max(0, Math.min(item.width, current.x + dx)), y: Math.max(0, Math.min(item.height, current.y + dy)) } };
+      const current = arrowEndpointPagePoint(item, endpoint);
+      return resizeArrowEndpoint(item, endpoint, { x: current.x + dx, y: current.y + dy }, page);
     }) }));
   }
 
@@ -655,8 +678,7 @@ export function DesignEditor() {
       const angle = Math.atan2(point.y - centreY, point.x - centreX);
       nextObject = { ...original, rotation: (original.rotation + (angle - (interaction.startAngle ?? angle)) * 180 / Math.PI + 360) % 360 };
     } else if (interaction.mode === "arrow-endpoint" && interaction.original.type === "arrow") {
-      const original = interaction.original; const local = { x: Math.max(0, Math.min(original.width, point.x - original.x)), y: Math.max(0, Math.min(original.height, point.y - original.y)) };
-      nextObject = { ...original, [interaction.endpoint === "start" ? "start" : "end"]: local };
+      nextObject = resizeArrowEndpoint(interaction.original, interaction.endpoint ?? "end", point, activePage);
     }
     const snap = interaction.mode === "move" && interaction.ids?.length === 1 && interaction.originals?.[0] ? snapMove(interaction.originals[0], dx, dy) : { dx, dy, guides: [] as Guide[] };
     if (interaction.mode === "move") setGuides(snap.guides);
@@ -1053,7 +1075,7 @@ export function DesignEditor() {
               <div className="design-canvas-frame" style={{ width: `${zoom}%` }}><PageSvg tool={isActive ? tool : "select"} zoom={zoom} page={page} assets={design.assets} selectedIds={isActive ? selectedIds : []} guides={isActive ? guides : []} onCanvasPointerDown={isActive ? onCanvasPointerDown : selectInactivePage} onObjectPointerDown={isActive ? onObjectPointerDown : (event) => selectInactivePage(event)} onResizePointerDown={isActive ? onResizePointerDown : () => undefined} onRotatePointerDown={isActive ? onRotatePointerDown : () => undefined} onArrowEndpointPointerDown={isActive ? onArrowEndpointPointerDown : () => undefined} onResizeKeyDown={isActive ? onResizeKeyDown : () => undefined} onRotateKeyDown={isActive ? onRotateKeyDown : () => undefined} onArrowEndpointKeyDown={isActive ? onArrowEndpointKeyDown : () => undefined} selectionBox={isActive ? selectionBox : null} svgRef={isActive ? svgRef : undefined} /></div>
             </article>;
           })}</div> : <div className="design-canvas-frame" style={{ width: `${zoom}%` }}><PageSvg tool={tool} zoom={zoom} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onResizeKeyDown={onResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div>}
-        </div><p className="design-canvas-help">Choose a tool, then drag on the canvas to draw it. Images keep their proportions by default; hold Shift to stretch them. Handles stay the same size as you zoom. Option/Alt resizes from the centre. Arrow keys resize focused handles.</p></div>
+        </div><p className="design-canvas-help">Choose a tool, then drag on the canvas to draw it. Images keep their proportions by default; hold Shift to stretch them. Handles stay the same size as you zoom. Arrows resize through their two endpoints instead of corner handles. Option/Alt resizes from the centre. Arrow keys resize focused handles.</p></div>
       </section>
       <aside className="design-inspector" aria-label="Design properties"><div className="design-inspector-section"><span className="design-inspector-label">Page</span><label>Name<input value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} /></label><label>Preset<select value="custom" disabled={!writable} onChange={(event) => setPagePreset(event.target.value)}><option value="custom">Custom</option><option value="landscape">1920 × 1080 landscape</option><option value="square">1080 × 1080 square</option><option value="portrait">1080 × 1350 portrait</option></select></label><label>Width<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.width} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, width: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Height<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.height} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, height: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Background<select value={activePage.background.kind} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, kind: event.target.value as "solid" | "transparent" } }))}><option value="solid">Solid</option><option value="transparent">Transparent</option></select></label>{activePage.background.kind === "solid" ? <label>Colour<input type="color" value={activePage.background.colour} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, colour: event.target.value } }))} /></label> : null}</div>{selectedObject ? <div className="design-inspector-section"><span className="design-inspector-label">Selected {toolLabels[selectedObject.type as Tool] ?? selectedObject.type}</span><div className="design-field-grid"><label>X<input type="number" value={Math.round(selectedObject.x)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, x: Number(event.target.value) || 0 }))} /></label><label>Y<input type="number" value={Math.round(selectedObject.y)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, y: Number(event.target.value) || 0 }))} /></label><label>Width<input type="number" min="1" value={Math.round(selectedObject.width)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, width: Math.max(1, Number(event.target.value) || 1) }))} /></label><label>Height<input type="number" min="1" value={Math.round(selectedObject.height)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, height: Math.max(1, Number(event.target.value) || 1) }))} /></label></div><label>Opacity<input type="range" min="0" max="1" step=".05" value={selectedObject.opacity} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, opacity: Number(event.target.value) }))} /></label><PositionControls writable={writable} selectedCount={selectedIds.length} canAlign={activePage.objects.some((object) => selectedIds.includes(object.id) && !object.locked)} onAlignToPage={alignSelectedToPage} />{selectedObject.type === "image" ? <div className="design-image-tools">
             <div className="design-background-removal"><span className="design-inspector-label">Background removal</span><label>Tolerance<input type="range" min="4" max="80" value={backgroundTolerance} disabled={!writable} onChange={(event) => setBackgroundTolerance(Number(event.target.value))} /></label><button type="button" onClick={() => void removeSelectedImageBackground()} disabled={!writable}>Remove background</button><small>Removes edge-connected colours locally and keeps the original asset.</small></div>

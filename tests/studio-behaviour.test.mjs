@@ -455,7 +455,21 @@ test("design canvas controls keep a constant screen size as zoom changes", () =>
   assert.match(editor, /r=\{12 \* controlScale\}/);
   assert.match(editor, /r=\{7 \* controlScale\}/);
   assert.match(editor, /r=\{14 \* controlScale\}/);
+  assert.match(editor, /width=\{56 \* controlScale\}/);
+  assert.match(editor, /fontSize: `\$\{12 \* controlScale\}px`/);
   assert.match(editor, /zoom=\{zoom\} page=\{activePage\}/);
+});
+
+test("selected arrows expose endpoint controls instead of corner and rotate controls", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /selectedIds\.includes\(object\.id\) && object\.type !== "arrow" \? <>/);
+  assert.match(editor, /selectedIds\.includes\(object\.id\) && object\.type === "arrow" \? <>/);
+  assert.match(editor, /aria-label="Resize arrow from start point"/);
+  assert.match(editor, /aria-label="Resize arrow from end point"/);
+  assert.match(editor, /function resizeArrowEndpoint\(/);
+  assert.match(editor, /nextObject = resizeArrowEndpoint\(interaction\.original, interaction\.endpoint \?\? "end", point, activePage\)/);
+  assert.match(editor, /return resizeArrowEndpoint\(item, endpoint, \{ x: current\.x \+ dx, y: current\.y \+ dy \}, page\)/);
+  assert.match(editor, /Arrows resize through their two endpoints instead of corner handles/);
 });
 
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {

@@ -98,6 +98,8 @@
   compact SVG rotate glyph.
 - Kept canvas resize, endpoint and rotation controls at a consistent screen
   size while changing zoom.
+- Made selected arrows expose only their two endpoint controls, replacing the
+  generic corner-resize and rotation controls.
 
 - Added Command+0 on macOS and Ctrl+0 on Windows/Linux to reset the design
   canvas zoom to 100%, alongside the existing zoom controls and increment
