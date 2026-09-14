@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Arrows now support a draggable centre bend control for custom curved paths.
 
 - Added Canva-style magenta snapping guides, with solid page guides and dotted object guides.
 - Added corner handles for direct page resizing in the design canvas.

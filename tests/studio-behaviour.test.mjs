@@ -456,7 +456,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.doesNotMatch(css, /design-selection-box/);
   assert.match(css, /\.design-rotate-handle:hover \{ fill: #8b3dff !important/);
   assert.match(css, /\.design-rotate-handle:hover \+ \.design-rotate-icon \{ color: #fff; \}/);
-  assert.match(css, /\.design-resize-handle, \.design-endpoint-handle, \.design-rotate-handle \{ fill: #fff !important/);
+  assert.match(css, /\.design-resize-handle, \.design-endpoint-handle, \.design-arrow-bend-handle, \.design-rotate-handle \{ fill: #fff !important/);
   assert.match(css, /\.design-resize-handle \{ stroke: #aeb3bf/);
   assert.match(css, /\.design-endpoint-handle \{ stroke: #aeb3bf; stroke-width: 1\.5; cursor: crosshair; \}/);
   assert.match(css, /\.design-resize-handle:hover, \.design-endpoint-handle:hover \{ fill: #8b3dff !important; stroke: #8b3dff; stroke-width: 2; \}/);
@@ -558,12 +558,21 @@ test("design canvas controls keep a constant screen size as zoom changes", () =>
 test("selected arrows expose endpoint controls instead of corner and rotate controls", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /selectedIds\.includes\(object\.id\) && object\.type !== "arrow" \? \(\(\) => \{/);
-  assert.match(editor, /selectedIds\.includes\(object\.id\) && object\.type === "arrow" \? <>/);
+  assert.match(editor, /selectedIds\.includes\(object\.id\) && object\.type === "arrow" \? \(\(\) => \{ const \{ start, end, bends \} = arrowPoints\(object\)/);
   assert.match(editor, /aria-label="Resize arrow from start point"/);
   assert.match(editor, /aria-label="Resize arrow from end point"/);
   assert.match(editor, /function resizeArrowEndpoint\(/);
   assert.match(editor, /nextObject = resizeArrowEndpoint\(interaction\.original, interaction\.endpoint \?\? "end", endpointSnap\.point, activePage\)/);
   assert.match(editor, /return resizeArrowEndpoint\(item, endpoint, \{ x: current\.x \+ dx, y: current\.y \+ dy \}, page\)/);
+  assert.match(editor, /object\.x \+ bend\.x - x/);
+  assert.match(editor, /object\.y \+ bend\.y - y/);
+  assert.match(editor, /className="design-arrow-bend-handle"/);
+  assert.match(editor, /function onArrowBendPointerDown\(/);
+  assert.match(editor, /function onArrowBendKeyDown\(/);
+  assert.match(editor, /onKeyDown=\{\(event\) => onArrowBendKeyDown\?\.\(event, object, index\)\}/);
+  assert.match(editor, /event\.preventDefault\(\); event\.stopPropagation\(\)/);
+  assert.match(editor, /\["Enter", " "\]\.includes\(event\.key\)/);
+  assert.match(editor, /const control = \{ x: 2 \* bends\[0\]\.x - midpoint\.x, y: 2 \* bends\[0\]\.y - midpoint\.y \}/);
   assert.doesNotMatch(editor, /Arrows resize through their two endpoints instead of corner handles/);
 });
 
