@@ -427,6 +427,15 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(editor, /aria-label="Design pages and layers"/);
+  assert.match(editor, /const \[leftPaneTab, setLeftPaneTab\] = useState<"pages" \| "layers">\("pages"\)/);
+  assert.match(editor, /role="tablist" aria-label="Design navigation"/);
+  assert.match(editor, /role="tab"[\s\S]*>Pages<\/button>[\s\S]*role="tab"[\s\S]*>Layers<\/button>/);
+  assert.match(editor, /aria-controls=\{leftPaneTab === "pages" \? "design-pages-tabpanel" : undefined\}/);
+  assert.match(editor, /aria-controls=\{leftPaneTab === "layers" \? "design-layers-tabpanel" : undefined\}/);
+  assert.match(editor, /leftPaneTab === "pages" \? <div className="design-page-list"/);
+  assert.match(editor, /id="design-pages-tab"/);
+  assert.match(editor, /id="design-pages-tabpanel" role="tabpanel" aria-labelledby="design-pages-tab"/);
+  assert.match(editor, /id="design-layers-tabpanel" role="tabpanel" aria-labelledby="design-layers-tab" aria-label="Layers"><LayerList/);
   assert.match(editor, /<LayerList page=\{activePage\}/);
   assert.match(editor, /className=\{`design-canvas-scroll\$\{allPagesVisible/);
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
@@ -439,6 +448,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-rotate-handle:hover \+ \.design-rotate-icon \{ color: #fff; \}/);
   assert.match(css, /\.design-resize-handle, \.design-endpoint-handle, \.design-rotate-handle \{ fill: #fff !important/);
   assert.match(css, /\.design-resize-handle \{ stroke: #aeb3bf/);
+  assert.match(css, /\.design-pane-tabs button\.is-active \{ border-bottom-color: var\(--accent\);/);
 });
 
 test("design image resizing keeps proportions by default and uses Shift for freeform sizing", () => {

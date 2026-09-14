@@ -88,6 +88,8 @@
 
 ### Changed
 
+- Added Pages and Layers tabs to the left design pane, with layers rendered only
+  when the Layers tab is active.
 - Use a four-way move cursor while pressing and dragging a selected canvas
   object.
 - Matched corner and arrow endpoint resize handles to Canva’s smaller screen
