@@ -455,8 +455,9 @@ test("design canvas controls keep a constant screen size as zoom changes", () =>
   assert.match(editor, /r=\{12 \* controlScale\}/);
   assert.match(editor, /r=\{7 \* controlScale\}/);
   assert.match(editor, /r=\{14 \* controlScale\}/);
-  assert.match(editor, /width=\{56 \* controlScale\}/);
-  assert.match(editor, /fontSize: `\$\{12 \* controlScale\}px`/);
+  assert.match(editor, /width=\{50 \* controlScale\}/);
+  assert.match(editor, /height=\{30 \* controlScale\}/);
+  assert.match(editor, /fontSize: `\$\{13 \* controlScale\}px`/);
   assert.match(editor, /zoom=\{zoom\} page=\{activePage\}/);
 });
 

@@ -86,7 +86,7 @@
 .design-rotate-icon { color: #17191c; }
 .design-rotate-handle:active { cursor: grabbing; }
 .design-rotation-badge rect { fill: #17191c; }
-.design-rotation-badge text { fill: #fff; font-family: var(--studio-ui-font, system-ui, sans-serif); font-size: 12px; font-weight: 650; }
+.design-rotation-badge text { fill: #fff; font-family: var(--studio-ui-font, system-ui, sans-serif); font-size: 13px; font-weight: 650; }
 .design-marquee { fill: #cc181822; stroke: #cc1818; stroke-dasharray: 5 4; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; }
 .design-guide { stroke: #2f7dd1; stroke-dasharray: 8 6; stroke-width: 2; opacity: .75; pointer-events: none; vector-effect: non-scaling-stroke; }
 .design-canvas-help { color: var(--muted); font-size: 12px; margin: 0; padding: 8px 18px 14px; }
