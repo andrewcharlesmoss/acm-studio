@@ -57,9 +57,9 @@
 .design-zoom button, .design-zoom select { background: #fff; border: 1px solid #c8c6be; border-radius: 4px; color: var(--ink); cursor: pointer; min-height: 28px; min-width: 30px; padding: 4px 7px; }
 .design-zoom button.is-active { background: #eef2ff; border-color: #8da1e0; color: #284aa9; }
 .design-zoom span { color: var(--muted); font-size: 12px; min-width: 42px; text-align: center; }
-.design-canvas-scroll { align-items: center; display: flex; justify-content: center; min-height: 0; overflow: auto; padding: 25px; }
-.design-canvas-frame { box-shadow: 0 12px 34px #17191c1f; flex: 0 0 auto; max-height: 100%; max-width: 100%; }
-.design-page-svg { background: #fff; display: block; height: auto; max-height: calc(100dvh - 230px); overflow: visible; width: 100%; }
+.design-canvas-scroll { align-items: safe center; display: flex; justify-content: safe center; min-height: 0; overflow: auto; padding: 25px; }
+.design-canvas-frame { box-shadow: 0 12px 34px #17191c1f; flex: 0 0 auto; }
+.design-page-svg { background: #fff; display: block; height: auto; overflow: visible; width: 100%; }
 .design-object { cursor: grab; }
 .design-page-svg.is-select-mode .design-object,
 .design-page-svg.is-select-mode .design-object.is-locked { cursor: default; }
