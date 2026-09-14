@@ -280,8 +280,8 @@ function resizeObject(object: DesignObject, handle: ResizeHandle, dx: number, dy
 
 function resizePage(page: DesignPage, handle: ResizeHandle, dx: number, dy: number, keepRatio: boolean) {
   const minimum = 120;
-  const widthDelta = handle.includes("e") ? dx : -dx;
-  const heightDelta = handle.includes("s") ? dy : -dy;
+  const widthDelta = handle.includes("e") ? dx : handle.includes("w") ? -dx : 0;
+  const heightDelta = handle.includes("s") ? dy : handle.includes("n") ? -dy : 0;
   let width = Math.max(minimum, Math.min(DESIGN_MAX_DIMENSION, page.width + widthDelta));
   let height = Math.max(minimum, Math.min(DESIGN_MAX_DIMENSION, page.height + heightDelta));
   if (keepRatio) {
@@ -364,9 +364,13 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
   ];
   const pageResizeHandles: Array<{ handle: ResizeHandle; label: string }> = [
     { handle: "nw", label: "Resize page from top left" },
+    { handle: "n", label: "Resize page from top middle" },
     { handle: "ne", label: "Resize page from top right" },
+    { handle: "e", label: "Resize page from right middle" },
     { handle: "se", label: "Resize page from bottom right" },
+    { handle: "s", label: "Resize page from bottom middle" },
     { handle: "sw", label: "Resize page from bottom left" },
+    { handle: "w", label: "Resize page from left middle" },
   ];
   const activeRotation = page.objects.find((object) => object.id === rotatingObjectId)?.rotation ?? 0;
   const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
