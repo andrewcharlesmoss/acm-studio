@@ -36,10 +36,13 @@ redaction objects and should be kept private.
 The first canvas release supports PNG, JPEG, WebP and GIF image input, file
 selection, drag and drop, clipboard paste, Studio media selection, named page
 creation, duplication, deletion, pointer and keyboard page reordering, page
-resizing, object selection and marquee multi-selection, movement, resize and
-rotation handles, arrow endpoint editing, crop controls, layers, grouping,
-alignment, snapping guides, basic properties, undo/redo and PNG, JPEG or WebP
-export.
+resizing, object selection and marquee multi-selection, movement, eight-way
+resize handles, rotation handles, arrow endpoint editing, crop controls,
+layers, grouping, alignment, snapping guides, basic properties, undo/redo and
+PNG, JPEG or WebP export. Image layers keep their proportions by default;
+hold Shift while resizing another layer to keep its proportions, or Option/Alt
+to resize around its centre. Resizing is constrained to the page with a
+minimum layer size.
 Exports can use 100% or 200% scale, selectable quality for lossy formats, and
 the current, selected or all pages can be downloaded as a ZIP with deterministic
 names. Export waits for document fonts and is rendered at the selected document

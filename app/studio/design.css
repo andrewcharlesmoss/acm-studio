@@ -65,6 +65,10 @@
 .design-object.is-locked { cursor: default; }
 .design-selection-box { fill: transparent; stroke: #cc1818; stroke-dasharray: 8 6; stroke-width: 3; vector-effect: non-scaling-stroke; }
 .design-resize-handle, .design-endpoint-handle { fill: #fff; stroke: #cc1818; stroke-width: 2; cursor: nwse-resize; vector-effect: non-scaling-stroke; }
+.design-resize-handle.handle-n, .design-resize-handle.handle-s { cursor: ns-resize; }
+.design-resize-handle.handle-e, .design-resize-handle.handle-w { cursor: ew-resize; }
+.design-resize-handle.handle-ne, .design-resize-handle.handle-sw { cursor: nesw-resize; }
+.design-resize-handle.handle-nw, .design-resize-handle.handle-se { cursor: nwse-resize; }
 .design-endpoint-handle { cursor: crosshair; }
 .design-rotate-handle { fill: #fff; stroke: #cc1818; stroke-width: 2; cursor: grab; vector-effect: non-scaling-stroke; }
 .design-rotate-handle:active { cursor: grabbing; }

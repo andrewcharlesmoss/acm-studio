@@ -14,7 +14,8 @@ import type { StudioIconName } from "./studio-icons";
 
 type Tool = "select" | "image" | "arrow" | "rectangle" | "ellipse" | "text" | "step" | "highlight" | "redaction";
 type InteractionMode = "move" | "resize" | "rotate" | "arrow-endpoint";
-type Interaction = { mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: "nw" | "ne" | "sw" | "se"; endpoint?: "start" | "end"; startAngle?: number };
+type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+type Interaction = { mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; keepRatio?: boolean; centred?: boolean; endpoint?: "start" | "end"; startAngle?: number };
 type Guide = { axis: "x" | "y"; position: number };
 type RecentStyles = {
   arrow: Pick<DesignArrowObject, "stroke" | "strokeWidth" | "arrowhead">;
@@ -164,18 +165,86 @@ function makeObject(tool: Exclude<Tool, "select" | "image">, x: number, y: numbe
   return { ...base, type: tool, ...styles.shape, fill: tool === "ellipse" && styles.shape.fill === "#ffffff" ? "transparent" : styles.shape.fill };
 }
 
+function resizeObject(object: DesignObject, handle: ResizeHandle, dx: number, dy: number, page: DesignPage, keepRatio: boolean, centred: boolean) {
+  const minimum = 10;
+  const centreX = object.x + object.width / 2;
+  const centreY = object.y + object.height / 2;
+  let left = object.x;
+  let right = object.x + object.width;
+  let top = object.y;
+  let bottom = object.y + object.height;
+  if (handle.includes("w")) { left += dx; if (centred) right -= dx; }
+  if (handle.includes("e")) { right += dx; if (centred) left -= dx; }
+  if (handle.includes("n")) { top += dy; if (centred) bottom -= dy; }
+  if (handle.includes("s")) { bottom += dy; if (centred) top -= dy; }
+
+  let width = Math.max(minimum, right - left);
+  let height = Math.max(minimum, bottom - top);
+  if (keepRatio) {
+    const ratio = object.width / object.height;
+    const horizontal = handle.includes("w") || handle.includes("e");
+    const vertical = handle.includes("n") || handle.includes("s");
+    if (horizontal && (!vertical || Math.abs(dx) >= Math.abs(dy))) height = width / ratio;
+    else if (vertical) width = height * ratio;
+    else height = width / ratio;
+    if (centred) { left = centreX - width / 2; right = centreX + width / 2; top = centreY - height / 2; bottom = centreY + height / 2; }
+    else {
+      if (handle.includes("w")) left = right - width; else right = left + width;
+      if (handle.includes("n")) top = bottom - height; else bottom = top + height;
+    }
+    const maxWidth = centred ? 2 * Math.min(centreX, page.width - centreX) : page.width;
+    const maxHeight = centred ? 2 * Math.min(centreY, page.height - centreY) : page.height;
+    const scale = Math.min(1, maxWidth / width, maxHeight / height);
+    if (scale < 1) {
+      width *= scale;
+      height *= scale;
+      if (centred) { left = centreX - width / 2; right = centreX + width / 2; top = centreY - height / 2; bottom = centreY + height / 2; }
+      else {
+        if (handle.includes("w")) left = right - width; else right = left + width;
+        if (handle.includes("n")) top = bottom - height; else bottom = top + height;
+      }
+    }
+  }
+
+  if (centred) {
+    width = Math.min(width, 2 * Math.min(centreX, page.width - centreX));
+    height = Math.min(height, 2 * Math.min(centreY, page.height - centreY));
+    left = centreX - width / 2; top = centreY - height / 2;
+  } else {
+    width = Math.min(width, page.width);
+    height = Math.min(height, page.height);
+    if (handle.includes("w")) left = Math.max(0, Math.min(left, page.width - width));
+    else right = Math.max(width, Math.min(right, page.width));
+    if (handle.includes("n")) top = Math.max(0, Math.min(top, page.height - height));
+    else bottom = Math.max(height, Math.min(bottom, page.height));
+    if (handle.includes("w")) right = left + width; else left = right - width;
+    if (handle.includes("n")) bottom = top + height; else top = bottom - height;
+  }
+  return { ...object, x: Math.round(Math.max(0, left)), y: Math.round(Math.max(0, top)), width: Math.round(Math.max(minimum, Math.min(page.width, width))), height: Math.round(Math.max(minimum, Math.min(page.height, height))) };
+}
+
 function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], onSelect, onCanvasPointerDown, onObjectPointerDown, onResizePointerDown, onRotatePointerDown, onArrowEndpointPointerDown, onResizeKeyDown, onRotateKeyDown, onArrowEndpointKeyDown, svgRef }: {
   page: DesignPage; assets: DesignAsset[]; selectedIds?: string[]; selectionBox?: { x: number; y: number; width: number; height: number } | null; guides?: Guide[]; onSelect: (id: string | null, extend?: boolean) => void;
   onCanvasPointerDown: (event: PointerEvent<SVGSVGElement>) => void;
   onObjectPointerDown: (event: PointerEvent<SVGGElement>, object: DesignObject) => void;
-  onResizePointerDown: (event: PointerEvent<SVGRectElement>, object: DesignObject, handle: "nw" | "ne" | "sw" | "se") => void;
+  onResizePointerDown: (event: PointerEvent<SVGRectElement>, object: DesignObject, handle: ResizeHandle) => void;
   onRotatePointerDown: (event: PointerEvent<SVGCircleElement>, object: DesignObject) => void;
   onArrowEndpointPointerDown: (event: PointerEvent<SVGCircleElement>, object: DesignArrowObject, endpoint: "start" | "end") => void;
-  onResizeKeyDown?: (event: ReactKeyboardEvent<SVGRectElement>, object: DesignObject, handle: "nw" | "ne" | "sw" | "se") => void;
+  onResizeKeyDown?: (event: ReactKeyboardEvent<SVGRectElement>, object: DesignObject, handle: ResizeHandle) => void;
   onRotateKeyDown?: (event: ReactKeyboardEvent<SVGCircleElement>, object: DesignObject) => void;
   onArrowEndpointKeyDown?: (event: ReactKeyboardEvent<SVGCircleElement>, object: DesignArrowObject, endpoint: "start" | "end") => void;
   svgRef?: Ref<SVGSVGElement>;
 }) {
+  const resizeHandles: Array<{ handle: ResizeHandle; label: string }> = [
+    { handle: "nw", label: "Resize selected object from top left" },
+    { handle: "n", label: "Resize selected object from top" },
+    { handle: "ne", label: "Resize selected object from top right" },
+    { handle: "e", label: "Resize selected object from right" },
+    { handle: "se", label: "Resize selected object from bottom right" },
+    { handle: "s", label: "Resize selected object from bottom" },
+    { handle: "sw", label: "Resize selected object from bottom left" },
+    { handle: "w", label: "Resize selected object from left" },
+  ];
   return <svg ref={svgRef} className="design-page-svg" viewBox={`0 0 ${page.width} ${page.height}`} role="img" aria-label={page.name} onPointerDown={onCanvasPointerDown} onClick={() => onSelect(null)}>
     <defs><pattern id={`checker-${page.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#f7f6f2" /><rect width="10" height="10" fill="#e9e7df" /><rect x="10" y="10" width="10" height="10" fill="#e9e7df" /></pattern></defs>
     <rect width={page.width} height={page.height} fill={page.background.kind === "transparent" ? `url(#checker-${page.id})` : page.background.colour} />
@@ -187,7 +256,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], on
       {(object.type === "rectangle" || object.type === "highlight" || object.type === "redaction") ? <rect width={object.width} height={object.height} rx={object.radius ?? 0} fill={object.type === "redaction" ? "#000000" : object.fill} stroke={object.stroke} strokeWidth={object.strokeWidth} /> : null}
       {object.type === "ellipse" ? <ellipse cx={object.width / 2} cy={object.height / 2} rx={object.width / 2} ry={object.height / 2} fill={object.fill} stroke={object.stroke} strokeWidth={object.strokeWidth} /> : null}
       {(object.type === "text" || object.type === "step") ? <>{object.type === "step" ? <circle cx={object.width / 2} cy={object.height / 2} r={Math.min(object.width, object.height) / 2} fill={object.fill ?? "#cc1818"} /> : null}<text x={object.align === "center" ? object.width / 2 : object.align === "right" ? object.width : 0} y={object.fontSize} fill={object.colour} fontFamily={object.fontFamily} fontSize={object.fontSize} fontWeight={object.fontWeight} textAnchor={object.align === "center" ? "middle" : object.align === "right" ? "end" : "start"}>{object.text}</text></> : null}
-      {selectedIds.includes(object.id) ? <><rect className="design-selection-box" width={object.width} height={object.height} /><rect role="button" tabIndex={0} aria-label="Resize selected object from top left" className="design-resize-handle" x={-5} y={-5} width={10} height={10} onPointerDown={(event) => onResizePointerDown(event, object, "nw")} onKeyDown={(event) => onResizeKeyDown?.(event, object, "nw")} /><rect role="button" tabIndex={0} aria-label="Resize selected object from top right" className="design-resize-handle" x={object.width - 5} y={-5} width={10} height={10} onPointerDown={(event) => onResizePointerDown(event, object, "ne")} onKeyDown={(event) => onResizeKeyDown?.(event, object, "ne")} /><rect role="button" tabIndex={0} aria-label="Resize selected object from bottom left" className="design-resize-handle" x={-5} y={object.height - 5} width={10} height={10} onPointerDown={(event) => onResizePointerDown(event, object, "sw")} onKeyDown={(event) => onResizeKeyDown?.(event, object, "sw")} /><rect role="button" tabIndex={0} aria-label="Resize selected object from bottom right" className="design-resize-handle" x={object.width - 5} y={object.height - 5} width={10} height={10} onPointerDown={(event) => onResizePointerDown(event, object, "se")} onKeyDown={(event) => onResizeKeyDown?.(event, object, "se")} /><circle role="button" tabIndex={0} aria-label="Rotate selected object" className="design-rotate-handle" cx={object.width / 2} cy={-22} r={6} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} /></> : null}
+      {selectedIds.includes(object.id) ? <><rect className="design-selection-box" width={object.width} height={object.height} />{resizeHandles.map(({ handle, label }) => <rect key={handle} role="button" tabIndex={0} aria-label={label} className={`design-resize-handle handle-${handle}`} x={handle.includes("e") ? object.width - 5 : handle.includes("w") ? -5 : object.width / 2 - 5} y={handle.includes("s") ? object.height - 5 : handle.includes("n") ? -5 : object.height / 2 - 5} width={10} height={10} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />)}<circle role="button" tabIndex={0} aria-label="Rotate selected object" className="design-rotate-handle" cx={object.width / 2} cy={-22} r={6} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} /></> : null}
       {selectedIds.includes(object.id) && object.type === "arrow" ? <><circle role="button" tabIndex={0} aria-label="Move arrow start point" className="design-endpoint-handle" cx={object.start?.x ?? 0} cy={object.start?.y ?? object.height} r="7" onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /><circle role="button" tabIndex={0} aria-label="Move arrow end point" className="design-endpoint-handle" cx={object.end?.x ?? object.width} cy={object.end?.y ?? 0} r="7" onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /></> : null}
     </g>)}
     {selectionBox ? <rect className="design-marquee" x={selectionBox.x} y={selectionBox.y} width={selectionBox.width} height={selectionBox.height} /> : null}
@@ -448,21 +517,13 @@ export function DesignEditor() {
     };
   }
 
-  function onResizeKeyDown(event: ReactKeyboardEvent<SVGRectElement>, object: DesignObject, handle: "nw" | "ne" | "sw" | "se") {
+  function onResizeKeyDown(event: ReactKeyboardEvent<SVGRectElement>, object: DesignObject, handle: ResizeHandle) {
     if (!writable || object.locked || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
     const amount = event.shiftKey ? 10 : 1;
-    const horizontal = event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0;
-    const vertical = event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0;
-    updatePage((page) => ({ ...page, objects: page.objects.map((item) => {
-      if (item.id !== object.id) return item;
-      let { x, y, width, height } = item;
-      if (handle.includes("w")) { x += horizontal; width -= horizontal; }
-      if (handle.includes("e")) width += horizontal;
-      if (handle.includes("n")) { y += vertical; height -= vertical; }
-      if (handle.includes("s")) height += vertical;
-      return { ...item, x: Math.max(0, x), y: Math.max(0, y), width: Math.max(10, width), height: Math.max(10, height) };
-    }) }));
+    const dx = event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0;
+    const dy = event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0;
+    updatePage((page) => ({ ...page, objects: page.objects.map((item) => item.id === object.id ? resizeObject(item, handle, dx, dy, page, item.type === "image" || event.shiftKey, false) : item) }));
   }
 
   function onRotateKeyDown(event: ReactKeyboardEvent<SVGCircleElement>, object: DesignObject) {
@@ -485,11 +546,11 @@ export function DesignEditor() {
     }) }));
   }
 
-  function onResizePointerDown(event: PointerEvent<SVGRectElement>, object: DesignObject, handle: "nw" | "ne" | "sw" | "se") {
+  function onResizePointerDown(event: PointerEvent<SVGRectElement>, object: DesignObject, handle: ResizeHandle) {
     event.stopPropagation();
     if (!writable || object.locked || !design) return;
     const point = getPoint(event);
-    interactionRef.current = { mode: "resize", id: object.id, handle, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
+    interactionRef.current = { mode: "resize", id: object.id, handle, keepRatio: object.type === "image" || event.shiftKey, centred: event.altKey, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
   }
 
@@ -527,21 +588,7 @@ export function DesignEditor() {
     const dx = point.x - interaction.startX; const dy = point.y - interaction.startY;
     let nextObject: DesignObject = { ...interaction.original, x: Math.max(0, interaction.original.x + dx), y: Math.max(0, interaction.original.y + dy) };
     if (interaction.mode === "resize") {
-      const original = interaction.original;
-      let x = original.x; let y = original.y; let width = original.width; let height = original.height;
-      if (interaction.handle?.includes("w")) { x = original.x + dx; width = original.width - dx; }
-      if (interaction.handle?.includes("e")) width = original.width + dx;
-      if (interaction.handle?.includes("n")) { y = original.y + dy; height = original.height - dy; }
-      if (interaction.handle?.includes("s")) height = original.height + dy;
-      const keepRatio = original.type === "image";
-      if (keepRatio) {
-        const ratio = original.width / original.height;
-        if (Math.abs(dx) > Math.abs(dy)) height = width / ratio;
-        else width = height * ratio;
-        if (interaction.handle?.includes("w")) x = original.x + original.width - width;
-        if (interaction.handle?.includes("n")) y = original.y + original.height - height;
-      }
-      nextObject = { ...original, x: Math.max(0, x), y: Math.max(0, y), width: Math.max(10, width), height: Math.max(10, height) };
+      nextObject = resizeObject(interaction.original, interaction.handle ?? "se", dx, dy, activePage, Boolean(interaction.keepRatio), Boolean(interaction.centred));
     } else if (interaction.mode === "rotate") {
       const original = interaction.original; const centreX = original.x + original.width / 2; const centreY = original.y + original.height / 2;
       const angle = Math.atan2(point.y - centreY, point.x - centreX);
@@ -907,7 +954,7 @@ export function DesignEditor() {
       <aside className="design-pages" id="design-pages-panel" aria-label="Design pages"><div className="design-pages-heading"><strong>Pages</strong><div><button type="button" onClick={() => setPagesCollapsed(true)} aria-label="Hide pages">−</button><button type="button" onClick={() => addPage()} disabled={!writable} aria-label="Add page">＋</button></div></div><div className="design-page-list">{design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} draggable={writable} onDragStart={() => setDraggedPageId(page.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedPageId) reorderPage(draggedPageId, page.id); setDraggedPageId(null); }}><label className="design-page-select"><input type="checkbox" checked={selectedPageIds.includes(page.id)} onChange={(event) => setSelectedPageIds((items) => event.target.checked ? [...items, page.id] : items.filter((id) => id !== page.id))} aria-label={`Select ${page.name} for export`} /></label><button type="button" className="design-thumbnail-button" onClick={() => selectPage(page.id)} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><PageSvg page={page} assets={design.assets} selectedIds={[]} guides={[]} onSelect={() => undefined} onCanvasPointerDown={() => undefined} onObjectPointerDown={() => undefined} onResizePointerDown={() => undefined} onRotatePointerDown={() => undefined} onArrowEndpointPointerDown={() => undefined} onResizeKeyDown={() => undefined} onRotateKeyDown={() => undefined} onArrowEndpointKeyDown={() => undefined} /></div><span>{index + 1}. {page.name}</span></button><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button></div></div>)}</div><div className="design-page-actions"><button type="button" onClick={() => addPage()} disabled={!writable}>Add page</button><button type="button" onClick={deletePage} disabled={!writable || design.pages.length === 1}>Delete page</button><button type="button" onClick={createNewDesign} disabled={!writable}>New design</button></div><label className="design-import-label">Import design<input ref={importInputRef} type="file" accept="application/json,.json" onChange={(event) => void importDesign(event.target.files?.[0])} /></label><select className="design-switcher" value={design.id} onChange={(event) => { const next = designs.find((item) => item.id === event.target.value); if (next) { setDesign(next); setPageName(next.pages.find((page) => page.id === next.activePageId)?.name ?? next.pages[0]?.name ?? ""); setHistory([]); setFuture([]); selectObjects([]); } }} aria-label="Open design">{designs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></aside>
       <section className="design-main" aria-label="Design canvas">
         <div className="design-tool-rail"><button type="button" className={tool === "select" ? "is-active" : ""} onClick={() => setTool("select")} aria-pressed={tool === "select"}><StudioIcon name={toolIcons.select} size={20} /><span>Select</span></button><button type="button" onClick={() => fileInputRef.current?.click()} disabled={!writable}><StudioIcon name={toolIcons.image} size={20} /><span>Image</span></button><input ref={fileInputRef} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; if (file) void addImage(file, file.name); if (fileInputRef.current) fileInputRef.current.value = ""; }} />{annotationTools.map((item) => <button type="button" key={item} className={tool === item ? "is-active" : ""} onClick={() => setTool(item)} disabled={!writable} aria-pressed={tool === item}><StudioIcon name={toolIcons[item]} size={20} /><span>{toolLabels[item]}</span></button>)}<button ref={mediaTriggerRef} type="button" onClick={() => void openMedia()} disabled={!writable}><StudioIcon name="image" size={20} /><span>Studio files</span></button></div>
-        <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerUp} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><input ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-zoom"><button type="button" onClick={() => setZoom((value) => Math.max(20, value - 10))}>−</button><select aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}><option value="25">25%</option><option value="50">50%</option><option value="60">60%</option><option value="75">75%</option><option value="100">100%</option><option value="120">120%</option></select><button type="button" onClick={() => setZoom((value) => Math.min(120, value + 10))}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className="design-canvas-scroll" ref={canvasScrollRef}><div className="design-canvas-frame" style={{ width: `${zoom}%` }}><PageSvg page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onSelect={(id, extend) => { if (!id) selectObjects([]); else if (extend) selectObjects(selectedIds.includes(id) ? selectedIds.filter((item) => item !== id) : [...selectedIds, id]); else selectObjects([id]); }} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onResizeKeyDown={onResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div></div><p className="design-canvas-help">Choose a tool, then click the page to add an annotation. Drag selected objects to move them.</p></div>
+        <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerUp} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><input ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-zoom"><button type="button" onClick={() => setZoom((value) => Math.max(20, value - 10))}>−</button><select aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}><option value="25">25%</option><option value="50">50%</option><option value="60">60%</option><option value="75">75%</option><option value="100">100%</option><option value="120">120%</option></select><button type="button" onClick={() => setZoom((value) => Math.min(120, value + 10))}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className="design-canvas-scroll" ref={canvasScrollRef}><div className="design-canvas-frame" style={{ width: `${zoom}%` }}><PageSvg page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onSelect={(id, extend) => { if (!id) selectObjects([]); else if (extend) selectObjects(selectedIds.includes(id) ? selectedIds.filter((item) => item !== id) : [...selectedIds, id]); else selectObjects([id]); }} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onResizeKeyDown={onResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div></div><p className="design-canvas-help">Drag any handle to resize. Shift keeps proportions; Option/Alt resizes from the centre. Arrow keys resize focused handles.</p></div>
       </section>
       <aside className="design-inspector" aria-label="Design properties"><div className="design-inspector-section"><span className="design-inspector-label">Page</span><label>Name<input value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} /></label><label>Preset<select value="custom" disabled={!writable} onChange={(event) => setPagePreset(event.target.value)}><option value="custom">Custom</option><option value="landscape">1920 × 1080 landscape</option><option value="square">1080 × 1080 square</option><option value="portrait">1080 × 1350 portrait</option></select></label><label>Width<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.width} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, width: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Height<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.height} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, height: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Background<select value={activePage.background.kind} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, kind: event.target.value as "solid" | "transparent" } }))}><option value="solid">Solid</option><option value="transparent">Transparent</option></select></label>{activePage.background.kind === "solid" ? <label>Colour<input type="color" value={activePage.background.colour} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, colour: event.target.value } }))} /></label> : null}</div>{selectedObject ? <div className="design-inspector-section"><span className="design-inspector-label">Selected {toolLabels[selectedObject.type as Tool] ?? selectedObject.type}</span><div className="design-field-grid"><label>X<input type="number" value={Math.round(selectedObject.x)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, x: Number(event.target.value) || 0 }))} /></label><label>Y<input type="number" value={Math.round(selectedObject.y)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, y: Number(event.target.value) || 0 }))} /></label><label>Width<input type="number" min="1" value={Math.round(selectedObject.width)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, width: Math.max(1, Number(event.target.value) || 1) }))} /></label><label>Height<input type="number" min="1" value={Math.round(selectedObject.height)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, height: Math.max(1, Number(event.target.value) || 1) }))} /></label></div><label>Opacity<input type="range" min="0" max="1" step=".05" value={selectedObject.opacity} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, opacity: Number(event.target.value) }))} /></label>{selectedObject.type === "image" ? <div className="design-image-tools">
             <div className="design-background-removal"><span className="design-inspector-label">Background removal</span><label>Tolerance<input type="range" min="4" max="80" value={backgroundTolerance} disabled={!writable} onChange={(event) => setBackgroundTolerance(Number(event.target.value))} /></label><button type="button" onClick={() => void removeSelectedImageBackground()} disabled={!writable}>Remove background</button><small>Removes edge-connected colours locally and keeps the original asset.</small></div>
