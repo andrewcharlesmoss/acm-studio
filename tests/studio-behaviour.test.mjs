@@ -449,6 +449,13 @@ test("design rotation handle uses one dedicated SVG glyph", () => {
   assert.match(icons, /M7\.2 8\.7a5\.8 5\.8 0 0 1 9\.5-1\.7/);
 });
 
+test("design resize cursors follow the selected object's rotation", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /function resizeCursor\(handle: ResizeHandle, rotation: number\)/);
+  assert.match(editor, /style=\{\{ cursor: resizeCursor\(handle, object\.rotation\) \}\}/);
+  assert.match(editor, /const axis = \(\(handleAngles\[handle\] \+ rotation\) % 180 \+ 180\) % 180/);
+});
+
 test("design canvas controls keep a constant screen size as zoom changes", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /const controlScale = 100 \/ Math\.max\(1, zoom\)/);

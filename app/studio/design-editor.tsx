@@ -44,6 +44,13 @@ function rotationLabel(rotation: number) {
   return `${((Math.round(rotation) % 360) + 360) % 360}°`;
 }
 
+function resizeCursor(handle: ResizeHandle, rotation: number) {
+  const handleAngles: Record<ResizeHandle, number> = { n: 0, ne: 45, e: 90, se: 135, s: 180, sw: 225, w: 270, nw: 315 };
+  const axis = ((handleAngles[handle] + rotation) % 180 + 180) % 180;
+  const direction = Math.round(axis / 45) % 4;
+  return ["ns-resize", "nesw-resize", "ew-resize", "nwse-resize"][direction];
+}
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -289,7 +296,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
           const cx = handle.includes("e") ? object.width : handle.includes("w") ? 0 : object.width / 2;
           const cy = handle.includes("s") ? object.height : handle.includes("n") ? 0 : object.height / 2;
           const className = `design-resize-handle handle-${handle}`;
-          return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} cx={cx} cy={cy} r={12 * controlScale} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
+          return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} style={{ cursor: resizeCursor(handle, object.rotation) }} cx={cx} cy={cy} r={12 * controlScale} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
         })}
         <line className="design-rotate-connector" x1={object.width / 2} y1={object.height} x2={object.width / 2} y2={object.height + 16 * controlScale} />
         <circle role="button" tabIndex={0} aria-label={`Rotate selected object (${rotationLabel(object.rotation)})`} className="design-rotate-handle" cx={object.width / 2} cy={object.height + 30 * controlScale} r={14 * controlScale} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
