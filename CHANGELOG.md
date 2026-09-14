@@ -107,6 +107,7 @@
 - Canvas frames now use true page-pixel zoom sizing, keeping resize handles
   consistent across page dimensions and leaving objects at the same visual
   scale when the page boundary changes.
+- Resize handles no longer show a blue focus selector.
 
 - Replaced the browser resize cursor during canvas rotation with a Canva-style curved two-way SVG cursor.
 

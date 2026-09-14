@@ -83,7 +83,8 @@
 .design-endpoint-handle { stroke: #cc1818; stroke-width: 2; cursor: nwse-resize; }
 .design-resize-handle.handle-ne, .design-resize-handle.handle-sw { cursor: nesw-resize; }
 .design-resize-handle.handle-nw, .design-resize-handle.handle-se { cursor: nwse-resize; }
-.design-resize-handle:focus-visible, .design-endpoint-handle:focus-visible { outline: none; stroke: #284aa9; stroke-width: 3; filter: drop-shadow(0 0 2px #fff); }
+.design-resize-handle:focus-visible { outline: none; stroke: #aeb3bf; stroke-width: 1.5; filter: none; }
+.design-endpoint-handle:focus-visible { outline: none; stroke: #284aa9; stroke-width: 3; filter: drop-shadow(0 0 2px #fff); }
 .design-endpoint-handle { cursor: crosshair; }
 .design-rotate-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: var(--rotation-cursor); filter: drop-shadow(0 1px 2px #17191c40); }
 .design-rotate-handle:hover { fill: #8b3dff !important; stroke: #8b3dff; }
