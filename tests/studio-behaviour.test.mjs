@@ -440,6 +440,15 @@ test("design image resizing keeps proportions by default and uses Shift for free
   assert.match(editor, /Images keep their proportions by default; hold Shift to stretch them/);
 });
 
+test("design rotation handle uses one dedicated SVG glyph", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const icons = readFileSync(new URL("../app/studio/studio-icons.tsx", import.meta.url), "utf8");
+  assert.match(editor, /<StudioIcon name="rotate" size=\{14\}/);
+  assert.doesNotMatch(editor, /<StudioIcon name="undo" size=\{13\}.*<StudioIcon name="redo" size=\{13\}/);
+  assert.match(icons, /case "rotate": return <svg/);
+  assert.match(icons, /M7\.2 8\.7a5\.8 5\.8 0 0 1 9\.5-1\.7/);
+});
+
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {
   const read = (name) => readFileSync(new URL(`../app/studio/${name}`, import.meta.url), "utf8");
   const canvas = read("studio-canvas.tsx");

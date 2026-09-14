@@ -94,6 +94,8 @@
 - Removed the purple selection outline so selected objects use their white
   resize handles, and made Shift temporarily allow images to stretch freely
   while resizing.
+- Replaced the rotation handle's overlaid history icons with a dedicated
+  compact SVG rotate glyph.
 
 - Added Command+0 on macOS and Ctrl+0 on Windows/Linux to reset the design
   canvas zoom to 100%, alongside the existing zoom controls and increment

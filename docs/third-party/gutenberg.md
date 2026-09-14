@@ -63,4 +63,10 @@ The `folder` icon in `app/studio/studio-icons.tsx` is an original ACM Studio
 SVG added on 9 September 2026 for Andrew’s requested Apple-style folder
 silhouette. Its tab and two tonal surfaces distinguish folders from archive
 documents. It does not copy an Apple asset or claim Gutenberg provenance.
+
+The `rotate` icon is also an original ACM Studio SVG used by the design canvas.
+Its paired curved arrows are kept as one scalable vector glyph so the control
+remains legible inside the compact circular rotation handle. It does not copy
+Canva artwork or claim Gutenberg provenance.
+
 Other Studio interaction icons retain the upstream geometry documented above.
