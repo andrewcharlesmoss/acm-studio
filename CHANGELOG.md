@@ -92,6 +92,7 @@
 
 ### Changed
 - Objects and pages now show resize handles at each side centre as well as their corners.
+- Page resizing now follows image resizing: Shift switches from proportional to absolute sizing.
 - Object resize, rotate and arrow controls now appear while hovering an unselected canvas object and remain visible while dragging arrow endpoints or bend beads.
 - Arrow bend beads can now travel beyond the arrow endpoints horizontally while remaining bounded by a generous canvas range.
 - Added a Shapes dropdown with squares, rounded squares, circles, triangles, diamonds, pentagons, hexagons and octagons.

@@ -824,7 +824,7 @@ export function DesignEditor() {
     const amount = event.shiftKey ? 10 : 1;
     const dx = event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0;
     const dy = event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0;
-    updatePage((page) => resizePage(page, handle, dx, dy, event.shiftKey));
+    updatePage((page) => resizePage(page, handle, dx, dy, !event.shiftKey));
   }
 
   function onPageResizePointerDown(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle) {
@@ -832,7 +832,7 @@ export function DesignEditor() {
     if (!writable || !design || !activePage) return;
     const rect = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
     if (!rect || !rect.width || !rect.height) return;
-    pageResizeRef.current = { handle, startClientX: event.clientX, startClientY: event.clientY, scaleX: rect.width / activePage.width, scaleY: rect.height / activePage.height, originalWidth: activePage.width, originalHeight: activePage.height, keepRatio: event.shiftKey, base: cloneDesign(design) };
+    pageResizeRef.current = { handle, startClientX: event.clientX, startClientY: event.clientY, scaleX: rect.width / activePage.width, scaleY: rect.height / activePage.height, originalWidth: activePage.width, originalHeight: activePage.height, keepRatio: !event.shiftKey, base: cloneDesign(design) };
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
   }
 

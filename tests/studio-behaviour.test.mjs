@@ -481,6 +481,12 @@ test("design image resizing keeps proportions by default and uses Shift for free
   assert.match(editor, /resizeObject\(item, handle, dx, dy, page, shouldKeepResizeRatio\(item, event\.shiftKey\), false\)/);
 });
 
+test("design page resizing keeps proportions by default and uses Shift for freeform sizing", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /resizePage\(page, handle, dx, dy, !event\.shiftKey\)/);
+  assert.match(editor, /keepRatio: !event\.shiftKey/);
+});
+
 test("design objects expose corner and side-centre handles for direct resizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /function resizePage\(page: DesignPage, handle: ResizeHandle, dx: number, dy: number, keepRatio: boolean\)/);
