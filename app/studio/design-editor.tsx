@@ -238,9 +238,10 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
           const cx = handle.includes("e") ? object.width : handle.includes("w") ? 0 : object.width / 2;
           const cy = handle.includes("s") ? object.height : handle.includes("n") ? 0 : object.height / 2;
           const className = `design-resize-handle handle-${handle}`;
-          return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} cx={cx} cy={cy} r={8} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
+          return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} cx={cx} cy={cy} r={12} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
         })}
-        <circle role="button" tabIndex={0} aria-label="Rotate selected object" className="design-rotate-handle" cx={object.width / 2} cy={-22} r={6} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
+        <circle role="button" tabIndex={0} aria-label="Rotate selected object" className="design-rotate-handle" cx={object.width / 2} cy={object.height + 30} r={12} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
+        <StudioIcon name="redo" size={18} className="design-rotate-icon" x={object.width / 2 - 9} y={object.height + 21} pointerEvents="none" />
       </> : null}
       {selectedIds.includes(object.id) && object.type === "arrow" ? <><circle role="button" tabIndex={0} aria-label="Move arrow start point" className="design-endpoint-handle" cx={object.start?.x ?? 0} cy={object.start?.y ?? object.height} r="7" onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /><circle role="button" tabIndex={0} aria-label="Move arrow end point" className="design-endpoint-handle" cx={object.end?.x ?? object.width} cy={object.end?.y ?? 0} r="7" onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /></> : null}
     </g>)}

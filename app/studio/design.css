@@ -65,13 +65,15 @@
 .design-page-svg.is-select-mode .design-object.is-locked { cursor: default; }
 .design-object:active { cursor: grabbing; }
 .design-object.is-locked { cursor: default; }
-.design-selection-box { fill: transparent; stroke: #cc1818; stroke-width: 3; vector-effect: non-scaling-stroke; }
-.design-resize-handle, .design-endpoint-handle { fill: #fff; stroke: #cc1818; stroke-width: 2; cursor: nwse-resize; vector-effect: non-scaling-stroke; }
+.design-selection-box { fill: transparent; stroke: #8b3dff; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.design-resize-handle { fill: #fff; stroke: #8b3dff; stroke-width: 2; cursor: nwse-resize; vector-effect: non-scaling-stroke; }
+.design-endpoint-handle { fill: #fff; stroke: #cc1818; stroke-width: 2; cursor: nwse-resize; vector-effect: non-scaling-stroke; }
 .design-resize-handle.handle-ne, .design-resize-handle.handle-sw { cursor: nesw-resize; }
 .design-resize-handle.handle-nw, .design-resize-handle.handle-se { cursor: nwse-resize; }
 .design-resize-handle:focus-visible, .design-endpoint-handle:focus-visible, .design-rotate-handle:focus-visible { outline: none; stroke: #284aa9; stroke-width: 3; filter: drop-shadow(0 0 2px #fff); }
 .design-endpoint-handle { cursor: crosshair; }
-.design-rotate-handle { fill: #fff; stroke: #cc1818; stroke-width: 2; cursor: grab; vector-effect: non-scaling-stroke; }
+.design-rotate-handle { fill: #fff; stroke: #8b3dff; stroke-width: 2; cursor: grab; vector-effect: non-scaling-stroke; }
+.design-rotate-icon { color: #17191c; }
 .design-rotate-handle:active { cursor: grabbing; }
 .design-marquee { fill: #cc181822; stroke: #cc1818; stroke-dasharray: 5 4; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; }
 .design-guide { stroke: #2f7dd1; stroke-dasharray: 8 6; stroke-width: 2; opacity: .75; pointer-events: none; vector-effect: non-scaling-stroke; }
