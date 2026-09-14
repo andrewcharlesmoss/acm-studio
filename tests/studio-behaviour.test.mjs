@@ -573,6 +573,7 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.match(editor, /object\.y \+ bend\.y - y/);
   assert.match(editor, /className="design-arrow-bend-handle"/);
   assert.match(editor, /function onArrowBendPointerDown\(/);
+  assert.match(editor, /function onArrowBendPointerDown\([\s\S]*?if \(!writable \|\| object\.locked \|\| !design\) return;\s+selectObjects\(\[object\.id\]\);/);
   assert.match(editor, /function onArrowBendKeyDown\(/);
   assert.match(editor, /onKeyDown=\{\(event\) => onArrowBendKeyDown\?\.\(event, object, index\)\}/);
   assert.match(editor, /event\.preventDefault\(\); event\.stopPropagation\(\)/);

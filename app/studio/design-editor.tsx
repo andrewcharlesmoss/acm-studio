@@ -760,6 +760,7 @@ export function DesignEditor() {
   function onArrowEndpointPointerDown(event: PointerEvent<SVGCircleElement>, object: DesignArrowObject, endpoint: "start" | "end") {
     event.stopPropagation();
     if (!writable || object.locked || !design) return;
+    selectObjects([object.id]);
     const point = getPoint(event);
     interactionRef.current = { mode: "arrow-endpoint", id: object.id, endpoint, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
@@ -768,6 +769,7 @@ export function DesignEditor() {
   function onArrowBendPointerDown(event: PointerEvent<SVGRectElement>, object: DesignArrowObject, bendIndex: number) {
     event.stopPropagation();
     if (!writable || object.locked || !design) return;
+    selectObjects([object.id]);
     const point = getPoint(event);
     interactionRef.current = { mode: "arrow-bend", id: object.id, bendIndex, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
