@@ -97,6 +97,8 @@
   requested Canva reference.
 - Rotation readouts now use signed angles, so counter-clockwise turns display
   negative values like Canva.
+- The rotation cursor is slightly smaller and the live angle badge sits farther
+  from it for clearer separation.
 
 - Replaced the browser resize cursor during canvas rotation with a Canva-style curved two-way SVG cursor.
 

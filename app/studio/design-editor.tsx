@@ -49,7 +49,7 @@ function rotationLabel(rotation: number) {
 
 function rotationBadgePoint(object: DesignObject, cursor: { x: number; y: number } | null, controlScale: number) {
   const fallback = { x: object.x + object.width / 2, y: object.y + object.height + 90 * controlScale };
-  const pagePoint = cursor ? { x: cursor.x + 20 * controlScale, y: cursor.y - 20 * controlScale } : fallback;
+  const pagePoint = cursor ? { x: cursor.x + 32 * controlScale, y: cursor.y - 32 * controlScale } : fallback;
   const centre = { x: object.x + object.width / 2, y: object.y + object.height / 2 };
   const radians = -object.rotation * Math.PI / 180;
   const dx = pagePoint.x - centre.x;

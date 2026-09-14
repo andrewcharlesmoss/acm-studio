@@ -518,6 +518,7 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
   assert.match(cursor, /C10\.5 10\.5 21\.5 10\.5 25\.5 18\.5/);
   assert.match(cursor, /stroke="#17191c"/);
   assert.match(editor, /rx=\{7 \* controlScale\}/);
+  assert.match(editor, /cursor\.x \+ 32 \* controlScale/);
 });
 
 test("design resize cursors follow the selected object's rotation", () => {

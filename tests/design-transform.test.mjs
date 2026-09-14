@@ -63,6 +63,7 @@ test("cursor faces inward and turns with the object while retaining its hotspot"
   for (const [angle, expected] of [[0,180], [90,270], [180,360], [270,450], [-90,450], [360,180]]) {
     const cursor = rotationCursorCss(angle);
     assert.ok(decodeURIComponent(cursor).includes(`rotate(${expected} 16 16)`));
+    assert.ok(decodeURIComponent(cursor).includes("scale(.86)"));
     assert.ok(cursor.endsWith('16 16, crosshair'));
   }
 });
