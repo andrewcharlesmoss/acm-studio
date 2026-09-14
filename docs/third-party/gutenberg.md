@@ -56,3 +56,11 @@ This is a local prototype change. Before publishing or distributing a build
 containing these upstream assets, review the GPL source-distribution and notice
 requirements for the intended release. This record does not relicense ACM Studio
 or claim that an external release has been cleared.
+
+## Folder visual exception
+
+The `folder` icon in `app/studio/studio-icons.tsx` is an original ACM Studio
+SVG added on 9 September 2026 for Andrew’s requested Apple-style folder
+silhouette. Its tab and two tonal surfaces distinguish folders from archive
+documents. It does not copy an Apple asset or claim Gutenberg provenance.
+Other Studio interaction icons retain the upstream geometry documented above.

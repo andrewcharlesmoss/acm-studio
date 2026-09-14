@@ -1,5 +1,5 @@
 import type { ContentBlock, RichTextRun, SiteSectionRole, TextMark } from "../content/model";
-import { plainTextFromRuns, safeTextLink } from "../content/rich-text";
+import { plainTextFromRuns, safeImageSource, safeTextLink } from "../content/rich-text";
 import { validContentBlocks } from "./workspace-validation";
 
 /**
@@ -113,8 +113,10 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
     }
     case "code":
       return `<pre${attributes}><code${classAttribute(block.language ? `language-${block.language}` : undefined)}>${escapeText(block.code)}</code></pre>`;
-    case "image":
-      return `<figure${attributes}${classAttribute(block.wide ? "is-wide" : undefined)}><img src="${escapeAttribute(block.src)}" alt="${escapeAttribute(block.alt)}" />${block.caption ? `<figcaption>${escapeText(block.caption)}</figcaption>` : ""}</figure>`;
+    case "image": {
+      const safeSource = safeImageSource(block.src) ?? "";
+      return `<figure${attributes}${classAttribute(block.wide ? "is-wide" : undefined)}><img src="${escapeAttribute(safeSource)}" alt="${escapeAttribute(block.alt)}" />${block.caption ? `<figcaption>${escapeText(block.caption)}</figcaption>` : ""}</figure>`;
+    }
     case "embed":
       return `<aside${attributes} data-embed-url="${escapeAttribute(block.url)}"><a href="${escapeAttribute(block.url)}">${escapeText(block.title)}</a></aside>`;
     case "divider":
@@ -257,10 +259,10 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       const image = element.querySelector("img");
       if (!image) return { error: "Image blocks must contain an img element." };
       const rawSrc = image.getAttribute("src") ?? "";
-      const src = safeTextLink(rawSrc);
+      const src = safeImageSource(rawSrc);
       if (!src && !(original.type === "image" && original.mediaId && rawSrc === "")) return { error: "Image blocks must use a safe image URL." };
       const next: Extract<ContentBlock, { type: "image" }> = { ...(original.type === "image" ? original : {}), id, type: "image", src: src ?? "", alt: image.getAttribute("alt") ?? "", caption: element.querySelector("figcaption")?.textContent || undefined, wide: element.classList.contains("is-wide") };
-      const originalSrc = original.type === "image" ? safeTextLink(original.src) ?? "" : "";
+      const originalSrc = original.type === "image" ? safeImageSource(original.src) ?? "" : "";
       if (original.type === "image" && (src ?? "") !== originalSrc) delete next.mediaId;
       return { block: next };
     }

@@ -5,6 +5,7 @@ export type MediaFolder = {
   name: string;
   parentId: string | null;
   createdAt: string;
+  colour?: string;
 };
 
 export type MediaAsset = {
@@ -160,6 +161,60 @@ export async function renameMediaFolder(id: string, name: string) {
     const next = { ...folder, name: name.trim() };
     await withStore(FOLDER_STORE, "readwrite", (store) => store.put(next));
     return next;
+  });
+}
+
+export async function colourMediaFolder(id: string, colour: string | null) {
+  return studioWriteOwnership.write(async () => {
+    if (colour !== null && !/^#[0-9a-f]{6}$/i.test(colour)) throw new Error("Choose a valid folder colour.");
+    const folder = await withStore(FOLDER_STORE, "readonly", (store) => store.get(id)) as MediaFolder | undefined;
+    if (!folder) throw new Error("The selected folder could not be found.");
+    const next = { ...folder };
+    if (colour === null) delete next.colour;
+    else next.colour = colour;
+    await withStore(FOLDER_STORE, "readwrite", (store) => store.put(next));
+    return next;
+  });
+}
+
+export function prepareMediaFolderMove(folders: MediaFolder[], id: string, parentId: string | null): MediaFolder {
+  const byId = new Map(folders.map((folder) => [folder.id, folder]));
+  const folder = byId.get(id);
+  if (!folder) throw new Error("The selected folder could not be found.");
+  const visited = new Set<string>();
+  let ancestor = parentId;
+  while (ancestor !== null) {
+    if (ancestor === id) throw new Error("A folder cannot be moved into itself or one of its descendants.");
+    if (visited.has(ancestor)) throw new Error("The destination folder hierarchy is invalid.");
+    visited.add(ancestor);
+    const parent = byId.get(ancestor);
+    if (!parent) throw new Error("The destination folder could not be found.");
+    ancestor = parent.parentId;
+  }
+  return { ...folder, parentId };
+}
+
+export async function moveMediaFolder(id: string, parentId: string | null) {
+  return studioWriteOwnership.write(async () => {
+    const database = await openDatabase();
+    let next: MediaFolder | undefined;
+    let validationError: unknown;
+    try {
+      // Reading the hierarchy and writing the move share one transaction, so
+      // concurrent moves cannot both pass an outdated cycle check.
+      await runTransaction(database, FOLDER_STORE, "readwrite", (transaction) => {
+        const store = transaction.objectStore(FOLDER_STORE);
+        const request = store.getAll();
+        request.onsuccess = () => {
+          try {
+            next = prepareMediaFolderMove(request.result as MediaFolder[], id, parentId);
+            store.put(next);
+          } catch (error) { validationError = error; transaction.abort(); }
+        };
+      });
+      return next!;
+    } catch (error) { throw validationError ?? error; }
+    finally { database.close(); }
   });
 }
 

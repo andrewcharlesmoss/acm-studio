@@ -31,6 +31,7 @@ async function compileModule(url) {
 }
 
 const { BlockRenderer } = await import(await compileModule(new URL("../app/components/content.tsx", import.meta.url)));
+const { safeImageSource } = await import(await compileModule(new URL("../app/content/rich-text.ts", import.meta.url)));
 const { restoreLegacyPublicationCover, toLocallyPublishedArticle } = await import(await compileModule(new URL("../app/content/local-publishing.ts", import.meta.url)));
 const { formatHtml } = await import(await compileModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url)));
 
@@ -147,6 +148,34 @@ test("embed and button blocks use the rich-text URL policy", () => {
   assert.match(studioHtml, /Enter a valid URL/);
 });
 
+test("image sources allow local or HTTPS images and managed blob URLs only", () => {
+  assert.equal(safeImageSource("https://example.com/image.png"), "https://example.com/image.png");
+  assert.equal(safeImageSource("/images/image.png"), "/images/image.png");
+  assert.equal(safeImageSource("blob:https://example.com/id", { allowBlob: true }), "blob:https://example.com/id");
+  for (const source of ["javascript:alert(1)", "data:image/svg+xml,<svg>", "//example.com/image.png", "blob:https://example.com/id"]) {
+    assert.equal(safeImageSource(source), null);
+  }
+});
+
+test("image blocks do not render unsupported sources", () => {
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [
+    { id: "unsafe", type: "image", src: "data:image/svg+xml,<svg onload=alert(1)>", alt: "Unsafe" },
+    { id: "managed", type: "image", src: "", mediaId: "media-1", alt: "Managed" },
+  ], mediaUrls: { "media-1": "blob:https://example.com/media-1" }, variant: "studio" }));
+  assert.match(html, /data-preview-block-id="unsafe"/);
+  assert.doesNotMatch(html, /data:image|onload=/i);
+  assert.match(html, /src="blob:https:\/\/example.com\/media-1"/);
+});
+
+test("cover images use the same source policy as content images", async () => {
+  const { StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const html = renderToStaticMarkup(createElement(StudioCanvas, {
+    activeDocument: { kind: "post", status: "draft", title: "Cover", blocks: [], coverImage: { src: "data:image/svg+xml,<svg>", alt: "Unsafe cover" } },
+    previewing: true, showCoverImage: true, coverImageUrl: "data:image/svg+xml,<svg>", wordCount: 0, characterCount: 0, linkTargets: [], mediaBlockUrls: {},
+  }));
+  assert.doesNotMatch(html, /data:image|<img/);
+});
+
 test("paragraph presentation settings render through the shared Studio and public renderer", () => {
   const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [{
     id: "styled-paragraph", type: "paragraph", text: "Styled paragraph", style: {
@@ -231,7 +260,7 @@ test("Studio modes share heading slots, expose the current mode and omit editing
       assert.doesNotMatch(preview, /POST DRAFT|PAGE DRAFT|preview-meta|canvas-title-label|canvas-subtitle-label|Preview-only metadata|<textarea/);
       assert.doesNotMatch(preview, /content-divider|divider-field/);
       assert.match(edit, /divider-field/);
-      assert.match(preview, /class="editor-document-actions" aria-hidden="true">[\s\S]*<button type="button" disabled=""/);
+      assert.match(preview, /class="editor-document-actions" aria-hidden="true">[\s\S]*<button type="button"[^>]*disabled=""/);
       if (subtitle) assert.ok(preview.includes(subtitle));
     }
   }

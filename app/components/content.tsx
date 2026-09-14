@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import { highlightCode } from "../content/code-highlighting.mjs";
-import { safeTextLink, textToRuns } from "../content/rich-text";
+import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
 import { normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { StudioIcon } from "../studio/studio-icons";
@@ -74,7 +74,9 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           return <pre className={studio ? "studio-code-preview" : undefined} key={block.id} data-language={highlighted.language}><code dangerouslySetInnerHTML={{ __html: highlighted.html }} /></pre>;
         }
         if (block.type === "image") {
-          const imageSource = block.mediaId ? mediaUrls[block.mediaId] : block.src;
+          const imageSource = block.mediaId
+            ? safeImageSource(mediaUrls[block.mediaId] ?? "", { allowBlob: true })
+            : safeImageSource(block.src);
           return (
             <figure key={block.id} className={`${studio ? "image-field" : "article-image"}${block.wide ? " is-wide" : ""}`}>
               {imageSource ? (

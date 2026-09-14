@@ -15,6 +15,13 @@ export function safeTextLink(value: string): string | null {
   return null;
 }
 
+export function safeImageSource(value: string, { allowBlob = false } = {}): string | null {
+  const source = value.trim();
+  if (/^https?:\/\//i.test(source) || (source.startsWith("/") && !source.startsWith("//"))) return source;
+  if (allowBlob && /^blob:/i.test(source)) return source;
+  return null;
+}
+
 function marksEqual(first: TextMark[] = [], second: TextMark[] = []) {
   if (first.length !== second.length) return false;
   return first.every((mark, index) => {

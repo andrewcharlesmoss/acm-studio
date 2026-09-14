@@ -233,3 +233,33 @@ test("the backup interface exposes incomplete recovery instead of suggesting a s
   assert.match(statuses.at(-1), /could not be fully recovered.*Keep this page open/);
   assert.doesNotMatch(statuses.at(-1), /private implementation detail|try again/);
 });
+
+
+test("optional folder colour survives backup validation and rejects unsafe values", () => {
+  const backup = validBackup();
+  backup.media.folders = [{ id: "coloured-folder", name: "Images", parentId: null, createdAt: backup.exportedAt, colour: "#3158c9" }];
+  assert.equal(backupStore.validateStudioBackup(backup).media.folders[0].colour, "#3158c9");
+  delete backup.media.folders[0].colour;
+  assert.doesNotThrow(() => backupStore.validateStudioBackup(backup));
+  backup.media.folders[0].colour = "url(https://example.com/image)";
+  assert.throws(() => backupStore.validateStudioBackup(backup), /folders are invalid/);
+});
+
+
+test("folder moves preserve metadata and reject missing or cyclic destinations", () => {
+  const { prepareMediaFolderMove } = load("app/studio/media-store.ts");
+  const folders = [
+    { id: "a", name: "A", parentId: null, colour: "#ff3b30", createdAt: "2026-09-09" },
+    { id: "b", name: "B", parentId: "a", createdAt: "2026-09-09" },
+    { id: "c", name: "C", parentId: null, createdAt: "2026-09-09" },
+  ];
+  const moved = prepareMediaFolderMove(folders, "a", "c");
+  assert.equal(moved.parentId, "c"); assert.equal(moved.colour, "#ff3b30");
+  assert.equal(folders[0].parentId, null);
+  assert.equal(prepareMediaFolderMove(folders, "b", null).parentId, null);
+  for (const destination of ["a", "b"]) assert.throws(() => prepareMediaFolderMove(folders, "a", destination), /itself or one of its descendants/);
+  assert.throws(() => prepareMediaFolderMove(folders, "a", "missing"), /destination folder could not be found/);
+  assert.throws(() => prepareMediaFolderMove(folders, "missing", null), /selected folder could not be found/);
+  const cyclic = [...folders, { id: "x", parentId: "y" }, { id: "y", parentId: "x" }];
+  assert.throws(() => prepareMediaFolderMove(cyclic, "a", "x"), /hierarchy is invalid/);
+});

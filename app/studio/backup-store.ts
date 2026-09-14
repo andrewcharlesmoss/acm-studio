@@ -1,5 +1,7 @@
 import { studioWriteOwnership } from "./write-ownership";
 import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY } from "../content/local-publishing";
+import { DESIGN_STORAGE_KEY, validateDesignProject, type DesignProject } from "./design-model";
+import { loadDesigns } from "./design-store";
 import type { StudioWorkspace } from "./editor-model";
 import { listMediaLibrary, replaceMediaLibrary, type MediaAsset, type MediaFolder } from "./media-store";
 import { isRecord, validatePublicationSnapshot, validateStudioWorkspace } from "./workspace-validation";
@@ -15,6 +17,7 @@ export type StudioBackup = {
   version: 1;
   exportedAt: string;
   workspace: StudioWorkspace;
+  designs?: DesignProject[];
   publications: string | null;
   media: {
     folders: MediaFolder[];
@@ -30,6 +33,7 @@ export type StudioBackupSummary = {
   folders: number;
   files: number;
   fileBytes: number;
+  designs: number;
 };
 
 function blobToBase64(blob: Blob) {
@@ -59,6 +63,10 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
   validateStudioWorkspace(value.workspace);
+  if (value.designs !== undefined) {
+    if (!Array.isArray(value.designs)) throw new Error("The design collection is invalid.");
+    value.designs.forEach(validateDesignProject);
+  }
   if (!isRecord(value.media) || !Array.isArray(value.media.folders) || !Array.isArray(value.media.assets)) {
     throw new Error("The backup does not contain a valid media library.");
   }
@@ -66,6 +74,7 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   for (const folder of value.media.folders) {
     if (!isRecord(folder) || typeof folder.id !== "string" || !folder.id || folders.has(folder.id)
       || typeof folder.name !== "string" || typeof folder.createdAt !== "string" || !Number.isFinite(Date.parse(folder.createdAt))
+      || (folder.colour !== undefined && (typeof folder.colour !== "string" || !/^#[0-9a-f]{6}$/i.test(folder.colour)))
       || (folder.parentId !== null && typeof folder.parentId !== "string")) throw new Error("One or more backed-up folders are invalid.");
     folders.set(folder.id, folder.parentId as string | null);
   }
@@ -128,6 +137,7 @@ export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary
     folders: backup.media.folders.length,
     files: backup.media.assets.length,
     fileBytes: backup.media.assets.reduce((total, asset) => total + asset.size, 0),
+    designs: backup.designs?.length ?? 0,
   };
 }
 
@@ -147,6 +157,7 @@ export async function createStudioBackup(workspace: StudioWorkspace) {
     version: 1,
     exportedAt: new Date().toISOString(),
     workspace,
+    designs: loadDesigns(),
     publications,
     media: { folders: library.folders, assets },
   };
@@ -193,23 +204,26 @@ export async function restoreStudioBackup(backup: StudioBackup) {
     const previousLibrary = await listMediaLibrary();
     const previousWorkspace = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
     const previousPublications = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
+    const previousDesigns = window.localStorage.getItem(DESIGN_STORAGE_KEY);
     try {
       await replaceMediaLibrary(assets, backup.media.folders, permit);
       window.localStorage.setItem(LOCAL_WORKSPACE_KEY, JSON.stringify(backup.workspace));
+      if (backup.designs) window.localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(backup.designs));
+      else window.localStorage.removeItem(DESIGN_STORAGE_KEY);
       if (backup.publications) window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, backup.publications);
       else window.localStorage.removeItem(LOCAL_PUBLICATIONS_KEY);
     } catch (error) {
       const rollbackFailures: unknown[] = [];
       try { await replaceMediaLibrary(previousLibrary.assets, previousLibrary.folders, permit); }
       catch (rollbackError) { rollbackFailures.push(rollbackError); }
-      for (const [key, previous] of [[LOCAL_WORKSPACE_KEY, previousWorkspace], [LOCAL_PUBLICATIONS_KEY, previousPublications]] as const) {
+      for (const [key, previous] of [[LOCAL_WORKSPACE_KEY, previousWorkspace], [LOCAL_PUBLICATIONS_KEY, previousPublications], [DESIGN_STORAGE_KEY, previousDesigns]] as const) {
         try {
           if (previous !== null) window.localStorage.setItem(key, previous);
           else window.localStorage.removeItem(key);
         } catch (rollbackError) { rollbackFailures.push(rollbackError); }
       }
       if (rollbackFailures.length) {
-        throw new AggregateError([error, ...rollbackFailures], "Restore failed and the original data could not be fully recovered. Keep this page open and retain your backup.");
+        throw new AggregateError([error, ...rollbackFailures], `Restore failed: ${error instanceof Error ? error.message : "storage write failed"}. The original data could not be fully recovered. Keep this page open and retain your backup.`);
       }
       throw error;
     }

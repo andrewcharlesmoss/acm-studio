@@ -159,7 +159,7 @@ test("the block appender exposes Gutenberg's slash prompt and add control", asyn
 test("the cover image exposes a between-block inserter", async () => {
   const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(source, /aria-label="Add block below cover image"/);
-  assert.match(source, /onOpenInserter\(-1\)/);
+  assert.match(source, /openInserter\(-1\)/);
 });
 
 test("block hover controls group the source-faithful move chevrons vertically", async () => {
@@ -320,8 +320,8 @@ test("List View pointer hover marks its matching top-level or nested canvas bloc
 
 test("closing List View clears cross-highlighting on toggle, Preview, Code and unmount", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
-  assert.match(canvas, /setHoveredBlockId\(null\); setListViewOpen\(\(current\) => !current\)/);
-  assert.match(canvas, /setHoveredBlockId\(null\); setListViewOpen\(false\); onPreviewChange\(true\)/);
+  assert.match(canvas, /setHoveredBlockId\(null\); onSetShowInserter\(false\); setListViewOpen\(\(current\) => !current\)/);
+  assert.match(canvas, /setHoveredBlockId\(null\); setListViewOpen\(false\); onSetShowInserter\(false\); onPreviewChange\(true\)/);
   assert.match(canvas, /function openCodeEditor[\s\S]*?setHoveredBlockId\(null\);\s*setListViewOpen\(false\)/);
   assert.match(canvas, /function closeListView\(\) \{\s*setHoveredBlockId\(null\)/);
   assert.match(canvas, /useLayoutEffect\(\(\) => \(\) => onHoverBlock\(null\), \[onHoverBlock\]\)/);
@@ -406,4 +406,358 @@ test("history shortcuts leave independent text editing surfaces to native undo",
   const hook = readFileSync(new URL("../app/studio/use-studio-history-shortcuts.ts", import.meta.url), "utf8");
   assert.match(hook, /if \(!enabled\) return;/);
   assert.match(hook, /\[undo, redo, enabled\]/);
+});
+
+test("shared editor toolbar owns history controls and docks a dismissible List View", () => {
+  const read = (name) => readFileSync(new URL(`../app/studio/${name}`, import.meta.url), "utf8");
+  const canvas = read("studio-canvas.tsx");
+  const toolbar = canvas.slice(canvas.indexOf('className="editor-history-actions"'), canvas.indexOf('className="editor-mode-control"'));
+  assert.ok(toolbar.indexOf('aria-label="Add block"') < toolbar.indexOf('aria-label="Undo"'));
+  assert.ok(toolbar.indexOf('aria-label="Undo"') < toolbar.indexOf('aria-label="Redo"'));
+  assert.ok(toolbar.indexOf('aria-label="Redo"') < toolbar.indexOf('aria-label="List View"'));
+  assert.match(toolbar, /disabled=\{!writable \|\| !canUndo\}/);
+  assert.match(toolbar, /disabled=\{!writable \|\| !canRedo\}/);
+  for (const name of ["studio-prototype.tsx", "mini-golf-site-editor.tsx"]) {
+    const source = read(name);
+    assert.doesNotMatch(source, /aria-label="(?:Undo|Redo)"/);
+    assert.match(source, /canUndo=\{canUndo\}/);
+    assert.match(source, /canRedo=\{canRedo\}/);
+  }
+  assert.match(read("use-studio-workspace.ts"), /canUndo: ownership.canWrite\(loadedToken\) && historyAvailability.undo/);
+  assert.match(read("use-studio-workspace.ts"), /canRedo: ownership.canWrite\(loadedToken\) && historyAvailability.redo/);
+  assert.match(canvas, /className="editor-work-area"/);
+  assert.match(canvas, /className="studio-list-backdrop"[^>]*aria-label="Close List View"/);
+  assert.match(canvas, /event.key !== "Escape" \|\| event.defaultPrevented/);
+  assert.match(canvas, /requestAnimationFrame\(\(\) => listViewToggleRef.current\?\.focus\(\)\)/);
+  const css = read("studio.css");
+  assert.match(css, /\.editor-work-area \{[^}]*display: flex[^}]*min-height: 0/);
+  assert.match(css, /\.studio-list-view \{[^}]*flex: 0 0 280px[^}]*position: static/);
+  assert.match(css, /\.studio-list-view nav \{ flex: 1; min-height: 0; overflow: auto/);
+  assert.match(css, /@container \(max-width: 680px\) \{\s*\.studio-list-view \{[^}]*position: absolute; top: 0/);
+});
+
+
+test("full document counts sit beside Code and collapse before crowding the toolbar", () => {
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const actions = canvas.slice(canvas.indexOf('className="editor-document-actions"'), canvas.indexOf('{publishFeedback ?'));
+  assert.match(actions, /Code<\/button>[\s\S]*className="editor-document-counts"/);
+  assert.match(actions, /<strong>\{wordCount\} words · \{characterCount\} characters · \{activeDocument.blocks.length\} blocks<\/strong>/);
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(css, /@container \(max-width: 1000px\) \{\s*\.editor-document-counts \{ display: none; \}/);
+});
+
+
+test("block library shares the docked work area and excludes List View", () => {
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(canvas, /className="editor-work-area">\s*\{showInserter && !previewing && !codeEditor \? <BlockInserter/);
+  assert.match(canvas, /!previewing && !showInserter && listViewOpen \? <StudioListView/);
+  assert.match(canvas, /function openInserter[^}]*setListViewOpen\(false\);[^}]*onOpenInserter\(afterIndex, query\)/);
+  assert.match(canvas, /className="block-inserter"[^>]*aria-labelledby="inserter-title"/);
+  assert.doesNotMatch(canvas, /className="block-inserter"[^>]*aria-modal/);
+  assert.match(canvas, /openerRef.current\?\.isConnected/);
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(css, /\.inserter-backdrop \{[^}]*flex: 0 0 320px[^}]*position: relative/);
+  assert.match(css, /\.inserter-results \{[^}]*min-height: 0; overflow: auto/);
+  assert.match(css, /@container \(max-width: 680px\) \{\s*\.inserter-backdrop \{ inset: 0; position: absolute/);
+});
+
+
+test("Preview and Code transitions dismiss the block library", () => {
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(canvas, /onSetShowInserter\(false\); onPreviewChange\(true\)/);
+  assert.match(canvas, /function openCodeEditor\(\) \{[\s\S]*?onSetShowInserter\(false\)/);
+  assert.match(canvas, /showInserter && !previewing && !codeEditor \? <BlockInserter/);
+});
+
+
+test("the block library slides in on each mount and respects reduced motion", () => {
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(css, /\.block-inserter \{ animation: studio-inserter-enter 180ms ease-out/);
+  assert.match(css, /@keyframes studio-inserter-enter \{\s*from \{ opacity: 0; transform: translateX\(-100%\); \}\s*to \{ opacity: 1; transform: translateX\(0\); \}/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.block-inserter, \.block-inserter\[data-closing="true"\] \{ animation: none; \}/);
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(canvas, /onClick=\{\(\) => showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)\}/);
+  assert.match(canvas, /showInserter && !previewing && !codeEditor \? <BlockInserter/);
+});
+
+
+test("Add block toggles the library so reopening remounts its slide-in", () => {
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const button = canvas.slice(canvas.indexOf('className="editor-add-block"'), canvas.indexOf('name="add" size={20}'));
+  assert.match(button, /onClick=\{\(\) => showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)\}/);
+  assert.match(button, /aria-pressed=\{showInserter && !inserterClosing && !previewing && !codeEditor\}/);
+  assert.match(canvas, /showInserter && !previewing && !codeEditor \? <BlockInserter/);
+});
+
+
+test("library dismissal waits for its own exit animation except with reduced motion", () => {
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(canvas, /function dismissInserter\(\) \{\s*if \(window.matchMedia\("\(prefers-reduced-motion: reduce\)"\).matches\) finishInserterClose\(\);\s*else setInserterClosing\(true\)/);
+  assert.match(canvas, /onDismiss=\{dismissInserter\}/);
+  assert.match(canvas, /event.target === event.currentTarget && event.animationName === "studio-inserter-exit"\) onCloseAnimationEnd\(\)/);
+  assert.match(canvas, /inert=\{closing\}/);
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(css, /\.block-inserter\[data-closing="true"\] \{ animation: studio-inserter-exit 180ms ease-in forwards/);
+});
+
+
+test("Add block cancels an exit in progress and restores the entry animation", () => {
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(canvas, /showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)/);
+  assert.match(canvas, /function openInserter[^}]*setInserterClosing\(false\)/);
+  assert.match(canvas, /data-closing=\{closing \|\| undefined\}/);
+  assert.match(canvas, /if \(closing && event.target === event.currentTarget/);
+});
+
+
+test("folder menus offer keyboard-accessible owner-gated actions and persistent colours", () => {
+  const manager = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(manager, /onContextMenu=\{/);
+  assert.match(manager, /event.key === "ContextMenu" \|\| \(event.shiftKey && event.key === "F10"\)/);
+  assert.match(manager, /onClick=\{\(\) => openFolder\(folder\)\}/);
+  assert.match(manager, /aria-haspopup="menu"/);
+  assert.doesNotMatch(manager, /aria-label="Close folder actions"/);
+  assert.match(manager, /event.key === "Escape"/);
+  assert.match(manager, /disabled=\{!canMutate\}[\s\S]*?>Rename/);
+  assert.match(manager, /void removeFolder\(\)/);
+  assert.match(manager, /await mutate\(async \(\) => \{\s*await colourMediaFolder\(id, colour \|\| null\)/);
+  const store = readFileSync(new URL("../app/studio/media-store.ts", import.meta.url), "utf8");
+  assert.match(store, /colour\?: string/);
+  assert.match(store, /function colourMediaFolder[^}]*studioWriteOwnership.write/);
+  assert.match(store, /if \(colour === null\) delete next.colour;\s*else next.colour = colour/);
+  const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
+  assert.match(css, /\.folder-glyph svg \{ height: 64px; width: 64px/);
+});
+
+
+test("media folders use a folder silhouette, hoverable colour choices and aligned list icons", () => {
+  const manager = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(manager, /StudioIcon name="folder" size=\{64\}/);
+  assert.doesNotMatch(manager, /StudioIcon name="archive"/);
+  assert.match(manager, /onMouseEnter=\{\(event\) => openColourMenu\(event.currentTarget\)/);
+  assert.match(manager, /event.key === "ArrowRight"/);
+  assert.match(manager, /\}, \[folderMenuId\]\)/);
+  const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
+  assert.match(css, /\.media-entries.is-list \.folder-glyph \{[^}]*height: 44px;[^}]*margin: 0; width: 46px/);
+  assert.match(css, /\.media-entries.is-list \.media-thumbnail \{ height: 44px; width: 46px/);
+});
+
+
+test("folder palette offers exactly the requested colours and can clear a saved choice", () => {
+  const manager = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  const palette = manager.match(/(\[ \["No Colour".*?\] \])\.map/)[1];
+  assert.deepEqual(JSON.parse(palette).map(([label]) => label), ["No Colour", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Grey"]);
+  assert.match(manager, /if \(colour !== undefined\) void changeFolderColour/);
+  assert.match(manager, /aria-checked=\{\(selectedFolder\?\.colour \?\? ""\) === colour\}/);
+  const store = readFileSync(new URL("../app/studio/media-store.ts", import.meta.url), "utf8");
+  assert.match(store, /colourMediaFolder\(id: string, colour: string \| null\)/);
+  assert.match(store, /if \(colour === null\) delete next.colour/);
+});
+
+
+test("folder colours open in a labelled side submenu with return navigation", () => {
+  const manager = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(manager, /className="folder-colour-icon" aria-hidden="true"/);
+  assert.match(manager, /className="folder-colour-menu"[^>]*role="menu" aria-label="Folder colour"/);
+  assert.match(manager, /aria-controls="folder-colour-menu" aria-expanded=\{folderMenu.colours\}/);
+  assert.match(manager, /rect.right \+ 4/);
+  assert.match(manager, /event.key === "Escape" \|\| event.key === "ArrowLeft"/);
+  assert.match(manager, /colourMenuTriggerRef.current\?\.focus\(\)/);
+  assert.match(manager, /item.closest\("\[role=menu\]"\) === event.currentTarget/);
+});
+
+
+test("folder context menu omits Close while retaining dismissal and read-only focus", () => {
+  const manager = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(manager, />Close<\/button>/);
+  assert.match(manager, /if \(event.key === "Escape"\)/);
+  assert.match(manager, /document.addEventListener\("pointerdown", outside\)/);
+  assert.match(manager, /\?\? folderMenuRef.current\)\?\.focus\(\)/);
+});
+
+
+test("folder rename focus waits for a writable rendered input and is retried after refresh", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /if \(!canMutate \|\| folderMenu \|\| folderNameFocusTargetIdRef.current !== selectedFolder\?\.id \|\| !folderNameInputRef.current\) return/);
+  assert.match(source, /\[selectedFolder\?\.id, folders, folderMenu, canMutate\]/);
+  assert.match(source, /setInlineRename\(\{ id: item.id, kind: folderMenu.kind, name: item.name \}\);[\s\S]*?closeFolderMenu\(false\)/);
+});
+
+
+test("folder Rename and Delete use the shared menu icons", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /<StudioIcon name="pencil" size=\{16\} \/>Rename<\/button>/);
+  assert.match(source, /<StudioIcon name="trash" size=\{16\} \/>Delete<\/button>/);
+});
+
+
+test("colour hover dismissal bridges the submenu gap and preserves keyboard focus", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.equal((source.match(/onMouseLeave=\{scheduleColourMenuClose\}/g) ?? []).length, 2);
+  assert.match(source, /onMouseEnter=\{cancelColourMenuClose\}/);
+  assert.match(source, /function openColourMenu[^}]*cancelColourMenuClose\(\)/);
+  assert.match(source, /focused.matches\(":focus-visible"\)/);
+  assert.match(source, /colourSubmenuRef.current\?\.contains\(focused\)/);
+  assert.match(source, /window.setTimeout\([\s\S]*?\}, 150\)/);
+  assert.match(source, /removeEventListener\("pointerdown", outside\); cancelColourMenuClose\(\)/);
+});
+
+
+test("file cards share Rename and Delete menus without folder colour controls", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /showFileMenu\(asset, event.currentTarget, event.clientX, event.clientY\)/);
+  assert.match(source, /showFileMenu\(asset, event.currentTarget, rect.left, rect.bottom\)/);
+  assert.match(source, /folderMenu.kind === "folder" \? <button ref=\{colourMenuTriggerRef\}/);
+  assert.match(source, /if \(folderMenu.kind === "file"\) void removeAsset\(\); else void removeFolder\(\)/);
+  assert.match(source, /setInlineRename\(\{ id: item.id, kind: folderMenu.kind, name: item.name/);
+  assert.match(source, /inlineRenameRef.current\?\.focus\(\);\s*inlineRenameRef.current\?\.select\(\)/);
+});
+
+
+test("inline card rename cancels before blur can save and preserves the details panel", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /inlineRenameFinishedRef.current = true; setInlineRename\(null\)/);
+  assert.match(source, /if \(!inlineRename \|\| inlineRenameFinishedRef.current \|\| !canMutate\) return/);
+  assert.match(source, /await saveAsset\(\{ name \}, inlineRename.id\)/);
+  assert.match(source, /inlineRename\?\.id === folder.id \? inlineNameEditor/);
+  assert.match(source, /inlineRename\?\.id === asset.id \? inlineNameEditor/);
+  assert.match(source, /<h2>File details<\/h2>/);
+});
+
+
+test("inline rename matches the name rectangle without changing card flow", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /const nameRect = label.getBoundingClientRect\(\)/);
+  assert.match(source, /width: `\$\{nameRect.width\}px`, height: `\$\{nameRect.height\}px`/);
+  assert.match(source, /\[inlineRenameId, inlineRenameKind, view\]/);
+  assert.match(source, /observer\?\.observe\(label\)/);
+  assert.match(source, /observer\?\.disconnect\(\)/);
+  const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
+  assert.match(css, /\.media-card-name.is-renaming \{ visibility: hidden; \}/);
+  assert.match(css, /\.media-inline-name \{[^}]*padding: 0; position: absolute/);
+  assert.doesNotMatch(css, /\.media-inline-name[^}]*bottom:|\.media-inline-name[^}]*top: 5px/);
+});
+
+
+test("media drag-and-drop is owner-gated and folders have a keyboard move equivalent", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /draggable=\{canMutate && !inlineRename\}/);
+  assert.match(source, /onDrop=\{\(event\) => dropIntoFolder\(event, folder.id\)\}/);
+  assert.match(source, /if \(canMutate && entry\) void moveMediaEntry\(entry, id\)/);
+  assert.match(source, /entry.kind === "folder" && !allowedFolderDestination\(entry.id, id\)/);
+  assert.match(source, /await updateMediaAsset\(entry.id, \{ folderId: parentId \}\)/);
+  assert.match(source, /<span>Move to folder<\/span>/);
+  const store = readFileSync(new URL("../app/studio/media-store.ts", import.meta.url), "utf8");
+  assert.match(store, /function moveMediaFolder[^}]*studioWriteOwnership.write/);
+  assert.match(store, /runTransaction\(database, FOLDER_STORE, "readwrite"/);
+});
+
+
+test("move to parent uses the containing folder parent and respects write ownership", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /selectedAsset\?\.folderId \?\? selectedFolder\?\.parentId \?\? null/);
+  assert.match(source, /selectedContainer \? <button type="button" role="menuitem" disabled=\{!canMutate\}/);
+  assert.match(source, /moveMediaEntry\(\{ id: folderMenu.id, kind: folderMenu.kind \}, selectedContainer.parentId\)/);
+  assert.match(source, /<StudioIcon name="arrow-up" size=\{16\} \/>Move to parent folder/);
+});
+
+
+test("parent navigation is separate from searchable sortable folder records", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.ok(source.indexOf('media-parent-card') < source.indexOf("{visibleFolders.map"));
+  assert.match(source, /setCurrentFolderId\(currentFolder.parentId\)/);
+  assert.match(source, /className="folder-up-arrow" name="arrow-up"/);
+  const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
+  assert.match(css, /\.media-entries.is-list \.media-parent-card \{[^}]*grid-template-columns: 46px 1fr/);
+});
+
+
+test("Parent folder drops validate destinations and show accepted/rejected hover states", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /onDragOver=\{dragOverParent\}/);
+  assert.match(source, /onDrop=\{dropIntoParent\}/);
+  assert.match(source, /allowedFolderDestination\(entry.id, currentFolder.parentId\)/);
+  assert.match(source, /if \(valid && entry && currentFolder\) void moveMediaEntry\(entry, currentFolder.parentId\)/);
+  assert.match(source, /setParentDropState\(valid \? "valid" : "invalid"\)/);
+  const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
+  assert.match(css, /\.media-parent-card.is-drop-target/);
+  assert.match(css, /\.media-parent-card.is-invalid-drop/);
+});
+
+
+test("media breadcrumbs accept validated drops without invoking navigation", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /onDrop=\{\(event\) => dropIntoBreadcrumb\(event, null\)\}/);
+  assert.match(source, /onDrop=\{\(event\) => dropIntoBreadcrumb\(event, folder.id\)\}/);
+  assert.match(source, /allowedFolderDestination\(entry.id, folderId\)/);
+  const drop = source.slice(source.indexOf("function dropIntoBreadcrumb"), source.indexOf("function leaveBreadcrumb"));
+  assert.match(drop, /event.preventDefault\(\); event.stopPropagation\(\)/);
+  assert.match(drop, /if \(valid && entry\) void moveMediaEntry\(entry, folderId\)/);
+  assert.doesNotMatch(drop, /setCurrentFolderId|openFolder/);
+});
+
+
+test("folder cards retain keyboard opening and concise Folder metadata", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /onDoubleClick=\{\(\) => openFolder\(folder\)\}/);
+  assert.match(source, /<small>Folder<\/small>/);
+  assert.doesNotMatch(source, /Folder · double-click to open/);
+  assert.match(source, /if \(event.key === "Enter"\) \{ event.preventDefault\(\); openFolder\(folder\)/);
+});
+
+
+test("grid folder labels align with file thumbnail and copy spacing", () => {
+  const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
+  assert.match(css, /\.media-thumbnail \{[^}]*height: 105px/);
+  assert.match(css, /\.media-entries.is-grid \.media-folder-card \{[^}]*grid-template-rows: 105px min-content min-content; padding: 0/);
+  assert.match(css, /\.media-card-copy \{ display: grid; padding: 9px/);
+  assert.match(css, /\.media-entries.is-grid \.media-folder-card strong \{ margin: 9px 9px 0/);
+  assert.match(css, /\.media-entries.is-grid \.media-folder-card small \{ margin: 3px 9px 9px/);
+  assert.match(css, /\.media-entries.is-list \.folder-glyph \{[^}]*height: 44px/);
+});
+
+
+test("grid folders use larger icons without changing their track or list icons", () => {
+  const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
+  assert.match(css, /\.media-entries.is-grid \.media-folder-card \.folder-glyph svg \{ height: 88px; transform: translateY\(16px\); width: 88px/);
+  assert.match(css, /grid-template-rows: 105px min-content min-content/);
+  assert.match(css, /\.media-entries.is-list \.folder-glyph svg \{ height: 26px; width: 26px/);
+});
+
+
+test("file and folder cards share horizontal overflow controls and centred larger grid icons", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /className="media-folder-menu-toggle"[^>]*aria-haspopup="menu"/);
+  assert.match(source, /className="media-file-menu-toggle"[^>]*aria-haspopup="menu"/);
+  assert.equal((source.match(/className="media-card-menu-icon" name="more-vertical"/g) ?? []).length, 2);
+  assert.match(source, /showFileMenu\(asset, event.currentTarget, rect.left, rect.bottom\)/);
+  const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
+  assert.match(css, /\.media-folder-menu-toggle, \.media-file-menu-toggle \{[^}]*right: 4px; top: 4px/);
+  assert.match(css, /\.media-card-menu-icon \{ transform: rotate\(90deg\)/);
+  assert.match(css, /\.media-entries.is-grid \.media-folder-card \.folder-glyph \{ align-self: center; justify-self: center/);
+  assert.match(css, /\.media-entries.is-list \.folder-glyph svg \{ height: 26px; width: 26px/);
+});
+
+
+test("list file names shrink and reserve space for their overflow control", () => {
+  const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
+  assert.match(css, /\.media-entries.is-list \.media-folder-card, \.media-entries.is-list \.media-file-card \{ padding-right: 40px/);
+  assert.match(css, /\.media-entries.is-list \.media-file-card, \.media-entries.is-list \.media-folder-card \{[^}]*grid-template-columns: 46px minmax\(0, 1fr\)/);
+});
+
+
+test("grid folder icons sit lower without moving labels or list icons", () => {
+  const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
+  assert.match(css, /\.media-entries.is-grid \.media-folder-card \.folder-glyph svg \{ height: 88px; transform: translateY\(16px\); width: 88px/);
+  assert.match(css, /grid-template-rows: 105px min-content min-content/);
+  assert.match(css, /\.media-entries.is-list \.folder-glyph svg \{ height: 26px; width: 26px; \}/);
+});
+
+
+test("overflow pointer and focus transitions reach toggle handlers before dismissal", () => {
+  const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
+  assert.match(source, /event.target.closest\("\.media-folder-menu-toggle, \.media-file-menu-toggle"\)\) return/);
+  assert.match(source, /event.relatedTarget.closest\("\.media-folder-menu-toggle, \.media-file-menu-toggle"\)\) return/);
+  assert.match(source, /folderMenu\?\.kind === "folder" && folderMenu.id === folder.id\) \{ closeFolderMenu\(\); return/);
+  assert.match(source, /folderMenu\?\.kind === "file" && folderMenu.id === asset.id\) \{ closeFolderMenu\(\); return/);
 });

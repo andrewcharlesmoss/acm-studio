@@ -100,7 +100,7 @@
 .source-image { padding: 24px; }
 .source-image img { display: block; max-height: 65vh; max-width: 100%; object-fit: contain; }
 .source-loading { padding: 24px; }
-.mini-golf-editor .site-draft-workspace > .block-editor { min-height: calc(100dvh - 112px); min-width: 0; }
+.mini-golf-editor .site-draft-workspace > .block-editor { height: calc(100dvh - 112px); min-height: calc(100dvh - 112px); min-width: 0; }
 .mini-golf-editor .site-draft-workspace > .studio-inspector { border-left: 1px solid var(--line); }
 .mini-golf-editor :is(button, a, input, select):focus-visible { outline: 2px solid #3859cf; outline-offset: 3px; }
 .mini-golf-editor button:disabled { cursor: default; opacity: .5; }
@@ -1495,3 +1495,6 @@ html:has(.mini-golf-standalone-page), body:has(.mini-golf-standalone-page) { bac
 /* Source panels own their spacing; centre the editor affordance above them. */
 .mini-golf-editor-surface .block-position { display: block; }
 .mini-golf-editor-surface .block-position > .between-blocks { top: -23px; }
+
+/* Source breakpoints follow the canvas when List View is docked beside it. */
+.mini-golf-editor-surface .editor-canvas-scroll { container-name: mini-golf-page; container-type: inline-size; }

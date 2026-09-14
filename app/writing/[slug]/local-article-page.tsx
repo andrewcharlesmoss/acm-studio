@@ -6,6 +6,7 @@ import { readingTimeLabel } from "../../content/reading-time";
 import { ArticleByline, PageFrame } from "../../components/site-shell";
 import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, parseLocallyPublishedArticles, restoreLegacyPublicationCover, type LocallyPublishedArticle } from "../../content/local-publishing";
 import { getMediaAsset } from "../../studio/media-store";
+import { safeImageSource } from "../../content/rich-text";
 
 export function LocalArticlePage({ slug }: { slug: string }) {
   const [article, setArticle] = useState<LocallyPublishedArticle | null | undefined>(undefined);
@@ -52,6 +53,9 @@ export function LocalArticlePage({ slug }: { slug: string }) {
   const coverImageUrl = coverImage?.mediaId
     ? mediaUrls[coverImage.mediaId] || coverImage.src
     : coverImage?.src;
+  const safeCoverImageUrl = coverImage?.mediaId
+    ? safeImageSource(coverImageUrl ?? "", { allowBlob: true })
+    : safeImageSource(coverImageUrl ?? "");
 
   useEffect(() => () => {
     Object.values(mediaUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
@@ -90,10 +94,10 @@ export function LocalArticlePage({ slug }: { slug: string }) {
           <p className="article-reading-time">Reading Time: {readingTimeLabel(article.blocks)}</p>
           <ArticleByline article={article} />
           {coverImage ? <figure className="article-cover-image">
-            {coverImageUrl ? (
+            {safeCoverImageUrl ? (
               // Local browser-managed media cannot be known to Next's image optimiser.
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverImageUrl} alt={coverImage.alt} />
+              <img src={safeCoverImageUrl} alt={coverImage.alt} />
             ) : <div role="img" aria-label={coverImage.alt} />}
           </figure> : null}
         </header>

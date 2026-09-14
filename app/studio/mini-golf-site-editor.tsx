@@ -22,7 +22,7 @@ import { findBlockById } from "./studio-command-operations.mjs";
 
 export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { site?: MiniGolfSite }) {
   const repository = miniGolfSite.environment === "staging" ? miniGolfStagingDraftRepository : miniGolfDraftRepository;
-  const { workspace, ready, writable, saveLabel, canRetryEditing, retryEditing, updateActiveDocument, updateActiveField, undo, redo } = useStudioWorkspace(repository, studioWriteOwnership, miniGolfSite.environment === "staging" ? initialMiniGolfStagingDraft : initialMiniGolfDraft);
+  const { workspace, ready, writable, saveLabel, canRetryEditing, retryEditing, updateActiveDocument, updateActiveField, undo, redo, canUndo, canRedo } = useStudioWorkspace(repository, studioWriteOwnership, miniGolfSite.environment === "staging" ? initialMiniGolfStagingDraft : initialMiniGolfDraft);
   const [previewing, setPreviewing] = useState(false);
   const [codeEditorDirty, setCodeEditorDirty] = useState(false);
   const [view, setView] = useState<"page" | "files" | "codex" | "settings">("page");
@@ -89,7 +89,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
       <a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a>
       <nav className="studio-breadcrumbs" aria-label="Breadcrumb"><a href="/">Sites</a><StudioIcon name="chevron-right" size={14} /><strong>{miniGolfSite.name}</strong></nav>
       <div className="studio-state"><span aria-live="polite">{saveLabel}</span>{canRetryEditing ? <button className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
-      <div className="studio-actions"><button className="icon-button" aria-label="Undo" onClick={undo} disabled={!writable}><StudioIcon name="undo" /></button><button className="icon-button" aria-label="Redo" onClick={redo} disabled={!writable}><StudioIcon name="redo" /></button><a className="button-secondary" href={`${miniGolfSite.editorHref}/preview`} target="_blank" rel="noopener noreferrer">Open standalone preview</a><button className="button-secondary" onClick={exportDraft} disabled={!ready}>Export Draft</button></div>
+      <div className="studio-actions"><a className="button-secondary" href={`${miniGolfSite.editorHref}/preview`} target="_blank" rel="noopener noreferrer">Open standalone preview</a><button className="button-secondary" onClick={exportDraft} disabled={!ready}>Export Draft</button></div>
     </header>
     <div className="studio-notice" role="note"><strong>{miniGolfSite.environmentLabel} — local page draft.</strong> {miniGolfSite.environment === "staging" ? "Staging is the working copy for this build. Production remains separate until an explicit synchronisation is reviewed; this draft is not a capture of the private staging site. " : "Production is a separate reference until staging is approved for synchronisation. "}Page edits stay here; no deployment is performed.</div>
     <main className={`site-draft-workspace${view !== "page" ? " is-files" : ""}`}>
@@ -106,6 +106,10 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
       {view === "settings" ? <SiteSettings key={miniGolfSite.id} site={miniGolfSite} /> : view === "codex" ? <SiteCodexTasks /> : view === "files" ? <SiteSourceFiles /> : <>
         <StudioEditor
           writable={writable}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
           canvas={{
             className: "mini-golf-editor-surface",
             presentation: miniGolfPresentation,

@@ -63,8 +63,7 @@
   .studio-notice { padding-left: 14px; padding-right: 14px; text-align: left; }
   .studio-workspace { display: block; height: auto; min-height: calc(100dvh - 101px); }
   .studio-library, .studio-inspector { display: none; }
-  .block-editor { border-right: 0; min-height: calc(100dvh - 101px); }
-  .studio-list-view { top: 104px; width: min(320px, calc(100% - 12px)); }
+  .block-editor { border-right: 0; height: calc(100dvh - 101px); min-height: calc(100dvh - 101px); }
   .editor-code-toggle { font-size: 0 !important; padding: 0 !important; width: 40px; }
   .editor-list-toggle { font-size: 0 !important; padding: 0 !important; width: 40px; }
   .editor-canvas-scroll { padding: 14px 12px 50px; }
@@ -74,8 +73,6 @@
   .canvas-block-toolbar { flex-wrap: wrap; width: max-content; }
   .canvas-block { margin-bottom: 0; }
   .between-blocks { display: none; }
-  .inserter-backdrop { padding: 62px 10px 10px; position: fixed; }
-  .block-inserter { max-height: calc(100dvh - 72px); }
   .inserter-group > div { grid-template-columns: repeat(2, 1fr); }
   .media-manager { min-height: calc(100dvh - 101px); }
   .media-toolbar { align-items: flex-start; gap: 12px; padding: 12px 14px; }

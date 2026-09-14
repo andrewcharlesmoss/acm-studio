@@ -13,6 +13,7 @@ import {
   type StudioBackupSummary,
 } from "./backup-store";
 import { listMediaLibrary } from "./media-store";
+import { loadDesigns } from "./design-store";
 import { StudioIcon } from "./studio-icons";
 
 function formatBytes(bytes: number) {
@@ -42,6 +43,7 @@ export function BackupManager({ workspace }: { workspace: StudioWorkspace }) {
         folders: library.folders.length,
         files: library.assets.length,
         fileBytes: library.assets.reduce((total, asset) => total + asset.size, 0),
+        designs: loadDesigns().length,
       };
       queueMicrotask(() => { if (!cancelled) setCurrentSummary(summary); });
     }).catch(() => queueMicrotask(() => { if (!cancelled) setStatus("The local media library could not be counted"); }));
@@ -143,6 +145,7 @@ function BackupSummary({ summary }: { summary: StudioBackupSummary }) {
       <div><dt>Folders</dt><dd>{summary.folders}</dd></div>
       <div><dt>Files</dt><dd>{summary.files}</dd></div>
       <div><dt>Media size</dt><dd>{formatBytes(summary.fileBytes)}</dd></div>
+      <div><dt>Designs</dt><dd>{summary.designs}</dd></div>
     </dl>
   );
 }

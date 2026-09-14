@@ -317,7 +317,7 @@ test("missing parent folders are rejected before upload, child creation or file 
 
 function mediaHarness(initialProps, library) {
   const slots = []; let index = 0; let dirty = true; let effects = []; let tree; let props = initialProps;
-  const calls = []; let rejectMutations = false;
+  const calls = []; const focusCalls = []; let rejectMutations = false;
   const react = {
     useState(initial) {
       const id = index++;
@@ -331,7 +331,9 @@ function mediaHarness(initialProps, library) {
       if (!prior || deps.some((value, i) => value !== prior.deps[i])) { slots[id] = { deps }; effects.push(() => { prior?.cleanup?.(); slots[id].cleanup = effect(); }); }
     },
   };
-  const mutations = Object.fromEntries(["addMediaFiles", "createMediaFolder", "updateMediaAsset", "deleteMediaAsset", "renameMediaFolder", "deleteMediaFolder"].map((name) => [name, async (...args) => {
+  react.useLayoutEffect = react.useEffect;
+  const prepareMediaFolderMove = modules()("app/studio/media-store.ts").prepareMediaFolderMove;
+  const mutations = Object.fromEntries(["moveMediaFolder", "addMediaFiles", "createMediaFolder", "updateMediaAsset", "deleteMediaAsset", "renameMediaFolder", "deleteMediaFolder"].map((name) => [name, async (...args) => {
     calls.push({ name, args });
     if (rejectMutations) throw Error("Synthetic storage failure");
     if (name === "createMediaFolder") {
@@ -339,18 +341,22 @@ function mediaHarness(initialProps, library) {
       library.folders.push(folder);
       return folder;
     }
+    if (name === "moveMediaFolder") {
+      const next = prepareMediaFolderMove(library.folders, args[0], args[1]);
+      Object.assign(library.folders.find((item) => item.id === args[0]), next);
+    }
     if (name === "renameMediaFolder") {
       const folder = library.folders.find((item) => item.id === args[0]);
       if (folder) folder.name = args[1];
     }
   }]));
-  const load = modules({ window: { prompt: () => "Folder", confirm: () => true }, URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} } }, { react, "./studio-icons": { StudioIcon: () => null }, "./media-store": { listMediaLibrary: async () => structuredClone(library), ...mutations } });
+  const load = modules({ requestAnimationFrame: (callback) => callback(), document: { addEventListener() {}, removeEventListener() {} }, window: { innerWidth: 1200, innerHeight: 800, prompt: () => "Folder", confirm: () => true }, URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} } }, { react, "./studio-icons": { StudioIcon: () => null }, "./media-store": { prepareMediaFolderMove, listMediaLibrary: async () => structuredClone(library), ...mutations } });
   const Component = load("app/studio/media-manager.tsx").MediaManager;
   return {
-    calls, fail() { rejectMutations = true; },
+    calls, focusCalls, fail() { rejectMutations = true; },
     async flush() {
       for (let pass = 0; pass < 12; pass++) {
-        if (dirty) { dirty = false; index = 0; tree = Component(props); const pending = effects; effects = []; pending.forEach((effect) => effect()); }
+        if (dirty) { dirty = false; index = 0; tree = Component(props); for (const node of descendants(tree)) { if (node.type === "input" && node.props.className?.startsWith("media-inline-name")) node.props.ref.current = { focus() { focusCalls.push("focus"); }, select() { focusCalls.push("select-all"); } }; } const pending = effects; effects = []; pending.forEach((effect) => effect()); }
         await tick(); if (!dirty) return tree;
       }
       assert.fail("media component did not settle");
@@ -454,3 +460,318 @@ test("takeover remounts Files at root before enabling writes and cannot reuse an
   assert.equal(fresh.calls[0].name, "addMediaFiles"); assert.equal(fresh.calls[0].args[1], null);
   fresh.close();
 });
+
+
+test("empty media entries clear file and folder selection without intercepting cards", async () => {
+  const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+  let tree = await h.flush();
+  for (const cardClass of ["media-file-card", "media-folder-card"]) {
+    const card = descendants(tree).find((node) => node.type === "button" && node.props.className?.includes(cardClass));
+    card.props.onClick();
+    tree = await h.flush();
+    assert.ok(descendants(tree).some((node) => node.props?.className?.includes(`${cardClass} is-selected`)));
+    const content = descendants(tree).find((node) => node.props?.className === "media-content");
+    const entries = {};
+    const surface = { querySelector: () => entries };
+    content.props.onPointerDown({ target: {}, currentTarget: surface });
+    tree = await h.flush();
+    assert.ok(descendants(tree).some((node) => node.props?.className?.includes(`${cardClass} is-selected`)));
+    content.props.onPointerDown({ target: cardClass === "media-file-card" ? entries : surface, currentTarget: surface });
+    tree = await h.flush();
+    assert.equal(descendants(tree).some((node) => node.props?.className?.includes(" is-selected")), false);
+    assert.ok(descendants(tree).some((node) => node.props?.className === "media-details-empty"));
+  }
+  assert.deepEqual(h.calls, []);
+  h.close();
+});
+
+
+
+
+
+
+test("read-only file context actions remain disabled", async () => {
+  const h = mediaHarness({ writable: false, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+  let tree = await h.flush();
+  descendants(tree).find((node) => node.props?.className?.includes("media-file-card")).props.onContextMenu({ preventDefault() {}, currentTarget: {}, clientX: 100, clientY: 100 });
+  tree = await h.flush();
+  assert.equal(findButton(tree, "Rename").props.disabled, true);
+  assert.equal(findButton(tree, "Delete").props.disabled, true);
+  assert.equal(findButton(tree, "Change colour"), undefined);
+  assert.deepEqual(h.calls, []);
+  h.close();
+});
+
+
+for (const kind of ["folder", "file"]) {
+  test(`${kind} Rename edits the card inline and saves its existing storage record`, async () => {
+    const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+    let tree = await h.flush();
+    descendants(tree).find((node) => node.type === "button" && node.props?.className?.includes(`media-${kind}-card`)).props.onContextMenu({ preventDefault() {}, currentTarget: {}, clientX: 100, clientY: 100 });
+    tree = await h.flush();
+    findButton(tree, "Rename").props.onClick(); tree = await h.flush();
+    let input = descendants(tree).find((node) => node.props?.["aria-label"] === `Rename ${kind}`);
+    assert.ok(input);
+    assert.equal(input.props.value, kind === "folder" ? "Folder F" : "Original");
+    assert.deepEqual(h.focusCalls, ["focus", "select-all"]);
+    assert.equal(descendants(tree).some((node) => node.props?.className === "media-folder-menu"), false);
+    input.props.onChange({ target: { value: "New name" } }); tree = await h.flush();
+    input = descendants(tree).find((node) => node.props?.["aria-label"] === `Rename ${kind}`);
+    input.props.onKeyDown({ key: "Enter", preventDefault() {}, stopPropagation() {}, currentTarget: { blur() { input.props.onBlur(); } } });
+    await h.flush();
+    assert.equal(h.calls.length, 1);
+    assert.equal(h.calls[0].name, kind === "folder" ? "renameMediaFolder" : "updateMediaAsset");
+    assert.equal(h.calls[0].args[0], kind === "folder" ? "folder" : "image");
+    assert.equal(kind === "folder" ? h.calls[0].args[1] : h.calls[0].args[1].name, "New name");
+    h.close();
+  });
+}
+
+
+test("Escape cancels inline rename and a following blur cannot save it", async () => {
+  const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+  let tree = await h.flush();
+  descendants(tree).find((node) => node.props?.className?.includes("media-file-card")).props.onContextMenu({ preventDefault() {}, currentTarget: {}, clientX: 100, clientY: 100 });
+  tree = await h.flush(); findButton(tree, "Rename").props.onClick(); tree = await h.flush();
+  const input = descendants(tree).find((node) => node.props?.["aria-label"] === "Rename file");
+  input.props.onKeyDown({ key: "Escape", preventDefault() {}, stopPropagation() {} });
+  input.props.onBlur(); tree = await h.flush();
+  assert.equal(descendants(tree).some((node) => node.props?.["aria-label"] === "Rename file"), false);
+  assert.deepEqual(h.calls, []);
+  h.close();
+});
+
+
+test("media drop moves files into folders and ignores external/read-only drags", async () => {
+  const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+  let tree = await h.flush();
+  const folder = descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card"));
+  const file = descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-file-card"));
+  folder.props.onDrop({ preventDefault() {}, stopPropagation() {} }); await h.flush();
+  assert.deepEqual(h.calls, []);
+  const transfer = { setData() {} };
+  file.props.onDragStart({ preventDefault() { assert.fail("writable drag rejected"); }, dataTransfer: transfer });
+  assert.equal(transfer.effectAllowed, "move");
+  let accepted = false;
+  folder.props.onDragOver({ preventDefault() { accepted = true; }, dataTransfer: transfer });
+  assert.equal(accepted, true);
+  tree = await h.flush();
+  assert.ok(descendants(tree).some((node) => node.props?.className?.includes("is-drop-target")));
+  folder.props.onDrop({ preventDefault() {}, stopPropagation() {} }); await h.flush();
+  assert.equal(h.calls[0].name, "updateMediaAsset");
+  assert.equal(h.calls[0].args[0], "image");
+  assert.equal(h.calls[0].args[1].folderId, "folder");
+  h.props({ writable: false }); tree = await h.flush();
+  assert.equal(descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-file-card")).props.draggable, false);
+  h.close();
+});
+
+test("folder drag rejects itself and moves to a valid sibling", async () => {
+  const library = sampleMedia();
+  library.folders.push({ id: "destination", name: "Destination", parentId: null, createdAt: "2026-09-09" });
+  const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, library);
+  let tree = await h.flush();
+  const cards = descendants(tree).filter((node) => node.type === "button" && node.props.className?.includes("media-folder-card"));
+  const source = cards.find((node) => textOf(node).includes("Folder F"));
+  const destination = cards.find((node) => textOf(node).includes("Destination"));
+  const transfer = { setData() {} };
+  source.props.onDragStart({ preventDefault() {}, dataTransfer: transfer });
+  source.props.onDragOver({ preventDefault() { assert.fail("self drop accepted"); }, dataTransfer: transfer });
+  destination.props.onDrop({ preventDefault() {}, stopPropagation() {} });
+  tree = await h.flush();
+  assert.equal(h.calls[0].name, "moveMediaFolder");
+  assert.equal(library.folders.find((folder) => folder.id === "folder").parentId, "destination");
+  h.close();
+});
+
+
+for (const kind of ["file", "folder"]) {
+  test(`${kind} context menu moves an item up one directory and hides the action at root`, async () => {
+    const library = sampleMedia();
+    library.folders.push({ id: "inner", name: "Inner", parentId: "folder", createdAt: "2026-09-09" });
+    if (kind === "file") library.assets[0].folderId = "inner";
+    else library.folders.push({ id: "nested", name: "Nested", parentId: "inner", createdAt: "2026-09-09" });
+    const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, library);
+    let tree = await h.flush();
+    const folderCard = () => descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card"));
+    folderCard().props.onContextMenu({ preventDefault() {}, currentTarget: {}, clientX: 100, clientY: 100 });
+    tree = await h.flush();
+    assert.equal(findButton(tree, "Move to parent folder"), undefined);
+    folderCard().props.onDoubleClick(); tree = await h.flush();
+    folderCard().props.onDoubleClick(); tree = await h.flush();
+    const card = descendants(tree).find((node) => node.type === "button" && node.props.className?.includes(`media-${kind}-card`));
+    card.props.onContextMenu({ preventDefault() {}, currentTarget: {}, clientX: 100, clientY: 100 });
+    tree = await h.flush();
+    const move = findButton(tree, "Move to parent folder");
+    assert.equal(move.props.disabled, false);
+    move.props.onClick(); await h.flush();
+    assert.equal(h.calls[0].name, kind === "file" ? "updateMediaAsset" : "moveMediaFolder");
+    assert.equal(kind === "file" ? h.calls[0].args[1].folderId : h.calls[0].args[1], "folder");
+    h.close();
+  });
+}
+
+
+test("Parent folder card appears first inside folders and navigates up in read-only mode", async () => {
+  const h = mediaHarness({ writable: false, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+  let tree = await h.flush();
+  assert.equal(descendants(tree).some((node) => node.props?.className === "media-parent-card"), false);
+  descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card")).props.onDoubleClick();
+  tree = await h.flush();
+  const entries = descendants(tree).find((node) => node.props?.className === "media-entries is-grid");
+  const parent = descendants(entries).find((node) => node.type === "button");
+  assert.equal(parent.props.className, "media-parent-card");
+  assert.equal(parent.props["aria-label"], "Parent folder: All files");
+  assert.notEqual(parent.props.disabled, true);
+  parent.props.onClick(); tree = await h.flush();
+  assert.equal(descendants(tree).some((node) => node.props?.className === "media-parent-card"), false);
+  assert.ok(descendants(tree).some((node) => node.props?.className?.includes("media-folder-card")));
+  assert.deepEqual(h.calls, []);
+  h.close();
+});
+
+
+for (const kind of ["file", "folder"]) {
+  test(`Parent folder drop moves a ${kind} to root with ownership gating`, async () => {
+    const library = sampleMedia();
+    if (kind === "file") library.assets[0].folderId = "folder";
+    else library.folders.push({ id: "child", name: "Child", parentId: "folder", createdAt: "2026-09-09" });
+    const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, library);
+    let tree = await h.flush();
+    descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card")).props.onDoubleClick();
+    tree = await h.flush();
+    const card = descendants(tree).find((node) => node.type === "button" && node.props.className?.includes(`media-${kind}-card`));
+    const parent = descendants(tree).find((node) => node.props?.className === "media-parent-card");
+    const transfer = { setData() {} };
+    card.props.onDragStart({ preventDefault() {}, dataTransfer: transfer });
+    let accepted = false;
+    parent.props.onDragOver({ preventDefault() { accepted = true; }, dataTransfer: transfer });
+    tree = await h.flush();
+    assert.equal(accepted, true);
+    assert.ok(descendants(tree).some((node) => node.props?.className === "media-parent-card is-drop-target"));
+    parent.props.onDrop({ preventDefault() {}, stopPropagation() {} }); await h.flush();
+    assert.equal(h.calls[0].name, kind === "file" ? "updateMediaAsset" : "moveMediaFolder");
+    assert.equal(kind === "file" ? h.calls[0].args[1].folderId : h.calls[0].args[1], null);
+    h.close();
+  });
+}
+
+test("Parent folder rejects a self-drop found through search", async () => {
+  const library = sampleMedia();
+  library.folders.push({ id: "inner", name: "Inner", parentId: "folder", createdAt: "2026-09-09" });
+  const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, library);
+  let tree = await h.flush();
+  const realFolder = () => descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card"));
+  realFolder().props.onDoubleClick(); tree = await h.flush();
+  realFolder().props.onDoubleClick(); tree = await h.flush();
+  descendants(tree).find((node) => node.type === "input" && node.props.placeholder === "Search files and folders").props.onChange({ target: { value: "Folder F" } });
+  tree = await h.flush();
+  const transfer = { setData() {} };
+  realFolder().props.onDragStart({ preventDefault() {}, dataTransfer: transfer });
+  const parent = descendants(tree).find((node) => node.props?.className === "media-parent-card");
+  parent.props.onDragOver({ preventDefault() { assert.fail("self drop accepted"); }, dataTransfer: transfer });
+  tree = await h.flush();
+  assert.equal(transfer.dropEffect, "none");
+  assert.ok(descendants(tree).some((node) => node.props?.className === "media-parent-card is-invalid-drop"));
+  parent.props.onDrop({ preventDefault() {}, stopPropagation() {} }); await h.flush();
+  assert.deepEqual(h.calls, []);
+  h.close();
+});
+
+
+for (const destination of [null, "folder"]) {
+  test(`breadcrumb drop moves a file to ${destination ?? "root"} without navigating`, async () => {
+    const library = sampleMedia();
+    library.folders.push({ id: "inner", name: "Inner", parentId: "folder", createdAt: "2026-09-09" });
+    library.assets[0].folderId = "inner";
+    const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, library);
+    let tree = await h.flush();
+    const folderCard = () => descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card"));
+    folderCard().props.onDoubleClick(); tree = await h.flush();
+    folderCard().props.onDoubleClick(); tree = await h.flush();
+    const transfer = { setData() {} };
+    descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-file-card")).props.onDragStart({ preventDefault() {}, dataTransfer: transfer });
+    const nav = descendants(tree).find((node) => node.props?.className === "media-breadcrumbs");
+    const target = findButton(nav, destination ? "Folder F" : "All files");
+    target.props.onDragOver({ preventDefault() {}, dataTransfer: transfer }); tree = await h.flush();
+    assert.equal(transfer.dropEffect, "move");
+    target.props.onDrop({ preventDefault() {}, stopPropagation() {} }); tree = await h.flush();
+    assert.equal(h.calls[0].name, "updateMediaAsset");
+    assert.equal(h.calls[0].args[1].folderId, destination);
+    assert.ok(findButton(descendants(tree).find((node) => node.props?.className === "media-breadcrumbs"), "Inner"));
+    h.close();
+  });
+}
+
+
+test("folder single click selects and double click opens", async () => {
+  const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+  let tree = await h.flush();
+  const card = descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card"));
+  card.props.onClick(); tree = await h.flush();
+  assert.ok(descendants(tree).some((node) => node.props?.className === "media-folder-card is-selected"));
+  assert.equal(descendants(tree).some((node) => node.props?.className === "media-parent-card"), false);
+  assert.ok(descendants(card).some((node) => node.type === "small" && textOf(node) === "Folder"));
+  card.props.onDoubleClick(); tree = await h.flush();
+  assert.ok(descendants(tree).some((node) => node.props?.className === "media-parent-card"));
+  assert.deepEqual(h.calls, []);
+  h.close();
+});
+
+
+test("file overflow button opens its accessible Rename and Delete menu", async () => {
+  const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+  let tree = await h.flush();
+  const trigger = descendants(tree).find((node) => node.props?.className === "media-file-menu-toggle");
+  assert.equal(trigger.props["aria-label"], "Actions for Original");
+  assert.equal(trigger.props["aria-expanded"], false);
+  trigger.props.onClick({ currentTarget: { getBoundingClientRect: () => ({ left: 100, bottom: 120 }) } });
+  tree = await h.flush();
+  assert.ok(findButton(tree, "Rename")); assert.ok(findButton(tree, "Delete"));
+  assert.equal(findButton(tree, "Change colour"), undefined);
+  assert.equal(descendants(tree).find((node) => node.props?.className === "media-file-menu-toggle").props["aria-expanded"], true);
+  assert.deepEqual(h.calls, []);
+  h.close();
+});
+
+
+test("overflow buttons toggle their own menu and switch to another card", async () => {
+  const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+  let tree = await h.flush();
+  let restored = 0;
+  const trigger = { isConnected: true, focus() { restored++; }, getBoundingClientRect: () => ({ left: 100, bottom: 120 }) };
+  const click = async (className) => {
+    descendants(tree).find((node) => node.props?.className === className).props.onClick({ currentTarget: trigger });
+    tree = await h.flush();
+  };
+  for (const className of ["media-folder-menu-toggle", "media-file-menu-toggle"]) {
+    await click(className);
+    assert.equal(descendants(tree).find((node) => node.props?.className === className).props["aria-expanded"], true);
+    await click(className);
+    assert.equal(descendants(tree).some((node) => node.props?.className === "media-folder-menu"), false);
+  }
+  assert.equal(restored, 2);
+  await click("media-folder-menu-toggle");
+  await click("media-file-menu-toggle");
+  assert.equal(descendants(tree).find((node) => node.props?.className === "media-file-menu-toggle").props["aria-expanded"], true);
+  assert.equal(descendants(tree).find((node) => node.props?.className === "media-folder-menu-toggle").props["aria-expanded"], false);
+  assert.equal(findButton(tree, "Change colour"), undefined);
+  h.close();
+});
+
+
+for (const colour of [undefined, "#ff3b30", "#007aff"]) {
+  test(`folder details uses the card colour ${colour ?? "default"}`, async () => {
+    const library = sampleMedia();
+    if (colour) library.folders[0].colour = colour;
+    const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, library);
+    let tree = await h.flush();
+    descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card")).props.onClick();
+    tree = await h.flush();
+    const details = descendants(tree).find((node) => node.props?.className === "folder-detail");
+    assert.equal(details.props.children[0].props.style.color, colour);
+    const cardIcon = descendants(tree).find((node) => node.props?.className === "folder-glyph");
+    assert.equal(cardIcon.props.style.color, colour);
+    h.close();
+  });
+}

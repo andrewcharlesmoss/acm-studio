@@ -9,7 +9,7 @@ import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } fr
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
 import { StudioIcon, type StudioIconName } from "./studio-icons";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
-import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
+import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
 import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
 import { createBlock, type StudioDocument, type InsertableBlockType } from "./editor-model";
 import type { StudioPresentation } from "./studio-presentation";
@@ -47,6 +47,10 @@ export type StudioCanvasProps = {
   className?: string;
   presentation?: StudioPresentation;
   writable?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   activeDocument: StudioDocument;
   previewing: boolean;
   onPreviewChange: (previewing: boolean) => void;
@@ -83,7 +87,7 @@ export type StudioCanvasProps = {
   onSetInserterQuery: (query: string) => void;
 };
 
-export function StudioCanvas({ className, presentation, writable = true, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+export function StudioCanvas({ className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
   const linkInputRef = useRef<HTMLInputElement>(null);
@@ -93,6 +97,7 @@ export function StudioCanvas({ className, presentation, writable = true, activeD
   const codeEditorToggleRef = useRef<HTMLButtonElement>(null);
   const codeEditorInputRef = useRef<HTMLTextAreaElement>(null);
   const listViewToggleRef = useRef<HTMLButtonElement>(null);
+  const [inserterClosing, setInserterClosing] = useState(false);
   const appenderInputRef = useRef<HTMLInputElement>(null);
   const [linkEditor, setLinkEditor] = useState<LinkEditorState | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -120,11 +125,40 @@ export function StudioCanvas({ className, presentation, writable = true, activeD
     });
   }
 
+  function finishInserterClose() {
+    setInserterClosing(false);
+    onSetShowInserter(false);
+  }
+
+  function dismissInserter() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) finishInserterClose();
+    else setInserterClosing(true);
+  }
+
+  function openInserter(afterIndex: number | null, query?: string) {
+    setInserterClosing(false);
+    setHoveredBlockId(null);
+    setListViewOpen(false);
+    onOpenInserter(afterIndex, query);
+  }
+
   function closeListView() {
     setHoveredBlockId(null);
     setListViewOpen(false);
     requestAnimationFrame(() => listViewToggleRef.current?.focus());
   }
+
+  useLayoutEffect(() => {
+    if (!listViewOpen) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || showInserter || linkEditor || htmlEditor || blockMenuBlockId || headingMenuBlockId || transformMenuBlockId || alignmentMenuBlockId || tableMenuBlockId) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeListView();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [listViewOpen, showInserter, linkEditor, htmlEditor, blockMenuBlockId, headingMenuBlockId, transformMenuBlockId, alignmentMenuBlockId, tableMenuBlockId]);
 
   useLayoutEffect(() => {
     if (linkEditor) linkInputRef.current?.focus();
@@ -346,23 +380,33 @@ export function StudioCanvas({ className, presentation, writable = true, activeD
   const linkSuggestions = linkEditor
     ? linkTargets.filter((target) => `${target.title} ${target.href} ${target.kind}`.toLowerCase().includes(linkEditor.url.trim().toLowerCase())).slice(0, 5)
     : [];
+  const safeCoverImageUrl = activeDocument.coverImage?.mediaId
+    ? safeImageSource(coverImageUrl ?? "", { allowBlob: true })
+    : safeImageSource(coverImageUrl ?? "");
 
   return (
     <section className={`block-editor${className ? ` ${className}` : ""}`} aria-label={`${activeDocument.kind} editor`} data-readonly={!writable || undefined} onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <div className="editor-document-bar">
-        <div className="editor-document-counts"><span>{activeDocument.kind}</span><strong>{wordCount} words · {characterCount} characters · {activeDocument.blocks.length} blocks</strong></div>
+        <div className="editor-history-actions" role="group" aria-label="Editor tools">
+          <button className="editor-add-block" type="button" disabled={!writable || previewing || Boolean(codeEditor)} onClick={() => showInserter && !inserterClosing ? dismissInserter() : openInserter(null)} aria-label="Add block" title="Add block" aria-pressed={showInserter && !inserterClosing && !previewing && !codeEditor}><StudioIcon name="add" size={20} /></button>
+          <button type="button" disabled={!writable || !canUndo} onClick={onUndo} aria-label="Undo" title="Undo"><StudioIcon name="undo" size={20} /></button>
+          <button type="button" disabled={!writable || !canRedo} onClick={onRedo} aria-label="Redo" title="Redo"><StudioIcon name="redo" size={20} /></button>
+          <button ref={listViewToggleRef} type="button" className={`editor-list-toggle${listViewOpen ? " is-active" : ""}`} disabled={previewing || Boolean(codeEditor)} aria-pressed={listViewOpen && !showInserter} aria-label="List View" title="List View" onClick={() => { setHoveredBlockId(null); onSetShowInserter(false); setListViewOpen((current) => !current); }}><StudioIcon name="list" size={20} /></button>
+        </div>
         <div className="editor-mode-control" role="group" aria-label={`${activeDocument.kind === "post" ? "Post" : "Page"} view`}>
           <button type="button" aria-pressed={!previewing} onClick={() => onPreviewChange(false)}>Edit</button>
-          <button type="button" aria-pressed={previewing} onClick={() => { if (codeEditor && !closeCodeEditor(true)) return; setHoveredBlockId(null); setListViewOpen(false); onPreviewChange(true); }}>Preview</button>
+          <button type="button" aria-pressed={previewing} onClick={() => { if (codeEditor && !closeCodeEditor(true)) return; setHoveredBlockId(null); setListViewOpen(false); onSetShowInserter(false); onPreviewChange(true); }}>Preview</button>
         </div>
       <div className="editor-document-actions" aria-hidden={previewing}>
           <button ref={codeEditorToggleRef} type="button" className={`editor-code-toggle${codeEditor ? " is-active" : ""}`} disabled={previewing} aria-pressed={Boolean(codeEditor)} aria-label="Code editor" title="Code editor" onClick={() => codeEditor ? closeCodeEditor(true) : openCodeEditor()}><StudioIcon name="code" size={18} />Code</button>
-          <button ref={listViewToggleRef} type="button" className={`editor-list-toggle${listViewOpen ? " is-active" : ""}`} disabled={previewing || Boolean(codeEditor)} aria-pressed={listViewOpen} aria-label="List View" title="List View" onClick={() => { setHoveredBlockId(null); setListViewOpen((current) => !current); }}><StudioIcon name="list" size={18} />List View</button>
-          <button type="button" disabled={previewing || Boolean(codeEditor)} onClick={() => onOpenInserter(null)}><StudioIcon name="add" size={18} />Add block</button>
+          <span className="editor-document-counts" title={`${wordCount} words · ${characterCount} characters · ${activeDocument.blocks.length} blocks`}><strong>{wordCount} words · {characterCount} characters · {activeDocument.blocks.length} blocks</strong></span>
         </div>
       </div>
       {publishFeedback ? <div className="publish-feedback" role="status"><span>{publishFeedback}</span><button type="button" onClick={() => onSetPublishFeedback(null)} aria-label="Dismiss publication message"><StudioIcon name="close" size={18} /></button></div> : null}
-      {!previewing && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlockFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} onRemoveBlock={onRemoveBlock} onMoveItem={(parentId, index, direction) => {
+      <div className="editor-work-area">
+      {showInserter && !previewing && !codeEditor ? <BlockInserter closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={filteredBlocks} onSetQuery={onSetInserterQuery} onInsert={onInsertBlock} onDismiss={dismissInserter} /> : null}
+      {!previewing && !showInserter && listViewOpen ? <button className="studio-list-backdrop" type="button" aria-label="Close List View" onClick={closeListView} /> : null}
+      {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlockFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} onRemoveBlock={onRemoveBlock} onMoveItem={(parentId, index, direction) => {
         if (!parentId) { onMoveBlock(index, direction); return; }
         onUpdateBlock(parentId, (parent) => {
           if (parent.type !== "section" && parent.type !== "group" && parent.type !== "component") return parent;
@@ -380,11 +424,11 @@ export function StudioCanvas({ className, presentation, writable = true, activeD
           <article className={`document-preview is-${activeDocument.kind}`}>
             {presentation?.renderHeader?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} />}
             {showPublicationDetails ? <p className="article-reading-time">Reading Time: {readingTimeLabel(activeDocument.blocks)}</p> : null}
-            {allowCoverImage && showCoverImage ? <div className={`preview-cover-image${coverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
-              {coverImageUrl ? (
+            {allowCoverImage && showCoverImage ? <div className={`preview-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
+              {safeCoverImageUrl ? (
                 // Local browser-managed media cannot be known to Next's image optimiser.
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={coverImageUrl} alt={activeDocument.coverImage?.alt || ""} />
+                <img src={safeCoverImageUrl} alt={activeDocument.coverImage?.alt || ""} />
               ) : null}
             </div> : null}
             {presentation?.renderBlock ? activeDocument.blocks.map((block) => presentation.renderBlock?.({ document: activeDocument, block, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockRenderer key={block.id} blocks={[block]} mediaUrls={mediaBlockUrls} variant="studio" hideDividers />) : <BlockRenderer blocks={activeDocument.blocks} mediaUrls={mediaBlockUrls} variant="studio" hideDividers />}
@@ -395,11 +439,11 @@ export function StudioCanvas({ className, presentation, writable = true, activeD
             {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing={false} onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} />}
             {showPublicationDetails ? <EditorPublicationDetails document={activeDocument} /> : null}
             {allowCoverImage && showCoverImage ? <div className="canvas-cover-wrap">
-              <div className={`canvas-cover-image${coverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
-                {coverImageUrl ? (
+              <div className={`canvas-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
+                {safeCoverImageUrl ? (
                   // Local browser-managed media cannot be known to Next's image optimiser.
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={coverImageUrl} alt={activeDocument.coverImage?.alt || ""} />
+                  <img src={safeCoverImageUrl} alt={activeDocument.coverImage?.alt || ""} />
                 ) : null}
               </div>
               <div className="canvas-cover-actions">
@@ -413,11 +457,11 @@ export function StudioCanvas({ className, presentation, writable = true, activeD
             </div> : allowCoverImage ? <button className="canvas-add-cover" type="button" onClick={onOpenCoverMediaLibrary}><StudioIcon name="add" size={18} />Add cover image</button> : null}
 
             <div className="canvas-blocks">
-              {allowCoverImage && showCoverImage ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" onClick={() => onOpenInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
+              {allowCoverImage && showCoverImage ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" onClick={() => openInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
               {activeDocument.blocks.map((block, index) => (
                 <div className="block-position" key={block.id}>
                   {dragOverIndex === index ? <div className="drop-indicator" aria-hidden="true" /> : null}
-                  {index > 0 ? <button className="between-blocks" type="button" onClick={() => onOpenInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
+                  {index > 0 ? <button className="between-blocks" type="button" onClick={() => openInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
                   <article
                     className={`canvas-block is-${block.type}${selectedBlockId === block.id ? " is-selected" : ""}`}
                     data-studio-block-anchor-id={block.id}
@@ -504,7 +548,7 @@ export function StudioCanvas({ className, presentation, writable = true, activeD
                     if (value.startsWith("/")) {
                       setAppenderValue("");
                       setAppenderActive(false);
-                      onOpenInserter(activeDocument.blocks.length - 1, value.slice(1));
+                      openInserter(activeDocument.blocks.length - 1, value.slice(1));
                       return;
                     }
                     setAppenderValue(value);
@@ -518,7 +562,7 @@ export function StudioCanvas({ className, presentation, writable = true, activeD
                     setAppenderActive(false);
                   }}
                 />
-                {appenderActive ? <button className="canvas-appender-button" type="button" onClick={() => { setAppenderValue(""); setAppenderActive(false); onOpenInserter(activeDocument.blocks.length - 1); }} aria-label="Add block" title="Add block"><StudioIcon name="add" /></button> : null}
+                {appenderActive ? <button className="canvas-appender-button" type="button" onClick={() => { setAppenderValue(""); setAppenderActive(false); openInserter(activeDocument.blocks.length - 1); }} aria-label="Add block" title="Add block"><StudioIcon name="add" /></button> : null}
               </div>
             </div>
             {presentation?.renderFooter?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
@@ -526,7 +570,8 @@ export function StudioCanvas({ className, presentation, writable = true, activeD
         )}
       </div>
 
-      {showInserter ? <BlockInserter inserterQuery={inserterQuery} filteredBlocks={filteredBlocks} onSetQuery={onSetInserterQuery} onInsert={onInsertBlock} onDismiss={() => onSetShowInserter(false)} /> : null}
+      </div>
+
     </section>
   );
 }
@@ -728,7 +773,7 @@ function BlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"]; hea
   return <StudioIcon name={icons[type] ?? "block"} />;
 }
 
-function BlockInserter({ inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: InsertableBlockType) => void; onDismiss: () => void }) {
+function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: InsertableBlockType) => void; onDismiss: () => void }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const dismiss = useCallback(() => {
@@ -755,7 +800,7 @@ function BlockInserter({ inserterQuery, filteredBlocks, onSetQuery, onInsert, on
   return (
     <div className="inserter-backdrop">
       <button className="inserter-dismiss" type="button" onClick={dismiss} aria-label="Close block library" />
-      <section className="block-inserter" role="dialog" aria-modal="true" aria-labelledby="inserter-title">
+      <section className="block-inserter" data-closing={closing || undefined} aria-labelledby="inserter-title" inert={closing} onAnimationEnd={(event) => { if (closing && event.target === event.currentTarget && event.animationName === "studio-inserter-exit") onCloseAnimationEnd(); }}>
         <header><div><p className="eyebrow">Block library</p><h2 id="inserter-title">Choose a block</h2></div><button type="button" onClick={dismiss} aria-label="Close block library"><StudioIcon name="close" /></button></header>
         <input ref={searchInputRef} type="search" value={inserterQuery} onChange={(event) => onSetQuery(event.target.value)} placeholder="Search blocks" aria-label="Search blocks" />
         <div className="inserter-results">
@@ -779,7 +824,10 @@ export function BlockField({ block, selectedBlockId, hoveredBlockId, mediaUrl, o
   if (block.type === "code") return <CodeEditor value={block.code} language={block.language} onChange={(code) => onChange({ ...block, code })} />;
   // User-supplied URLs cannot be known to Next's image optimiser in this local editor.
   // eslint-disable-next-line @next/next/no-img-element
-  if (block.type === "image") return <figure className={`image-field${block.wide ? " is-wide" : ""}`}>{mediaUrl || block.src ? <img src={mediaUrl || block.src} alt={block.alt} /> : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}{block.caption ? <figcaption>{block.caption}</figcaption> : null}</figure>;
+  if (block.type === "image") {
+    const imageSource = block.mediaId ? safeImageSource(mediaUrl ?? "", { allowBlob: true }) : safeImageSource(block.src);
+    return <figure className={`image-field${block.wide ? " is-wide" : ""}`}>{imageSource ? <img src={imageSource} alt={block.alt} /> : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}{block.caption ? <figcaption>{block.caption}</figcaption> : null}</figure>;
+  }
   if (block.type === "embed") return <div className="embed-field"><span><StudioIcon name="external" /></span><div><strong>{block.title}</strong><small>{block.url || "Add a URL in Block settings"}</small></div></div>;
   if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`}>{block.label}</span></div>;
   if (block.type === "field") return <label className="content-field"><span>{block.label}</span>{block.control === "select" ? <select value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })}>{(block.options?.length ? block.options : [block.value]).map((option) => <option key={option}>{option}</option>)}</select> : <input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} />}</label>;

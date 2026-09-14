@@ -77,12 +77,15 @@ export function useStudioMedia({
     updateActiveDocument((document) => ({ ...document, coverImage: null }));
   }
 
-  function insertImage(asset: MediaAsset) {
-    if (targetCover) {
+  function insertImage(asset: MediaAsset, destination?: { target?: "block" | "cover"; blockId?: string | null } | string, altText?: string) {
+    const options = typeof destination === "string" ? undefined : destination;
+    const insertAsCover = options?.target === "cover" || (options?.target === undefined && targetCover);
+    const destinationBlockId = options?.target === "block" ? options.blockId ?? null : targetBlockId;
+    if (insertAsCover) {
       const coverImage: StudioCoverImage = {
         src: "",
         mediaId: asset.id,
-        alt: asset.altText || asset.name.replace(/\.[^.]+$/, ""),
+        alt: altText?.trim() || asset.altText || asset.name.replace(/\.[^.]+$/, ""),
       };
       updateActiveDocument((document) => ({ ...document, coverImage }));
       setTargetCover(false);
@@ -90,18 +93,29 @@ export function useStudioMedia({
       return;
     }
     const image = {
-      id: targetBlockId ?? `image-${crypto.randomUUID()}`,
+      id: destinationBlockId ?? `image-${crypto.randomUUID()}`,
       type: "image" as const,
       src: "",
       mediaId: asset.id,
-      alt: asset.altText || asset.name.replace(/\.[^.]+$/, ""),
+      alt: altText?.trim() || asset.altText || asset.name.replace(/\.[^.]+$/, ""),
       caption: asset.caption,
     };
-    if (targetBlockId) updateBlock(targetBlockId, () => image);
+    if (destinationBlockId) updateBlock(destinationBlockId, () => image);
     else updateActiveDocument((document) => ({ ...document, blocks: [...document.blocks, image] }));
     setTargetBlockId(null);
     onSelectBlock(image.id);
     onReturnToDocument("block");
+  }
+
+  async function insertImageById(mediaId: string, destination?: { target?: "block" | "cover"; blockId?: string | null }, altText?: string) {
+    const asset = await getMediaAsset(mediaId);
+    if (!asset || !asset.type.startsWith("image/")) return false;
+    insertImage(asset, destination, altText);
+    return true;
+  }
+
+  async function loadAssetById(mediaId: string) {
+    return getMediaAsset(mediaId);
   }
 
   const coverImageUrl = activeDocument.coverImage?.mediaId
@@ -117,5 +131,7 @@ export function useStudioMedia({
     targetCoverImage,
     removeCoverImage,
     insertImage,
+    insertImageById,
+    loadAssetById,
   };
 }

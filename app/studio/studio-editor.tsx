@@ -15,15 +15,19 @@ export type { StudioPresentation, StudioPresentationContext } from "./studio-pre
  */
 export type StudioEditorProps = {
   writable?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   canvas: Omit<StudioCanvasProps, "activeDocument" | "writable"> & { activeDocument?: StudioDocument };
   inspector: Omit<StudioInspectorProps, "activeDocument"> & { activeDocument?: StudioDocument };
 };
 
-export function StudioEditor({ writable = true, canvas, inspector }: StudioEditorProps) {
+export function StudioEditor({ writable = true, onUndo, onRedo, canUndo = false, canRedo = false, canvas, inspector }: StudioEditorProps) {
   const activeDocument = canvas.activeDocument ?? inspector.activeDocument;
   if (!activeDocument) return null;
   return <>
-    <StudioCanvas key={activeDocument.id} {...canvas} writable={writable} activeDocument={activeDocument} />
+    <StudioCanvas key={activeDocument.id} {...canvas} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} writable={writable} activeDocument={activeDocument} />
     <StudioInspector {...inspector} activeDocument={activeDocument} />
   </>;
 }

@@ -2,7 +2,7 @@
 
 import { Fragment, createElement, type ReactNode } from "react";
 import type { ContentBlock } from "../content/model";
-import { safeTextLink } from "../content/rich-text";
+import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { paragraphStyleToCss } from "../content/paragraph-styles";
 import { BlockRenderer, renderText } from "../components/content";
 import { BlockField, RichTextEditor, type RichTextEditorProps } from "./studio-canvas";
@@ -157,7 +157,7 @@ function renderBlock(context: Context, parentRole?: Section["role"], tableFontSi
   }
   if (block.type === "table" && parentRole === "scorecard") return renderScoreTable(context, block, tableFontSize);
   if (block.type === "image" && (block.siteRole === "logo" || block.siteRole === "social-icon")) {
-    const safe = /^(https?:\/\/|\/(?!\/))/.test(block.src) ? block.src : "";
+    const safe = safeImageSource(block.src) ?? "";
     const className = block.siteRole === "social-icon" ? "footer-social-icon" : parentRole === "hero" ? "logo-mark" : "footer-mark";
     return createElement(parentRole === "hero" ? "div" : "span", selected(context, block, { className, role: block.alt ? "img" : undefined, "aria-label": block.alt || undefined, "aria-hidden": block.alt ? undefined : true, style: { backgroundImage: safe ? `url(${JSON.stringify(safe)})` : "none" } }));
   }

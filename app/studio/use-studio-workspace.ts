@@ -21,6 +21,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   const [attempt, setAttempt] = useState(0);
   const tokenRef = useRef<symbol | null>(null);
   const [loadedToken, setLoadedToken] = useState<symbol | null>(null);
+  const [historyAvailability, setHistoryAvailability] = useState({ undo: false, redo: false });
   const historyRef = useRef<StudioWorkspace[]>([]);
   const futureRef = useRef<StudioWorkspace[]>([]);
 
@@ -43,6 +44,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         setWorkspace(savedWorkspace ?? cloneWorkspace(initialWorkspace));
         historyRef.current = [];
         futureRef.current = [];
+        setHistoryAvailability({ undo: false, redo: false });
         setLoadedRepository(failed || !token ? null : repository);
         setLoadedToken(token);
         if (token) setOwnershipGeneration((generation) => generation + 1);
@@ -95,6 +97,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       const nextHistory = commitHistory(current, historyRef.current, MAX_HISTORY);
       historyRef.current = nextHistory.history;
       futureRef.current = nextHistory.future;
+      setHistoryAvailability({ undo: nextHistory.history.length > 0, redo: nextHistory.future.length > 0 });
       return update(cloneWorkspace(current));
     });
   }
@@ -109,6 +112,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       if (!next) return current;
       historyRef.current = next.history;
       futureRef.current = next.future;
+      setHistoryAvailability({ undo: next.history.length > 0, redo: next.future.length > 0 });
       return next.workspace;
     });
   }
@@ -123,6 +127,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       if (!next) return current;
       historyRef.current = next.history;
       futureRef.current = next.future;
+      setHistoryAvailability({ undo: next.history.length > 0, redo: next.future.length > 0 });
       return next.workspace;
     });
   }
@@ -150,5 +155,5 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
     setWorkspace((current) => ({ ...current, activeDocumentId: documentId }));
   }
 
-  return { workspace, ready, ownershipGeneration, writable: ownership.canWrite(loadedToken), canRetryEditing: ["waiting", "unavailable"].includes(ownershipState), retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: ownershipMessage(ownershipState) ?? loadError ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
+  return { workspace, ready, ownershipGeneration, writable: ownership.canWrite(loadedToken), canUndo: ownership.canWrite(loadedToken) && historyAvailability.undo, canRedo: ownership.canWrite(loadedToken) && historyAvailability.redo, canRetryEditing: ["waiting", "unavailable"].includes(ownershipState), retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: ownershipMessage(ownershipState) ?? loadError ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
 }

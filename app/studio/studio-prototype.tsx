@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BackupManager } from "./backup-manager";
 import { SiteNavigation } from "./site-navigation";
 import { MediaManager } from "./media-manager";
@@ -13,6 +13,7 @@ import { useStudioMedia } from "./use-studio-media";
 import { useStudioPublishing } from "./use-studio-publishing";
 import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";
 import { useStudioWorkspace } from "./use-studio-workspace";
+import type { MediaAsset } from "./media-store";
 import {
   blockCatalogue,
   type InsertableBlockType,
@@ -31,7 +32,7 @@ function exportJson(value: unknown, filename: string) {
 }
 
 export function StudioPrototype() {
-  const { workspace, ownershipGeneration, writable, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, updateActiveDocument, updateActiveField, setActiveDocument } = useStudioWorkspace();
+  const { workspace, ownershipGeneration, writable, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument } = useStudioWorkspace();
   const [libraryKind, setLibraryKind] = useState<StudioDocumentKind>("page");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"document" | "block">("document");
@@ -42,6 +43,8 @@ export function StudioPrototype() {
   const [codeEditorDirty, setCodeEditorDirty] = useState(false);
   const [studioSection, setStudioSection] = useState<"content" | "files" | "backup">("content");
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [designMediaPrompt, setDesignMediaPrompt] = useState<{ asset: MediaAsset; target: "block" | "cover" } | null>(null);
+  const [designMediaAltText, setDesignMediaAltText] = useState(""); const designMediaDialogRef = useRef<HTMLDialogElement>(null);
 
   function confirmCodeEditorDiscard() {
     if (!codeEditorDirty) return true;
@@ -72,6 +75,36 @@ export function StudioPrototype() {
     updateActiveDocument,
     setSaveLabel,
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mediaId = params.get("designMedia");
+    const target = params.get("designTarget");
+    if (!mediaId || !activeDocument) return;
+    let cancelled = false;
+    void media.loadAssetById(mediaId).then((asset) => {
+      if (cancelled || !asset || !asset.type.startsWith("image/")) return;
+      window.history.replaceState({}, "", window.location.pathname);
+      setDesignMediaAltText(asset.altText || asset.name.replace(/\.[^.]+$/, ""));
+      setDesignMediaPrompt({ asset, target: target === "cover" ? "cover" : "block" });
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [activeDocument, activeDocument?.id, media]);
+
+  useEffect(() => {
+    const dialog = designMediaDialogRef.current; if (!designMediaPrompt || !dialog) return; if (!dialog.open) dialog.showModal();
+    const input = dialog.querySelector<HTMLTextAreaElement>("textarea"); input?.focus(); input?.select();
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); dialog.close(); setDesignMediaPrompt(null); } };
+    dialog.addEventListener("keydown", onKeyDown); return () => dialog.removeEventListener("keydown", onKeyDown);
+  }, [designMediaPrompt]);
+
+  async function insertDesignMedia() {
+    if (!designMediaPrompt) return;
+    const inserted = await media.insertImageById(designMediaPrompt.asset.id, { target: designMediaPrompt.target }, designMediaAltText.trim());
+    if (inserted) window.history.replaceState({}, "", window.location.pathname);
+    designMediaDialogRef.current?.close();
+    setDesignMediaPrompt(null);
+  }
 
   const wordCount = useMemo(() => {
     if (!activeDocument) return 0;
@@ -209,7 +242,7 @@ export function StudioPrototype() {
         <div className="studio-breadcrumbs">{studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : "Backup"}</strong></> : <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></>}</div>
         <div className="studio-state"><span className="prototype-pill">Local prototype</span><span aria-live="polite">{saveLabel}</span>{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
-          {studioSection !== "content" ? <button className="button-secondary" type="button" onClick={() => setStudioSection("content")}>Back to {activeDocument.title}</button> : <><button className="icon-button" type="button" onClick={undoStudio} disabled={!writable} aria-label="Undo"><StudioIcon name="undo" /></button><button className="icon-button" type="button" onClick={redoStudio} disabled={!writable} aria-label="Redo"><StudioIcon name="redo" /></button>{activeDocument.kind === "post" ? <>{activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}<button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button></> : <button className="button-primary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>}</>}
+          {studioSection !== "content" ? <button className="button-secondary" type="button" onClick={() => setStudioSection("content")}>Back to {activeDocument.title}</button> : <>{activeDocument.kind === "post" ? <>{activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}<button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button></> : <button className="button-primary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>}</>}
         </div>
       </header>
 
@@ -229,6 +262,7 @@ export function StudioPrototype() {
             ))}
           </div>
           <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
+          <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design canvas</strong><small>Create and annotate images</small></a>
           <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); }}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
           <div className="document-list">
             {workspace.documents.filter((document) => document.kind === libraryKind).map((document) => (
@@ -243,7 +277,7 @@ export function StudioPrototype() {
           <div className="library-footer"><button type="button" onClick={() => exportJson(workspace, "acm-studio-content.json")}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>
         </aside>
 
-        {studioSection === "content" ? <StudioEditor writable={writable}
+        {studioSection === "content" ? <StudioEditor writable={writable} onUndo={undoStudio} onRedo={redoStudio} canUndo={canUndo} canRedo={canRedo}
           canvas={{
             activeDocument,
             previewing,
@@ -303,6 +337,12 @@ export function StudioPrototype() {
           onInsertImage={media.insertImage}
         /> : <BackupManager workspace={workspace} />}
       </main>
+      {designMediaPrompt ? <dialog ref={designMediaDialogRef} className="media-alt-dialog" aria-labelledby="studio-design-media-title" onClose={() => setDesignMediaPrompt(null)}><form method="dialog" onSubmit={(event) => { event.preventDefault(); void insertDesignMedia(); }}>
+          <h2 id="studio-design-media-title">Describe this image</h2><p>Provide alternative text for people who cannot see the image.</p>
+          <label><span>Alternative text</span><textarea rows={4} value={designMediaAltText} onChange={(event) => setDesignMediaAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>
+          <div className="media-dialog-actions"><button type="button" onClick={() => designMediaDialogRef.current?.close()}>Cancel</button><button className="button-primary" type="submit">{designMediaPrompt.target === "cover" ? "Use as cover image" : "Insert image"}</button></div>
+        </form>
+      </dialog> : null}
     </div>
   );
 }
