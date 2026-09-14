@@ -19,9 +19,10 @@
   into the Content Studio document or cover image. Annotation tools use a
   horizontal canvas toolbar, and the Pages pane can be collapsed and restored.
 
-- Design images support local edge-connected background removal with an
-  adjustable colour tolerance. The original asset is retained and the
-  transparent PNG derivative remains editable in the design.
+- Design images support subject-aware local background removal for people,
+  animals and objects, with an optional portrait mode, soft edge cleanup,
+  download progress and cancellation. Original images survive save/reload and
+  can be restored; crop, transforms and undo/redo are preserved.
 
 - A Parent folder card keeps navigation to the containing directory visible in folder contents.
 - Files and folders can be dragged into folders, with a Move to parent folder action, keyboard destination controls and protection against circular folder moves.

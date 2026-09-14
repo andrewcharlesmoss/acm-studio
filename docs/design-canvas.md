@@ -68,10 +68,14 @@ insert action asks for it for every image insertion, prefilled from saved
 metadata or the filename. Media cards retain a source-design link, which
 reopens the exact design and page in the canvas.
 
-Desktop capture, scrolling capture, video, collaboration, OCR, blur and
-AI-assisted editing remain future work. Background removal currently uses a
-local edge-connected colour-key operation with an adjustable tolerance; it
-keeps the original asset and adds a transparent PNG derivative. To keep browser
-memory use bounded, the operation is limited to images up to 16 megapixels.
+Desktop capture, scrolling capture, video, collaboration, OCR and blur remain
+future work. Background removal uses local subject-aware inference: General
+mode for people, animals and objects, and People mode for portraits. A soft
+matte cleanup control reduces fringes. It retains the original through save
+and reload, adds a transparent PNG derivative, preserves crop and transforms,
+and provides Restore Original and undo/redo. Model download progress, Cancel
+and failures are visible; editing during processing cancels the pending result.
+The operation is limited to images up to 16 megapixels. See
+[models, licences and runtime boundaries](third-party/background-removal.md).
 The desktop application can later provide capture input to this same design
 format.

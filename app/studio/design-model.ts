@@ -10,6 +10,8 @@ export type DesignAsset = {
   dataUrl: string;
   width: number;
   height: number;
+  /** Original image retained by a derived asset, including across save/reload. */
+  sourceAssetId?: string;
 };
 
 type DesignObjectBase = {
@@ -128,6 +130,12 @@ export function validateDesignProject(value: unknown): DesignProject {
     if (!isRecord(record) || typeof record.id !== "string" || !record.id || assetIds.has(record.id) || typeof record.name !== "string" || typeof record.type !== "string" || !DESIGN_IMAGE_TYPES.includes(record.type as typeof DESIGN_IMAGE_TYPES[number]) || typeof record.dataUrl !== "string" || !validImageDataUrl(record.dataUrl) || typeof record.width !== "number" || !Number.isSafeInteger(record.width) || typeof record.height !== "number" || !Number.isSafeInteger(record.height) || record.width <= 0 || record.height <= 0) throw new Error("One or more design images are invalid.");
     assetIds.add(record.id);
   }
+  for (const asset of value.assets) {
+    if (asset.sourceAssetId === undefined) continue;
+    if (typeof asset.sourceAssetId !== "string" || !assetIds.has(asset.sourceAssetId) || asset.sourceAssetId === asset.id) throw new Error("A derived image refers to an invalid original asset.");
+    // Derivatives point straight to an original, never to another derivative.
+    if (value.assets.find((source) => source.id === asset.sourceAssetId)?.sourceAssetId !== undefined) throw new Error("A derived image must refer directly to its original asset.");
+  }
   const pageIds = new Set<string>();
   for (const page of value.pages) {
     const record = page;
@@ -174,4 +182,10 @@ export function nextPageName(pages: DesignPage[]) {
   let index = pages.length + 1;
   while (pages.some((page) => page.name === `Page ${index}`)) index += 1;
   return `Page ${index}`;
+}
+
+export function compactDesignAssets(design: DesignProject): DesignProject {
+  const referenced = new Set(design.pages.flatMap((page) => page.objects.filter((object) => object.type === "image").map((object) => object.assetId)));
+  for (const asset of design.assets) if (referenced.has(asset.id) && asset.sourceAssetId) referenced.add(asset.sourceAssetId);
+  return { ...design, assets: design.assets.filter((asset) => referenced.has(asset.id)) };
 }

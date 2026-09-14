@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
+import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
+import type { BackgroundRemovalMode } from "./background-removal-models";
 import { formatRotationAngle, resizeRotatedObject, rotationCursorCss } from "./design-transform";
 import { addMediaFiles, getMediaAsset, listMediaLibrary, replaceMediaAssetContent, type MediaAsset } from "./media-store";
 import { studioWriteOwnership, ownershipMessage, type OwnershipState } from "./write-ownership";
@@ -482,7 +484,10 @@ export function DesignEditor() {
   const [guides, setGuides] = useState<Guide[]>([]);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [purpleSelectionBorder, setPurpleSelectionBorder] = useState(false);
-  const [backgroundTolerance, setBackgroundTolerance] = useState(28);
+  const [backgroundProgress, setBackgroundProgress] = useState<BackgroundRemovalProgress | null>(null);
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundRemovalMode>("general");
+  const [backgroundEdgeCleanup, setBackgroundEdgeCleanup] = useState(10);
+  const backgroundRemovalRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const pageNameInputRef = useRef<HTMLInputElement>(null);
@@ -500,6 +505,22 @@ export function DesignEditor() {
   const writable = ownershipState === "writable";
   const activePage = design?.pages.find((page) => page.id === design.activePageId) ?? design?.pages[0] ?? null;
   const selectedObject = activePage?.objects.find((object) => object.id === selectedId) ?? null;
+  const selectedImageAsset = selectedObject?.type === "image" ? design?.assets.find((asset) => asset.id === selectedObject.assetId) : undefined;
+
+  // A completed job may only apply to the exact state that started it. Layout
+  // cleanup invalidates synchronously when React commits an edit/selection.
+  useLayoutEffect(() => () => {
+    const operation = backgroundRemovalRef.current;
+    if (operation) {
+      backgroundRemovalRef.current = null;
+      operation.abort();
+      setBackgroundProgress(null);
+    }
+  }, [design, selectedId, selectedIds, ownershipState]);
+
+  useEffect(() => studioWriteOwnership.subscribe(() => {
+    if (!studioWriteOwnership.canWrite()) backgroundRemovalRef.current?.abort();
+  }), []);
 
   function rememberStyle(object: DesignObject) {
     if (object.type === "arrow") recentStylesRef.current.arrow = { stroke: object.stroke, strokeWidth: object.strokeWidth, arrowhead: object.arrowhead };
@@ -1047,46 +1068,33 @@ export function DesignEditor() {
   }
 
   async function removeSelectedImageBackground() {
-    if (!design || !activePage || !selectedObject || selectedObject.type !== "image" || !writable) return;
-    const source = design.assets.find((asset) => asset.id === selectedObject.assetId);
+    if (!design || !activePage || !selectedObject || selectedObject.type !== "image" || selectedObject.locked || !writable || backgroundRemovalRef.current) return;
+    const selectedAsset = design.assets.find((asset) => asset.id === selectedObject.assetId);
+    const source = selectedAsset?.sourceAssetId ? design.assets.find((asset) => asset.id === selectedAsset.sourceAssetId) : selectedAsset;
     if (!source) return;
+    const operation = new AbortController();
+    backgroundRemovalRef.current = operation;
+    setBackgroundProgress({ message: "Preparing image…" });
     setError("");
     try {
-      const image = new Image();
-      await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("The image could not be decoded for background removal.")); image.src = source.dataUrl; });
-      const pixelCount = image.naturalWidth * image.naturalHeight;
-      if (pixelCount > 16_000_000) throw new Error("Background removal is limited to images up to 16 megapixels.");
-      const canvas = document.createElement("canvas"); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-      const context = canvas.getContext("2d", { willReadFrequently: true });
-      if (!context) throw new Error("The browser could not prepare the image for background removal.");
-      context.drawImage(image, 0, 0);
-      const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
-      const { data } = pixels;
-      const visited = new Uint8Array(canvas.width * canvas.height);
-      const queue = new Int32Array(canvas.width * canvas.height);
-      const threshold = backgroundTolerance * backgroundTolerance * 3;
-      const seeds = [0, canvas.width - 1, (canvas.height - 1) * canvas.width, canvas.height * canvas.width - 1];
-      for (const seed of seeds) {
-        if (seed < 0 || seed >= visited.length || visited[seed]) continue;
-        const seedOffset = seed * 4; const red = data[seedOffset]; const green = data[seedOffset + 1]; const blue = data[seedOffset + 2];
-        let head = 0; let tail = 0; queue[tail++] = seed; visited[seed] = 1;
-        while (head < tail) {
-          const index = queue[head++]; const offset = index * 4;
-          const distance = (data[offset] - red) ** 2 + (data[offset + 1] - green) ** 2 + (data[offset + 2] - blue) ** 2;
-          if (distance > threshold) continue;
-          data[offset + 3] = 0;
-          const x = index % canvas.width; const y = Math.floor(index / canvas.width);
-          const neighbours = [x > 0 ? index - 1 : -1, x < canvas.width - 1 ? index + 1 : -1, y > 0 ? index - canvas.width : -1, y < canvas.height - 1 ? index + canvas.width : -1];
-          for (const neighbour of neighbours) if (neighbour >= 0 && !visited[neighbour]) { visited[neighbour] = 1; queue[tail++] = neighbour; }
-        }
-      }
-      context.putImageData(pixels, 0, 0);
-      const dataUrl = canvas.toDataURL("image/png");
-      const derived: DesignAsset = { id: makeId("asset"), name: `${source.name.replace(/\.[^.]+$/, "")}-background-removed.png`, type: "image/png", dataUrl, width: source.width, height: source.height };
-      const nextObject = { ...selectedObject, assetId: derived.id, crop: undefined };
+      const result = await removeImageBackground(source.dataUrl, operation.signal, setBackgroundProgress, backgroundMode, backgroundEdgeCleanup / 100);
+      const dataUrl = await fileToDataUrl(result.blob);
+      if (operation.signal.aborted || backgroundRemovalRef.current !== operation) return;
+      studioWriteOwnership.assertWritable();
+      // Clear before updateDesign: the result itself is an intentional edit.
+      backgroundRemovalRef.current = null;
+      setBackgroundProgress(null);
+      const derived: DesignAsset = { id: makeId("asset"), name: `${source.name.replace(/\.[^.]+$/, "")}-background-removed.png`, type: "image/png", dataUrl, width: result.width, height: result.height, sourceAssetId: source.sourceAssetId ?? source.id };
+      const nextObject = { ...selectedObject, assetId: derived.id };
       updateDesign({ ...design, assets: [...design.assets, derived], pages: design.pages.map((page) => page.id === activePage.id ? { ...page, objects: page.objects.map((object) => object.id === selectedObject.id ? nextObject : object) } : page) });
-      setStatus("Background removed locally; the original image remains available in the design");
-    } catch (backgroundError) { setError(backgroundError instanceof Error ? backgroundError.message : "Background removal failed."); }
+    } catch (backgroundError) {
+      if (!operation.signal.aborted) setError(backgroundError instanceof Error ? backgroundError.message : "Background removal failed.");
+    } finally {
+      if (backgroundRemovalRef.current === operation) {
+        backgroundRemovalRef.current = null;
+        setBackgroundProgress(null);
+      }
+    }
   }
 
   function handlePaste(event: ClipboardEvent<HTMLDivElement>) {
@@ -1379,7 +1387,20 @@ export function DesignEditor() {
         </div></div>
       </section>
       <aside className="design-inspector" aria-label="Design properties"><div className="design-inspector-section"><span className="design-inspector-label">Page</span><label>Name<input value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} /></label><label>Preset<select value="custom" disabled={!writable} onChange={(event) => setPagePreset(event.target.value)}><option value="custom">Custom</option><option value="landscape">1920 × 1080 landscape</option><option value="square">1080 × 1080 square</option><option value="portrait">1080 × 1350 portrait</option><option value="portraitStory">1080 × 1920 portrait</option></select></label><label>Width<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.width} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, width: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Height<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.height} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, height: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Background<select value={activePage.background.kind} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, kind: event.target.value as "solid" | "transparent" } }))}><option value="solid">Solid</option><option value="transparent">Transparent</option></select></label>{activePage.background.kind === "solid" ? <label>Colour<input type="color" value={activePage.background.colour} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, colour: event.target.value } }))} /></label> : null}</div>{selectedObject ? <div className="design-inspector-section"><span className="design-inspector-label">Selected {toolLabels[selectedObject.type as Tool] ?? selectedObject.type}</span><div className="design-field-grid"><label>X<input type="number" value={Math.round(selectedObject.x)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, x: Number(event.target.value) || 0 }))} /></label><label>Y<input type="number" value={Math.round(selectedObject.y)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, y: Number(event.target.value) || 0 }))} /></label><label>Width<input type="number" min="1" value={Math.round(selectedObject.width)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, width: Math.max(1, Number(event.target.value) || 1) }))} /></label><label>Height<input type="number" min="1" value={Math.round(selectedObject.height)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, height: Math.max(1, Number(event.target.value) || 1) }))} /></label></div><label>Opacity<input type="range" min="0" max="1" step=".05" value={selectedObject.opacity} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, opacity: Number(event.target.value) }))} /></label><PositionControls writable={writable} selectedCount={selectedIds.length} canAlign={activePage.objects.some((object) => selectedIds.includes(object.id) && !object.locked)} onAlignToPage={alignSelectedToPage} />{selectedObject.type === "image" ? <div className="design-image-tools">
-            <div className="design-background-removal"><span className="design-inspector-label">Background removal</span><label>Tolerance<input type="range" min="4" max="80" value={backgroundTolerance} disabled={!writable} onChange={(event) => setBackgroundTolerance(Number(event.target.value))} /></label><button type="button" onClick={() => void removeSelectedImageBackground()} disabled={!writable}>Remove background</button><small>Removes edge-connected colours locally and keeps the original asset.</small></div>
+            <div className="design-background-removal">
+              <span className="design-inspector-label">Background Removal</span>
+              <label>Subject<select value={backgroundMode} disabled={!writable || Boolean(backgroundProgress)} onChange={(event) => setBackgroundMode(event.target.value as BackgroundRemovalMode)}><option value="general">General</option><option value="people">People</option></select></label>
+              <label>Edge Cleanup ({backgroundEdgeCleanup}%)<input aria-label="Edge Cleanup" type="range" min="0" max="40" step="1" value={backgroundEdgeCleanup} disabled={!writable || Boolean(backgroundProgress)} onChange={(event) => setBackgroundEdgeCleanup(Number(event.target.value))} /></label>
+              <small>Higher cleanup reduces soft fringes but can remove fine hair. Adjust, then run again; each run starts from the original.</small>
+              <button type="button" onClick={() => void removeSelectedImageBackground()} disabled={!writable || selectedObject.locked || Boolean(backgroundProgress)}>Remove Background</button>
+              {backgroundProgress ? <>
+                <div role="status">{backgroundProgress.message}{backgroundProgress.percent !== undefined ? ` ${backgroundProgress.percent}%` : ""}</div>
+                <progress aria-label="Background removal progress" max="100" value={backgroundProgress.percent} />
+                <button type="button" className="design-background-cancel" onClick={() => backgroundRemovalRef.current?.abort()}>Cancel</button>
+              </> : null}
+              {selectedImageAsset?.sourceAssetId ? <button type="button" disabled={!writable || selectedObject.locked || Boolean(backgroundProgress)} onClick={() => updateSelected((object) => object.type === "image" ? { ...object, assetId: selectedImageAsset.sourceAssetId! } : object)}>Restore Original</button> : null}
+              <small>{backgroundMode === "people" ? "For portraits of people. Downloads a 26 MB model." : "For people, animals and objects. Downloads a 176 MB model. Fine details and transparent glass may need further editing."} Your image stays in this browser. Later uses may use the browser cache. Keeps the original image and crop. Editing or changing selection cancels processing.</small>
+            </div>
             <div className="design-crop-controls"><span className="design-inspector-label">Crop (percent)</span><div className="design-field-grid">
               <label>Left<input type="number" min="0" max="100" value={Math.round((selectedObject.crop?.x ?? 0) * 100)} disabled={!writable} onChange={(event) => updateImageCrop("x", Number(event.target.value) / 100)} /></label>
               <label>Top<input type="number" min="0" max="100" value={Math.round((selectedObject.crop?.y ?? 0) * 100)} disabled={!writable} onChange={(event) => updateImageCrop("y", Number(event.target.value) / 100)} /></label>

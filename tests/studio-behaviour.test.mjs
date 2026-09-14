@@ -517,8 +517,8 @@ test("design page presets include a 1080 by 1920 portrait format", () => {
 test("design saves compact unused image assets and explain storage quota failures", () => {
   const store = readFileSync(new URL("../app/studio/design-store.ts", import.meta.url), "utf8");
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(store, /function compactDesign\(design: DesignProject\)/);
-  assert.match(store, /assets: design\.assets\.filter\(\(asset\) => referencedAssetIds\.has\(asset\.id\)\)/);
+  // Behavioural compaction/provenance coverage lives in background-removal.test.mjs.
+  assert.match(store, /designs\.map\(compactDesignAssets\)/);
   assert.match(editor, /function designSaveErrorMessage\(error: unknown, fallback = "The design could not be saved\."\)/);
   assert.match(editor, /designSaveErrorMessage\(saveError\)/);
   assert.match(editor, /designSaveErrorMessage\(importError, "The design file could not be imported\."\)/);

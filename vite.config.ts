@@ -47,6 +47,7 @@ export default defineConfig(async () => {
 
   return {
     resolve: { dedupe: ["react", "react-dom"] },
+    worker: { format: "es" as const },
     server: {
       ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
       // Local settings snapshots must never be served through Vite's file route.
