@@ -354,9 +354,13 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
   const resizeHandleRadius = 10 * controlScale;
   const resizeHandles: Array<{ handle: ResizeHandle; label: string }> = [
     { handle: "nw", label: "Resize selected object from top left" },
+    { handle: "n", label: "Resize selected object from top middle" },
     { handle: "ne", label: "Resize selected object from top right" },
+    { handle: "e", label: "Resize selected object from right middle" },
     { handle: "se", label: "Resize selected object from bottom right" },
+    { handle: "s", label: "Resize selected object from bottom middle" },
     { handle: "sw", label: "Resize selected object from bottom left" },
+    { handle: "w", label: "Resize selected object from left middle" },
   ];
   const pageResizeHandles: Array<{ handle: ResizeHandle; label: string }> = [
     { handle: "nw", label: "Resize page from top left" },

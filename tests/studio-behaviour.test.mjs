@@ -481,11 +481,15 @@ test("design image resizing keeps proportions by default and uses Shift for free
   assert.match(editor, /resizeObject\(item, handle, dx, dy, page, shouldKeepResizeRatio\(item, event\.shiftKey\), false\)/);
 });
 
-test("design pages expose corner handles for direct resizing", () => {
+test("design objects expose corner and side-centre handles for direct resizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /function resizePage\(page: DesignPage, handle: ResizeHandle, dx: number, dy: number, keepRatio: boolean\)/);
   assert.match(editor, /const pageResizeRef = useRef<PageResizeInteraction \| null>\(null\)/);
   assert.match(editor, /showPageResizeHandles={tool === "select" && selectedIds.length === 0}/);
+  assert.match(editor, /\{ handle: "n", label: "Resize selected object from top middle" \}/);
+  assert.match(editor, /\{ handle: "e", label: "Resize selected object from right middle" \}/);
+  assert.match(editor, /\{ handle: "s", label: "Resize selected object from bottom middle" \}/);
+  assert.match(editor, /\{ handle: "w", label: "Resize selected object from left middle" \}/);
   assert.match(editor, /aria-label={label} className={`design-resize-handle handle-\$\{handle\}`}/);
   assert.match(editor, /function onPageResizePointerDown\(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle\)/);
   assert.match(editor, /function onPageResizeKeyDown\(event: ReactKeyboardEvent<SVGCircleElement>, handle: ResizeHandle\)/);

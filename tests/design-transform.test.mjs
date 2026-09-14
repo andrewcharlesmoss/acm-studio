@@ -51,6 +51,17 @@ test("free resizing stretches and centred resizing preserves the centre", () => 
   close(centred.x + centred.width / 2, 500);
   close(centred.y + centred.height / 2, 350);
 });
+test("side-centre handles resize one axis while keeping the opposite edge anchored", () => {
+  const object = { ...base, rotation: 0 };
+  const top = resizeRotatedObject(object, "n", 0, 20, false, false);
+  close(top.width, object.width); close(top.height, 80); close(top.x, object.x); close(top.y, object.y + 20);
+  const right = resizeRotatedObject(object, "e", 30, 0, false, false);
+  close(right.width, 230); close(right.height, object.height); close(right.x, object.x); close(right.y, object.y);
+  const bottom = resizeRotatedObject(object, "s", 0, 20, false, false);
+  close(bottom.width, object.width); close(bottom.height, 120); close(bottom.x, object.x); close(bottom.y, object.y);
+  const left = resizeRotatedObject(object, "w", 30, 0, false, false);
+  close(left.width, 170); close(left.height, object.height); close(left.x, object.x + 30); close(left.y, object.y);
+});
 test("minimum and maximum size preserve ratio and the opposite corner", () => {
   for (const delta of [-10000, 10000]) {
     const result = resizeRotatedObject(base, "se", delta, delta / 2, true, false);
