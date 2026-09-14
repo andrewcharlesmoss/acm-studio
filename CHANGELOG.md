@@ -100,6 +100,8 @@
 - The rotation cursor is slightly smaller and the live angle badge sits farther
   from it for clearer separation.
 - The live angle badge now has additional clearance from the rotation pointer.
+- Removed the instructional footer below the design canvas to keep the workspace
+  focused on the artwork.
 
 - Replaced the browser resize cursor during canvas rotation with a Canva-style curved two-way SVG cursor.
 

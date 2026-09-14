@@ -446,7 +446,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(css, /\.design-page-list \{ align-content: start;/);
   assert.match(css, /\.design-all-page-heading \{ align-items: center; box-sizing: border-box; display: flex; justify-content: space-between; margin-inline: auto; min-height: 28px; padding: 0 4px; \}/);
-  assert.match(css, /\.design-canvas-help \{ color: var\(--muted\); font-size: 12px; line-height: 1\.3; margin: 0; padding: 4px 18px 8px; \}/);
+  assert.doesNotMatch(css, /design-canvas-help/);
   assert.match(css, /\.design-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: auto minmax\(0, 1fr\); min-height: 0; min-width: 0; \}/);
   assert.match(css, /\.design-canvas-area \{ display: grid; grid-template-rows: auto minmax\(0, 1fr\) auto; min-height: 0; min-width: 0; \}/);
   assert.doesNotMatch(editor, /design-selection-box/);
@@ -463,7 +463,6 @@ test("design image resizing keeps proportions by default and uses Shift for free
   assert.match(editor, /function shouldKeepResizeRatio\(object: DesignObject, shiftKey: boolean\)/);
   assert.match(editor, /keepRatio: shouldKeepResizeRatio\(object, event\.shiftKey\)/);
   assert.match(editor, /resizeObject\(item, handle, dx, dy, page, shouldKeepResizeRatio\(item, event\.shiftKey\), false\)/);
-  assert.match(editor, /Images keep their proportions by default; hold Shift to stretch them/);
 });
 
 test("design pages expose corner handles for direct resizing", () => {
@@ -474,7 +473,6 @@ test("design pages expose corner handles for direct resizing", () => {
   assert.match(editor, /aria-label={label} className={`design-resize-handle handle-\$\{handle\}`}/);
   assert.match(editor, /function onPageResizePointerDown\(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle\)/);
   assert.match(editor, /function onPageResizeKeyDown\(event: ReactKeyboardEvent<SVGCircleElement>, handle: ResizeHandle\)/);
-  assert.match(editor, /Drag a page corner to resize the page/);
 });
 
 test("design snapping uses Canva-style solid page guides and dotted object guides", () => {
@@ -554,7 +552,7 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.match(editor, /function resizeArrowEndpoint\(/);
   assert.match(editor, /nextObject = resizeArrowEndpoint\(interaction\.original, interaction\.endpoint \?\? "end", point, activePage\)/);
   assert.match(editor, /return resizeArrowEndpoint\(item, endpoint, \{ x: current\.x \+ dx, y: current\.y \+ dy \}, page\)/);
-  assert.match(editor, /Arrows resize through their two endpoints instead of corner handles/);
+  assert.doesNotMatch(editor, /Arrows resize through their two endpoints instead of corner handles/);
 });
 
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {

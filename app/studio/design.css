@@ -101,7 +101,6 @@
 .design-guide { opacity: .8; pointer-events: none; stroke: #ff00ff; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .design-guide-solid { stroke-dasharray: none; }
 .design-guide-dotted { stroke-dasharray: 2 4; }
-.design-canvas-help { color: var(--muted); font-size: 12px; line-height: 1.3; margin: 0; padding: 4px 18px 8px; }
 .design-inspector { background: #f9f8f4; border-left: 1px solid #d2d0c8; min-height: 0; overflow: auto; padding: 18px 15px; }
 .design-inspector-section { border-bottom: 1px solid #d2d0c8; display: grid; gap: 10px; padding-bottom: 18px; margin-bottom: 18px; }
 .design-inspector-label { font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
@@ -170,5 +169,4 @@
   .design-tool-rail button { flex: 0 0 52px; }
   .design-canvas-scroll { min-height: 360px; padding: 12px; }
   .design-page-svg { max-height: none; }
-  .design-canvas-help { padding-bottom: 10px; }
 }
