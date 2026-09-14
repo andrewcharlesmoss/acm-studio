@@ -460,11 +460,13 @@ export function DesignEditor() {
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLButtonElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
       const commandOrControl = event.metaKey || event.ctrlKey;
+      const zoomReset = event.key === "0" || event.code === "Digit0" || event.code === "Numpad0";
       const zoomIn = event.key === "+" || event.key === "=" || event.code === "Equal" || event.code === "NumpadAdd";
       const zoomOut = event.key === "-" || event.key === "_" || event.code === "Minus" || event.code === "NumpadSubtract";
-      if (commandOrControl && zoomIn) { event.preventDefault(); changeZoom(1); }
+      if (commandOrControl && zoomReset) { event.preventDefault(); setZoom(100); }
+      else if (commandOrControl && zoomIn) { event.preventDefault(); changeZoom(1); }
       else if (commandOrControl && zoomOut) { event.preventDefault(); changeZoom(-1); }
       else if (commandOrControl && event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); }
       else if ((event.ctrlKey && event.key.toLowerCase() === "y")) { event.preventDefault(); redo(); }

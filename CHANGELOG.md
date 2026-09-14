@@ -88,6 +88,10 @@
 
 ### Changed
 
+- Added Command+0 on macOS and Ctrl+0 on Windows/Linux to reset the design
+  canvas zoom to 100%, alongside the existing zoom controls and increment
+  shortcuts.
+
 - Improved document code formatting so inline spacing and preformatted whitespace
   remain readable and semantically intact. Code Apply now detects intervening
   block edits and asks for the editor to be reopened instead of overwriting them.

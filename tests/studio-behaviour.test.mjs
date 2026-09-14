@@ -408,6 +408,14 @@ test("history shortcuts leave independent text editing surfaces to native undo",
   assert.match(hook, /\[undo, redo, enabled\]/);
 });
 
+test("design canvas resets zoom with the platform zero shortcut", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /event\.target instanceof HTMLSelectElement/);
+  assert.match(editor, /event\.target instanceof HTMLButtonElement/);
+  assert.match(editor, /const zoomReset = event\.key === "0" \|\| event\.code === "Digit0" \|\| event\.code === "Numpad0"/);
+  assert.match(editor, /if \(commandOrControl && zoomReset\) \{ event\.preventDefault\(\); setZoom\(100\); \}/);
+});
+
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {
   const read = (name) => readFileSync(new URL(`../app/studio/${name}`, import.meta.url), "utf8");
   const canvas = read("studio-canvas.tsx");
