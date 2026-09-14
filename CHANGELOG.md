@@ -219,6 +219,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Double-clicking a canvas text box now reliably opens its inline editor.
 
 - Restoring Undo/Redo selections in shortened, formatted text no longer crashes the editor.
 

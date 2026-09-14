@@ -619,9 +619,12 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(editor, /function polygonPoints\(kind: DesignShapeKind/);
   assert.match(editor, /<polygon points=\{points\}/);
   assert.match(editor, /event\.detail > 1/);
+  assert.match(editor, /isTextDoubleClick = object\.type === "text" && \(event\.detail > 1 \|\|/);
+  assert.match(editor, /lastTextPointerRef\.current\?\.id === object\.id/);
   assert.match(editor, /function beginTextEditing\(object: DesignTextObject\)/);
   assert.match(editor, /className="design-inline-text-editor"/);
   assert.match(editor, /aria-label="Edit text"/);
+  assert.match(editor, /onDoubleClick=\{\(event\) => \{ if \(object\.type === "text"\)/);
   assert.match(editor, /const cancelTextEditRef = useRef\(false\)/);
   assert.match(editor, /cancelTextEditRef\.current = true/);
   assert.match(editor, /onEditingTextCommit/);
