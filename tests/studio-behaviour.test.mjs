@@ -429,6 +429,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.doesNotMatch(editor, /design-selection-box/);
   assert.doesNotMatch(css, /design-selection-box/);
   assert.match(css, /\.design-rotate-handle:hover \{ fill: #8b3dff !important/);
+  assert.match(css, /\.design-rotate-handle:hover \+ \.design-rotate-icon \{ color: #fff; \}/);
   assert.match(css, /\.design-resize-handle, \.design-endpoint-handle, \.design-rotate-handle \{ fill: #fff !important/);
   assert.match(css, /\.design-resize-handle \{ stroke: #aeb3bf/);
 });

@@ -83,6 +83,7 @@
 .design-endpoint-handle { cursor: crosshair; }
 .design-rotate-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: ew-resize; filter: drop-shadow(0 1px 2px #17191c40); }
 .design-rotate-handle:hover { fill: #8b3dff !important; stroke: #8b3dff; }
+.design-rotate-handle:hover + .design-rotate-icon { color: #fff; }
 .design-rotate-handle:focus { outline: none !important; }
 .design-rotate-handle:focus-visible { outline: none !important; stroke: #8b3dff; stroke-width: 2.5; filter: drop-shadow(0 0 2px #fff); }
 .design-rotate-icon { color: #17191c; }

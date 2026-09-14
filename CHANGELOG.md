@@ -88,6 +88,8 @@
 
 ### Changed
 
+- Made the rotation glyph white when its purple control is hovered.
+
 - Made the rotation angle badge follow the pointer during rotation while
   keeping it read-only and using a normal cursor over the badge.
 
