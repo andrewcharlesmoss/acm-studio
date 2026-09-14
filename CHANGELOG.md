@@ -91,6 +91,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Text controls now present individual font names instead of full CSS font-family stacks.
 - Objects and pages now show resize handles at each side centre as well as their corners.
 - Page resizing now follows image resizing: Shift switches from proportional to absolute sizing.
 - Object resize, rotate and arrow controls now appear while hovering an unselected canvas object and remain visible while dragging arrow endpoints or bend beads.

@@ -625,6 +625,10 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(editor, /function beginTextEditing\(object: DesignTextObject\)/);
   assert.match(editor, /className="design-inline-text-editor"/);
   assert.match(editor, /aria-label="Edit text"/);
+  assert.match(editor, /const fontOptions = \[/);
+  assert.match(editor, /\{ value: "Inter, Arial, sans-serif", label: "Inter" \}/);
+  assert.match(editor, /<label>Font<select/);
+  assert.doesNotMatch(editor, /<label>Font family<select/);
   assert.match(editor, /onDoubleClick=\{\(event\) => \{ if \(object\.type === "text"\)/);
   assert.match(editor, /const cancelTextEditRef = useRef\(false\)/);
   assert.match(editor, /cancelTextEditRef\.current = true/);
