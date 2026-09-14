@@ -89,6 +89,12 @@
 .design-background-removal button { background: #cc1818; border: 0; border-radius: 5px; color: white; cursor: pointer; font: inherit; font-size: 12px; padding: 8px 10px; }
 .design-background-removal small { color: var(--muted); font-size: 12px; line-height: 1.35; }
 .design-field-grid { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+.design-position-tools { border-top: 1px solid #d2d0c8; display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; }
+.design-position-heading { color: var(--muted); font-size: 12px; font-weight: 650; }
+.design-position-grid { display: grid; gap: 7px; grid-template-columns: 1fr 1fr; }
+.design-position-grid button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; color: var(--ink); cursor: pointer; font: inherit; font-size: 12px; padding: 7px 8px; }
+.design-position-grid button:hover:not(:disabled), .design-position-grid button:focus-visible { border-color: var(--accent); color: var(--accent); }
+.design-position-grid button:disabled { cursor: default; opacity: .45; }
 .design-object-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .design-object-actions button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; color: var(--ink); cursor: pointer; flex: 1 1 90px; font-size: 12px; padding: 7px; }
 .design-object-actions button:hover:not(:disabled), .design-object-actions button:focus-visible { border-color: var(--accent); color: var(--accent); }
