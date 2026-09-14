@@ -443,10 +443,11 @@ test("design image resizing keeps proportions by default and uses Shift for free
 test("design rotation handle uses one dedicated SVG glyph", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const icons = readFileSync(new URL("../app/studio/studio-icons.tsx", import.meta.url), "utf8");
-  assert.match(editor, /<StudioIcon name="rotate" size=\{14 \* controlScale\}/);
+  assert.match(editor, /<StudioIcon name="rotate" size=\{28 \* controlScale\}/);
+  assert.doesNotMatch(editor, /design-rotate-connector/);
   assert.doesNotMatch(editor, /<StudioIcon name="undo" size=\{13\}.*<StudioIcon name="redo" size=\{13\}/);
   assert.match(icons, /case "rotate": return <svg/);
-  assert.match(icons, /M7\.2 8\.7a5\.8 5\.8 0 0 1 9\.5-1\.7/);
+  assert.match(icons, /M6\.5 10a5\.8 5\.8 0 0 1 10-3\.5/);
 });
 
 test("design resize cursors follow the selected object's rotation", () => {
@@ -461,7 +462,7 @@ test("design canvas controls keep a constant screen size as zoom changes", () =>
   assert.match(editor, /const controlScale = 100 \/ Math\.max\(1, zoom\)/);
   assert.match(editor, /r=\{12 \* controlScale\}/);
   assert.match(editor, /r=\{7 \* controlScale\}/);
-  assert.match(editor, /r=\{14 \* controlScale\}/);
+  assert.match(editor, /r=\{18 \* controlScale\}/);
   assert.match(editor, /width=\{50 \* controlScale\}/);
   assert.match(editor, /height=\{30 \* controlScale\}/);
   assert.match(editor, /fontSize: `\$\{13 \* controlScale\}px`/);

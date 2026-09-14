@@ -81,7 +81,6 @@
 .design-resize-handle.handle-nw, .design-resize-handle.handle-se { cursor: nwse-resize; }
 .design-resize-handle:focus-visible, .design-endpoint-handle:focus-visible, .design-rotate-handle:focus-visible { outline: none; stroke: #284aa9; stroke-width: 3; filter: drop-shadow(0 0 2px #fff); }
 .design-endpoint-handle { cursor: crosshair; }
-.design-rotate-connector { stroke: #aeb3bf; stroke-width: 1.5; pointer-events: none; vector-effect: non-scaling-stroke; }
 .design-rotate-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: grab; filter: drop-shadow(0 1px 2px #17191c40); }
 .design-rotate-icon { color: #17191c; }
 .design-rotate-handle:active { cursor: grabbing; }

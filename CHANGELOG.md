@@ -88,6 +88,9 @@
 
 ### Changed
 
+- Removed the rotation-handle connector, enlarged its fixed-size circular
+  control and replaced the glyph with a clearer two-arrow SVG.
+
 - Moved the active page's Layers list into the left Pages pane and added an
   All pages view that stacks every page in a scrollable canvas while keeping
   the active page editable.
