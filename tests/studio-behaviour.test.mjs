@@ -487,7 +487,7 @@ test("design canvas offers an optional purple selection border", () => {
   ];
   assert.match(editor, /const \[purpleSelectionBorder, setPurpleSelectionBorder\] = useState\(false\)/);
   assert.match(editor, /aria-label="Purple selection border"/);
-  assert.match(editor, /purpleSelectionBorder && selectedIds\.includes\(object\.id\)/);
+  assert.match(editor, /purpleSelectionBorder && \(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\)/);
   assert.match(editor, /className="design-selection-border"/);
   assert.match(css, /\.design-selection-border \{ fill: none; stroke: #8b3dff; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; \}/);
 });
