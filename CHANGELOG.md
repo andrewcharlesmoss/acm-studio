@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added a 1080 × 1920 portrait page preset.
 - Arrows now support a draggable centre bend control for custom curved paths.
 
 - Added Canva-style magenta snapping guides, with solid page guides and dotted object guides.

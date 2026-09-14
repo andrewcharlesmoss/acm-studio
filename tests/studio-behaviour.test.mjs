@@ -487,6 +487,12 @@ test("design page resizing keeps proportions by default and uses Shift for freef
   assert.match(editor, /keepRatio: !event\.shiftKey/);
 });
 
+test("design page presets include a 1080 by 1920 portrait format", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /portraitStory: \[1080, 1920\]/);
+  assert.match(editor, /<option value="portraitStory">1080 × 1920 portrait<\/option>/);
+});
+
 test("design objects expose corner and side-centre handles for direct resizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /function resizePage\(page: DesignPage, handle: ResizeHandle, dx: number, dy: number, keepRatio: boolean\)/);
