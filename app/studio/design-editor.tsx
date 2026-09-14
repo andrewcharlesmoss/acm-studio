@@ -483,6 +483,12 @@ export function DesignEditor() {
     setSelectedId(ids[0] ?? null);
   }
 
+  function restoreSelection(next: DesignProject) {
+    const page = next.pages.find((item) => item.id === next.activePageId) ?? next.pages[0];
+    const ids = page ? selectedIds.filter((id) => page.objects.some((object) => object.id === id)) : [];
+    selectObjects(ids);
+  }
+
   function beginTextEditing(object: DesignTextObject) {
     if (!writable) return;
     selectObjects([object.id]);
@@ -628,14 +634,14 @@ export function DesignEditor() {
     if (!design || !history.length || !writable) return;
     const previous = history.at(-1)!;
     setHistory((items) => items.slice(0, -1)); setFuture((items) => [cloneDesign(design), ...items]); setDesign(previous); void persist(previous);
-    selectObjects([]);
+    restoreSelection(previous);
   }
 
   function redo() {
     if (!design || !future.length || !writable) return;
     const next = future[0];
     setFuture((items) => items.slice(1)); setHistory((items) => [...items.slice(-49), cloneDesign(design)]); setDesign(next); void persist(next);
-    selectObjects([]);
+    restoreSelection(next);
   }
 
   useEffect(() => {

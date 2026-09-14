@@ -423,6 +423,13 @@ test("design canvas history shortcuts survive page and layer button focus", () =
   assert.doesNotMatch(editor, /event\.target instanceof HTMLButtonElement/);
 });
 
+test("design undo and redo preserve a still-existing object selection", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /function restoreSelection\(next: DesignProject\)/);
+  assert.match(editor, /restoreSelection\(previous\)/);
+  assert.match(editor, /restoreSelection\(next\)/);
+});
+
 test("design canvas keeps layers in the left pane and offers an all-pages view", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
