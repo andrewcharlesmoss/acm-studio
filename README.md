@@ -74,6 +74,8 @@ The existing content editor remains available at `/studio`.
 - Document settings, block settings, undo/redo and preview
 - Browser-local autosave, local publication and update workflows
 - Integrated local file manager with uploads, folders, search and file details
+- Local design canvas at `/studio/designs` with named pages, image composition,
+  annotation tools, editable design backups and image export
 - Stable media references for managed images
 - Complete browser-local backup and checked restore workflow
 - Local preview and writing routes for testing published snapshots
@@ -99,6 +101,9 @@ do not clear browser data if the unreadable value still needs recovery.
 
 The architecture and next decision gate are recorded in
 [`docs/FOUNDATION.md`](docs/FOUNDATION.md).
+
+The design canvas architecture and supported first-release behaviour are
+recorded in [`docs/design-canvas.md`](docs/design-canvas.md).
 
 ## Local checks
 

@@ -4,6 +4,28 @@
 
 ### Added
 
+- Added a local design canvas at `/studio/designs` with versioned editable
+  designs, named pages, page duplication and reordering, image input from files
+  and Studio media, a horizontal annotation toolbar, marquee and multi-object
+  selection, resize and rotation handles, crop controls, layers, grouping,
+  alignment and snapping guides, undo/redo, local writer ownership,
+  editable JSON backups, validated image imports, scaled PNG, JPEG or WebP
+  export for the current, selected or all pages, and rendered-media handoff
+  into the Content Studio document or cover image. Annotation tools use a
+  horizontal canvas toolbar, and the Pages pane can be collapsed and restored.
+
+- Design images support local edge-connected background removal with an
+  adjustable colour tolerance. The original asset is retained and the
+  transparent PNG derivative remains editable in the design.
+
+- A Parent folder card keeps navigation to the containing directory visible in folder contents.
+- Files and folders can be dragged into folders, with a Move to parent folder action, keyboard destination controls and protection against circular folder moves.
+
+- Files and folders have accessible context actions for renaming and deleting; folders also have larger icons and a colour submenu with saved choices.
+
+- The block library opens beside the desktop canvas with scrollable block groups, and as a dismissible drawer on narrow screens.
+- Shared editor toolbar groups Add block, Undo, Redo and List View; List View docks beside the desktop canvas and opens as a dismissible drawer on narrow screens.
+
 - Mini Golf table headings, hole labels and empty-total placeholders can be authored in Edit while score inputs and calculations remain live.
 
 - Mini Golf draft exports include a versioned, lossless page definition with source identities, explicit template/default descriptors and three-way conflict detection.

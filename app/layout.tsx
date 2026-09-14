@@ -5,6 +5,7 @@ import "./studio/media.css";
 import "./studio/backup.css";
 import "./studio/responsive.css";
 import "./studio/site-draft.css";
+import "./studio/design.css";
 
 export const metadata: Metadata = {
   title: {

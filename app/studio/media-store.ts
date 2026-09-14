@@ -143,6 +143,16 @@ export async function updateMediaAsset(id: string, update: Partial<Pick<MediaAss
   });
 }
 
+export async function replaceMediaAssetContent(id: string, file: Blob, type = file.type) {
+  return studioWriteOwnership.write(async () => {
+    const asset = await getMediaAsset(id);
+    if (!asset) throw new Error("The selected file could not be found.");
+    const next = { ...asset, type: type || asset.type, size: file.size, blob: file, updatedAt: new Date().toISOString() };
+    await withStore(ASSET_STORE, "readwrite", (store) => store.put(next));
+    return next;
+  });
+}
+
 export async function renameMediaFolder(id: string, name: string) {
   return studioWriteOwnership.write(async () => {
     const folder = await withStore(FOLDER_STORE, "readonly", (store) => store.get(id)) as MediaFolder | undefined;
