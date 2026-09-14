@@ -64,6 +64,17 @@ function rotationLabel(rotation: number) {
   return formatRotationAngle(rotation);
 }
 
+function designSaveErrorMessage(error: unknown, fallback = "The design could not be saved.") {
+  if (isDesignStorageQuotaError(error)) {
+    return "This design is too large for browser storage. Export an editable backup, then remove unused or very large images before saving again.";
+  }
+  return error instanceof Error ? error.message : fallback;
+}
+
+function isDesignStorageQuotaError(error: unknown) {
+  return error instanceof Error && error.name === "QuotaExceededError";
+}
+
 function rotationBadgePoint(object: DesignObject, cursor: { x: number; y: number } | null, controlScale: number) {
   const fallback = { x: object.x + object.width / 2, y: object.y + object.height + 90 * controlScale };
   const pagePoint = cursor ? { x: cursor.x + 44 * controlScale, y: cursor.y - 44 * controlScale } : fallback;
@@ -628,10 +639,7 @@ export function DesignEditor() {
     setDesigns(updated);
     if (!writable) { setStatus(ownershipMessage(ownershipState) ?? "Read-only"); return; }
     try { await saveDesigns(updated); setStatus("Saved locally just now"); setError(""); }
-    catch (saveError) {
-      const message = saveError instanceof DOMException && saveError.name === "QuotaExceededError" ? "This design is too large for browser storage. Export an editable backup, then remove unused or very large images before saving again." : saveError instanceof Error ? saveError.message : "The design could not be saved.";
-      setError(message); setStatus("Save failed — export an editable backup");
-    }
+    catch (saveError) { setError(designSaveErrorMessage(saveError)); setStatus("Save failed — export an editable backup"); }
   }, [designs, ownershipState, writable]);
 
   useEffect(() => {
@@ -1007,8 +1015,13 @@ export function DesignEditor() {
     const opened = { ...next, assets: [designAsset], pages: [{ ...page, objects: [image] }] };
     const updated = [...designs, opened];
     setDesigns(updated); setDesign(opened); setPageName(page.name); setHistory([]); setFuture([]); selectObjects([]);
-    await saveDesigns(updated);
-    setStatus("New design opened from Studio media");
+    try {
+      await saveDesigns(updated);
+      setStatus("New design opened from Studio media");
+    } catch (saveError) {
+      setError(designSaveErrorMessage(saveError));
+      setStatus("Save failed — export an editable backup");
+    }
   }, [designs, writable]);
 
   async function addImage(file: File | Blob, name = "Image") {
@@ -1257,7 +1270,7 @@ export function DesignEditor() {
     if (!writable) return;
     const next = createDesign();
     setDesign(next); setDesigns((items) => [...items, next]); setHistory([]); setFuture([]); selectObjects([]); setPageName(next.pages[0].name);
-    void saveDesigns([...designs, next]).then(() => setStatus("Saved locally just now")).catch(() => setStatus("Save failed — export an editable backup"));
+    void saveDesigns([...designs, next]).then(() => setStatus("Saved locally just now")).catch((saveError) => { setError(designSaveErrorMessage(saveError)); setStatus("Save failed — export an editable backup"); });
   }
 
   async function exportPage(page: DesignPage) {
@@ -1330,7 +1343,10 @@ export function DesignEditor() {
       const copy = { ...imported, id: makeId("design"), name: `${imported.name} copy`, updatedAt: new Date().toISOString() };
       setDesigns((items) => [...items, copy]); setDesign(copy); await saveDesigns([...designs, copy]); setStatus("Design imported");
     }
-    catch (importError) { setError(importError instanceof Error ? importError.message : "The design file could not be imported."); }
+    catch (importError) {
+      setError(designSaveErrorMessage(importError, "The design file could not be imported."));
+      setStatus(isDesignStorageQuotaError(importError) ? "Save failed — export an editable backup" : "Import failed");
+    }
     finally { if (importInputRef.current) importInputRef.current.value = ""; }
   }
 

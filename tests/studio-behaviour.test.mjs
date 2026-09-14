@@ -498,7 +498,11 @@ test("design saves compact unused image assets and explain storage quota failure
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(store, /function compactDesign\(design: DesignProject\)/);
   assert.match(store, /assets: design\.assets\.filter\(\(asset\) => referencedAssetIds\.has\(asset\.id\)\)/);
-  assert.match(editor, /saveError instanceof DOMException && saveError\.name === "QuotaExceededError"/);
+  assert.match(editor, /function designSaveErrorMessage\(error: unknown, fallback = "The design could not be saved\."\)/);
+  assert.match(editor, /designSaveErrorMessage\(saveError\)/);
+  assert.match(editor, /designSaveErrorMessage\(importError, "The design file could not be imported\."\)/);
+  assert.match(editor, /setStatus\(isDesignStorageQuotaError\(importError\) \? "Save failed — export an editable backup" : "Import failed"\)/);
+  assert.match(editor, /catch \(saveError\) \{ setError\(designSaveErrorMessage\(saveError\)\); setStatus\("Save failed — export an editable backup"\); \}/);
 });
 
 test("design objects expose corner and side-centre handles for direct resizing", () => {
