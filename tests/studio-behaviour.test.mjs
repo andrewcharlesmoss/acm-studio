@@ -458,6 +458,12 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-rotate-handle:hover \+ \.design-rotate-icon \{ color: #fff; \}/);
   assert.match(css, /\.design-resize-handle, \.design-endpoint-handle, \.design-rotate-handle \{ fill: #fff !important/);
   assert.match(css, /\.design-resize-handle \{ stroke: #aeb3bf/);
+  assert.match(css, /\.design-endpoint-handle \{ stroke: #aeb3bf; stroke-width: 1\.5; cursor: crosshair; \}/);
+  assert.match(css, /\.design-resize-handle:hover, \.design-endpoint-handle:hover \{ fill: #8b3dff !important; stroke: #8b3dff; stroke-width: 2; \}/);
+  assert.match(css, /\.design-resize-handle:active, \.design-endpoint-handle:active, \.design-rotate-handle:active \{ fill: #8b3dff !important; stroke: #8b3dff; stroke-width: 2; \}/);
+  assert.match(css, /\.design-resize-handle:focus, \.design-endpoint-handle:focus \{ outline: none; \}/);
+  assert.match(css, /\.design-resize-handle:focus-visible, \.design-endpoint-handle:focus-visible \{ outline: none; stroke: #8b3dff; stroke-width: 2; filter: none; \}/);
+  assert.doesNotMatch(css, /\.design-endpoint-handle:focus-visible \{ outline: none; stroke: #284aa9/);
   assert.match(css, /\.design-pane-tabs button\.is-active \{ border-bottom-color: var\(--accent\);/);
 });
 

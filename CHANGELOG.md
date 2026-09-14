@@ -90,6 +90,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Standardised canvas and arrow handles with grey outlines, purple hover fill and outline, and no blue focus selector.
 
 - Rotation cursors now face the object and turn with it. Resizing follows the
   object's rotated axes and keeps the opposite corner anchored.

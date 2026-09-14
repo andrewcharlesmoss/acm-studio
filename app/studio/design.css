@@ -84,12 +84,13 @@
 .design-object.is-locked { cursor: default; }
 .design-resize-handle, .design-endpoint-handle, .design-rotate-handle { fill: #fff !important; vector-effect: non-scaling-stroke; }
 .design-resize-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: nwse-resize; }
-.design-endpoint-handle { stroke: #cc1818; stroke-width: 2; cursor: nwse-resize; }
+.design-endpoint-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: crosshair; }
 .design-resize-handle.handle-ne, .design-resize-handle.handle-sw { cursor: nesw-resize; }
 .design-resize-handle.handle-nw, .design-resize-handle.handle-se { cursor: nwse-resize; }
-.design-resize-handle:focus-visible { outline: none; stroke: #aeb3bf; stroke-width: 1.5; filter: none; }
-.design-endpoint-handle:focus-visible { outline: none; stroke: #284aa9; stroke-width: 3; filter: drop-shadow(0 0 2px #fff); }
-.design-endpoint-handle { cursor: crosshair; }
+.design-resize-handle:hover, .design-endpoint-handle:hover { fill: #8b3dff !important; stroke: #8b3dff; stroke-width: 2; }
+.design-resize-handle:active, .design-endpoint-handle:active, .design-rotate-handle:active { fill: #8b3dff !important; stroke: #8b3dff; stroke-width: 2; }
+.design-resize-handle:focus, .design-endpoint-handle:focus { outline: none; }
+.design-resize-handle:focus-visible, .design-endpoint-handle:focus-visible { outline: none; stroke: #8b3dff; stroke-width: 2; filter: none; }
 .design-rotate-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: var(--rotation-cursor); filter: drop-shadow(0 1px 2px #17191c40); }
 .design-rotate-handle:hover { fill: #8b3dff !important; stroke: #8b3dff; }
 .design-rotate-handle:hover + .design-rotate-icon { color: #fff; }

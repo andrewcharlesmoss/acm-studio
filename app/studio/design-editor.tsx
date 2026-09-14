@@ -365,7 +365,6 @@ export function DesignEditor() {
   const [exportQuality, setExportQuality] = useState(.92);
   const [zoom, setZoom] = useState(60);
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
-  const [dragOverPage, setDragOverPage] = useState<{ id: string; position: "before" | "after" } | null>(null);
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
   const [pagesCollapsed, setPagesCollapsed] = useState(false);
   const [leftPaneTab, setLeftPaneTab] = useState<"pages" | "layers">("pages");
