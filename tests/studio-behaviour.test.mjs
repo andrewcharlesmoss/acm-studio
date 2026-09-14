@@ -557,8 +557,13 @@ test("design canvas controls keep a constant screen size as zoom changes", () =>
 
 test("selected arrows expose endpoint controls instead of corner and rotate controls", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /selectedIds\.includes\(object\.id\) && object\.type !== "arrow" \? \(\(\) => \{/);
-  assert.match(editor, /selectedIds\.includes\(object\.id\) && object\.type === "arrow" \? \(\(\) => \{ const \{ start, end, bends \} = arrowPoints\(object\)/);
+  assert.match(editor, /\(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\) && object\.type !== "arrow"/);
+  assert.match(editor, /const \[hoveredObjectId, setHoveredObjectId\] = useState<string \| null>\(null\)/);
+  assert.match(editor, /onPointerEnter=\{\(\) => showHoverHandles && !object\.locked && setHoveredObjectId\(object\.id\)\}/);
+  assert.match(editor, /\(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\) && object\.type === "arrow" \? \(\(\) => \{ const \{ start, end, bends \} = arrowPoints\(object\)/);
+  assert.match(editor, /useEffect\(\(\) => \{ queueMicrotask\(\(\) => setHoveredObjectId\(null\)\); \}, \[page\.id, showHoverHandles\]\)/);
+  assert.match(editor, /showHoverHandles=\{tool === "select"\}/);
+  assert.match(editor, /showHoverHandles=\{isActive && tool === "select"\}/);
   assert.match(editor, /aria-label="Resize arrow from start point"/);
   assert.match(editor, /aria-label="Resize arrow from end point"/);
   assert.match(editor, /function resizeArrowEndpoint\(/);
