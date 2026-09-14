@@ -217,13 +217,9 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
 }) {
   const resizeHandles: Array<{ handle: ResizeHandle; label: string }> = [
     { handle: "nw", label: "Resize selected object from top left" },
-    { handle: "n", label: "Resize selected object from top" },
     { handle: "ne", label: "Resize selected object from top right" },
-    { handle: "e", label: "Resize selected object from right" },
     { handle: "se", label: "Resize selected object from bottom right" },
-    { handle: "s", label: "Resize selected object from bottom" },
     { handle: "sw", label: "Resize selected object from bottom left" },
-    { handle: "w", label: "Resize selected object from left" },
   ];
   return <svg ref={svgRef} className={`design-page-svg${tool === "select" ? " is-select-mode" : ""}`} viewBox={`0 0 ${page.width} ${page.height}`} role="img" aria-label={page.name} onPointerDown={onCanvasPointerDown}>
     <defs><pattern id={`checker-${page.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#f7f6f2" /><rect width="10" height="10" fill="#e9e7df" /><rect x="10" y="10" width="10" height="10" fill="#e9e7df" /></pattern></defs>
@@ -239,11 +235,10 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
       {selectedIds.includes(object.id) ? <>
         <rect className="design-selection-box" width={object.width} height={object.height} />
         {resizeHandles.map(({ handle, label }) => {
-          const corner = handle.length === 2;
           const cx = handle.includes("e") ? object.width : handle.includes("w") ? 0 : object.width / 2;
           const cy = handle.includes("s") ? object.height : handle.includes("n") ? 0 : object.height / 2;
           const className = `design-resize-handle handle-${handle}`;
-          return corner ? <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} cx={cx} cy={cy} r={6} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} /> : <rect key={handle} role="button" tabIndex={0} aria-label={label} className={className} x={cx - 5} y={cy - 5} width={10} height={10} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
+          return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} cx={cx} cy={cy} r={8} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
         })}
         <circle role="button" tabIndex={0} aria-label="Rotate selected object" className="design-rotate-handle" cx={object.width / 2} cy={-22} r={6} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
       </> : null}
