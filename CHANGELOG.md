@@ -90,6 +90,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Arrow endpoint dragging now shows the same snapping guides as object movement.
 - Standardised canvas and arrow handles with grey outlines, purple hover fill and outline, and no blue focus selector.
 
 - Rotation cursors now face the object and turn with it. Resizing follows the

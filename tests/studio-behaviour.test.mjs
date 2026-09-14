@@ -490,6 +490,9 @@ test("design snapping uses Canva-style solid page guides and dotted object guide
   assert.match(editor, /type Guide = \{ axis: "x" \| "y"; position: number; style: "solid" \| "dotted" \}/);
   assert.match(editor, /position: activePage\.width \/ 2, style: "solid"/);
   assert.match(editor, /position: item\.x \+ item\.width \/ 2, style: "dotted"/);
+  assert.match(editor, /function snapArrowEndpoint\(object: DesignArrowObject, endpoint: "start" \| "end", point: \{ x: number; y: number \}\)/);
+  assert.match(editor, /const endpointSnap = snapArrowEndpoint\(interaction\.original, interaction\.endpoint \?\? "end", point\)/);
+  assert.match(editor, /setGuides\(endpointSnap\.guides\)/);
   assert.match(editor, /className=\{`design-guide design-guide-\$\{guide\.style\}`\}/);
   assert.match(css, /\.design-guide \{ opacity: \.8; pointer-events: none; stroke: #ff00ff; stroke-width: 2;/);
   assert.match(css, /\.design-guide-solid \{ stroke-dasharray: none; \}/);
@@ -559,7 +562,7 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.match(editor, /aria-label="Resize arrow from start point"/);
   assert.match(editor, /aria-label="Resize arrow from end point"/);
   assert.match(editor, /function resizeArrowEndpoint\(/);
-  assert.match(editor, /nextObject = resizeArrowEndpoint\(interaction\.original, interaction\.endpoint \?\? "end", point, activePage\)/);
+  assert.match(editor, /nextObject = resizeArrowEndpoint\(interaction\.original, interaction\.endpoint \?\? "end", endpointSnap\.point, activePage\)/);
   assert.match(editor, /return resizeArrowEndpoint\(item, endpoint, \{ x: current\.x \+ dx, y: current\.y \+ dy \}, page\)/);
   assert.doesNotMatch(editor, /Arrows resize through their two endpoints instead of corner handles/);
 });

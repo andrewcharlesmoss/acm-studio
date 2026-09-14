@@ -652,6 +652,20 @@ export function DesignEditor() {
     };
   }
 
+  function snapArrowEndpoint(object: DesignArrowObject, endpoint: "start" | "end", point: { x: number; y: number }) {
+    if (!activePage || !snapEnabled) return { point, guides: [] as Guide[] };
+    const threshold = 12;
+    const others = activePage.objects.filter((item) => item.id !== object.id);
+    const xTargets: SnapTarget[] = [{ position: 0, style: "solid" }, { position: activePage.width / 2, style: "solid" }, { position: activePage.width, style: "solid" }, ...others.flatMap((item) => [{ position: item.x, style: "dotted" as const }, { position: item.x + item.width / 2, style: "dotted" as const }, { position: item.x + item.width, style: "dotted" as const }])];
+    const yTargets: SnapTarget[] = [{ position: 0, style: "solid" }, { position: activePage.height / 2, style: "solid" }, { position: activePage.height, style: "solid" }, ...others.flatMap((item) => [{ position: item.y, style: "dotted" as const }, { position: item.y + item.height / 2, style: "dotted" as const }, { position: item.y + item.height, style: "dotted" as const }])];
+    const nearest = (value: number, targets: SnapTarget[]) => targets.map((target) => ({ distance: Math.abs(target.position - value), target })).sort((a, b) => a.distance - b.distance)[0];
+    const x = nearest(point.x, xTargets); const y = nearest(point.y, yTargets);
+    return {
+      point: { x: x && x.distance <= threshold ? x.target.position : point.x, y: y && y.distance <= threshold ? y.target.position : point.y },
+      guides: [x && x.distance <= threshold ? { axis: "x" as const, position: x.target.position, style: x.target.style } : null, y && y.distance <= threshold ? { axis: "y" as const, position: y.target.position, style: y.target.style } : null].filter((guide): guide is Guide => Boolean(guide)),
+    };
+  }
+
   function onResizeKeyDown(event: ReactKeyboardEvent<SVGElement>, object: DesignObject, handle: ResizeHandle) {
     if (!writable || object.locked || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
@@ -760,7 +774,9 @@ export function DesignEditor() {
       const angle = Math.atan2(point.y - centreY, point.x - centreX);
       nextObject = { ...original, rotation: (original.rotation + (angle - (interaction.startAngle ?? angle)) * 180 / Math.PI + 360) % 360 };
     } else if (interaction.mode === "arrow-endpoint" && interaction.original.type === "arrow") {
-      nextObject = resizeArrowEndpoint(interaction.original, interaction.endpoint ?? "end", point, activePage);
+      const endpointSnap = snapArrowEndpoint(interaction.original, interaction.endpoint ?? "end", point);
+      setGuides(endpointSnap.guides);
+      nextObject = resizeArrowEndpoint(interaction.original, interaction.endpoint ?? "end", endpointSnap.point, activePage);
     }
     const snap = interaction.mode === "move" && interaction.ids?.length === 1 && interaction.originals?.[0] ? snapMove(interaction.originals[0], dx, dy) : { dx, dy, guides: [] as Guide[] };
     if (interaction.mode === "move") setGuides(snap.guides);
