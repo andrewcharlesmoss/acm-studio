@@ -96,6 +96,8 @@
   while resizing.
 - Replaced the rotation handle's overlaid history icons with a dedicated
   compact SVG rotate glyph.
+- Kept canvas resize, endpoint and rotation controls at a consistent screen
+  size while changing zoom.
 
 - Added Command+0 on macOS and Ctrl+0 on Windows/Linux to reset the design
   canvas zoom to 100%, alongside the existing zoom controls and increment
