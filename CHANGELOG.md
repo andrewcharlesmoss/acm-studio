@@ -88,6 +88,12 @@
 
 ### Changed
 
+- Stabilised all-pages headings so selecting a page does not shift the page
+  stack, and reduced the canvas help footer height.
+
+- Aligned all-pages headings with their corresponding canvases in the
+  scrollable view.
+
 - Clarified the all-pages scrolling control with explicit View all pages and
   View single page labels.
 - Added Pages and Layers tabs to the left design pane, with layers rendered only

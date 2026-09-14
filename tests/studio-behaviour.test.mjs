@@ -439,10 +439,14 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /<LayerList page=\{activePage\}/);
   assert.match(editor, /className=\{`design-canvas-scroll\$\{allPagesVisible/);
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
+  assert.match(editor, /className="design-all-page-heading" style=\{\{ width: `\$\{zoom\}%` \}\}/);
+  assert.match(editor, />Edit Page<\/button>/);
   assert.match(editor, /event\.stopPropagation\(\); selectPage\(page\.id\)/);
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(editor, /\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(css, /\.design-page-list \{ align-content: start;/);
+  assert.match(css, /\.design-all-page-heading \{ align-items: center; box-sizing: border-box; display: flex; justify-content: space-between; margin-inline: auto; min-height: 28px; padding: 0 4px; \}/);
+  assert.match(css, /\.design-canvas-help \{ color: var\(--muted\); font-size: 12px; line-height: 1\.3; margin: 0; padding: 4px 18px 8px; \}/);
   assert.doesNotMatch(editor, /design-selection-box/);
   assert.doesNotMatch(css, /design-selection-box/);
   assert.match(css, /\.design-rotate-handle:hover \{ fill: #8b3dff !important/);

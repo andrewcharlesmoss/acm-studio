@@ -66,7 +66,7 @@
 .design-all-pages { align-items: center; display: flex; flex: 1 0 auto; flex-direction: column; gap: 28px; min-width: 100%; }
 .design-all-page { align-items: flex-start; display: flex; flex: 0 0 auto; flex-direction: column; gap: 8px; min-width: 100%; }
 .design-all-page .design-canvas-frame { margin-inline: auto; }
-.design-all-page-heading { align-items: center; display: flex; justify-content: space-between; max-width: 100%; padding: 0 4px; width: min(100%, 640px); }
+.design-all-page-heading { align-items: center; box-sizing: border-box; display: flex; justify-content: space-between; margin-inline: auto; min-height: 28px; padding: 0 4px; }
 .design-all-page-heading strong { font-size: 13px; }
 .design-all-page-heading span { color: var(--muted); font-size: 12px; }
 .design-all-page-heading button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; color: var(--ink); cursor: pointer; font: inherit; font-size: 12px; padding: 5px 8px; }
@@ -99,7 +99,7 @@
 .design-rotation-badge text { fill: #fff; font-family: var(--studio-ui-font, system-ui, sans-serif); font-size: 13px; font-weight: 650; }
 .design-marquee { fill: #cc181822; stroke: #cc1818; stroke-dasharray: 5 4; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; }
 .design-guide { stroke: #2f7dd1; stroke-dasharray: 8 6; stroke-width: 2; opacity: .75; pointer-events: none; vector-effect: non-scaling-stroke; }
-.design-canvas-help { color: var(--muted); font-size: 12px; margin: 0; padding: 8px 18px 14px; }
+.design-canvas-help { color: var(--muted); font-size: 12px; line-height: 1.3; margin: 0; padding: 4px 18px 8px; }
 .design-inspector { background: #f9f8f4; border-left: 1px solid #d2d0c8; min-height: 0; overflow: auto; padding: 18px 15px; }
 .design-inspector-section { border-bottom: 1px solid #d2d0c8; display: grid; gap: 10px; padding-bottom: 18px; margin-bottom: 18px; }
 .design-inspector-label { font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
