@@ -91,6 +91,8 @@
 
 ### Changed
 
+- Replaced the browser resize cursor during canvas rotation with a Canva-style curved two-way SVG cursor.
+
 - Kept the all-pages workspace background continuous while its page stack
   scrolls.
 
