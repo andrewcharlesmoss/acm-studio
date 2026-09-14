@@ -108,6 +108,8 @@
   consistent across page dimensions and leaving objects at the same visual
   scale when the page boundary changes.
 - Resize handles no longer show a blue focus selector.
+- Page thumbnails now share a consistent preview frame, and dragging a page
+  shows the exact insertion position in the page order.
 
 - Replaced the browser resize cursor during canvas rotation with a Canva-style curved two-way SVG cursor.
 

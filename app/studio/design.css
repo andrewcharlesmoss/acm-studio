@@ -25,12 +25,16 @@
 .design-pages-heading > div:last-child button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; cursor: pointer; font-size: 20px; height: 30px; line-height: 1; width: 32px; }
 .design-page-list { align-content: start; display: grid; flex: 1 1 0; gap: 10px; min-height: 0; overflow: auto; }
 .design-page-item { background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 5px; }
+.design-page-item.is-drop-before, .design-page-item.is-drop-after { position: relative; }
+.design-page-item.is-drop-before::before, .design-page-item.is-drop-after::after { background: var(--accent); border-radius: 2px; content: ""; height: 3px; left: 0; position: absolute; right: 0; z-index: 2; }
+.design-page-item.is-drop-before::before { top: -7px; }
+.design-page-item.is-drop-after::after { bottom: -7px; }
 .design-page-item.is-active { background: #fff; border-color: var(--accent); }
 .design-page-select { align-items: center; display: flex; min-height: 24px; }
 .design-page-select input { accent-color: var(--accent); }
 .design-thumbnail-button { background: transparent; border: 0; color: var(--ink); cursor: pointer; display: grid; gap: 6px; padding: 0; text-align: left; width: 100%; }
-.design-thumbnail { background: #dddcd5; border: 1px solid #c8c6be; overflow: hidden; width: 100%; }
-.design-thumbnail .design-page-svg { display: block; height: auto; pointer-events: none; width: 100%; }
+.design-thumbnail { align-items: center; aspect-ratio: 16 / 9; background: #dddcd5; border: 1px solid #c8c6be; display: flex; justify-content: center; overflow: hidden; width: 100%; }
+.design-thumbnail .design-page-svg { display: block; height: 100%; pointer-events: none; width: 100%; }
 .design-thumbnail-button > span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .design-page-item-actions { display: flex; gap: 3px; justify-content: flex-end; margin-top: 4px; }
 .design-page-item-actions button { background: transparent; border: 0; border-radius: 3px; color: var(--muted); cursor: pointer; font-size: 13px; min-height: 26px; min-width: 26px; }

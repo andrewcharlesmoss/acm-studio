@@ -365,6 +365,7 @@ export function DesignEditor() {
   const [exportQuality, setExportQuality] = useState(.92);
   const [zoom, setZoom] = useState(60);
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
+  const [dragOverPage, setDragOverPage] = useState<{ id: string; position: "before" | "after" } | null>(null);
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
   const [pagesCollapsed, setPagesCollapsed] = useState(false);
   const [leftPaneTab, setLeftPaneTab] = useState<"pages" | "layers">("pages");
@@ -382,6 +383,7 @@ export function DesignEditor() {
   const svgRef = useRef<SVGSVGElement>(null);
   const interactionRef = useRef<Interaction | null>(null);
   const pageResizeRef = useRef<PageResizeInteraction | null>(null);
+  const pageDropPositionRef = useRef<{ id: string; position: "before" | "after" } | null>(null);
   const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
   const canvasScrollRef = useRef<HTMLDivElement>(null);
   const panRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
@@ -403,6 +405,29 @@ export function DesignEditor() {
     setSelectedIds(ids);
     setSelectedId(ids[0] ?? null);
   }
+
+  useEffect(() => {
+    const panel = document.getElementById("design-pages-tabpanel");
+    if (!panel) return;
+    const clearDropGuide = () => {
+      panel.querySelectorAll(".is-drop-before, .is-drop-after").forEach((item) => item.classList.remove("is-drop-before", "is-drop-after"));
+      pageDropPositionRef.current = null;
+    };
+    const handleDragOver = (event: globalThis.DragEvent) => {
+      const item = (event.target as HTMLElement).closest<HTMLElement>(".design-page-item");
+      if (!item) return;
+      const index = Array.from(panel.querySelectorAll(".design-page-item")).indexOf(item);
+      const page = design?.pages[index];
+      if (!page) return;
+      const position = event.clientY < item.getBoundingClientRect().top + item.getBoundingClientRect().height / 2 ? "before" : "after";
+      clearDropGuide();
+      item.classList.add(`is-drop-${position}`);
+      pageDropPositionRef.current = { id: page.id, position };
+    };
+    panel.addEventListener("dragover", handleDragOver);
+    panel.addEventListener("dragleave", clearDropGuide);
+    return () => { panel.removeEventListener("dragover", handleDragOver); panel.removeEventListener("dragleave", clearDropGuide); clearDropGuide(); };
+  }, [design?.pages]);
 
   useEffect(() => {
     let mounted = true;
@@ -944,12 +969,16 @@ export function DesignEditor() {
     updateDesign({ ...design, pages });
   }
 
-  function reorderPage(sourceId: string, targetId: string) {
+  function reorderPage(sourceId: string, targetId: string, position: "before" | "after" = "after") {
     if (!design || sourceId === targetId) return;
+    const dropPosition = pageDropPositionRef.current?.id === targetId ? pageDropPositionRef.current.position : position;
     const sourceIndex = design.pages.findIndex((page) => page.id === sourceId);
     const targetIndex = design.pages.findIndex((page) => page.id === targetId);
     if (sourceIndex < 0 || targetIndex < 0) return;
-    const pages = [...design.pages]; const [source] = pages.splice(sourceIndex, 1); pages.splice(targetIndex, 0, source);
+    const pages = [...design.pages]; const [source] = pages.splice(sourceIndex, 1);
+    const adjustedTarget = pages.findIndex((page) => page.id === targetId);
+    pages.splice(Math.max(0, adjustedTarget + (dropPosition === "after" ? 1 : 0)), 0, source);
+    pageDropPositionRef.current = null;
     updateDesign({ ...design, pages });
   }
 
