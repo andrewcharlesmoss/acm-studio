@@ -95,6 +95,8 @@
   object's rotated axes and keeps the opposite corner anchored.
 - The rotation button uses taller, finer curved SVG arrows to match the
   requested Canva reference.
+- Rotation readouts now use signed angles, so counter-clockwise turns display
+  negative values like Canva.
 
 - Replaced the browser resize cursor during canvas rotation with a Canva-style curved two-way SVG cursor.
 

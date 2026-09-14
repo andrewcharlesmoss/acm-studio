@@ -2,6 +2,11 @@ import { DESIGN_MAX_DIMENSION, type DesignObject } from "./design-model.ts";
 
 export type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 
+export function formatRotationAngle(rotation: number) {
+  const normalised = ((Math.round(rotation) % 360) + 360) % 360;
+  return `${normalised > 180 ? normalised - 360 : normalised}°`;
+}
+
 // Pointer deltas arrive in page coordinates; dimensions belong to the rotated
 // object's local axes. Move its centre so the opposite corner stays anchored.
 // Allow page-edge overflow, as rotation already does: page-axis clamping would

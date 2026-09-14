@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
-import { resizeRotatedObject, rotationCursorCss } from "./design-transform";
+import { formatRotationAngle, resizeRotatedObject, rotationCursorCss } from "./design-transform";
 import { addMediaFiles, getMediaAsset, listMediaLibrary, replaceMediaAssetContent, type MediaAsset } from "./media-store";
 import { studioWriteOwnership, ownershipMessage, type OwnershipState } from "./write-ownership";
 import {
@@ -44,7 +44,7 @@ const toolIcons: Record<Tool, StudioIconName | "seen"> = { select: "drag-handle"
 const ZOOM_OPTIONS = [25, 50, 60, 75, 100, 120, 150, 200, 300];
 
 function rotationLabel(rotation: number) {
-  return `${((Math.round(rotation) % 360) + 360) % 360}°`;
+  return formatRotationAngle(rotation);
 }
 
 function rotationBadgePoint(object: DesignObject, cursor: { x: number; y: number } | null, controlScale: number) {

@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resizeRotatedObject, rotationCursorCss } from "../app/studio/design-transform.ts";
+import { formatRotationAngle, resizeRotatedObject, rotationCursorCss } from "../app/studio/design-transform.ts";
+
+test("rotation readout uses Canva-style signed angles", () => {
+  assert.equal(formatRotationAngle(0), "0°");
+  assert.equal(formatRotationAngle(20), "20°");
+  assert.equal(formatRotationAngle(223), "-137°");
+  assert.equal(formatRotationAngle(340), "-20°");
+  assert.equal(formatRotationAngle(180), "180°");
+});
 
 const base = { id: "image", type: "image", assetId: "fixture", x: 400, y: 300, width: 200, height: 100, rotation: 0, opacity: 1 };
 test("degenerate and extreme proportions remain finite and bounded", () => {
