@@ -88,6 +88,8 @@
 
 ### Changed
 
+- Use a four-way move cursor while pressing and dragging a selected canvas
+  object.
 - Matched corner and arrow endpoint resize handles to Canva’s smaller screen
   size while retaining zoom-independent rendering.
 

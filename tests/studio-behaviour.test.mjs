@@ -483,6 +483,12 @@ test("design resize cursors follow the selected object's rotation", () => {
   assert.match(editor, /const axis = \(\(handleAngles\[handle\] \+ rotation\) % 180 \+ 180\) % 180/);
 });
 
+test("design objects use a four-way cursor while moving", () => {
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(css, /\.design-page-svg\.is-select-mode \.design-object:active \{ cursor: move; \}/);
+  assert.match(css, /\.design-page-svg\.is-select-mode \.design-object\.is-locked:active \{ cursor: default; \}/);
+});
+
 test("design canvas controls keep a constant screen size as zoom changes", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /const controlScale = 100 \/ Math\.max\(1, zoom\)/);
