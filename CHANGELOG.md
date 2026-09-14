@@ -88,6 +88,9 @@
 
 ### Changed
 
+- Refined the rotation glyph to use two opposing curved arrows matching the
+  Canva-style reference interaction.
+
 - Rounded the angle badge and refined rotation feedback with a purple hover
   state, a two-way rotation cursor and a hidden handle while rotating.
 

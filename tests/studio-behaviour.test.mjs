@@ -447,7 +447,7 @@ test("design rotation handle uses one dedicated SVG glyph", () => {
   assert.doesNotMatch(editor, /design-rotate-connector/);
   assert.doesNotMatch(editor, /<StudioIcon name="undo" size=\{13\}.*<StudioIcon name="redo" size=\{13\}/);
   assert.match(icons, /case "rotate": return <svg/);
-  assert.match(icons, /M6\.5 10a5\.8 5\.8 0 0 1 10-3\.5/);
+  assert.match(icons, /M8\.5 5\.5a6\.5 6\.5 0 0 0 0 13/);
 });
 
 test("design rotation control hides during drag and keeps the rotation cursor", () => {
