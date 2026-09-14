@@ -88,6 +88,9 @@
 
 ### Changed
 
+- Matched corner and arrow endpoint resize handles to Canva’s smaller screen
+  size while retaining zoom-independent rendering.
+
 - Kept design undo and redo shortcuts active after focusing page and layer
   buttons while preserving native editing behaviour in fields.
 
