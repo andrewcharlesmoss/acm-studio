@@ -79,11 +79,15 @@
 .design-endpoint-handle { stroke: #cc1818; stroke-width: 2; cursor: nwse-resize; }
 .design-resize-handle.handle-ne, .design-resize-handle.handle-sw { cursor: nesw-resize; }
 .design-resize-handle.handle-nw, .design-resize-handle.handle-se { cursor: nwse-resize; }
-.design-resize-handle:focus-visible, .design-endpoint-handle:focus-visible, .design-rotate-handle:focus-visible { outline: none; stroke: #284aa9; stroke-width: 3; filter: drop-shadow(0 0 2px #fff); }
+.design-resize-handle:focus-visible, .design-endpoint-handle:focus-visible { outline: none; stroke: #284aa9; stroke-width: 3; filter: drop-shadow(0 0 2px #fff); }
 .design-endpoint-handle { cursor: crosshair; }
-.design-rotate-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: grab; filter: drop-shadow(0 1px 2px #17191c40); }
+.design-rotate-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: ew-resize; filter: drop-shadow(0 1px 2px #17191c40); }
+.design-rotate-handle:hover { fill: #8b3dff !important; stroke: #8b3dff; }
+.design-rotate-handle:focus { outline: none !important; }
+.design-rotate-handle:focus-visible { outline: none !important; stroke: #8b3dff; stroke-width: 2.5; filter: drop-shadow(0 0 2px #fff); }
 .design-rotate-icon { color: #17191c; }
-.design-rotate-handle:active { cursor: grabbing; }
+.design-rotate-handle:active { cursor: ew-resize; }
+.design-page-svg.is-rotating, .design-page-svg.is-rotating * { cursor: ew-resize !important; }
 .design-rotation-badge rect { fill: #17191c; }
 .design-rotation-badge text { fill: #fff; font-family: var(--studio-ui-font, system-ui, sans-serif); font-size: 13px; font-weight: 650; }
 .design-marquee { fill: #cc181822; stroke: #cc1818; stroke-dasharray: 5 4; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; }

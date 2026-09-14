@@ -88,6 +88,9 @@
 
 ### Changed
 
+- Rounded the angle badge and refined rotation feedback with a purple hover
+  state, a two-way rotation cursor and a hidden handle while rotating.
+
 - Removed the rotation-handle connector, enlarged its fixed-size circular
   control and replaced the glyph with a clearer two-arrow SVG.
 

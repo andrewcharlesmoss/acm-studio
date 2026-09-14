@@ -427,7 +427,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.doesNotMatch(editor, /design-selection-box/);
   assert.doesNotMatch(css, /design-selection-box/);
-  assert.doesNotMatch(css, /#8b3dff/);
+  assert.match(css, /\.design-rotate-handle:hover \{ fill: #8b3dff !important/);
   assert.match(css, /\.design-resize-handle, \.design-endpoint-handle, \.design-rotate-handle \{ fill: #fff !important/);
   assert.match(css, /\.design-resize-handle \{ stroke: #aeb3bf/);
 });
@@ -448,6 +448,19 @@ test("design rotation handle uses one dedicated SVG glyph", () => {
   assert.doesNotMatch(editor, /<StudioIcon name="undo" size=\{13\}.*<StudioIcon name="redo" size=\{13\}/);
   assert.match(icons, /case "rotate": return <svg/);
   assert.match(icons, /M6\.5 10a5\.8 5\.8 0 0 1 10-3\.5/);
+});
+
+test("design rotation control hides during drag and keeps the rotation cursor", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(editor, /const \[isRotating, setIsRotating\] = useState\(false\)/);
+  assert.match(editor, /!isRotating \? <><circle role="button"/);
+  assert.match(editor, /setIsRotating\(true\)/);
+  assert.match(editor, /setIsRotating\(false\)/);
+  assert.match(css, /\.design-rotate-handle \{[^}]*cursor: ew-resize/);
+  assert.match(css, /\.design-rotate-handle:focus-visible \{ outline: none !important; stroke: #8b3dff/);
+  assert.match(css, /\.design-page-svg\.is-rotating, \.design-page-svg\.is-rotating \* \{ cursor: ew-resize !important; \}/);
+  assert.match(editor, /rx=\{7 \* controlScale\}/);
 });
 
 test("design resize cursors follow the selected object's rotation", () => {

@@ -260,8 +260,9 @@ function resizeArrowEndpoint(object: DesignArrowObject, endpoint: "start" | "end
   return { ...object, x, y, width, height, rotation: 0, start: { x: start.x - x, y: start.y - y }, end: { x: end.x - x, y: end.y - y } };
 }
 
-function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], tool = "select", zoom = 100, onCanvasPointerDown, onObjectPointerDown, onResizePointerDown, onRotatePointerDown, onArrowEndpointPointerDown, onResizeKeyDown, onRotateKeyDown, onArrowEndpointKeyDown, svgRef }: {
+function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], tool = "select", zoom = 100, isRotating = false, onCanvasPointerDown, onObjectPointerDown, onResizePointerDown, onRotatePointerDown, onArrowEndpointPointerDown, onResizeKeyDown, onRotateKeyDown, onArrowEndpointKeyDown, svgRef }: {
   page: DesignPage; assets: DesignAsset[]; selectedIds?: string[]; selectionBox?: { x: number; y: number; width: number; height: number } | null; guides?: Guide[]; zoom?: number;
+  isRotating?: boolean;
   tool?: Tool;
   onCanvasPointerDown: (event: PointerEvent<SVGSVGElement>) => void;
   onObjectPointerDown: (event: PointerEvent<SVGGElement>, object: DesignObject) => void;
@@ -280,7 +281,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
     { handle: "se", label: "Resize selected object from bottom right" },
     { handle: "sw", label: "Resize selected object from bottom left" },
   ];
-  return <svg ref={svgRef} className={`design-page-svg${tool === "select" ? " is-select-mode" : ""}`} viewBox={`0 0 ${page.width} ${page.height}`} role="img" aria-label={page.name} onPointerDown={onCanvasPointerDown}>
+  return <svg ref={svgRef} className={`design-page-svg${tool === "select" ? " is-select-mode" : ""}${isRotating ? " is-rotating" : ""}`} viewBox={`0 0 ${page.width} ${page.height}`} role="img" aria-label={page.name} onPointerDown={onCanvasPointerDown}>
     <defs><pattern id={`checker-${page.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#f7f6f2" /><rect width="10" height="10" fill="#e9e7df" /><rect x="10" y="10" width="10" height="10" fill="#e9e7df" /></pattern></defs>
     <rect data-canvas-background="true" width={page.width} height={page.height} fill={page.background.kind === "transparent" ? `url(#checker-${page.id})` : page.background.colour} />
     {guides.map((guide) => guide.axis === "x" ? <line key={`guide-x-${guide.position}`} className="design-guide" x1={guide.position} x2={guide.position} y1="0" y2={page.height} /> : <line key={`guide-y-${guide.position}`} className="design-guide" x1="0" x2={page.width} y1={guide.position} y2={guide.position} />)}
@@ -298,9 +299,9 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
           const className = `design-resize-handle handle-${handle}`;
           return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} style={{ cursor: resizeCursor(handle, object.rotation) }} cx={cx} cy={cy} r={12 * controlScale} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
         })}
-        <circle role="button" tabIndex={0} aria-label={`Rotate selected object (${rotationLabel(object.rotation)})`} className="design-rotate-handle" cx={object.width / 2} cy={object.height + 34 * controlScale} r={18 * controlScale} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
-        <g className="design-rotate-icon" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 34 * controlScale})`} pointerEvents="none"><StudioIcon name="rotate" size={28 * controlScale} x={object.width / 2 - 14 * controlScale} y={object.height + 20 * controlScale} /></g>
-        <g className="design-rotation-badge" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 90 * controlScale})`} pointerEvents="none"><rect x={object.width / 2 - 25 * controlScale} y={object.height + 75 * controlScale} width={50 * controlScale} height={30 * controlScale} rx={2 * controlScale} /><text x={object.width / 2} y={object.height + 95 * controlScale} style={{ fontSize: `${13 * controlScale}px` }} textAnchor="middle">{rotationLabel(object.rotation)}</text></g>
+        {!isRotating ? <><circle role="button" tabIndex={0} aria-label={`Rotate selected object (${rotationLabel(object.rotation)})`} className="design-rotate-handle" cx={object.width / 2} cy={object.height + 34 * controlScale} r={18 * controlScale} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
+          <g className="design-rotate-icon" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 34 * controlScale})`} pointerEvents="none"><StudioIcon name="rotate" size={28 * controlScale} x={object.width / 2 - 14 * controlScale} y={object.height + 20 * controlScale} /></g></> : null}
+        <g className="design-rotation-badge" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 90 * controlScale})`} pointerEvents="none"><rect x={object.width / 2 - 25 * controlScale} y={object.height + 75 * controlScale} width={50 * controlScale} height={30 * controlScale} rx={7 * controlScale} /><text x={object.width / 2} y={object.height + 95 * controlScale} style={{ fontSize: `${13 * controlScale}px` }} textAnchor="middle">{rotationLabel(object.rotation)}</text></g>
       </> : null}
       {selectedIds.includes(object.id) && object.type === "arrow" ? <><circle role="button" tabIndex={0} aria-label="Resize arrow from start point" className="design-endpoint-handle" cx={object.start?.x ?? 0} cy={object.start?.y ?? object.height} r={7 * controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /><circle role="button" tabIndex={0} aria-label="Resize arrow from end point" className="design-endpoint-handle" cx={object.end?.x ?? object.width} cy={object.end?.y ?? 0} r={7 * controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /></> : null}
     </g>)}
@@ -350,6 +351,7 @@ export function DesignEditor() {
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
   const [pagesCollapsed, setPagesCollapsed] = useState(false);
   const [allPagesVisible, setAllPagesVisible] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
   const [spaceDown, setSpaceDown] = useState(false);
   const [guides, setGuides] = useState<Guide[]>([]);
   const [snapEnabled, setSnapEnabled] = useState(true);
@@ -516,7 +518,7 @@ export function DesignEditor() {
       else if (event.key === "Escape") {
         const interaction = interactionRef.current;
         if (interaction?.mode === "draw") setDesign(interaction.base);
-        interactionRef.current = null; selectionStartRef.current = null; panRef.current = null; setSelectionBox(null); setGuides([]); selectObjects([]); setShowMedia(false); setTool("select");
+        interactionRef.current = null; selectionStartRef.current = null; panRef.current = null; setIsRotating(false); setSelectionBox(null); setGuides([]); selectObjects([]); setShowMedia(false); setTool("select");
       }
     }
     window.addEventListener("keydown", handleKey); return () => window.removeEventListener("keydown", handleKey);
@@ -647,6 +649,7 @@ export function DesignEditor() {
     if (!writable || object.locked || !design) return;
     const point = getPoint(event); const centreX = object.x + object.width / 2; const centreY = object.y + object.height / 2;
     interactionRef.current = { mode: "rotate", id: object.id, startX: point.x, startY: point.y, startAngle: Math.atan2(point.y - centreY, point.x - centreX), original: cloneDesign(object), base: cloneDesign(design) };
+    setIsRotating(true);
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
   }
 
@@ -706,8 +709,9 @@ export function DesignEditor() {
       selectionStartRef.current = null; setSelectionBox(null); return;
     }
     const interaction = interactionRef.current;
-    if (!interaction || !design) return;
+    if (!interaction || !design) { setIsRotating(false); return; }
     interactionRef.current = null;
+    setIsRotating(false);
     setGuides([]);
     let current = cloneDesign(design);
     if (interaction.mode === "draw" && activePage) {
@@ -1078,9 +1082,9 @@ export function DesignEditor() {
             const selectInactivePage = (event: PointerEvent<SVGElement>) => { event.stopPropagation(); selectPage(page.id); };
             return <article className={`design-all-page${isActive ? " is-active" : ""}`} key={page.id} aria-label={`Page ${index + 1}: ${page.name}`}>
               <div className="design-all-page-heading"><strong>{index + 1}. {page.name}</strong>{isActive ? <span>Editing</span> : <button type="button" onClick={() => selectPage(page.id)}>Edit page</button>}</div>
-              <div className="design-canvas-frame" style={{ width: `${zoom}%` }}><PageSvg tool={isActive ? tool : "select"} zoom={zoom} page={page} assets={design.assets} selectedIds={isActive ? selectedIds : []} guides={isActive ? guides : []} onCanvasPointerDown={isActive ? onCanvasPointerDown : selectInactivePage} onObjectPointerDown={isActive ? onObjectPointerDown : (event) => selectInactivePage(event)} onResizePointerDown={isActive ? onResizePointerDown : () => undefined} onRotatePointerDown={isActive ? onRotatePointerDown : () => undefined} onArrowEndpointPointerDown={isActive ? onArrowEndpointPointerDown : () => undefined} onResizeKeyDown={isActive ? onResizeKeyDown : () => undefined} onRotateKeyDown={isActive ? onRotateKeyDown : () => undefined} onArrowEndpointKeyDown={isActive ? onArrowEndpointKeyDown : () => undefined} selectionBox={isActive ? selectionBox : null} svgRef={isActive ? svgRef : undefined} /></div>
+              <div className="design-canvas-frame" style={{ width: `${zoom}%` }}><PageSvg isRotating={isActive && isRotating} tool={isActive ? tool : "select"} zoom={zoom} page={page} assets={design.assets} selectedIds={isActive ? selectedIds : []} guides={isActive ? guides : []} onCanvasPointerDown={isActive ? onCanvasPointerDown : selectInactivePage} onObjectPointerDown={isActive ? onObjectPointerDown : (event) => selectInactivePage(event)} onResizePointerDown={isActive ? onResizePointerDown : () => undefined} onRotatePointerDown={isActive ? onRotatePointerDown : () => undefined} onArrowEndpointPointerDown={isActive ? onArrowEndpointPointerDown : () => undefined} onResizeKeyDown={isActive ? onResizeKeyDown : () => undefined} onRotateKeyDown={isActive ? onRotateKeyDown : () => undefined} onArrowEndpointKeyDown={isActive ? onArrowEndpointKeyDown : () => undefined} selectionBox={isActive ? selectionBox : null} svgRef={isActive ? svgRef : undefined} /></div>
             </article>;
-          })}</div> : <div className="design-canvas-frame" style={{ width: `${zoom}%` }}><PageSvg tool={tool} zoom={zoom} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onResizeKeyDown={onResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div>}
+          })}</div> : <div className="design-canvas-frame" style={{ width: `${zoom}%` }}><PageSvg isRotating={isRotating} tool={tool} zoom={zoom} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onResizeKeyDown={onResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div>}
         </div><p className="design-canvas-help">Choose a tool, then drag on the canvas to draw it. Images keep their proportions by default; hold Shift to stretch them. Handles stay the same size as you zoom. Arrows resize through their two endpoints instead of corner handles. Option/Alt resizes from the centre. Arrow keys resize focused handles.</p></div>
       </section>
       <aside className="design-inspector" aria-label="Design properties"><div className="design-inspector-section"><span className="design-inspector-label">Page</span><label>Name<input value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} /></label><label>Preset<select value="custom" disabled={!writable} onChange={(event) => setPagePreset(event.target.value)}><option value="custom">Custom</option><option value="landscape">1920 × 1080 landscape</option><option value="square">1080 × 1080 square</option><option value="portrait">1080 × 1350 portrait</option></select></label><label>Width<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.width} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, width: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Height<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.height} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, height: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Background<select value={activePage.background.kind} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, kind: event.target.value as "solid" | "transparent" } }))}><option value="solid">Solid</option><option value="transparent">Transparent</option></select></label>{activePage.background.kind === "solid" ? <label>Colour<input type="color" value={activePage.background.colour} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, colour: event.target.value } }))} /></label> : null}</div>{selectedObject ? <div className="design-inspector-section"><span className="design-inspector-label">Selected {toolLabels[selectedObject.type as Tool] ?? selectedObject.type}</span><div className="design-field-grid"><label>X<input type="number" value={Math.round(selectedObject.x)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, x: Number(event.target.value) || 0 }))} /></label><label>Y<input type="number" value={Math.round(selectedObject.y)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, y: Number(event.target.value) || 0 }))} /></label><label>Width<input type="number" min="1" value={Math.round(selectedObject.width)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, width: Math.max(1, Number(event.target.value) || 1) }))} /></label><label>Height<input type="number" min="1" value={Math.round(selectedObject.height)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, height: Math.max(1, Number(event.target.value) || 1) }))} /></label></div><label>Opacity<input type="range" min="0" max="1" step=".05" value={selectedObject.opacity} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, opacity: Number(event.target.value) }))} /></label><PositionControls writable={writable} selectedCount={selectedIds.length} canAlign={activePage.objects.some((object) => selectedIds.includes(object.id) && !object.locked)} onAlignToPage={alignSelectedToPage} />{selectedObject.type === "image" ? <div className="design-image-tools">
