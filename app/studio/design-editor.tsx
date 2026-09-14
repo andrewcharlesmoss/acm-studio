@@ -206,10 +206,10 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
   tool?: Tool;
   onCanvasPointerDown: (event: PointerEvent<SVGSVGElement>) => void;
   onObjectPointerDown: (event: PointerEvent<SVGGElement>, object: DesignObject) => void;
-  onResizePointerDown: (event: PointerEvent<SVGRectElement>, object: DesignObject, handle: ResizeHandle) => void;
+  onResizePointerDown: (event: PointerEvent<SVGElement>, object: DesignObject, handle: ResizeHandle) => void;
   onRotatePointerDown: (event: PointerEvent<SVGCircleElement>, object: DesignObject) => void;
   onArrowEndpointPointerDown: (event: PointerEvent<SVGCircleElement>, object: DesignArrowObject, endpoint: "start" | "end") => void;
-  onResizeKeyDown?: (event: ReactKeyboardEvent<SVGRectElement>, object: DesignObject, handle: ResizeHandle) => void;
+  onResizeKeyDown?: (event: ReactKeyboardEvent<SVGElement>, object: DesignObject, handle: ResizeHandle) => void;
   onRotateKeyDown?: (event: ReactKeyboardEvent<SVGCircleElement>, object: DesignObject) => void;
   onArrowEndpointKeyDown?: (event: ReactKeyboardEvent<SVGCircleElement>, object: DesignArrowObject, endpoint: "start" | "end") => void;
   svgRef?: Ref<SVGSVGElement>;
@@ -235,7 +235,17 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
       {(object.type === "rectangle" || object.type === "highlight" || object.type === "redaction") ? <rect width={object.width} height={object.height} rx={object.radius ?? 0} fill={object.type === "redaction" ? "#000000" : object.fill} stroke={object.stroke} strokeWidth={object.strokeWidth} /> : null}
       {object.type === "ellipse" ? <ellipse cx={object.width / 2} cy={object.height / 2} rx={object.width / 2} ry={object.height / 2} fill={object.fill} stroke={object.stroke} strokeWidth={object.strokeWidth} /> : null}
       {(object.type === "text" || object.type === "step") ? <>{object.type === "step" ? <circle cx={object.width / 2} cy={object.height / 2} r={Math.min(object.width, object.height) / 2} fill={object.fill ?? "#cc1818"} /> : null}<text x={object.align === "center" ? object.width / 2 : object.align === "right" ? object.width : 0} y={object.fontSize} fill={object.colour} fontFamily={object.fontFamily} fontSize={object.fontSize} fontWeight={object.fontWeight} textAnchor={object.align === "center" ? "middle" : object.align === "right" ? "end" : "start"}>{object.text}</text></> : null}
-      {selectedIds.includes(object.id) ? <><rect className="design-selection-box" width={object.width} height={object.height} />{resizeHandles.map(({ handle, label }) => <rect key={handle} role="button" tabIndex={0} aria-label={label} className={`design-resize-handle handle-${handle}`} x={handle.includes("e") ? object.width - 5 : handle.includes("w") ? -5 : object.width / 2 - 5} y={handle.includes("s") ? object.height - 5 : handle.includes("n") ? -5 : object.height / 2 - 5} width={10} height={10} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />)}<circle role="button" tabIndex={0} aria-label="Rotate selected object" className="design-rotate-handle" cx={object.width / 2} cy={-22} r={6} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} /></> : null}
+      {selectedIds.includes(object.id) ? <>
+        <rect className="design-selection-box" width={object.width} height={object.height} />
+        {resizeHandles.map(({ handle, label }) => {
+          const corner = handle.length === 2;
+          const cx = handle.includes("e") ? object.width : handle.includes("w") ? 0 : object.width / 2;
+          const cy = handle.includes("s") ? object.height : handle.includes("n") ? 0 : object.height / 2;
+          const className = `design-resize-handle handle-${handle}`;
+          return corner ? <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} cx={cx} cy={cy} r={6} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} /> : <rect key={handle} role="button" tabIndex={0} aria-label={label} className={className} x={cx - 5} y={cy - 5} width={10} height={10} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
+        })}
+        <circle role="button" tabIndex={0} aria-label="Rotate selected object" className="design-rotate-handle" cx={object.width / 2} cy={-22} r={6} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
+      </> : null}
       {selectedIds.includes(object.id) && object.type === "arrow" ? <><circle role="button" tabIndex={0} aria-label="Move arrow start point" className="design-endpoint-handle" cx={object.start?.x ?? 0} cy={object.start?.y ?? object.height} r="7" onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /><circle role="button" tabIndex={0} aria-label="Move arrow end point" className="design-endpoint-handle" cx={object.end?.x ?? object.width} cy={object.end?.y ?? 0} r="7" onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /></> : null}
     </g>)}
     {selectionBox ? <rect className="design-marquee" x={selectionBox.x} y={selectionBox.y} width={selectionBox.width} height={selectionBox.height} /> : null}
@@ -498,7 +508,7 @@ export function DesignEditor() {
     };
   }
 
-  function onResizeKeyDown(event: ReactKeyboardEvent<SVGRectElement>, object: DesignObject, handle: ResizeHandle) {
+  function onResizeKeyDown(event: ReactKeyboardEvent<SVGElement>, object: DesignObject, handle: ResizeHandle) {
     if (!writable || object.locked || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
     const amount = event.shiftKey ? 10 : 1;
@@ -527,7 +537,7 @@ export function DesignEditor() {
     }) }));
   }
 
-  function onResizePointerDown(event: PointerEvent<SVGRectElement>, object: DesignObject, handle: ResizeHandle) {
+  function onResizePointerDown(event: PointerEvent<SVGElement>, object: DesignObject, handle: ResizeHandle) {
     event.stopPropagation();
     if (!writable || object.locked || !design) return;
     const point = getPoint(event);
