@@ -496,6 +496,8 @@ test("design objects expose corner and side-centre handles for direct resizing",
   assert.match(editor, /\{ handle: "w", label: "Resize page from left middle" \}/);
   assert.match(editor, /const widthDelta = handle\.includes\("e"\) \? dx : handle\.includes\("w"\) \? -dx : 0/);
   assert.match(editor, /const heightDelta = handle\.includes\("s"\) \? dy : handle\.includes\("n"\) \? -dy : 0/);
+  assert.match(editor, /cx=\{handle\.includes\("e"\) \? page\.width : handle\.includes\("w"\) \? 0 : page\.width \/ 2\}/);
+  assert.match(editor, /cy=\{handle\.includes\("s"\) \? page\.height : handle\.includes\("n"\) \? 0 : page\.height \/ 2\}/);
   assert.match(editor, /aria-label={label} className={`design-resize-handle handle-\$\{handle\}`}/);
   assert.match(editor, /function onPageResizePointerDown\(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle\)/);
   assert.match(editor, /function onPageResizeKeyDown\(event: ReactKeyboardEvent<SVGCircleElement>, handle: ResizeHandle\)/);
