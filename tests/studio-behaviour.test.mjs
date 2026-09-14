@@ -441,6 +441,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
   assert.match(editor, /event\.stopPropagation\(\); selectPage\(page\.id\)/);
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
+  assert.match(editor, /\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(css, /\.design-page-list \{ align-content: start;/);
   assert.doesNotMatch(editor, /design-selection-box/);
   assert.doesNotMatch(css, /design-selection-box/);
