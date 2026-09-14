@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added corner handles for direct page resizing in the design canvas.
+
 - Added a local design canvas at `/studio/designs` with versioned editable
   designs, named pages, page duplication and reordering, image input from files
   and Studio media, a horizontal annotation toolbar, marquee and multi-object

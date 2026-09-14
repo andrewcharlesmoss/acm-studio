@@ -466,6 +466,17 @@ test("design image resizing keeps proportions by default and uses Shift for free
   assert.match(editor, /Images keep their proportions by default; hold Shift to stretch them/);
 });
 
+test("design pages expose corner handles for direct resizing", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /function resizePage\(page: DesignPage, handle: ResizeHandle, dx: number, dy: number, keepRatio: boolean\)/);
+  assert.match(editor, /const pageResizeRef = useRef<PageResizeInteraction \| null>\(null\)/);
+  assert.match(editor, /showPageResizeHandles={tool === "select" && selectedIds.length === 0}/);
+  assert.match(editor, /aria-label={label} className={`design-resize-handle handle-\$\{handle\}`}/);
+  assert.match(editor, /function onPageResizePointerDown\(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle\)/);
+  assert.match(editor, /function onPageResizeKeyDown\(event: ReactKeyboardEvent<SVGCircleElement>, handle: ResizeHandle\)/);
+  assert.match(editor, /Drag a page corner to resize the page/);
+});
+
 test("design rotation handle uses one dedicated SVG glyph", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const icons = readFileSync(new URL("../app/studio/studio-icons.tsx", import.meta.url), "utf8");
