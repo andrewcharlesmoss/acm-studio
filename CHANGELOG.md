@@ -88,6 +88,9 @@
 
 ### Changed
 
+- Kept the all-pages workspace background continuous while its page stack
+  scrolls.
+
 - Stabilised all-pages headings so selecting a page does not shift the page
   stack, and reduced the canvas help footer height.
 

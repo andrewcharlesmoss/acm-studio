@@ -447,6 +447,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-page-list \{ align-content: start;/);
   assert.match(css, /\.design-all-page-heading \{ align-items: center; box-sizing: border-box; display: flex; justify-content: space-between; margin-inline: auto; min-height: 28px; padding: 0 4px; \}/);
   assert.match(css, /\.design-canvas-help \{ color: var\(--muted\); font-size: 12px; line-height: 1\.3; margin: 0; padding: 4px 18px 8px; \}/);
+  assert.match(css, /\.design-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: auto minmax\(0, 1fr\); min-height: 0; min-width: 0; \}/);
+  assert.match(css, /\.design-canvas-area \{ display: grid; grid-template-rows: auto minmax\(0, 1fr\) auto; min-height: 0; min-width: 0; \}/);
   assert.doesNotMatch(editor, /design-selection-box/);
   assert.doesNotMatch(css, /design-selection-box/);
   assert.match(css, /\.design-rotate-handle:hover \{ fill: #8b3dff !important/);
