@@ -39,6 +39,10 @@ const annotationTools: Tool[] = ["arrow", "rectangle", "ellipse", "text", "step"
 const toolIcons: Record<Tool, StudioIconName | "seen"> = { select: "drag-handle", image: "image", arrow: "arrow-right", rectangle: "block", ellipse: "seen", text: "format-bold", step: "list", highlight: "button", redaction: "block" };
 const ZOOM_OPTIONS = [25, 50, 60, 75, 100, 120, 150, 200, 300];
 
+function rotationLabel(rotation: number) {
+  return `${((Math.round(rotation) % 360) + 360) % 360}°`;
+}
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -241,8 +245,10 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
           const className = `design-resize-handle handle-${handle}`;
           return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} cx={cx} cy={cy} r={12} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
         })}
-        <circle role="button" tabIndex={0} aria-label="Rotate selected object" className="design-rotate-handle" cx={object.width / 2} cy={object.height + 30} r={12} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
-        <StudioIcon name="redo" size={18} className="design-rotate-icon" x={object.width / 2 - 9} y={object.height + 21} pointerEvents="none" />
+        <line className="design-rotate-connector" x1={object.width / 2} y1={object.height} x2={object.width / 2} y2={object.height + 16} />
+        <circle role="button" tabIndex={0} aria-label={`Rotate selected object (${rotationLabel(object.rotation)})`} className="design-rotate-handle" cx={object.width / 2} cy={object.height + 30} r={14} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
+        <g className="design-rotate-icon" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 30})`} pointerEvents="none"><StudioIcon name="undo" size={13} x={object.width / 2 - 6.5} y={object.height + 23.5} /><StudioIcon name="redo" size={13} x={object.width / 2 - 6.5} y={object.height + 23.5} /></g>
+        <g className="design-rotation-badge" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 68})`} pointerEvents="none"><rect x={object.width / 2 - 28} y={object.height + 56} width="56" height="24" rx="4" /><text x={object.width / 2} y={object.height + 73} textAnchor="middle">{rotationLabel(object.rotation)}</text></g>
       </> : null}
       {selectedIds.includes(object.id) && object.type === "arrow" ? <><circle role="button" tabIndex={0} aria-label="Move arrow start point" className="design-endpoint-handle" cx={object.start?.x ?? 0} cy={object.start?.y ?? object.height} r="7" onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /><circle role="button" tabIndex={0} aria-label="Move arrow end point" className="design-endpoint-handle" cx={object.end?.x ?? object.width} cy={object.end?.y ?? 0} r="7" onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /></> : null}
     </g>)}
