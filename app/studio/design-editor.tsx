@@ -19,7 +19,8 @@ type InteractionMode = "move" | "resize" | "rotate" | "arrow-endpoint" | "draw";
 type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 type Interaction = { mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; keepRatio?: boolean; centred?: boolean; endpoint?: "start" | "end"; startAngle?: number; drawTool?: DrawTool };
 type PageResizeInteraction = { handle: ResizeHandle; startClientX: number; startClientY: number; scaleX: number; scaleY: number; originalWidth: number; originalHeight: number; keepRatio: boolean; base: DesignProject };
-type Guide = { axis: "x" | "y"; position: number };
+type Guide = { axis: "x" | "y"; position: number; style: "solid" | "dotted" };
+type SnapTarget = { position: number; style: Guide["style"] };
 type RecentStyles = {
   arrow: Pick<DesignArrowObject, "stroke" | "strokeWidth" | "arrowhead">;
   shape: Pick<DesignShapeObject, "fill" | "stroke" | "strokeWidth" | "radius">;
@@ -325,7 +326,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
   return <svg ref={svgRef} className={`design-page-svg${tool === "select" ? " is-select-mode" : ""}${isRotating ? " is-rotating" : ""}`} viewBox={`0 0 ${page.width} ${page.height}`} role="img" aria-label={page.name} onPointerDown={onCanvasPointerDown}>
     <defs><pattern id={`checker-${page.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#f7f6f2" /><rect width="10" height="10" fill="#e9e7df" /><rect x="10" y="10" width="10" height="10" fill="#e9e7df" /></pattern></defs>
     <rect data-canvas-background="true" width={page.width} height={page.height} fill={page.background.kind === "transparent" ? `url(#checker-${page.id})` : page.background.colour} />
-    {guides.map((guide) => guide.axis === "x" ? <line key={`guide-x-${guide.position}`} className="design-guide" x1={guide.position} x2={guide.position} y1="0" y2={page.height} /> : <line key={`guide-y-${guide.position}`} className="design-guide" x1="0" x2={page.width} y1={guide.position} y2={guide.position} />)}
+    {guides.map((guide) => guide.axis === "x" ? <line key={`guide-x-${guide.position}`} className={`design-guide design-guide-${guide.style}`} x1={guide.position} x2={guide.position} y1="0" y2={page.height} /> : <line key={`guide-y-${guide.position}`} className={`design-guide design-guide-${guide.style}`} x1="0" x2={page.width} y1={guide.position} y2={guide.position} />)}
     {page.objects.map((object) => <g key={object.id} transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`} opacity={object.opacity} className={`design-object${selectedIds.includes(object.id) ? " is-selected" : ""}${object.locked ? " is-locked" : ""}`} onPointerDown={(event) => onObjectPointerDown(event, object)}>
       <rect width={object.width} height={object.height} fill="transparent" pointerEvents="all" onPointerDown={(event) => onObjectPointerDown(event as unknown as PointerEvent<SVGGElement>, object)} />
       {object.type === "image" ? (() => { const asset = assets.find((item) => item.id === object.assetId); if (!asset) return null; const crop = object.crop ?? { x: 0, y: 0, width: 1, height: 1 }; const clipId = `crop-${object.id}`; return <><defs><clipPath id={clipId}><rect width={object.width} height={object.height} /></clipPath></defs><image href={asset.dataUrl} x={-crop.x / crop.width * object.width} y={-crop.y / crop.height * object.height} width={object.width / crop.width} height={object.height / crop.height} preserveAspectRatio="none" clipPath={`url(#${clipId})`} /></>; })() : null}
@@ -643,16 +644,16 @@ export function DesignEditor() {
     if (!activePage || !snapEnabled) return { dx, dy, guides: [] as Guide[] };
     const threshold = 12;
     const others = activePage.objects.filter((item) => item.id !== object.id);
-    const xTargets = [0, activePage.width / 2, activePage.width, ...others.flatMap((item) => [item.x, item.x + item.width / 2, item.x + item.width])];
-    const yTargets = [0, activePage.height / 2, activePage.height, ...others.flatMap((item) => [item.y, item.y + item.height / 2, item.y + item.height])];
+    const xTargets: SnapTarget[] = [{ position: 0, style: "solid" }, { position: activePage.width / 2, style: "solid" }, { position: activePage.width, style: "solid" }, ...others.flatMap((item) => [{ position: item.x, style: "dotted" as const }, { position: item.x + item.width / 2, style: "dotted" as const }, { position: item.x + item.width, style: "dotted" as const }])];
+    const yTargets: SnapTarget[] = [{ position: 0, style: "solid" }, { position: activePage.height / 2, style: "solid" }, { position: activePage.height, style: "solid" }, ...others.flatMap((item) => [{ position: item.y, style: "dotted" as const }, { position: item.y + item.height / 2, style: "dotted" as const }, { position: item.y + item.height, style: "dotted" as const }])];
     const xEdges = [object.x + dx, object.x + dx + object.width / 2, object.x + dx + object.width];
     const yEdges = [object.y + dy, object.y + dy + object.height / 2, object.y + dy + object.height];
-    const nearest = (edges: number[], targets: number[]) => edges.flatMap((edge) => targets.map((target) => ({ distance: Math.abs(target - edge), delta: target - edge, target }))).sort((a, b) => a.distance - b.distance)[0];
+    const nearest = (edges: number[], targets: SnapTarget[]) => edges.flatMap((edge) => targets.map((target) => ({ distance: Math.abs(target.position - edge), delta: target.position - edge, target }))).sort((a, b) => a.distance - b.distance)[0];
     const x = nearest(xEdges, xTargets); const y = nearest(yEdges, yTargets);
     return {
       dx: x && x.distance <= threshold ? dx + x.delta : dx,
       dy: y && y.distance <= threshold ? dy + y.delta : dy,
-      guides: [x && x.distance <= threshold ? { axis: "x" as const, position: x.target } : null, y && y.distance <= threshold ? { axis: "y" as const, position: y.target } : null].filter((guide): guide is Guide => Boolean(guide)),
+      guides: [x && x.distance <= threshold ? { axis: "x" as const, position: x.target.position, style: x.target.style } : null, y && y.distance <= threshold ? { axis: "y" as const, position: y.target.position, style: y.target.style } : null].filter((guide): guide is Guide => Boolean(guide)),
     };
   }
 

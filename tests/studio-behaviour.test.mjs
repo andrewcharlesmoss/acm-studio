@@ -477,6 +477,18 @@ test("design pages expose corner handles for direct resizing", () => {
   assert.match(editor, /Drag a page corner to resize the page/);
 });
 
+test("design snapping uses Canva-style solid page guides and dotted object guides", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(editor, /type Guide = \{ axis: "x" \| "y"; position: number; style: "solid" \| "dotted" \}/);
+  assert.match(editor, /position: activePage\.width \/ 2, style: "solid"/);
+  assert.match(editor, /position: item\.x \+ item\.width \/ 2, style: "dotted"/);
+  assert.match(editor, /className=\{`design-guide design-guide-\$\{guide\.style\}`\}/);
+  assert.match(css, /\.design-guide \{ opacity: \.8; pointer-events: none; stroke: #ff00ff; stroke-width: 2;/);
+  assert.match(css, /\.design-guide-solid \{ stroke-dasharray: none; \}/);
+  assert.match(css, /\.design-guide-dotted \{ stroke-dasharray: 2 4; \}/);
+});
+
 test("design rotation handle uses one dedicated SVG glyph", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const icons = readFileSync(new URL("../app/studio/studio-icons.tsx", import.meta.url), "utf8");

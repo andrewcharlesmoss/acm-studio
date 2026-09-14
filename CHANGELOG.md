@@ -4,6 +4,7 @@
 
 ### Added
 
+- Added Canva-style magenta snapping guides, with solid page guides and dotted object guides.
 - Added corner handles for direct page resizing in the design canvas.
 
 - Added a local design canvas at `/studio/designs` with versioned editable
