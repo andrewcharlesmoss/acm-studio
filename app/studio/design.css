@@ -19,7 +19,7 @@
 .design-pages-heading { align-items: center; display: flex; justify-content: space-between; padding: 0 5px 11px; }
 .design-pages-heading strong { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
 .design-pages-heading button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; cursor: pointer; font-size: 20px; height: 30px; line-height: 1; width: 32px; }
-.design-page-list { display: grid; gap: 10px; min-height: 0; overflow: auto; }
+.design-page-list { display: grid; flex: 1 1 0; gap: 10px; min-height: 0; overflow: auto; }
 .design-pages-heading > div { display: flex; gap: 4px; }
 .design-page-item { background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 5px; }
 .design-page-item.is-active { background: #fff; border-color: var(--accent); }
@@ -58,7 +58,16 @@
 .design-zoom button.is-active { background: #eef2ff; border-color: #8da1e0; color: #284aa9; }
 .design-zoom span { color: var(--muted); font-size: 12px; min-width: 42px; text-align: center; }
 .design-canvas-scroll { align-items: safe center; display: flex; justify-content: safe center; min-height: 0; overflow: auto; padding: 25px; }
+.design-canvas-scroll.is-all-pages { align-items: flex-start; justify-content: flex-start; }
 .design-canvas-frame { box-shadow: 0 12px 34px #17191c1f; flex: 0 0 auto; }
+.design-all-pages { align-items: center; display: flex; flex: 1 0 auto; flex-direction: column; gap: 28px; min-width: 100%; }
+.design-all-page { align-items: flex-start; display: flex; flex: 0 0 auto; flex-direction: column; gap: 8px; min-width: 100%; }
+.design-all-page .design-canvas-frame { margin-inline: auto; }
+.design-all-page-heading { align-items: center; display: flex; justify-content: space-between; max-width: 100%; padding: 0 4px; width: min(100%, 640px); }
+.design-all-page-heading strong { font-size: 13px; }
+.design-all-page-heading span { color: var(--muted); font-size: 12px; }
+.design-all-page-heading button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; color: var(--ink); cursor: pointer; font: inherit; font-size: 12px; padding: 5px 8px; }
+.design-all-page-heading button:hover, .design-all-page-heading button:focus-visible { border-color: var(--accent); color: var(--accent); }
 .design-page-svg { background: #fff; display: block; height: auto; overflow: visible; width: 100%; }
 .design-object { cursor: grab; }
 .design-page-svg.is-select-mode .design-object,
@@ -103,6 +112,9 @@
 .design-object-actions button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; color: var(--ink); cursor: pointer; flex: 1 1 90px; font-size: 12px; padding: 7px; }
 .design-object-actions button:hover:not(:disabled), .design-object-actions button:focus-visible { border-color: var(--accent); color: var(--accent); }
 .design-layers { margin-top: 14px; }
+.design-pages-layers { border-bottom: 1px solid #d2d0c8; border-top: 1px solid #d2d0c8; flex: 0 1 240px; margin: 10px 0 0; max-height: 240px; overflow: auto; padding: 12px 0; }
+.design-pages-layers .design-inspector-label { display: block; margin: 0 5px 9px; }
+.design-pages-layers .design-layer-list { max-height: none; }
 .design-layer-list { display: grid; gap: 5px; max-height: 220px; overflow: auto; }
 .design-layer-list button { align-items: center; background: #fff; border: 1px solid #d7d5cd; border-radius: 5px; color: var(--ink); display: flex; justify-content: space-between; padding: 7px 8px; text-align: left; }
 .design-layer-list button.is-selected { border-color: var(--accent); box-shadow: inset 3px 0 var(--accent); }
@@ -134,9 +146,10 @@
   .design-save-status { display: none; }
   .design-workspace { display: block; }
   .design-workspace.pages-collapsed .design-pages { display: none; }
-  .design-pages { border-bottom: 1px solid #d2d0c8; border-right: 0; max-height: 170px; padding: 8px 10px; }
-  .design-page-list { display: flex; overflow-x: auto; }
+  .design-pages { border-bottom: 1px solid #d2d0c8; border-right: 0; max-height: 420px; padding: 8px 10px; }
+  .design-page-list { display: flex; flex: 0 0 auto; overflow-x: auto; }
   .design-page-item { flex: 0 0 124px; }
+  .design-pages-layers { flex: 0 0 auto; max-height: 180px; }
   .design-page-actions { display: flex; margin-top: 8px; padding-top: 8px; }
   .design-import-label { margin: 0; }
   .design-switcher { display: none; }

@@ -88,6 +88,10 @@
 
 ### Changed
 
+- Moved the active page's Layers list into the left Pages pane and added an
+  All pages view that stacks every page in a scrollable canvas while keeping
+  the active page editable.
+
 - Added Command+0 on macOS and Ctrl+0 on Windows/Linux to reset the design
   canvas zoom to 100%, alongside the existing zoom controls and increment
   shortcuts.

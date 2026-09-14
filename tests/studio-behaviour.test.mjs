@@ -416,6 +416,16 @@ test("design canvas resets zoom with the platform zero shortcut", () => {
   assert.match(editor, /if \(commandOrControl && zoomReset\) \{ event\.preventDefault\(\); setZoom\(100\); \}/);
 });
 
+test("design canvas keeps layers in the left pane and offers an all-pages view", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /aria-label="Design pages and layers"/);
+  assert.match(editor, /<LayerList page=\{activePage\}/);
+  assert.match(editor, /className=\{`design-canvas-scroll\$\{allPagesVisible/);
+  assert.match(editor, /className=\{`design-all-page\$\{isActive/);
+  assert.match(editor, /event\.stopPropagation\(\); selectPage\(page\.id\)/);
+  assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
+});
+
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {
   const read = (name) => readFileSync(new URL(`../app/studio/${name}`, import.meta.url), "utf8");
   const canvas = read("studio-canvas.tsx");
