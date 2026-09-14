@@ -88,6 +88,11 @@
 
 ### Changed
 
+- Made the rotation angle badge follow the pointer during rotation while
+  keeping it read-only and using a normal cursor over the badge.
+
+- Kept page thumbnails at their content height when selecting a page.
+
 - Refined the rotation glyph to use two opposing curved arrows matching the
   Canva-style reference interaction.
 

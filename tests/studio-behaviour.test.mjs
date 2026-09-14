@@ -425,6 +425,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
   assert.match(editor, /event\.stopPropagation\(\); selectPage\(page\.id\)/);
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
+  assert.match(css, /\.design-page-list \{ align-content: start;/);
   assert.doesNotMatch(editor, /design-selection-box/);
   assert.doesNotMatch(css, /design-selection-box/);
   assert.match(css, /\.design-rotate-handle:hover \{ fill: #8b3dff !important/);
@@ -457,9 +458,13 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
   assert.match(editor, /!isRotating \? <><circle role="button"/);
   assert.match(editor, /setIsRotating\(true\)/);
   assert.match(editor, /setIsRotating\(false\)/);
+  assert.match(editor, /function rotationBadgePoint\(/);
+  assert.match(editor, /if \(interaction\.mode === "rotate"\) setRotationCursor\(point\)/);
+  assert.match(editor, /rotationCursor=\{isActive \? rotationCursor : null\}/);
   assert.match(css, /\.design-rotate-handle \{[^}]*cursor: ew-resize/);
   assert.match(css, /\.design-rotate-handle:focus-visible \{ outline: none !important; stroke: #8b3dff/);
   assert.match(css, /\.design-page-svg\.is-rotating, \.design-page-svg\.is-rotating \* \{ cursor: ew-resize !important; \}/);
+  assert.match(css, /\.design-page-svg\.is-rotating \.design-rotation-badge,\n\.design-page-svg\.is-rotating \.design-rotation-badge \* \{ cursor: default !important; \}/);
   assert.match(editor, /rx=\{7 \* controlScale\}/);
 });
 
@@ -484,7 +489,7 @@ test("design canvas controls keep a constant screen size as zoom changes", () =>
 
 test("selected arrows expose endpoint controls instead of corner and rotate controls", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /selectedIds\.includes\(object\.id\) && object\.type !== "arrow" \? <>/);
+  assert.match(editor, /selectedIds\.includes\(object\.id\) && object\.type !== "arrow" \? \(\(\) => \{/);
   assert.match(editor, /selectedIds\.includes\(object\.id\) && object\.type === "arrow" \? <>/);
   assert.match(editor, /aria-label="Resize arrow from start point"/);
   assert.match(editor, /aria-label="Resize arrow from end point"/);
