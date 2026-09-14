@@ -102,6 +102,8 @@
 - The live angle badge now has additional clearance from the rotation pointer.
 - Removed the instructional footer below the design canvas to keep the workspace
   focused on the artwork.
+- Page resize handles now share the exact same size token as object resize
+  handles.
 
 - Replaced the browser resize cursor during canvas rotation with a Canva-style curved two-way SVG cursor.
 

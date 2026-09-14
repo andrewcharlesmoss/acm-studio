@@ -281,6 +281,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
   svgRef?: Ref<SVGSVGElement>;
 }) {
   const controlScale = 100 / Math.max(1, zoom);
+  const resizeHandleRadius = 10 * controlScale;
   const resizeHandles: Array<{ handle: ResizeHandle; label: string }> = [
     { handle: "nw", label: "Resize selected object from top left" },
     { handle: "ne", label: "Resize selected object from top right" },
@@ -311,7 +312,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
           const cx = handle.includes("e") ? object.width : handle.includes("w") ? 0 : object.width / 2;
           const cy = handle.includes("s") ? object.height : handle.includes("n") ? 0 : object.height / 2;
           const className = `design-resize-handle handle-${handle}`;
-          return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} style={{ cursor: resizeCursor(handle, object.rotation) }} cx={cx} cy={cy} r={10 * controlScale} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
+          return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} style={{ cursor: resizeCursor(handle, object.rotation) }} cx={cx} cy={cy} r={resizeHandleRadius} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
         })}
         {!isRotating ? <><circle role="button" tabIndex={0} aria-label={`Rotate selected object (${rotationLabel(object.rotation)})`} className="design-rotate-handle" style={{ "--rotation-cursor": rotationCursorCss(object.rotation) } as CSSProperties} cx={object.width / 2} cy={object.height + 34 * controlScale} r={18 * controlScale} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
           <g className="design-rotate-icon" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 34 * controlScale})`} pointerEvents="none"><StudioIcon name="rotate" size={28 * controlScale} x={object.width / 2 - 14 * controlScale} y={object.height + 20 * controlScale} /></g></> : null}
@@ -320,7 +321,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
       })() : null}
       {selectedIds.includes(object.id) && object.type === "arrow" ? <><circle role="button" tabIndex={0} aria-label="Resize arrow from start point" className="design-endpoint-handle" cx={object.start?.x ?? 0} cy={object.start?.y ?? object.height} r={10 * controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /><circle role="button" tabIndex={0} aria-label="Resize arrow from end point" className="design-endpoint-handle" cx={object.end?.x ?? object.width} cy={object.end?.y ?? 0} r={10 * controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /></> : null}
     </g>)}
-    {showPageResizeHandles ? pageResizeHandles.map(({ handle, label }) => <circle key={`page-${handle}`} role="button" tabIndex={0} aria-label={label} className={`design-resize-handle handle-${handle}`} style={{ cursor: resizeCursor(handle, 0) }} cx={handle.includes("e") ? page.width : 0} cy={handle.includes("s") ? page.height : 0} r={10 * controlScale} onPointerDown={(event) => onPageResizePointerDown?.(event, handle)} onKeyDown={(event) => onPageResizeKeyDown?.(event, handle)} />) : null}
+    {showPageResizeHandles ? pageResizeHandles.map(({ handle, label }) => <circle key={`page-${handle}`} role="button" tabIndex={0} aria-label={label} className={`design-resize-handle handle-${handle}`} style={{ cursor: resizeCursor(handle, 0) }} cx={handle.includes("e") ? page.width : 0} cy={handle.includes("s") ? page.height : 0} r={resizeHandleRadius} onPointerDown={(event) => onPageResizePointerDown?.(event, handle)} onKeyDown={(event) => onPageResizeKeyDown?.(event, handle)} />) : null}
     {selectionBox ? <rect className="design-marquee" x={selectionBox.x} y={selectionBox.y} width={selectionBox.width} height={selectionBox.height} /> : null}
   </svg>;
 }

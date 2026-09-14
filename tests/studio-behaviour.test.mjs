@@ -450,6 +450,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: auto minmax\(0, 1fr\); min-height: 0; min-width: 0; \}/);
   assert.match(css, /\.design-canvas-area \{ display: grid; grid-template-rows: auto minmax\(0, 1fr\) auto; min-height: 0; min-width: 0; \}/);
   assert.doesNotMatch(editor, /design-selection-box/);
+  assert.match(editor, /const resizeHandleRadius = 10 \* controlScale/);
+  assert.equal((editor.match(/r=\{resizeHandleRadius\}/g) ?? []).length, 2);
   assert.doesNotMatch(css, /design-selection-box/);
   assert.match(css, /\.design-rotate-handle:hover \{ fill: #8b3dff !important/);
   assert.match(css, /\.design-rotate-handle:hover \+ \.design-rotate-icon \{ color: #fff; \}/);
