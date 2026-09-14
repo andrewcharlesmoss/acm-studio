@@ -104,6 +104,9 @@
   focused on the artwork.
 - Page resize handles now share the exact same size token as object resize
   handles.
+- Canvas frames now use true page-pixel zoom sizing, keeping resize handles
+  consistent across page dimensions and leaving objects at the same visual
+  scale when the page boundary changes.
 
 - Replaced the browser resize cursor during canvas rotation with a Canva-style curved two-way SVG cursor.
 
