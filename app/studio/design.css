@@ -14,7 +14,7 @@
 .design-notice, .design-error { font-size: 13px; line-height: 1.4; padding: 9px 18px; }
 .design-notice { background: #fff7d8; border-bottom: 1px solid #e4d69e; color: #63592f; }
 .design-error { background: #f9e2e2; border-bottom: 1px solid #d8a6a6; color: #7a2020; }
-.design-workspace { display: grid; grid-template-columns: 224px minmax(0, 1fr) 260px; min-height: 0; }
+.design-workspace { display: grid; grid-column: 1; grid-row: 4; grid-template-columns: 224px minmax(0, 1fr) 260px; min-height: 0; }
 .design-pages { background: #f4f3ee; border-right: 1px solid #d2d0c8; display: flex; flex-direction: column; min-height: 0; padding: 15px 12px; }
 .design-pages-heading { align-items: center; display: flex; justify-content: space-between; padding: 0 5px 11px; }
 .design-pages-heading strong { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }

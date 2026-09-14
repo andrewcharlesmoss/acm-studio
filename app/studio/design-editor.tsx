@@ -435,10 +435,10 @@ export function DesignEditor() {
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLButtonElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
       const commandOrControl = event.metaKey || event.ctrlKey;
-      const zoomIn = event.key === "+" || (event.key === "=" && event.shiftKey) || event.code === "NumpadAdd";
-      const zoomOut = event.key === "-" || event.key === "_" || event.code === "NumpadSubtract";
+      const zoomIn = event.key === "+" || event.key === "=" || event.code === "Equal" || event.code === "NumpadAdd";
+      const zoomOut = event.key === "-" || event.key === "_" || event.code === "Minus" || event.code === "NumpadSubtract";
       if (commandOrControl && zoomIn) { event.preventDefault(); changeZoom(1); }
       else if (commandOrControl && zoomOut) { event.preventDefault(); changeZoom(-1); }
       else if (commandOrControl && event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); }
