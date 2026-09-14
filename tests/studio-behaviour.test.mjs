@@ -480,6 +480,18 @@ test("design tool selection uses a neutral active colour", () => {
   assert.doesNotMatch(css, /\.design-tool-rail button\.is-active \{[^}]*#f9e1e1|#d89b9b|#9c2525/);
 });
 
+test("design canvas offers an optional purple selection border", () => {
+  const [editor, css] = [
+    readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8"),
+    readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8"),
+  ];
+  assert.match(editor, /const \[purpleSelectionBorder, setPurpleSelectionBorder\] = useState\(false\)/);
+  assert.match(editor, /aria-label="Purple selection border"/);
+  assert.match(editor, /purpleSelectionBorder && selectedIds\.includes\(object\.id\)/);
+  assert.match(editor, /className="design-selection-border"/);
+  assert.match(css, /\.design-selection-border \{ fill: none; stroke: #8b3dff; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; \}/);
+});
+
 test("design image resizing keeps proportions by default and uses Shift for freeform sizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /function shouldKeepResizeRatio\(object: DesignObject, shiftKey: boolean\)/);
