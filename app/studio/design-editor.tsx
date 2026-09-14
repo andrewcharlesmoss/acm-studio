@@ -167,60 +167,38 @@ function makeObject(tool: Exclude<Tool, "select" | "image">, x: number, y: numbe
 
 function resizeObject(object: DesignObject, handle: ResizeHandle, dx: number, dy: number, page: DesignPage, keepRatio: boolean, centred: boolean) {
   const minimum = 10;
-  const centreX = object.x + object.width / 2;
-  const centreY = object.y + object.height / 2;
-  let left = object.x;
-  let right = object.x + object.width;
-  let top = object.y;
-  let bottom = object.y + object.height;
-  if (handle.includes("w")) { left += dx; if (centred) right -= dx; }
-  if (handle.includes("e")) { right += dx; if (centred) left -= dx; }
-  if (handle.includes("n")) { top += dy; if (centred) bottom -= dy; }
-  if (handle.includes("s")) { bottom += dy; if (centred) top -= dy; }
+  function axisBounds(start: number, end: number, delta: number, negative: boolean, positive: boolean, limit: number) {
+    const originalSize = end - start;
+    const centre = (start + end) / 2;
+    let requested = originalSize;
+    if (negative) requested -= delta;
+    if (positive) requested += delta;
+    if (centred && (negative || positive)) requested = originalSize + (positive ? 2 * delta : -2 * delta);
+    const maximum = centred ? 2 * Math.min(centre, limit - centre) : end - start > 0 ? (negative && !positive ? end : limit - start) : limit;
+    const size = Math.max(minimum, Math.min(maximum, requested));
+    if (centred && (negative || positive)) return { start: centre - size / 2, end: centre + size / 2, size, maximum };
+    if (negative && !positive) return { start: end - size, end, size, maximum };
+    if (positive && !negative) return { start, end: start + size, size, maximum };
+    return { start, end: start + size, size, maximum };
+  }
 
-  let width = Math.max(minimum, right - left);
-  let height = Math.max(minimum, bottom - top);
+  const horizontal = axisBounds(object.x, object.x + object.width, dx, handle.includes("w"), handle.includes("e"), page.width);
+  const vertical = axisBounds(object.y, object.y + object.height, dy, handle.includes("n"), handle.includes("s"), page.height);
+  let width = horizontal.size;
+  let height = vertical.size;
   if (keepRatio) {
     const ratio = object.width / object.height;
-    const horizontal = handle.includes("w") || handle.includes("e");
-    const vertical = handle.includes("n") || handle.includes("s");
-    if (horizontal && (!vertical || Math.abs(dx) >= Math.abs(dy))) height = width / ratio;
-    else if (vertical) width = height * ratio;
-    else height = width / ratio;
-    if (centred) { left = centreX - width / 2; right = centreX + width / 2; top = centreY - height / 2; bottom = centreY + height / 2; }
-    else {
-      if (handle.includes("w")) left = right - width; else right = left + width;
-      if (handle.includes("n")) top = bottom - height; else bottom = top + height;
-    }
-    const maxWidth = centred ? 2 * Math.min(centreX, page.width - centreX) : page.width;
-    const maxHeight = centred ? 2 * Math.min(centreY, page.height - centreY) : page.height;
-    const scale = Math.min(1, maxWidth / width, maxHeight / height);
-    if (scale < 1) {
-      width *= scale;
-      height *= scale;
-      if (centred) { left = centreX - width / 2; right = centreX + width / 2; top = centreY - height / 2; bottom = centreY + height / 2; }
-      else {
-        if (handle.includes("w")) left = right - width; else right = left + width;
-        if (handle.includes("n")) top = bottom - height; else bottom = top + height;
-      }
-    }
+    const horizontalHandle = handle.includes("w") || handle.includes("e");
+    const verticalHandle = handle.includes("n") || handle.includes("s");
+    if (horizontalHandle && (!verticalHandle || Math.abs(dx) >= Math.abs(dy))) height = width / ratio;
+    else if (verticalHandle) { width = height * ratio; }
+    const scale = Math.min(1, horizontal.maximum / width, vertical.maximum / height);
+    width *= scale;
+    height *= scale;
   }
-
-  if (centred) {
-    width = Math.min(width, 2 * Math.min(centreX, page.width - centreX));
-    height = Math.min(height, 2 * Math.min(centreY, page.height - centreY));
-    left = centreX - width / 2; top = centreY - height / 2;
-  } else {
-    width = Math.min(width, page.width);
-    height = Math.min(height, page.height);
-    if (handle.includes("w")) left = Math.max(0, Math.min(left, page.width - width));
-    else right = Math.max(width, Math.min(right, page.width));
-    if (handle.includes("n")) top = Math.max(0, Math.min(top, page.height - height));
-    else bottom = Math.max(height, Math.min(bottom, page.height));
-    if (handle.includes("w")) right = left + width; else left = right - width;
-    if (handle.includes("n")) bottom = top + height; else top = bottom - height;
-  }
-  return { ...object, x: Math.round(Math.max(0, left)), y: Math.round(Math.max(0, top)), width: Math.round(Math.max(minimum, Math.min(page.width, width))), height: Math.round(Math.max(minimum, Math.min(page.height, height))) };
+  const x = centred ? (object.x + object.width / 2) - width / 2 : handle.includes("w") ? object.x + object.width - width : object.x;
+  const y = centred ? (object.y + object.height / 2) - height / 2 : handle.includes("n") ? object.y + object.height - height : object.y;
+  return { ...object, x: Math.round(Math.max(0, x)), y: Math.round(Math.max(0, y)), width: Math.round(Math.max(minimum, Math.min(page.width, width))), height: Math.round(Math.max(minimum, Math.min(page.height, height))) };
 }
 
 function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], onSelect, onCanvasPointerDown, onObjectPointerDown, onResizePointerDown, onRotatePointerDown, onArrowEndpointPointerDown, onResizeKeyDown, onRotateKeyDown, onArrowEndpointKeyDown, svgRef }: {
