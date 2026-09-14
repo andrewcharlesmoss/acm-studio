@@ -411,9 +411,16 @@ test("history shortcuts leave independent text editing surfaces to native undo",
 test("design canvas resets zoom with the platform zero shortcut", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /event\.target instanceof HTMLSelectElement/);
-  assert.match(editor, /event\.target instanceof HTMLButtonElement/);
+  assert.doesNotMatch(editor, /event\.target instanceof HTMLButtonElement/);
   assert.match(editor, /const zoomReset = event\.key === "0" \|\| event\.code === "Digit0" \|\| event\.code === "Numpad0"/);
   assert.match(editor, /if \(commandOrControl && zoomReset\) \{ event\.preventDefault\(\); setZoom\(100\); \}/);
+});
+
+test("design canvas history shortcuts survive page and layer button focus", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /else if \(commandOrControl && event\.key\.toLowerCase\(\) === "z"\) \{ event\.preventDefault\(\); if \(event\.shiftKey\) redo\(\); else undo\(\); \}/);
+  assert.match(editor, /else if \(\(event\.ctrlKey && event\.key\.toLowerCase\(\) === "y"\)\) \{ event\.preventDefault\(\); redo\(\); \}/);
+  assert.doesNotMatch(editor, /event\.target instanceof HTMLButtonElement/);
 });
 
 test("design canvas keeps layers in the left pane and offers an all-pages view", () => {

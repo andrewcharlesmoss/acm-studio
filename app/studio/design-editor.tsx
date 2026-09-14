@@ -518,7 +518,7 @@ export function DesignEditor() {
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLButtonElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
       const commandOrControl = event.metaKey || event.ctrlKey;
       const zoomReset = event.key === "0" || event.code === "Digit0" || event.code === "Numpad0";
       const zoomIn = event.key === "+" || event.key === "=" || event.code === "Equal" || event.code === "NumpadAdd";

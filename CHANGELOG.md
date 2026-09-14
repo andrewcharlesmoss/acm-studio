@@ -88,6 +88,9 @@
 
 ### Changed
 
+- Kept design undo and redo shortcuts active after focusing page and layer
+  buttons while preserving native editing behaviour in fields.
+
 - Made the rotation glyph white when its purple control is hovered.
 
 - Made the rotation angle badge follow the pointer during rotation while
