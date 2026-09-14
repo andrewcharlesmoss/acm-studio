@@ -621,6 +621,7 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(editor, /event\.detail > 1/);
   assert.match(editor, /isTextDoubleClick = object\.type === "text" && \(event\.detail > 1 \|\|/);
   assert.match(editor, /lastTextPointerRef\.current\?\.id === object\.id/);
+  assert.match(editor, /else lastTextPointerRef\.current = null/);
   assert.match(editor, /function beginTextEditing\(object: DesignTextObject\)/);
   assert.match(editor, /className="design-inline-text-editor"/);
   assert.match(editor, /aria-label="Edit text"/);

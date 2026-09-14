@@ -709,6 +709,7 @@ export function DesignEditor() {
 
   function onCanvasPointerDown(event: PointerEvent<SVGSVGElement>) {
     if (!writable || !activePage) return;
+    lastTextPointerRef.current = null;
     if (spaceDown && canvasScrollRef.current) {
       panRef.current = { x: event.clientX, y: event.clientY, left: canvasScrollRef.current.scrollLeft, top: canvasScrollRef.current.scrollTop };
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -733,6 +734,7 @@ export function DesignEditor() {
     const now = Date.now();
     const isTextDoubleClick = object.type === "text" && (event.detail > 1 || (lastTextPointerRef.current?.id === object.id && now - lastTextPointerRef.current.at < 500));
     if (object.type === "text") lastTextPointerRef.current = isTextDoubleClick ? null : { id: object.id, at: now };
+    else lastTextPointerRef.current = null;
     if (isTextDoubleClick) {
       event.preventDefault();
       beginTextEditing(object);
