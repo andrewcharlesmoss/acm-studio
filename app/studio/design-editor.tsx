@@ -136,9 +136,16 @@ function escapeXml(value: string) {
 function arrowPoints(object: DesignArrowObject) {
   const start = object.start ?? { x: 0, y: object.height };
   const end = object.end ?? { x: object.width, y: 0 };
-  const normaliseBend = (bend: { x: number; y: number }) => ({ x: Math.max(-object.x, Math.min(DESIGN_MAX_DIMENSION - object.x, bend.x)), y: Math.max(-object.y, Math.min(DESIGN_MAX_DIMENSION - object.y, bend.y)) });
+  const normaliseBend = (bend: { x: number; y: number }) => ({ x: Math.max(-DESIGN_MAX_DIMENSION * 2, Math.min(DESIGN_MAX_DIMENSION * 2, bend.x)), y: Math.max(-DESIGN_MAX_DIMENSION * 2, Math.min(DESIGN_MAX_DIMENSION * 2, bend.y)) });
   const bends = object.bends?.length === 1 || object.bends?.length === 2 ? object.bends.map(normaliseBend) : [{ x: start.x + (end.x - start.x) / 2, y: start.y + (end.y - start.y) / 2 }];
   return { start, end, bends };
+}
+
+function constrainArrowBend(object: DesignArrowObject, page: DesignPage, bend: { x: number; y: number }) {
+  return {
+    x: Math.max(-page.width - object.x, Math.min(page.width * 2 - object.x, bend.x)),
+    y: Math.max(-object.y, Math.min(page.height - object.y, bend.y)),
+  };
 }
 
 function arrowPath(object: DesignArrowObject) {
@@ -793,7 +800,7 @@ export function DesignEditor() {
     const dy = event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0;
     updatePage((page) => ({ ...page, objects: page.objects.map((item) => {
       if (item.id !== object.id || item.type !== "arrow") return item;
-      const bends = arrowPoints(item).bends.map((bend, index) => index === bendIndex ? { x: Math.max(-item.x, Math.min(activePage.width - item.x, bend.x + dx)), y: Math.max(-item.y, Math.min(activePage.height - item.y, bend.y + dy)) } : bend);
+      const bends = arrowPoints(item).bends.map((bend, index) => index === bendIndex ? constrainArrowBend(item, activePage, { x: bend.x + dx, y: bend.y + dy }) : bend);
       return { ...item, bends };
     }) }));
   }
@@ -839,7 +846,8 @@ export function DesignEditor() {
     } else if (interaction.mode === "arrow-bend" && interaction.original.type === "arrow") {
       const bendSnap = snapArrowEndpoint(interaction.original, "start", point);
       setGuides(bendSnap.guides);
-      const bends = arrowPoints(interaction.original).bends.map((bend, index) => index === interaction.bendIndex ? { x: Math.max(-interaction.original.x, Math.min(activePage.width - interaction.original.x, bendSnap.point.x - interaction.original.x)), y: Math.max(-interaction.original.y, Math.min(activePage.height - interaction.original.y, bendSnap.point.y - interaction.original.y)) } : bend);
+      const arrowOriginal = interaction.original as DesignArrowObject;
+      const bends = arrowPoints(arrowOriginal).bends.map((bend, index) => index === interaction.bendIndex ? constrainArrowBend(arrowOriginal, activePage, { x: bendSnap.point.x - arrowOriginal.x, y: bendSnap.point.y - arrowOriginal.y }) : bend);
       nextObject = { ...interaction.original, bends };
     }
     const snap = interaction.mode === "move" && interaction.ids?.length === 1 && interaction.originals?.[0] ? snapMove(interaction.originals[0], dx, dy) : { dx, dy, guides: [] as Guide[] };

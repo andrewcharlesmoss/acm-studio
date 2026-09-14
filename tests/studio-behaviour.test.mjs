@@ -579,6 +579,8 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.match(editor, /event\.preventDefault\(\); event\.stopPropagation\(\)/);
   assert.match(editor, /\["Enter", " "\]\.includes\(event\.key\)/);
   assert.match(editor, /const control = \{ x: 2 \* bends\[0\]\.x - midpoint\.x, y: 2 \* bends\[0\]\.y - midpoint\.y \}/);
+  assert.match(editor, /function constrainArrowBend\(object: DesignArrowObject, page: DesignPage, bend: \{ x: number; y: number \}\)/);
+  assert.match(editor, /page\.width \* 2 - object\.x/);
   assert.doesNotMatch(editor, /Arrows resize through their two endpoints instead of corner handles/);
 });
 
