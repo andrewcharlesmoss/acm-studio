@@ -493,6 +493,14 @@ test("design page presets include a 1080 by 1920 portrait format", () => {
   assert.match(editor, /<option value="portraitStory">1080 × 1920 portrait<\/option>/);
 });
 
+test("design saves compact unused image assets and explain storage quota failures", () => {
+  const store = readFileSync(new URL("../app/studio/design-store.ts", import.meta.url), "utf8");
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(store, /function compactDesign\(design: DesignProject\)/);
+  assert.match(store, /assets: design\.assets\.filter\(\(asset\) => referencedAssetIds\.has\(asset\.id\)\)/);
+  assert.match(editor, /saveError instanceof DOMException && saveError\.name === "QuotaExceededError"/);
+});
+
 test("design objects expose corner and side-centre handles for direct resizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /function resizePage\(page: DesignPage, handle: ResizeHandle, dx: number, dy: number, keepRatio: boolean\)/);

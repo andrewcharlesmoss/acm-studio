@@ -221,6 +221,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Design saves now discard unreferenced image assets and show a clear recovery message when browser storage quota is exceeded.
 - Double-clicking a canvas text box now reliably opens its inline editor.
 
 - Restoring Undo/Redo selections in shortened, formatted text no longer crashes the editor.

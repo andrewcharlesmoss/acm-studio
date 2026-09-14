@@ -628,7 +628,10 @@ export function DesignEditor() {
     setDesigns(updated);
     if (!writable) { setStatus(ownershipMessage(ownershipState) ?? "Read-only"); return; }
     try { await saveDesigns(updated); setStatus("Saved locally just now"); setError(""); }
-    catch (saveError) { setError(saveError instanceof Error ? saveError.message : "The design could not be saved."); setStatus("Save failed — export an editable backup"); }
+    catch (saveError) {
+      const message = saveError instanceof DOMException && saveError.name === "QuotaExceededError" ? "This design is too large for browser storage. Export an editable backup, then remove unused or very large images before saving again." : saveError instanceof Error ? saveError.message : "The design could not be saved.";
+      setError(message); setStatus("Save failed — export an editable backup");
+    }
   }, [designs, ownershipState, writable]);
 
   useEffect(() => {
