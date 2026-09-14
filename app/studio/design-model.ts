@@ -30,8 +30,11 @@ export type DesignImageObject = DesignObjectBase & {
   crop?: { x: number; y: number; width: number; height: number };
 };
 
+export type DesignShapeKind = "rectangle" | "roundedRectangle" | "circle" | "triangle" | "triangleDown" | "diamond" | "pentagon" | "hexagon" | "octagon";
+
 export type DesignShapeObject = DesignObjectBase & {
   type: "rectangle" | "ellipse" | "highlight" | "redaction";
+  shape?: DesignShapeKind;
   fill: string;
   stroke: string;
   strokeWidth: number;

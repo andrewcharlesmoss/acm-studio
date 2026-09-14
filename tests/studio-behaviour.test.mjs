@@ -584,6 +584,25 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.doesNotMatch(editor, /Arrows resize through their two endpoints instead of corner handles/);
 });
 
+test("design shapes dropdown includes common geometric shapes and text boxes edit inline", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const model = readFileSync(new URL("../app/studio/design-model.ts", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(model, /export type DesignShapeKind = "rectangle" \| "roundedRectangle" \| "circle" \| "triangle" \| "triangleDown" \| "diamond" \| "pentagon" \| "hexagon" \| "octagon"/);
+  assert.match(editor, /const shapeOptions: Array<\{ value: DesignShapeKind; label: string \}>/);
+  assert.match(editor, /aria-label="Shapes"/);
+  assert.match(editor, /function polygonPoints\(kind: DesignShapeKind/);
+  assert.match(editor, /<polygon points=\{points\}/);
+  assert.match(editor, /event\.detail > 1/);
+  assert.match(editor, /function beginTextEditing\(object: DesignTextObject\)/);
+  assert.match(editor, /className="design-inline-text-editor"/);
+  assert.match(editor, /aria-label="Edit text"/);
+  assert.match(editor, /const cancelTextEditRef = useRef\(false\)/);
+  assert.match(editor, /cancelTextEditRef\.current = true/);
+  assert.match(editor, /onEditingTextCommit/);
+  assert.match(css, /\.design-inline-text-editor \{/);
+});
+
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {
   const read = (name) => readFileSync(new URL(`../app/studio/${name}`, import.meta.url), "utf8");
   const canvas = read("studio-canvas.tsx");

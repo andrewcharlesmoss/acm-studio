@@ -7,7 +7,7 @@ import { studioWriteOwnership, ownershipMessage, type OwnershipState } from "./w
 import {
   cloneDesign, createDesign, DESIGN_MAX_DIMENSION, makeId, nextPageName,
   DESIGN_IMAGE_TYPES, migrateDesignProject, sanitiseFilename,
-  type DesignArrowObject, type DesignAsset, type DesignObject, type DesignPage, type DesignProject, type DesignShapeObject, type DesignTextObject,
+  type DesignArrowObject, type DesignAsset, type DesignObject, type DesignPage, type DesignProject, type DesignShapeKind, type DesignShapeObject, type DesignTextObject,
 } from "./design-model";
 import { loadDesigns, saveDesigns } from "./design-store";
 import { StudioIcon } from "./studio-icons";
@@ -18,7 +18,7 @@ type DrawTool = Exclude<Tool, "select" | "image">;
 type PositionAxis = "left" | "centre" | "right" | "top" | "middle" | "bottom";
 type InteractionMode = "move" | "resize" | "rotate" | "arrow-endpoint" | "arrow-bend" | "draw";
 type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
-type Interaction = { mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; keepRatio?: boolean; centred?: boolean; endpoint?: "start" | "end"; bendIndex?: number; startAngle?: number; drawTool?: DrawTool };
+type Interaction = { mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; keepRatio?: boolean; centred?: boolean; endpoint?: "start" | "end"; bendIndex?: number; startAngle?: number; drawTool?: DrawTool; shapeKind?: DesignShapeKind };
 type PageResizeInteraction = { handle: ResizeHandle; startClientX: number; startClientY: number; scaleX: number; scaleY: number; originalWidth: number; originalHeight: number; keepRatio: boolean; base: DesignProject };
 type Guide = { axis: "x" | "y"; position: number; style: "solid" | "dotted" };
 type SnapTarget = { position: number; style: Guide["style"] };
@@ -39,8 +39,19 @@ const defaultRecentStyles: RecentStyles = {
 };
 
 const toolLabels: Record<Tool, string> = { select: "Select", image: "Image", arrow: "Arrow", rectangle: "Rectangle", ellipse: "Ellipse", text: "Text", step: "Numbered step", highlight: "Highlight", redaction: "Redaction" };
-const annotationTools: Tool[] = ["arrow", "rectangle", "ellipse", "text", "step", "highlight", "redaction"];
+const annotationTools: Tool[] = ["arrow", "text", "step", "highlight", "redaction"];
 const toolIcons: Record<Tool, StudioIconName | "seen"> = { select: "drag-handle", image: "image", arrow: "arrow-right", rectangle: "block", ellipse: "seen", text: "format-bold", step: "list", highlight: "button", redaction: "block" };
+const shapeOptions: Array<{ value: DesignShapeKind; label: string }> = [
+  { value: "rectangle", label: "Square" },
+  { value: "roundedRectangle", label: "Rounded square" },
+  { value: "circle", label: "Circle" },
+  { value: "triangle", label: "Triangle" },
+  { value: "triangleDown", label: "Inverted triangle" },
+  { value: "diamond", label: "Diamond" },
+  { value: "pentagon", label: "Pentagon" },
+  { value: "hexagon", label: "Hexagon" },
+  { value: "octagon", label: "Octagon" },
+];
 const ZOOM_OPTIONS = [25, 50, 60, 75, 100, 120, 150, 200, 300];
 
 function rotationLabel(rotation: number) {
@@ -65,6 +76,26 @@ function resizeCursor(handle: ResizeHandle, rotation: number) {
   const axis = ((handleAngles[handle] + rotation) % 180 + 180) % 180;
   const direction = Math.round(axis / 45) % 4;
   return ["ns-resize", "nesw-resize", "ew-resize", "nwse-resize"][direction];
+}
+
+function shapeKindFor(object: DesignShapeObject): DesignShapeKind {
+  return object.shape ?? (object.type === "ellipse" ? "circle" : "rectangle");
+}
+
+function polygonPoints(kind: DesignShapeKind, width: number, height: number) {
+  const centreX = width / 2;
+  const centreY = height / 2;
+  const radiusX = width / 2;
+  const radiusY = height / 2;
+  if (kind === "triangle") return `${centreX},0 ${width},${height} 0,${height}`;
+  if (kind === "triangleDown") return `0,0 ${width},0 ${centreX},${height}`;
+  if (kind === "diamond") return `${centreX},0 ${width},${centreY} ${centreX},${height} 0,${centreY}`;
+  const sides = kind === "pentagon" ? 5 : kind === "hexagon" ? 6 : kind === "octagon" ? 8 : 0;
+  if (!sides) return null;
+  return Array.from({ length: sides }, (_, index) => {
+    const angle = -Math.PI / 2 + index * Math.PI * 2 / sides;
+    return `${centreX + radiusX * Math.cos(angle)},${centreY + radiusY * Math.sin(angle)}`;
+  }).join(" ");
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -180,7 +211,10 @@ function objectSvg(object: DesignObject, assets: DesignAsset[]) {
   }
   const shape = object as DesignShapeObject;
   const fill = shape.type === "redaction" ? "#000000" : shape.fill;
-  return `<g transform="${transform}" opacity="${opacity}">${shape.type === "ellipse" ? `<ellipse cx="${shape.width / 2}" cy="${shape.height / 2}" rx="${shape.width / 2}" ry="${shape.height / 2}" fill="${fill}" stroke="${shape.stroke}" stroke-width="${shape.strokeWidth}" />` : `<rect width="${shape.width}" height="${shape.height}" rx="${shape.radius ?? 0}" fill="${fill}" stroke="${shape.stroke}" stroke-width="${shape.strokeWidth}" />`}</g>`;
+  const kind = shapeKindFor(shape);
+  const points = polygonPoints(kind, shape.width, shape.height);
+  const geometry = kind === "circle" ? `<ellipse cx="${shape.width / 2}" cy="${shape.height / 2}" rx="${shape.width / 2}" ry="${shape.height / 2}" fill="${fill}" stroke="${shape.stroke}" stroke-width="${shape.strokeWidth}" />` : points ? `<polygon points="${points}" fill="${fill}" stroke="${shape.stroke}" stroke-width="${shape.strokeWidth}" />` : `<rect width="${shape.width}" height="${shape.height}" rx="${kind === "roundedRectangle" ? Math.max(shape.radius ?? 0, Math.min(shape.width, shape.height) * .16) : shape.radius ?? 0}" fill="${fill}" stroke="${shape.stroke}" stroke-width="${shape.strokeWidth}" />`;
+  return `<g transform="${transform}" opacity="${opacity}">${geometry}</g>`;
 }
 
 function pageSvgMarkup(page: DesignPage, assets: DesignAsset[]) {
@@ -209,14 +243,14 @@ async function renderPage(page: DesignPage, assets: DesignAsset[], format: "png"
   return new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("The page could not be exported.")), `image/${format}`, format === "png" ? undefined : quality));
 }
 
-function makeObject(tool: Exclude<Tool, "select" | "image">, x: number, y: number, page: DesignPage, objectIndex: number, styles: RecentStyles = defaultRecentStyles): DesignObject {
+function makeObject(tool: Exclude<Tool, "select" | "image">, x: number, y: number, page: DesignPage, objectIndex: number, styles: RecentStyles = defaultRecentStyles, shapeKind: DesignShapeKind = "rectangle"): DesignObject {
   const base = { id: makeId("object"), x, y, width: tool === "arrow" ? 220 : tool === "text" || tool === "step" ? 240 : 180, height: tool === "text" || tool === "step" ? 54 : tool === "arrow" ? 120 : 100, rotation: 0, opacity: 1 };
   if (tool === "arrow") return { ...base, type: "arrow", ...styles.arrow };
   if (tool === "text") return { ...base, type: "text", text: "Add text", ...styles.text };
   if (tool === "step") return { ...base, type: "step", text: String(objectIndex + 1), ...styles.step, width: 64, height: 64 };
   if (tool === "highlight") return { ...base, type: "highlight", ...styles.highlight };
   if (tool === "redaction") return { ...base, type: "redaction", fill: "#000000", stroke: "none", strokeWidth: 0 };
-  return { ...base, type: tool, ...styles.shape, fill: tool === "ellipse" && styles.shape.fill === "#ffffff" ? "transparent" : styles.shape.fill };
+  return { ...base, type: tool, ...styles.shape, shape: tool === "rectangle" ? shapeKind : undefined, fill: tool === "ellipse" && styles.shape.fill === "#ffffff" ? "transparent" : styles.shape.fill };
 }
 
 function drawObject(object: DesignObject, start: { x: number; y: number }, current: { x: number; y: number }, page: DesignPage) {
@@ -289,13 +323,18 @@ function resizeArrowEndpoint(object: DesignArrowObject, endpoint: "start" | "end
   return { ...object, x, y, width, height, rotation: 0, start: { x: start.x - x, y: start.y - y }, end: { x: end.x - x, y: end.y - y }, bends: oldBends.map((bend) => ({ x: Math.max(-x, Math.min(page.width - x, object.x + bend.x - x)), y: Math.max(-y, Math.min(page.height - y, object.y + bend.y - y)) })) };
 }
 
-function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], tool = "select", zoom = 100, isRotating = false, rotatingObjectId, rotationCursor = null, showPageResizeHandles = false, showHoverHandles = false, onCanvasPointerDown, onObjectPointerDown, onResizePointerDown, onPageResizePointerDown, onRotatePointerDown, onArrowEndpointPointerDown, onArrowBendPointerDown, onArrowBendKeyDown, onResizeKeyDown, onPageResizeKeyDown, onRotateKeyDown, onArrowEndpointKeyDown, svgRef }: {
+function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], tool = "select", zoom = 100, isRotating = false, rotatingObjectId, rotationCursor = null, showPageResizeHandles = false, showHoverHandles = false, editingTextId = null, editingTextValue = "", onEditingTextChange, onEditingTextCommit, onEditingTextCancel, onCanvasPointerDown, onObjectPointerDown, onResizePointerDown, onPageResizePointerDown, onRotatePointerDown, onArrowEndpointPointerDown, onArrowBendPointerDown, onArrowBendKeyDown, onResizeKeyDown, onPageResizeKeyDown, onRotateKeyDown, onArrowEndpointKeyDown, svgRef }: {
   page: DesignPage; assets: DesignAsset[]; selectedIds?: string[]; selectionBox?: { x: number; y: number; width: number; height: number } | null; guides?: Guide[]; zoom?: number;
   isRotating?: boolean;
   rotatingObjectId?: string;
   rotationCursor?: { x: number; y: number } | null;
   showPageResizeHandles?: boolean;
   showHoverHandles?: boolean;
+  editingTextId?: string | null;
+  editingTextValue?: string;
+  onEditingTextChange?: (value: string) => void;
+  onEditingTextCommit?: () => void;
+  onEditingTextCancel?: () => void;
   tool?: Tool;
   onCanvasPointerDown: (event: PointerEvent<SVGSVGElement>) => void;
   onObjectPointerDown: (event: PointerEvent<SVGGElement>, object: DesignObject) => void;
@@ -327,7 +366,11 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
   ];
   const activeRotation = page.objects.find((object) => object.id === rotatingObjectId)?.rotation ?? 0;
   const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
+  const inlineTextEditorRef = useRef<HTMLTextAreaElement>(null);
+  const cancelTextEditRef = useRef(false);
   useEffect(() => { queueMicrotask(() => setHoveredObjectId(null)); }, [page.id, showHoverHandles]);
+  useEffect(() => { if (editingTextId) inlineTextEditorRef.current?.focus(); }, [editingTextId]);
+  useEffect(() => { cancelTextEditRef.current = false; }, [editingTextId]);
   return <svg ref={svgRef} style={{ "--rotation-cursor": rotationCursorCss(activeRotation) } as CSSProperties} className={`design-page-svg${tool === "select" ? " is-select-mode" : ""}${isRotating ? " is-rotating" : ""}`} viewBox={`0 0 ${page.width} ${page.height}`} role="img" aria-label={page.name} onPointerDown={onCanvasPointerDown}>
     <defs><pattern id={`checker-${page.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#f7f6f2" /><rect width="10" height="10" fill="#e9e7df" /><rect x="10" y="10" width="10" height="10" fill="#e9e7df" /></pattern></defs>
     <rect data-canvas-background="true" width={page.width} height={page.height} fill={page.background.kind === "transparent" ? `url(#checker-${page.id})` : page.background.colour} />
@@ -336,9 +379,8 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
       <rect width={object.width} height={object.height} fill="transparent" pointerEvents="all" onPointerDown={(event) => onObjectPointerDown(event as unknown as PointerEvent<SVGGElement>, object)} />
       {object.type === "image" ? (() => { const asset = assets.find((item) => item.id === object.assetId); if (!asset) return null; const crop = object.crop ?? { x: 0, y: 0, width: 1, height: 1 }; const clipId = `crop-${object.id}`; return <><defs><clipPath id={clipId}><rect width={object.width} height={object.height} /></clipPath></defs><image href={asset.dataUrl} x={-crop.x / crop.width * object.width} y={-crop.y / crop.height * object.height} width={object.width / crop.width} height={object.height / crop.height} preserveAspectRatio="none" clipPath={`url(#${clipId})`} /></>; })() : null}
       {object.type === "arrow" ? <><path d={arrowPath(object)} fill="none" stroke={object.stroke} strokeWidth={object.strokeWidth} strokeLinecap="round" markerEnd={object.arrowhead ? `url(#arrow-${object.id})` : undefined} /><defs><marker id={`arrow-${object.id}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill={object.stroke} /></marker></defs></> : null}
-      {(object.type === "rectangle" || object.type === "highlight" || object.type === "redaction") ? <rect width={object.width} height={object.height} rx={object.radius ?? 0} fill={object.type === "redaction" ? "#000000" : object.fill} stroke={object.stroke} strokeWidth={object.strokeWidth} /> : null}
-      {object.type === "ellipse" ? <ellipse cx={object.width / 2} cy={object.height / 2} rx={object.width / 2} ry={object.height / 2} fill={object.fill} stroke={object.stroke} strokeWidth={object.strokeWidth} /> : null}
-      {(object.type === "text" || object.type === "step") ? <>{object.type === "step" ? <circle cx={object.width / 2} cy={object.height / 2} r={Math.min(object.width, object.height) / 2} fill={object.fill ?? "#cc1818"} /> : null}<text x={object.align === "center" ? object.width / 2 : object.align === "right" ? object.width : 0} y={object.fontSize} fill={object.colour} fontFamily={object.fontFamily} fontSize={object.fontSize} fontWeight={object.fontWeight} textAnchor={object.align === "center" ? "middle" : object.align === "right" ? "end" : "start"}>{object.text}</text></> : null}
+      {(["rectangle", "ellipse", "highlight", "redaction"].includes(object.type)) ? (() => { const shape = object as DesignShapeObject; const kind = shapeKindFor(shape); const points = polygonPoints(kind, shape.width, shape.height); const fill = shape.type === "redaction" ? "#000000" : shape.fill; return kind === "circle" ? <ellipse cx={shape.width / 2} cy={shape.height / 2} rx={shape.width / 2} ry={shape.height / 2} fill={fill} stroke={shape.stroke} strokeWidth={shape.strokeWidth} /> : points ? <polygon points={points} fill={fill} stroke={shape.stroke} strokeWidth={shape.strokeWidth} /> : <rect width={shape.width} height={shape.height} rx={kind === "roundedRectangle" ? Math.max(shape.radius ?? 0, Math.min(shape.width, shape.height) * .16) : shape.radius ?? 0} fill={fill} stroke={shape.stroke} strokeWidth={shape.strokeWidth} />; })() : null}
+      {(object.type === "text" || object.type === "step") ? <>{object.type === "step" ? <circle cx={object.width / 2} cy={object.height / 2} r={Math.min(object.width, object.height) / 2} fill={object.fill ?? "#cc1818"} /> : null}{object.type === "text" && editingTextId === object.id ? <foreignObject x="0" y="0" width={object.width} height={object.height}><textarea ref={inlineTextEditorRef} className="design-inline-text-editor" aria-label="Edit text" value={editingTextValue} onChange={(event) => onEditingTextChange?.(event.target.value)} onBlur={() => { if (cancelTextEditRef.current) { cancelTextEditRef.current = false; return; } onEditingTextCommit?.(); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); cancelTextEditRef.current = true; onEditingTextCancel?.(); } }} onPointerDown={(event) => event.stopPropagation()} style={{ color: object.colour, fontFamily: object.fontFamily, fontSize: `${object.fontSize}px`, fontWeight: object.fontWeight, textAlign: object.align }} /></foreignObject> : <text x={object.align === "center" ? object.width / 2 : object.align === "right" ? object.width : 0} y={object.fontSize} fill={object.colour} fontFamily={object.fontFamily} fontSize={object.fontSize} fontWeight={object.fontWeight} textAnchor={object.align === "center" ? "middle" : object.align === "right" ? "end" : "start"}>{object.text}</text>}</> : null}
       {(selectedIds.includes(object.id) || (showHoverHandles && hoveredObjectId === object.id && !object.locked)) && object.type !== "arrow" ? (() => {
         return <>
         {resizeHandles.map(({ handle, label }) => {
@@ -383,6 +425,9 @@ export function DesignEditor() {
   const [ownershipState, setOwnershipState] = useState<OwnershipState>(studioWriteOwnership.getState());
   const [status, setStatus] = useState("Loading designs…");
   const [tool, setTool] = useState<Tool>("select");
+  const [shapeKind, setShapeKind] = useState<DesignShapeKind>("rectangle");
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [editingTextValue, setEditingTextValue] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectionBox, setSelectionBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
@@ -436,6 +481,24 @@ export function DesignEditor() {
   function selectObjects(ids: string[]) {
     setSelectedIds(ids);
     setSelectedId(ids[0] ?? null);
+  }
+
+  function beginTextEditing(object: DesignTextObject) {
+    if (!writable) return;
+    selectObjects([object.id]);
+    setEditingTextId(object.id);
+    setEditingTextValue(object.text);
+  }
+
+  function commitTextEditing() {
+    if (!editingTextId) return;
+    const value = editingTextValue;
+    updatePage((page) => ({ ...page, objects: page.objects.map((object) => object.id === editingTextId && object.type === "text" ? { ...object, text: value } : object) }));
+    setEditingTextId(null);
+  }
+
+  function cancelTextEditing() {
+    setEditingTextId(null);
   }
 
   useEffect(() => {
@@ -619,11 +682,11 @@ export function DesignEditor() {
   function beginDraw(event: { clientX: number; clientY: number; pointerId: number; currentTarget: SVGElement }, drawTool: DrawTool) {
     if (!design || !activePage || !writable) return;
     const point = getPoint(event);
-    const object = makeObject(drawTool, point.x, point.y, activePage, activePage.objects.filter((item) => item.type === "step").length, recentStylesRef.current);
+    const object = makeObject(drawTool, point.x, point.y, activePage, activePage.objects.filter((item) => item.type === "step").length, recentStylesRef.current, shapeKind);
     const initial = drawObject({ ...object, x: point.x, y: point.y, width: 1, height: 1 }, point, point, activePage);
     setDesign({ ...design, pages: design.pages.map((page) => page.id === activePage.id ? { ...page, objects: [...page.objects, initial] } : page) });
     selectObjects([initial.id]);
-    interactionRef.current = { mode: "draw", id: initial.id, drawTool, startX: point.x, startY: point.y, original: cloneDesign(initial), base: cloneDesign(design) };
+    interactionRef.current = { mode: "draw", id: initial.id, drawTool, shapeKind, startX: point.x, startY: point.y, original: cloneDesign(initial), base: cloneDesign(design) };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
@@ -650,6 +713,11 @@ export function DesignEditor() {
   function onObjectPointerDown(event: PointerEvent<SVGGElement>, object: DesignObject) {
     event.stopPropagation();
     if (!activePage) return;
+    if (object.type === "text" && event.detail > 1) {
+      event.preventDefault();
+      beginTextEditing(object);
+      return;
+    }
     if (tool !== "select" && tool !== "image") {
       beginDraw(event, tool);
       return;
@@ -885,7 +953,7 @@ export function DesignEditor() {
     if (interaction.mode === "draw" && activePage) {
       const drawn = activePage.objects.find((object) => object.id === interaction.id);
       if (drawn && drawn.width <= 1 && drawn.height <= 1) {
-        const fallback = makeObject(interaction.drawTool ?? "rectangle", Math.max(0, interaction.startX - 90), Math.max(0, interaction.startY - 50), activePage, activePage.objects.filter((item) => item.type === "step" && item.id !== drawn.id).length, recentStylesRef.current);
+        const fallback = makeObject(interaction.drawTool ?? "rectangle", Math.max(0, interaction.startX - 90), Math.max(0, interaction.startY - 50), activePage, activePage.objects.filter((item) => item.type === "step" && item.id !== drawn.id).length, recentStylesRef.current, interaction.shapeKind ?? shapeKind);
         const replacement = { ...fallback, id: drawn.id };
         current = { ...current, pages: current.pages.map((page) => page.id === activePage.id ? { ...page, objects: page.objects.map((object) => object.id === drawn.id ? replacement : object) } : page) };
         setDesign(current);
@@ -1247,16 +1315,16 @@ export function DesignEditor() {
     <div className={`design-workspace${pagesCollapsed ? " pages-collapsed" : ""}`}>
       <aside className="design-pages" id="design-pages-panel" aria-label="Design pages and layers"><div className="design-pages-heading"><div className="design-pane-tabs" role="tablist" aria-label="Design navigation"><button type="button" role="tab" id="design-pages-tab" className={leftPaneTab === "pages" ? "is-active" : ""} aria-selected={leftPaneTab === "pages"} aria-controls={leftPaneTab === "pages" ? "design-pages-tabpanel" : undefined} onClick={() => setLeftPaneTab("pages")}>Pages</button><button type="button" role="tab" id="design-layers-tab" className={leftPaneTab === "layers" ? "is-active" : ""} aria-selected={leftPaneTab === "layers"} aria-controls={leftPaneTab === "layers" ? "design-layers-tabpanel" : undefined} onClick={() => setLeftPaneTab("layers")}>Layers</button></div><div><button type="button" onClick={() => setPagesCollapsed(true)} aria-label="Hide pages">−</button><button type="button" onClick={() => addPage()} disabled={!writable} aria-label="Add page">＋</button></div></div>{leftPaneTab === "pages" ? <div className="design-page-list" id="design-pages-tabpanel" role="tabpanel" aria-labelledby="design-pages-tab" aria-label="Pages">{design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} draggable={writable} onDragStart={() => setDraggedPageId(page.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedPageId) reorderPage(draggedPageId, page.id); setDraggedPageId(null); }}><label className="design-page-select"><input type="checkbox" checked={selectedPageIds.includes(page.id)} onChange={(event) => setSelectedPageIds((items) => event.target.checked ? [...items, page.id] : items.filter((id) => id !== page.id))} aria-label={`Select ${page.name} for export`} /></label><button type="button" className="design-thumbnail-button" onClick={() => selectPage(page.id)} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><PageSvg showHoverHandles={false} page={page} assets={design.assets} selectedIds={[]} guides={[]} onCanvasPointerDown={() => undefined} onObjectPointerDown={() => undefined} onResizePointerDown={() => undefined} onRotatePointerDown={() => undefined} onArrowEndpointPointerDown={() => undefined} onArrowBendPointerDown={() => undefined} onArrowBendKeyDown={() => undefined} onResizeKeyDown={() => undefined} onRotateKeyDown={() => undefined} onArrowEndpointKeyDown={() => undefined} /></div><span>{index + 1}. {page.name}</span></button><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button></div></div>)}</div> : <div className="design-layers design-pages-layers" id="design-layers-tabpanel" role="tabpanel" aria-labelledby="design-layers-tab" aria-label="Layers"><LayerList page={activePage} selectedIds={selectedIds} onSelect={(id) => selectObjects([id])} /></div>}<div className="design-page-actions"><button type="button" onClick={() => addPage()} disabled={!writable}>Add page</button><button type="button" onClick={deletePage} disabled={!writable || design.pages.length === 1}>Delete page</button><button type="button" onClick={createNewDesign} disabled={!writable}>New design</button></div><label className="design-import-label">Import design<input ref={importInputRef} type="file" accept="application/json,.json" onChange={(event) => void importDesign(event.target.files?.[0])} /></label><select className="design-switcher" value={design.id} onChange={(event) => { const next = designs.find((item) => item.id === event.target.value); if (next) { setDesign(next); setPageName(next.pages.find((page) => page.id === next.activePageId)?.name ?? next.pages[0]?.name ?? ""); setHistory([]); setFuture([]); selectObjects([]); } }} aria-label="Open design">{designs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></aside>
       <section className="design-main" aria-label="Design canvas">
-        <div className="design-tool-rail"><button type="button" className={tool === "select" ? "is-active" : ""} onClick={() => setTool("select")} aria-pressed={tool === "select"}><StudioIcon name={toolIcons.select} size={20} /><span>Select</span></button><button type="button" onClick={() => fileInputRef.current?.click()} disabled={!writable}><StudioIcon name={toolIcons.image} size={20} /><span>Image</span></button><input ref={fileInputRef} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; if (file) void addImage(file, file.name); if (fileInputRef.current) fileInputRef.current.value = ""; }} />{annotationTools.map((item) => <button type="button" key={item} className={tool === item ? "is-active" : ""} onClick={() => setTool(item)} disabled={!writable} aria-pressed={tool === item}><StudioIcon name={toolIcons[item]} size={20} /><span>{toolLabels[item]}</span></button>)}<button ref={mediaTriggerRef} type="button" onClick={() => void openMedia()} disabled={!writable}><StudioIcon name="image" size={20} /><span>Studio files</span></button></div>
+        <div className="design-tool-rail"><button type="button" className={tool === "select" ? "is-active" : ""} onClick={() => setTool("select")} aria-pressed={tool === "select"}><StudioIcon name={toolIcons.select} size={20} /><span>Select</span></button><button type="button" onClick={() => fileInputRef.current?.click()} disabled={!writable}><StudioIcon name={toolIcons.image} size={20} /><span>Image</span></button><input ref={fileInputRef} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; if (file) void addImage(file, file.name); if (fileInputRef.current) fileInputRef.current.value = ""; }} /><label className={`design-shape-picker${tool === "rectangle" ? " is-active" : ""}`}><StudioIcon name={toolIcons.rectangle} size={20} /><span>Shapes</span><select aria-label="Shapes" value={shapeKind} disabled={!writable} onChange={(event) => { setShapeKind(event.target.value as DesignShapeKind); setTool("rectangle"); }}><option value="rectangle">Square</option>{shapeOptions.slice(1).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>{annotationTools.map((item) => <button type="button" key={item} className={tool === item ? "is-active" : ""} onClick={() => setTool(item)} disabled={!writable} aria-pressed={tool === item}><StudioIcon name={toolIcons[item]} size={20} /><span>{toolLabels[item]}</span></button>)}<button ref={mediaTriggerRef} type="button" onClick={() => void openMedia()} disabled={!writable}><StudioIcon name="image" size={20} /><span>Studio files</span></button></div>
       <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerUp} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><input ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-zoom"><button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)}>−</button><select aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</select><button type="button" aria-label="Zoom in" onClick={() => changeZoom(1)}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={allPagesVisible ? "is-active" : ""} aria-pressed={allPagesVisible} aria-label={allPagesVisible ? "View single page" : "View all pages"} onClick={() => setAllPagesVisible((value) => !value)}>{allPagesVisible ? "View single page" : "View all pages"}</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className={`design-canvas-scroll${allPagesVisible ? " is-all-pages" : ""}`} ref={canvasScrollRef}>
           {allPagesVisible ? <div className="design-all-pages">{design.pages.map((page, index) => {
             const isActive = page.id === activePage.id;
             const selectInactivePage = (event: PointerEvent<SVGElement>) => { event.stopPropagation(); selectPage(page.id); };
             return <article className={`design-all-page${isActive ? " is-active" : ""}`} key={page.id} aria-label={`Page ${index + 1}: ${page.name}`}>
               <div className="design-all-page-heading" style={{ width: `${page.width * zoom / 100}px` }}><strong>{index + 1}. {page.name}</strong>{isActive ? <span>Editing</span> : <button type="button" onClick={() => selectPage(page.id)}>Edit Page</button>}</div>
-              <div className="design-canvas-frame" style={{ width: `${page.width * zoom / 100}px` }}><PageSvg showHoverHandles={isActive && tool === "select"} rotatingObjectId={interactionRef.current?.mode === "rotate" ? interactionRef.current.id : undefined} isRotating={isActive && isRotating} rotationCursor={isActive ? rotationCursor : null} showPageResizeHandles={isActive && tool === "select" && selectedIds.length === 0} tool={isActive ? tool : "select"} zoom={zoom} page={page} assets={design.assets} selectedIds={isActive ? selectedIds : []} guides={isActive ? guides : []} onCanvasPointerDown={isActive ? onCanvasPointerDown : selectInactivePage} onObjectPointerDown={isActive ? onObjectPointerDown : (event) => selectInactivePage(event)} onResizePointerDown={isActive ? onResizePointerDown : () => undefined} onPageResizePointerDown={isActive ? onPageResizePointerDown : undefined} onRotatePointerDown={isActive ? onRotatePointerDown : () => undefined} onArrowEndpointPointerDown={isActive ? onArrowEndpointPointerDown : () => undefined} onArrowBendPointerDown={isActive ? onArrowBendPointerDown : () => undefined} onArrowBendKeyDown={isActive ? onArrowBendKeyDown : undefined} onResizeKeyDown={isActive ? onResizeKeyDown : () => undefined} onPageResizeKeyDown={isActive ? onPageResizeKeyDown : undefined} onRotateKeyDown={isActive ? onRotateKeyDown : () => undefined} onArrowEndpointKeyDown={isActive ? onArrowEndpointKeyDown : () => undefined} selectionBox={isActive ? selectionBox : null} svgRef={isActive ? svgRef : undefined} /></div>
+              <div className="design-canvas-frame" style={{ width: `${page.width * zoom / 100}px` }}><PageSvg showHoverHandles={isActive && tool === "select"} editingTextId={isActive ? editingTextId : null} editingTextValue={editingTextValue} onEditingTextChange={setEditingTextValue} onEditingTextCommit={commitTextEditing} onEditingTextCancel={cancelTextEditing} rotatingObjectId={interactionRef.current?.mode === "rotate" ? interactionRef.current.id : undefined} isRotating={isActive && isRotating} rotationCursor={isActive ? rotationCursor : null} showPageResizeHandles={isActive && tool === "select" && selectedIds.length === 0} tool={isActive ? tool : "select"} zoom={zoom} page={page} assets={design.assets} selectedIds={isActive ? selectedIds : []} guides={isActive ? guides : []} onCanvasPointerDown={isActive ? onCanvasPointerDown : selectInactivePage} onObjectPointerDown={isActive ? onObjectPointerDown : (event) => selectInactivePage(event)} onResizePointerDown={isActive ? onResizePointerDown : () => undefined} onPageResizePointerDown={isActive ? onPageResizePointerDown : undefined} onRotatePointerDown={isActive ? onRotatePointerDown : () => undefined} onArrowEndpointPointerDown={isActive ? onArrowEndpointPointerDown : () => undefined} onArrowBendPointerDown={isActive ? onArrowBendPointerDown : () => undefined} onArrowBendKeyDown={isActive ? onArrowBendKeyDown : undefined} onResizeKeyDown={isActive ? onResizeKeyDown : () => undefined} onPageResizeKeyDown={isActive ? onPageResizeKeyDown : undefined} onRotateKeyDown={isActive ? onRotateKeyDown : () => undefined} onArrowEndpointKeyDown={isActive ? onArrowEndpointKeyDown : () => undefined} selectionBox={isActive ? selectionBox : null} svgRef={isActive ? svgRef : undefined} /></div>
             </article>;
-          })}</div> : <div className="design-canvas-frame" style={{ width: `${activePage.width * zoom / 100}px` }}><PageSvg showHoverHandles={tool === "select"} rotatingObjectId={interactionRef.current?.mode === "rotate" ? interactionRef.current.id : undefined} isRotating={isRotating} rotationCursor={rotationCursor} showPageResizeHandles={tool === "select" && selectedIds.length === 0} tool={tool} zoom={zoom} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onPageResizePointerDown={onPageResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onArrowBendPointerDown={onArrowBendPointerDown} onArrowBendKeyDown={onArrowBendKeyDown} onResizeKeyDown={onResizeKeyDown} onPageResizeKeyDown={onPageResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div>}
+          })}</div> : <div className="design-canvas-frame" style={{ width: `${activePage.width * zoom / 100}px` }}><PageSvg showHoverHandles={tool === "select"} editingTextId={editingTextId} editingTextValue={editingTextValue} onEditingTextChange={setEditingTextValue} onEditingTextCommit={commitTextEditing} onEditingTextCancel={cancelTextEditing} rotatingObjectId={interactionRef.current?.mode === "rotate" ? interactionRef.current.id : undefined} isRotating={isRotating} rotationCursor={rotationCursor} showPageResizeHandles={tool === "select" && selectedIds.length === 0} tool={tool} zoom={zoom} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onPageResizePointerDown={onPageResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onArrowBendPointerDown={onArrowBendPointerDown} onArrowBendKeyDown={onArrowBendKeyDown} onResizeKeyDown={onResizeKeyDown} onPageResizeKeyDown={onPageResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div>}
         </div></div>
       </section>
       <aside className="design-inspector" aria-label="Design properties"><div className="design-inspector-section"><span className="design-inspector-label">Page</span><label>Name<input value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} /></label><label>Preset<select value="custom" disabled={!writable} onChange={(event) => setPagePreset(event.target.value)}><option value="custom">Custom</option><option value="landscape">1920 × 1080 landscape</option><option value="square">1080 × 1080 square</option><option value="portrait">1080 × 1350 portrait</option></select></label><label>Width<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.width} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, width: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Height<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.height} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, height: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Background<select value={activePage.background.kind} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, kind: event.target.value as "solid" | "transparent" } }))}><option value="solid">Solid</option><option value="transparent">Transparent</option></select></label>{activePage.background.kind === "solid" ? <label>Colour<input type="color" value={activePage.background.colour} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, colour: event.target.value } }))} /></label> : null}</div>{selectedObject ? <div className="design-inspector-section"><span className="design-inspector-label">Selected {toolLabels[selectedObject.type as Tool] ?? selectedObject.type}</span><div className="design-field-grid"><label>X<input type="number" value={Math.round(selectedObject.x)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, x: Number(event.target.value) || 0 }))} /></label><label>Y<input type="number" value={Math.round(selectedObject.y)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, y: Number(event.target.value) || 0 }))} /></label><label>Width<input type="number" min="1" value={Math.round(selectedObject.width)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, width: Math.max(1, Number(event.target.value) || 1) }))} /></label><label>Height<input type="number" min="1" value={Math.round(selectedObject.height)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, height: Math.max(1, Number(event.target.value) || 1) }))} /></label></div><label>Opacity<input type="range" min="0" max="1" step=".05" value={selectedObject.opacity} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, opacity: Number(event.target.value) }))} /></label><PositionControls writable={writable} selectedCount={selectedIds.length} canAlign={activePage.objects.some((object) => selectedIds.includes(object.id) && !object.locked)} onAlignToPage={alignSelectedToPage} />{selectedObject.type === "image" ? <div className="design-image-tools">

@@ -93,6 +93,8 @@
 ### Changed
 - Object resize, rotate and arrow controls now appear while hovering an unselected canvas object and remain visible while dragging arrow endpoints or bend beads.
 - Arrow bend beads can now travel beyond the arrow endpoints horizontally while remaining bounded by a generous canvas range.
+- Added a Shapes dropdown with squares, rounded squares, circles, triangles, diamonds, pentagons, hexagons and octagons.
+- Text objects can be edited directly on the canvas by double-clicking them.
 - Arrow endpoint dragging now shows the same snapping guides as object movement.
 - Standardised canvas and arrow handles with grey outlines, purple hover fill and outline, and no blue focus selector.
 
