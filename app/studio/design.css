@@ -61,6 +61,8 @@
 .design-canvas-frame { box-shadow: 0 12px 34px #17191c1f; flex: 0 0 auto; max-height: 100%; max-width: 100%; }
 .design-page-svg { background: #fff; display: block; height: auto; max-height: calc(100dvh - 230px); overflow: visible; width: 100%; }
 .design-object { cursor: grab; }
+.design-page-svg.is-select-mode .design-object,
+.design-page-svg.is-select-mode .design-object.is-locked { cursor: default; }
 .design-object:active { cursor: grabbing; }
 .design-object.is-locked { cursor: default; }
 .design-selection-box { fill: transparent; stroke: #cc1818; stroke-dasharray: 8 6; stroke-width: 3; vector-effect: non-scaling-stroke; }
