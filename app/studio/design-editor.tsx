@@ -13,10 +13,11 @@ import { StudioIcon } from "./studio-icons";
 import type { StudioIconName } from "./studio-icons";
 
 type Tool = "select" | "image" | "arrow" | "rectangle" | "ellipse" | "text" | "step" | "highlight" | "redaction";
+type DrawTool = Exclude<Tool, "select" | "image">;
 type PositionAxis = "left" | "centre" | "right" | "top" | "middle" | "bottom";
-type InteractionMode = "move" | "resize" | "rotate" | "arrow-endpoint";
+type InteractionMode = "move" | "resize" | "rotate" | "arrow-endpoint" | "draw";
 type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
-type Interaction = { mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; keepRatio?: boolean; centred?: boolean; endpoint?: "start" | "end"; startAngle?: number };
+type Interaction = { mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; keepRatio?: boolean; centred?: boolean; endpoint?: "start" | "end"; startAngle?: number; drawTool?: DrawTool };
 type Guide = { axis: "x" | "y"; position: number };
 type RecentStyles = {
   arrow: Pick<DesignArrowObject, "stroke" | "strokeWidth" | "arrowhead">;
@@ -171,6 +172,24 @@ function makeObject(tool: Exclude<Tool, "select" | "image">, x: number, y: numbe
   return { ...base, type: tool, ...styles.shape, fill: tool === "ellipse" && styles.shape.fill === "#ffffff" ? "transparent" : styles.shape.fill };
 }
 
+function drawObject(object: DesignObject, start: { x: number; y: number }, current: { x: number; y: number }, page: DesignPage) {
+  const startX = Math.max(0, Math.min(page.width, start.x));
+  const startY = Math.max(0, Math.min(page.height, start.y));
+  const currentX = Math.max(0, Math.min(page.width, current.x));
+  const currentY = Math.max(0, Math.min(page.height, current.y));
+  const x = Math.min(startX, currentX);
+  const y = Math.min(startY, currentY);
+  const width = Math.max(1, Math.abs(currentX - startX));
+  const height = Math.max(1, Math.abs(currentY - startY));
+  const next = { ...object, x, y, width, height };
+  if (next.type !== "arrow") return next;
+  return {
+    ...next,
+    start: { x: startX <= currentX ? 0 : width, y: startY <= currentY ? 0 : height },
+    end: { x: startX <= currentX ? width : 0, y: startY <= currentY ? height : 0 },
+  };
+}
+
 function resizeObject(object: DesignObject, handle: ResizeHandle, dx: number, dy: number, page: DesignPage, keepRatio: boolean, centred: boolean) {
   const minimum = 10;
   function axisBounds(start: number, end: number, delta: number, negative: boolean, positive: boolean, limit: number) {
@@ -248,7 +267,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
         <line className="design-rotate-connector" x1={object.width / 2} y1={object.height} x2={object.width / 2} y2={object.height + 16} />
         <circle role="button" tabIndex={0} aria-label={`Rotate selected object (${rotationLabel(object.rotation)})`} className="design-rotate-handle" cx={object.width / 2} cy={object.height + 30} r={14} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
         <g className="design-rotate-icon" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 30})`} pointerEvents="none"><StudioIcon name="undo" size={13} x={object.width / 2 - 6.5} y={object.height + 23.5} /><StudioIcon name="redo" size={13} x={object.width / 2 - 6.5} y={object.height + 23.5} /></g>
-        <g className="design-rotation-badge" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 68})`} pointerEvents="none"><rect x={object.width / 2 - 28} y={object.height + 56} width="56" height="24" rx="4" /><text x={object.width / 2} y={object.height + 73} textAnchor="middle">{rotationLabel(object.rotation)}</text></g>
+        <g className="design-rotation-badge" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 72})`} pointerEvents="none"><rect x={object.width / 2 - 28} y={object.height + 60} width="56" height="24" rx="2" /><text x={object.width / 2} y={object.height + 77} textAnchor="middle">{rotationLabel(object.rotation)}</text></g>
       </> : null}
       {selectedIds.includes(object.id) && object.type === "arrow" ? <><circle role="button" tabIndex={0} aria-label="Move arrow start point" className="design-endpoint-handle" cx={object.start?.x ?? 0} cy={object.start?.y ?? object.height} r="7" onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /><circle role="button" tabIndex={0} aria-label="Move arrow end point" className="design-endpoint-handle" cx={object.end?.x ?? object.width} cy={object.end?.y ?? 0} r="7" onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /></> : null}
     </g>)}
@@ -454,7 +473,11 @@ export function DesignEditor() {
       else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v") { event.preventDefault(); pasteSelected(); }
       else if (selectedId && writable && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) { event.preventDefault(); const amount = event.shiftKey ? 10 : 1; updateSelected((object) => ({ ...object, x: object.x + (event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0), y: object.y + (event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0) })); }
       else if (event.key === "Delete" || event.key === "Backspace") { if (selectedId && writable) { updatePage((page) => ({ ...page, objects: page.objects.filter((object) => object.id !== selectedId) })); selectObjects([]); } }
-      else if (event.key === "Escape") { interactionRef.current = null; selectionStartRef.current = null; panRef.current = null; setSelectionBox(null); setGuides([]); selectObjects([]); setShowMedia(false); setTool("select"); }
+      else if (event.key === "Escape") {
+        const interaction = interactionRef.current;
+        if (interaction?.mode === "draw") setDesign(interaction.base);
+        interactionRef.current = null; selectionStartRef.current = null; panRef.current = null; setSelectionBox(null); setGuides([]); selectObjects([]); setShowMedia(false); setTool("select");
+      }
     }
     window.addEventListener("keydown", handleKey); return () => window.removeEventListener("keydown", handleKey);
   });
@@ -473,6 +496,17 @@ export function DesignEditor() {
     return { x: (event.clientX - rect.left) / rect.width * activePage.width, y: (event.clientY - rect.top) / rect.height * activePage.height };
   };
 
+  function beginDraw(event: { clientX: number; clientY: number; pointerId: number; currentTarget: SVGElement }, drawTool: DrawTool) {
+    if (!design || !activePage || !writable) return;
+    const point = getPoint(event);
+    const object = makeObject(drawTool, point.x, point.y, activePage, activePage.objects.filter((item) => item.type === "step").length, recentStylesRef.current);
+    const initial = drawObject({ ...object, x: point.x, y: point.y, width: 1, height: 1 }, point, point, activePage);
+    setDesign({ ...design, pages: design.pages.map((page) => page.id === activePage.id ? { ...page, objects: [...page.objects, initial] } : page) });
+    selectObjects([initial.id]);
+    interactionRef.current = { mode: "draw", id: initial.id, drawTool, startX: point.x, startY: point.y, original: cloneDesign(initial), base: cloneDesign(design) };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
   function onCanvasPointerDown(event: PointerEvent<SVGSVGElement>) {
     if (!writable || !activePage) return;
     if (spaceDown && canvasScrollRef.current) {
@@ -490,15 +524,16 @@ export function DesignEditor() {
       return;
     }
     if (tool === "image") return;
-    const point = getPoint(event);
-    const object = makeObject(tool, Math.max(0, point.x - 90), Math.max(0, point.y - 50), activePage, activePage.objects.filter((item) => item.type === "step").length, recentStylesRef.current);
-    updatePage((page) => ({ ...page, objects: [...page.objects, object] }));
-    selectObjects([object.id]); setTool("select");
+    beginDraw(event, tool);
   }
 
   function onObjectPointerDown(event: PointerEvent<SVGGElement>, object: DesignObject) {
     event.stopPropagation();
     if (!activePage) return;
+    if (tool !== "select" && tool !== "image") {
+      beginDraw(event, tool);
+      return;
+    }
     const groupIds = object.groupId ? activePage.objects.filter((item) => item.groupId === object.groupId).map((item) => item.id) : [object.id];
     if (event.shiftKey) {
       const nextIds = selectedIds.includes(object.id) ? selectedIds.filter((id) => !groupIds.includes(id)) : [...new Set([...selectedIds, ...groupIds])];
@@ -600,7 +635,9 @@ export function DesignEditor() {
     const point = getPoint(event);
     const dx = point.x - interaction.startX; const dy = point.y - interaction.startY;
     let nextObject: DesignObject = { ...interaction.original, x: Math.max(0, interaction.original.x + dx), y: Math.max(0, interaction.original.y + dy) };
-    if (interaction.mode === "resize") {
+    if (interaction.mode === "draw") {
+      nextObject = drawObject(interaction.original, { x: interaction.startX, y: interaction.startY }, point, activePage);
+    } else if (interaction.mode === "resize") {
       nextObject = resizeObject(interaction.original, interaction.handle ?? "se", dx, dy, activePage, Boolean(interaction.keepRatio), Boolean(interaction.centred));
     } else if (interaction.mode === "rotate") {
       const original = interaction.original; const centreX = original.x + original.width / 2; const centreY = original.y + original.height / 2;
@@ -633,7 +670,18 @@ export function DesignEditor() {
     if (!interaction || !design) return;
     interactionRef.current = null;
     setGuides([]);
-    const current = cloneDesign(design);
+    let current = cloneDesign(design);
+    if (interaction.mode === "draw" && activePage) {
+      const drawn = activePage.objects.find((object) => object.id === interaction.id);
+      if (drawn && drawn.width <= 1 && drawn.height <= 1) {
+        const fallback = makeObject(interaction.drawTool ?? "rectangle", Math.max(0, interaction.startX - 90), Math.max(0, interaction.startY - 50), activePage, activePage.objects.filter((item) => item.type === "step" && item.id !== drawn.id).length, recentStylesRef.current);
+        const replacement = { ...fallback, id: drawn.id };
+        current = { ...current, pages: current.pages.map((page) => page.id === activePage.id ? { ...page, objects: page.objects.map((object) => object.id === drawn.id ? replacement : object) } : page) };
+        setDesign(current);
+      }
+      selectObjects([interaction.id]);
+      setTool("select");
+    }
     setHistory((items) => [...items.slice(-49), interaction.base]); setFuture([]); void persist(current);
   }
 
@@ -985,7 +1033,7 @@ export function DesignEditor() {
       <aside className="design-pages" id="design-pages-panel" aria-label="Design pages"><div className="design-pages-heading"><strong>Pages</strong><div><button type="button" onClick={() => setPagesCollapsed(true)} aria-label="Hide pages">−</button><button type="button" onClick={() => addPage()} disabled={!writable} aria-label="Add page">＋</button></div></div><div className="design-page-list">{design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} draggable={writable} onDragStart={() => setDraggedPageId(page.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedPageId) reorderPage(draggedPageId, page.id); setDraggedPageId(null); }}><label className="design-page-select"><input type="checkbox" checked={selectedPageIds.includes(page.id)} onChange={(event) => setSelectedPageIds((items) => event.target.checked ? [...items, page.id] : items.filter((id) => id !== page.id))} aria-label={`Select ${page.name} for export`} /></label><button type="button" className="design-thumbnail-button" onClick={() => selectPage(page.id)} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><PageSvg page={page} assets={design.assets} selectedIds={[]} guides={[]} onCanvasPointerDown={() => undefined} onObjectPointerDown={() => undefined} onResizePointerDown={() => undefined} onRotatePointerDown={() => undefined} onArrowEndpointPointerDown={() => undefined} onResizeKeyDown={() => undefined} onRotateKeyDown={() => undefined} onArrowEndpointKeyDown={() => undefined} /></div><span>{index + 1}. {page.name}</span></button><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button></div></div>)}</div><div className="design-page-actions"><button type="button" onClick={() => addPage()} disabled={!writable}>Add page</button><button type="button" onClick={deletePage} disabled={!writable || design.pages.length === 1}>Delete page</button><button type="button" onClick={createNewDesign} disabled={!writable}>New design</button></div><label className="design-import-label">Import design<input ref={importInputRef} type="file" accept="application/json,.json" onChange={(event) => void importDesign(event.target.files?.[0])} /></label><select className="design-switcher" value={design.id} onChange={(event) => { const next = designs.find((item) => item.id === event.target.value); if (next) { setDesign(next); setPageName(next.pages.find((page) => page.id === next.activePageId)?.name ?? next.pages[0]?.name ?? ""); setHistory([]); setFuture([]); selectObjects([]); } }} aria-label="Open design">{designs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></aside>
       <section className="design-main" aria-label="Design canvas">
         <div className="design-tool-rail"><button type="button" className={tool === "select" ? "is-active" : ""} onClick={() => setTool("select")} aria-pressed={tool === "select"}><StudioIcon name={toolIcons.select} size={20} /><span>Select</span></button><button type="button" onClick={() => fileInputRef.current?.click()} disabled={!writable}><StudioIcon name={toolIcons.image} size={20} /><span>Image</span></button><input ref={fileInputRef} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; if (file) void addImage(file, file.name); if (fileInputRef.current) fileInputRef.current.value = ""; }} />{annotationTools.map((item) => <button type="button" key={item} className={tool === item ? "is-active" : ""} onClick={() => setTool(item)} disabled={!writable} aria-pressed={tool === item}><StudioIcon name={toolIcons[item]} size={20} /><span>{toolLabels[item]}</span></button>)}<button ref={mediaTriggerRef} type="button" onClick={() => void openMedia()} disabled={!writable}><StudioIcon name="image" size={20} /><span>Studio files</span></button></div>
-        <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerUp} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><input ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-zoom"><button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)}>−</button><select aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</select><button type="button" aria-label="Zoom in" onClick={() => changeZoom(1)}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className="design-canvas-scroll" ref={canvasScrollRef}><div className="design-canvas-frame" style={{ width: `${zoom}%` }}><PageSvg tool={tool} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onResizeKeyDown={onResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div></div><p className="design-canvas-help">Drag any handle to resize. Shift keeps proportions; Option/Alt resizes from the centre. Arrow keys resize focused handles.</p></div>
+      <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerUp} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><input ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-zoom"><button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)}>−</button><select aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</select><button type="button" aria-label="Zoom in" onClick={() => changeZoom(1)}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className="design-canvas-scroll" ref={canvasScrollRef}><div className="design-canvas-frame" style={{ width: `${zoom}%` }}><PageSvg tool={tool} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onResizeKeyDown={onResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div></div><p className="design-canvas-help">Choose a tool, then drag on the canvas to draw it. Drag any handle to resize. Shift keeps proportions; Option/Alt resizes from the centre. Arrow keys resize focused handles.</p></div>
       </section>
       <aside className="design-inspector" aria-label="Design properties"><div className="design-inspector-section"><span className="design-inspector-label">Page</span><label>Name<input value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} /></label><label>Preset<select value="custom" disabled={!writable} onChange={(event) => setPagePreset(event.target.value)}><option value="custom">Custom</option><option value="landscape">1920 × 1080 landscape</option><option value="square">1080 × 1080 square</option><option value="portrait">1080 × 1350 portrait</option></select></label><label>Width<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.width} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, width: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Height<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.height} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, height: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Background<select value={activePage.background.kind} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, kind: event.target.value as "solid" | "transparent" } }))}><option value="solid">Solid</option><option value="transparent">Transparent</option></select></label>{activePage.background.kind === "solid" ? <label>Colour<input type="color" value={activePage.background.colour} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, colour: event.target.value } }))} /></label> : null}</div>{selectedObject ? <div className="design-inspector-section"><span className="design-inspector-label">Selected {toolLabels[selectedObject.type as Tool] ?? selectedObject.type}</span><div className="design-field-grid"><label>X<input type="number" value={Math.round(selectedObject.x)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, x: Number(event.target.value) || 0 }))} /></label><label>Y<input type="number" value={Math.round(selectedObject.y)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, y: Number(event.target.value) || 0 }))} /></label><label>Width<input type="number" min="1" value={Math.round(selectedObject.width)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, width: Math.max(1, Number(event.target.value) || 1) }))} /></label><label>Height<input type="number" min="1" value={Math.round(selectedObject.height)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, height: Math.max(1, Number(event.target.value) || 1) }))} /></label></div><label>Opacity<input type="range" min="0" max="1" step=".05" value={selectedObject.opacity} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, opacity: Number(event.target.value) }))} /></label><PositionControls writable={writable} selectedCount={selectedIds.length} canAlign={activePage.objects.some((object) => selectedIds.includes(object.id) && !object.locked)} onAlignToPage={alignSelectedToPage} />{selectedObject.type === "image" ? <div className="design-image-tools">
             <div className="design-background-removal"><span className="design-inspector-label">Background removal</span><label>Tolerance<input type="range" min="4" max="80" value={backgroundTolerance} disabled={!writable} onChange={(event) => setBackgroundTolerance(Number(event.target.value))} /></label><button type="button" onClick={() => void removeSelectedImageBackground()} disabled={!writable}>Remove background</button><small>Removes edge-connected colours locally and keeps the original asset.</small></div>
