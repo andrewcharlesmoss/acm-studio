@@ -496,13 +496,12 @@ test("design rotation handle uses one dedicated SVG glyph", () => {
   assert.doesNotMatch(editor, /design-rotate-connector/);
   assert.doesNotMatch(editor, /<StudioIcon name="undo" size=\{13\}.*<StudioIcon name="redo" size=\{13\}/);
   assert.match(icons, /case "rotate": return <svg/);
-  assert.match(icons, /M8\.5 5\.5a6\.5 6\.5 0 0 0 0 13/);
 });
 
 test("design rotation control hides during drag and keeps the rotation cursor", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
-  const cursor = readFileSync(new URL("../public/cursors/rotate.svg", import.meta.url), "utf8");
+  const cursor = readFileSync(new URL("../app/studio/design-transform.ts", import.meta.url), "utf8");
   assert.match(editor, /const \[isRotating, setIsRotating\] = useState\(false\)/);
   assert.match(editor, /!isRotating \? <><circle role="button"/);
   assert.match(editor, /setIsRotating\(true\)/);
@@ -510,10 +509,11 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
   assert.match(editor, /function rotationBadgePoint\(/);
   assert.match(editor, /if \(interaction\.mode === "rotate"\) setRotationCursor\(point\)/);
   assert.match(editor, /rotationCursor=\{isActive \? rotationCursor : null\}/);
-  assert.match(css, /\.design-rotate-handle \{[^}]*cursor: url\("\/cursors\/rotate\.svg"\) 16 16, ew-resize/);
+  assert.match(css, /\.design-rotate-handle \{[^}]*cursor: var\(--rotation-cursor\)/);
   assert.match(css, /\.design-rotate-handle:focus-visible \{ outline: none !important; stroke: #8b3dff/);
-  assert.match(css, /\.design-page-svg\.is-rotating, \.design-page-svg\.is-rotating \* \{ cursor: url\("\/cursors\/rotate\.svg"\) 16 16, ew-resize !important; \}/);
-  assert.match(css, /\.design-page-svg\.is-rotating \.design-rotation-badge,\n\.design-page-svg\.is-rotating \.design-rotation-badge \* \{ cursor: url\("\/cursors\/rotate\.svg"\) 16 16, ew-resize !important; \}/);
+  assert.match(css, /\.design-page-svg\.is-rotating, \.design-page-svg\.is-rotating \* \{ cursor: var\(--rotation-cursor\) !important; \}/);
+  assert.match(editor, /rotationCursorCss\(object.rotation\)/);
+  assert.match(editor, /rotationCursorCss\(activeRotation\)/);
   assert.match(cursor, /viewBox="0 0 32 32"/);
   assert.match(cursor, /C10\.5 10\.5 21\.5 10\.5 25\.5 18\.5/);
   assert.match(cursor, /stroke="#17191c"/);

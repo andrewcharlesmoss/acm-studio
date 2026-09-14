@@ -91,6 +91,11 @@
 
 ### Changed
 
+- Rotation cursors now face the object and turn with it. Resizing follows the
+  object's rotated axes and keeps the opposite corner anchored.
+- The rotation button uses taller, finer curved SVG arrows to match the
+  requested Canva reference.
+
 - Replaced the browser resize cursor during canvas rotation with a Canva-style curved two-way SVG cursor.
 
 - Kept the all-pages workspace background continuous while its page stack
