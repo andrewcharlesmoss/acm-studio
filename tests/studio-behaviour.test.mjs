@@ -418,12 +418,26 @@ test("design canvas resets zoom with the platform zero shortcut", () => {
 
 test("design canvas keeps layers in the left pane and offers an all-pages view", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(editor, /aria-label="Design pages and layers"/);
   assert.match(editor, /<LayerList page=\{activePage\}/);
   assert.match(editor, /className=\{`design-canvas-scroll\$\{allPagesVisible/);
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
   assert.match(editor, /event\.stopPropagation\(\); selectPage\(page\.id\)/);
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
+  assert.doesNotMatch(editor, /design-selection-box/);
+  assert.doesNotMatch(css, /design-selection-box/);
+  assert.doesNotMatch(css, /#8b3dff/);
+  assert.match(css, /\.design-resize-handle, \.design-endpoint-handle, \.design-rotate-handle \{ fill: #fff !important/);
+  assert.match(css, /\.design-resize-handle \{ stroke: #aeb3bf/);
+});
+
+test("design image resizing keeps proportions by default and uses Shift for freeform sizing", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /function shouldKeepResizeRatio\(object: DesignObject, shiftKey: boolean\)/);
+  assert.match(editor, /keepRatio: shouldKeepResizeRatio\(object, event\.shiftKey\)/);
+  assert.match(editor, /resizeObject\(item, handle, dx, dy, page, shouldKeepResizeRatio\(item, event\.shiftKey\), false\)/);
+  assert.match(editor, /Images keep their proportions by default; hold Shift to stretch them/);
 });
 
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {

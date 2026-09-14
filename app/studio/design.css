@@ -74,9 +74,8 @@
 .design-page-svg.is-select-mode .design-object.is-locked { cursor: default; }
 .design-object:active { cursor: grabbing; }
 .design-object.is-locked { cursor: default; }
-.design-selection-box { fill: transparent; stroke: #8b3dff; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .design-resize-handle, .design-endpoint-handle, .design-rotate-handle { fill: #fff !important; vector-effect: non-scaling-stroke; }
-.design-resize-handle { stroke: #8b3dff; stroke-width: 2; cursor: nwse-resize; }
+.design-resize-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: nwse-resize; }
 .design-endpoint-handle { stroke: #cc1818; stroke-width: 2; cursor: nwse-resize; }
 .design-resize-handle.handle-ne, .design-resize-handle.handle-sw { cursor: nesw-resize; }
 .design-resize-handle.handle-nw, .design-resize-handle.handle-se { cursor: nwse-resize; }
