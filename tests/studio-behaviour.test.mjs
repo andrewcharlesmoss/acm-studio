@@ -474,6 +474,12 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-pane-tabs button\.is-active \{ border-bottom-color: var\(--accent\);/);
 });
 
+test("design tool selection uses a neutral active colour", () => {
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(css, /\.design-tool-rail button\.is-active \{ background: #f0eee7; border-color: #c8c6be; color: var\(--ink\); \}/);
+  assert.doesNotMatch(css, /\.design-tool-rail button\.is-active \{[^}]*#f9e1e1|#d89b9b|#9c2525/);
+});
+
 test("design image resizing keeps proportions by default and uses Shift for freeform sizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /function shouldKeepResizeRatio\(object: DesignObject, shiftKey: boolean\)/);
