@@ -642,23 +642,30 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.match(editor, /onKeyDown=\{\(event\) => onArrowBendKeyDown\?\.\(event, object, index\)\}/);
   assert.match(editor, /event\.preventDefault\(\); event\.stopPropagation\(\)/);
   assert.match(editor, /\["Enter", " "\]\.includes\(event\.key\)/);
-  assert.match(editor, /const control = \{ x: 2 \* bends\[0\]\.x - midpoint\.x, y: 2 \* bends\[0\]\.y - midpoint\.y \}/);
+  assert.match(editor, /const control = bends\.length === 1 \? \{ x: 2 \* bends\[0\]\.x - midpoint\.x, y: 2 \* bends\[0\]\.y - midpoint\.y \} : null/);
   assert.match(editor, /function constrainArrowBend\(object: DesignArrowObject, page: DesignPage, bend: \{ x: number; y: number \}\)/);
   assert.match(editor, /page\.width \* 2 - object\.x/);
   assert.doesNotMatch(editor, /Arrows resize through their two endpoints instead of corner handles/);
 });
 
-test("arrowheads use explicit base-trimmed geometry in live SVG and export SVG", () => {
+test("arrowheads use shared base-trimmed geometry in live SVG and export SVG", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /function arrowGeometry\(object: DesignArrowObject\)/);
-  assert.match(editor, /const tangent = bends\.length === 1 \?/);
-  assert.match(editor, /const headLength = Math\.max\(12, object\.strokeWidth \* 2\.5\)/);
-  assert.match(editor, /const base = \{ x: end\.x - direction\.x \* headLength, y: end\.y - direction\.y \* headLength \}/);
+  assert.match(editor, /const startDirection = normaliseArrowDirection\(/);
+  assert.match(editor, /const endDirection = normaliseArrowDirection\(/);
+  assert.match(editor, /const requestedHeadLength = Math\.max\(12, object\.strokeWidth \* 2\.5\) \* arrowheadScale\(object\)/);
+  assert.match(editor, /const headLengthLimit = length \* \(startArrowhead && endArrowhead \? 0\.4 : 0\.48\)/);
+  assert.match(editor, /const startBase = \{ x: start\.x \+ startDirection\.x \* startHeadLength, y: start\.y \+ startDirection\.y \* startHeadLength \}/);
+  assert.match(editor, /const endBase = \{ x: end\.x - endDirection\.x \* endHeadLength, y: end\.y - endDirection\.y \* endHeadLength \}/);
   assert.match(editor, /const path = bends\.length === 1/);
-  assert.match(editor, /strokeLinecap=\{object\.arrowhead \? "butt" : "round"\}/);
-  assert.match(editor, /<polygon points=\{geometry\.arrowhead\} fill=\{object\.stroke\} \/>/);
-  assert.match(editor, /stroke-linecap="\$\{object\.arrowhead \? "butt" : "round"\}"/);
-  assert.match(editor, /<polygon points="\$\{geometry\.arrowhead\}" fill="\$\{object\.stroke\}" \/>/);
+  assert.match(editor, /geometry\.startArrowhead/);
+  assert.match(editor, /geometry\.endArrowhead/);
+  assert.match(editor, /strokeDasharray=\{dotted \?/);
+  assert.match(editor, /stroke-dasharray="\$\{Math\.max\(1, object\.strokeWidth\)\}/);
+  assert.match(editor, /selectedObject\.startArrowhead \? "yes" : "no"/);
+  assert.match(editor, /End arrowhead/);
+  assert.match(editor, /Arrowhead size/);
+  assert.match(editor, /Line style/);
   assert.doesNotMatch(editor, /marker-end=/);
   assert.doesNotMatch(editor, /<marker id=/);
 });

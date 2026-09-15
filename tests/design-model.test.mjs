@@ -61,3 +61,20 @@ test("design validation rejects malformed typed annotation objects", () => {
   const arrow = { id: "arrow-1", type: "arrow", x: 0, y: 0, width: 100, height: 40, rotation: 0, opacity: 1, stroke: "#000000", strokeWidth: 2, arrowhead: "yes" };
   assert.throws(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [arrow] }] }), /design arrows are invalid/);
 });
+
+test("arrow style fields are optional for legacy payloads and bounded when present", () => {
+  const design = createDesign();
+  const legacyArrow = { id: "arrow-legacy", type: "arrow", x: 0, y: 0, width: 100, height: 40, rotation: 0, opacity: 1, stroke: "#000000", strokeWidth: 2, arrowhead: true };
+  assert.doesNotThrow(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [legacyArrow] }] }));
+  const styledArrow = { ...legacyArrow, id: "arrow-styled", startArrowhead: true, arrowheadScale: 1.5, lineStyle: "dotted" };
+  assert.doesNotThrow(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [styledArrow] }] }));
+  for (const invalid of [
+    { arrowheadScale: 0.49 },
+    { arrowheadScale: 2.01 },
+    { arrowheadScale: Number.NaN },
+    { lineStyle: "dash" },
+    { startArrowhead: "yes" },
+  ]) {
+    assert.throws(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [{ ...legacyArrow, ...invalid }] }] }), /design arrows are invalid/);
+  }
+});

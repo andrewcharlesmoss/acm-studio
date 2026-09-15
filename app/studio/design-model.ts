@@ -48,6 +48,9 @@ export type DesignArrowObject = DesignObjectBase & {
   stroke: string;
   strokeWidth: number;
   arrowhead: boolean;
+  startArrowhead?: boolean;
+  arrowheadScale?: number;
+  lineStyle?: "solid" | "dotted";
   start?: { x: number; y: number };
   end?: { x: number; y: number };
   bends?: Array<{ x: number; y: number }>;
@@ -90,6 +93,8 @@ export type DesignProject = {
 
 export const DESIGN_STORAGE_KEY = "acm-studio-designs-v1";
 export const DESIGN_MAX_DIMENSION = 4096;
+export const DESIGN_ARROWHEAD_SCALE_MIN = 0.5;
+export const DESIGN_ARROWHEAD_SCALE_MAX = 2;
 export const DESIGN_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const;
 
 export function makeId(prefix: string) {
@@ -146,7 +151,7 @@ export function validateDesignProject(value: unknown): DesignProject {
       const item = object;
       if (!isRecord(item) || typeof item.id !== "string" || !item.id || objectIds.has(item.id) || !["image", "rectangle", "ellipse", "highlight", "redaction", "arrow", "text", "step"].includes(item.type as string) || ![item.x, item.y, item.width, item.height, item.rotation, item.opacity].every((entry) => typeof entry === "number" && Number.isFinite(entry)) || (typeof item.width === "number" && item.width < 0) || (typeof item.height === "number" && item.height < 0) || (typeof item.opacity === "number" && (item.opacity < 0 || item.opacity > 1)) || (item.locked !== undefined && typeof item.locked !== "boolean") || (item.groupId !== undefined && (typeof item.groupId !== "string" || !item.groupId))) throw new Error("One or more design objects are invalid.");
       if (["rectangle", "ellipse", "highlight", "redaction"].includes(item.type as string) && (typeof item.fill !== "string" || typeof item.stroke !== "string" || typeof item.strokeWidth !== "number" || !Number.isFinite(item.strokeWidth) || item.strokeWidth < 0 || (item.radius !== undefined && (typeof item.radius !== "number" || !Number.isFinite(item.radius) || item.radius < 0)))) throw new Error("One or more design shapes are invalid.");
-      if (item.type === "arrow" && (typeof item.stroke !== "string" || typeof item.strokeWidth !== "number" || !Number.isFinite(item.strokeWidth) || item.strokeWidth <= 0 || typeof item.arrowhead !== "boolean" || (item.start !== undefined && (!isRecord(item.start) || typeof item.start.x !== "number" || !Number.isFinite(item.start.x) || typeof item.start.y !== "number" || !Number.isFinite(item.start.y))) || (item.end !== undefined && (!isRecord(item.end) || typeof item.end.x !== "number" || !Number.isFinite(item.end.x) || typeof item.end.y !== "number" || !Number.isFinite(item.end.y))) || (item.bends !== undefined && (!Array.isArray(item.bends) || (item.bends.length !== 1 && item.bends.length !== 2) || item.bends.some((bend) => !isRecord(bend) || typeof bend.x !== "number" || !Number.isFinite(bend.x) || typeof bend.y !== "number" || !Number.isFinite(bend.y)))))) throw new Error("One or more design arrows are invalid.");
+      if (item.type === "arrow" && (typeof item.stroke !== "string" || typeof item.strokeWidth !== "number" || !Number.isFinite(item.strokeWidth) || item.strokeWidth <= 0 || typeof item.arrowhead !== "boolean" || (item.startArrowhead !== undefined && typeof item.startArrowhead !== "boolean") || (item.arrowheadScale !== undefined && (typeof item.arrowheadScale !== "number" || !Number.isFinite(item.arrowheadScale) || item.arrowheadScale < DESIGN_ARROWHEAD_SCALE_MIN || item.arrowheadScale > DESIGN_ARROWHEAD_SCALE_MAX)) || (item.lineStyle !== undefined && !["solid", "dotted"].includes(item.lineStyle as string)) || (item.start !== undefined && (!isRecord(item.start) || typeof item.start.x !== "number" || !Number.isFinite(item.start.x) || typeof item.start.y !== "number" || !Number.isFinite(item.start.y))) || (item.end !== undefined && (!isRecord(item.end) || typeof item.end.x !== "number" || !Number.isFinite(item.end.x) || typeof item.end.y !== "number" || !Number.isFinite(item.end.y))) || (item.bends !== undefined && (!Array.isArray(item.bends) || (item.bends.length !== 1 && item.bends.length !== 2) || item.bends.some((bend) => !isRecord(bend) || typeof bend.x !== "number" || !Number.isFinite(bend.x) || typeof bend.y !== "number" || !Number.isFinite(bend.y)))))) throw new Error("One or more design arrows are invalid.");
       if ((item.type === "text" || item.type === "step") && (typeof item.text !== "string" || typeof item.colour !== "string" || typeof item.fontFamily !== "string" || !item.fontFamily || typeof item.fontSize !== "number" || !Number.isFinite(item.fontSize) || item.fontSize <= 0 || typeof item.fontWeight !== "number" || !Number.isFinite(item.fontWeight) || typeof item.align !== "string" || !["left", "center", "right"].includes(item.align) || (item.type === "step" && (typeof item.fill !== "string" || !item.fill)))) throw new Error("One or more design text objects are invalid.");
       if (item.type === "image" && (typeof item.assetId !== "string" || !assetIds.has(item.assetId))) throw new Error("A design image refers to a missing asset.");
       if (item.type === "image" && item.crop !== undefined) {

@@ -21,6 +21,15 @@ export. This keeps image, text and annotation objects editable without adding a
 graphics-library dependency, while preserving document dimensions independently
 of browser zoom.
 
+Arrows support independent Start arrowhead and End arrowhead controls, a shared
+Arrowhead size setting and Solid or Dotted line style. Dotted styling applies
+only to the shaft, while each selected arrowhead remains a solid filled shape.
+The arrow geometry trims the shaft at both arrowhead bases for straight,
+quadratic and cubic paths, including reversed and short arrows. Existing design
+files remain compatible: the legacy `arrowhead` field continues to control the
+end triangle, while omitted start, size and line-style fields use false, 100%
+and Solid defaults.
+
 The annotation tools are arranged in a horizontal toolbar above the canvas,
 with a Hide pages / Show pages control for giving the canvas more room during
 editing. The Pages pane remains available as a named, keyboard-accessible
