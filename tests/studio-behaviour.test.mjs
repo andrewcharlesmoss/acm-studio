@@ -528,9 +528,12 @@ test("design tool selection uses a neutral active colour", () => {
 
 test("design ribbon keeps tab targets mounted and supports keyboard navigation", () => {
   const ribbon = readFileSync(new URL("../app/studio/studio-ribbon.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(ribbon, /onKeyDown=\{\(event\) => handleTabKeyDown\(event, index\)\}/);
   assert.match(ribbon, /event\.key !== "ArrowRight" && event\.key !== "ArrowLeft" && event\.key !== "Home" && event\.key !== "End"/);
   assert.match(ribbon, /hidden=\{!active\} aria-hidden=\{!active\}/);
+  assert.match(css, /\.design-ribbon-content \{ border-top: 1px solid #e1dfd7; box-sizing: border-box; height: 114px; min-height: 114px; overflow: auto; \}/);
+  assert.match(css, /\.design-ribbon-panel \{ align-items: stretch; box-sizing: border-box; display: flex; gap: 2px; height: 114px; min-height: 114px;/);
 });
 
 test("design canvas offers an optional purple selection border", () => {
