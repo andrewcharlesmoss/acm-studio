@@ -538,9 +538,11 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(ribbon, /hidden=\{!active\} aria-hidden=\{!active\}/);
   assert.match(css, /\.design-ribbon-content \{ border-top: 1px solid #e1dfd7; box-sizing: border-box; height: 114px; min-height: 114px; overflow: auto; \}/);
   assert.match(css, /\.design-ribbon-panel \{ align-items: stretch; box-sizing: border-box; display: flex; gap: 2px; height: 114px; min-height: 114px;/);
+  assert.match(editor, /className=\{`design-zoom-dock\$\{pagesCollapsed \? " is-pages-collapsed" : ""\}`\}/);
   assert.match(editor, /className="design-zoom-slider" aria-label="Canvas zoom control"/);
   assert.match(editor, /id="design-canvas-zoom" type="range" min="25" max="300" step="5" value=\{zoom\}/);
-  assert.match(css, /\.design-zoom-slider \{ align-items: center; background: #f9f8f4; border: 1px solid #c8c6be; border-radius: 7px; bottom: 18px;.*position: fixed; right: calc\(260px \+ 18px\); z-index: 30;/);
+  assert.match(css, /\.design-zoom-dock \{ align-items: center; background: #f4f3ee; border-top: 1px solid #d2d0c8; bottom: 0;.*left: 224px;.*position: fixed; right: 260px;.*z-index: 30;/);
+  assert.match(css, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
 
 test("design canvas offers an optional purple selection border", () => {
