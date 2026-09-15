@@ -17,6 +17,7 @@ import { loadDesigns, saveDesigns } from "./design-store";
 import { createDesignSync, type DesignSyncSession, type DesignSyncStatus } from "./design-sync";
 import { StudioIcon } from "./studio-icons";
 import type { StudioIconName } from "./studio-icons";
+import { StudioRibbon, StudioRibbonButton, StudioRibbonGroup, StudioRibbonPanel, type StudioRibbonTab } from "./studio-ribbon";
 
 type Tool = "select" | "image" | "arrow" | "rectangle" | "ellipse" | "text" | "step" | "highlight" | "redaction";
 type DrawTool = Exclude<Tool, "select" | "image">;
@@ -610,6 +611,7 @@ export function DesignEditor() {
   const [loaded, setLoaded] = useState(false);
   const [ownershipState, setOwnershipState] = useState<OwnershipState>(studioWriteOwnership.getState());
   const [status, setStatus] = useState("Loading designs…");
+  const [ribbonTab, setRibbonTab] = useState<StudioRibbonTab>("home");
   const [tool, setTool] = useState<Tool>("select");
   const [shapeKind, setShapeKind] = useState<DesignShapeKind>("rectangle");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -1683,10 +1685,49 @@ export function DesignEditor() {
   if (!loaded || !design || !activePage) return <div className="design-loading">Loading the design canvas…</div>;
 
   return <div className="design-shell" onPaste={handlePaste}>
-      <header className="design-toolbar">
-        <div className="design-toolbar-brand"><a href="/studio" aria-label="Back to ACM Studio">ACM Studio</a><span aria-hidden="true">/</span><input aria-label="Design name" value={design.name} disabled={!writable} onChange={(event) => updateDesign({ ...design, name: event.target.value })} /></div>
-      <div className="design-toolbar-actions"><button className="design-pages-toggle" type="button" onClick={() => setPagesCollapsed((value) => !value)} aria-expanded={!pagesCollapsed} aria-controls="design-pages-panel">{pagesCollapsed ? "Show pages" : "Hide pages"}</button><span className="design-save-status" aria-live="polite">{status}</span><button type="button" onClick={undo} disabled={!history.length || !writable} aria-label="Undo">Undo</button><button type="button" onClick={redo} disabled={!future.length || !writable} aria-label="Redo">Redo</button><select value={exportFormat} onChange={(event) => setExportFormat(event.target.value as typeof exportFormat)} aria-label="Export format"><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="webp">WebP</option></select><select value={exportScale} onChange={(event) => setExportScale(Number(event.target.value))} aria-label="Export scale"><option value="1">100%</option><option value="2">200%</option></select><select value={exportQuality} onChange={(event) => setExportQuality(Number(event.target.value))} aria-label="Export quality"><option value=".92">High quality</option><option value=".75">Smaller file</option></select><button type="button" onClick={() => void exportPage(activePage)}>Export page</button><button type="button" onClick={() => void exportSelectedPages()} disabled={!selectedPageIds.length}>Export selected</button><button type="button" onClick={() => void exportAllPages()}>Export all pages</button>{activePage.renderedMediaId ? <button type="button" onClick={() => void replaceLinkedStudioMedia(activePage)} disabled={!writable}>Update linked media</button> : null}<button type="button" onClick={() => void savePageToStudioMedia(activePage)} disabled={!writable}>Save to Studio media</button><button type="button" onClick={exportDesignJson}>Editable backup</button>{mediaHandoff ? <><a className="design-content-link" href={`/studio?designMedia=${encodeURIComponent(mediaHandoff)}&designTarget=block`}>Insert into current document</a><a className="design-content-link" href={`/studio?designMedia=${encodeURIComponent(mediaHandoff)}&designTarget=cover`}>Use as cover image</a></> : null}</div>
-    </header>
+      <StudioRibbon
+        activeTab={ribbonTab}
+        onTabChange={setRibbonTab}
+        brand={<><a href="/studio" aria-label="Back to ACM Studio">ACM Studio</a><span aria-hidden="true">/</span><input aria-label="Design name" value={design.name} disabled={!writable} onChange={(event) => updateDesign({ ...design, name: event.target.value })} /></>}
+        status={<span>{status}</span>}
+      >
+        <StudioRibbonPanel active={ribbonTab === "home"}>
+          <StudioRibbonGroup label="History">
+            <StudioRibbonButton size="large" onClick={undo} disabled={!history.length || !writable}><StudioIcon name="undo" size={24} /><span>Undo</span></StudioRibbonButton>
+            <StudioRibbonButton size="large" onClick={redo} disabled={!future.length || !writable}><StudioIcon name="redo" size={24} /><span>Redo</span></StudioRibbonButton>
+          </StudioRibbonGroup>
+          <StudioRibbonGroup label="Pages">
+            <StudioRibbonButton size="large" onClick={() => setPagesCollapsed((value) => !value)} aria-expanded={!pagesCollapsed} aria-controls="design-pages-panel"><StudioIcon name="archive" size={24} /><span>{pagesCollapsed ? "Show pages" : "Hide pages"}</span></StudioRibbonButton>
+          </StudioRibbonGroup>
+          <StudioRibbonGroup label="Studio">
+            <StudioRibbonButton onClick={() => void savePageToStudioMedia(activePage)} disabled={!writable}><StudioIcon name="folder" size={22} /><span>Save to Studio media</span></StudioRibbonButton>
+            {mediaHandoff ? <><a className="design-ribbon-link" href={`/studio?designMedia=${encodeURIComponent(mediaHandoff)}&designTarget=block`}>Insert into document</a><a className="design-ribbon-link" href={`/studio?designMedia=${encodeURIComponent(mediaHandoff)}&designTarget=cover`}>Use as cover</a></> : null}
+          </StudioRibbonGroup>
+        </StudioRibbonPanel>
+        <StudioRibbonPanel active={ribbonTab === "insert"}>
+          <StudioRibbonGroup label="Insert"><span className="design-ribbon-hint">Choose an insertion tool from the tools row below the ribbon.</span></StudioRibbonGroup>
+        </StudioRibbonPanel>
+        <StudioRibbonPanel active={ribbonTab === "arrange"}>
+          <StudioRibbonGroup label="Arrange"><span className="design-ribbon-hint">Select an object to edit its position, size, order and alignment in the inspector.</span></StudioRibbonGroup>
+        </StudioRibbonPanel>
+        <StudioRibbonPanel active={ribbonTab === "view"}>
+          <StudioRibbonGroup label="View"><span className="design-ribbon-hint">Canvas view controls are available beside the page heading.</span></StudioRibbonGroup>
+        </StudioRibbonPanel>
+        <StudioRibbonPanel active={ribbonTab === "export"}>
+          <StudioRibbonGroup label="Export settings">
+            <label className="design-ribbon-field">Format<select value={exportFormat} onChange={(event) => setExportFormat(event.target.value as typeof exportFormat)} aria-label="Export format"><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="webp">WebP</option></select></label>
+            <label className="design-ribbon-field">Scale<select value={exportScale} onChange={(event) => setExportScale(Number(event.target.value))} aria-label="Export scale"><option value="1">100%</option><option value="2">200%</option></select></label>
+            <label className="design-ribbon-field">Quality<select value={exportQuality} onChange={(event) => setExportQuality(Number(event.target.value))} aria-label="Export quality"><option value=".92">High quality</option><option value=".75">Smaller file</option></select></label>
+          </StudioRibbonGroup>
+          <StudioRibbonGroup label="Export">
+            <StudioRibbonButton onClick={() => void exportPage(activePage)}><StudioIcon name="download" size={22} /><span>Export page</span></StudioRibbonButton>
+            <StudioRibbonButton onClick={() => void exportSelectedPages()} disabled={!selectedPageIds.length}><StudioIcon name="download" size={22} /><span>Export selected</span></StudioRibbonButton>
+            <StudioRibbonButton onClick={() => void exportAllPages()}><StudioIcon name="download" size={22} /><span>Export all pages</span></StudioRibbonButton>
+            <StudioRibbonButton onClick={exportDesignJson}><StudioIcon name="file" size={22} /><span>Editable backup</span></StudioRibbonButton>
+            {activePage.renderedMediaId ? <StudioRibbonButton onClick={() => void replaceLinkedStudioMedia(activePage)} disabled={!writable}>Update linked media</StudioRibbonButton> : null}
+          </StudioRibbonGroup>
+        </StudioRibbonPanel>
+      </StudioRibbon>
     {!peerWritable && ownershipMessage(ownershipState) ? <div className="design-notice" role="status">{ownershipMessage(ownershipState)}{ownershipState === "waiting" ? " Close the other editing tab before making changes." : ""}</div> : null}
     {!primaryWritable && syncStatus === "unsupported" ? <div className="design-notice" role="status">Read-only: this browser cannot synchronise duplicate design tabs.</div> : null}
     {!primaryWritable && syncStatus === "disconnected" ? <div className="design-notice" role="status">Connection to the primary Studio tab was lost. Editing is paused.</div> : null}
