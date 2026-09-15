@@ -55,7 +55,7 @@
 .design-thumbnail { align-items: center; aspect-ratio: 16 / 9; background: #dddcd5; border: 1px solid #c8c6be; display: flex; justify-content: center; overflow: hidden; width: 100%; }
 .design-thumbnail .design-page-svg { display: block; height: 100%; pointer-events: none; width: 100%; }
 .design-thumbnail-button > span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.design-page-item-actions { align-items: center; display: flex; gap: 3px; justify-content: flex-end; min-height: 34px; opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+.design-page-item-actions { align-items: center; display: flex; gap: 3px; justify-content: flex-end; min-height: 34px; opacity: 1; pointer-events: auto; }
 .design-page-item:hover .design-page-item-actions, .design-page-item:focus-within .design-page-item-actions, .design-page-item.is-active .design-page-item-actions { opacity: 1; pointer-events: auto; }
 .design-page-item-actions button { align-items: center; background: transparent; border: 0; border-radius: 5px; color: var(--muted); cursor: pointer; display: inline-flex; justify-content: center; min-height: 30px; min-width: 30px; padding: 5px; }
 .design-page-item-actions button:hover:not(:disabled), .design-page-item-actions button:focus-visible { background: #eceae3; color: var(--ink); }

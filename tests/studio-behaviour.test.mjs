@@ -494,7 +494,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(editor, /\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(css, /\.design-page-list \{ align-content: start;/);
-  assert.match(css, /\.design-page-item-actions \{ align-items: center; display: flex; gap: 3px; justify-content: flex-end; min-height: 34px; opacity: 0;/);
+  assert.match(css, /\.design-page-item-actions \{ align-items: center; display: flex; gap: 3px; justify-content: flex-end; min-height: 34px; opacity: 1; pointer-events: auto;/);
   assert.match(css, /\.design-page-item\.is-active \.design-page-item-actions \{ opacity: 1; pointer-events: auto; \}/);
   assert.match(css, /\.design-page-item:has\(\.design-page-select input:checked\) \{ box-shadow: inset 0 0 0 2px #8b3dff66; \}/);
   assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; \}/);
