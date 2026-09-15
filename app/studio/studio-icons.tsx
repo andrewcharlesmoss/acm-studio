@@ -9,7 +9,7 @@
 
 import type { SVGProps } from "react";
 
-export type StudioIconName = "add" | "align-centre" | "align-left" | "align-right" | "archive" | "arrow-down" | "arrow-left" | "arrow-right" | "arrow-up" | "audio" | "block" | "button" | "check" | "chevron-down" | "chevron-right" | "close" | "code" | "copy" | "download" | "drag-handle" | "external" | "file" | "folder" | "format-bold" | "format-italic" | "globe" | "heading" | "image" | "info" | "link" | "link-off" | "list" | "more-vertical" | "paragraph" | "pencil" | "quote" | "redo" | "rotate" | "separator" | "trash" | "undo" | "video";
+export type StudioIconName = "add" | "align-centre" | "align-left" | "align-right" | "archive" | "arrow-down" | "arrow-left" | "arrow-right" | "arrow-up" | "audio" | "block" | "button" | "check" | "chevron-down" | "chevron-right" | "close" | "code" | "copy" | "download" | "drag-handle" | "external" | "file" | "folder" | "format-bold" | "format-italic" | "globe" | "heading" | "image" | "info" | "link" | "link-off" | "list" | "lock" | "more-vertical" | "paragraph" | "pencil" | "quote" | "redo" | "rotate" | "separator" | "trash" | "undo" | "video";
 
 type StudioIconProps = Omit<SVGProps<SVGSVGElement>, "children"> & { name: StudioIconName | "seen"; size?: number };
 
@@ -58,6 +58,7 @@ export function StudioIcon({ name, size = 24, ...props }: StudioIconProps) {
     case "file": return <svg {...shared} fill="currentColor"><path fillRule="evenodd" clipRule="evenodd" d="M12.848 8a1 1 0 0 1-.914-.594l-.723-1.63a.5.5 0 0 0-.447-.276H5a.5.5 0 0 0-.5.5v11.5a.5.5 0 0 0 .5.5h14a.5.5 0 0 0 .5-.5v-9A.5.5 0 0 0 19 8h-6.152Zm.612-1.5a.5.5 0 0 1-.462-.31l-.445-1.084A2 2 0 0 0 10.763 4H5a2 2 0 0 0-2 2v11.5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-5.54Z" /></svg>;
     case "info": return <svg {...shared} fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 16V11M12 9.5V8M19.25 12C19.25 16.0041 16.0041 19.25 12 19.25C7.99594 19.25 4.75 16.0041 4.75 12C4.75 7.99594 7.99594 4.75 12 4.75C16.0041 4.75 19.25 7.99594 19.25 12Z" strokeLinejoin="round" vectorEffect="non-scaling-stroke" /></svg>;
     case "trash": return <svg {...shared} fill="currentColor"><path fillRule="evenodd" clipRule="evenodd" d="M12 5.5A2.25 2.25 0 0 0 9.878 7h4.244A2.251 2.251 0 0 0 12 5.5ZM12 4a3.751 3.751 0 0 0-3.675 3H5v1.5h1.27l.818 8.997a2.75 2.75 0 0 0 2.739 2.501h4.347a2.75 2.75 0 0 0 2.738-2.5L17.73 8.5H19V7h-3.325A3.751 3.751 0 0 0 12 4Zm4.224 4.5H7.776l.806 8.861a1.25 1.25 0 0 0 1.245 1.137h4.347a1.25 1.25 0 0 0 1.245-1.137l.805-8.861Z" /></svg>;
+    case "lock": return <svg {...shared} fill="currentColor"><path fillRule="evenodd" clipRule="evenodd" d="M8 8V6a4 4 0 0 1 8 0v2h1a2 2 0 0 1 2 2v9H5v-9a2 2 0 0 1 2-2h1Zm1.5 0h5V6a2.5 2.5 0 0 0-5 0v2ZM6.5 9.5v8h11v-8h-11Z" /></svg>;
     case "more-vertical": return <svg {...shared} fill="currentColor"><path d="M13 19h-2v-2h2v2zm0-6h-2v-2h2v2zm0-6h-2V5h2v2z" /></svg>;
     default: return <svg {...shared} fill="currentColor"><path d="M19 8h-1V6h-5v2h-2V6H6v2H5c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2zm.5 10c0 .3-.2.5-.5.5H5c-.3 0-.5-.2-.5-.5v-8c0-.3.2-.5.5-.5h14c.3 0 .5.2.5.5v8z" /></svg>;
   }

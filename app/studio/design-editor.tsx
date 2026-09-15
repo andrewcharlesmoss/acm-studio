@@ -628,8 +628,8 @@ export function DesignEditor() {
   const primaryWritable = ownershipState === "writable";
   const peerWritable = ownershipState === "waiting" && syncStatus === "synced";
   const writable = primaryWritable || peerWritable;
-  const designEditable = writable;
   const activePage = design?.pages.find((page) => page.id === design.activePageId) ?? design?.pages[0] ?? null;
+  const designEditable = writable && !activePage?.locked;
   const selectedObject = activePage?.objects.find((object) => object.id === selectedId) ?? null;
   const selectedImageAsset = selectedObject?.type === "image" ? design?.assets.find((asset) => asset.id === selectedObject.assetId) : undefined;
 
@@ -892,7 +892,7 @@ export function DesignEditor() {
   }
 
   function updatePage(update: (page: DesignPage) => DesignPage, record = true) {
-    if (!design || !activePage) return;
+    if (!design || !activePage || !designEditable) return;
     updateDesign({ ...design, pages: design.pages.map((page) => page.id === activePage.id ? update(page) : page) }, record);
   }
 
@@ -1354,10 +1354,14 @@ export function DesignEditor() {
     setShowMedia(false);
   }
 
-  function addPage(duplicate = false) {
+  function addPage(duplicate = false, afterPageId?: string) {
     if (!design || !activePage) return;
-    const page: DesignPage = { ...cloneDesign(activePage), id: makeId("page"), name: duplicate ? `${activePage.name} copy` : nextPageName(design.pages), objects: duplicate ? activePage.objects.map((object) => ({ ...cloneDesign(object), id: makeId("object") })) : [] };
-    updateDesign({ ...design, pages: [...design.pages, page], activePageId: page.id }); setPageName(page.name); selectObjects([]);
+    const sourcePage = design.pages.find((item) => item.id === afterPageId) ?? activePage;
+    const page: DesignPage = { ...cloneDesign(sourcePage), id: makeId("page"), name: duplicate ? `${sourcePage.name} copy` : nextPageName(design.pages), hidden: duplicate ? sourcePage.hidden : false, locked: duplicate ? sourcePage.locked : false, objects: duplicate ? sourcePage.objects.map((object) => ({ ...cloneDesign(object), id: makeId("object") })) : [] };
+    const pages = [...design.pages];
+    const insertAt = afterPageId ? pages.findIndex((item) => item.id === afterPageId) + 1 : pages.length;
+    pages.splice(insertAt > 0 ? insertAt : pages.length, 0, page);
+    updateDesign({ ...design, pages, activePageId: page.id }); setPageName(page.name); selectObjects([]);
   }
 
   function selectPage(id: string) { if (!design) return; const nextPage = design.pages.find((page) => page.id === id); updateDesign({ ...design, activePageId: id }, false); setPageName(nextPage?.name ?? ""); selectObjects([]); }
@@ -1367,7 +1371,22 @@ export function DesignEditor() {
     window.setTimeout(() => pageNameInputRef.current?.focus(), 0);
   }
 
-  function deletePage() { if (!design || design.pages.length === 1 || !activePage) return; const index = design.pages.findIndex((page) => page.id === activePage.id); const nextPage = design.pages[index - 1] ?? design.pages[index + 1]; updateDesign({ ...design, pages: design.pages.filter((page) => page.id !== activePage.id), activePageId: nextPage.id }); selectObjects([]); }
+  function deletePageById(pageId: string) { if (!design || design.pages.length === 1) return; const index = design.pages.findIndex((page) => page.id === pageId); if (index < 0) return; const nextPage = design.pages[index - 1] ?? design.pages[index + 1]; updateDesign({ ...design, pages: design.pages.filter((page) => page.id !== pageId), activePageId: design.activePageId === pageId ? nextPage.id : design.activePageId }); if (design.activePageId === pageId) { setPageName(nextPage.name); selectObjects([]); } }
+
+  function deletePage() { if (activePage) deletePageById(activePage.id); }
+
+  function togglePageHidden(pageId: string) {
+    if (!design || !writable) return;
+    updateDesign({ ...design, pages: design.pages.map((page) => page.id === pageId ? { ...page, hidden: !page.hidden } : page) });
+  }
+
+  function togglePageLocked(pageId: string) {
+    if (!design || !writable) return;
+    const page = design.pages.find((item) => item.id === pageId);
+    if (!page) return;
+    updateDesign({ ...design, pages: design.pages.map((item) => item.id === pageId ? { ...item, locked: !item.locked } : item) });
+    if (pageId === activePage?.id) selectObjects([]);
+  }
 
   function setPagePreset(value: string) {
     const dimensions: Record<string, [number, number]> = { landscape: [1920, 1080], square: [1080, 1080], portrait: [1080, 1350], portraitStory: [1080, 1920] };
@@ -1404,7 +1423,10 @@ export function DesignEditor() {
     const source = design.pages.find((page) => page.id === sourceId);
     if (!source) return;
     const page: DesignPage = { ...cloneDesign(source), id: makeId("page"), name: `${source.name} copy`, objects: source.objects.map((object) => ({ ...cloneDesign(object), id: makeId("object") })) };
-    updateDesign({ ...design, pages: [...design.pages, page], activePageId: page.id }); setPageName(page.name); selectObjects([]);
+    const pages = [...design.pages];
+    const insertAt = pages.findIndex((item) => item.id === sourceId) + 1;
+    pages.splice(insertAt > 0 ? insertAt : pages.length, 0, page);
+    updateDesign({ ...design, pages, activePageId: page.id }); setPageName(page.name); selectObjects([]);
   }
 
   function movePageById(pageId: string, direction: -1 | 1) {
@@ -1639,8 +1661,9 @@ export function DesignEditor() {
             const isActive = page.id === activePage.id;
             const title = page.name === `Page ${index + 1}` ? "" : page.name;
             const selectInactivePage = (event: PointerEvent<SVGElement>) => { event.stopPropagation(); selectPage(page.id); };
-            return <article className={`design-all-page${isActive ? " is-active" : ""}`} key={page.id} aria-label={`Page ${index + 1}${title ? `: ${title}` : ""}`}>
-              <div className="design-all-page-heading" style={{ width: `${page.width * zoom / 100}px` }}><div className="design-all-page-title"><strong>Page {index + 1}</strong><span aria-hidden="true">-</span><button type="button" className={title ? "has-title" : "is-placeholder"} onClick={() => startPageRename(page.id)} aria-label={title ? `Edit page title: ${title}` : "Add page title"}>{title || "Add page title"}</button></div>{isActive ? <span>Editing</span> : <button type="button" onClick={() => selectPage(page.id)}>Edit Page</button>}</div>
+            const pageTitleInput = <input ref={isActive ? pageNameInputRef : undefined} className={title ? "has-title" : "is-placeholder"} value={isActive ? (pageName === `Page ${index + 1}` ? "" : pageName) : title} placeholder="Add page title" readOnly={!isActive} disabled={!writable || page.locked} aria-label={title ? `Edit page title: ${title}` : "Add page title"} onFocus={() => { if (!isActive) startPageRename(page.id); }} onClick={() => { if (!isActive) startPageRename(page.id); }} onChange={(event) => { if (isActive) setPageName(event.target.value); }} onBlur={isActive ? renamePage : undefined} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} />;
+            return <article className={`design-all-page${isActive ? " is-active" : ""}${page.hidden ? " is-hidden" : ""}${page.locked ? " is-locked" : ""}`} key={page.id} aria-label={`Page ${index + 1}${title ? `: ${title}` : ""}${page.hidden ? " (hidden)" : ""}${page.locked ? " (locked)" : ""}`}>
+              <div className="design-all-page-heading" style={{ width: `${page.width * zoom / 100}px` }}><div className="design-all-page-title"><strong>Page {index + 1}</strong><span aria-hidden="true">-</span>{pageTitleInput}</div><div className="design-all-page-actions" aria-label={`Page ${index + 1} actions`}><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move page ${index + 1} earlier`}><StudioIcon name="arrow-up" size={16} /></button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move page ${index + 1} later`}><StudioIcon name="arrow-down" size={16} /></button><button type="button" className={page.hidden ? "is-active" : ""} onClick={() => togglePageHidden(page.id)} aria-pressed={Boolean(page.hidden)} aria-label={page.hidden ? `Show page ${index + 1}` : `Hide page ${index + 1}`}><StudioIcon name="seen" size={16} /></button><button type="button" className={page.locked ? "is-active" : ""} onClick={() => togglePageLocked(page.id)} aria-pressed={Boolean(page.locked)} aria-label={page.locked ? `Unlock page ${index + 1}` : `Lock page ${index + 1}`}><StudioIcon name="lock" size={16} /></button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate page ${index + 1}`}><StudioIcon name="copy" size={16} /></button><button type="button" onClick={() => deletePageById(page.id)} disabled={!writable || design.pages.length === 1} aria-label={`Delete page ${index + 1}`}><StudioIcon name="trash" size={16} /></button><button type="button" onClick={() => addPage(false, page.id)} disabled={!writable} aria-label={`Add page after page ${index + 1}`}><StudioIcon name="add" size={16} /></button></div></div>
               <div className="design-canvas-frame" style={{ width: `${page.width * zoom / 100}px` }}><PageSvg showHoverHandles={isActive && tool === "select"} purpleSelectionBorder={isActive && purpleSelectionBorder} editingTextId={isActive ? editingTextId : null} editingTextValue={editingTextValue} onEditingTextChange={setEditingTextValue} onEditingTextCommit={commitTextEditing} onEditingTextCancel={cancelTextEditing} onTextDoubleClick={isActive ? beginTextEditing : undefined} rotatingObjectId={interactionRef.current?.mode === "rotate" ? interactionRef.current.id : undefined} isRotating={isActive && isRotating} rotationCursor={isActive ? rotationCursor : null} showPageResizeHandles={isActive && tool === "select" && selectedIds.length === 0} tool={isActive ? tool : "select"} zoom={zoom} page={page} assets={design.assets} selectedIds={isActive ? selectedIds : []} guides={isActive ? guides : []} onCanvasPointerDown={isActive ? onCanvasPointerDown : selectInactivePage} onObjectPointerDown={isActive ? onObjectPointerDown : (event) => selectInactivePage(event)} onResizePointerDown={isActive ? onResizePointerDown : () => undefined} onPageResizePointerDown={isActive ? onPageResizePointerDown : undefined} onRotatePointerDown={isActive ? onRotatePointerDown : () => undefined} onArrowEndpointPointerDown={isActive ? onArrowEndpointPointerDown : () => undefined} onArrowBendPointerDown={isActive ? onArrowBendPointerDown : () => undefined} onArrowBendKeyDown={isActive ? onArrowBendKeyDown : undefined} onResizeKeyDown={isActive ? onResizeKeyDown : () => undefined} onPageResizeKeyDown={isActive ? onPageResizeKeyDown : undefined} onRotateKeyDown={isActive ? onRotateKeyDown : () => undefined} onArrowEndpointKeyDown={isActive ? onArrowEndpointKeyDown : () => undefined} selectionBox={isActive ? selectionBox : null} svgRef={isActive ? svgRef : undefined} /></div>
             </article>;
           })}</div> : <div className="design-canvas-frame" style={{ width: `${activePage.width * zoom / 100}px` }}><PageSvg showHoverHandles={tool === "select"} purpleSelectionBorder={purpleSelectionBorder} editingTextId={editingTextId} editingTextValue={editingTextValue} onEditingTextChange={setEditingTextValue} onEditingTextCommit={commitTextEditing} onEditingTextCancel={cancelTextEditing} onTextDoubleClick={beginTextEditing} rotatingObjectId={interactionRef.current?.mode === "rotate" ? interactionRef.current.id : undefined} isRotating={isRotating} rotationCursor={rotationCursor} showPageResizeHandles={tool === "select" && selectedIds.length === 0} tool={tool} zoom={zoom} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onPageResizePointerDown={onPageResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onArrowBendPointerDown={onArrowBendPointerDown} onArrowBendKeyDown={onArrowBendKeyDown} onResizeKeyDown={onResizeKeyDown} onPageResizeKeyDown={onPageResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div>}

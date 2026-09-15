@@ -32,7 +32,9 @@ the relevant directional arrows and chevrons.
 This central wrapper is the approved source for new Studio interaction icons.
 The settings secret-visibility control also uses `seen.svg` from the same
 `1addb122219043a1ac1c38f817c71255ae16d6e3` revision, retrieved on 8 September 2026.
-Do not use Unicode glyphs or hand-drawn substitutes for those controls.
+The design page lock control uses the corresponding `lock.svg` geometry from
+that revision. Do not use Unicode glyphs or hand-drawn substitutes for those
+controls.
 
 ## Visual reference
 
