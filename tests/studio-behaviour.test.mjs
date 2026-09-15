@@ -457,6 +457,10 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /<LayerList page=\{activePage\} selectedIds=\{selectedIds\} writable=\{writable\} onSelect=\{\(id\) => selectObjects\(\[id\]\)\} onMove=\{moveLayer\} onReorder=\{reorderLayer\}/);
   assert.match(editor, /function moveLayer\(objectId: string, direction: LayerMoveDirection\)/);
   assert.match(editor, /function reorderLayer\(sourceId: string, targetId: string, position: LayerDropPosition\)/);
+  assert.match(editor, /function reorderedPages\(pages: DesignPage\[\], sourceId: string, targetId: string, position: "before" \| "after"\)/);
+  assert.match(editor, /if \(!reorderedPages\(design\.pages, draggedPageId, page\.id, position\)\) \{\s*clearDropGuide\(\);\s*return;/);
+  assert.match(editor, /const pages = reorderedPages\(design\.pages, sourceId, targetId, dropPosition\);/);
+  assert.match(editor, /const bounds = event\.currentTarget\.getBoundingClientRect\(\); const position = event\.clientY < bounds\.top \+ bounds\.height \/ 2 \? "before" : "after"; if \(draggedPageId\) reorderPage\(draggedPageId, page\.id, position\);/);
   assert.match(editor, /const layers = \[\.\.\.page\.objects\]\.reverse\(\)/);
   assert.match(editor, /draggable=\{canMove\}/);
   assert.match(editor, /aria-label=\{`Move \$\{label\} up`\}/);
