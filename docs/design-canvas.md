@@ -30,6 +30,14 @@ files remain compatible: the legacy `arrowhead` field continues to control the
 end triangle, while omitted start, size and line-style fields use false, 100%
 and Solid defaults.
 
+Duplicate tabs for the same design can edit together when the browser supports
+Web Locks and BroadcastChannel. The tab holding the Studio writer lock remains
+the persistence owner; the other tab sends design edits to it and receives
+committed updates. Conflicting stale edits are rejected visibly rather than
+silently overwriting newer work. Studio media, backups, restores and switching
+or creating designs remain primary-tab operations. If tab synchronisation is
+unavailable, the existing read-only protection remains in place.
+
 The annotation tools are arranged in a horizontal toolbar above the canvas,
 with a Hide pages / Show pages control for giving the canvas more room during
 editing. The Pages pane remains available as a named, keyboard-accessible

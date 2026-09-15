@@ -13,6 +13,7 @@ import {
   type DesignArrowObject, type DesignAsset, type DesignObject, type DesignPage, type DesignProject, type DesignShapeKind, type DesignShapeObject, type DesignTextObject,
 } from "./design-model";
 import { loadDesigns, saveDesigns } from "./design-store";
+import { createDesignSync, type DesignSyncSession, type DesignSyncStatus } from "./design-sync";
 import { StudioIcon } from "./studio-icons";
 import type { StudioIconName } from "./studio-icons";
 
@@ -552,6 +553,7 @@ export function DesignEditor() {
   const [backgroundProgress, setBackgroundProgress] = useState<BackgroundRemovalProgress | null>(null);
   const [backgroundMode, setBackgroundMode] = useState<BackgroundRemovalMode>("general");
   const [backgroundEdgeCleanup, setBackgroundEdgeCleanup] = useState(10);
+  const [syncStatus, setSyncStatus] = useState<DesignSyncStatus>("disconnected");
   const backgroundRemovalRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -566,8 +568,14 @@ export function DesignEditor() {
   const panRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const recentStylesRef = useRef<RecentStyles>(cloneDesign(defaultRecentStyles));
   const lastTextPointerRef = useRef<{ id: string; at: number } | null>(null);
+  const syncRef = useRef<DesignSyncSession | null>(null);
+  const designsRef = useRef<DesignProject[]>([]);
+  const requestedDesignId = useState(() => typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("designId"))[0];
 
-  const writable = ownershipState === "writable";
+  const primaryWritable = ownershipState === "writable";
+  const peerWritable = ownershipState === "waiting" && syncStatus === "synced";
+  const writable = primaryWritable || peerWritable;
+  const designEditable = writable;
   const activePage = design?.pages.find((page) => page.id === design.activePageId) ?? design?.pages[0] ?? null;
   const selectedObject = activePage?.objects.find((object) => object.id === selectedId) ?? null;
   const selectedImageAsset = selectedObject?.type === "image" ? design?.assets.find((asset) => asset.id === selectedObject.assetId) : undefined;
@@ -586,6 +594,8 @@ export function DesignEditor() {
   useEffect(() => studioWriteOwnership.subscribe(() => {
     if (!studioWriteOwnership.canWrite()) backgroundRemovalRef.current?.abort();
   }), []);
+
+  useEffect(() => { designsRef.current = designs; }, [designs]);
 
   function rememberStyle(object: DesignObject) {
     if (object.type === "arrow") recentStylesRef.current.arrow = { stroke: object.stroke, strokeWidth: object.strokeWidth, arrowhead: object.arrowhead, startArrowhead: object.startArrowhead ?? false, arrowheadScale: object.arrowheadScale ?? 1, lineStyle: object.lineStyle ?? "solid" };
@@ -607,7 +617,7 @@ export function DesignEditor() {
   }
 
   function beginTextEditing(object: DesignTextObject) {
-    if (!writable) return;
+    if (!designEditable) return;
     interactionRef.current = null;
     selectObjects([object.id]);
     setEditingTextId(object.id);
@@ -653,7 +663,8 @@ export function DesignEditor() {
     const unsubscribe = studioWriteOwnership.subscribe(() => setOwnershipState(studioWriteOwnership.getState()));
     try {
       const saved = loadDesigns();
-      queueMicrotask(() => { if (mounted) { setDesigns(saved); setDesign(saved[0] ?? createDesign()); setLoaded(true); setStatus(saved.length ? "Saved locally" : "New design ready"); } });
+      const requested = requestedDesignId ? saved.find((item) => item.id === requestedDesignId) : undefined;
+      queueMicrotask(() => { if (mounted) { setDesigns(saved); setDesign(requested ?? saved[0] ?? createDesign()); setLoaded(true); setStatus(saved.length ? "Saved locally" : "New design ready"); } });
     } catch (loadError) { queueMicrotask(() => { if (mounted) { setError(loadError instanceof Error ? loadError.message : "Saved designs could not be read."); setDesign(createDesign()); setLoaded(true); } }); }
     const release = studioWriteOwnership.acquire((token) => {
       try {
@@ -675,7 +686,68 @@ export function DesignEditor() {
       }
     });
     return () => { mounted = false; unsubscribe(); release(); };
-  }, []);
+  }, [requestedDesignId]);
+
+  useEffect(() => {
+    if (!loaded || !design) return;
+    const session = createDesignSync({
+      designId: design.id,
+      initialSnapshot: design,
+      role: primaryWritable ? "primary" : "peer",
+      onStatus: (next) => {
+        setSyncStatus(next);
+        if (next === "synced") setStatus("Synced with another ACM Studio tab");
+        else if (next === "conflict") setStatus("Conflict detected — editing is paused");
+        else if (next === "disconnected") setStatus("Connection lost — editing is paused");
+      },
+      onSnapshot: (snapshot, source) => {
+        if (source === "conflict") {
+          setError("This design changed in another Studio tab. The latest committed version has been restored.");
+        }
+        setDesign(snapshot);
+        setDesigns((items) => {
+          const next = items.map((item) => item.id === snapshot.id ? snapshot : item);
+          designsRef.current = next;
+          return next;
+        });
+        setHistory([]); setFuture([]);
+        setPageName(snapshot.pages.find((page) => page.id === snapshot.activePageId)?.name ?? snapshot.pages[0]?.name ?? "");
+        setSelectedIds((ids) => ids.filter((id) => snapshot.pages.some((page) => page.objects.some((object) => object.id === id))));
+        setSelectedId((id) => id && snapshot.pages.some((page) => page.objects.some((object) => object.id === id)) ? id : null);
+      },
+      persistPrimary: async (snapshot) => {
+        const updated = designsRef.current.some((item) => item.id === snapshot.id)
+          ? designsRef.current.map((item) => item.id === snapshot.id ? snapshot : item)
+          : [...designsRef.current, snapshot];
+        await saveDesigns(updated);
+        designsRef.current = updated;
+        setDesigns(updated);
+      },
+    });
+    syncRef.current = session;
+    setSyncStatus(session.getStatus());
+    return () => {
+      session.close();
+      if (syncRef.current === session) syncRef.current = null;
+      setSyncStatus("disconnected");
+    };
+    // The session is scoped to the loaded design. Role changes are applied
+    // separately so a lock transition cannot accidentally join another design.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [design?.id, loaded]);
+
+  useEffect(() => {
+    syncRef.current?.setRole(primaryWritable ? "primary" : "peer");
+  }, [primaryWritable]);
+
+  useEffect(() => {
+    if (primaryWritable || designEditable) return;
+    interactionRef.current = null;
+    pageResizeRef.current = null;
+    selectionStartRef.current = null;
+    panRef.current = null;
+    setSelectionBox(null); setGuides([]); setIsRotating(false); setRotationCursor(null);
+  }, [designEditable, primaryWritable]);
 
   useEffect(() => {
     if (!showMedia) return;
@@ -724,17 +796,40 @@ export function DesignEditor() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [designs, loaded]);
 
+  useEffect(() => {
+    if (!loaded || !design) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("designId") === design.id && params.get("pageId") === activePage?.id) return;
+    params.set("designId", design.id);
+    if (activePage) params.set("pageId", activePage.id);
+    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+  }, [activePage?.id, design?.id, loaded]);
+
   const persist = useCallback(async (next: DesignProject, nextDesigns = designs) => {
-    const updated = nextDesigns.some((item) => item.id === next.id) ? nextDesigns.map((item) => item.id === next.id ? next : item) : [...nextDesigns, next];
+    const baseDesigns = nextDesigns === designs ? designsRef.current : nextDesigns;
+    const updated = baseDesigns.some((item) => item.id === next.id) ? baseDesigns.map((item) => item.id === next.id ? next : item) : [...baseDesigns, next];
+    designsRef.current = updated;
     setDesigns(updated);
-    if (!writable) { setStatus(ownershipMessage(ownershipState) ?? "Read-only"); return; }
-    try { await saveDesigns(updated); setStatus("Saved locally just now"); setError(""); }
-    catch (saveError) { setError(designSaveErrorMessage(saveError)); setStatus("Save failed — export an editable backup"); }
-  }, [designs, ownershipState, writable]);
+    try {
+      if (primaryWritable) {
+        if (syncRef.current?.isPrimary()) await syncRef.current.commitPrimary(next);
+        else await saveDesigns(updated);
+        setStatus("Saved locally just now"); setError("");
+      } else if (syncRef.current?.isConnectedPeer()) {
+        await syncRef.current.submit(next);
+        setStatus("Synced with another ACM Studio tab"); setError("");
+      } else {
+        setStatus(ownershipMessage(ownershipState) ?? "Read-only");
+      }
+    } catch (saveError) {
+      setError(designSaveErrorMessage(saveError));
+      setStatus(syncStatus === "conflict" ? "Conflict detected — editing is paused" : "Save failed — export an editable backup");
+    }
+  }, [designs, ownershipState, primaryWritable, syncStatus]);
 
   useEffect(() => {
-    if (loaded && writable && design && designs.length === 0) void persist(design);
-  }, [design, designs.length, loaded, persist, writable]);
+    if (loaded && primaryWritable && design && designs.length === 0) void persist(design);
+  }, [design, designs.length, loaded, persist, primaryWritable]);
 
   function updateDesign(next: DesignProject, record = true) {
     const normalised = { ...next, updatedAt: new Date().toISOString() };
@@ -749,14 +844,14 @@ export function DesignEditor() {
   }
 
   function undo() {
-    if (!design || !history.length || !writable) return;
+    if (!design || !history.length || !designEditable) return;
     const previous = history.at(-1)!;
     setHistory((items) => items.slice(0, -1)); setFuture((items) => [cloneDesign(design), ...items]); setDesign(previous); void persist(previous);
     restoreSelection(previous);
   }
 
   function redo() {
-    if (!design || !future.length || !writable) return;
+    if (!design || !future.length || !designEditable) return;
     const next = future[0];
     setFuture((items) => items.slice(1)); setHistory((items) => [...items.slice(-49), cloneDesign(design)]); setDesign(next); void persist(next);
     restoreSelection(next);
@@ -777,8 +872,8 @@ export function DesignEditor() {
       else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "d") { event.preventDefault(); duplicateSelected(); }
       else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c") { event.preventDefault(); copySelected(); }
       else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v") { event.preventDefault(); pasteSelected(); }
-      else if (selectedId && writable && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) { event.preventDefault(); const amount = event.shiftKey ? 10 : 1; updateSelected((object) => ({ ...object, x: object.x + (event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0), y: object.y + (event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0) })); }
-      else if (event.key === "Delete" || event.key === "Backspace") { if (selectedId && writable) { updatePage((page) => ({ ...page, objects: page.objects.filter((object) => object.id !== selectedId) })); selectObjects([]); } }
+      else if (selectedId && designEditable && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) { event.preventDefault(); const amount = event.shiftKey ? 10 : 1; updateSelected((object) => ({ ...object, x: object.x + (event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0), y: object.y + (event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0) })); }
+      else if (event.key === "Delete" || event.key === "Backspace") { if (selectedId && designEditable) { updatePage((page) => ({ ...page, objects: page.objects.filter((object) => object.id !== selectedId) })); selectObjects([]); } }
       else if (event.key === "Escape") {
         const interaction = interactionRef.current;
         const pageResize = pageResizeRef.current;
@@ -804,7 +899,7 @@ export function DesignEditor() {
   };
 
   function beginDraw(event: { clientX: number; clientY: number; pointerId: number; currentTarget: SVGElement }, drawTool: DrawTool) {
-    if (!design || !activePage || !writable) return;
+    if (!design || !activePage || !designEditable) return;
     const point = getPoint(event);
     const object = makeObject(drawTool, point.x, point.y, activePage, activePage.objects.filter((item) => item.type === "step").length, recentStylesRef.current, shapeKind);
     const initial = drawObject({ ...object, x: point.x, y: point.y, width: 1, height: 1 }, point, point, activePage);
@@ -815,7 +910,7 @@ export function DesignEditor() {
   }
 
   function onCanvasPointerDown(event: PointerEvent<SVGSVGElement>) {
-    if (!writable || !activePage) return;
+    if (!designEditable || !activePage) return;
     lastTextPointerRef.current = null;
     if (spaceDown && canvasScrollRef.current) {
       panRef.current = { x: event.clientX, y: event.clientY, left: canvasScrollRef.current.scrollLeft, top: canvasScrollRef.current.scrollTop };
@@ -856,7 +951,7 @@ export function DesignEditor() {
       const nextIds = selectedIds.includes(object.id) ? selectedIds.filter((id) => !groupIds.includes(id)) : [...new Set([...selectedIds, ...groupIds])];
       selectObjects(nextIds);
     } else if (!selectedIds.includes(object.id)) selectObjects([object.id]);
-    if (!writable || object.locked || event.shiftKey) return;
+    if (!designEditable || object.locked || event.shiftKey) return;
     const point = getPoint(event);
     const ids = selectedIds.includes(object.id) ? [...new Set([...selectedIds, ...groupIds])] : groupIds;
     if (groupIds.length > 1) selectObjects(ids);
@@ -897,7 +992,7 @@ export function DesignEditor() {
   }
 
   function onResizeKeyDown(event: ReactKeyboardEvent<SVGElement>, object: DesignObject, handle: ResizeHandle) {
-    if (!writable || object.locked || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    if (!designEditable || object.locked || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
     const amount = event.shiftKey ? 10 : 1;
     const dx = event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0;
@@ -906,14 +1001,14 @@ export function DesignEditor() {
   }
 
   function onRotateKeyDown(event: ReactKeyboardEvent<SVGCircleElement>, object: DesignObject) {
-    if (!writable || object.locked || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    if (!designEditable || object.locked || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
     const amount = event.shiftKey ? 15 : 5;
     updatePage((page) => ({ ...page, objects: page.objects.map((item) => item.id === object.id ? { ...item, rotation: (item.rotation + (event.key === "ArrowLeft" ? -amount : amount) + 360) % 360 } : item) }));
   }
 
   function onArrowEndpointKeyDown(event: ReactKeyboardEvent<SVGCircleElement>, object: DesignArrowObject, endpoint: "start" | "end") {
-    if (!writable || object.locked || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    if (!designEditable || object.locked || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
     const amount = event.shiftKey ? 10 : 1;
     const dx = event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0;
@@ -927,14 +1022,14 @@ export function DesignEditor() {
 
   function onResizePointerDown(event: PointerEvent<SVGElement>, object: DesignObject, handle: ResizeHandle) {
     event.stopPropagation();
-    if (!writable || object.locked || !design) return;
+    if (!designEditable || object.locked || !design) return;
     const point = getPoint(event);
     interactionRef.current = { mode: "resize", id: object.id, handle, keepRatio: shouldKeepResizeRatio(object, event.shiftKey), centred: event.altKey, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
   }
 
   function onPageResizeKeyDown(event: ReactKeyboardEvent<SVGCircleElement>, handle: ResizeHandle) {
-    if (!writable || !activePage || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    if (!designEditable || !activePage || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
     const amount = event.shiftKey ? 10 : 1;
     const dx = event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0;
@@ -944,7 +1039,7 @@ export function DesignEditor() {
 
   function onPageResizePointerDown(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle) {
     event.stopPropagation();
-    if (!writable || !design || !activePage) return;
+    if (!designEditable || !design || !activePage) return;
     const rect = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
     if (!rect || !rect.width || !rect.height) return;
     pageResizeRef.current = { handle, startClientX: event.clientX, startClientY: event.clientY, scaleX: rect.width / activePage.width, scaleY: rect.height / activePage.height, originalWidth: activePage.width, originalHeight: activePage.height, keepRatio: !event.shiftKey, base: cloneDesign(design) };
@@ -953,7 +1048,7 @@ export function DesignEditor() {
 
   function onRotatePointerDown(event: PointerEvent<SVGCircleElement>, object: DesignObject) {
     event.stopPropagation();
-    if (!writable || object.locked || !design) return;
+    if (!designEditable || object.locked || !design) return;
     const point = getPoint(event); const centreX = object.x + object.width / 2; const centreY = object.y + object.height / 2;
     interactionRef.current = { mode: "rotate", id: object.id, startX: point.x, startY: point.y, startAngle: Math.atan2(point.y - centreY, point.x - centreX), original: cloneDesign(object), base: cloneDesign(design) };
     setIsRotating(true);
@@ -963,7 +1058,7 @@ export function DesignEditor() {
 
   function onArrowEndpointPointerDown(event: PointerEvent<SVGCircleElement>, object: DesignArrowObject, endpoint: "start" | "end") {
     event.stopPropagation();
-    if (!writable || object.locked || !design) return;
+    if (!designEditable || object.locked || !design) return;
     selectObjects([object.id]);
     const point = getPoint(event);
     interactionRef.current = { mode: "arrow-endpoint", id: object.id, endpoint, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
@@ -972,7 +1067,7 @@ export function DesignEditor() {
 
   function onArrowBendPointerDown(event: PointerEvent<SVGRectElement>, object: DesignArrowObject, bendIndex: number) {
     event.stopPropagation();
-    if (!writable || object.locked || !design) return;
+    if (!designEditable || object.locked || !design) return;
     selectObjects([object.id]);
     const point = getPoint(event);
     interactionRef.current = { mode: "arrow-bend", id: object.id, bendIndex, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
@@ -980,7 +1075,7 @@ export function DesignEditor() {
   }
 
   function onArrowBendKeyDown(event: ReactKeyboardEvent<SVGRectElement>, object: DesignArrowObject, bendIndex: number) {
-    if (!writable || object.locked || !activePage) return;
+    if (!designEditable || object.locked || !activePage) return;
     if (["Enter", " "].includes(event.key)) {
       event.preventDefault(); event.stopPropagation();
       updatePage((page) => ({ ...page, objects: page.objects.map((item) => {
@@ -1003,6 +1098,7 @@ export function DesignEditor() {
   }
 
   function onCanvasPointerMove(event: PointerEvent<HTMLElement>) {
+    if (!designEditable) return;
     if (panRef.current && canvasScrollRef.current) {
       canvasScrollRef.current.scrollLeft = panRef.current.left - (event.clientX - panRef.current.x);
       canvasScrollRef.current.scrollTop = panRef.current.top - (event.clientY - panRef.current.y);
@@ -1056,6 +1152,11 @@ export function DesignEditor() {
   }
 
   function onCanvasPointerUp() {
+    if (!designEditable) {
+      interactionRef.current = null; pageResizeRef.current = null; selectionStartRef.current = null; panRef.current = null;
+      setSelectionBox(null); setGuides([]); setIsRotating(false); setRotationCursor(null);
+      return;
+    }
     if (panRef.current) { panRef.current = null; return; }
     const selectionStart = selectionStartRef.current;
     if (selectionStart && activePage) {
@@ -1094,7 +1195,7 @@ export function DesignEditor() {
   }
 
   const openMediaAsDesign = useCallback(async (asset: MediaAsset) => {
-    if (!writable) { setError("Close the other Studio editing tab before opening media in a new design."); return; }
+    if (!primaryWritable) { setError("Only the primary Studio tab can open Studio media as a new design."); return; }
     const dataUrl = await fileToDataUrl(asset.blob);
     const dimensions = await loadImage(dataUrl);
     const next = createDesign(asset.name.replace(/\.[^.]+$/, "") || "Image design");
@@ -1103,19 +1204,20 @@ export function DesignEditor() {
     const page = next.pages[0];
     const image = { id: makeId("object"), type: "image" as const, assetId: designAsset.id, x: Math.max(0, (page.width - dimensions.width * scale) / 2), y: Math.max(0, (page.height - dimensions.height * scale) / 2), width: dimensions.width * scale, height: dimensions.height * scale, rotation: 0, opacity: 1 };
     const opened = { ...next, assets: [designAsset], pages: [{ ...page, objects: [image] }] };
-    const updated = [...designs, opened];
-    setDesigns(updated); setDesign(opened); setPageName(page.name); setHistory([]); setFuture([]); selectObjects([]);
+    const updated = [...designsRef.current, opened];
     try {
       await saveDesigns(updated);
+      designsRef.current = updated;
+      setDesigns(updated); setDesign(opened); setPageName(page.name); setHistory([]); setFuture([]); selectObjects([]);
       setStatus("New design opened from Studio media");
     } catch (saveError) {
       setError(designSaveErrorMessage(saveError));
       setStatus("Save failed — export an editable backup");
     }
-  }, [designs, writable]);
+  }, [primaryWritable]);
 
   async function addImage(file: File | Blob, name = "Image") {
-    if (!writable || !design || !activePage) return;
+    if (!designEditable || !design || !activePage) return;
     setError("");
     try {
       if (file.type && !DESIGN_IMAGE_TYPES.includes(file.type as typeof DESIGN_IMAGE_TYPES[number])) throw new Error("Choose a PNG, JPEG, WebP or GIF image.");
@@ -1133,7 +1235,7 @@ export function DesignEditor() {
   }
 
   async function removeSelectedImageBackground() {
-    if (!design || !activePage || !selectedObject || selectedObject.type !== "image" || selectedObject.locked || !writable || backgroundRemovalRef.current) return;
+    if (!design || !activePage || !selectedObject || selectedObject.type !== "image" || selectedObject.locked || !designEditable || backgroundRemovalRef.current) return;
     const selectedAsset = design.assets.find((asset) => asset.id === selectedObject.assetId);
     const source = selectedAsset?.sourceAssetId ? design.assets.find((asset) => asset.id === selectedAsset.sourceAssetId) : selectedAsset;
     if (!source) return;
@@ -1145,7 +1247,7 @@ export function DesignEditor() {
       const result = await removeImageBackground(source.dataUrl, operation.signal, setBackgroundProgress, backgroundMode, backgroundEdgeCleanup / 100);
       const dataUrl = await fileToDataUrl(result.blob);
       if (operation.signal.aborted || backgroundRemovalRef.current !== operation) return;
-      studioWriteOwnership.assertWritable();
+      if (!designEditable) throw new Error("The design connection was lost. Editing is paused.");
       // Clear before updateDesign: the result itself is an intentional edit.
       backgroundRemovalRef.current = null;
       setBackgroundProgress(null);
@@ -1176,12 +1278,17 @@ export function DesignEditor() {
   }
 
   async function openMedia() {
+    if (!primaryWritable) { setError("Only the primary Studio tab can use Studio files in the design editor."); return; }
     setShowMedia(true); setError("");
     try { setMediaAssets((await listMediaLibrary()).assets.filter((asset) => asset.type.startsWith("image/"))); }
     catch { setError("The Studio media library could not be read."); }
   }
 
-  async function addMediaAsset(asset: MediaAsset) { await addImage(asset.blob, asset.name); setShowMedia(false); }
+  async function addMediaAsset(asset: MediaAsset) {
+    if (!primaryWritable) return;
+    await addImage(asset.blob, asset.name);
+    setShowMedia(false);
+  }
 
   function addPage(duplicate = false) {
     if (!design || !activePage) return;
@@ -1272,7 +1379,7 @@ export function DesignEditor() {
   }
 
   function duplicateSelected() {
-    if (!design || !activePage || !selectedId || !writable) return;
+    if (!design || !activePage || !selectedId || !designEditable) return;
     const selected = activePage.objects.find((object) => object.id === selectedId);
     if (!selected) return;
     const copy = { ...cloneDesign(selected), id: makeId("object"), x: selected.x + 20, y: selected.y + 20 };
@@ -1281,7 +1388,7 @@ export function DesignEditor() {
   }
 
   function moveSelectedLayer(direction: "front" | "back" | "forward" | "backward") {
-    if (!activePage || !selectedId || !writable) return;
+    if (!activePage || !selectedId || !designEditable) return;
     const index = activePage.objects.findIndex((object) => object.id === selectedId);
     if (index < 0) return;
     const objects = [...activePage.objects];
@@ -1299,20 +1406,20 @@ export function DesignEditor() {
   }
 
   function pasteSelected() {
-    if (!activePage || !writable || !objectClipboardRef.current.length) return;
+    if (!activePage || !designEditable || !objectClipboardRef.current.length) return;
     const copies = objectClipboardRef.current.map((object) => ({ ...cloneDesign(object), id: makeId("object"), x: object.x + 24, y: object.y + 24 }));
     updatePage((page) => ({ ...page, objects: [...page.objects, ...copies] }));
     selectObjects(copies.map((object) => object.id));
   }
 
   function groupSelected() {
-    if (!writable || selectedIds.length < 2) return;
+    if (!designEditable || selectedIds.length < 2) return;
     const groupId = makeId("group");
     updatePage((page) => ({ ...page, objects: page.objects.map((object) => selectedIds.includes(object.id) ? { ...object, groupId } : object) }));
   }
 
   function ungroupSelected() {
-    if (!writable || !selectedIds.length) return;
+    if (!designEditable || !selectedIds.length) return;
     updatePage((page) => ({ ...page, objects: page.objects.map((object) => {
       if (!selectedIds.includes(object.id)) return object;
       const ungrouped = { ...object };
@@ -1322,7 +1429,7 @@ export function DesignEditor() {
   }
 
   function alignSelected(axis: "left" | "centre" | "right" | "top" | "middle" | "bottom") {
-    if (!activePage || !writable || selectedIds.length < 2) return;
+    if (!activePage || !designEditable || selectedIds.length < 2) return;
     const selected = activePage.objects.filter((object) => selectedIds.includes(object.id));
     const bounds = { left: Math.min(...selected.map((object) => object.x)), top: Math.min(...selected.map((object) => object.y)), right: Math.max(...selected.map((object) => object.x + object.width)), bottom: Math.max(...selected.map((object) => object.y + object.height)) };
     updatePage((page) => ({ ...page, objects: page.objects.map((object) => {
@@ -1334,7 +1441,7 @@ export function DesignEditor() {
   }
 
   function alignSelectedToPage(axis: PositionAxis) {
-    if (!activePage || !writable || !selectedIds.length || !activePage.objects.some((object) => selectedIds.includes(object.id) && !object.locked)) return;
+    if (!activePage || !designEditable || !selectedIds.length || !activePage.objects.some((object) => selectedIds.includes(object.id) && !object.locked)) return;
     updatePage((page) => ({ ...page, objects: page.objects.map((object) => {
       if (!selectedIds.includes(object.id) || object.locked) return object;
       const x = axis === "left" ? 0 : axis === "centre" ? (page.width - object.width) / 2 : axis === "right" ? page.width - object.width : object.x;
@@ -1343,11 +1450,19 @@ export function DesignEditor() {
     }) }));
   }
 
-  function createNewDesign() {
-    if (!writable) return;
+  async function createNewDesign() {
+    if (!primaryWritable) { setError("Only the primary Studio tab can create a new design."); return; }
     const next = createDesign();
-    setDesign(next); setDesigns((items) => [...items, next]); setHistory([]); setFuture([]); selectObjects([]); setPageName(next.pages[0].name);
-    void saveDesigns([...designs, next]).then(() => setStatus("Saved locally just now")).catch((saveError) => { setError(designSaveErrorMessage(saveError)); setStatus("Save failed — export an editable backup"); });
+    const updated = [...designsRef.current, next];
+    try {
+      await saveDesigns(updated);
+      designsRef.current = updated;
+      setDesigns(updated); setDesign(next); setHistory([]); setFuture([]); selectObjects([]); setPageName(next.pages[0].name);
+      setStatus("Saved locally just now");
+    } catch (saveError) {
+      setError(designSaveErrorMessage(saveError));
+      setStatus("Save failed — export an editable backup");
+    }
   }
 
   async function exportPage(page: DesignPage) {
@@ -1387,6 +1502,7 @@ export function DesignEditor() {
   }
 
   async function savePageToStudioMedia(page: DesignPage) {
+    if (!primaryWritable) { setError("Only the primary Studio tab can write to Studio media."); return; }
     try {
       setStatus("Saving rendered page to Studio media…");
       const blob = await renderPage(page, design?.assets ?? [], exportFormat, exportScale, exportQuality);
@@ -1399,6 +1515,7 @@ export function DesignEditor() {
 
   async function replaceLinkedStudioMedia(page: DesignPage) {
     if (!page.renderedMediaId) return;
+    if (!primaryWritable) { setError("Only the primary Studio tab can write to Studio media."); return; }
     try {
       setStatus("Updating the selected Studio media…");
       const blob = await renderPage(page, design?.assets ?? [], exportFormat, exportScale, exportQuality);
@@ -1410,7 +1527,7 @@ export function DesignEditor() {
   function exportDesignJson() { if (!design) return; downloadBlob(new Blob([JSON.stringify(design, null, 2)], { type: "application/json" }), `${sanitiseFilename(design.name)}.acm-design.json`); }
 
   async function importDesign(file: File | undefined) {
-    if (!file || !writable) return;
+    if (!file || !primaryWritable) return;
     try {
       const imported = migrateDesignProject(JSON.parse(await file.text()));
       for (const asset of imported.assets) {
@@ -1418,7 +1535,10 @@ export function DesignEditor() {
         if (dimensions.width !== asset.width || dimensions.height !== asset.height) throw new Error(`The image “${asset.name}” has invalid dimensions.`);
       }
       const copy = { ...imported, id: makeId("design"), name: `${imported.name} copy`, updatedAt: new Date().toISOString() };
-      setDesigns((items) => [...items, copy]); setDesign(copy); await saveDesigns([...designs, copy]); setStatus("Design imported");
+      const updated = [...designsRef.current, copy];
+      await saveDesigns(updated);
+      designsRef.current = updated;
+      setDesigns(updated); setDesign(copy); setStatus("Design imported");
     }
     catch (importError) {
       setError(designSaveErrorMessage(importError, "The design file could not be imported."));
@@ -1434,10 +1554,12 @@ export function DesignEditor() {
         <div className="design-toolbar-brand"><a href="/studio" aria-label="Back to ACM Studio">ACM Studio</a><span aria-hidden="true">/</span><input aria-label="Design name" value={design.name} disabled={!writable} onChange={(event) => updateDesign({ ...design, name: event.target.value })} /></div>
       <div className="design-toolbar-actions"><button className="design-pages-toggle" type="button" onClick={() => setPagesCollapsed((value) => !value)} aria-expanded={!pagesCollapsed} aria-controls="design-pages-panel">{pagesCollapsed ? "Show pages" : "Hide pages"}</button><span className="design-save-status" aria-live="polite">{status}</span><button type="button" onClick={undo} disabled={!history.length || !writable} aria-label="Undo">Undo</button><button type="button" onClick={redo} disabled={!future.length || !writable} aria-label="Redo">Redo</button><select value={exportFormat} onChange={(event) => setExportFormat(event.target.value as typeof exportFormat)} aria-label="Export format"><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="webp">WebP</option></select><select value={exportScale} onChange={(event) => setExportScale(Number(event.target.value))} aria-label="Export scale"><option value="1">100%</option><option value="2">200%</option></select><select value={exportQuality} onChange={(event) => setExportQuality(Number(event.target.value))} aria-label="Export quality"><option value=".92">High quality</option><option value=".75">Smaller file</option></select><button type="button" onClick={() => void exportPage(activePage)}>Export page</button><button type="button" onClick={() => void exportSelectedPages()} disabled={!selectedPageIds.length}>Export selected</button><button type="button" onClick={() => void exportAllPages()}>Export all pages</button>{activePage.renderedMediaId ? <button type="button" onClick={() => void replaceLinkedStudioMedia(activePage)} disabled={!writable}>Update linked media</button> : null}<button type="button" onClick={() => void savePageToStudioMedia(activePage)} disabled={!writable}>Save to Studio media</button><button type="button" onClick={exportDesignJson}>Editable backup</button>{mediaHandoff ? <><a className="design-content-link" href={`/studio?designMedia=${encodeURIComponent(mediaHandoff)}&designTarget=block`}>Insert into current document</a><a className="design-content-link" href={`/studio?designMedia=${encodeURIComponent(mediaHandoff)}&designTarget=cover`}>Use as cover image</a></> : null}</div>
     </header>
-    {ownershipMessage(ownershipState) ? <div className="design-notice" role="status">{ownershipMessage(ownershipState)}{ownershipState === "waiting" ? " Close the other editing tab before making changes." : ""}</div> : null}
+    {!peerWritable && ownershipMessage(ownershipState) ? <div className="design-notice" role="status">{ownershipMessage(ownershipState)}{ownershipState === "waiting" ? " Close the other editing tab before making changes." : ""}</div> : null}
+    {!primaryWritable && syncStatus === "unsupported" ? <div className="design-notice" role="status">Read-only: this browser cannot synchronise duplicate design tabs.</div> : null}
+    {!primaryWritable && syncStatus === "disconnected" ? <div className="design-notice" role="status">Connection to the primary Studio tab was lost. Editing is paused.</div> : null}
     {error ? <div className="design-error" role="alert">{error}</div> : null}
     <div className={`design-workspace${pagesCollapsed ? " pages-collapsed" : ""}`}>
-      <aside className="design-pages" id="design-pages-panel" aria-label="Design pages and layers"><div className="design-pages-heading"><div className="design-pane-tabs" role="tablist" aria-label="Design navigation"><button type="button" role="tab" id="design-pages-tab" className={leftPaneTab === "pages" ? "is-active" : ""} aria-selected={leftPaneTab === "pages"} aria-controls={leftPaneTab === "pages" ? "design-pages-tabpanel" : undefined} onClick={() => setLeftPaneTab("pages")}>Pages</button><button type="button" role="tab" id="design-layers-tab" className={leftPaneTab === "layers" ? "is-active" : ""} aria-selected={leftPaneTab === "layers"} aria-controls={leftPaneTab === "layers" ? "design-layers-tabpanel" : undefined} onClick={() => setLeftPaneTab("layers")}>Layers</button></div><div><button type="button" onClick={() => setPagesCollapsed(true)} aria-label="Hide pages">−</button><button type="button" onClick={() => addPage()} disabled={!writable} aria-label="Add page">＋</button></div></div>{leftPaneTab === "pages" ? <div className="design-page-list" id="design-pages-tabpanel" role="tabpanel" aria-labelledby="design-pages-tab" aria-label="Pages">{design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} draggable={writable} onDragStart={() => setDraggedPageId(page.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedPageId) reorderPage(draggedPageId, page.id); setDraggedPageId(null); }}><label className="design-page-select"><input type="checkbox" checked={selectedPageIds.includes(page.id)} onChange={(event) => setSelectedPageIds((items) => event.target.checked ? [...items, page.id] : items.filter((id) => id !== page.id))} aria-label={`Select ${page.name} for export`} /></label><button type="button" className="design-thumbnail-button" onClick={() => selectPage(page.id)} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><PageSvg showHoverHandles={false} page={page} assets={design.assets} selectedIds={[]} guides={[]} onCanvasPointerDown={() => undefined} onObjectPointerDown={() => undefined} onResizePointerDown={() => undefined} onRotatePointerDown={() => undefined} onArrowEndpointPointerDown={() => undefined} onArrowBendPointerDown={() => undefined} onArrowBendKeyDown={() => undefined} onResizeKeyDown={() => undefined} onRotateKeyDown={() => undefined} onArrowEndpointKeyDown={() => undefined} /></div><span>{index + 1}. {page.name}</span></button><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button></div></div>)}</div> : <div className="design-layers design-pages-layers" id="design-layers-tabpanel" role="tabpanel" aria-labelledby="design-layers-tab" aria-label="Layers"><LayerList page={activePage} selectedIds={selectedIds} onSelect={(id) => selectObjects([id])} /></div>}<div className="design-page-actions"><button type="button" onClick={() => addPage()} disabled={!writable}>Add page</button><button type="button" onClick={deletePage} disabled={!writable || design.pages.length === 1}>Delete page</button><button type="button" onClick={createNewDesign} disabled={!writable}>New design</button></div><label className="design-import-label">Import design<input ref={importInputRef} type="file" accept="application/json,.json" onChange={(event) => void importDesign(event.target.files?.[0])} /></label><select className="design-switcher" value={design.id} onChange={(event) => { const next = designs.find((item) => item.id === event.target.value); if (next) { setDesign(next); setPageName(next.pages.find((page) => page.id === next.activePageId)?.name ?? next.pages[0]?.name ?? ""); setHistory([]); setFuture([]); selectObjects([]); } }} aria-label="Open design">{designs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></aside>
+      <aside className="design-pages" id="design-pages-panel" aria-label="Design pages and layers"><div className="design-pages-heading"><div className="design-pane-tabs" role="tablist" aria-label="Design navigation"><button type="button" role="tab" id="design-pages-tab" className={leftPaneTab === "pages" ? "is-active" : ""} aria-selected={leftPaneTab === "pages"} aria-controls={leftPaneTab === "pages" ? "design-pages-tabpanel" : undefined} onClick={() => setLeftPaneTab("pages")}>Pages</button><button type="button" role="tab" id="design-layers-tab" className={leftPaneTab === "layers" ? "is-active" : ""} aria-selected={leftPaneTab === "layers"} aria-controls={leftPaneTab === "layers" ? "design-layers-tabpanel" : undefined} onClick={() => setLeftPaneTab("layers")}>Layers</button></div><div><button type="button" onClick={() => setPagesCollapsed(true)} aria-label="Hide pages">−</button><button type="button" onClick={() => addPage()} disabled={!writable} aria-label="Add page">＋</button></div></div>{leftPaneTab === "pages" ? <div className="design-page-list" id="design-pages-tabpanel" role="tabpanel" aria-labelledby="design-pages-tab" aria-label="Pages">{design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} draggable={writable} onDragStart={() => setDraggedPageId(page.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedPageId) reorderPage(draggedPageId, page.id); setDraggedPageId(null); }}><label className="design-page-select"><input type="checkbox" checked={selectedPageIds.includes(page.id)} onChange={(event) => setSelectedPageIds((items) => event.target.checked ? [...items, page.id] : items.filter((id) => id !== page.id))} aria-label={`Select ${page.name} for export`} /></label><button type="button" className="design-thumbnail-button" onClick={() => selectPage(page.id)} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><PageSvg showHoverHandles={false} page={page} assets={design.assets} selectedIds={[]} guides={[]} onCanvasPointerDown={() => undefined} onObjectPointerDown={() => undefined} onResizePointerDown={() => undefined} onRotatePointerDown={() => undefined} onArrowEndpointPointerDown={() => undefined} onArrowBendPointerDown={() => undefined} onArrowBendKeyDown={() => undefined} onResizeKeyDown={() => undefined} onRotateKeyDown={() => undefined} onArrowEndpointKeyDown={() => undefined} /></div><span>{index + 1}. {page.name}</span></button><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button></div></div>)}</div> : <div className="design-layers design-pages-layers" id="design-layers-tabpanel" role="tabpanel" aria-labelledby="design-layers-tab" aria-label="Layers"><LayerList page={activePage} selectedIds={selectedIds} onSelect={(id) => selectObjects([id])} /></div>}<div className="design-page-actions"><button type="button" onClick={() => addPage()} disabled={!writable}>Add page</button><button type="button" onClick={deletePage} disabled={!writable || design.pages.length === 1}>Delete page</button><button type="button" onClick={() => void createNewDesign()} disabled={!primaryWritable}>New design</button></div><label className="design-import-label">Import design<input ref={importInputRef} type="file" accept="application/json,.json" disabled={!primaryWritable} onChange={(event) => void importDesign(event.target.files?.[0])} /></label><select className="design-switcher" value={design.id} disabled={!primaryWritable} onChange={(event) => { if (!primaryWritable) return; const next = designs.find((item) => item.id === event.target.value); if (next) { setDesign(next); setPageName(next.pages.find((page) => page.id === next.activePageId)?.name ?? next.pages[0]?.name ?? ""); setHistory([]); setFuture([]); selectObjects([]); } }} aria-label="Open design">{designs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></aside>
       <section className="design-main" aria-label="Design canvas">
         <div className="design-tool-rail"><button type="button" className={tool === "select" ? "is-active" : ""} onClick={() => setTool("select")} aria-pressed={tool === "select"}><StudioIcon name={toolIcons.select} size={20} /><span>Select</span></button><button type="button" onClick={() => fileInputRef.current?.click()} disabled={!writable}><StudioIcon name={toolIcons.image} size={20} /><span>Image</span></button><input ref={fileInputRef} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; if (file) void addImage(file, file.name); if (fileInputRef.current) fileInputRef.current.value = ""; }} /><label className={`design-shape-picker${tool === "rectangle" ? " is-active" : ""}`}><StudioIcon name={toolIcons.rectangle} size={20} /><span>Shapes</span><select aria-label="Shapes" value={shapeKind} disabled={!writable} onChange={(event) => { setShapeKind(event.target.value as DesignShapeKind); setTool("rectangle"); }}><option value="rectangle">Square</option>{shapeOptions.slice(1).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>{annotationTools.map((item) => <button type="button" key={item} className={tool === item ? "is-active" : ""} onClick={() => setTool(item)} disabled={!writable} aria-pressed={tool === item}><StudioIcon name={toolIcons[item]} size={20} /><span>{toolLabels[item]}</span></button>)}<button ref={mediaTriggerRef} type="button" onClick={() => void openMedia()} disabled={!writable}><StudioIcon name="image" size={20} /><span>Studio files</span></button><button type="button" className={`design-selection-border-toggle${purpleSelectionBorder ? " is-active" : ""}`} onClick={() => setPurpleSelectionBorder((value) => !value)} aria-pressed={purpleSelectionBorder} aria-label="Purple selection border"><StudioIcon name="block" size={20} /><span>Purple border</span></button></div>
       <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerUp} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><input ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-zoom"><button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)}>−</button><select aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</select><button type="button" aria-label="Zoom in" onClick={() => changeZoom(1)}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={allPagesVisible ? "is-active" : ""} aria-pressed={allPagesVisible} aria-label={allPagesVisible ? "View single page" : "View all pages"} onClick={() => setAllPagesVisible((value) => !value)}>{allPagesVisible ? "View single page" : "View all pages"}</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className={`design-canvas-scroll${allPagesVisible ? " is-all-pages" : ""}`} ref={canvasScrollRef}>
