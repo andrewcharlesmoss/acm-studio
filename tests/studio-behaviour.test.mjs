@@ -685,11 +685,13 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.match(editor, /showHoverHandles=\{isActive && tool === "select"\}/);
   assert.match(editor, /aria-label="Resize arrow from start point"/);
   assert.match(editor, /aria-label="Resize arrow from end point"/);
+  assert.match(editor, /function arrowLocalPagePoint\(object: DesignArrowObject, local: \{ x: number; y: number \}\)/);
   assert.match(editor, /function resizeArrowEndpoint\(/);
+  assert.match(editor, /function mapArrowBendForEndpointMove\(bend: \{ x: number; y: number \}, oldStart: \{ x: number; y: number \}, oldEnd: \{ x: number; y: number \}, nextStart: \{ x: number; y: number \}, nextEnd: \{ x: number; y: number \}\)/);
+  assert.match(editor, /const bends = oldBends\.map\(\(bend\) => mapArrowBendForEndpointMove\(bend, oldStart, oldEnd, start, end\)\)/);
   assert.match(editor, /nextObject = resizeArrowEndpoint\(interaction\.original, interaction\.endpoint \?\? "end", endpointSnap\.point, activePage\)/);
   assert.match(editor, /return resizeArrowEndpoint\(item, endpoint, \{ x: current\.x \+ dx, y: current\.y \+ dy \}, page\)/);
-  assert.match(editor, /object\.x \+ bend\.x - x/);
-  assert.match(editor, /object\.y \+ bend\.y - y/);
+  assert.match(editor, /mapArrowBendForEndpointMove\(bend, oldStart, oldEnd, start, end\)/);
   assert.match(editor, /className="design-arrow-bend-handle"/);
   assert.match(editor, /function onArrowBendPointerDown\(/);
   assert.match(editor, /function onArrowBendPointerDown\([\s\S]*?if \(!designEditable \|\| object\.locked \|\| !design\) return;\s+selectObjects\(\[object\.id\]\);/);

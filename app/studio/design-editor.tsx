@@ -386,8 +386,7 @@ function shouldKeepResizeRatio(object: DesignObject, shiftKey: boolean) {
   return object.type === "image" && !shiftKey;
 }
 
-function arrowEndpointPagePoint(object: DesignArrowObject, endpoint: "start" | "end") {
-  const local = object[endpoint] ?? (endpoint === "start" ? { x: 0, y: object.height } : { x: object.width, y: 0 });
+function arrowLocalPagePoint(object: DesignArrowObject, local: { x: number; y: number }) {
   const centre = { x: object.x + object.width / 2, y: object.y + object.height / 2 };
   const radians = object.rotation * Math.PI / 180;
   const point = { x: object.x + local.x, y: object.y + local.y };
@@ -397,8 +396,30 @@ function arrowEndpointPagePoint(object: DesignArrowObject, endpoint: "start" | "
   };
 }
 
+function arrowEndpointPagePoint(object: DesignArrowObject, endpoint: "start" | "end") {
+  return arrowLocalPagePoint(object, object[endpoint] ?? (endpoint === "start" ? { x: 0, y: object.height } : { x: object.width, y: 0 }));
+}
+
+function mapArrowBendForEndpointMove(bend: { x: number; y: number }, oldStart: { x: number; y: number }, oldEnd: { x: number; y: number }, nextStart: { x: number; y: number }, nextEnd: { x: number; y: number }) {
+  const oldVector = { x: oldEnd.x - oldStart.x, y: oldEnd.y - oldStart.y };
+  const oldLengthSquared = oldVector.x ** 2 + oldVector.y ** 2;
+  const nextVector = { x: nextEnd.x - nextStart.x, y: nextEnd.y - nextStart.y };
+  const nextLength = Math.hypot(nextVector.x, nextVector.y) || 1;
+  if (!oldLengthSquared) return { ...nextStart };
+  const fromStart = { x: bend.x - oldStart.x, y: bend.y - oldStart.y };
+  const along = (fromStart.x * oldVector.x + fromStart.y * oldVector.y) / oldLengthSquared;
+  const perpendicular = (fromStart.x * oldVector.y - fromStart.y * oldVector.x) / Math.sqrt(oldLengthSquared);
+  const normal = { x: -nextVector.y / nextLength, y: nextVector.x / nextLength };
+  return {
+    x: nextStart.x + nextVector.x * along + normal.x * perpendicular,
+    y: nextStart.y + nextVector.y * along + normal.y * perpendicular,
+  };
+}
+
 function resizeArrowEndpoint(object: DesignArrowObject, endpoint: "start" | "end", point: { x: number; y: number }, page: DesignPage): DesignArrowObject {
-  const oldBends = arrowPoints(object).bends;
+  const oldStart = arrowEndpointPagePoint(object, "start");
+  const oldEnd = arrowEndpointPagePoint(object, "end");
+  const oldBends = arrowPoints(object).bends.map((bend) => arrowLocalPagePoint(object, bend));
   const fixedPoint = arrowEndpointPagePoint(object, endpoint === "start" ? "end" : "start");
   const movedPoint = { x: Math.max(0, Math.min(page.width, point.x)), y: Math.max(0, Math.min(page.height, point.y)) };
   const start = endpoint === "start" ? movedPoint : fixedPoint;
@@ -407,7 +428,8 @@ function resizeArrowEndpoint(object: DesignArrowObject, endpoint: "start" | "end
   const height = Math.max(1, Math.abs(end.y - start.y));
   const x = Math.max(0, Math.min(page.width - width, Math.min(start.x, end.x)));
   const y = Math.max(0, Math.min(page.height - height, Math.min(start.y, end.y)));
-  return { ...object, x, y, width, height, rotation: 0, start: { x: start.x - x, y: start.y - y }, end: { x: end.x - x, y: end.y - y }, bends: oldBends.map((bend) => ({ x: Math.max(-x, Math.min(page.width - x, object.x + bend.x - x)), y: Math.max(-y, Math.min(page.height - y, object.y + bend.y - y)) })) };
+  const bends = oldBends.map((bend) => mapArrowBendForEndpointMove(bend, oldStart, oldEnd, start, end)).map((bend) => ({ x: Math.max(-x, Math.min(page.width - x, bend.x - x)), y: Math.max(-y, Math.min(page.height - y, bend.y - y)) }));
+  return { ...object, x, y, width, height, rotation: 0, start: { x: start.x - x, y: start.y - y }, end: { x: end.x - x, y: end.y - y }, bends };
 }
 
 function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], tool = "select", zoom = 100, isRotating = false, rotatingObjectId, rotationCursor = null, showPageResizeHandles = false, purpleSelectionBorder = false, showHoverHandles = false, editingTextId = null, editingTextValue = "", onEditingTextChange, onEditingTextCommit, onEditingTextCancel, onCanvasPointerDown, onObjectPointerDown, onTextDoubleClick, onResizePointerDown, onPageResizePointerDown, onRotatePointerDown, onArrowEndpointPointerDown, onArrowBendPointerDown, onArrowBendKeyDown, onResizeKeyDown, onPageResizeKeyDown, onRotateKeyDown, onArrowEndpointKeyDown, svgRef }: {
