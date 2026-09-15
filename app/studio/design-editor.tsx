@@ -1416,7 +1416,7 @@ export function DesignEditor() {
     });
   }
 
-  function renamePage() { const name = pageName.trim(); if (!activePage || name === activePage.name) { setPageName(activePage?.name ?? ""); return; } if (!name) { setError("Page names cannot be empty."); setPageName(activePage.name); return; } updatePage((page) => ({ ...page, name })); }
+  function renamePage() { const name = pageName.trim(); if (!activePage || name === activePage.name) { setPageName(activePage?.name ?? ""); return; } setError(""); updatePage((page) => ({ ...page, name })); }
 
   function duplicatePage(sourceId: string) {
     if (!design) return;

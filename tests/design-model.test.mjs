@@ -20,6 +20,12 @@ test("page names remain metadata and duplicate names validate", () => {
   assert.doesNotThrow(() => validateDesignProject(renamed));
 });
 
+test("page names may be empty", () => {
+  const design = createDesign("Screenshots");
+  const unnamed = { ...design, pages: [{ ...design.pages[0], name: "" }] };
+  assert.doesNotThrow(() => validateDesignProject(unnamed));
+});
+
 test("design validation rejects missing image assets and oversized pages", () => {
   const design = createDesign();
   const missingAsset = { ...design, pages: [{ ...design.pages[0], objects: [{ id: "image-1", type: "image", assetId: "missing", x: 0, y: 0, width: 100, height: 100, rotation: 0, opacity: 1 }] }] };
