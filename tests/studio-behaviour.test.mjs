@@ -488,6 +488,10 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-layer-order-actions button:disabled \{ cursor: default; opacity: \.35; \}/);
   assert.match(css, /\.design-all-page-heading \{ align-items: center; box-sizing: border-box; display: flex; gap: 12px; justify-content: space-between; margin-inline: auto; min-height: 40px; padding: 0 4px; \}/);
   assert.match(css, /\.design-all-page-title \{ align-items: center; display: flex; flex: 1 1 auto; gap: 6px; min-width: 0; \}/);
+  assert.match(css, /\.design-all-page-title input \{ background: transparent; border: 0; border-radius: 0;/);
+  assert.match(css, /\.design-canvas-heading input \{ background: transparent; border: 0; border-radius: 0;/);
+  assert.match(css, /\.design-all-page-title input:focus-visible \{ box-shadow: 0 2px 0 #8b3dff99; color: var\(--ink\); outline: none; \}/);
+  assert.doesNotMatch(css, /\.design-all-page-title input:hover, \.design-all-page-title input:focus-visible \{ background: #fff;/);
   assert.match(css, /\.design-all-page-actions \{ align-items: center; display: flex; flex: 0 0 auto; gap: 2px; \}/);
   assert.match(css, /\.design-all-page\.is-hidden \.design-canvas-frame \{ opacity: \.48; \}/);
   assert.doesNotMatch(css, /design-canvas-help/);
