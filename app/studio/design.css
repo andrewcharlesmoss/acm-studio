@@ -153,9 +153,18 @@
 .design-pages-layers .design-inspector-label { display: block; margin: 0 5px 9px; }
 .design-pages-layers .design-layer-list { max-height: none; }
 .design-layer-list { display: grid; gap: 5px; max-height: 220px; overflow: auto; }
-.design-layer-list button { align-items: center; background: #fff; border: 1px solid #d7d5cd; border-radius: 5px; color: var(--ink); display: flex; justify-content: space-between; padding: 7px 8px; text-align: left; }
-.design-layer-list button.is-selected { border-color: var(--accent); box-shadow: inset 3px 0 var(--accent); }
-.design-layer-list button small { color: #6c6a63; font-size: 11px; }
+.design-layer-row { align-items: center; display: flex; gap: 4px; }
+.design-layer-row.is-dragging { opacity: .55; }
+.design-layer-select { align-items: center; background: #fff; border: 1px solid #d7d5cd; border-radius: 5px; color: var(--ink); cursor: grab; display: flex; flex: 1 1 auto; gap: 6px; min-width: 0; padding: 7px 8px; text-align: left; }
+.design-layer-select:active { cursor: grabbing; }
+.design-layer-select svg { color: #8b8982; flex: 0 0 auto; }
+.design-layer-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.design-layer-select.is-selected { border-color: var(--accent); box-shadow: inset 3px 0 var(--accent); }
+.design-layer-select small { color: #6c6a63; font-size: 11px; margin-left: auto; }
+.design-layer-order-actions { display: flex; flex: 0 0 auto; gap: 2px; }
+.design-layer-order-actions button { align-items: center; background: #fff; border: 1px solid #d7d5cd; border-radius: 4px; color: var(--ink); cursor: pointer; display: inline-flex; justify-content: center; padding: 4px; }
+.design-layer-order-actions button:hover:not(:disabled), .design-layer-order-actions button:focus-visible { border-color: var(--accent); color: var(--accent); }
+.design-layer-order-actions button:disabled { cursor: default; opacity: .35; }
 .design-inspector-empty { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .design-workspace.pages-collapsed { grid-template-columns: 0 minmax(0, 1fr) 260px; }
 .design-workspace.pages-collapsed .design-pages { border-right: 0; display: none; }

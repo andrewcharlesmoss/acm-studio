@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { studioHistoryShortcut, handleStudioHistoryShortcut } from "../app/studio/studio-history-shortcuts.mjs";
+import { moveDesignLayer, reorderDesignLayers } from "../app/studio/design-layer-operations.mjs";
 import {
   addDocumentToWorkspace,
   commitHistory,
@@ -23,6 +24,16 @@ import {
 function document() {
   return { id: "post-1", kind: "post", title: "Post", blocks: [{ id: "a", type: "paragraph" }, { id: "b", type: "heading" }] };
 }
+
+test("design layer operations preserve visible order and reject locked layers", () => {
+  const objects = [{ id: "back" }, { id: "middle" }, { id: "front" }];
+  assert.deepEqual(moveDesignLayer(objects, "middle", "forward").map((object) => object.id), ["back", "front", "middle"]);
+  assert.deepEqual(moveDesignLayer(objects, "middle", "backward").map((object) => object.id), ["middle", "back", "front"]);
+  assert.deepEqual(reorderDesignLayers(objects, "front", "back", "before").map((object) => object.id), ["back", "front", "middle"]);
+  const locked = [{ id: "back", locked: true }, { id: "front" }];
+  assert.equal(moveDesignLayer(locked, "back", "forward"), locked);
+  assert.equal(reorderDesignLayers(locked, "front", "back", "before"), locked);
+});
 
 test("block commands preserve order while inserting, moving, duplicating and removing", () => {
   const inserted = insertBlockAt(document(), { id: "c", type: "quote" }, 0);
@@ -443,7 +454,15 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /id="design-pages-tab"/);
   assert.match(editor, /id="design-pages-tabpanel" role="tabpanel" aria-labelledby="design-pages-tab"/);
   assert.match(editor, /id="design-layers-tabpanel" role="tabpanel" aria-labelledby="design-layers-tab" aria-label="Layers"><LayerList/);
-  assert.match(editor, /<LayerList page=\{activePage\}/);
+  assert.match(editor, /<LayerList page=\{activePage\} selectedIds=\{selectedIds\} writable=\{writable\} onSelect=\{\(id\) => selectObjects\(\[id\]\)\} onMove=\{moveLayer\} onReorder=\{reorderLayer\}/);
+  assert.match(editor, /function moveLayer\(objectId: string, direction: LayerMoveDirection\)/);
+  assert.match(editor, /function reorderLayer\(sourceId: string, targetId: string, position: LayerDropPosition\)/);
+  assert.match(editor, /const layers = \[\.\.\.page\.objects\]\.reverse\(\)/);
+  assert.match(editor, /draggable=\{canMove\}/);
+  assert.match(editor, /aria-label=\{`Move \$\{label\} up`\}/);
+  assert.match(editor, /aria-label=\{`Move \$\{label\} down`\}/);
+  assert.match(editor, /onReorder\(sourceId, object\.id, event\.clientY < bounds\.top \+ bounds\.height \/ 2 \? "before" : "after"\)/);
+  assert.match(editor, /<StudioIcon name="drag-handle" size=\{16\}/);
   assert.match(editor, /className=\{`design-canvas-scroll\$\{allPagesVisible/);
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
   assert.match(editor, /className="design-all-page-heading" style=\{\{ width: `\$\{page\.width \* zoom \/ 100\}px` \}\}/);
@@ -453,6 +472,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(editor, /\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(css, /\.design-page-list \{ align-content: start;/);
+  assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; \}/);
+  assert.match(css, /\.design-layer-order-actions button:disabled \{ cursor: default; opacity: \.35; \}/);
   assert.match(css, /\.design-all-page-heading \{ align-items: center; box-sizing: border-box; display: flex; justify-content: space-between; margin-inline: auto; min-height: 28px; padding: 0 4px; \}/);
   assert.doesNotMatch(css, /design-canvas-help/);
   assert.match(css, /\.design-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: auto minmax\(0, 1fr\); min-height: 0; min-width: 0; \}/);
