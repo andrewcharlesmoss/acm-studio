@@ -76,11 +76,15 @@
 .design-all-pages { align-items: center; display: flex; flex: 1 0 auto; flex-direction: column; gap: 28px; min-width: 100%; }
 .design-all-page { align-items: flex-start; display: flex; flex: 0 0 auto; flex-direction: column; gap: 8px; min-width: 100%; }
 .design-all-page .design-canvas-frame { margin-inline: auto; }
-.design-all-page-heading { align-items: center; box-sizing: border-box; display: flex; justify-content: space-between; margin-inline: auto; min-height: 28px; padding: 0 4px; }
-.design-all-page-heading strong { font-size: 13px; }
-.design-all-page-heading span { color: var(--muted); font-size: 12px; }
-.design-all-page-heading button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; color: var(--ink); cursor: pointer; font: inherit; font-size: 12px; padding: 5px 8px; }
-.design-all-page-heading button:hover, .design-all-page-heading button:focus-visible { border-color: var(--accent); color: var(--accent); }
+.design-all-page-heading { align-items: center; background: #f1f2f4; box-sizing: border-box; display: flex; justify-content: space-between; margin-inline: auto; min-height: 40px; padding: 0 16px; }
+.design-all-page-title { align-items: center; display: flex; gap: 6px; min-width: 0; }
+.design-all-page-title strong { font-size: 13px; }
+.design-all-page-title > span { color: var(--muted); font-size: 12px; }
+.design-all-page-title button { background: transparent; border: 0; border-radius: 3px; color: var(--muted); cursor: pointer; font: inherit; font-size: 13px; min-width: 0; overflow: hidden; padding: 2px 3px; text-overflow: ellipsis; white-space: nowrap; }
+.design-all-page-title button.has-title { color: var(--ink); }
+.design-all-page-title button:hover, .design-all-page-title button:focus-visible { background: #fff; color: var(--accent); outline: 2px solid #3858e966; outline-offset: 1px; }
+.design-all-page-heading > button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; color: var(--ink); cursor: pointer; font: inherit; font-size: 12px; padding: 5px 8px; }
+.design-all-page-heading > button:hover, .design-all-page-heading > button:focus-visible { border-color: var(--accent); color: var(--accent); }
 .design-page-svg { -webkit-user-select: none; background: #fff; display: block; height: auto; overflow: visible; user-select: none; width: 100%; }
 .design-inline-text-editor { -webkit-user-select: text; user-select: text; }
 .design-object { cursor: grab; }

@@ -466,6 +466,11 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /className=\{`design-canvas-scroll\$\{allPagesVisible/);
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
   assert.match(editor, /className="design-all-page-heading" style=\{\{ width: `\$\{page\.width \* zoom \/ 100\}px` \}\}/);
+  assert.match(editor, /const title = page\.name === `Page \$\{index \+ 1\}` \? "" : page\.name/);
+  assert.match(editor, /<strong>Page \{index \+ 1\}<\/strong><span aria-hidden="true">-<\/span>/);
+  assert.match(editor, /className=\{title \? "has-title" : "is-placeholder"\}/);
+  assert.match(editor, /aria-label=\{title \? `Edit page title: \$\{title\}` : "Add page title"\}/);
+  assert.match(editor, />\{title \|\| "Add page title"\}<\/button>/);
   assert.match(editor, /className="design-canvas-frame" style=\{\{ width: `\$\{activePage\.width \* zoom \/ 100\}px` \}\}/);
   assert.match(editor, />Edit Page<\/button>/);
   assert.match(editor, /event\.stopPropagation\(\); selectPage\(page\.id\)/);
@@ -474,7 +479,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-page-list \{ align-content: start;/);
   assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; \}/);
   assert.match(css, /\.design-layer-order-actions button:disabled \{ cursor: default; opacity: \.35; \}/);
-  assert.match(css, /\.design-all-page-heading \{ align-items: center; box-sizing: border-box; display: flex; justify-content: space-between; margin-inline: auto; min-height: 28px; padding: 0 4px; \}/);
+  assert.match(css, /\.design-all-page-heading \{ align-items: center; background: #f1f2f4; box-sizing: border-box; display: flex; justify-content: space-between; margin-inline: auto; min-height: 40px; padding: 0 16px; \}/);
+  assert.match(css, /\.design-all-page-title \{ align-items: center; display: flex; gap: 6px; min-width: 0; \}/);
   assert.doesNotMatch(css, /design-canvas-help/);
   assert.match(css, /\.design-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: auto minmax\(0, 1fr\); min-height: 0; min-width: 0; \}/);
   assert.match(css, /\.design-canvas-area \{ display: grid; grid-template-rows: auto minmax\(0, 1fr\) auto; min-height: 0; min-width: 0; \}/);
