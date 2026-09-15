@@ -484,6 +484,10 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /<StudioIcon name="copy" size=\{24\} \/>/);
   assert.match(editor, /<StudioIcon name="trash" size=\{24\} \/>/);
   assert.match(editor, /onClick=\{\(\) => addPage\(false, page\.id\)\}/);
+  assert.match(editor, /function selectPageSet\(pageId: string/);
+  assert.match(editor, /event\.metaKey \|\| event\.ctrlKey \|\| event\.shiftKey/);
+  assert.match(editor, /pageIds\.slice\(Math\.min\(start, end\), Math\.max\(start, end\) \+ 1\)/);
+  assert.match(editor, /<div className="design-page-item-actions">[\s\S]*<label className="design-page-select">[\s\S]*<button type="button" className="design-thumbnail-button"/);
   assert.match(editor, /className="design-canvas-frame" style=\{\{ width: `\$\{activePage\.width \* zoom \/ 100\}px` \}\}/);
   assert.doesNotMatch(editor, />Edit Page<\/button>/);
   assert.match(editor, /event\.stopPropagation\(\); selectPage\(page\.id\)/);
@@ -492,6 +496,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-page-list \{ align-content: start;/);
   assert.match(css, /\.design-page-item-actions \{ align-items: center; display: flex; gap: 3px; justify-content: flex-end; min-height: 34px; opacity: 0;/);
   assert.match(css, /\.design-page-item\.is-active \.design-page-item-actions \{ opacity: 1; pointer-events: auto; \}/);
+  assert.match(css, /\.design-page-item:has\(\.design-page-select input:checked\) \{ box-shadow: inset 0 0 0 2px #8b3dff66; \}/);
   assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; \}/);
   assert.match(css, /\.design-layer-order-actions button:disabled \{ cursor: default; opacity: \.35; \}/);
   assert.match(css, /\.design-all-page-heading \{ align-items: center; box-sizing: border-box; display: flex; gap: 12px; justify-content: space-between; margin-inline: auto; min-height: 40px; padding: 0 4px; \}/);
@@ -508,7 +513,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: auto minmax\(0, 1fr\); min-height: 0; min-width: 0; \}/);
   assert.match(css, /\.design-canvas-area \{ display: grid; grid-template-rows: auto minmax\(0, 1fr\) auto; min-height: 0; min-width: 0; \}/);
   assert.doesNotMatch(editor, /design-selection-box/);
-  assert.match(editor, /const resizeHandleRadius = 10 \* controlScale/);
+  assert.match(editor, /const resizeHandleRadius = 8 \* controlScale/);
   assert.equal((editor.match(/r=\{resizeHandleRadius\}/g) ?? []).length, 2);
   assert.doesNotMatch(css, /design-selection-box/);
   assert.match(css, /\.design-rotate-handle:hover \{ fill: #8b3dff !important/);

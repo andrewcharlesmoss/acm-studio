@@ -463,7 +463,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
   svgRef?: Ref<SVGSVGElement>;
 }) {
   const controlScale = 100 / Math.max(1, zoom);
-  const resizeHandleRadius = 10 * controlScale;
+  const resizeHandleRadius = 8 * controlScale;
   const resizeHandles: Array<{ handle: ResizeHandle; label: string }> = [
     { handle: "nw", label: "Resize selected object from top left" },
     { handle: "n", label: "Resize selected object from top middle" },
@@ -632,6 +632,7 @@ export function DesignEditor() {
   const [zoom, setZoom] = useState(60);
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
+  const pageSelectionAnchorRef = useRef<string | null>(null);
   const [pagesCollapsed, setPagesCollapsed] = useState(false);
   const [leftPaneTab, setLeftPaneTab] = useState<"pages" | "layers">("pages");
   const [allPagesVisible, setAllPagesVisible] = useState(false);
@@ -733,6 +734,23 @@ export function DesignEditor() {
       panel.querySelectorAll(".is-drop-before, .is-drop-after").forEach((item) => item.classList.remove("is-drop-before", "is-drop-after"));
       pageDropPositionRef.current = null;
     };
+    const handlePageSelectionClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const checkbox = target.closest<HTMLInputElement>(".design-page-select input");
+      const thumbnail = target.closest<HTMLElement>(".design-thumbnail-button");
+      if (!checkbox && !thumbnail) return;
+      const item = target.closest<HTMLElement>(".design-page-item");
+      if (!item) return;
+      const index = Array.from(panel.querySelectorAll(".design-page-item")).indexOf(item);
+      const page = design?.pages[index];
+      if (!page) return;
+      const modifiers = { metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey, checked: checkbox ? !checkbox.checked : true };
+      if (checkbox) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      if (event.metaKey || event.ctrlKey || event.shiftKey || checkbox) selectPageSet(page.id, modifiers);
+    };
     const handleDragOver = (event: globalThis.DragEvent) => {
       const item = (event.target as HTMLElement).closest<HTMLElement>(".design-page-item");
       if (!item) return;
@@ -753,8 +771,9 @@ export function DesignEditor() {
     };
     panel.addEventListener("dragover", handleDragOver);
     panel.addEventListener("dragleave", clearDropGuide);
-    return () => { panel.removeEventListener("dragover", handleDragOver); panel.removeEventListener("dragleave", clearDropGuide); clearDropGuide(); };
-  }, [design?.pages, draggedPageId]);
+    panel.addEventListener("click", handlePageSelectionClick, true);
+    return () => { panel.removeEventListener("dragover", handleDragOver); panel.removeEventListener("dragleave", clearDropGuide); panel.removeEventListener("click", handlePageSelectionClick, true); clearDropGuide(); };
+  }, [design?.pages, draggedPageId, selectedPageIds]);
 
   useEffect(() => {
     let mounted = true;
@@ -1411,6 +1430,24 @@ export function DesignEditor() {
 
   function selectPage(id: string) { if (!design) return; const nextPage = design.pages.find((page) => page.id === id); updateDesign({ ...design, activePageId: id }, false); setPageName(nextPage?.name ?? ""); selectObjects([]); }
 
+  function selectPageSet(pageId: string, event: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; checked: boolean }) {
+    if (!design) return;
+    const pageIds = design.pages.map((page) => page.id);
+    const anchor = pageSelectionAnchorRef.current ?? pageId;
+    let next = [pageId];
+    if (event.shiftKey && pageIds.includes(anchor)) {
+      const start = pageIds.indexOf(anchor);
+      const end = pageIds.indexOf(pageId);
+      next = pageIds.slice(Math.min(start, end), Math.max(start, end) + 1);
+    } else if (event.metaKey || event.ctrlKey) {
+      next = selectedPageIds.includes(pageId) ? selectedPageIds.filter((id) => id !== pageId) : [...selectedPageIds, pageId];
+    } else if (!event.checked) {
+      next = selectedPageIds.filter((id) => id !== pageId);
+    }
+    pageSelectionAnchorRef.current = pageId;
+    setSelectedPageIds(next);
+  }
+
   function startPageRename(id: string) {
     selectPage(id);
     window.setTimeout(() => pageNameInputRef.current?.focus(), 0);
@@ -1755,7 +1792,7 @@ export function DesignEditor() {
     {!primaryWritable && syncStatus === "disconnected" ? <div className="design-notice" role="status">Connection to the primary Studio tab was lost. Editing is paused.</div> : null}
     {error ? <div className="design-error" role="alert">{error}</div> : null}
     <div className={`design-workspace${pagesCollapsed ? " pages-collapsed" : ""}`}>
-    <aside className="design-pages" id="design-pages-panel" aria-label="Design pages and layers"><div className="design-pages-heading"><div className="design-pane-tabs" role="tablist" aria-label="Design navigation"><button type="button" role="tab" id="design-pages-tab" className={leftPaneTab === "pages" ? "is-active" : ""} aria-selected={leftPaneTab === "pages"} aria-controls={leftPaneTab === "pages" ? "design-pages-tabpanel" : undefined} onClick={() => setLeftPaneTab("pages")}>Pages</button><button type="button" role="tab" id="design-layers-tab" className={leftPaneTab === "layers" ? "is-active" : ""} aria-selected={leftPaneTab === "layers"} aria-controls={leftPaneTab === "layers" ? "design-layers-tabpanel" : undefined} onClick={() => setLeftPaneTab("layers")}>Layers</button></div><div><button type="button" onClick={() => setPagesCollapsed(true)} aria-label="Hide pages">−</button><button type="button" onClick={() => addPage()} disabled={!writable} aria-label="Add page">＋</button></div></div>{leftPaneTab === "pages" ? <div className="design-page-list" id="design-pages-tabpanel" role="tabpanel" aria-labelledby="design-pages-tab" aria-label="Pages">{design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} draggable={writable} onDragStart={() => setDraggedPageId(page.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); const position = event.clientY < bounds.top + bounds.height / 2 ? "before" : "after"; if (draggedPageId) reorderPage(draggedPageId, page.id, position); setDraggedPageId(null); }}><label className="design-page-select"><input type="checkbox" checked={selectedPageIds.includes(page.id)} onChange={(event) => setSelectedPageIds((items) => event.target.checked ? [...items, page.id] : items.filter((id) => id !== page.id))} aria-label={`Select ${page.name} for export`} /></label><button type="button" className="design-thumbnail-button" onClick={() => selectPage(page.id)} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><PageSvg showHoverHandles={false} page={page} assets={design.assets} selectedIds={[]} guides={[]} onCanvasPointerDown={() => undefined} onObjectPointerDown={() => undefined} onResizePointerDown={() => undefined} onRotatePointerDown={() => undefined} onArrowEndpointPointerDown={() => undefined} onArrowBendPointerDown={() => undefined} onArrowBendKeyDown={() => undefined} onResizeKeyDown={() => undefined} onRotateKeyDown={() => undefined} onArrowEndpointKeyDown={() => undefined} /></div><span>{index + 1}. {page.name}</span></button><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button></div></div>)}</div> : <div className="design-layers design-pages-layers" id="design-layers-tabpanel" role="tabpanel" aria-labelledby="design-layers-tab" aria-label="Layers"><LayerList page={activePage} selectedIds={selectedIds} writable={writable} onSelect={(id) => selectObjects([id])} onMove={moveLayer} onReorder={reorderLayer} /></div>}<div className="design-page-actions"><button type="button" onClick={() => addPage()} disabled={!writable}>Add page</button><button type="button" onClick={deletePage} disabled={!writable || design.pages.length === 1}>Delete page</button><button type="button" onClick={() => void createNewDesign()} disabled={!primaryWritable}>New design</button></div><label className="design-import-label">Import design<input ref={importInputRef} type="file" accept="application/json,.json" disabled={!primaryWritable} onChange={(event) => void importDesign(event.target.files?.[0])} /></label><select className="design-switcher" value={design.id} disabled={!primaryWritable} onChange={(event) => { if (!primaryWritable) return; const next = designs.find((item) => item.id === event.target.value); if (next) { setDesign(next); setPageName(next.pages.find((page) => page.id === next.activePageId)?.name ?? next.pages[0]?.name ?? ""); setHistory([]); setFuture([]); selectObjects([]); } }} aria-label="Open design">{designs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></aside>
+    <aside className="design-pages" id="design-pages-panel" aria-label="Design pages and layers"><div className="design-pages-heading"><div className="design-pane-tabs" role="tablist" aria-label="Design navigation"><button type="button" role="tab" id="design-pages-tab" className={leftPaneTab === "pages" ? "is-active" : ""} aria-selected={leftPaneTab === "pages"} aria-controls={leftPaneTab === "pages" ? "design-pages-tabpanel" : undefined} onClick={() => setLeftPaneTab("pages")}>Pages</button><button type="button" role="tab" id="design-layers-tab" className={leftPaneTab === "layers" ? "is-active" : ""} aria-selected={leftPaneTab === "layers"} aria-controls={leftPaneTab === "layers" ? "design-layers-tabpanel" : undefined} onClick={() => setLeftPaneTab("layers")}>Layers</button></div><div><button type="button" onClick={() => setPagesCollapsed(true)} aria-label="Hide pages">−</button><button type="button" onClick={() => addPage()} disabled={!writable} aria-label="Add page">＋</button></div></div>{leftPaneTab === "pages" ? <div className="design-page-list" id="design-pages-tabpanel" role="tabpanel" aria-labelledby="design-pages-tab" aria-label="Pages">{design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} draggable={writable} onDragStart={() => setDraggedPageId(page.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); const position = event.clientY < bounds.top + bounds.height / 2 ? "before" : "after"; if (draggedPageId) reorderPage(draggedPageId, page.id, position); setDraggedPageId(null); }}><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button></div><label className="design-page-select"><input type="checkbox" checked={selectedPageIds.includes(page.id)} onChange={(event) => setSelectedPageIds((items) => event.target.checked ? [...items, page.id] : items.filter((id) => id !== page.id))} aria-label={`Select ${page.name} for export`} /></label><button type="button" className="design-thumbnail-button" onClick={() => selectPage(page.id)} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><PageSvg showHoverHandles={false} page={page} assets={design.assets} selectedIds={[]} guides={[]} onCanvasPointerDown={() => undefined} onObjectPointerDown={() => undefined} onResizePointerDown={() => undefined} onRotatePointerDown={() => undefined} onArrowEndpointPointerDown={() => undefined} onArrowBendPointerDown={() => undefined} onArrowBendKeyDown={() => undefined} onResizeKeyDown={() => undefined} onRotateKeyDown={() => undefined} onArrowEndpointKeyDown={() => undefined} /></div><span>{index + 1}. {page.name}</span></button></div>)}</div> : <div className="design-layers design-pages-layers" id="design-layers-tabpanel" role="tabpanel" aria-labelledby="design-layers-tab" aria-label="Layers"><LayerList page={activePage} selectedIds={selectedIds} writable={writable} onSelect={(id) => selectObjects([id])} onMove={moveLayer} onReorder={reorderLayer} /></div>}<div className="design-page-actions"><button type="button" onClick={() => addPage()} disabled={!writable}>Add page</button><button type="button" onClick={deletePage} disabled={!writable || design.pages.length === 1}>Delete page</button><button type="button" onClick={() => void createNewDesign()} disabled={!primaryWritable}>New design</button></div><label className="design-import-label">Import design<input ref={importInputRef} type="file" accept="application/json,.json" disabled={!primaryWritable} onChange={(event) => void importDesign(event.target.files?.[0])} /></label><select className="design-switcher" value={design.id} disabled={!primaryWritable} onChange={(event) => { if (!primaryWritable) return; const next = designs.find((item) => item.id === event.target.value); if (next) { setDesign(next); setPageName(next.pages.find((page) => page.id === next.activePageId)?.name ?? next.pages[0]?.name ?? ""); setHistory([]); setFuture([]); selectObjects([]); } }} aria-label="Open design">{designs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></aside>
       <section className="design-main" aria-label="Design canvas">
         <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerUp} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><input ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-zoom"><button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)}>−</button><select aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</select><button type="button" aria-label="Zoom in" onClick={() => changeZoom(1)}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={allPagesVisible ? "is-active" : ""} aria-pressed={allPagesVisible} aria-label={allPagesVisible ? "View single page" : "View all pages"} onClick={() => setAllPagesVisible((value) => !value)}>{allPagesVisible ? "View single page" : "View all pages"}</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className={`design-canvas-scroll${allPagesVisible ? " is-all-pages" : ""}`} ref={canvasScrollRef}>
           {allPagesVisible ? <div className="design-all-pages">{design.pages.map((page, index) => {
