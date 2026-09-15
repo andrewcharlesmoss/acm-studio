@@ -558,9 +558,10 @@ test("design snapping uses Canva-style solid page guides and dotted object guide
   assert.match(editor, /const endpointSnap = snapArrowEndpoint\(interaction\.original, interaction\.endpoint \?\? "end", point\)/);
   assert.match(editor, /setGuides\(endpointSnap\.guides\)/);
   assert.match(editor, /className=\{`design-guide design-guide-\$\{guide\.style\}`\}/);
-  assert.match(css, /\.design-guide \{ opacity: \.8; pointer-events: none; stroke: #ff00ff; stroke-width: 2;/);
-  assert.match(css, /\.design-guide-solid \{ stroke-dasharray: none; \}/);
-  assert.match(css, /\.design-guide-dotted \{ stroke-dasharray: 2 4; \}/);
+  assert.ok(editor.indexOf('<g className="design-guides-overlay"') > editor.indexOf('{page.objects.map('), "guides render above page objects");
+  assert.match(css, /\.design-guide \{ filter: drop-shadow\(0 0 1px rgba\(255, 255, 255, \.95\)\); opacity: \.95; pointer-events: none; shape-rendering: geometricPrecision; stroke: #3858e9; stroke-width: 1\.5;/);
+  assert.match(css, /\.design-guide-solid \{ stroke-dasharray: none; stroke-linecap: butt; \}/);
+  assert.match(css, /\.design-guide-dotted \{ stroke-dasharray: 1 5; stroke-linecap: round; \}/);
 });
 
 test("design rotation handle uses one dedicated SVG glyph", () => {
