@@ -478,9 +478,10 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /className="design-all-page-actions"/);
   assert.match(editor, /aria-label=\{`Move page \$\{index \+ 1\} earlier`\}/);
   assert.match(editor, /aria-label=\{page\.hidden \? `Show page \$\{index \+ 1\}` : `Hide page \$\{index \+ 1\}`\}/);
+  assert.match(editor, /name=\{page\.hidden \? "seen-off" : "seen"\} size=\{24\}/);
   assert.match(editor, /aria-label=\{page\.locked \? `Unlock page \$\{index \+ 1\}` : `Lock page \$\{index \+ 1\}`\}/);
-  assert.match(editor, /<StudioIcon name="copy" size=\{20\} \/>/);
-  assert.match(editor, /<StudioIcon name="trash" size=\{20\} \/>/);
+  assert.match(editor, /<StudioIcon name="copy" size=\{24\} \/>/);
+  assert.match(editor, /<StudioIcon name="trash" size=\{24\} \/>/);
   assert.match(editor, /onClick=\{\(\) => addPage\(false, page\.id\)\}/);
   assert.match(editor, /className="design-canvas-frame" style=\{\{ width: `\$\{activePage\.width \* zoom \/ 100\}px` \}\}/);
   assert.doesNotMatch(editor, />Edit Page<\/button>/);
@@ -498,7 +499,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-all-page-title input:focus-visible \{ box-shadow: 0 2px 0 #8b3dff99; color: var\(--ink\); outline: none; \}/);
   assert.doesNotMatch(css, /\.design-all-page-title input:hover, \.design-all-page-title input:focus-visible \{ background: #fff;/);
   assert.match(css, /\.design-all-page-actions \{ align-items: center; display: flex; flex: 0 0 auto; gap: 3px; \}/);
-  assert.match(css, /\.design-all-page-actions button \{ align-items: center; background: transparent; border: 0; border-radius: 5px; color: var\(--muted\); cursor: pointer; display: inline-flex; justify-content: center; min-height: 34px; min-width: 34px; padding: 6px; \}/);
+  assert.match(css, /\.design-all-page-actions button \{ align-items: center; background: transparent; border: 0; border-radius: 5px; color: var\(--muted\); cursor: pointer; display: inline-flex; justify-content: center; min-height: 38px; min-width: 38px; padding: 7px; \}/);
   assert.match(css, /\.design-all-page\.is-hidden \.design-canvas-frame \{ opacity: \.48; \}/);
   assert.doesNotMatch(css, /design-canvas-help/);
   assert.match(css, /\.design-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: auto minmax\(0, 1fr\); min-height: 0; min-width: 0; \}/);
