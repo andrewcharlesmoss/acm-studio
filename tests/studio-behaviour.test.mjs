@@ -521,8 +521,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
 
 test("design tool selection uses a neutral active colour", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
-  assert.match(css, /\.design-tool-rail button\.is-active \{ background: #f0eee7; border-color: #c8c6be; color: var\(--ink\); \}/);
-  assert.doesNotMatch(css, /\.design-tool-rail button\.is-active \{[^}]*#f9e1e1|#d89b9b|#9c2525/);
+  assert.match(css, /\.design-ribbon-button:hover:not\(:disabled\), \.design-ribbon-button:focus-visible, \.design-ribbon-button\.is-active \{ background: #f0eee7; border-color: #c8c6be; outline: none; \}/);
+  assert.doesNotMatch(css, /\.design-ribbon-button[^}]*#f9e1e1|#d89b9b|#9c2525/);
 });
 
 test("design canvas offers an optional purple selection border", () => {
@@ -532,12 +532,13 @@ test("design canvas offers an optional purple selection border", () => {
   ];
   assert.match(editor, /const \[purpleSelectionBorder, setPurpleSelectionBorder\] = useState\(false\)/);
   assert.match(editor, /aria-label="Purple selection border"/);
-  assert.match(editor, /design-selection-border-toggle/);
-  assert.match(editor, /<StudioIcon name="block" size=\{20\} \/><span>Purple border<\/span>/);
+  assert.match(editor, /active=\{purpleSelectionBorder\}/);
+  assert.match(editor, /aria-label="Purple selection border"/);
+  assert.match(editor, /<StudioIcon name="block" size=\{24\} \/><span>Purple border<\/span>/);
   assert.match(editor, /purpleSelectionBorder && \(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\)/);
   assert.match(editor, /className="design-selection-border"/);
   assert.match(css, /\.design-selection-border \{ fill: none; stroke: #8b3dff; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; \}/);
-  assert.match(css, /\.design-tool-rail \.design-selection-border-toggle \{ flex-basis: 96px; white-space: nowrap; \}/);
+  assert.match(css, /\.design-ribbon-shape-picker \{ align-items: center;/);
 });
 
 test("design image resizing keeps proportions by default and uses Shift for freeform sizing", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from "react";
 
 export type StudioRibbonTab = "home" | "insert" | "arrange" | "view" | "export";
 
@@ -19,21 +19,21 @@ function classes(...values: Array<string | false | undefined>) {
 export function StudioRibbon({ activeTab, onTabChange, brand, status, children }: { activeTab: StudioRibbonTab; onTabChange: (tab: StudioRibbonTab) => void; brand: ReactNode; status: ReactNode; children: ReactNode }) {
   return <header className="design-ribbon">
     <div className="design-ribbon-top"><div className="design-ribbon-brand">{brand}</div><div className="design-ribbon-status" aria-live="polite">{status}</div></div>
-    <nav className="design-ribbon-tabs" aria-label="Design tools">
-      {tabs.map((tab) => <button key={tab.id} type="button" className={tab.id === activeTab ? "is-active" : ""} aria-current={tab.id === activeTab ? "page" : undefined} onClick={() => onTabChange(tab.id)}>{tab.label}</button>)}
-    </nav>
+    <div className="design-ribbon-tabs" role="tablist" aria-label="Design tools">
+      {tabs.map((tab) => <button key={tab.id} id={`design-ribbon-tab-${tab.id}`} type="button" role="tab" className={tab.id === activeTab ? "is-active" : ""} aria-selected={tab.id === activeTab} aria-controls={`design-ribbon-panel-${tab.id}`} tabIndex={tab.id === activeTab ? 0 : -1} onClick={() => onTabChange(tab.id)}>{tab.label}</button>)}
+    </div>
     <div className="design-ribbon-content">{children}</div>
   </header>;
 }
 
 export function StudioRibbonPanel({ active, className, children, ...props }: HTMLAttributes<HTMLDivElement> & { active: boolean }) {
-  return active ? <div className={classes("design-ribbon-panel", className)} {...props}>{children}</div> : null;
+  return active ? <div className={classes("design-ribbon-panel", className)} role="tabpanel" tabIndex={0} {...props}>{children}</div> : null;
 }
 
 export function StudioRibbonGroup({ label, className, children, ...props }: HTMLAttributes<HTMLDivElement> & { label: string }) {
   return <section className={classes("design-ribbon-group", className)} {...props}><div className="design-ribbon-group-controls">{children}</div><span className="design-ribbon-group-label">{label}</span></section>;
 }
 
-export function StudioRibbonButton({ size = "standard", className, children, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { size?: "compact" | "standard" | "large" }) {
-  return <button className={classes("design-ribbon-button", `is-${size}`, className)} type="button" {...props}>{children}</button>;
-}
+export const StudioRibbonButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { size?: "compact" | "standard" | "large"; active?: boolean }>(function StudioRibbonButton({ size = "standard", active = false, className, children, ...props }, ref) {
+  return <button ref={ref} className={classes("design-ribbon-button", `is-${size}`, active && "is-active", className)} type="button" aria-pressed={props["aria-pressed"] ?? (active || undefined)} {...props}>{children}</button>;
+});
