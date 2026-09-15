@@ -17,9 +17,14 @@ import { loadDesigns, saveDesigns } from "./design-store";
 import { createDesignSync, type DesignSyncSession, type DesignSyncStatus } from "./design-sync";
 import { StudioIcon } from "./studio-icons";
 import type { StudioIconName } from "./studio-icons";
-import { StudioRibbon, StudioRibbonButton, StudioRibbonGroup, StudioRibbonPanel, type StudioRibbonTab } from "./studio-ribbon";
+import { Ribbon as StudioRibbon, RibbonButton as StudioRibbonButton, RibbonGroup as StudioRibbonGroup, RibbonPanel as StudioRibbonPanel, type RibbonTabDefinition } from "@acm/ribbon";
+import "@acm/ribbon/styles.css";
 
 type Tool = "select" | "image" | "arrow" | "rectangle" | "ellipse" | "text" | "step" | "highlight" | "redaction";
+type StudioRibbonTab = "home" | "insert" | "arrange" | "view" | "export";
+const studioRibbonTabs: readonly RibbonTabDefinition<StudioRibbonTab>[] = [
+  { id: "home", label: "Home" }, { id: "insert", label: "Insert" }, { id: "arrange", label: "Arrange" }, { id: "view", label: "View" }, { id: "export", label: "Export" },
+];
 type DrawTool = Exclude<Tool, "select" | "image">;
 type PositionAxis = "left" | "centre" | "right" | "top" | "middle" | "bottom";
 type InteractionMode = "move" | "resize" | "rotate" | "arrow-endpoint" | "arrow-bend" | "draw";
@@ -1724,12 +1729,14 @@ export function DesignEditor() {
 
   return <div className="design-shell" onPaste={handlePaste}>
       <StudioRibbon
+        tabs={studioRibbonTabs}
         activeTab={ribbonTab}
         onTabChange={setRibbonTab}
+        accessibleName="Design tools"
         brand={<><a href="/studio" aria-label="Back to ACM Studio">ACM Studio</a><span aria-hidden="true">/</span><input aria-label="Design name" value={design.name} disabled={!writable} onChange={(event) => updateDesign({ ...design, name: event.target.value })} /></>}
         status={<span>{status}</span>}
       >
-        <StudioRibbonPanel id="design-ribbon-panel-home" aria-labelledby="design-ribbon-tab-home" active={ribbonTab === "home"}>
+        <StudioRibbonPanel tab="home">
           <StudioRibbonGroup label="History">
             <StudioRibbonButton size="large" onClick={undo} disabled={!history.length || !writable}><StudioIcon name="undo" size={24} /><span>Undo</span></StudioRibbonButton>
             <StudioRibbonButton size="large" onClick={redo} disabled={!future.length || !writable}><StudioIcon name="redo" size={24} /><span>Redo</span></StudioRibbonButton>
@@ -1742,7 +1749,7 @@ export function DesignEditor() {
             {mediaHandoff ? <><a className="design-ribbon-link" href={`/studio?designMedia=${encodeURIComponent(mediaHandoff)}&designTarget=block`}>Insert into document</a><a className="design-ribbon-link" href={`/studio?designMedia=${encodeURIComponent(mediaHandoff)}&designTarget=cover`}>Use as cover</a></> : null}
           </StudioRibbonGroup>
         </StudioRibbonPanel>
-        <StudioRibbonPanel id="design-ribbon-panel-insert" aria-labelledby="design-ribbon-tab-insert" active={ribbonTab === "insert"}>
+        <StudioRibbonPanel tab="insert">
           <StudioRibbonGroup label="Insert">
             <StudioRibbonButton size="large" active={tool === "select"} onClick={() => setTool("select")} aria-pressed={tool === "select"}><StudioIcon name={toolIcons.select} size={24} /><span>Select</span></StudioRibbonButton>
             <StudioRibbonButton size="large" onClick={() => fileInputRef.current?.click()} disabled={!writable}><StudioIcon name={toolIcons.image} size={24} /><span>Image</span></StudioRibbonButton>
@@ -1753,7 +1760,7 @@ export function DesignEditor() {
             <StudioRibbonButton size="large" active={purpleSelectionBorder} onClick={() => setPurpleSelectionBorder((value) => !value)} aria-pressed={purpleSelectionBorder} aria-label="Purple selection border"><StudioIcon name="block" size={24} /><span>Purple border</span></StudioRibbonButton>
           </StudioRibbonGroup>
         </StudioRibbonPanel>
-        <StudioRibbonPanel id="design-ribbon-panel-arrange" aria-labelledby="design-ribbon-tab-arrange" active={ribbonTab === "arrange"}>
+        <StudioRibbonPanel tab="arrange">
           <StudioRibbonGroup label="Arrange">
             <StudioRibbonButton onClick={() => moveSelectedLayer("backward")} disabled={!selectedObject || !writable || Boolean(selectedObject.locked)}><StudioIcon name="arrow-left" size={22} /><span>Send backward</span></StudioRibbonButton>
             <StudioRibbonButton onClick={() => moveSelectedLayer("forward")} disabled={!selectedObject || !writable || Boolean(selectedObject.locked)}><StudioIcon name="arrow-right" size={22} /><span>Bring forward</span></StudioRibbonButton>
@@ -1762,21 +1769,21 @@ export function DesignEditor() {
             <StudioRibbonButton onClick={duplicateSelected} disabled={!selectedObject || !writable}><StudioIcon name="copy" size={22} /><span>Duplicate</span></StudioRibbonButton>
           </StudioRibbonGroup>
         </StudioRibbonPanel>
-        <StudioRibbonPanel id="design-ribbon-panel-view" aria-labelledby="design-ribbon-tab-view" active={ribbonTab === "view"}>
+        <StudioRibbonPanel tab="view">
           <StudioRibbonGroup label="Canvas view">
             <StudioRibbonButton onClick={() => changeZoom(-1)}><span>Zoom out</span></StudioRibbonButton>
-            <label className="design-ribbon-field">Zoom<select aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</select></label>
+            <label className="acm-ribbon-field">Zoom<select aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</select></label>
             <StudioRibbonButton onClick={() => changeZoom(1)}><span>Zoom in</span></StudioRibbonButton>
             <StudioRibbonButton onClick={fitCanvasToView}><span>Fit canvas</span></StudioRibbonButton>
             <StudioRibbonButton active={allPagesVisible} onClick={() => setAllPagesVisible((value) => !value)} aria-pressed={allPagesVisible}><span>{allPagesVisible ? "Single page" : "All pages"}</span></StudioRibbonButton>
             <StudioRibbonButton active={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }} aria-pressed={snapEnabled}><span>Snap {snapEnabled ? "on" : "off"}</span></StudioRibbonButton>
           </StudioRibbonGroup>
         </StudioRibbonPanel>
-        <StudioRibbonPanel id="design-ribbon-panel-export" aria-labelledby="design-ribbon-tab-export" active={ribbonTab === "export"}>
+        <StudioRibbonPanel tab="export">
           <StudioRibbonGroup label="Export settings">
-            <label className="design-ribbon-field">Format<select value={exportFormat} onChange={(event) => setExportFormat(event.target.value as typeof exportFormat)} aria-label="Export format"><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="webp">WebP</option></select></label>
-            <label className="design-ribbon-field">Scale<select value={exportScale} onChange={(event) => setExportScale(Number(event.target.value))} aria-label="Export scale"><option value="1">100%</option><option value="2">200%</option></select></label>
-            <label className="design-ribbon-field">Quality<select value={exportQuality} onChange={(event) => setExportQuality(Number(event.target.value))} aria-label="Export quality"><option value=".92">High quality</option><option value=".75">Smaller file</option></select></label>
+            <label className="acm-ribbon-field">Format<select value={exportFormat} onChange={(event) => setExportFormat(event.target.value as typeof exportFormat)} aria-label="Export format"><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="webp">WebP</option></select></label>
+            <label className="acm-ribbon-field">Scale<select value={exportScale} onChange={(event) => setExportScale(Number(event.target.value))} aria-label="Export scale"><option value="1">100%</option><option value="2">200%</option></select></label>
+            <label className="acm-ribbon-field">Quality<select value={exportQuality} onChange={(event) => setExportQuality(Number(event.target.value))} aria-label="Export quality"><option value=".92">High quality</option><option value=".75">Smaller file</option></select></label>
           </StudioRibbonGroup>
           <StudioRibbonGroup label="Export">
             <StudioRibbonButton onClick={() => void exportPage(activePage)}><StudioIcon name="download" size={22} /><span>Export page</span></StudioRibbonButton>

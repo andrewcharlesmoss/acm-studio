@@ -530,27 +530,29 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
 });
 
 test("design tool selection uses a neutral active colour", () => {
-  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
-  assert.match(css, /\.design-ribbon-button:hover:not\(:disabled\), \.design-ribbon-button:focus-visible, \.design-ribbon-button\.is-active \{ background: #f0eee7; border-color: #c8c6be; outline: none; \}/);
-  assert.doesNotMatch(css, /\.design-ribbon-button[^}]*#f9e1e1|#d89b9b|#9c2525/);
+  const css = readFileSync(new URL("../../acm-ribbon/src/styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.acm-ribbon-button:hover:not\(:disabled\), \.acm-ribbon-button:focus-visible, \.acm-ribbon-button\.is-active \{ background: var\(--acm-ribbon-hover\); border-color: var\(--acm-ribbon-border\); outline: none; \}/);
+  assert.doesNotMatch(css, /#f9e1e1|#d89b9b|#9c2525/);
 });
 
 test("design ribbon keeps tab targets mounted and supports keyboard navigation", () => {
   const [ribbon, editor] = [
-    readFileSync(new URL("../app/studio/studio-ribbon.tsx", import.meta.url), "utf8"),
+    readFileSync(new URL("../../acm-ribbon/src/index.tsx", import.meta.url), "utf8"),
     readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8"),
   ];
-  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  const ribbonCss = readFileSync(new URL("../../acm-ribbon/src/styles.css", import.meta.url), "utf8");
+  const designCss = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(ribbon, /onKeyDown=\{\(event\) => handleTabKeyDown\(event, index\)\}/);
   assert.match(ribbon, /event\.key !== "ArrowRight" && event\.key !== "ArrowLeft" && event\.key !== "Home" && event\.key !== "End"/);
-  assert.match(ribbon, /hidden=\{!active\} aria-hidden=\{!active\}/);
-  assert.match(css, /\.design-ribbon-content \{ border-top: 1px solid #e1dfd7; box-sizing: border-box; height: 114px; min-height: 114px; overflow: auto; \}/);
-  assert.match(css, /\.design-ribbon-panel \{ align-items: stretch; box-sizing: border-box; display: flex; gap: 2px; height: 114px; min-height: 114px;/);
+  assert.match(ribbon, /hidden=\{!effectiveActive\} aria-hidden=\{!effectiveActive\}/);
+  assert.match(ribbon, /useId\(\)\.replace\(\/:\/g, ""\)/);
+  assert.match(ribbonCss, /\.acm-ribbon-content \{ border-top: 1px solid var\(--acm-ribbon-border\); box-sizing: border-box; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\); overflow: auto; \}/);
+  assert.match(ribbonCss, /\.acm-ribbon-content > \.acm-ribbon-panel \{ align-items: stretch; box-sizing: border-box; display: flex; gap: 2px; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\);/);
   assert.match(editor, /className=\{`design-zoom-dock\$\{pagesCollapsed \? " is-pages-collapsed" : ""\}`\}/);
   assert.match(editor, /className="design-zoom-slider" aria-label="Canvas zoom control"/);
   assert.match(editor, /id="design-canvas-zoom" type="range" min="25" max="300" step="5" value=\{zoom\}/);
-  assert.match(css, /\.design-zoom-dock \{ align-items: center; background: #f4f3ee; border-top: 1px solid #d2d0c8; bottom: 0;.*left: 224px;.*position: fixed; right: 260px;.*z-index: 30;/);
-  assert.match(css, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
+  assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: #f4f3ee; border-top: 1px solid #d2d0c8; bottom: 0;.*left: 224px;.*position: fixed; right: 260px;.*z-index: 30;/);
+  assert.match(designCss, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
 
 test("design canvas offers an optional purple selection border", () => {
