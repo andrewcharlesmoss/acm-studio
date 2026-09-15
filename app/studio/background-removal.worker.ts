@@ -7,9 +7,51 @@ import type { BackgroundRemovalMessage, BackgroundRemovalProgress } from "./back
 // Pin both the model revision and its bytes; never execute downloaded model code.
 const send = (message: BackgroundRemovalMessage) => self.postMessage(message);
 const progress = (message: string, percent?: number) => send({ type: "progress", progress: { message, percent } satisfies BackgroundRemovalProgress });
+const MODEL_CACHE_NAME = "acm-studio-background-removal-models-v1";
+const modelBytes = new Map<BackgroundRemovalMode, Uint8Array>();
+const modelSessions = new Map<BackgroundRemovalMode, Session>();
+
+function modelCacheKey(mode: BackgroundRemovalMode) {
+  return new Request(`${self.location.origin}/__acm-studio-background-removal__/${mode}`);
+}
+
+async function openModelCache() {
+  if (!("caches" in globalThis)) return null;
+  try {
+    return await globalThis.caches.open(MODEL_CACHE_NAME);
+  } catch {
+    return null;
+  }
+}
+
+async function validModelBytes(mode: BackgroundRemovalMode, bytes: Uint8Array) {
+  const model = backgroundRemovalModels[mode];
+  if (bytes.byteLength !== model.bytes) return false;
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes as BufferSource)), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return digest === model.sha256;
+}
 
 async function loadModel(mode: BackgroundRemovalMode) {
+  const inMemory = modelBytes.get(mode);
+  if (inMemory) return inMemory;
   const model = backgroundRemovalModels[mode];
+  const cache = await openModelCache();
+  if (cache) {
+    try {
+      const cached = await cache.match(modelCacheKey(mode));
+      if (cached) {
+        const bytes = new Uint8Array(await cached.arrayBuffer());
+        if (await validModelBytes(mode, bytes)) {
+          modelBytes.set(mode, bytes);
+          progress("Using cached background removal model…", 100);
+          return bytes;
+        }
+        await cache.delete(modelCacheKey(mode));
+      }
+    } catch {
+      // A private-mode or quota-limited cache should not prevent local inference.
+    }
+  }
   progress("Downloading background removal model…", 0);
   const response = await fetch(model.url, { credentials: "omit", referrerPolicy: "no-referrer" });
   if (!response.ok || !response.body) throw new Error("The background removal model could not be downloaded. Check your connection and try again.");
@@ -26,14 +68,20 @@ async function loadModel(mode: BackgroundRemovalMode) {
     const percent = Math.floor(received / model.bytes * 100);
     if (percent !== lastPercent) { progress("Downloading background removal model…", percent); lastPercent = percent; }
   }
-  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), (byte) => byte.toString(16).padStart(2, "0")).join("");
-  if (received !== model.bytes || digest !== model.sha256) throw new Error("The background removal model download was incomplete or invalid. Please try again.");
+  if (!(await validModelBytes(mode, bytes))) throw new Error("The background removal model download was incomplete or invalid. Please try again.");
+  modelBytes.set(mode, bytes);
+  if (cache) {
+    try {
+      await cache.put(modelCacheKey(mode), new Response(bytes.slice().buffer, { headers: { "content-type": "application/octet-stream" } }));
+    } catch {
+      // Inference remains available for this session when persistent storage is unavailable.
+    }
+  }
   return bytes;
 }
 
-self.onmessage = async (event: MessageEvent<{ dataUrl: string; mode: BackgroundRemovalMode; edgeCleanup: number }>) => {
+async function runRemoval(event: MessageEvent<{ dataUrl: string; mode: BackgroundRemovalMode; edgeCleanup: number }>) {
   let image: ImageBitmap | undefined;
-  let session: Session | undefined;
   let stage = "image";
   try {
     const { dataUrl, mode, edgeCleanup } = event.data;
@@ -60,7 +108,11 @@ self.onmessage = async (event: MessageEvent<{ dataUrl: string; mode: BackgroundR
     // dedicated worker keeps the editor responsive and makes Cancel immediate.
     env.wasm.numThreads = 1;
     env.wasm.wasmPaths = runtimeBase;
-    session = await InferenceSession.create(model, { executionProviders: ["wasm"] });
+    let session = modelSessions.get(mode);
+    if (!session) {
+      session = await InferenceSession.create(model, { executionProviders: ["wasm"] });
+      modelSessions.set(mode, session);
+    }
     const input = new Tensor("float32", pixels, [1, 3, size.height, size.width]);
     const outputs = await session.run({ [session.inputNames[0]]: input });
     const output = outputs[session.outputNames[0]];
@@ -91,6 +143,10 @@ self.onmessage = async (event: MessageEvent<{ dataUrl: string; mode: BackgroundR
     send({ type: "error", message });
   } finally {
     image?.close();
-    await session?.release();
   }
+}
+
+let queuedRemoval = Promise.resolve();
+self.onmessage = (event: MessageEvent<{ dataUrl: string; mode: BackgroundRemovalMode; edgeCleanup: number }>) => {
+  queuedRemoval = queuedRemoval.then(() => runRemoval(event)).catch(() => undefined);
 };

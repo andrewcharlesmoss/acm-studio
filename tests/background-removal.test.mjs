@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { normalisePortraitPixels, normaliseSubjectPixels, normaliseSubjectMask, portraitInputSize, portraitMaskPixels } from "../app/studio/background-removal-matte.ts";
 import { compactDesignAssets, createDesign, migrateDesignProject, validateDesignProject } from "../app/studio/design-model.ts";
+
+const [backgroundRemovalSource, backgroundRemovalWorkerSource] = await Promise.all([
+  readFile(new URL("../app/studio/background-removal.ts", import.meta.url), "utf8"),
+  readFile(new URL("../app/studio/background-removal.worker.ts", import.meta.url), "utf8"),
+]);
 
 test("portrait preprocessing bounds inference memory and rejects unsupported image sizes", () => {
   assert.deepEqual(portraitInputSize(1200, 1200), { width: 512, height: 512 });
@@ -23,6 +29,16 @@ test("soft matting retains partial edges and rejects invalid or empty prediction
   assert.throws(() => portraitMaskPixels(new Float32Array([NaN]), 1), /invalid mask/);
   assert.throws(() => portraitMaskPixels(new Float32Array([1]), 2), /invalid mask/);
   assert.throws(() => portraitMaskPixels(new Float32Array([0, .1]), 2), /No distinct subject/);
+});
+
+test("background removal reuses verified models and inference sessions", () => {
+  assert.match(backgroundRemovalSource, /let sharedWorker: Worker \| null = null/);
+  assert.match(backgroundRemovalSource, /Reuses one worker\/session while Studio is open/);
+  assert.match(backgroundRemovalSource, /if \(sharedWorker !== worker\) return;/);
+  assert.match(backgroundRemovalWorkerSource, /MODEL_CACHE_NAME = "acm-studio-background-removal-models-v1"/);
+  assert.match(backgroundRemovalWorkerSource, /cache\.match\(modelCacheKey\(mode\)\)/);
+  assert.match(backgroundRemovalWorkerSource, /modelSessions = new Map/);
+  assert.match(backgroundRemovalWorkerSource, /Using cached background removal model/);
 });
 
 function fixture() {

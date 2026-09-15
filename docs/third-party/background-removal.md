@@ -81,11 +81,15 @@ an assumed drop-in dependency for ACM Studio.
   Generated files are ignored and served from the same origin. This avoids a
   Vite development rewrite that injects a DOM-only HMR client into the worker.
 - No WebGPU, account, API key, cross-origin isolation or server inference is
-  required. Browser HTTP caching may reuse downloads; offline availability is
-  not guaranteed. There is no new application-managed image or model cache.
-- One job owns one worker. Cancel, edits, selection changes, unmount and write
+  required. The first use downloads the selected model from the pinned public
+  source; verified bytes are then stored in versioned browser Cache Storage and
+  reused by a shared worker. If persistent storage is unavailable, the worker
+  still reuses the model for the current Studio session and falls back to a
+  fresh download after the worker or browser is restarted.
+- One job owns one shared worker. Cancel, edits, selection changes, unmount and write
   ownership loss invalidate the job. A 180-second timeout terminates it. Model
-  errors leave the design unchanged and permit another explicit attempt.
+  errors leave the design unchanged and permit another explicit attempt. The
+  ONNX session is retained per model while the worker remains alive.
 - Images are limited to 16 megapixels. The output uses original dimensions,
   multiplies the predicted alpha by existing image alpha and preserves all
   object transforms/crop. Canvas premultiplication can round RGB values at
