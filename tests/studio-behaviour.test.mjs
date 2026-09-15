@@ -703,12 +703,16 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(editor, /const fontOptions = \[/);
   assert.match(editor, /\{ value: "Inter, Arial, sans-serif", label: "Inter" \}/);
   assert.match(editor, /<label>Font<select/);
+  assert.match(editor, /className="design-text-wrap-setting"/);
+  assert.match(editor, /checked=\{selectedObject\.wordWrap !== false\}/);
+  assert.match(editor, /wordWrap: event\.target\.checked/);
   assert.doesNotMatch(editor, /<label>Font family<select/);
   assert.match(editor, /onDoubleClick=\{\(event\) => \{ if \(object\.type === "text"\)/);
   assert.match(editor, /const cancelTextEditRef = useRef\(false\)/);
   assert.match(editor, /cancelTextEditRef\.current = true/);
   assert.match(editor, /onEditingTextCommit/);
   assert.match(css, /\.design-inline-text-editor \{/);
+  assert.match(css, /\.design-text-wrap-setting input\[type="checkbox"\]/);
 });
 
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {

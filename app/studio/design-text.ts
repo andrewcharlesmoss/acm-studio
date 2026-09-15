@@ -10,6 +10,7 @@ export type DesignTextLayoutOptions = {
   fontFamily: string;
   fontSize: number;
   fontWeight: number;
+  wordWrap?: boolean;
   lineHeight?: number;
   measure?: (text: string) => number;
 };
@@ -58,12 +59,12 @@ function wrapParagraph(paragraph: string, width: number, measure: (text: string)
   return lines;
 }
 
-export function layoutDesignText({ text, width, height, fontSize, lineHeight = DEFAULT_LINE_HEIGHT, measure }: DesignTextLayoutOptions): DesignTextLine[] {
+export function layoutDesignText({ text, width, height, fontSize, wordWrap = true, lineHeight = DEFAULT_LINE_HEIGHT, measure }: DesignTextLayoutOptions): DesignTextLine[] {
   const safeWidth = Math.max(1, width);
   const lineHeightPx = Math.max(1, fontSize * lineHeight);
   const maxLines = Math.max(1, Math.floor(Math.max(1, height) / lineHeightPx));
   const measureText = measure ?? ((value: string) => value.length * fontSize * .6);
-  const lines = text.split("\n").flatMap((paragraph) => wrapParagraph(paragraph, safeWidth, measureText));
+  const lines = text.split("\n").flatMap((paragraph) => wordWrap ? wrapParagraph(paragraph, safeWidth, measureText) : [paragraph]);
   return lines.slice(0, maxLines).map((line, index) => ({ text: line, y: fontSize + index * lineHeightPx }));
 }
 

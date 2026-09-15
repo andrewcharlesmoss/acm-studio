@@ -78,3 +78,11 @@ test("arrow style fields are optional for legacy payloads and bounded when prese
     assert.throws(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [{ ...legacyArrow, ...invalid }] }] }), /design arrows are invalid/);
   }
 });
+
+test("text word wrap is optional for legacy designs and boolean when present", () => {
+  const design = createDesign();
+  const legacyText = { id: "text-legacy", type: "text", x: 0, y: 0, width: 100, height: 40, rotation: 0, opacity: 1, text: "Label", colour: "#000000", fontFamily: "Arial", fontSize: 16, fontWeight: 400, align: "left" };
+  assert.doesNotThrow(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [legacyText] }] }));
+  assert.doesNotThrow(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [{ ...legacyText, wordWrap: false }] }] }));
+  assert.throws(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [{ ...legacyText, wordWrap: "off" }] }] }), /design text objects are invalid/);
+});

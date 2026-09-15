@@ -27,6 +27,12 @@ test("text layout splits an oversized first word to stay inside a narrow box", (
   ]);
 });
 
+test("word wrap can be disabled without losing explicit line breaks", () => {
+  assert.deepEqual(layoutDesignText({ text: "A very long line\nSecond line", width: 25, height: 100, fontFamily: "Arial", fontSize: 20, fontWeight: 400, wordWrap: false, measure }), [
+    { text: "A very long line", y: 20 }, { text: "Second line", y: 44 },
+  ]);
+});
+
 test("text layout keeps alignment independent of wrapping", () => {
   const lines = layoutDesignText({ text: "Left\nCentre\nRight", width: 240, height: 100, fontFamily: "Inter", fontSize: 16, fontWeight: 600, measure });
   assert.equal(lines.map((line) => line.text).join("\n"), "Left\nCentre\nRight");

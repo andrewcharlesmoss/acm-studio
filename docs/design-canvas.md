@@ -21,6 +21,10 @@ export. This keeps image, text and annotation objects editable without adding a
 graphics-library dependency, while preserving document dimensions independently
 of browser zoom.
 
+Text boxes preserve explicit line and paragraph breaks. Word wrap is enabled by
+default and can be toggled off per text box when a long line should continue
+past the box edge; the box still clips the rendered and exported text.
+
 Arrows support independent Start arrowhead and End arrowhead controls, a shared
 Arrowhead size setting and Solid or Dotted line style. Dotted styling applies
 only to the shaft, while each selected arrowhead remains a solid filled shape.

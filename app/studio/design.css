@@ -125,6 +125,8 @@
 .design-inspector input, .design-inspector select, .design-inspector textarea { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; box-sizing: border-box; color: var(--ink); font: inherit; min-height: 32px; padding: 6px 7px; width: 100%; }
 .design-inspector textarea { min-height: 72px; resize: vertical; }
 .design-inspector input[type="color"] { padding: 2px; }
+.design-inspector .design-text-wrap-setting { align-items: center; display: flex; flex-direction: row; gap: 8px; }
+.design-inspector .design-text-wrap-setting input[type="checkbox"] { min-height: 18px; width: 18px; }
 .design-background-removal, .design-crop-controls { border-top: 1px solid #d2d0c8; display: grid; gap: 8px; margin-top: 10px; padding-top: 10px; }
 .design-background-removal button { background: #cc1818; border: 0; border-radius: 5px; color: white; cursor: pointer; font: inherit; font-size: var(--studio-ui-size, .8125rem); padding: 8px 10px; }
 .design-background-removal small, .design-background-removal [role="status"] { color: var(--muted); font-size: var(--studio-ui-size, .8125rem); line-height: 1.4; }
