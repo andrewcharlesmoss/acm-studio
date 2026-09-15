@@ -478,7 +478,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /className="design-all-page-actions"/);
   assert.match(editor, /aria-label=\{`Move page \$\{index \+ 1\} earlier`\}/);
   assert.match(editor, /aria-label=\{page\.hidden \? `Show page \$\{index \+ 1\}` : `Hide page \$\{index \+ 1\}`\}/);
-  assert.match(editor, /name=\{page\.hidden \? "seen-off" : "seen"\} size=\{24\}/);
+  assert.match(editor, /name=\{page\.hidden \? "visibility-off" : "visibility"\} size=\{24\}/);
   assert.match(editor, /aria-label=\{page\.locked \? `Unlock page \$\{index \+ 1\}` : `Lock page \$\{index \+ 1\}`\}/);
   assert.match(editor, /<StudioIcon name="copy" size=\{24\} \/>/);
   assert.match(editor, /<StudioIcon name="trash" size=\{24\} \/>/);
