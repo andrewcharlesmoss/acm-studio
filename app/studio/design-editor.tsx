@@ -937,6 +937,7 @@ export function DesignEditor() {
   }
 
   function onObjectPointerDown(event: PointerEvent<SVGGElement>, object: DesignObject) {
+    event.preventDefault();
     event.stopPropagation();
     if (!activePage) return;
     const now = Date.now();
@@ -1027,7 +1028,9 @@ export function DesignEditor() {
   }
 
   function onResizePointerDown(event: PointerEvent<SVGElement>, object: DesignObject, handle: ResizeHandle) {
+    event.preventDefault();
     event.stopPropagation();
+    event.currentTarget.focus();
     if (!designEditable || object.locked || !design) return;
     const point = getPoint(event);
     interactionRef.current = { mode: "resize", id: object.id, handle, keepRatio: shouldKeepResizeRatio(object, event.shiftKey), centred: event.altKey, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
@@ -1044,7 +1047,9 @@ export function DesignEditor() {
   }
 
   function onPageResizePointerDown(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle) {
+    event.preventDefault();
     event.stopPropagation();
+    event.currentTarget.focus();
     if (!designEditable || !design || !activePage) return;
     const rect = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
     if (!rect || !rect.width || !rect.height) return;
@@ -1053,7 +1058,9 @@ export function DesignEditor() {
   }
 
   function onRotatePointerDown(event: PointerEvent<SVGCircleElement>, object: DesignObject) {
+    event.preventDefault();
     event.stopPropagation();
+    event.currentTarget.focus();
     if (!designEditable || object.locked || !design) return;
     const point = getPoint(event); const centreX = object.x + object.width / 2; const centreY = object.y + object.height / 2;
     interactionRef.current = { mode: "rotate", id: object.id, startX: point.x, startY: point.y, startAngle: Math.atan2(point.y - centreY, point.x - centreX), original: cloneDesign(object), base: cloneDesign(design) };
@@ -1063,7 +1070,9 @@ export function DesignEditor() {
   }
 
   function onArrowEndpointPointerDown(event: PointerEvent<SVGCircleElement>, object: DesignArrowObject, endpoint: "start" | "end") {
+    event.preventDefault();
     event.stopPropagation();
+    event.currentTarget.focus();
     if (!designEditable || object.locked || !design) return;
     selectObjects([object.id]);
     const point = getPoint(event);
@@ -1072,7 +1081,9 @@ export function DesignEditor() {
   }
 
   function onArrowBendPointerDown(event: PointerEvent<SVGRectElement>, object: DesignArrowObject, bendIndex: number) {
+    event.preventDefault();
     event.stopPropagation();
+    event.currentTarget.focus();
     if (!designEditable || object.locked || !design) return;
     selectObjects([object.id]);
     const point = getPoint(event);

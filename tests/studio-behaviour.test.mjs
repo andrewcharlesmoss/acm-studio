@@ -604,9 +604,18 @@ test("design resize cursors follow the selected object's rotation", () => {
 });
 
 test("design objects use a four-way cursor while moving", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(editor, /function onObjectPointerDown\(event: PointerEvent<SVGGElement>, object: DesignObject\) \{\s+event\.preventDefault\(\);/);
+  assert.match(editor, /function onResizePointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
+  assert.match(editor, /function onPageResizePointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
+  assert.match(editor, /function onRotatePointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
+  assert.match(editor, /function onArrowEndpointPointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
+  assert.match(editor, /function onArrowBendPointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
   assert.match(css, /\.design-page-svg\.is-select-mode \.design-object:active \{ cursor: move; \}/);
   assert.match(css, /\.design-page-svg\.is-select-mode \.design-object\.is-locked:active \{ cursor: default; \}/);
+  assert.match(css, /\.design-page-svg \{ -webkit-user-select: none;[^}]*user-select: none;/);
+  assert.match(css, /\.design-inline-text-editor \{ -webkit-user-select: text; user-select: text; \}/);
 });
 
 test("design canvas controls keep a constant screen size as zoom changes", () => {

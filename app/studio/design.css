@@ -81,7 +81,8 @@
 .design-all-page-heading span { color: var(--muted); font-size: 12px; }
 .design-all-page-heading button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; color: var(--ink); cursor: pointer; font: inherit; font-size: 12px; padding: 5px 8px; }
 .design-all-page-heading button:hover, .design-all-page-heading button:focus-visible { border-color: var(--accent); color: var(--accent); }
-.design-page-svg { background: #fff; display: block; height: auto; overflow: visible; width: 100%; }
+.design-page-svg { -webkit-user-select: none; background: #fff; display: block; height: auto; overflow: visible; user-select: none; width: 100%; }
+.design-inline-text-editor { -webkit-user-select: text; user-select: text; }
 .design-object { cursor: grab; }
 .design-page-svg.is-select-mode .design-object,
 .design-page-svg.is-select-mode .design-object.is-locked { cursor: default; }
