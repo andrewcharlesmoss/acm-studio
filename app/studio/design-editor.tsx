@@ -1449,8 +1449,9 @@ export function DesignEditor() {
     if (!activePage || !canvasScrollRef.current) { setZoom(60); return; }
     const availableWidth = Math.max(1, canvasScrollRef.current.clientWidth - 50);
     const availableHeight = Math.max(1, canvasScrollRef.current.clientHeight - 50);
-    const fitPercent = Math.min(100, availableHeight / (availableWidth * activePage.height / activePage.width) * 100);
-    setZoom(ZOOM_OPTIONS.reduce((nearest, option) => Math.abs(option - fitPercent) < Math.abs(nearest - fitPercent) ? option : nearest, ZOOM_OPTIONS[0]));
+    const fitPercent = Math.min(100, Math.min(availableWidth / activePage.width, availableHeight / activePage.height) * 100);
+    const fittingZoom = Math.max(ZOOM_OPTIONS[0], Math.min(ZOOM_OPTIONS.at(-1) ?? 300, Math.floor(fitPercent / 5) * 5));
+    setZoom(fittingZoom);
   }
 
   function changeZoom(direction: 1 | -1) {

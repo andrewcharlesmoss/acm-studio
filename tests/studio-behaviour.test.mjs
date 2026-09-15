@@ -692,6 +692,12 @@ test("design canvas controls keep a constant screen size as zoom changes", () =>
   assert.match(editor, /zoom=\{zoom\} page=\{activePage\}/);
 });
 
+test("fit canvas uses both viewport dimensions and never chooses an overflowing zoom", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /Math\.min\(availableWidth \/ activePage\.width, availableHeight \/ activePage\.height\) \* 100/);
+  assert.match(editor, /Math\.floor\(fitPercent \/ 5\) \* 5/);
+});
+
 test("selected arrows expose endpoint controls instead of corner and rotate controls", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /\(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\) && object\.type !== "arrow"/);
