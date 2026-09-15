@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProp
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
 import type { BackgroundRemovalMode } from "./background-removal-models";
 import { formatRotationAngle, resizeRotatedObject, rotationCursorCss } from "./design-transform";
+import { createDesignTextMeasurer, layoutDesignText } from "./design-text";
 import { addMediaFiles, getMediaAsset, listMediaLibrary, replaceMediaAssetContent, type MediaAsset } from "./media-store";
 import { studioWriteOwnership, ownershipMessage, type OwnershipState } from "./write-ownership";
 import {
@@ -208,6 +209,25 @@ function arrowPath(object: DesignArrowObject) {
   return `M ${start.x} ${start.y} C ${bends[0].x} ${bends[0].y}, ${bends[1].x} ${bends[1].y}, ${end.x} ${end.y}`;
 }
 
+function arrowGeometry(object: DesignArrowObject) {
+  const { start, end, bends } = arrowPoints(object);
+  const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+  const control = bends.length === 1 ? { x: 2 * bends[0].x - midpoint.x, y: 2 * bends[0].y - midpoint.y } : null;
+  const tangent = bends.length === 1 ? { x: end.x - control!.x, y: end.y - control!.y } : { x: end.x - bends[1].x, y: end.y - bends[1].y };
+  const tangentLength = Math.hypot(tangent.x, tangent.y) || 1;
+  const direction = { x: tangent.x / tangentLength, y: tangent.y / tangentLength };
+  const headLength = Math.max(12, object.strokeWidth * 2.5);
+  const headHalfWidth = Math.max(4, object.strokeWidth * 1.1);
+  const base = { x: end.x - direction.x * headLength, y: end.y - direction.y * headLength };
+  const normal = { x: -direction.y * headHalfWidth, y: direction.x * headHalfWidth };
+  const left = { x: base.x + normal.x, y: base.y + normal.y };
+  const right = { x: base.x - normal.x, y: base.y - normal.y };
+  const path = bends.length === 1
+    ? `M ${start.x} ${start.y} Q ${control!.x} ${control!.y}, ${base.x} ${base.y}`
+    : `M ${start.x} ${start.y} C ${bends[0].x} ${bends[0].y}, ${bends[1].x} ${bends[1].y}, ${base.x} ${base.y}`;
+  return { path, arrowhead: `${end.x},${end.y} ${left.x},${left.y} ${right.x},${right.y}` };
+}
+
 function objectSvg(object: DesignObject, assets: DesignAsset[]) {
   const transform = `translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`;
   const opacity = object.opacity;
@@ -219,14 +239,17 @@ function objectSvg(object: DesignObject, assets: DesignAsset[]) {
     return `<g transform="${transform}" opacity="${opacity}"><defs><clipPath id="${clipId}"><rect width="${object.width}" height="${object.height}" /></clipPath></defs><image href="${escapeXml(asset.dataUrl)}" x="${-crop.x / crop.width * object.width}" y="${-crop.y / crop.height * object.height}" width="${object.width / crop.width}" height="${object.height / crop.height}" preserveAspectRatio="none" clip-path="url(#${clipId})" /></g>`;
   }
   if (object.type === "arrow") {
-    const marker = object.arrowhead ? `<defs><marker id="arrowhead-${object.id}" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="${object.stroke}" /></marker></defs>` : "";
-    return `<g transform="${transform}" opacity="${opacity}">${marker}<path d="${arrowPath(object)}" fill="none" stroke="${object.stroke}" stroke-width="${object.strokeWidth}" stroke-linecap="round" ${object.arrowhead ? `marker-end="url(#arrowhead-${object.id})"` : ""} /></g>`;
+    const geometry = arrowGeometry(object);
+    return `<g transform="${transform}" opacity="${opacity}"><path d="${object.arrowhead ? geometry.path : arrowPath(object)}" fill="none" stroke="${object.stroke}" stroke-width="${object.strokeWidth}" stroke-linecap="${object.arrowhead ? "butt" : "round"}" />${object.arrowhead ? `<polygon points="${geometry.arrowhead}" fill="${object.stroke}" />` : ""}</g>`;
   }
   if (object.type === "text" || object.type === "step") {
     const anchor = object.align === "center" ? "middle" : object.align === "right" ? "end" : "start";
     const x = object.align === "center" ? object.width / 2 : object.align === "right" ? object.width : 0;
     const stepBackground = object.type === "step" ? `<circle cx="${object.width / 2}" cy="${object.height / 2}" r="${Math.min(object.width, object.height) / 2}" fill="${object.fill ?? "#cc1818"}" />` : "";
-    return `<g transform="${transform}" opacity="${opacity}">${stepBackground}<text x="${x}" y="${object.fontSize}" fill="${object.colour}" font-family="${escapeXml(object.fontFamily)}" font-size="${object.fontSize}" font-weight="${object.fontWeight}" text-anchor="${anchor}">${escapeXml(object.text)}</text></g>`;
+    const lines = layoutDesignText({ ...object, measure: createDesignTextMeasurer(object.fontFamily, object.fontSize, object.fontWeight) });
+    const clipId = `text-clip-${object.id}`;
+    const text = lines.map((line) => `<tspan x="${x}" y="${line.y}">${escapeXml(line.text)}</tspan>`).join("");
+    return `<g transform="${transform}" opacity="${opacity}"><defs><clipPath id="${clipId}"><rect width="${object.width}" height="${object.height}" /></clipPath></defs>${stepBackground}<text clip-path="url(#${clipId})" fill="${object.colour}" font-family="${escapeXml(object.fontFamily)}" font-size="${object.fontSize}" font-weight="${object.fontWeight}" text-anchor="${anchor}">${text}</text></g>`;
   }
   const shape = object as DesignShapeObject;
   const fill = shape.type === "redaction" ? "#000000" : shape.fill;
@@ -397,6 +420,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
   const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
   const inlineTextEditorRef = useRef<HTMLTextAreaElement>(null);
   const cancelTextEditRef = useRef(false);
+  const textLayout = (object: DesignTextObject) => layoutDesignText({ ...object, measure: createDesignTextMeasurer(object.fontFamily, object.fontSize, object.fontWeight) });
   useEffect(() => { queueMicrotask(() => setHoveredObjectId(null)); }, [page.id, showHoverHandles]);
   useEffect(() => { if (editingTextId) inlineTextEditorRef.current?.focus(); }, [editingTextId]);
   useEffect(() => { cancelTextEditRef.current = false; }, [editingTextId]);
@@ -407,9 +431,9 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
     {page.objects.map((object) => <g key={object.id} transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`} opacity={object.opacity} className={`design-object${selectedIds.includes(object.id) ? " is-selected" : ""}${hoveredObjectId === object.id ? " is-hovered" : ""}${object.locked ? " is-locked" : ""}`} onPointerEnter={() => showHoverHandles && !object.locked && setHoveredObjectId(object.id)} onPointerLeave={() => showHoverHandles && setHoveredObjectId(null)} onPointerDown={(event) => onObjectPointerDown(event, object)} onDoubleClick={(event) => { if (object.type === "text") { event.preventDefault(); event.stopPropagation(); onTextDoubleClick?.(object); } }}>
       <rect width={object.width} height={object.height} fill="transparent" pointerEvents="all" onPointerDown={(event) => onObjectPointerDown(event as unknown as PointerEvent<SVGGElement>, object)} />
       {object.type === "image" ? (() => { const asset = assets.find((item) => item.id === object.assetId); if (!asset) return null; const crop = object.crop ?? { x: 0, y: 0, width: 1, height: 1 }; const clipId = `crop-${object.id}`; return <><defs><clipPath id={clipId}><rect width={object.width} height={object.height} /></clipPath></defs><image href={asset.dataUrl} x={-crop.x / crop.width * object.width} y={-crop.y / crop.height * object.height} width={object.width / crop.width} height={object.height / crop.height} preserveAspectRatio="none" clipPath={`url(#${clipId})`} /></>; })() : null}
-      {object.type === "arrow" ? <><path d={arrowPath(object)} fill="none" stroke={object.stroke} strokeWidth={object.strokeWidth} strokeLinecap="round" markerEnd={object.arrowhead ? `url(#arrow-${object.id})` : undefined} /><defs><marker id={`arrow-${object.id}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill={object.stroke} /></marker></defs></> : null}
+      {object.type === "arrow" ? (() => { const geometry = arrowGeometry(object); return <>{<path d={object.arrowhead ? geometry.path : arrowPath(object)} fill="none" stroke={object.stroke} strokeWidth={object.strokeWidth} strokeLinecap={object.arrowhead ? "butt" : "round"} />}{object.arrowhead ? <polygon points={geometry.arrowhead} fill={object.stroke} /> : null}</>; })() : null}
       {(["rectangle", "ellipse", "highlight", "redaction"].includes(object.type)) ? (() => { const shape = object as DesignShapeObject; const kind = shapeKindFor(shape); const points = polygonPoints(kind, shape.width, shape.height); const fill = shape.type === "redaction" ? "#000000" : shape.fill; return kind === "circle" ? <ellipse cx={shape.width / 2} cy={shape.height / 2} rx={shape.width / 2} ry={shape.height / 2} fill={fill} stroke={shape.stroke} strokeWidth={shape.strokeWidth} /> : points ? <polygon points={points} fill={fill} stroke={shape.stroke} strokeWidth={shape.strokeWidth} /> : <rect width={shape.width} height={shape.height} rx={kind === "roundedRectangle" ? Math.max(shape.radius ?? 0, Math.min(shape.width, shape.height) * .16) : shape.radius ?? 0} fill={fill} stroke={shape.stroke} strokeWidth={shape.strokeWidth} />; })() : null}
-      {(object.type === "text" || object.type === "step") ? <>{object.type === "step" ? <circle cx={object.width / 2} cy={object.height / 2} r={Math.min(object.width, object.height) / 2} fill={object.fill ?? "#cc1818"} /> : null}{object.type === "text" && editingTextId === object.id ? <foreignObject x="0" y="0" width={object.width} height={object.height}><textarea ref={inlineTextEditorRef} className="design-inline-text-editor" aria-label="Edit text" value={editingTextValue} onChange={(event) => onEditingTextChange?.(event.target.value)} onBlur={() => { if (cancelTextEditRef.current) { cancelTextEditRef.current = false; return; } onEditingTextCommit?.(); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); cancelTextEditRef.current = true; onEditingTextCancel?.(); } }} onPointerDown={(event) => event.stopPropagation()} style={{ color: object.colour, fontFamily: object.fontFamily, fontSize: `${object.fontSize}px`, fontWeight: object.fontWeight, textAlign: object.align }} /></foreignObject> : <text x={object.align === "center" ? object.width / 2 : object.align === "right" ? object.width : 0} y={object.fontSize} fill={object.colour} fontFamily={object.fontFamily} fontSize={object.fontSize} fontWeight={object.fontWeight} textAnchor={object.align === "center" ? "middle" : object.align === "right" ? "end" : "start"}>{object.text}</text>}</> : null}
+      {(object.type === "text" || object.type === "step") ? <>{object.type === "step" ? <circle cx={object.width / 2} cy={object.height / 2} r={Math.min(object.width, object.height) / 2} fill={object.fill ?? "#cc1818"} /> : null}{object.type === "text" && editingTextId === object.id ? <foreignObject x="0" y="0" width={object.width} height={object.height}><textarea ref={inlineTextEditorRef} className="design-inline-text-editor" aria-label="Edit text" value={editingTextValue} onChange={(event) => onEditingTextChange?.(event.target.value)} onBlur={() => { if (cancelTextEditRef.current) { cancelTextEditRef.current = false; return; } onEditingTextCommit?.(); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); cancelTextEditRef.current = true; onEditingTextCancel?.(); } }} onPointerDown={(event) => event.stopPropagation()} style={{ color: object.colour, fontFamily: object.fontFamily, fontSize: `${object.fontSize}px`, fontWeight: object.fontWeight, textAlign: object.align }} /></foreignObject> : (() => { const anchor = object.align === "center" ? "middle" : object.align === "right" ? "end" : "start"; const x = object.align === "center" ? object.width / 2 : object.align === "right" ? object.width : 0; const lines = textLayout(object); return <><defs><clipPath id={`text-clip-${object.id}`}><rect width={object.width} height={object.height} /></clipPath></defs><text clipPath={`url(#text-clip-${object.id})`} fill={object.colour} fontFamily={object.fontFamily} fontSize={object.fontSize} fontWeight={object.fontWeight} textAnchor={anchor}>{lines.map((line, index) => <tspan key={`${object.id}-line-${index}`} x={x} y={line.y}>{line.text || "\u00a0"}</tspan>)}</text></>; })()}</> : null}
       {purpleSelectionBorder && (selectedIds.includes(object.id) || (showHoverHandles && hoveredObjectId === object.id && !object.locked)) ? <rect className="design-selection-border" x="0" y="0" width={object.width} height={object.height} /> : null}
       {(selectedIds.includes(object.id) || (showHoverHandles && hoveredObjectId === object.id && !object.locked)) && object.type !== "arrow" ? (() => {
         return <>

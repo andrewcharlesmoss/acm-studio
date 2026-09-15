@@ -648,6 +648,21 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.doesNotMatch(editor, /Arrows resize through their two endpoints instead of corner handles/);
 });
 
+test("arrowheads use explicit base-trimmed geometry in live SVG and export SVG", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /function arrowGeometry\(object: DesignArrowObject\)/);
+  assert.match(editor, /const tangent = bends\.length === 1 \?/);
+  assert.match(editor, /const headLength = Math\.max\(12, object\.strokeWidth \* 2\.5\)/);
+  assert.match(editor, /const base = \{ x: end\.x - direction\.x \* headLength, y: end\.y - direction\.y \* headLength \}/);
+  assert.match(editor, /const path = bends\.length === 1/);
+  assert.match(editor, /strokeLinecap=\{object\.arrowhead \? "butt" : "round"\}/);
+  assert.match(editor, /<polygon points=\{geometry\.arrowhead\} fill=\{object\.stroke\} \/>/);
+  assert.match(editor, /stroke-linecap="\$\{object\.arrowhead \? "butt" : "round"\}"/);
+  assert.match(editor, /<polygon points="\$\{geometry\.arrowhead\}" fill="\$\{object\.stroke\}" \/>/);
+  assert.doesNotMatch(editor, /marker-end=/);
+  assert.doesNotMatch(editor, /<marker id=/);
+});
+
 test("design shapes dropdown includes common geometric shapes and text boxes edit inline", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const model = readFileSync(new URL("../app/studio/design-model.ts", import.meta.url), "utf8");
