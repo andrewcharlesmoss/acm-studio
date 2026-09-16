@@ -48,7 +48,7 @@
 .design-import-label { display: block; margin-top: 6px; }
 .design-import-label input { display: none; }
 .design-switcher { background: transparent; border: 0; color: var(--muted); font-size: 12px; margin-top: 10px; max-width: 100%; padding: 4px; }
-.design-main { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); min-height: 0; min-width: 0; }
+.design-main { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; min-width: 0; }
 .design-inline-text-editor { background: transparent; border: 1px dashed #8b3dff; box-sizing: border-box; height: 100%; line-height: 1.2; outline: none; overflow: hidden; padding: 2px; resize: none; white-space: pre-wrap; width: 100%; }
 .design-canvas-area { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
 .design-canvas-heading { align-items: center; display: flex; justify-content: flex-start; min-height: 54px; padding: 8px 18px; }
