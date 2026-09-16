@@ -177,7 +177,7 @@
 .design-layer-select:active { cursor: grabbing; }
 .design-layer-select svg { color: #8b8982; flex: 0 0 auto; }
 .design-layer-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.design-layer-select.is-selected { border-color: var(--accent); box-shadow: inset 3px 0 var(--accent); }
+.design-layer-select.is-selected { border-color: #555; box-shadow: inset 3px 0 #555; }
 .design-layer-select small { color: #6c6a63; font-size: 11px; margin-left: auto; }
 .design-layer-order-actions { display: flex; flex: 0 0 auto; gap: 2px; }
 .design-layer-order-actions button { align-items: center; background: #fff; border: 1px solid #d7d5cd; border-radius: 4px; color: var(--ink); cursor: pointer; display: inline-flex; justify-content: center; padding: 4px; }
