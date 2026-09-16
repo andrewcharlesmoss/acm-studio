@@ -553,6 +553,18 @@ test("layers use the full pane and keep scrolling on the outer panel", () => {
   assert.match(css, /\.design-pages-layers \.design-layer-list \{ max-height: none; overflow: visible; \}/);
 });
 
+test("layer dragging opens and clears an insertion gap", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(editor, /const \[dropTarget, setDropTarget\] = useState<\{ id: string; position: LayerDropPosition \} \| null>\(null\)/);
+  assert.match(editor, /setDropTarget\(\{ id: object\.id, position: event\.clientY < bounds\.top \+ bounds\.height \/ 2 \? "before" : "after" \}\)/);
+  assert.match(editor, /is-drop-\$\{dropPosition\}/);
+  assert.match(editor, /onDragEnd=\{\(\) => \{ setDraggedId\(null\); setDropTarget\(null\); \}\}/);
+  assert.match(editor, /onDragLeave=\{\(event\) => \{ const relatedTarget = event\.relatedTarget;/);
+  assert.match(css, /\.design-layer-row\.is-drop-before \{ margin-top: 12px; \}/);
+  assert.match(css, /\.design-layer-row\.is-drop-after \{ margin-bottom: 12px; \}/);
+});
+
 test("design tool selection uses a neutral active colour", () => {
   const css = readFileSync(new URL("../../acm-ribbon/src/styles.css", import.meta.url), "utf8");
   assert.match(css, /\.acm-ribbon-button:hover:not\(:disabled\), \.acm-ribbon-button:focus-visible, \.acm-ribbon-button\.is-active \{ background: var\(--acm-ribbon-hover\); border-color: var\(--acm-ribbon-border\); outline: none; \}/);

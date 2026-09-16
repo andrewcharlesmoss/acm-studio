@@ -169,6 +169,8 @@
 .design-pages-layers .design-layer-list { max-height: none; overflow: visible; }
 .design-layer-list { display: grid; gap: 5px; max-height: 220px; overflow: auto; }
 .design-layer-row { align-items: center; display: flex; gap: 4px; }
+.design-layer-row.is-drop-before { margin-top: 12px; }
+.design-layer-row.is-drop-after { margin-bottom: 12px; }
 .design-layer-row.is-dragging { opacity: .55; }
 .design-layer-select { align-items: center; background: #fff; border: 1px solid #d7d5cd; border-radius: 5px; color: var(--ink); cursor: grab; display: flex; flex: 1 1 auto; gap: 6px; min-width: 0; padding: 7px 8px; text-align: left; }
 .design-layer-select:active { cursor: grabbing; }

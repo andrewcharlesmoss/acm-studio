@@ -573,15 +573,17 @@ function PositionControls({ writable, selectedCount, canAlign, onAlignToPage }: 
 
 function LayerList({ page, selectedIds, writable, onSelect, onMove, onReorder }: { page: DesignPage; selectedIds: string[]; writable: boolean; onSelect: (id: string) => void; onMove: (id: string, direction: LayerMoveDirection) => void; onReorder: (sourceId: string, targetId: string, position: LayerDropPosition) => void }) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ id: string; position: LayerDropPosition } | null>(null);
   const layers = [...page.objects].reverse();
   if (!page.objects.length) return <p>No objects yet.</p>;
-  return <div className="design-layer-list" aria-label="Layers, top to bottom">
+  return <div className="design-layer-list" aria-label="Layers, top to bottom" onDragOver={(event) => { if (event.target === event.currentTarget) setDropTarget(null); }} onDragLeave={(event) => { const relatedTarget = event.relatedTarget; if (!relatedTarget || !(relatedTarget instanceof Node) || !event.currentTarget.contains(relatedTarget)) setDropTarget(null); }}>
     {layers.map((object, index) => {
       const label = toolLabels[object.type as Tool] ?? object.type;
       const canMove = writable && !object.locked;
+      const dropPosition = dropTarget?.id === object.id ? dropTarget.position : null;
       return <div
         key={object.id}
-        className={`design-layer-row${draggedId === object.id ? " is-dragging" : ""}`}
+        className={`design-layer-row${draggedId === object.id ? " is-dragging" : ""}${dropPosition ? ` is-drop-${dropPosition}` : ""}`}
         draggable={canMove}
         onDragStart={(event: DragEvent<HTMLDivElement>) => {
           if (!canMove) { event.preventDefault(); return; }
@@ -589,11 +591,15 @@ function LayerList({ page, selectedIds, writable, onSelect, onMove, onReorder }:
           event.dataTransfer.setData("text/plain", object.id);
           setDraggedId(object.id);
         }}
-        onDragEnd={() => setDraggedId(null)}
+        onDragEnd={() => { setDraggedId(null); setDropTarget(null); }}
         onDragOver={(event) => {
-          if (!canMove || !draggedId || draggedId === object.id) return;
+          if (!draggedId) return;
+          if (!canMove) { setDropTarget(null); return; }
           event.preventDefault();
           event.dataTransfer.dropEffect = "move";
+          if (draggedId === object.id) { setDropTarget(null); return; }
+          const bounds = event.currentTarget.getBoundingClientRect();
+          setDropTarget({ id: object.id, position: event.clientY < bounds.top + bounds.height / 2 ? "before" : "after" });
         }}
         onDrop={(event) => {
           event.preventDefault();
@@ -603,6 +609,7 @@ function LayerList({ page, selectedIds, writable, onSelect, onMove, onReorder }:
             onReorder(sourceId, object.id, event.clientY < bounds.top + bounds.height / 2 ? "before" : "after");
           }
           setDraggedId(null);
+          setDropTarget(null);
         }}
       >
         <button type="button" className={`design-layer-select${selectedIds.includes(object.id) ? " is-selected" : ""}`} aria-pressed={selectedIds.includes(object.id)} onClick={() => onSelect(object.id)}>
