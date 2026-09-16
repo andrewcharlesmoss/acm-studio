@@ -85,6 +85,17 @@ test("arrow style fields are optional for legacy payloads and bounded when prese
   }
 });
 
+test("colour transparency fields are optional for legacy designs and bounded when present", () => {
+  const design = createDesign();
+  const shape = { id: "shape-alpha", type: "rectangle", x: 0, y: 0, width: 100, height: 100, rotation: 0, opacity: 1, fill: "#ffffff", fillOpacity: .4, stroke: "#000000", strokeOpacity: .8, strokeWidth: 1 };
+  const arrow = { id: "arrow-alpha", type: "arrow", x: 0, y: 0, width: 100, height: 40, rotation: 0, opacity: 1, stroke: "#000000", strokeOpacity: .35, strokeWidth: 2, arrowhead: true };
+  assert.doesNotThrow(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [shape, arrow] }] }));
+  for (const invalid of [{ fillOpacity: -0.1 }, { fillOpacity: 1.1 }, { strokeOpacity: Number.NaN }]) {
+    assert.throws(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [{ ...shape, ...invalid }] }] }), /design shapes are invalid/);
+  }
+  assert.throws(() => validateDesignProject({ ...design, pages: [{ ...design.pages[0], objects: [{ ...arrow, strokeOpacity: 2 }] }] }), /design arrows are invalid/);
+});
+
 test("text word wrap is optional for legacy designs and boolean when present", () => {
   const design = createDesign();
   const legacyText = { id: "text-legacy", type: "text", x: 0, y: 0, width: 100, height: 40, rotation: 0, opacity: 1, text: "Label", colour: "#000000", fontFamily: "Arial", fontSize: 16, fontWeight: 400, align: "left" };

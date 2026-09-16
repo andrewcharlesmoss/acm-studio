@@ -816,6 +816,12 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(editor, /\{ value: "Inter, Arial, sans-serif", label: "Inter" \}/);
   assert.match(editor, /<label>Font<select/);
   assert.match(editor, /className="design-text-wrap-setting"/);
+  assert.match(editor, /function ColourControl\(\{ label, value, opacity = 1/);
+  assert.match(editor, /aria-label=\{`\$\{label\} transparency`\}/);
+  assert.match(editor, /const fillOpacity = shape\.fillOpacity \?\? 1/);
+  assert.match(editor, /const strokeOpacity = shape\.strokeOpacity \?\? 1/);
+  assert.match(editor, /strokeOpacity=\{object\.strokeOpacity \?\? 1\}/);
+  assert.match(editor, /fillOpacity=\{object\.fillOpacity \?\? 1\}/);
   assert.match(editor, /checked=\{selectedObject\.wordWrap !== false\}/);
   assert.match(editor, /wordWrap: event\.target\.checked/);
   assert.doesNotMatch(editor, /<label>Font family<select/);
@@ -825,6 +831,7 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(editor, /onEditingTextCommit/);
   assert.match(css, /\.design-inline-text-editor \{/);
   assert.match(css, /\.design-text-wrap-setting input\[type="checkbox"\]/);
+  assert.match(css, /\.design-colour-control \{ display: grid; gap: 8px; \}/);
 });
 
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {
