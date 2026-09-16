@@ -609,6 +609,22 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(designCss, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
 
+test("design workspace exposes centred collapse controls for both side panes", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(editor, /const \[inspectorCollapsed, setInspectorCollapsed\] = useState\(false\)/);
+  assert.match(editor, /design-pane-collapse design-pane-collapse-left/);
+  assert.match(editor, /design-pane-collapse design-pane-collapse-right/);
+  assert.match(editor, /aria-label=\{pagesCollapsed \? "Show pages and layers" : "Hide pages and layers"\}/);
+  assert.match(editor, /aria-label=\{inspectorCollapsed \? "Show properties" : "Hide properties"\}/);
+  assert.match(css, /\.design-pane-collapse \{/);
+  assert.match(css, /\.design-pane-collapse-left \{ left: calc\(var\(--design-pages-width\) - 16px\); \}/);
+  assert.match(css, /\.design-pane-collapse-right \{ right: calc\(var\(--design-inspector-width\) - 16px\); \}/);
+  assert.match(css, /\.design-workspace\.inspector-collapsed \{ grid-template-columns: 224px minmax\(0, 1fr\) 0; \}/);
+  assert.match(css, /\.design-workspace\.inspector-collapsed \.design-zoom-dock \{ right: 0; \}/);
+  assert.match(css, /\.design-workspace\.pages-collapsed\.inspector-collapsed \{ grid-template-columns: 0 minmax\(0, 1fr\) 0; \}/);
+});
+
 test("design canvas offers an optional purple selection border", () => {
   const [editor, css] = [
     readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8"),
