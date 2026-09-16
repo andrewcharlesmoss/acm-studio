@@ -655,6 +655,14 @@ test("design saves compact unused image assets and explain storage quota failure
   assert.match(editor, /catch \(saveError\) \{[\s\S]{0,240}designSaveErrorMessage\(saveError\)/);
 });
 
+test("background removal keeps the inspector guidance compact", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /<small>Adjust cleanup, then run again\.<\/small>/);
+  assert.doesNotMatch(editor, /Higher cleanup reduces soft fringes/);
+  assert.doesNotMatch(editor, /Downloads a 176 MB model/);
+  assert.doesNotMatch(editor, /Your image stays in this browser/);
+});
+
 test("design objects expose corner and side-centre handles for direct resizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /function resizePage\(page: DesignPage, handle: ResizeHandle, dx: number, dy: number, keepRatio: boolean\)/);

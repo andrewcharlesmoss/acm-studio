@@ -1898,7 +1898,7 @@ export function DesignEditor() {
               <span className="design-inspector-label">Background Removal</span>
               <label>Subject<select value={backgroundMode} disabled={!writable || Boolean(backgroundProgress)} onChange={(event) => setBackgroundMode(event.target.value as BackgroundRemovalMode)}><option value="general">General</option><option value="people">People</option></select></label>
               <label>Edge Cleanup ({backgroundEdgeCleanup}%)<input aria-label="Edge Cleanup" type="range" min="0" max="40" step="1" value={backgroundEdgeCleanup} disabled={!writable || Boolean(backgroundProgress)} onChange={(event) => setBackgroundEdgeCleanup(Number(event.target.value))} /></label>
-              <small>Higher cleanup reduces soft fringes but can remove fine hair. Adjust, then run again; each run starts from the original.</small>
+              <small>Adjust cleanup, then run again.</small>
               <button type="button" onClick={() => void removeSelectedImageBackground()} disabled={!writable || selectedObject.locked || Boolean(backgroundProgress)}>Remove Background</button>
               {backgroundProgress ? <>
                 <div role="status">{backgroundProgress.message}{backgroundProgress.percent !== undefined ? ` ${backgroundProgress.percent}%` : ""}</div>
@@ -1906,7 +1906,6 @@ export function DesignEditor() {
                 <button type="button" className="design-background-cancel" onClick={() => backgroundRemovalRef.current?.abort()}>Cancel</button>
               </> : null}
               {selectedImageAsset?.sourceAssetId ? <button type="button" disabled={!writable || selectedObject.locked || Boolean(backgroundProgress)} onClick={() => updateSelected((object) => object.type === "image" ? { ...object, assetId: selectedImageAsset.sourceAssetId! } : object)}>Restore Original</button> : null}
-              <small>{backgroundMode === "people" ? "For portraits of people. Downloads a 26 MB model the first time." : "For people, animals and objects. Downloads a 176 MB model the first time. Fine details and transparent glass may need further editing."} Your image stays in this browser. The model is reused from this browser afterwards when browser storage is available. Keeps the original image and crop. Editing or changing selection cancels processing.</small>
             </div>
             <div className="design-crop-controls"><span className="design-inspector-label">Crop (percent)</span><div className="design-field-grid">
               <label>Left<input type="number" min="0" max="100" value={Math.round((selectedObject.crop?.x ?? 0) * 100)} disabled={!writable} onChange={(event) => updateImageCrop("x", Number(event.target.value) / 100)} /></label>
