@@ -430,8 +430,9 @@ test("design canvas resets zoom with the platform zero shortcut", () => {
   assert.match(editor, /const zoomOut = event\.key === "-" \|\| event\.key === "_" \|\| event\.code === "Minus" \|\| event\.code === "NumpadSubtract"/);
   assert.match(editor, /const commandOrControl = event\.metaKey \|\| event\.ctrlKey/);
   assert.match(editor, /if \(commandOrControl && zoomReset\) \{ event\.preventDefault\(\); fitCanvasToView\(\); \}/);
-  assert.match(editor, /else if \(commandOrControl && zoomIn\) \{ event\.preventDefault\(\); changeZoom\(1\); \}/);
-  assert.match(editor, /else if \(commandOrControl && zoomOut\) \{ event\.preventDefault\(\); changeZoom\(-1\); \}/);
+  assert.match(editor, /else if \(commandOrControl && zoomIn\) \{ event\.preventDefault\(\); changeZoomByKeyboard\(1\); \}/);
+  assert.match(editor, /else if \(commandOrControl && zoomOut\) \{ event\.preventDefault\(\); changeZoomByKeyboard\(-1\); \}/);
+  assert.match(editor, /function changeZoomByKeyboard\(direction: 1 \| -1\) \{\s*setZoom\(\(value\) => Math\.max\(ZOOM_OPTIONS\[0\], Math\.min\(ZOOM_OPTIONS\.at\(-1\) \?\? 500, value \+ direction \* 10\)\)\);\s*\}/);
   assert.match(editor, /ZOOM_SHORTCUT_STEPS\.find\(\(option\) => option > value\)/);
   assert.match(editor, /ZOOM_SHORTCUT_STEPS\.findLast\(\(option\) => option < value\)/);
 });

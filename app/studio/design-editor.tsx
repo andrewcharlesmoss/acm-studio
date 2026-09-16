@@ -1052,8 +1052,8 @@ export function DesignEditor() {
       const zoomIn = event.key === "+" || event.key === "=" || event.code === "Equal" || event.code === "NumpadAdd";
       const zoomOut = event.key === "-" || event.key === "_" || event.code === "Minus" || event.code === "NumpadSubtract";
       if (commandOrControl && zoomReset) { event.preventDefault(); fitCanvasToView(); }
-      else if (commandOrControl && zoomIn) { event.preventDefault(); changeZoom(1); }
-      else if (commandOrControl && zoomOut) { event.preventDefault(); changeZoom(-1); }
+      else if (commandOrControl && zoomIn) { event.preventDefault(); changeZoomByKeyboard(1); }
+      else if (commandOrControl && zoomOut) { event.preventDefault(); changeZoomByKeyboard(-1); }
       else if (commandOrControl && event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); }
       else if ((event.ctrlKey && event.key.toLowerCase() === "y")) { event.preventDefault(); redo(); }
       else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "d") { event.preventDefault(); duplicateSelected(); }
@@ -1576,6 +1576,10 @@ export function DesignEditor() {
         : ZOOM_SHORTCUT_STEPS.findLast((option) => option < value);
       return nextZoom ?? (direction > 0 ? ZOOM_SHORTCUT_STEPS.at(-1) ?? 500 : ZOOM_SHORTCUT_STEPS[0]);
     });
+  }
+
+  function changeZoomByKeyboard(direction: 1 | -1) {
+    setZoom((value) => Math.max(ZOOM_OPTIONS[0], Math.min(ZOOM_OPTIONS.at(-1) ?? 500, value + direction * 10)));
   }
 
   function renamePage() { const name = pageName.trim(); if (!activePage || name === activePage.name) { setPageName(activePage?.name ?? ""); return; } setError(""); updatePage((page) => ({ ...page, name })); }
