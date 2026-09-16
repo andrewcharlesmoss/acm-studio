@@ -431,6 +431,8 @@ test("design canvas resets zoom with the platform zero shortcut", () => {
   assert.match(editor, /if \(commandOrControl && zoomReset\) \{ event\.preventDefault\(\); fitCanvasToView\(\); \}/);
   assert.match(editor, /else if \(commandOrControl && zoomIn\) \{ event\.preventDefault\(\); changeZoom\(1\); \}/);
   assert.match(editor, /else if \(commandOrControl && zoomOut\) \{ event\.preventDefault\(\); changeZoom\(-1\); \}/);
+  assert.match(editor, /const multiplier = direction > 0 \? Math\.E : 1 \/ Math\.E/);
+  assert.match(editor, /Math\.round\(value \* multiplier\)/);
 });
 
 test("design canvas history shortcuts survive page and layer button focus", () => {

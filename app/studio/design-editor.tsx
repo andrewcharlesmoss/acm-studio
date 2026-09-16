@@ -1524,9 +1524,8 @@ export function DesignEditor() {
 
   function changeZoom(direction: 1 | -1) {
     setZoom((value) => {
-      const currentIndex = ZOOM_OPTIONS.indexOf(value);
-      const nextIndex = currentIndex < 0 ? (direction > 0 ? ZOOM_OPTIONS.findIndex((option) => option > value) : ZOOM_OPTIONS.findLastIndex((option) => option < value)) : currentIndex + direction;
-      return ZOOM_OPTIONS[Math.max(0, Math.min(ZOOM_OPTIONS.length - 1, nextIndex < 0 ? (direction > 0 ? ZOOM_OPTIONS.length - 1 : 0) : nextIndex))];
+      const multiplier = direction > 0 ? Math.E : 1 / Math.E;
+      return Math.max(ZOOM_OPTIONS[0], Math.min(ZOOM_OPTIONS.at(-1) ?? 500, Math.round(value * multiplier)));
     });
   }
 
