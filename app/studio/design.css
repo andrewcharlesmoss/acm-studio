@@ -172,7 +172,6 @@
 .design-layer-row.is-drop-before::before, .design-layer-row.is-drop-after::after { background: var(--accent); border-radius: 2px; content: ""; height: 3px; left: 0; pointer-events: none; position: absolute; right: 0; z-index: 2; }
 .design-layer-row.is-drop-before::before { top: -4px; }
 .design-layer-row.is-drop-after::after { bottom: -4px; }
-.design-layer-row.is-dragging { opacity: .15; }
 .design-layer-select { align-items: center; background: #fff; border: 1px solid #d7d5cd; border-radius: 5px; color: var(--ink); cursor: grab; display: flex; flex: 1 1 auto; gap: 6px; min-width: 0; padding: 7px 8px; text-align: left; }
 .design-layer-select:active { cursor: grabbing; }
 .design-layer-select svg { color: #8b8982; flex: 0 0 auto; }

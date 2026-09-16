@@ -565,7 +565,9 @@ test("layer dragging shows a blue insertion line and clears it", () => {
   assert.match(css, /\.design-layer-row\.is-drop-before::before, \.design-layer-row\.is-drop-after::after \{ background: var\(--accent\);[^}]*height: 3px;/);
   assert.match(css, /\.design-layer-row\.is-drop-before::before \{ top: -4px; \}/);
   assert.match(css, /\.design-layer-row\.is-drop-after::after \{ bottom: -4px; \}/);
-  assert.match(css, /\.design-layer-row\.is-dragging \{ opacity: \.15; \}/);
+  assert.doesNotMatch(css, /\.design-layer-row\.is-dragging/);
+  assert.match(editor, /activeMovingObjectId === object\.id \? Math\.min\(object\.opacity, \.35\) : object\.opacity/);
+  assert.match(editor, /rotatingObjectId=\{interactionRef\.current\?\.mode === "rotate" \|\| interactionRef\.current\?\.mode === "move"/);
   assert.doesNotMatch(css, /\.design-layer-row\.is-drop-before \{ margin-top/);
   assert.doesNotMatch(css, /\.design-layer-row\.is-drop-after \{ margin-bottom/);
 });
