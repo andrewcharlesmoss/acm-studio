@@ -463,7 +463,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /id="design-pages-tab"/);
   assert.match(editor, /id="design-pages-tabpanel" role="tabpanel" aria-labelledby="design-pages-tab"/);
   assert.match(editor, /id="design-layers-tabpanel" role="tabpanel" aria-labelledby="design-layers-tab" aria-label="Layers"><LayerList/);
-  assert.match(editor, /<LayerList page=\{activePage\} selectedIds=\{selectedIds\} writable=\{writable\} onSelect=\{\(id\) => selectObjects\(\[id\]\)\} onMove=\{moveLayer\} onReorder=\{reorderLayer\}/);
+  assert.match(editor, /<LayerList page=\{activePage\} selectedIds=\{selectedIds\} writable=\{writable\} onSelect=\{\(id\) => selectObjects\(\[id\]\)\} onReorder=\{reorderLayer\}/);
   assert.match(editor, /function moveLayer\(objectId: string, direction: LayerMoveDirection\)/);
   assert.match(editor, /function reorderLayer\(sourceId: string, targetId: string, position: LayerDropPosition\)/);
   assert.match(editor, /function reorderedPages\(pages: DesignPage\[\], sourceId: string, targetId: string, position: "before" \| "after"\)/);
@@ -472,8 +472,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /const bounds = event\.currentTarget\.getBoundingClientRect\(\); const position = event\.clientY < bounds\.top \+ bounds\.height \/ 2 \? "before" : "after"; if \(draggedPageId\) reorderPage\(draggedPageId, page\.id, position\);/);
   assert.match(editor, /const layers = \[\.\.\.page\.objects\]\.reverse\(\)/);
   assert.match(editor, /draggable=\{canMove\}/);
-  assert.match(editor, /aria-label=\{`Move \$\{label\} up`\}/);
-  assert.match(editor, /aria-label=\{`Move \$\{label\} down`\}/);
+  assert.doesNotMatch(editor, /aria-label=\{`Move \$\{label\} up`\}/);
+  assert.doesNotMatch(editor, /aria-label=\{`Move \$\{label\} down`\}/);
   assert.match(editor, /onReorder\(sourceId, object\.id, event\.clientY < bounds\.top \+ bounds\.height \/ 2 \? "before" : "after"\)/);
   assert.match(editor, /<StudioIcon name="drag-handle" size=\{16\}/);
   assert.match(editor, /className=\{`design-canvas-scroll\$\{allPagesVisible/);
@@ -514,7 +514,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-page-item\.is-active \.design-page-item-actions \{ opacity: 1; pointer-events: auto; \}/);
   assert.match(css, /\.design-page-item:has\(\.design-page-select input:checked\) \{ box-shadow: inset 0 0 0 2px #8b3dff66; \}/);
   assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; position: relative; \}/);
-  assert.match(css, /\.design-layer-order-actions button:disabled \{ cursor: default; opacity: \.35; \}/);
+  assert.doesNotMatch(css, /\.design-layer-order-actions/);
   assert.match(css, /\.design-all-page-heading \{ align-items: center; box-sizing: border-box; display: flex; gap: 12px; justify-content: space-between; margin-inline: auto; min-height: 40px; padding: 0 4px; \}/);
   assert.match(css, /\.design-all-page-title \{ align-items: center; display: flex; flex: 1 1 auto; gap: 6px; min-width: 0; \}/);
   assert.match(css, /\.design-all-page-title input \{ background: transparent; border: 0; border-radius: 0;/);
