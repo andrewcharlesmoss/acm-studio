@@ -513,7 +513,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-thumbnail-button \{ grid-column: 1 \/ -1; grid-row: 2; \}/);
   assert.match(css, /\.design-page-item\.is-active \.design-page-item-actions \{ opacity: 1; pointer-events: auto; \}/);
   assert.match(css, /\.design-page-item:has\(\.design-page-select input:checked\) \{ box-shadow: inset 0 0 0 2px #8b3dff66; \}/);
-  assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; \}/);
+  assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; position: relative; \}/);
   assert.match(css, /\.design-layer-order-actions button:disabled \{ cursor: default; opacity: \.35; \}/);
   assert.match(css, /\.design-all-page-heading \{ align-items: center; box-sizing: border-box; display: flex; gap: 12px; justify-content: space-between; margin-inline: auto; min-height: 40px; padding: 0 4px; \}/);
   assert.match(css, /\.design-all-page-title \{ align-items: center; display: flex; flex: 1 1 auto; gap: 6px; min-width: 0; \}/);
@@ -553,7 +553,7 @@ test("layers use the full pane and keep scrolling on the outer panel", () => {
   assert.match(css, /\.design-pages-layers \.design-layer-list \{ max-height: none; overflow: visible; \}/);
 });
 
-test("layer dragging opens and clears an insertion gap", () => {
+test("layer dragging shows a blue insertion line and clears it", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(editor, /const \[dropTarget, setDropTarget\] = useState<\{ id: string; position: LayerDropPosition \} \| null>\(null\)/);
@@ -561,8 +561,13 @@ test("layer dragging opens and clears an insertion gap", () => {
   assert.match(editor, /is-drop-\$\{dropPosition\}/);
   assert.match(editor, /onDragEnd=\{\(\) => \{ setDraggedId\(null\); setDropTarget\(null\); \}\}/);
   assert.match(editor, /onDragLeave=\{\(event\) => \{ const relatedTarget = event\.relatedTarget;/);
-  assert.match(css, /\.design-layer-row\.is-drop-before \{ margin-top: 12px; \}/);
-  assert.match(css, /\.design-layer-row\.is-drop-after \{ margin-bottom: 12px; \}/);
+  assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; position: relative; \}/);
+  assert.match(css, /\.design-layer-row\.is-drop-before::before, \.design-layer-row\.is-drop-after::after \{ background: var\(--accent\);[^}]*height: 3px;/);
+  assert.match(css, /\.design-layer-row\.is-drop-before::before \{ top: -4px; \}/);
+  assert.match(css, /\.design-layer-row\.is-drop-after::after \{ bottom: -4px; \}/);
+  assert.match(css, /\.design-layer-row\.is-dragging \{ opacity: \.3; \}/);
+  assert.doesNotMatch(css, /\.design-layer-row\.is-drop-before \{ margin-top/);
+  assert.doesNotMatch(css, /\.design-layer-row\.is-drop-after \{ margin-bottom/);
 });
 
 test("design tool selection uses a neutral active colour", () => {
