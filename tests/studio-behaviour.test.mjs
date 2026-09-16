@@ -852,6 +852,9 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(editor, /<label>Font<select/);
   assert.match(editor, /className="design-text-wrap-setting"/);
   assert.match(editor, /function ColourControl\(\{ label, value, opacity = 1/);
+  assert.match(editor, /Transparency \(\{transparency\}%\).*min="0" max="100" step="1" value=\{transparency\}/);
+  assert.match(editor, /Opacity \(\{Math\.round\(selectedObject\.opacity \* 100\)\}%\).*min="0" max="100" step="1"/);
+  assert.match(editor, /Arrowhead size.*min=\{DESIGN_ARROWHEAD_SCALE_MIN \* 100\} max=\{DESIGN_ARROWHEAD_SCALE_MAX \* 100\} step="1"/);
   assert.match(editor, /aria-label=\{`\$\{label\} transparency`\}/);
   assert.match(editor, /const fillOpacity = shape\.fillOpacity \?\? 1/);
   assert.match(editor, /const strokeOpacity = shape\.strokeOpacity \?\? 1/);
