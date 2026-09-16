@@ -421,7 +421,7 @@ test("history shortcuts leave independent text editing surfaces to native undo",
 
 test("design canvas resets zoom with the platform zero shortcut", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /const ZOOM_OPTIONS = Array\.from\(\{ length: 99 \}, \(_, index\) => 10 \+ index \* 5\)/);
+  assert.match(editor, /const ZOOM_OPTIONS = Array\.from\(\{ length: 491 \}, \(_, index\) => 10 \+ index\)/);
   assert.match(editor, /event\.target instanceof HTMLSelectElement/);
   assert.doesNotMatch(editor, /event\.target instanceof HTMLButtonElement/);
   assert.match(editor, /const zoomReset = event\.key === "0" \|\| event\.code === "Digit0" \|\| event\.code === "Numpad0"/);
@@ -565,7 +565,7 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(ribbonCss, /\.acm-ribbon-content > \.acm-ribbon-panel \{ align-items: stretch; box-sizing: border-box; display: flex; gap: 2px; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\);/);
   assert.match(editor, /className=\{`design-zoom-dock\$\{pagesCollapsed \? " is-pages-collapsed" : ""\}`\}/);
   assert.match(editor, /className="design-zoom-slider" aria-label="Canvas zoom control"/);
-  assert.match(editor, /id="design-canvas-zoom" type="range" min="10" max="500" step="5" value=\{zoom\}/);
+  assert.match(editor, /id="design-canvas-zoom" type="range" min="10" max="500" step="1" value=\{zoom\}/);
   assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: #f4f3ee; border-top: 1px solid #d2d0c8; bottom: 0;.*left: 224px;.*position: fixed; right: 260px;.*z-index: 30;/);
   assert.match(designCss, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
@@ -726,7 +726,7 @@ test("fit canvas uses both viewport dimensions and never chooses an overflowing 
   assert.match(editor, /const dockOverlap = dockRect \? Math\.max\(0, Math\.min\(scrollRect\.bottom, dockRect\.bottom\) - Math\.max\(scrollRect\.top, dockRect\.top\)\) : 0/);
   assert.match(editor, /Math\.min\(availableWidth \/ activePage\.width, availableHeight \/ activePage\.height\) \* 100/);
   assert.doesNotMatch(editor, /Math\.min\(100,/);
-  assert.match(editor, /Math\.floor\(fitPercent \/ 5\) \* 5/);
+  assert.match(editor, /Math\.floor\(fitPercent\)/);
 });
 
 test("selected arrows expose endpoint controls instead of corner and rotate controls", () => {
