@@ -516,7 +516,7 @@ function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], to
     { handle: "w", label: "Resize page from left middle" },
   ];
   const activeRotation = page.objects.find((object) => object.id === rotatingObjectId)?.rotation ?? 0;
-  const activeMovingObjectId = movingObjectId ?? (!isRotating ? rotatingObjectId : undefined);
+  const activeMovingObjectId = movingObjectId ?? (!isRotating && rotationCursor ? rotatingObjectId : undefined);
   const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
   const inlineTextEditorRef = useRef<HTMLTextAreaElement>(null);
   const cancelTextEditRef = useRef(false);
@@ -1304,8 +1304,9 @@ export function DesignEditor() {
     }
     if (!interaction || !design || !activePage) return;
     const point = getPoint(event);
-    if (interaction.mode === "rotate") setRotationCursor(point);
+    if (interaction.mode === "rotate" || interaction.mode === "move") setRotationCursor(point);
     const dx = point.x - interaction.startX; const dy = point.y - interaction.startY;
+    if (interaction.mode === "move" && (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)) setDraggingObjectId(interaction.id);
     let nextObject: DesignObject = { ...interaction.original, x: Math.max(0, interaction.original.x + dx), y: Math.max(0, interaction.original.y + dy) };
     if (interaction.mode === "draw") {
       nextObject = drawObject(interaction.original, { x: interaction.startX, y: interaction.startY }, point, activePage);

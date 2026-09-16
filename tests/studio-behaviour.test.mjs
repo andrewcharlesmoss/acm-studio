@@ -701,7 +701,7 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
   assert.match(editor, /setIsRotating\(true\)/);
   assert.match(editor, /setIsRotating\(false\)/);
   assert.match(editor, /function rotationBadgePoint\(/);
-  assert.match(editor, /if \(interaction\.mode === "rotate"\) setRotationCursor\(point\)/);
+  assert.match(editor, /if \(interaction\.mode === "rotate" \|\| interaction\.mode === "move"\) setRotationCursor\(point\)/);
   assert.match(editor, /rotationCursor=\{isActive \? rotationCursor : null\}/);
   assert.match(css, /\.design-rotate-handle \{[^}]*cursor: var\(--rotation-cursor\)/);
   assert.match(css, /\.design-rotate-handle:focus-visible \{ outline: none !important; stroke: #8b3dff/);
@@ -731,6 +731,8 @@ test("design objects use a four-way cursor while moving", () => {
   assert.match(editor, /function onRotatePointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
   assert.match(editor, /function onArrowEndpointPointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
   assert.match(editor, /function onArrowBendPointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
+  assert.match(editor, /const activeMovingObjectId = movingObjectId \?\? \(!isRotating && rotationCursor \? rotatingObjectId : undefined\)/);
+  assert.match(editor, /if \(interaction\.mode === "rotate" \|\| interaction\.mode === "move"\) setRotationCursor\(point\)/);
   assert.match(css, /\.design-page-svg\.is-select-mode \.design-object:active \{ cursor: move; \}/);
   assert.match(css, /\.design-page-svg\.is-select-mode \.design-object\.is-locked:active \{ cursor: default; \}/);
   assert.match(css, /\.design-page-svg \{ -webkit-user-select: none;[^}]*user-select: none;/);
