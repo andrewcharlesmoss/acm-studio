@@ -421,6 +421,7 @@ test("history shortcuts leave independent text editing surfaces to native undo",
 
 test("design canvas resets zoom with the platform zero shortcut", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /const ZOOM_OPTIONS = Array\.from\(\{ length: 99 \}, \(_, index\) => 10 \+ index \* 5\)/);
   assert.match(editor, /event\.target instanceof HTMLSelectElement/);
   assert.doesNotMatch(editor, /event\.target instanceof HTMLButtonElement/);
   assert.match(editor, /const zoomReset = event\.key === "0" \|\| event\.code === "Digit0" \|\| event\.code === "Numpad0"/);
@@ -707,7 +708,10 @@ test("design canvas controls keep a constant screen size as zoom changes", () =>
 
 test("fit canvas uses both viewport dimensions and never chooses an overflowing zoom", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /getComputedStyle\(scroll\)/);
+  assert.match(editor, /const dockOverlap = dockRect \? Math\.max\(0, Math\.min\(scrollRect\.bottom, dockRect\.bottom\) - Math\.max\(scrollRect\.top, dockRect\.top\)\) : 0/);
   assert.match(editor, /Math\.min\(availableWidth \/ activePage\.width, availableHeight \/ activePage\.height\) \* 100/);
+  assert.doesNotMatch(editor, /Math\.min\(100,/);
   assert.match(editor, /Math\.floor\(fitPercent \/ 5\) \* 5/);
 });
 

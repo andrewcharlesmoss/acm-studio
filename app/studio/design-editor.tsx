@@ -71,7 +71,7 @@ const shapeOptions: Array<{ value: DesignShapeKind; label: string }> = [
   { value: "hexagon", label: "Hexagon" },
   { value: "octagon", label: "Octagon" },
 ];
-const ZOOM_OPTIONS = [10, 25, 50, 60, 75, 100, 120, 150, 200, 300, 400, 500];
+const ZOOM_OPTIONS = Array.from({ length: 99 }, (_, index) => 10 + index * 5);
 
 function rotationLabel(rotation: number) {
   return formatRotationAngle(rotation);
@@ -1489,10 +1489,18 @@ export function DesignEditor() {
 
   function fitCanvasToView() {
     if (!activePage || !canvasScrollRef.current) { setZoom(60); return; }
-    const availableWidth = Math.max(1, canvasScrollRef.current.clientWidth - 50);
-    const availableHeight = Math.max(1, canvasScrollRef.current.clientHeight - 50 - 64);
-    const fitPercent = Math.min(100, Math.min(availableWidth / activePage.width, availableHeight / activePage.height) * 100);
-    const fittingZoom = Math.max(ZOOM_OPTIONS[0], Math.min(ZOOM_OPTIONS.at(-1) ?? 300, Math.floor(fitPercent / 5) * 5));
+    const scroll = canvasScrollRef.current;
+    const scrollStyle = window.getComputedStyle(scroll);
+    const horizontalPadding = parseFloat(scrollStyle.paddingLeft) + parseFloat(scrollStyle.paddingRight);
+    const verticalPadding = parseFloat(scrollStyle.paddingTop) + parseFloat(scrollStyle.paddingBottom);
+    const scrollRect = scroll.getBoundingClientRect();
+    const dock = document.querySelector<HTMLElement>(".design-zoom-dock");
+    const dockRect = dock?.getBoundingClientRect();
+    const dockOverlap = dockRect ? Math.max(0, Math.min(scrollRect.bottom, dockRect.bottom) - Math.max(scrollRect.top, dockRect.top)) : 0;
+    const availableWidth = Math.max(1, scroll.clientWidth - horizontalPadding);
+    const availableHeight = Math.max(1, scroll.clientHeight - verticalPadding - dockOverlap);
+    const fitPercent = Math.min(availableWidth / activePage.width, availableHeight / activePage.height) * 100;
+    const fittingZoom = Math.max(ZOOM_OPTIONS[0], Math.min(ZOOM_OPTIONS.at(-1) ?? 500, Math.floor(fitPercent / 5) * 5));
     setZoom(fittingZoom);
   }
 
