@@ -600,6 +600,7 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(editor, /<StudioRibbon\s+className="design-ribbon-panel"/);
   assert.match(designCss, /\.design-ribbon-panel \{ border: 1px solid #d2d0c8; border-radius: 14px; margin: 10px 10px 0; overflow: visible; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs \{ border-top: 0; border-bottom: 1px solid #d2d0c8; \}/);
+  assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs > button \{ position: relative; border-bottom: 3px solid transparent !important; background: transparent; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-content \{ border-top: 0; \}/);
   assert.match(editor, /className=\{`design-zoom-dock\$\{pagesCollapsed \? " is-pages-collapsed" : ""\}`\}/);
   assert.match(editor, /className="design-zoom-slider" aria-label="Canvas zoom control"/);

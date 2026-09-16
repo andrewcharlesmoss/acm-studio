@@ -1,7 +1,7 @@
 .design-shell { background: #e9e8e3; color: var(--ink); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr); height: 100dvh; min-height: 620px; }
 .design-ribbon-panel { border: 1px solid #d2d0c8; border-radius: 14px; margin: 10px 10px 0; overflow: visible; }
 .design-ribbon-panel .acm-ribbon-tabs { border-top: 0; border-bottom: 1px solid #d2d0c8; }
-.design-ribbon-panel .acm-ribbon-tabs > button { position: relative; border-bottom-color: transparent; background: transparent; }
+.design-ribbon-panel .acm-ribbon-tabs > button { position: relative; border-bottom: 3px solid transparent !important; background: transparent; }
 .design-ribbon-panel .acm-ribbon-tabs > button:hover, .design-ribbon-panel .acm-ribbon-tabs > button:focus-visible, .design-ribbon-panel .acm-ribbon-tabs > button.is-active { background: transparent; color: var(--ink); }
 .design-ribbon-panel .acm-ribbon-tabs > button::after { position: absolute; right: 16px; bottom: -1px; left: 16px; height: 2px; border-radius: 999px; background: transparent; content: ""; transition: left .12s ease, right .12s ease, background-color .12s ease; }
 .design-ribbon-panel .acm-ribbon-tabs > button:hover::after, .design-ribbon-panel .acm-ribbon-tabs > button:focus-visible::after { right: 12px; left: 12px; background: #b8b6ae; }
