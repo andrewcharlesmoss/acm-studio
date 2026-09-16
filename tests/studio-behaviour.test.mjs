@@ -428,7 +428,7 @@ test("design canvas resets zoom with the platform zero shortcut", () => {
   assert.match(editor, /const zoomIn = event\.key === "\+" \|\| event\.key === "=" \|\| event\.code === "Equal" \|\| event\.code === "NumpadAdd"/);
   assert.match(editor, /const zoomOut = event\.key === "-" \|\| event\.key === "_" \|\| event\.code === "Minus" \|\| event\.code === "NumpadSubtract"/);
   assert.match(editor, /const commandOrControl = event\.metaKey \|\| event\.ctrlKey/);
-  assert.match(editor, /if \(commandOrControl && zoomReset\) \{ event\.preventDefault\(\); setZoom\(100\); \}/);
+  assert.match(editor, /if \(commandOrControl && zoomReset\) \{ event\.preventDefault\(\); fitCanvasToView\(\); \}/);
   assert.match(editor, /else if \(commandOrControl && zoomIn\) \{ event\.preventDefault\(\); changeZoom\(1\); \}/);
   assert.match(editor, /else if \(commandOrControl && zoomOut\) \{ event\.preventDefault\(\); changeZoom\(-1\); \}/);
 });

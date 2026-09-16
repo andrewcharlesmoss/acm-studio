@@ -986,7 +986,7 @@ export function DesignEditor() {
       const zoomReset = event.key === "0" || event.code === "Digit0" || event.code === "Numpad0";
       const zoomIn = event.key === "+" || event.key === "=" || event.code === "Equal" || event.code === "NumpadAdd";
       const zoomOut = event.key === "-" || event.key === "_" || event.code === "Minus" || event.code === "NumpadSubtract";
-      if (commandOrControl && zoomReset) { event.preventDefault(); setZoom(100); }
+      if (commandOrControl && zoomReset) { event.preventDefault(); fitCanvasToView(); }
       else if (commandOrControl && zoomIn) { event.preventDefault(); changeZoom(1); }
       else if (commandOrControl && zoomOut) { event.preventDefault(); changeZoom(-1); }
       else if (commandOrControl && event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); }
