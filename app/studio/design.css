@@ -51,12 +51,16 @@
 .design-main { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; min-width: 0; }
 .design-inline-text-editor { background: transparent; border: 1px dashed #8b3dff; box-sizing: border-box; height: 100%; line-height: 1.2; outline: none; overflow: hidden; padding: 2px; resize: none; white-space: pre-wrap; width: 100%; }
 .design-canvas-area { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
-.design-canvas-heading { align-items: center; display: flex; justify-content: flex-start; min-height: 54px; padding: 8px 18px; }
+.design-canvas-heading { align-items: center; display: flex; gap: 12px; justify-content: space-between; min-height: 54px; padding: 8px 18px; }
 .design-canvas-heading .design-zoom { display: none; }
-.design-canvas-heading > div:first-child { align-items: center; display: flex; gap: 9px; }
+.design-canvas-heading > div:first-child { align-items: center; display: flex; flex: 1 1 auto; gap: 9px; min-width: 0; }
 .design-canvas-heading > div:first-child > span { color: var(--muted); font-size: 12px; font-weight: 650; text-transform: uppercase; }
 .design-canvas-heading input { background: transparent; border: 0; border-radius: 0; color: var(--ink); font: inherit; font-size: 14px; font-weight: 650; min-width: 0; padding: 0; width: min(240px, 100%); }
 .design-canvas-heading input:focus-visible { box-shadow: 0 2px 0 #8b3dff99; outline: none; }
+.design-canvas-heading-actions { align-items: center; display: flex; flex: 0 0 auto; gap: 3px; }
+.design-canvas-heading-actions button { align-items: center; background: transparent; border: 0; border-radius: 5px; color: var(--muted); cursor: pointer; display: inline-flex; justify-content: center; min-height: 38px; min-width: 38px; padding: 7px; }
+.design-canvas-heading-actions button:hover:not(:disabled), .design-canvas-heading-actions button:focus-visible, .design-canvas-heading-actions button.is-active { background: #fff; color: var(--ink); outline: 2px solid #8b3dff66; outline-offset: -1px; }
+.design-canvas-heading-actions button:disabled { cursor: default; opacity: .3; }
 .design-zoom { align-items: center; display: flex; gap: 3px; }
 .design-zoom button, .design-zoom select { background: #fff; border: 1px solid #c8c6be; border-radius: 4px; color: var(--ink); cursor: pointer; min-height: 28px; min-width: 30px; padding: 4px 7px; }
 .design-zoom button.is-active { background: #eef2ff; border-color: #8da1e0; color: #284aa9; }

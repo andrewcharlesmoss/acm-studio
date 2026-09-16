@@ -482,6 +482,10 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /placeholder="Add page title"/);
   assert.match(editor, /aria-label=\{title \? `Edit page title: \$\{title\}` : "Add page title"\}/);
   assert.match(editor, /className="design-all-page-actions"/);
+  assert.match(editor, /className="design-canvas-heading-actions" aria-label=\{`Page \$\{activePageIndex \+ 1\} actions`\}/);
+  assert.match(editor, /onClick=\{\(\) => togglePageHidden\(activePage\.id\)\}/);
+  assert.match(editor, /onClick=\{\(\) => togglePageLocked\(activePage\.id\)\}/);
+  assert.match(editor, /onClick=\{\(\) => addPage\(false, activePage\.id\)\}/);
   assert.match(editor, /aria-label=\{`Move page \$\{index \+ 1\} earlier`\}/);
   assert.match(editor, /aria-label=\{page\.hidden \? `Show page \$\{index \+ 1\}` : `Hide page \$\{index \+ 1\}`\}/);
   assert.match(editor, /name=\{page\.hidden \? "visibility-off" : "visibility"\} size=\{24\}/);
@@ -513,6 +517,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-all-page-title input \{ background: transparent; border: 0; border-radius: 0;/);
   assert.match(css, /\.design-canvas-heading input \{ background: transparent; border: 0; border-radius: 0;/);
   assert.match(css, /\.design-canvas-heading \.design-zoom \{ display: none; \}/);
+  assert.match(css, /\.design-canvas-heading-actions \{ align-items: center; display: flex; flex: 0 0 auto; gap: 3px; \}/);
+  assert.match(css, /\.design-canvas-heading-actions button \{ align-items: center; background: transparent; border: 0; border-radius: 5px; color: var\(--muted\); cursor: pointer; display: inline-flex; justify-content: center; min-height: 38px; min-width: 38px; padding: 7px; \}/);
   assert.match(css, /\.design-all-page-title input:focus-visible \{ box-shadow: 0 2px 0 #8b3dff99; color: var\(--ink\); outline: none; \}/);
   assert.doesNotMatch(css, /\.design-all-page-title input:hover, \.design-all-page-title input:focus-visible \{ background: #fff;/);
   assert.match(css, /\.design-all-page-actions \{ align-items: center; display: flex; flex: 0 0 auto; gap: 3px; \}/);
