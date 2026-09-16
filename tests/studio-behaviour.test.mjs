@@ -422,6 +422,7 @@ test("history shortcuts leave independent text editing surfaces to native undo",
 test("design canvas resets zoom with the platform zero shortcut", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /const ZOOM_OPTIONS = Array\.from\(\{ length: 491 \}, \(_, index\) => 10 \+ index\)/);
+  assert.match(editor, /const ZOOM_SHORTCUT_STEPS = \[10, 25, 50, 75, 100, 125, 200, 300, 500\] as const/);
   assert.match(editor, /event\.target instanceof HTMLSelectElement/);
   assert.doesNotMatch(editor, /event\.target instanceof HTMLButtonElement/);
   assert.match(editor, /const zoomReset = event\.key === "0" \|\| event\.code === "Digit0" \|\| event\.code === "Numpad0"/);
@@ -431,8 +432,8 @@ test("design canvas resets zoom with the platform zero shortcut", () => {
   assert.match(editor, /if \(commandOrControl && zoomReset\) \{ event\.preventDefault\(\); fitCanvasToView\(\); \}/);
   assert.match(editor, /else if \(commandOrControl && zoomIn\) \{ event\.preventDefault\(\); changeZoom\(1\); \}/);
   assert.match(editor, /else if \(commandOrControl && zoomOut\) \{ event\.preventDefault\(\); changeZoom\(-1\); \}/);
-  assert.match(editor, /const multiplier = direction > 0 \? Math\.E : 1 \/ Math\.E/);
-  assert.match(editor, /Math\.round\(value \* multiplier\)/);
+  assert.match(editor, /ZOOM_SHORTCUT_STEPS\.find\(\(option\) => option > value\)/);
+  assert.match(editor, /ZOOM_SHORTCUT_STEPS\.findLast\(\(option\) => option < value\)/);
 });
 
 test("design canvas history shortcuts survive page and layer button focus", () => {

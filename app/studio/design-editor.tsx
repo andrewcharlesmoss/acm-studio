@@ -72,6 +72,7 @@ const shapeOptions: Array<{ value: DesignShapeKind; label: string }> = [
   { value: "octagon", label: "Octagon" },
 ];
 const ZOOM_OPTIONS = Array.from({ length: 491 }, (_, index) => 10 + index);
+const ZOOM_SHORTCUT_STEPS = [10, 25, 50, 75, 100, 125, 200, 300, 500] as const;
 
 type ColourControlProps = {
   label: string;
@@ -1524,8 +1525,10 @@ export function DesignEditor() {
 
   function changeZoom(direction: 1 | -1) {
     setZoom((value) => {
-      const multiplier = direction > 0 ? Math.E : 1 / Math.E;
-      return Math.max(ZOOM_OPTIONS[0], Math.min(ZOOM_OPTIONS.at(-1) ?? 500, Math.round(value * multiplier)));
+      const nextZoom = direction > 0
+        ? ZOOM_SHORTCUT_STEPS.find((option) => option > value)
+        : ZOOM_SHORTCUT_STEPS.findLast((option) => option < value);
+      return nextZoom ?? (direction > 0 ? ZOOM_SHORTCUT_STEPS.at(-1) ?? 500 : ZOOM_SHORTCUT_STEPS[0]);
     });
   }
 
