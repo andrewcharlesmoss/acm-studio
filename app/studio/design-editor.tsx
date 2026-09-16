@@ -90,7 +90,9 @@ type ColourControlProps = {
 
 function ColourControl({ label, value, opacity = 1, disabled = false, onChange, onOpacityChange }: ColourControlProps) {
   const transparency = Math.round((1 - opacity) * 100);
-  return <div className="design-colour-control"><label>{label}<input type="color" value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} /></label><label>Transparency ({transparency}%)<input aria-label={`${label} transparency`} type="range" min="0" max="100" step="1" value={transparency} disabled={disabled} onChange={(event) => onOpacityChange(1 - Number(event.target.value) / 100)} /></label></div>;
+  const opacityLabel = label === "Text colour" ? "Text" : label === "Line colour" ? "Line" : label;
+  const visibleOpacity = 100 - transparency;
+  return <div className="design-colour-control"><label>{label}<input type="color" value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} /></label><label>{opacityLabel} opacity ({visibleOpacity}%)<input aria-label={`${opacityLabel} opacity`} type="range" min="0" max="100" step="1" value={visibleOpacity} disabled={disabled} onChange={(event) => onOpacityChange(Number(event.target.value) / 100)} /></label></div>;
 }
 
 function rotationLabel(rotation: number) {
