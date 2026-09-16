@@ -619,6 +619,7 @@ test("design workspace exposes centred collapse controls for both side panes", (
   assert.match(editor, /aria-label=\{pagesCollapsed \? "Show pages and layers" : "Hide pages and layers"\}/);
   assert.match(editor, /aria-label=\{inspectorCollapsed \? "Show properties" : "Hide properties"\}/);
   assert.match(css, /\.design-pane-collapse \{/);
+  assert.match(css, /\.design-pane-collapse:hover, \.design-pane-collapse:focus-visible \{ background: #eceae3; border-color: #aaa89f; color: var\(--ink\); outline: none; \}/);
   assert.match(css, /\.design-pane-collapse \{[^}]*height: 48px;[^}]*width: 28px;/);
   assert.match(css, /\.design-pane-collapse-left \{ left: calc\(var\(--design-pages-width\) - 14px\); \}/);
   assert.match(css, /\.design-pane-collapse-right \{ right: calc\(var\(--design-inspector-width\) - 14px\); \}/);
