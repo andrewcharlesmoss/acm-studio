@@ -500,7 +500,10 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(editor, /\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(css, /\.design-page-list \{ align-content: start;/);
-  assert.match(css, /\.design-page-item-actions \{ align-items: center; display: flex; gap: 3px; justify-content: flex-end; min-height: 34px; opacity: 1; pointer-events: auto;/);
+  assert.match(css, /\.design-page-item \{ background: transparent; border: 1px solid transparent; border-radius: 7px; display: grid; grid-template-columns: auto minmax\(0, 1fr\); padding: 5px; \}/);
+  assert.match(css, /\.design-page-select \{ align-items: center; display: flex; grid-column: 1; grid-row: 1; min-height: 34px; \}/);
+  assert.match(css, /\.design-page-item-actions \{ align-items: center; display: flex; gap: 3px; grid-column: 2; grid-row: 1; justify-content: flex-end; min-height: 34px; opacity: 1; pointer-events: auto;/);
+  assert.match(css, /\.design-thumbnail-button \{ grid-column: 1 \/ -1; grid-row: 2; \}/);
   assert.match(css, /\.design-page-item\.is-active \.design-page-item-actions \{ opacity: 1; pointer-events: auto; \}/);
   assert.match(css, /\.design-page-item:has\(\.design-page-select input:checked\) \{ box-shadow: inset 0 0 0 2px #8b3dff66; \}/);
   assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; \}/);
