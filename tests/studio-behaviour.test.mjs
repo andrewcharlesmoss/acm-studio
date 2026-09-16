@@ -557,8 +557,9 @@ test("layer dragging shows a blue insertion line and clears it", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(editor, /const \[dropTarget, setDropTarget\] = useState<\{ id: string; position: LayerDropPosition \} \| null>\(null\)/);
-  assert.match(editor, /const dropTolerance = 12/);
+  assert.match(editor, /const dropTolerance = 32/);
   assert.match(editor, /clientY >= bounds\.top - dropTolerance && clientY <= bounds\.bottom \+ dropTolerance/);
+  assert.match(editor, /\.sort\(\(a, b\) => \{[\s\S]*Math\.abs\(clientY - \(aBounds\.top \+ aBounds\.height \/ 2\)\)/);
   assert.match(editor, /onDragOver=\{updateDropTarget\}/);
   assert.match(editor, /data-layer-droppable=\{canMove \? "true" : "false"\}/);
   assert.match(editor, /is-drop-\$\{dropPosition\}/);

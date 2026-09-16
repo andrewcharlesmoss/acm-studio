@@ -580,13 +580,17 @@ function LayerList({ page, selectedIds, writable, onSelect, onReorder }: { page:
   const [dropTarget, setDropTarget] = useState<{ id: string; position: LayerDropPosition } | null>(null);
   const layers = [...page.objects].reverse();
   if (!page.objects.length) return <p>No objects yet.</p>;
-  const dropTolerance = 12;
+  const dropTolerance = 32;
   const getDropTarget = (container: HTMLElement, clientY: number) => {
     const rows = Array.from(container.querySelectorAll<HTMLElement>('[data-layer-row="true"]'));
-    const row = rows.find((item) => {
+    const row = rows.filter((item) => {
       const bounds = item.getBoundingClientRect();
       return clientY >= bounds.top - dropTolerance && clientY <= bounds.bottom + dropTolerance;
-    });
+    }).sort((a, b) => {
+      const aBounds = a.getBoundingClientRect();
+      const bBounds = b.getBoundingClientRect();
+      return Math.abs(clientY - (aBounds.top + aBounds.height / 2)) - Math.abs(clientY - (bBounds.top + bBounds.height / 2));
+    })[0];
     if (!row) return null;
     const bounds = row.getBoundingClientRect();
     const targetId = row.dataset.layerId;
