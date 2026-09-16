@@ -71,7 +71,7 @@
 .design-zoom-dock.is-pages-collapsed { left: 0; }
 .design-zoom-slider { align-items: center; background: #f9f8f4; border: 1px solid #c8c6be; border-radius: 7px; box-shadow: 0 5px 16px #2221; display: flex; gap: 8px; justify-content: flex-end; min-height: 42px; padding: 5px 12px; }
 .design-zoom-slider label { color: var(--muted); font-size: 13px; font-weight: 700; }
-.design-zoom-slider input[type='range'] { accent-color: var(--accent); width: 170px; }
+.design-zoom-slider input[type='range'] { width: 170px; }
 .design-zoom-slider output { color: var(--ink); font-size: 13px; font-variant-numeric: tabular-nums; min-width: 42px; text-align: right; }
 .design-canvas-frame { box-shadow: 0 12px 34px #17191c1f; flex: 0 0 auto; }
 .design-all-pages { align-items: center; display: flex; flex: 1 0 auto; flex-direction: column; gap: 28px; min-width: 100%; }
@@ -137,9 +137,10 @@
 .design-inspector input, .design-inspector select, .design-inspector textarea { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; box-sizing: border-box; color: var(--ink); font: inherit; min-height: 32px; padding: 6px 7px; width: 100%; }
 .design-inspector textarea { min-height: 72px; resize: vertical; }
 .design-inspector input[type="color"] { padding: 2px; }
+.design-inspector input[type="range"], .design-zoom-slider input[type="range"] { accent-color: var(--accent); border: 0; min-height: 20px; padding: 0; }
 .design-colour-control { display: grid; gap: 8px; }
 .design-colour-control > label { display: grid; gap: 4px; }
-.design-colour-control input[type="range"] { accent-color: var(--accent); border: 0; min-height: 20px; padding: 0; width: 100%; }
+.design-colour-control input[type="range"] { width: 100%; }
 .design-inspector .design-text-wrap-setting { align-items: center; display: flex; flex-direction: row; gap: 8px; }
 .design-inspector .design-text-wrap-setting input[type="checkbox"] { min-height: 18px; width: 18px; }
 .design-background-removal, .design-crop-controls { border-top: 1px solid #d2d0c8; display: grid; gap: 8px; margin-top: 10px; padding-top: 10px; }
