@@ -529,7 +529,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-all-page-actions button \{ align-items: center; background: transparent; border: 0; border-radius: 5px; color: var\(--muted\); cursor: pointer; display: inline-flex; justify-content: center; min-height: 38px; min-width: 38px; padding: 7px; \}/);
   assert.match(css, /\.design-all-page\.is-hidden \.design-canvas-frame \{ opacity: \.48; \}/);
   assert.doesNotMatch(css, /design-canvas-help/);
-  assert.match(css, /\.design-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: minmax\(0, 1fr\); min-height: 0; min-width: 0; \}/);
+  assert.match(css, /\.design-main \{ display: grid; grid-column: 2; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: minmax\(0, 1fr\); min-height: 0; min-width: 0; \}/);
   assert.match(css, /\.design-canvas-area \{ display: grid; grid-template-rows: auto minmax\(0, 1fr\) auto; min-height: 0; min-width: 0; \}/);
   assert.doesNotMatch(editor, /design-selection-box/);
   assert.match(editor, /const resizeHandleRadius = 8 \* controlScale/);
@@ -619,6 +619,7 @@ test("design workspace exposes centred collapse controls for both side panes", (
   assert.match(editor, /aria-label=\{pagesCollapsed \? "Show pages and layers" : "Hide pages and layers"\}/);
   assert.match(editor, /aria-label=\{inspectorCollapsed \? "Show properties" : "Hide properties"\}/);
   assert.match(css, /\.design-pane-collapse \{/);
+  assert.match(css, /\.design-main \{ display: grid; grid-column: 2;/);
   assert.match(css, /\.design-pane-collapse:hover, \.design-pane-collapse:focus-visible \{ background: #eceae3; border-color: #aaa89f; color: var\(--ink\); outline: none; \}/);
   assert.match(css, /\.design-pane-collapse \{[^}]*height: 48px;[^}]*width: 28px;/);
   assert.match(css, /\.design-pane-collapse-left \{ left: calc\(var\(--design-pages-width\) - 14px\); \}/);
