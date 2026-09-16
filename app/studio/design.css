@@ -137,6 +137,7 @@
 .design-inspector input, .design-inspector select, .design-inspector textarea { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; box-sizing: border-box; color: var(--ink); font: inherit; min-height: 32px; padding: 6px 7px; width: 100%; }
 .design-inspector textarea { min-height: 72px; resize: vertical; }
 .design-inspector input[type="color"] { padding: 2px; }
+.design-inspector input[type="color"]:focus-visible { border-color: #8b8982; outline: 1px solid #8b8982; outline-offset: 1px; }
 .design-inspector input[type="range"], .design-zoom-slider input[type="range"] { accent-color: var(--accent); border: 0; min-height: 20px; padding: 0; }
 .design-colour-control { display: grid; gap: 8px; }
 .design-colour-control > label { display: grid; gap: 4px; }
