@@ -1807,6 +1807,7 @@ export function DesignEditor() {
 
   return <div className="design-shell" onPaste={handlePaste}>
       <StudioRibbon
+        className="design-ribbon-panel"
         tabs={studioRibbonTabs}
         activeTab={ribbonTab}
         onTabChange={setRibbonTab}
