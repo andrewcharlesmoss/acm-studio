@@ -732,6 +732,13 @@ test("fit canvas uses both viewport dimensions and never chooses an overflowing 
   assert.match(editor, /Math\.floor\(fitPercent\)/);
 });
 
+test("zoom keeps the active page centred in the canvas viewport", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /function centredScrollOffset\(contentCentre: number, viewportSize: number, scrollSize: number, clientSize: number\)/);
+  assert.match(editor, /useLayoutEffect\(\(\) => \{[\s\S]*?design-all-page\.is-active \.design-canvas-frame[\s\S]*?contentCentreX[\s\S]*?contentCentreY[\s\S]*?centredScrollOffset\(contentCentreX[\s\S]*?centredScrollOffset\(contentCentreY/);
+  assert.match(editor, /\}, \[activePage\?\.id, allPagesVisible, zoom\]\);/);
+});
+
 test("selected arrows expose endpoint controls instead of corner and rotate controls", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /\(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\) && object\.type !== "arrow"/);

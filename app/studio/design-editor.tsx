@@ -74,6 +74,11 @@ const shapeOptions: Array<{ value: DesignShapeKind; label: string }> = [
 const ZOOM_OPTIONS = Array.from({ length: 491 }, (_, index) => 10 + index);
 const ZOOM_SHORTCUT_STEPS = [10, 25, 50, 75, 100, 125, 200, 300, 500] as const;
 
+function centredScrollOffset(contentCentre: number, viewportSize: number, scrollSize: number, clientSize: number) {
+  const maximum = Math.max(0, scrollSize - clientSize);
+  return Math.max(0, Math.min(maximum, contentCentre - viewportSize / 2));
+}
+
 type ColourControlProps = {
   label: string;
   value: string;
@@ -706,6 +711,21 @@ export function DesignEditor() {
       setBackgroundProgress(null);
     }
   }, [design, selectedId, selectedIds, ownershipState]);
+
+  useLayoutEffect(() => {
+    const scroll = canvasScrollRef.current;
+    if (!scroll) return;
+    const frame = allPagesVisible
+      ? scroll.querySelector<HTMLElement>(".design-all-page.is-active .design-canvas-frame")
+      : scroll.querySelector<HTMLElement>(".design-canvas-frame");
+    if (!frame) return;
+    const scrollRect = scroll.getBoundingClientRect();
+    const frameRect = frame.getBoundingClientRect();
+    const contentCentreX = scroll.scrollLeft + frameRect.left - scrollRect.left + frameRect.width / 2;
+    const contentCentreY = scroll.scrollTop + frameRect.top - scrollRect.top + frameRect.height / 2;
+    scroll.scrollLeft = centredScrollOffset(contentCentreX, scroll.clientWidth, scroll.scrollWidth, scroll.clientWidth);
+    scroll.scrollTop = centredScrollOffset(contentCentreY, scroll.clientHeight, scroll.scrollHeight, scroll.clientHeight);
+  }, [activePage?.id, allPagesVisible, zoom]);
 
   useEffect(() => studioWriteOwnership.subscribe(() => {
     if (!studioWriteOwnership.canWrite()) backgroundRemovalRef.current?.abort();
