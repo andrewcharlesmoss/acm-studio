@@ -702,6 +702,7 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
   assert.match(editor, /setIsRotating\(false\)/);
   assert.match(editor, /function rotationBadgePoint\(/);
   assert.match(editor, /if \(interaction\.mode === "rotate" \|\| interaction\.mode === "move"\) setRotationCursor\(point\)/);
+  assert.doesNotMatch(editor, /setDraggingObjectId/);
   assert.match(editor, /rotationCursor=\{isActive \? rotationCursor : null\}/);
   assert.match(css, /\.design-rotate-handle \{[^}]*cursor: var\(--rotation-cursor\)/);
   assert.match(css, /\.design-rotate-handle:focus-visible \{ outline: none !important; stroke: #8b3dff/);

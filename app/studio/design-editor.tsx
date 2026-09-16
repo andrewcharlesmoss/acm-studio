@@ -1306,7 +1306,6 @@ export function DesignEditor() {
     const point = getPoint(event);
     if (interaction.mode === "rotate" || interaction.mode === "move") setRotationCursor(point);
     const dx = point.x - interaction.startX; const dy = point.y - interaction.startY;
-    if (interaction.mode === "move" && (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)) setDraggingObjectId(interaction.id);
     let nextObject: DesignObject = { ...interaction.original, x: Math.max(0, interaction.original.x + dx), y: Math.max(0, interaction.original.y + dy) };
     if (interaction.mode === "draw") {
       nextObject = drawObject(interaction.original, { x: interaction.startX, y: interaction.startY }, point, activePage);
