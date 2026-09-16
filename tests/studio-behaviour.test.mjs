@@ -832,6 +832,7 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(css, /\.design-inline-text-editor \{/);
   assert.match(css, /\.design-text-wrap-setting input\[type="checkbox"\]/);
   assert.match(css, /\.design-colour-control \{ display: grid; gap: 8px; \}/);
+  assert.match(css, /\.design-colour-control input\[type="range"\] \{ accent-color: var\(--accent\); border: 0; min-height: 20px; padding: 0; width: 100%; \}/);
 });
 
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {

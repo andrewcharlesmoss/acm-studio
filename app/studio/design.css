@@ -139,7 +139,7 @@
 .design-inspector input[type="color"] { padding: 2px; }
 .design-colour-control { display: grid; gap: 8px; }
 .design-colour-control > label { display: grid; gap: 4px; }
-.design-colour-control input[type="range"] { accent-color: var(--accent); width: 100%; }
+.design-colour-control input[type="range"] { accent-color: var(--accent); border: 0; min-height: 20px; padding: 0; width: 100%; }
 .design-inspector .design-text-wrap-setting { align-items: center; display: flex; flex-direction: row; gap: 8px; }
 .design-inspector .design-text-wrap-setting input[type="checkbox"] { min-height: 18px; width: 18px; }
 .design-background-removal, .design-crop-controls { border-top: 1px solid #d2d0c8; display: grid; gap: 8px; margin-top: 10px; padding-top: 10px; }
