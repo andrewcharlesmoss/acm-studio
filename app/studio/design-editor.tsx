@@ -89,16 +89,10 @@ type ColourControlProps = {
 };
 
 function ColourControl({ label, value, opacity = 1, disabled = false, onChange, onOpacityChange }: ColourControlProps) {
-  const [hexDraft, setHexDraft] = useState(value);
   const transparency = Math.round((1 - opacity) * 100);
   const opacityLabel = label === "Text colour" ? "Text" : label === "Line colour" ? "Line" : label;
   const visibleOpacity = 100 - transparency;
-  useEffect(() => setHexDraft(value), [value]);
-  const updateHex = (next: string) => {
-    setHexDraft(next);
-    if (/^#[0-9a-fA-F]{6}$/.test(next)) onChange(next.toLowerCase());
-  };
-  return <div className="design-colour-control"><label>{label}<input type="color" value={value} disabled={disabled} onChange={(event) => { setHexDraft(event.target.value); onChange(event.target.value); }} /></label><label>HEX<input aria-label={`${label} HEX colour`} inputMode="text" maxLength={7} spellCheck={false} value={hexDraft} disabled={disabled} onChange={(event) => updateHex(event.target.value)} onBlur={() => { if (!/^#[0-9a-fA-F]{6}$/.test(hexDraft)) setHexDraft(value); }} /></label><label>{opacityLabel} opacity ({visibleOpacity}%)<input aria-label={`${opacityLabel} opacity`} type="range" min="0" max="100" step="1" value={visibleOpacity} disabled={disabled} onChange={(event) => onOpacityChange(Number(event.target.value) / 100)} /></label></div>;
+  return <div className="design-colour-control"><label>{label}<input type="color" value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} /></label><label>{opacityLabel} opacity ({visibleOpacity}%)<input aria-label={`${opacityLabel} opacity`} type="range" min="0" max="100" step="1" value={visibleOpacity} disabled={disabled} onChange={(event) => onOpacityChange(Number(event.target.value) / 100)} /></label></div>;
 }
 
 function rotationLabel(rotation: number) {
