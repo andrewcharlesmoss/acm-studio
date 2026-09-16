@@ -547,6 +547,12 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-pane-tabs button\.is-active \{ border-bottom-color: var\(--accent\);/);
 });
 
+test("layers use the full pane and keep scrolling on the outer panel", () => {
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(css, /\.design-pages-layers \{[^}]*flex: 1 1 auto;[^}]*min-height: 0;[^}]*overflow-y: auto;/);
+  assert.match(css, /\.design-pages-layers \.design-layer-list \{ max-height: none; overflow: visible; \}/);
+});
+
 test("design tool selection uses a neutral active colour", () => {
   const css = readFileSync(new URL("../../acm-ribbon/src/styles.css", import.meta.url), "utf8");
   assert.match(css, /\.acm-ribbon-button:hover:not\(:disabled\), \.acm-ribbon-button:focus-visible, \.acm-ribbon-button\.is-active \{ background: var\(--acm-ribbon-hover\); border-color: var\(--acm-ribbon-border\); outline: none; \}/);
