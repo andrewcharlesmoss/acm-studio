@@ -425,7 +425,12 @@ test("design canvas resets zoom with the platform zero shortcut", () => {
   assert.match(editor, /event\.target instanceof HTMLSelectElement/);
   assert.doesNotMatch(editor, /event\.target instanceof HTMLButtonElement/);
   assert.match(editor, /const zoomReset = event\.key === "0" \|\| event\.code === "Digit0" \|\| event\.code === "Numpad0"/);
+  assert.match(editor, /const zoomIn = event\.key === "\+" \|\| event\.key === "=" \|\| event\.code === "Equal" \|\| event\.code === "NumpadAdd"/);
+  assert.match(editor, /const zoomOut = event\.key === "-" \|\| event\.key === "_" \|\| event\.code === "Minus" \|\| event\.code === "NumpadSubtract"/);
+  assert.match(editor, /const commandOrControl = event\.metaKey \|\| event\.ctrlKey/);
   assert.match(editor, /if \(commandOrControl && zoomReset\) \{ event\.preventDefault\(\); setZoom\(100\); \}/);
+  assert.match(editor, /else if \(commandOrControl && zoomIn\) \{ event\.preventDefault\(\); changeZoom\(1\); \}/);
+  assert.match(editor, /else if \(commandOrControl && zoomOut\) \{ event\.preventDefault\(\); changeZoom\(-1\); \}/);
 });
 
 test("design canvas history shortcuts survive page and layer button focus", () => {
