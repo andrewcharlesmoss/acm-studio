@@ -550,7 +550,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
 test("layers use the full pane and keep scrolling on the outer panel", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(css, /\.design-pages-layers \{[^}]*flex: 1 1 auto;[^}]*min-height: 0;[^}]*overflow-y: auto;/);
-  assert.match(css, /\.design-pages-layers \.design-layer-list \{ max-height: none; overflow: visible; \}/);
+  assert.match(css, /\.design-pages-layers \.design-layer-list \{ margin-inline: -64px; max-height: none; overflow: visible; padding-inline: 64px; \}/);
 });
 
 test("layer dragging shows a blue insertion line and clears it", () => {
