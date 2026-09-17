@@ -624,6 +624,13 @@ test("design name uses a neutral grey focus outline", () => {
   assert.doesNotMatch(css, /\.acm-ribbon-brand input:focus \{[^}]*var\(--accent\)|\.acm-ribbon-brand input:focus \{[^}]*#cc181833/);
 });
 
+test("page action focus outlines use neutral grey", () => {
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(css, /\.design-canvas-heading-actions button:hover[^}]*outline: 2px solid #6b707566; outline-offset: -1px;/);
+  assert.match(css, /\.design-all-page-actions button:hover[^}]*outline: 2px solid #6b707566; outline-offset: -1px;/);
+  assert.doesNotMatch(css, /\.design-(?:canvas-heading|all-page)-actions button:hover[^}]*#8b3dff66/);
+});
+
 test("design ribbon keeps tab targets mounted and supports keyboard navigation", () => {
   const [ribbon, editor] = [
     readFileSync(new URL("../../acm-ribbon/src/index.tsx", import.meta.url), "utf8"),
