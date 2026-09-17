@@ -631,6 +631,13 @@ test("page action focus outlines use neutral grey", () => {
   assert.doesNotMatch(css, /\.design-(?:canvas-heading|all-page)-actions button:hover[^}]*#8b3dff66/);
 });
 
+test("page inspector stays beside the canvas at tablet widths", () => {
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(css, /@media \(max-width: 980px\) \{[\s\S]*\.design-workspace \{ --design-pages-width: 180px; --design-inspector-width: 260px; grid-template-columns: 180px minmax\(0, 1fr\) 260px; \}/);
+  assert.match(css, /\.design-inspector \{ border-left: 1px solid #d2d0c8; border-top: 0; grid-column: 3; max-height: none; \}/);
+  assert.match(css, /\.design-zoom-dock \{ left: 180px; right: 260px; \}/);
+});
+
 test("design ribbon keeps tab targets mounted and supports keyboard navigation", () => {
   const [ribbon, editor] = [
     readFileSync(new URL("../../acm-ribbon/src/index.tsx", import.meta.url), "utf8"),
