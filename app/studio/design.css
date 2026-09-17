@@ -133,14 +133,14 @@
 .design-selection-border { fill: none; stroke: #8b3dff; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; }
 .design-arrow-bend-handle:hover, .design-arrow-bend-handle:active { fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; }
 .design-arrow-bend-handle:focus { outline: none; }
-.design-arrow-bend-handle:focus-visible { outline: none; stroke: #8b3dff; stroke-width: 2; }
+.design-arrow-bend-handle:focus-visible { outline: none; stroke: #6b7075; stroke-width: 2; }
 .design-resize-handle:focus, .design-endpoint-handle:focus { outline: none; }
-.design-resize-handle:focus-visible, .design-endpoint-handle:focus-visible { outline: none; stroke: #8b3dff; stroke-width: 2; filter: none; }
+.design-resize-handle:focus-visible, .design-endpoint-handle:focus-visible { outline: none; stroke: #6b7075; stroke-width: 2; filter: none; }
 .design-rotate-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: var(--rotation-cursor); filter: drop-shadow(0 1px 2px #17191c40); }
 .design-rotate-handle:hover { fill: #6b7075 !important; stroke: #6b7075; }
 .design-rotate-handle:hover + .design-rotate-icon { color: #fff; }
 .design-rotate-handle:focus { outline: none !important; }
-.design-rotate-handle:focus-visible { outline: none !important; stroke: #8b3dff; stroke-width: 2.5; filter: drop-shadow(0 0 2px #fff); }
+.design-rotate-handle:focus-visible { outline: none !important; stroke: #6b7075; stroke-width: 2.5; filter: drop-shadow(0 0 2px #fff); }
 .design-rotate-icon { color: #17191c; }
 .design-rotate-handle:active { cursor: var(--rotation-cursor); }
 .design-page-svg.is-rotating, .design-page-svg.is-rotating * { cursor: var(--rotation-cursor) !important; }

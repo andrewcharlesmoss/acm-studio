@@ -544,7 +544,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-arrow-bend-handle:hover, \.design-arrow-bend-handle:active \{ fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; \}/);
   assert.match(css, /\.design-resize-handle:active, \.design-endpoint-handle:active, \.design-rotate-handle:active \{ fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; \}/);
   assert.match(css, /\.design-resize-handle:focus, \.design-endpoint-handle:focus \{ outline: none; \}/);
-  assert.match(css, /\.design-resize-handle:focus-visible, \.design-endpoint-handle:focus-visible \{ outline: none; stroke: #8b3dff; stroke-width: 2; filter: none; \}/);
+  assert.match(css, /\.design-resize-handle:focus-visible, \.design-endpoint-handle:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; filter: none; \}/);
+  assert.match(css, /\.design-arrow-bend-handle:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; \}/);
   assert.doesNotMatch(css, /\.design-endpoint-handle:focus-visible \{ outline: none; stroke: #284aa9/);
   assert.match(css, /\.design-pane-tabs button\.is-active \{ border-bottom-color: var\(--accent\);/);
 });
@@ -763,7 +764,7 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
   assert.doesNotMatch(editor, /setDraggingObjectId/);
   assert.match(editor, /rotationCursor=\{isActive \? rotationCursor : null\}/);
   assert.match(css, /\.design-rotate-handle \{[^}]*cursor: var\(--rotation-cursor\)/);
-  assert.match(css, /\.design-rotate-handle:focus-visible \{ outline: none !important; stroke: #8b3dff/);
+  assert.match(css, /\.design-rotate-handle:focus-visible \{ outline: none !important; stroke: #6b7075/);
   assert.match(css, /\.design-page-svg\.is-rotating, \.design-page-svg\.is-rotating \* \{ cursor: var\(--rotation-cursor\) !important; \}/);
   assert.match(editor, /rotationCursorCss\(object.rotation\)/);
   assert.match(editor, /rotationCursorCss\(activeRotation\)/);
