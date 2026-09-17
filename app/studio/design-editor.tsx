@@ -1694,7 +1694,21 @@ export function DesignEditor() {
 
   function deletePageById(pageId: string) { if (!design || design.pages.length === 1) return; const index = design.pages.findIndex((page) => page.id === pageId); if (index < 0) return; const nextPage = design.pages[index - 1] ?? design.pages[index + 1]; updateDesign({ ...design, pages: design.pages.filter((page) => page.id !== pageId), activePageId: design.activePageId === pageId ? nextPage.id : design.activePageId }); if (design.activePageId === pageId) { setPageName(nextPage.name); selectObjects([]); } }
 
-  function deletePage() { if (activePage) deletePageById(activePage.id); }
+  function deletePage() {
+    if (!design || !activePage || design.pages.length === 1) return;
+    const requestedIds = selectedPageIds.length ? selectedPageIds : [activePage.id];
+    const idsToDelete = new Set(requestedIds.filter((id) => design.pages.some((page) => page.id === id)));
+    if (idsToDelete.size === design.pages.length) idsToDelete.delete(activePage.id);
+    if (!idsToDelete.size) return;
+    const firstDeletedIndex = design.pages.findIndex((page) => idsToDelete.has(page.id));
+    const remainingPages = design.pages.filter((page) => !idsToDelete.has(page.id));
+    const nextPage = remainingPages.find((page) => page.id === activePage.id) ?? remainingPages[Math.max(0, firstDeletedIndex - 1)] ?? remainingPages[0];
+    if (!nextPage) return;
+    updateDesign({ ...design, pages: remainingPages, activePageId: nextPage.id });
+    setSelectedPageIds([]);
+    pageSelectionAnchorRef.current = null;
+    if (nextPage.id !== activePage.id) { setPageName(nextPage.name); selectObjects([]); }
+  }
 
   function togglePageHidden(pageId: string) {
     if (!design || !writable) return;

@@ -503,6 +503,10 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /<StudioIcon name="copy" size=\{24\} \/>/);
   assert.match(editor, /<StudioIcon name="trash" size=\{24\} \/>/);
   assert.match(editor, /onClick=\{\(\) => addPage\(false, page\.id\)\}/);
+  assert.match(editor, /function deletePage\(\) \{[\s\S]*const requestedIds = selectedPageIds\.length \? selectedPageIds : \[activePage\.id\];[\s\S]*const idsToDelete = new Set\(requestedIds\.filter/);
+  assert.match(editor, /if \(idsToDelete\.size === design\.pages\.length\) idsToDelete\.delete\(activePage\.id\);/);
+  assert.match(editor, /updateDesign\(\{ \.\.\.design, pages: remainingPages, activePageId: nextPage\.id \}\);/);
+  assert.match(editor, /setSelectedPageIds\(\[\]\);/);
   assert.match(editor, /function selectPageSet\(pageId: string/);
   assert.match(editor, /event\.metaKey \|\| event\.ctrlKey \|\| event\.shiftKey/);
   assert.match(editor, /pageIds\.slice\(Math\.min\(start, end\), Math\.max\(start, end\) \+ 1\)/);
