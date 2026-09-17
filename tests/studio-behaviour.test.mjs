@@ -626,6 +626,14 @@ test("design tool selection uses a neutral active colour", () => {
   assert.doesNotMatch(css, /#f9e1e1|#d89b9b|#9c2525/);
 });
 
+test("design surfaces use the lighter Account neutral theme", () => {
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(css, /\.design-shell \{ --accent: #8f8f8f; --accent-soft: #e7e7e7; --focus-ring-colour: rgba\(143, 143, 143, \.72\); --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa;/);
+  assert.match(css, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: #f7f7f7; --acm-ribbon-text: #3f3f3f; background: #f7f7f7; border: 1px solid #d8d8d8;/);
+  assert.match(css, /\.design-pages \{ background: #f7f7f7; border-right: 1px solid #d8d8d8;/);
+  assert.match(css, /\.design-inspector \{ background: #f7f7f7; border-left: 1px solid #d8d8d8;/);
+});
+
 test("design name uses a neutral grey focus outline", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(css, /\.acm-ribbon-brand input:focus \{ border-color: #6b7075; outline: 2px solid #6b707566; outline-offset: 1px; \}/);
@@ -642,7 +650,7 @@ test("page action focus outlines use neutral grey", () => {
 test("page inspector stays beside the canvas at tablet widths", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(css, /@media \(max-width: 980px\) \{[\s\S]*\.design-workspace \{ --design-pages-width: 180px; --design-inspector-width: 260px; grid-template-columns: 180px minmax\(0, 1fr\) 260px; \}/);
-  assert.match(css, /\.design-inspector \{ border-left: 1px solid #d2d0c8; border-top: 0; grid-column: 3; max-height: none; \}/);
+  assert.match(css, /\.design-inspector \{ border-left: 1px solid #d8d8d8; border-top: 0; grid-column: 3; max-height: none; \}/);
   assert.match(css, /\.design-zoom-dock \{ left: 180px; right: 260px; \}/);
 });
 
@@ -667,15 +675,15 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(ribbonCss, /\.acm-ribbon-content \{ border-top: 1px solid var\(--acm-ribbon-border\); box-sizing: border-box; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\); overflow: auto; \}/);
   assert.match(ribbonCss, /\.acm-ribbon-content > \.acm-ribbon-panel \{ align-items: stretch; box-sizing: border-box; display: flex; gap: 2px; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\);/);
   assert.match(editor, /<StudioRibbon\s+className="design-ribbon-panel"/);
-  assert.match(designCss, /\.design-ribbon-panel \{ border: 1px solid #d2d0c8; border-radius: 14px; margin: 16px; overflow: visible; \}/);
+  assert.match(designCss, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: #f7f7f7; --acm-ribbon-text: #3f3f3f; background: #f7f7f7; border: 1px solid #d8d8d8; border-radius: 14px; margin: 16px; overflow: visible; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs > button, \.design-ribbon-panel \.acm-ribbon-group-label, \.design-ribbon-panel \.acm-ribbon-brand a, \.design-ribbon-panel \.acm-ribbon-brand input \{ font-weight: 400; \}/);
-  assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs \{ border-top: 0; border-bottom: 1px solid #d2d0c8; \}/);
+  assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs \{ border-top: 0; border-bottom: 1px solid #d8d8d8; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs > button \{ position: relative; border-bottom: 3px solid transparent !important; background: transparent; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-content \{ border-top: 0; \}/);
   assert.match(editor, /className=\{`design-zoom-dock\$\{pagesCollapsed \? " is-pages-collapsed" : ""\}`\}/);
   assert.match(editor, /className="design-zoom-slider" aria-label="Canvas zoom control"/);
   assert.match(editor, /id="design-canvas-zoom" type="range" min="10" max="500" step="1" value=\{zoom\}/);
-  assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: #f4f3ee; border-top: 1px solid #d2d0c8; bottom: 0;.*left: 224px;.*position: fixed; right: 260px;.*z-index: 30;/);
+  assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: #f7f7f7; border-top: 1px solid #d8d8d8; bottom: 0;.*left: 224px;.*position: fixed; right: 260px;.*z-index: 30;/);
   assert.match(designCss, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
 
