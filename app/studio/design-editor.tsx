@@ -537,7 +537,7 @@ export function PageSvg({ page, assets, selectedIds = [], selectionBox, guides =
   return <svg ref={svgRef} style={{ "--rotation-cursor": rotationCursorCss(activeRotation) } as CSSProperties} className={`design-page-svg${tool === "select" ? " is-select-mode" : ""}${isRotating ? " is-rotating" : ""}`} viewBox={`0 0 ${page.width} ${page.height}`} role="img" aria-label={page.name} onPointerDown={onCanvasPointerDown}>
     <defs><pattern id={`checker-${page.id}`} width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#f7f6f2" /><rect width="10" height="10" fill="#e9e7df" /><rect x="10" y="10" width="10" height="10" fill="#e9e7df" /></pattern></defs>
     <rect data-canvas-background="true" width={page.width} height={page.height} fill={page.background.kind === "transparent" ? `url(#checker-${page.id})` : page.background.colour} />
-    {page.objects.map((object) => { const objectActiveHandle = activeHandle?.objectId === object.id ? activeHandle : null; const showObjectHandles = !activeHandle || Boolean(objectActiveHandle); return <g key={object.id} transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`} opacity={object.opacity} className={`design-object${selectedIds.includes(object.id) ? " is-selected" : ""}${hoveredObjectId === object.id ? " is-hovered" : ""}${object.locked ? " is-locked" : ""}`} onPointerEnter={() => showHoverHandles && !object.locked && setHoveredObjectId(object.id)} onPointerLeave={() => showHoverHandles && setHoveredObjectId(null)} onPointerDown={(event) => onObjectPointerDown(event, object)} onDoubleClick={(event) => { if (object.type === "text") { event.preventDefault(); event.stopPropagation(); onTextDoubleClick?.(object); } }}>
+    {page.objects.map((object) => { const objectActiveHandle = activeHandle?.objectId === object.id ? activeHandle : null; const showObjectHandles = !activeHandle || Boolean(objectActiveHandle); return <g key={object.id} data-object-id={object.id} transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`} opacity={object.opacity} className={`design-object${selectedIds.includes(object.id) ? " is-selected" : ""}${hoveredObjectId === object.id ? " is-hovered" : ""}${object.locked ? " is-locked" : ""}`} onPointerEnter={() => showHoverHandles && !object.locked && setHoveredObjectId(object.id)} onPointerLeave={() => showHoverHandles && setHoveredObjectId(null)} onPointerDown={(event) => onObjectPointerDown(event, object)} onDoubleClick={(event) => { if (object.type === "text") { event.preventDefault(); event.stopPropagation(); onTextDoubleClick?.(object); } }}>
       <rect width={object.width} height={object.height} fill="transparent" pointerEvents="all" onPointerDown={(event) => onObjectPointerDown(event as unknown as PointerEvent<SVGGElement>, object)} />
       {object.type === "image" ? (() => { const asset = assets.find((item) => item.id === object.assetId); if (!asset) return null; const crop = object.crop ?? { x: 0, y: 0, width: 1, height: 1 }; const clipId = `crop-${object.id}`; return <><defs><clipPath id={clipId}><rect width={object.width} height={object.height} /></clipPath></defs><image href={asset.dataUrl} x={-crop.x / crop.width * object.width} y={-crop.y / crop.height * object.height} width={object.width / crop.width} height={object.height / crop.height} preserveAspectRatio="none" clipPath={`url(#${clipId})`} /></>; })() : null}
       {object.type === "arrow" ? (() => { const geometry = arrowGeometry(object); const dotted = arrowLineStyle(object) === "dotted"; const lineCap = dotted ? "round" : (object.startArrowhead === true || object.arrowhead ? "butt" : "round"); return <><path d={geometry.path} fill="none" stroke={object.stroke} strokeOpacity={object.strokeOpacity ?? 1} strokeWidth={object.strokeWidth} strokeLinecap={lineCap} strokeDasharray={dotted ? `${Math.max(1, object.strokeWidth)} ${Math.max(2, object.strokeWidth * 1.8)}` : undefined} />{geometry.startArrowhead ? <polygon points={geometry.startArrowhead} fill={object.stroke} fillOpacity={object.strokeOpacity ?? 1} /> : null}{geometry.endArrowhead ? <polygon points={geometry.endArrowhead} fill={object.stroke} fillOpacity={object.strokeOpacity ?? 1} /> : null}</>; })() : null}
@@ -666,6 +666,45 @@ function reorderedPages(pages: DesignPage[], sourceId: string, targetId: string,
   return next;
 }
 
+type DesignContextMenuProps = {
+  x: number;
+  y: number;
+  selectedCount: number;
+  canCopy: boolean;
+  canPaste: boolean;
+  canAlign: boolean;
+  canLock: boolean;
+  selectionLocked: boolean;
+  alignOpen: boolean;
+  onClose: () => void;
+  onCopy: () => void;
+  onPaste: () => void;
+  onAlignToggle: () => void;
+  onAlign: (axis: PositionAxis) => void;
+  onLock: () => void;
+  onLink: () => void;
+};
+
+type DesignContextMenuState = { x: number; y: number; alignOpen: boolean };
+
+function DesignContextMenu({ x, y, selectedCount, canCopy, canPaste, canAlign, canLock, selectionLocked, alignOpen, onClose, onCopy, onPaste, onAlignToggle, onAlign, onLock, onLink }: DesignContextMenuProps) {
+  const firstItemRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => { firstItemRef.current?.focus(); }, []);
+  const itemLabel = selectedCount > 1 ? "selected layers" : "selected layer";
+  return <div className="design-context-menu" role="menu" tabIndex={-1} aria-label="Canvas actions" style={{ left: x, top: y }} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); onClose(); } }}>
+    <button ref={firstItemRef} type="button" role="menuitem" onClick={() => { onCopy(); onClose(); }} disabled={!canCopy}><StudioIcon name="copy" size={20} /><span>Copy</span><kbd>⌘C / Ctrl+C</kbd></button>
+    <button type="button" role="menuitem" onClick={() => { onPaste(); onClose(); }} disabled={!canPaste}><StudioIcon name="copy" size={20} /><span>Paste</span><kbd>⌘V / Ctrl+V</kbd></button>
+    <div className="design-context-menu-separator" role="separator" />
+    <button type="button" role="menuitem" aria-haspopup="menu" aria-expanded={alignOpen} onClick={onAlignToggle} disabled={!canAlign}><StudioIcon name="align-left" size={20} /><span>Align to page</span><StudioIcon name="chevron-right" size={18} /></button>
+    {alignOpen && canAlign ? <div className="design-context-submenu" role="menu" tabIndex={-1} aria-label={`Align ${itemLabel} to page`}>
+      {(["top", "middle", "bottom", "left", "centre", "right"] as const).map((axis) => <button key={axis} type="button" role="menuitem" onClick={() => { onAlign(axis); onClose(); }}>{axis === "centre" ? "Centre" : axis[0].toUpperCase() + axis.slice(1)}</button>)}
+    </div> : null}
+    <div className="design-context-menu-separator" role="separator" />
+    <button type="button" role="menuitem" onClick={() => { onLock(); onClose(); }} disabled={!canLock}><StudioIcon name={selectionLocked ? "lock-open" : "lock"} size={20} /><span>{selectionLocked ? "Unlock" : "Lock"}</span></button>
+    <button type="button" role="menuitem" onClick={() => { onLink(); onClose(); }} disabled={!canCopy}><StudioIcon name="link" size={20} /><span>Link</span></button>
+  </div>;
+}
+
 export function DesignEditor() {
   const [designs, setDesigns] = useState<DesignProject[]>([]);
   const [design, setDesign] = useState<DesignProject | null>(null);
@@ -709,6 +748,7 @@ export function DesignEditor() {
   const [backgroundMode, setBackgroundMode] = useState<BackgroundRemovalMode>("general");
   const [backgroundEdgeCleanup, setBackgroundEdgeCleanup] = useState(10);
   const [syncStatus, setSyncStatus] = useState<DesignSyncStatus>("disconnected");
+  const [contextMenu, setContextMenu] = useState<DesignContextMenuState | null>(null);
   const backgroundRemovalRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -718,6 +758,14 @@ export function DesignEditor() {
   const interactionRef = useRef<Interaction | null>(null);
   const pageResizeRef = useRef<PageResizeInteraction | null>(null);
   const pageDropPositionRef = useRef<{ id: string; position: "before" | "after" } | null>(null);
+  const contextMenuReturnRef = useRef<HTMLElement | null>(null);
+
+  const closeContextMenu = useCallback(() => {
+    const returnTarget = contextMenuReturnRef.current;
+    contextMenuReturnRef.current = null;
+    setContextMenu(null);
+    window.setTimeout(() => returnTarget?.focus(), 0);
+  }, []);
 
   const handleRibbonTabChange = (tab: StudioRibbonTab) => {
     if (tab === "file") {
@@ -776,6 +824,27 @@ export function DesignEditor() {
 
   useEffect(() => { designsRef.current = designs; }, [designs]);
 
+  useEffect(() => {
+    if (!contextMenu) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".design-context-menu")) return;
+      closeContextMenu();
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeContextMenu();
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape, true);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape, true);
+    };
+  }, [closeContextMenu, contextMenu]);
+
   function rememberStyle(object: DesignObject) {
     if (object.type === "arrow") recentStylesRef.current.arrow = { stroke: object.stroke, strokeOpacity: object.strokeOpacity ?? 1, strokeWidth: object.strokeWidth, arrowhead: object.arrowhead, startArrowhead: object.startArrowhead ?? false, arrowheadScale: object.arrowheadScale ?? 1, lineStyle: object.lineStyle ?? "solid" };
     else if (object.type === "text") recentStylesRef.current.text = { colour: object.colour, colourOpacity: object.colourOpacity ?? 1, fontFamily: object.fontFamily, fontSize: object.fontSize, fontWeight: object.fontWeight, align: object.align, wordWrap: object.wordWrap !== false };
@@ -788,6 +857,25 @@ export function DesignEditor() {
     setSelectedIds(ids);
     setSelectedId(ids[0] ?? null);
   }
+
+  useEffect(() => {
+    if (!design || !activePage) return;
+    const handleCanvasContextMenu = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || target.closest(".design-context-menu") || !target.closest(".design-canvas-scroll")) return;
+      event.preventDefault();
+      const objectId = target.closest<SVGGElement>(".design-object")?.dataset.objectId;
+      if (objectId && activePage.objects.some((object) => object.id === objectId) && !selectedIds.includes(objectId)) selectObjects([objectId]);
+      contextMenuReturnRef.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+      setContextMenu({
+        x: Math.min(Math.max(8, event.clientX), Math.max(8, window.innerWidth - 292)),
+        y: Math.min(Math.max(8, event.clientY), Math.max(8, window.innerHeight - 390)),
+        alignOpen: false,
+      });
+    };
+    document.addEventListener("contextmenu", handleCanvasContextMenu);
+    return () => document.removeEventListener("contextmenu", handleCanvasContextMenu);
+  }, [activePage, design, selectedIds]);
 
   function restoreSelection(next: DesignProject) {
     const page = next.pages.find((item) => item.id === next.activePageId) ?? next.pages[0];
@@ -1728,6 +1816,17 @@ export function DesignEditor() {
     selectObjects(copies.map((object) => object.id));
   }
 
+  function toggleSelectedLock() {
+    if (!activePage || !designEditable || !selectedIds.length) return;
+    const selected = activePage.objects.filter((object) => selectedIds.includes(object.id));
+    const lockSelection = selected.some((object) => !object.locked);
+    updatePage((page) => ({ ...page, objects: page.objects.map((object) => selectedIds.includes(object.id) ? { ...object, locked: lockSelection } : object) }));
+  }
+
+  function linkSelected() {
+    setStatus("Linking design objects is not available yet");
+  }
+
   function groupSelected() {
     if (!designEditable || selectedIds.length < 2) return;
     const groupId = makeId("group");
@@ -1963,6 +2062,24 @@ export function DesignEditor() {
             </article>;
           })}</div> : <div className="design-canvas-frame" style={{ width: `${activePage.width * zoom / 100}px` }}><PageSvg activeHandle={activeHandle} showHoverHandles={tool === "select"} purpleSelectionBorder={purpleSelectionBorder} editingTextId={editingTextId} editingTextValue={editingTextValue} onEditingTextChange={setEditingTextValue} onEditingTextCommit={commitTextEditing} onEditingTextCancel={cancelTextEditing} onTextDoubleClick={beginTextEditing} rotatingObjectId={interactionRef.current?.mode === "rotate" || interactionRef.current?.mode === "move" ? interactionRef.current.id : undefined} isRotating={isRotating} rotationCursor={rotationCursor} showPageResizeHandles={tool === "select" && selectedIds.length === 0} tool={tool} zoom={zoom} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onPageResizePointerDown={onPageResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onArrowBendPointerDown={onArrowBendPointerDown} onArrowBendKeyDown={onArrowBendKeyDown} onResizeKeyDown={onResizeKeyDown} onPageResizeKeyDown={onPageResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div>}
         </div><div className={`design-zoom-dock${pagesCollapsed ? " is-pages-collapsed" : ""}`}><div className="design-zoom-slider" aria-label="Canvas zoom control"><label htmlFor="design-canvas-zoom">Zoom</label><input id="design-canvas-zoom" type="range" min="10" max="500" step="1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} aria-label="Canvas zoom" /><output htmlFor="design-canvas-zoom">{zoom}%</output></div></div></div>
+      {contextMenu ? <DesignContextMenu
+        x={contextMenu.x}
+        y={contextMenu.y}
+        selectedCount={selectedIds.length}
+        canCopy={selectedIds.length > 0}
+        canPaste={designEditable && objectClipboardRef.current.length > 0}
+        canAlign={designEditable && activePage.objects.some((object) => selectedIds.includes(object.id) && !object.locked)}
+        canLock={designEditable && selectedIds.length > 0}
+        selectionLocked={selectedIds.length > 0 && activePage.objects.filter((object) => selectedIds.includes(object.id)).every((object) => object.locked)}
+        alignOpen={contextMenu.alignOpen}
+        onClose={closeContextMenu}
+        onCopy={copySelected}
+        onPaste={pasteSelected}
+        onAlignToggle={() => setContextMenu((menu) => menu ? { ...menu, alignOpen: !menu.alignOpen } : menu)}
+        onAlign={alignSelectedToPage}
+        onLock={toggleSelectedLock}
+        onLink={linkSelected}
+      /> : null}
       </section>
       <aside className="design-inspector" aria-label="Design properties"><div className="design-inspector-section"><span className="design-inspector-label">Page</span><label>Name<input value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} /></label><label>Preset<select value="custom" disabled={!writable} onChange={(event) => setPagePreset(event.target.value)}><option value="custom">Custom</option><option value="landscape">1920 × 1080 landscape</option><option value="square">1080 × 1080 square</option><option value="portrait">1080 × 1350 portrait</option><option value="portraitStory">1080 × 1920 portrait</option></select></label><label>Width<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.width} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, width: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Height<input type="number" min="1" max={DESIGN_MAX_DIMENSION} value={activePage.height} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, height: Math.min(DESIGN_MAX_DIMENSION, Math.max(1, Number(event.target.value) || 1)) }))} /></label><label>Background<select value={activePage.background.kind} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, kind: event.target.value as "solid" | "transparent" } }))}><option value="solid">Solid</option><option value="transparent">Transparent</option></select></label>{activePage.background.kind === "solid" ? <label>Colour<input type="color" value={activePage.background.colour} disabled={!writable} onChange={(event) => updatePage((page) => ({ ...page, background: { ...page.background, colour: event.target.value } }))} /></label> : null}</div>{selectedObject ? <div className="design-inspector-section"><span className="design-inspector-label">Selected {toolLabels[selectedObject.type as Tool] ?? selectedObject.type}</span><div className="design-field-grid"><label>X<input type="number" value={Math.round(selectedObject.x)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, x: Number(event.target.value) || 0 }))} /></label><label>Y<input type="number" value={Math.round(selectedObject.y)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, y: Number(event.target.value) || 0 }))} /></label><label>Width<input type="number" min="1" value={Math.round(selectedObject.width)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, width: Math.max(1, Number(event.target.value) || 1) }))} /></label><label>Height<input type="number" min="1" value={Math.round(selectedObject.height)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, height: Math.max(1, Number(event.target.value) || 1) }))} /></label></div><label>Opacity ({Math.round(selectedObject.opacity * 100)}%)<input type="range" min="0" max="100" step="1" value={Math.round(selectedObject.opacity * 100)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, opacity: Number(event.target.value) / 100 }))} /></label><PositionControls writable={writable} selectedCount={selectedIds.length} canAlign={activePage.objects.some((object) => selectedIds.includes(object.id) && !object.locked)} onAlignToPage={alignSelectedToPage} />{selectedObject.type === "image" ? <div className="design-image-tools">
             <div className="design-background-removal">

@@ -641,13 +641,31 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(designCss, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
 
+test("design canvas exposes a selection-aware context menu", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(editor, /data-object-id=\{object\.id\}/);
+  assert.match(editor, /document\.addEventListener\("contextmenu", handleCanvasContextMenu\)/);
+  assert.match(editor, /role="menu" tabIndex=\{-1\} aria-label="Canvas actions"/);
+  assert.match(editor, /<span>Copy<\/span>/);
+  assert.match(editor, /<span>Paste<\/span>/);
+  assert.match(editor, /<span>Align to page<\/span>/);
+  assert.match(editor, /<span>\{selectionLocked \? "Unlock" : "Lock"\}<\/span>/);
+  assert.match(editor, /<span>Link<\/span>/);
+  assert.match(editor, /event\.key === "Escape"/);
+  assert.match(editor, /target\.closest\("\.design-context-menu"\)/);
+  assert.match(css, /\.design-context-menu \{/);
+  assert.match(css, /\.design-context-submenu \{/);
+  assert.match(css, /\.design-context-menu button:hover:not\(:disabled\), \.design-context-menu button:focus-visible/);
+});
+
 test("design workspace exposes centred collapse controls for both side panes", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(editor, /const \[inspectorCollapsed, setInspectorCollapsed\] = useState\(false\)/);
   assert.match(editor, /design-pane-collapse design-pane-collapse-left/);
   assert.match(editor, /design-pane-collapse design-pane-collapse-right/);
-  assert.equal((editor.match(/name="chevron-right" size=\{18\}/g) ?? []).length, 2);
+  assert.equal((editor.match(/design-pane-collapse design-pane-collapse-/g) ?? []).length, 2);
   assert.match(editor, /aria-label=\{pagesCollapsed \? "Show pages and layers" : "Hide pages and layers"\}/);
   assert.match(editor, /aria-label=\{inspectorCollapsed \? "Show properties" : "Hide properties"\}/);
   assert.match(css, /\.design-pane-collapse \{/);
