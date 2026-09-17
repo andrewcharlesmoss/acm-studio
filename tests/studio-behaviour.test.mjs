@@ -483,6 +483,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /onReorder\(sourceId, object\.id, event\.clientY < bounds\.top \+ bounds\.height \/ 2 \? "before" : "after"\)/);
   assert.match(editor, /<StudioIcon name="drag-handle" size=\{16\}/);
   assert.match(editor, /className=\{`design-canvas-scroll\$\{allPagesVisible/);
+  assert.match(css, /\.design-canvas-scroll \{ align-items: safe center; display: flex; justify-content: safe center; min-height: 0; overflow: auto; padding: 25px 25px 89px; \}/);
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
   assert.match(editor, /className="design-all-page-heading" style=\{\{ width: `\$\{page\.width \* zoom \/ 100\}px` \}\}/);
   assert.match(editor, /const title = page\.name === `Page \$\{index \+ 1\}` \? "" : page\.name/);

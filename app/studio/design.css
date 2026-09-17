@@ -126,7 +126,7 @@
 .design-zoom button, .design-zoom select { background: #fff; border: 1px solid #c8c6be; border-radius: 4px; color: var(--ink); cursor: pointer; min-height: 28px; min-width: 30px; padding: 4px 7px; }
 .design-zoom button.is-active { background: #eef2ff; border-color: #8da1e0; color: #284aa9; }
 .design-zoom span { color: var(--muted); font-size: 12px; min-width: 42px; text-align: center; }
-.design-canvas-scroll { align-items: safe center; display: flex; justify-content: safe center; min-height: 0; overflow: auto; padding: 25px; }
+.design-canvas-scroll { align-items: safe center; display: flex; justify-content: safe center; min-height: 0; overflow: auto; padding: 25px 25px 89px; }
 .design-canvas-scroll.is-all-pages { align-items: flex-start; justify-content: flex-start; }
 .design-zoom-dock { align-items: center; background: #f4f3ee; border-top: 1px solid #d2d0c8; bottom: 0; box-sizing: border-box; display: flex; justify-content: flex-end; left: 224px; min-height: 64px; padding: 8px 18px; position: fixed; right: 260px; z-index: 30; }
 .design-zoom-dock.is-pages-collapsed { left: 0; }
@@ -287,7 +287,7 @@
   .design-switcher { display: none; }
   .design-main { display: grid; grid-column: 2; }
   .design-inspector { max-height: none; }
-  .design-canvas-scroll { min-height: 360px; padding: 12px; }
+  .design-canvas-scroll { min-height: 360px; padding: 12px 12px 81px; }
   .design-page-svg { max-height: none; }
 }
 @media (max-width: 500px) {
