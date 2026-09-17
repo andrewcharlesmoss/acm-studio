@@ -638,6 +638,13 @@ test("page inspector stays beside the canvas at tablet widths", () => {
   assert.match(css, /\.design-zoom-dock \{ left: 180px; right: 260px; \}/);
 });
 
+test("narrow workspaces preserve the three-column design", () => {
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(css, /@media \(max-width: 720px\) \{[\s\S]*\.design-shell \{ min-height: 100dvh; min-width: 700px; \}/);
+  assert.match(css, /\.design-workspace \{ display: grid; grid-template-columns: 180px minmax\(0, 1fr\) 260px; min-width: 700px; \}/);
+  assert.doesNotMatch(css, /@media \(max-width: 720px\) \{[\s\S]*\.design-workspace \{ display: block; \}/);
+});
+
 test("design ribbon keeps tab targets mounted and supports keyboard navigation", () => {
   const [ribbon, editor] = [
     readFileSync(new URL("../../acm-ribbon/src/index.tsx", import.meta.url), "utf8"),
