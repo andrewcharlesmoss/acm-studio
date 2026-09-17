@@ -1538,6 +1538,43 @@ export function DesignEditor() {
     window.setTimeout(() => pageNameInputRef.current?.focus(), 0);
   }
 
+  useEffect(() => {
+    function handlePageTitleDoubleClick(event: MouseEvent) {
+      const target = event.target instanceof HTMLElement ? event.target.closest<HTMLElement>(".design-thumbnail-button > span") : null;
+      const pageItem = target?.closest<HTMLElement>(".design-page-item");
+      if (!target || !pageItem || !design || !writable) return;
+      const index = Array.from(document.querySelectorAll(".design-page-item")).indexOf(pageItem);
+      const page = design.pages[index];
+      if (!page || page.locked || target.querySelector("input")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const input = document.createElement("input");
+      input.className = "design-page-title-input";
+      input.value = page.name;
+      input.disabled = !writable || page.locked;
+      input.setAttribute("aria-label", `Edit ${page.name}`);
+      input.addEventListener("click", (clickEvent) => clickEvent.stopPropagation());
+      let cancelled = false;
+      const finish = () => {
+        input.removeEventListener("blur", finish);
+        const name = cancelled ? page.name : input.value.trim();
+        target.textContent = `${index + 1}. ${name}`;
+        if (!cancelled && name !== page.name) updateDesign({ ...design, pages: design.pages.map((item) => item.id === page.id ? { ...item, name } : item) });
+      };
+      input.addEventListener("blur", finish);
+      input.addEventListener("keydown", (keyEvent) => {
+        if (keyEvent.key === "Enter") { keyEvent.preventDefault(); input.blur(); }
+        if (keyEvent.key === "Escape") { keyEvent.preventDefault(); cancelled = true; input.blur(); }
+      });
+      target.textContent = `${index + 1}. `;
+      target.append(input);
+      input.focus();
+      input.select();
+    }
+    document.addEventListener("dblclick", handlePageTitleDoubleClick, true);
+    return () => document.removeEventListener("dblclick", handlePageTitleDoubleClick, true);
+  }, [design, writable]);
+
   function deletePageById(pageId: string) { if (!design || design.pages.length === 1) return; const index = design.pages.findIndex((page) => page.id === pageId); if (index < 0) return; const nextPage = design.pages[index - 1] ?? design.pages[index + 1]; updateDesign({ ...design, pages: design.pages.filter((page) => page.id !== pageId), activePageId: design.activePageId === pageId ? nextPage.id : design.activePageId }); if (design.activePageId === pageId) { setPageName(nextPage.name); selectObjects([]); } }
 
   function deletePage() { if (activePage) deletePageById(activePage.id); }

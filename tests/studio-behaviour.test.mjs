@@ -502,6 +502,11 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /event\.metaKey \|\| event\.ctrlKey \|\| event\.shiftKey/);
   assert.match(editor, /pageIds\.slice\(Math\.min\(start, end\), Math\.max\(start, end\) \+ 1\)/);
   assert.match(editor, /<div className="design-page-item-actions">[\s\S]*<label className="design-page-select">[\s\S]*<button type="button" className="design-thumbnail-button"/);
+  assert.match(editor, /handlePageTitleDoubleClick/);
+  assert.match(editor, /\.design-thumbnail-button > span/);
+  assert.match(editor, /input\.className = "design-page-title-input"/);
+  assert.match(editor, /keyEvent\.key === "Escape"/);
+  assert.match(editor, /updateDesign\(\{ \.\.\.design, pages: design\.pages\.map/);
   assert.match(editor, /className="design-canvas-frame" style=\{\{ width: `\$\{activePage\.width \* zoom \/ 100\}px` \}\}/);
   assert.doesNotMatch(editor, />Edit Page<\/button>/);
   assert.match(editor, /event\.stopPropagation\(\); selectPage\(page\.id\)/);
@@ -512,6 +517,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-page-select \{ align-items: center; display: flex; grid-column: 1; grid-row: 1; min-height: 34px; \}/);
   assert.match(css, /\.design-page-item-actions \{ align-items: center; display: flex; gap: 3px; grid-column: 2; grid-row: 1; justify-content: flex-end; min-height: 34px; opacity: 1; pointer-events: auto;/);
   assert.match(css, /\.design-thumbnail-button \{ grid-column: 1 \/ -1; grid-row: 2; \}/);
+  assert.match(css, /\.design-page-title-input \{ background: #fff; border: 1px solid #6b7075;/);
   assert.match(css, /\.design-page-item\.is-active \.design-page-item-actions \{ opacity: 1; pointer-events: auto; \}/);
   assert.match(css, /\.design-page-item:has\(\.design-page-select input:checked\) \{ box-shadow: inset 0 0 0 2px #8b3dff66; \}/);
   assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; position: relative; \}/);
