@@ -573,7 +573,8 @@ test("layer dragging shows a blue insertion line and clears it", () => {
   assert.match(css, /\.design-layer-row\.is-drop-after::after \{ bottom: -4px; \}/);
   assert.match(css, /\.design-layer-select\.is-selected \{ border-color: #555; box-shadow: inset 3px 0 #555; \}/);
   assert.doesNotMatch(css, /\.design-layer-row\.is-dragging/);
-  assert.match(editor, /activeMovingObjectId === object\.id \? Math\.min\(object\.opacity, \.15\) : object\.opacity/);
+  assert.match(editor, /opacity=\{object\.opacity\}/);
+  assert.doesNotMatch(editor, /Math\.min\(object\.opacity, \.15\)/);
   assert.match(editor, /rotatingObjectId=\{interactionRef\.current\?\.mode === "rotate" \|\| interactionRef\.current\?\.mode === "move"/);
   assert.doesNotMatch(css, /\.design-layer-row\.is-drop-before \{ margin-top/);
   assert.doesNotMatch(css, /\.design-layer-row\.is-drop-after \{ margin-bottom/);
@@ -789,7 +790,7 @@ test("design objects use a four-way cursor while moving", () => {
   assert.match(editor, /function onRotatePointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
   assert.match(editor, /function onArrowEndpointPointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
   assert.match(editor, /function onArrowBendPointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
-  assert.match(editor, /const activeMovingObjectId = movingObjectId \?\? \(!isRotating && rotationCursor \? rotatingObjectId : undefined\)/);
+  assert.doesNotMatch(editor, /activeMovingObjectId/);
   assert.match(editor, /if \(interaction\.mode === "rotate" \|\| interaction\.mode === "move"\) setRotationCursor\(point\)/);
   assert.match(css, /\.design-page-svg\.is-select-mode \.design-object:active \{ cursor: move; \}/);
   assert.match(css, /\.design-page-svg\.is-select-mode \.design-object\.is-locked:active \{ cursor: default; \}/);
