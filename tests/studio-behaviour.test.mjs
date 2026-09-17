@@ -530,7 +530,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-page-title-input \{ background: transparent; border: 0; border-radius: 0;[^}]*height: 24px;[^}]*min-height: 0;/);
   assert.match(css, /\.design-page-title-input:focus-visible \{ box-shadow: 0 2px 0 var\(--accent\); \}/);
   assert.match(css, /\.design-page-item\.is-active \.design-page-item-actions \{ opacity: 1; pointer-events: auto; \}/);
-  assert.match(css, /\.design-page-item:has\(\.design-page-select input:checked\) \{ box-shadow: inset 0 0 0 2px #6b707566; \}/);
+  assert.match(css, /\.design-page-item\.is-active \{ background: #fff; border-color: #6b7075; \}/);
+  assert.match(css, /\.design-page-item:has\(\.design-page-select input:checked\) \{ box-shadow: none; \}/);
   assert.match(css, /\.design-layer-row \{ align-items: center; display: flex; gap: 4px; position: relative; \}/);
   assert.doesNotMatch(css, /\.design-layer-order-actions/);
   assert.match(css, /\.design-all-page-heading \{ align-items: center; box-sizing: border-box; display: flex; gap: 12px; justify-content: space-between; margin-inline: auto; min-height: 40px; padding: 0 4px; \}/);
