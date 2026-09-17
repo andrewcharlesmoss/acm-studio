@@ -513,6 +513,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(editor, /\{allPagesVisible \? "View single page" : "View all pages"\}/);
   assert.match(css, /\.design-page-list \{ align-content: start;/);
+  assert.match(css, /\.design-page-list, \.design-pages-layers \{ scrollbar-width: none; \}/);
+  assert.match(css, /\.design-page-list::-webkit-scrollbar, \.design-pages-layers::-webkit-scrollbar \{ display: none; height: 0; width: 0; \}/);
   assert.match(css, /\.design-page-item \{ background: transparent; border: 1px solid transparent; border-radius: 7px; display: grid; grid-template-columns: auto minmax\(0, 1fr\); padding: 5px; \}/);
   assert.match(css, /\.design-page-select \{ align-items: center; display: flex; grid-column: 1; grid-row: 1; min-height: 34px; \}/);
   assert.match(css, /\.design-page-item-actions \{ align-items: center; display: flex; gap: 3px; grid-column: 2; grid-row: 1; justify-content: flex-end; min-height: 34px; opacity: 1; pointer-events: auto;/);

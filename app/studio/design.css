@@ -44,6 +44,8 @@
 .design-pages-heading > div:last-child { display: flex; gap: 4px; }
 .design-pages-heading > div:last-child button { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; cursor: pointer; font-size: 20px; height: 30px; line-height: 1; width: 32px; }
 .design-page-list { align-content: start; display: grid; flex: 1 1 0; gap: 10px; min-height: 0; overflow: auto; }
+.design-page-list, .design-pages-layers { scrollbar-width: none; }
+.design-page-list::-webkit-scrollbar, .design-pages-layers::-webkit-scrollbar { display: none; height: 0; width: 0; }
 .design-page-item { background: transparent; border: 1px solid transparent; border-radius: 7px; display: grid; grid-template-columns: auto minmax(0, 1fr); padding: 5px; }
 .design-page-item.is-drop-before, .design-page-item.is-drop-after { position: relative; }
 .design-page-item.is-drop-before::before, .design-page-item.is-drop-after::after { background: var(--accent); border-radius: 2px; content: ""; height: 3px; left: 0; position: absolute; right: 0; z-index: 2; }
