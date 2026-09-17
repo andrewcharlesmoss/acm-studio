@@ -128,7 +128,7 @@
 .design-resize-handle.handle-ne, .design-resize-handle.handle-sw { cursor: nesw-resize; }
 .design-resize-handle.handle-nw, .design-resize-handle.handle-se { cursor: nwse-resize; }
 .design-resize-handle:hover, .design-endpoint-handle:hover { fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; }
-.design-resize-handle:active, .design-endpoint-handle:active, .design-rotate-handle:active { fill: #8b3dff !important; stroke: #8b3dff; stroke-width: 2; }
+.design-resize-handle:active, .design-endpoint-handle:active, .design-rotate-handle:active { fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; }
 .design-arrow-bend-handle { stroke: #aeb3bf; stroke-width: 1.5; cursor: crosshair; }
 .design-selection-border { fill: none; stroke: #8b3dff; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; }
 .design-arrow-bend-handle:hover, .design-arrow-bend-handle:active { fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; }
