@@ -1634,13 +1634,15 @@ export function DesignEditor() {
     if (!design) return;
     const pageIds = design.pages.map((page) => page.id);
     const anchor = pageSelectionAnchorRef.current ?? pageId;
-    let next = [pageId];
+    let next = selectedPageIds;
     if (event.shiftKey && pageIds.includes(anchor)) {
       const start = pageIds.indexOf(anchor);
       const end = pageIds.indexOf(pageId);
       next = pageIds.slice(Math.min(start, end), Math.max(start, end) + 1);
     } else if (event.metaKey || event.ctrlKey) {
       next = selectedPageIds.includes(pageId) ? selectedPageIds.filter((id) => id !== pageId) : [...selectedPageIds, pageId];
+    } else if (event.checked) {
+      next = selectedPageIds.includes(pageId) ? selectedPageIds : [...selectedPageIds, pageId];
     } else if (!event.checked) {
       next = selectedPageIds.filter((id) => id !== pageId);
     }

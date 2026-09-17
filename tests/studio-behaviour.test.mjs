@@ -506,6 +506,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /function selectPageSet\(pageId: string/);
   assert.match(editor, /event\.metaKey \|\| event\.ctrlKey \|\| event\.shiftKey/);
   assert.match(editor, /pageIds\.slice\(Math\.min\(start, end\), Math\.max\(start, end\) \+ 1\)/);
+  assert.match(editor, /else if \(event\.checked\) \{\n\s+next = selectedPageIds\.includes\(pageId\) \? selectedPageIds : \[\.\.\.selectedPageIds, pageId\];\n\s+\} else if \(!event\.checked\)/);
   assert.match(editor, /<div className="design-page-item-actions">[\s\S]*<label className="design-page-select">[\s\S]*<button type="button" className="design-thumbnail-button"/);
   assert.match(editor, /const handlePageSelectionChange = \(event: Event\)/);
   assert.match(editor, /panel\.addEventListener\("change", handlePageSelectionChange, true\)/);
