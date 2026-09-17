@@ -533,7 +533,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-canvas-area \{ display: grid; grid-template-rows: auto minmax\(0, 1fr\) auto; min-height: 0; min-width: 0; \}/);
   assert.doesNotMatch(editor, /design-selection-box/);
   assert.match(editor, /const resizeHandleRadius = 8 \* controlScale/);
-  assert.equal((editor.match(/r=\{resizeHandleRadius\}/g) ?? []).length, 2);
+  assert.equal((editor.match(/r=\{resizeHandleRadius\}/g) ?? []).length, 4);
   assert.doesNotMatch(css, /design-selection-box/);
   assert.match(css, /\.design-rotate-handle:hover \{ fill: #8b3dff !important/);
   assert.match(css, /\.design-rotate-handle:hover \+ \.design-rotate-icon \{ color: #fff; \}/);
@@ -799,7 +799,7 @@ test("design objects use a four-way cursor while moving", () => {
 test("design canvas controls keep a constant screen size as zoom changes", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /const controlScale = 100 \/ Math\.max\(1, zoom\)/);
-  assert.match(editor, /r=\{10 \* controlScale\}/);
+  assert.match(editor, /r=\{resizeHandleRadius\}/);
   assert.match(editor, /r=\{18 \* controlScale\}/);
   assert.match(editor, /width=\{50 \* controlScale\}/);
   assert.match(editor, /height=\{30 \* controlScale\}/);
@@ -842,6 +842,11 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.match(editor, /return resizeArrowEndpoint\(item, endpoint, \{ x: current\.x \+ dx, y: current\.y \+ dy \}, page\)/);
   assert.match(editor, /mapArrowBendForEndpointMove\(bend, oldStart, oldEnd, start, end\)/);
   assert.match(editor, /className="design-arrow-bend-handle"/);
+  assert.match(editor, /const resizeHandleRadius = 8 \* controlScale/);
+  assert.match(editor, /const arrowBendHandleSize = 12 \* controlScale/);
+  assert.match(editor, /className="design-endpoint-handle"[^>]*r=\{resizeHandleRadius\}/g);
+  assert.equal((editor.match(/className="design-endpoint-handle"[^>]*r=\{resizeHandleRadius\}/g) ?? []).length, 2);
+  assert.match(editor, /x=\{bend\.x - arrowBendHandleSize \/ 2\} y=\{bend\.y - arrowBendHandleSize \/ 2\} width=\{arrowBendHandleSize\} height=\{arrowBendHandleSize\}/);
   assert.match(editor, /function onArrowBendPointerDown\(/);
   assert.match(editor, /function onArrowBendPointerDown\([\s\S]*?if \(!designEditable \|\| object\.locked \|\| !design\) return;\s+selectObjects\(\[object\.id\]\);/);
   assert.match(editor, /function onArrowBendKeyDown\(/);
