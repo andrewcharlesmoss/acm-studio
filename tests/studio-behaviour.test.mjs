@@ -618,6 +618,12 @@ test("design tool selection uses a neutral active colour", () => {
   assert.doesNotMatch(css, /#f9e1e1|#d89b9b|#9c2525/);
 });
 
+test("design name uses a neutral grey focus outline", () => {
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(css, /\.acm-ribbon-brand input:focus \{ border-color: #6b7075; outline: 2px solid #6b707566; outline-offset: 1px; \}/);
+  assert.doesNotMatch(css, /\.acm-ribbon-brand input:focus \{[^}]*var\(--accent\)|\.acm-ribbon-brand input:focus \{[^}]*#cc181833/);
+});
+
 test("design ribbon keeps tab targets mounted and supports keyboard navigation", () => {
   const [ribbon, editor] = [
     readFileSync(new URL("../../acm-ribbon/src/index.tsx", import.meta.url), "utf8"),

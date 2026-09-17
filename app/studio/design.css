@@ -44,7 +44,7 @@
 .acm-ribbon-brand a { color: var(--ink); font-size: 14px; font-weight: 700; text-decoration: none; white-space: nowrap; }
 .acm-ribbon-brand > span { color: #aaa89f; }
 .acm-ribbon-brand input { background: transparent; border: 1px solid transparent; border-radius: 5px; color: var(--ink); font-size: 14px; font-weight: 650; min-width: 140px; padding: 7px 8px; }
-.acm-ribbon-brand input:focus { border-color: var(--accent); outline: 2px solid #cc181833; }
+.acm-ribbon-brand input:focus { border-color: #6b7075; outline: 2px solid #6b707566; outline-offset: 1px; }
 .design-ribbon-link { align-items: center; border: 1px solid #c8c6be; border-radius: 5px; color: #284aa9; display: inline-flex; font-size: 12px; min-height: 34px; padding: 7px 9px; text-decoration: none; }
 .design-ribbon-link:hover, .design-ribbon-link:focus-visible { background: #eef2ff; border-color: #8da1e0; }
 .design-ribbon-hint { align-items: center; color: var(--muted); display: flex; font-size: 12px; max-width: 360px; padding: 8px 0; }
