@@ -641,8 +641,9 @@ test("design editor exposes the ACM Studio local identity bar", () => {
   assert.match(editor, /<span className="design-environment" aria-label="Environment: local">LOCAL<\/span>/);
   assert.doesNotMatch(editor, /Return to Account|Sign Out/);
   assert.match(css, /\.design-shell \{[^}]*grid-template-rows: auto auto auto auto minmax\(0, 1fr\);/);
-  assert.match(css, /\.design-topbar \{ align-items: center; background: #fff; border-bottom: 1px solid #d2d0c8; display: flex; grid-column: 1; grid-row: 1;/);
-  assert.match(css, /\.design-environment \{ background: #f0f0ee;/);
+  assert.match(css, /\.design-topbar \{ align-items: center; background: #fff; border-bottom: 1px solid #d8d8d8; display: flex; grid-column: 1; grid-row: 1; height: 76px; justify-content: space-between; padding: 0 clamp\(22px, 5vw, 76px\); \}/);
+  assert.match(css, /\.design-topbar-mark \{[^}]*height: 34px;[^}]*width: 34px; \}/);
+  assert.match(css, /\.design-environment \{ background: #f1f1f1; border: 1px solid #d0d0d0; border-radius: 999px; color: #666; font-size: \.875rem; font-weight: 800; letter-spacing: \.06em; padding: 5px 10px; text-transform: uppercase; \}/);
 });
 
 test("design canvas offers an optional purple selection border", () => {
