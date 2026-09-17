@@ -755,7 +755,7 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   const cursor = readFileSync(new URL("../app/studio/design-transform.ts", import.meta.url), "utf8");
   assert.match(editor, /const \[isRotating, setIsRotating\] = useState\(false\)/);
-  assert.match(editor, /!isRotating \? <><circle role="button"/);
+  assert.match(editor, /!isRotating && \(!objectActiveHandle \|\| objectActiveHandle\.kind === "rotate"\) \? <><circle role="button"/);
   assert.match(editor, /setIsRotating\(true\)/);
   assert.match(editor, /setIsRotating\(false\)/);
   assert.match(editor, /function rotationBadgePoint\(/);
@@ -830,7 +830,11 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.match(editor, /\(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\) && object\.type !== "arrow"/);
   assert.match(editor, /const \[hoveredObjectId, setHoveredObjectId\] = useState<string \| null>\(null\)/);
   assert.match(editor, /onPointerEnter=\{\(\) => showHoverHandles && !object\.locked && setHoveredObjectId\(object\.id\)\}/);
-  assert.match(editor, /\(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\) && object\.type === "arrow" \? \(\(\) => \{ const \{ start, end, bends \} = arrowPoints\(object\)/);
+  assert.match(editor, /\(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\) && object\.type === "arrow" && showObjectHandles \? \(\(\) => \{ const \{ start, end, bends \} = arrowPoints\(object\)/);
+  assert.match(editor, /const \[activeHandle, setActiveHandle\] = useState<ActiveHandle \| null>\(null\)/);
+  assert.match(editor, /if \(objectActiveHandle && \(objectActiveHandle\.kind !== "resize" \|\| objectActiveHandle\.handle !== handle\)\) return null/);
+  assert.match(editor, /setActiveHandle\(\{ objectId: object\.id, kind: "endpoint", endpoint \}\)/);
+  assert.match(editor, /setActiveHandle\(null\);/);
   assert.match(editor, /useEffect\(\(\) => \{ queueMicrotask\(\(\) => setHoveredObjectId\(null\)\); \}, \[page\.id, showHoverHandles\]\)/);
   assert.match(editor, /showHoverHandles=\{tool === "select"\}/);
   assert.match(editor, /showHoverHandles=\{isActive && tool === "select"\}/);
