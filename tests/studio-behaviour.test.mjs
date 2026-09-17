@@ -467,6 +467,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /<LayerList page=\{activePage\} selectedIds=\{selectedIds\} writable=\{writable\} onSelect=\{\(id\) => selectObjects\(\[id\]\)\} onReorder=\{reorderLayer\}/);
   assert.match(editor, /function moveLayer\(objectId: string, direction: LayerMoveDirection\)/);
   assert.match(editor, /function reorderLayer\(sourceId: string, targetId: string, position: LayerDropPosition\)/);
+  assert.match(editor, /const dropTolerance = 64/);
   assert.match(editor, /function reorderedPages\(pages: DesignPage\[\], sourceId: string, targetId: string, position: "before" \| "after"\)/);
   assert.match(editor, /if \(!reorderedPages\(design\.pages, draggedPageId, page\.id, position\)\) \{\s*clearDropGuide\(\);\s*return;/);
   assert.match(editor, /const pages = reorderedPages\(design\.pages, sourceId, targetId, dropPosition\);/);
@@ -562,13 +563,14 @@ test("layers use the full pane and keep scrolling on the outer panel", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(css, /\.design-pages-layers \{[^}]*flex: 1 1 auto;[^}]*min-height: 0;[^}]*overflow-y: auto;/);
   assert.match(css, /\.design-pages-layers \.design-layer-list \{ margin-inline: -64px; max-height: none; overflow: visible; padding-inline: 64px; \}/);
+  assert.match(css, /\.design-pages-layers \.design-layer-list \{ padding-right: 160px; \}/);
 });
 
 test("layer dragging shows a blue insertion line and clears it", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(editor, /const \[dropTarget, setDropTarget\] = useState<\{ id: string; position: LayerDropPosition \} \| null>\(null\)/);
-  assert.match(editor, /const dropTolerance = 32/);
+  assert.match(editor, /const dropTolerance = 64/);
   assert.match(editor, /clientY >= bounds\.top - dropTolerance && clientY <= bounds\.bottom \+ dropTolerance/);
   assert.match(editor, /\.sort\(\(a, b\) => \{[\s\S]*Math\.abs\(clientY - \(aBounds\.top \+ aBounds\.height \/ 2\)\)/);
   assert.match(editor, /onDragOver=\{updateDropTarget\}/);

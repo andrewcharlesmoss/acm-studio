@@ -587,7 +587,7 @@ function LayerList({ page, selectedIds, writable, onSelect, onReorder }: { page:
   const [dropTarget, setDropTarget] = useState<{ id: string; position: LayerDropPosition } | null>(null);
   const layers = [...page.objects].reverse();
   if (!page.objects.length) return <p>No objects yet.</p>;
-  const dropTolerance = 32;
+  const dropTolerance = 64;
   const getDropTarget = (container: HTMLElement, clientY: number) => {
     const rows = Array.from(container.querySelectorAll<HTMLElement>('[data-layer-row="true"]'));
     const row = rows.filter((item) => {
