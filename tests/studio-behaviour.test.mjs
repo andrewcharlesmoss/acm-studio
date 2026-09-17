@@ -629,6 +629,22 @@ test("design workspace exposes centred collapse controls for both side panes", (
   assert.match(css, /\.design-workspace\.pages-collapsed\.inspector-collapsed \{ grid-template-columns: 0 minmax\(0, 1fr\) 0; \}/);
 });
 
+test("design editor exposes the ACM Studio local identity bar", () => {
+  const [editor, css] = [
+    readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8"),
+    readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8"),
+  ];
+  assert.match(editor, /<header className="design-topbar">/);
+  assert.match(editor, /<span className="design-topbar-mark" aria-hidden="true">A<\/span>/);
+  assert.match(editor, /<a href="\/studio" aria-label="ACM Studio home">ACM Studio<\/a>/);
+  assert.match(editor, /<strong>Designs<\/strong>/);
+  assert.match(editor, /<span className="design-environment" aria-label="Environment: local">LOCAL<\/span>/);
+  assert.doesNotMatch(editor, /Return to Account|Sign Out/);
+  assert.match(css, /\.design-shell \{[^}]*grid-template-rows: auto auto auto auto minmax\(0, 1fr\);/);
+  assert.match(css, /\.design-topbar \{ align-items: center; background: #fff; border-bottom: 1px solid #d2d0c8; display: flex; grid-column: 1; grid-row: 1;/);
+  assert.match(css, /\.design-environment \{ background: #f0f0ee;/);
+});
+
 test("design canvas offers an optional purple selection border", () => {
   const [editor, css] = [
     readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8"),
