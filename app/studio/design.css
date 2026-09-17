@@ -45,7 +45,7 @@
 .acm-ribbon-brand a { color: var(--ink); font-size: 14px; font-weight: 700; text-decoration: none; white-space: nowrap; }
 .acm-ribbon-brand > span { color: #aaa89f; }
 .acm-ribbon-brand input { background: transparent; border: 1px solid transparent; border-radius: 5px; color: var(--ink); font-size: 14px; font-weight: 650; min-width: 140px; padding: 7px 8px; }
-.acm-ribbon-brand input:focus { border-color: #6b7075; outline: 2px solid #6b707566; outline-offset: 1px; }
+.acm-ribbon-brand input:focus { background: #fff; border-color: #6b7075; outline: 2px solid #6b707566; outline-offset: 1px; }
 .design-ribbon-link { align-items: center; border: 1px solid #c8c6be; border-radius: 5px; color: #284aa9; display: inline-flex; font-size: 12px; min-height: 34px; padding: 7px 9px; text-decoration: none; }
 .design-ribbon-link:hover, .design-ribbon-link:focus-visible { background: #eef2ff; border-color: #8da1e0; }
 .design-ribbon-hint { align-items: center; color: var(--muted); display: flex; font-size: 12px; max-width: 360px; padding: 8px 0; }
@@ -64,7 +64,7 @@
 .design-context-menu-separator { background: #d8d6ce; height: 1px; margin: 5px 4px; }
 .design-context-submenu { border-left: 1px solid #d8d6ce; display: grid; gap: 2px; margin: 0 0 2px 32px; padding-left: 5px; }
 .design-context-submenu button { display: block; min-height: 32px; padding: 6px 9px; width: 100%; }
-.design-workspace { --design-inspector-width: 260px; --design-pages-width: 224px; display: grid; grid-column: 1; grid-row: 5; grid-template-columns: var(--design-pages-width) minmax(0, 1fr) var(--design-inspector-width); min-height: 0; position: relative; }
+.design-workspace { --design-inspector-width: 260px; --design-pages-width: 224px; border-top: 1px solid #d8d8d8; display: grid; grid-column: 1; grid-row: 5; grid-template-columns: var(--design-pages-width) minmax(0, 1fr) var(--design-inspector-width); min-height: 0; position: relative; }
 .design-pane-collapse { align-items: center; background: #f9f8f4; border: 1px solid #c8c6be; border-radius: 999px; color: var(--muted); cursor: pointer; display: inline-flex; height: 48px; justify-content: center; padding: 0; position: absolute; top: 50%; transform: translateY(-50%); width: 28px; z-index: 31; }
 .design-pane-collapse:hover, .design-pane-collapse:focus-visible { background: #eceae3; border-color: #aaa89f; color: var(--ink); outline: none; }
 .design-pane-collapse-left { left: calc(var(--design-pages-width) - 14px); }
@@ -103,7 +103,7 @@
 .design-page-item-actions button:disabled { cursor: default; opacity: .3; }
 .design-thumbnail-button { grid-column: 1 / -1; grid-row: 2; }
 .design-page-actions { border-top: 1px solid #d2d0c8; display: grid; gap: 6px; margin-top: auto; padding-top: 12px; }
-.design-page-actions button, .design-import-label { background: #fff; border: 1px solid #c8c6be; border-radius: 6px; color: var(--ink); cursor: pointer; font-size: 12px; padding: 8px; text-align: center; }
+.design-page-actions button, .design-import-label { background: #fff; border: 1px solid #c8c6be; border-radius: 6px; color: var(--ink); cursor: pointer; font-size: 12px; padding: 8px; text-align: center; text-transform: capitalize; }
 .design-page-actions button:hover:not(:disabled), .design-import-label:hover { border-color: var(--accent); color: var(--accent); }
 .design-page-actions button:disabled { cursor: default; opacity: .45; }
 .design-import-label { display: block; margin-top: 6px; }
@@ -193,7 +193,7 @@
 .design-guide-dotted { stroke-dasharray: 1 5; stroke-linecap: round; }
 .design-inspector { background: #f7f7f7; border-left: 1px solid #d8d8d8; min-height: 0; min-width: 0; overflow: auto; padding: 18px 15px; }
 .design-inspector-section { border-bottom: 1px solid #d2d0c8; display: grid; gap: 10px; padding-bottom: 18px; margin-bottom: 18px; }
-.design-inspector-label { font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.design-inspector-label { font-size: 12px; font-weight: 700; letter-spacing: .07em; }
 .design-inspector label { color: var(--muted); display: grid; font-size: 12px; gap: 4px; }
 .design-inspector input, .design-inspector select, .design-inspector textarea { background: #fff; border: 1px solid #c8c6be; border-radius: 5px; box-sizing: border-box; color: var(--ink); font: inherit; min-height: 32px; padding: 6px 7px; width: 100%; }
 .design-inspector textarea { min-height: 72px; resize: vertical; }
@@ -294,4 +294,11 @@
   .design-topbar { height: 66px; padding: 0 18px; }
   .design-topbar-brand { gap: 10px; }
   .design-topbar-brand strong { font-size: .875rem; padding-left: 10px; }
+}
+
+/* Ribbon controls use Title Case consistently across every tab. */
+.design-ribbon-panel .acm-ribbon-group-label,
+.design-ribbon-panel .acm-ribbon-button,
+.design-ribbon-panel .acm-ribbon-field {
+  text-transform: capitalize;
 }

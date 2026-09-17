@@ -2053,12 +2053,12 @@ export function DesignEditor() {
         </StudioRibbonPanel>
         <StudioRibbonPanel tab="view">
           <StudioRibbonGroup label="Canvas view">
-            <StudioRibbonButton onClick={() => changeZoom(-1)}><span>Zoom out</span></StudioRibbonButton>
+            <StudioRibbonButton onClick={() => changeZoom(-1)}><StudioIcon name="zoom-out" size={24} /><span>Zoom out</span></StudioRibbonButton>
             <label className="acm-ribbon-field">Zoom<select aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</select></label>
-            <StudioRibbonButton onClick={() => changeZoom(1)}><span>Zoom in</span></StudioRibbonButton>
-            <StudioRibbonButton onClick={fitCanvasToView}><span>Fit canvas</span></StudioRibbonButton>
-            <StudioRibbonButton active={allPagesVisible} onClick={() => setAllPagesVisible((value) => !value)} aria-pressed={allPagesVisible}><span>{allPagesVisible ? "Single page" : "All pages"}</span></StudioRibbonButton>
-            <StudioRibbonButton active={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }} aria-pressed={snapEnabled}><span>Snap {snapEnabled ? "on" : "off"}</span></StudioRibbonButton>
+            <StudioRibbonButton onClick={() => changeZoom(1)}><StudioIcon name="zoom-in" size={24} /><span>Zoom in</span></StudioRibbonButton>
+            <StudioRibbonButton onClick={fitCanvasToView}><StudioIcon name="fit" size={24} /><span>Fit canvas</span></StudioRibbonButton>
+            <StudioRibbonButton active={allPagesVisible} onClick={() => setAllPagesVisible((value) => !value)} aria-pressed={allPagesVisible}><StudioIcon name="archive" size={24} /><span>{allPagesVisible ? "Single page" : "All pages"}</span></StudioRibbonButton>
+            <StudioRibbonButton active={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }} aria-pressed={snapEnabled}><StudioIcon name="align-centre" size={24} /><span>Snap {snapEnabled ? "on" : "off"}</span></StudioRibbonButton>
           </StudioRibbonGroup>
         </StudioRibbonPanel>
         <StudioRibbonPanel tab="export">
