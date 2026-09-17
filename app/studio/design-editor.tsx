@@ -733,6 +733,7 @@ export function DesignEditor() {
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
   const pageSelectionAnchorRef = useRef<string | null>(null);
+  const pageSelectionModifiersRef = useRef({ metaKey: false, ctrlKey: false, shiftKey: false });
   const [pagesCollapsed, setPagesCollapsed] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [leftPaneTab, setLeftPaneTab] = useState<"pages" | "layers">("pages");
@@ -914,6 +915,10 @@ export function DesignEditor() {
       const checkbox = target.closest<HTMLInputElement>(".design-page-select input");
       const thumbnail = target.closest<HTMLElement>(".design-thumbnail-button");
       if (!checkbox && !thumbnail) return;
+      if (checkbox) {
+        pageSelectionModifiersRef.current = { metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey };
+        return;
+      }
       const item = target.closest<HTMLElement>(".design-page-item");
       if (!item) return;
       const index = Array.from(panel.querySelectorAll(".design-page-item")).indexOf(item);
@@ -925,6 +930,19 @@ export function DesignEditor() {
         event.stopPropagation();
       }
       if (event.metaKey || event.ctrlKey || event.shiftKey || checkbox) selectPageSet(page.id, modifiers);
+    };
+    const handlePageSelectionChange = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement) || !target.matches(".design-page-select input")) return;
+      const item = target.closest<HTMLElement>(".design-page-item");
+      if (!item) return;
+      const index = Array.from(panel.querySelectorAll(".design-page-item")).indexOf(item);
+      const page = design?.pages[index];
+      if (!page) return;
+      event.stopPropagation();
+      const modifiers = pageSelectionModifiersRef.current;
+      pageSelectionModifiersRef.current = { metaKey: false, ctrlKey: false, shiftKey: false };
+      selectPageSet(page.id, { ...modifiers, checked: target.checked });
     };
     const handleDragOver = (event: globalThis.DragEvent) => {
       const item = (event.target as HTMLElement).closest<HTMLElement>(".design-page-item");
@@ -947,7 +965,8 @@ export function DesignEditor() {
     panel.addEventListener("dragover", handleDragOver);
     panel.addEventListener("dragleave", clearDropGuide);
     panel.addEventListener("click", handlePageSelectionClick, true);
-    return () => { panel.removeEventListener("dragover", handleDragOver); panel.removeEventListener("dragleave", clearDropGuide); panel.removeEventListener("click", handlePageSelectionClick, true); clearDropGuide(); };
+    panel.addEventListener("change", handlePageSelectionChange, true);
+    return () => { panel.removeEventListener("dragover", handleDragOver); panel.removeEventListener("dragleave", clearDropGuide); panel.removeEventListener("click", handlePageSelectionClick, true); panel.removeEventListener("change", handlePageSelectionChange, true); clearDropGuide(); };
   }, [design?.pages, draggedPageId, selectedPageIds]);
 
   useEffect(() => {
