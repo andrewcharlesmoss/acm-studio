@@ -21,9 +21,9 @@ import { Ribbon as StudioRibbon, RibbonButton as StudioRibbonButton, RibbonGroup
 import "@acm/ribbon/styles.css";
 
 type Tool = "select" | "image" | "arrow" | "rectangle" | "ellipse" | "text" | "step" | "highlight" | "redaction";
-type StudioRibbonTab = "home" | "insert" | "arrange" | "view" | "export";
+type StudioRibbonTab = "file" | "home" | "insert" | "arrange" | "view" | "export";
 const studioRibbonTabs: readonly RibbonTabDefinition<StudioRibbonTab>[] = [
-  { id: "home", label: "Home" }, { id: "insert", label: "Insert" }, { id: "arrange", label: "Arrange" }, { id: "view", label: "View" }, { id: "export", label: "Export" },
+  { id: "file", label: "File" }, { id: "home", label: "Home" }, { id: "insert", label: "Insert" }, { id: "arrange", label: "Arrange" }, { id: "view", label: "View" }, { id: "export", label: "Export" },
 ];
 type DrawTool = Exclude<Tool, "select" | "image">;
 type PositionAxis = "left" | "centre" | "right" | "top" | "middle" | "bottom";
@@ -469,7 +469,7 @@ function resizeArrowEndpoint(object: DesignArrowObject, endpoint: "start" | "end
   return { ...object, x, y, width, height, rotation: 0, start: { x: start.x - x, y: start.y - y }, end: { x: end.x - x, y: end.y - y }, bends };
 }
 
-function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], tool = "select", zoom = 100, isRotating = false, rotatingObjectId, rotationCursor = null, activeHandle = null, showPageResizeHandles = false, purpleSelectionBorder = false, showHoverHandles = false, editingTextId = null, editingTextValue = "", onEditingTextChange, onEditingTextCommit, onEditingTextCancel, onCanvasPointerDown, onObjectPointerDown, onTextDoubleClick, onResizePointerDown, onPageResizePointerDown, onRotatePointerDown, onArrowEndpointPointerDown, onArrowBendPointerDown, onArrowBendKeyDown, onResizeKeyDown, onPageResizeKeyDown, onRotateKeyDown, onArrowEndpointKeyDown, svgRef }: {
+export function PageSvg({ page, assets, selectedIds = [], selectionBox, guides = [], tool = "select", zoom = 100, isRotating = false, rotatingObjectId, rotationCursor = null, activeHandle = null, showPageResizeHandles = false, purpleSelectionBorder = false, showHoverHandles = false, editingTextId = null, editingTextValue = "", onEditingTextChange, onEditingTextCommit, onEditingTextCancel, onCanvasPointerDown, onObjectPointerDown, onTextDoubleClick, onResizePointerDown, onPageResizePointerDown, onRotatePointerDown, onArrowEndpointPointerDown, onArrowBendPointerDown, onArrowBendKeyDown, onResizeKeyDown, onPageResizeKeyDown, onRotateKeyDown, onArrowEndpointKeyDown, svgRef }: {
   page: DesignPage; assets: DesignAsset[]; selectedIds?: string[]; selectionBox?: { x: number; y: number; width: number; height: number } | null; guides?: Guide[]; zoom?: number;
   isRotating?: boolean;
   rotatingObjectId?: string;
@@ -718,6 +718,14 @@ export function DesignEditor() {
   const interactionRef = useRef<Interaction | null>(null);
   const pageResizeRef = useRef<PageResizeInteraction | null>(null);
   const pageDropPositionRef = useRef<{ id: string; position: "before" | "after" } | null>(null);
+
+  const handleRibbonTabChange = (tab: StudioRibbonTab) => {
+    if (tab === "file") {
+      window.location.href = "/studio/designs/library";
+      return;
+    }
+    setRibbonTab(tab);
+  };
   const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
   const canvasScrollRef = useRef<HTMLDivElement>(null);
   const panRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
@@ -1866,11 +1874,16 @@ export function DesignEditor() {
         className="design-ribbon-panel"
         tabs={studioRibbonTabs}
         activeTab={ribbonTab}
-        onTabChange={setRibbonTab}
+        onTabChange={handleRibbonTabChange}
         accessibleName="Design tools"
         brand={<><a href="/studio" aria-label="Back to ACM Studio">ACM Studio</a><span aria-hidden="true">/</span><input aria-label="Design name" value={design.name} disabled={!writable} onChange={(event) => updateDesign({ ...design, name: event.target.value })} /></>}
         status={<span>{status}</span>}
       >
+        <StudioRibbonPanel tab="file">
+          <StudioRibbonGroup label="Designs">
+            <StudioRibbonButton size="large" onClick={() => { window.location.href = "/studio/designs/library"; }}><StudioIcon name="archive" size={24} /><span>All designs</span></StudioRibbonButton>
+          </StudioRibbonGroup>
+        </StudioRibbonPanel>
         <StudioRibbonPanel tab="home">
           <StudioRibbonGroup label="History">
             <StudioRibbonButton size="large" onClick={undo} disabled={!history.length || !writable}><StudioIcon name="undo" size={24} /><span>Undo</span></StudioRibbonButton>

@@ -456,6 +456,10 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(editor, /aria-label="Design pages and layers"/);
   assert.match(editor, /const \[leftPaneTab, setLeftPaneTab\] = useState<"pages" \| "layers">\("pages"\)/);
+  assert.match(editor, /type StudioRibbonTab = "file" \| "home" \| "insert" \| "arrange" \| "view" \| "export"/);
+  assert.match(editor, /\{ id: "file", label: "File" \}/);
+  assert.match(editor, /if \(tab === "file"\) \{\s*window\.location\.href = "\/studio\/designs\/library";/);
+  assert.match(editor, /<StudioRibbonPanel tab="file">[\s\S]*All designs/);
   assert.match(editor, /role="tablist" aria-label="Design navigation"/);
   assert.match(editor, /role="tab"[\s\S]*>Pages<\/button>[\s\S]*role="tab"[\s\S]*>Layers<\/button>/);
   assert.match(editor, /aria-controls=\{leftPaneTab === "pages" \? "design-pages-tabpanel" : undefined\}/);
@@ -559,6 +563,19 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-arrow-bend-handle:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; \}/);
   assert.doesNotMatch(css, /\.design-endpoint-handle:focus-visible \{ outline: none; stroke: #284aa9/);
   assert.match(css, /\.design-pane-tabs button\.is-active \{ border-bottom-color: var\(--accent\);/);
+});
+
+test("the File tab provides a local design library", () => {
+  const library = readFileSync(new URL("../app/studio/design-library.tsx", import.meta.url), "utf8");
+  const route = readFileSync(new URL("../app/studio/designs/library/page.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(route, /<DesignLibrary \/>/);
+  assert.match(library, /window\.setTimeout\(\(\) => \{[\s\S]*loadDesigns\(\)\.sort/);
+  assert.match(library, /<PageSvg page=\{page\} assets=\{design\.assets\}/);
+  assert.match(library, /onObjectPointerDown=\{\(\) => undefined\}/);
+  assert.match(library, /aria-label="Saved Studio designs"/);
+  assert.match(library, /\/studio\/designs\?designId=\$\{encodeURIComponent\(design\.id\)\}/);
+  assert.match(css, /\.design-library-grid \{ display: grid;/);
 });
 
 test("layers use the full pane and keep scrolling on the outer panel", () => {
