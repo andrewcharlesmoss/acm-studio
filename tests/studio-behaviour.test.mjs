@@ -667,7 +667,7 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(ribbonCss, /\.acm-ribbon-content \{ border-top: 1px solid var\(--acm-ribbon-border\); box-sizing: border-box; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\); overflow: auto; \}/);
   assert.match(ribbonCss, /\.acm-ribbon-content > \.acm-ribbon-panel \{ align-items: stretch; box-sizing: border-box; display: flex; gap: 2px; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\);/);
   assert.match(editor, /<StudioRibbon\s+className="design-ribbon-panel"/);
-  assert.match(designCss, /\.design-ribbon-panel \{ border: 1px solid #d2d0c8; border-radius: 14px; margin: 26px; overflow: visible; \}/);
+  assert.match(designCss, /\.design-ribbon-panel \{ border: 1px solid #d2d0c8; border-radius: 14px; margin: 16px; overflow: visible; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs > button, \.design-ribbon-panel \.acm-ribbon-group-label, \.design-ribbon-panel \.acm-ribbon-brand a, \.design-ribbon-panel \.acm-ribbon-brand input \{ font-weight: 400; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs \{ border-top: 0; border-bottom: 1px solid #d2d0c8; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs > button \{ position: relative; border-bottom: 3px solid transparent !important; background: transparent; \}/);

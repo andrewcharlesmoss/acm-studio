@@ -31,7 +31,7 @@
 .design-topbar-divider { display: none; }
 .design-topbar-mark { align-items: center; background: #3f3f3f; border-radius: 10px; color: #fff; display: inline-flex; font-size: 19px; font-weight: 750; height: 34px; justify-content: center; width: 34px; }
 .design-environment { background: #f1f1f1; border: 1px solid #d0d0d0; border-radius: 999px; color: #666; font-size: .875rem; font-weight: 800; letter-spacing: .06em; padding: 5px 10px; text-transform: uppercase; }
-.design-ribbon-panel { border: 1px solid #d2d0c8; border-radius: 14px; margin: 26px; overflow: visible; }
+.design-ribbon-panel { border: 1px solid #d2d0c8; border-radius: 14px; margin: 16px; overflow: visible; }
 .design-ribbon-panel .acm-ribbon-tabs > button, .design-ribbon-panel .acm-ribbon-group-label, .design-ribbon-panel .acm-ribbon-brand a, .design-ribbon-panel .acm-ribbon-brand input { font-weight: 400; }
 .design-ribbon-panel .acm-ribbon-tabs { border-top: 0; border-bottom: 1px solid #d2d0c8; }
 .design-ribbon-panel .acm-ribbon-tabs > button { position: relative; border-bottom: 3px solid transparent !important; background: transparent; }
