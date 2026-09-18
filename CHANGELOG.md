@@ -226,6 +226,7 @@
 ### Fixed
 - Design saves now discard unreferenced image assets and show a clear recovery message when browser storage quota is exceeded.
 - Double-clicking a canvas text box now reliably opens its inline editor.
+- Page navigation now remains local to each tab and is not reset by a synchronisation acknowledgement after selecting an object.
 
 - Restoring Undo/Redo selections in shortened, formatted text no longer crashes the editor.
 

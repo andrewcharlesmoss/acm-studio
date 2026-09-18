@@ -811,6 +811,7 @@ export function DesignEditor() {
   const recentStylesRef = useRef<RecentStyles>(cloneDesign(defaultRecentStyles));
   const lastTextPointerRef = useRef<{ id: string; at: number } | null>(null);
   const syncRef = useRef<DesignSyncSession | null>(null);
+  const activePageIdRef = useRef<string | null>(null);
   const designsRef = useRef<DesignProject[]>([]);
   const requestedDesignId = useState(() => typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("designId"))[0];
 
@@ -818,6 +819,7 @@ export function DesignEditor() {
   const peerWritable = ownershipState === "waiting" && syncStatus === "synced";
   const writable = (primaryWritable || peerWritable) && !syncConflict;
   const activePage = design?.pages.find((page) => page.id === design.activePageId) ?? design?.pages[0] ?? null;
+  if (activePage && !design?.pages.some((page) => page.id === activePageIdRef.current)) activePageIdRef.current = activePage.id;
   const activePageIndex = activePage && design ? design.pages.findIndex((page) => page.id === activePage.id) : 0;
   const designEditable = writable && !activePage?.locked;
   const selectedObject = activePage?.objects.find((object) => object.id === selectedId) ?? null;
@@ -1056,14 +1058,17 @@ export function DesignEditor() {
       },
       onConflict: (next) => { setSyncConflict(next); setConflictPanelOpen(true); setStatus("Resolve conflicting changes"); },
       onSnapshot: (snapshot, source) => {
-        setDesign(snapshot);
+        const localActivePageId = snapshot.pages.some((page) => page.id === activePageIdRef.current) ? activePageIdRef.current : snapshot.activePageId;
+        activePageIdRef.current = localActivePageId;
+        const displayedSnapshot = localActivePageId === snapshot.activePageId ? snapshot : { ...snapshot, activePageId: localActivePageId };
+        setDesign(displayedSnapshot);
         setDesigns((items) => {
           const next = items.map((item) => item.id === snapshot.id ? snapshot : item);
           designsRef.current = next;
           return next;
         });
         if (source === "welcome") { setHistory([]); setFuture([]); }
-        setPageName(snapshot.pages.find((page) => page.id === snapshot.activePageId)?.name ?? snapshot.pages[0]?.name ?? "");
+        setPageName(displayedSnapshot.pages.find((page) => page.id === displayedSnapshot.activePageId)?.name ?? displayedSnapshot.pages[0]?.name ?? "");
         setSelectedIds((ids) => ids.filter((id) => snapshot.pages.some((page) => page.objects.some((object) => object.id === id))));
         setSelectedId((id) => id && snapshot.pages.some((page) => page.objects.some((object) => object.id === id)) ? id : null);
       },
@@ -1685,7 +1690,13 @@ export function DesignEditor() {
     updateDesign({ ...design, pages, activePageId: page.id }); setPageName(page.name); selectObjects([]);
   }
 
-  function selectPage(id: string) { if (!design) return; const nextPage = design.pages.find((page) => page.id === id); updateDesign({ ...design, activePageId: id }, false); setPageName(nextPage?.name ?? ""); selectObjects([]); }
+  function selectPage(id: string) {
+    if (!design || !design.pages.some((page) => page.id === id)) return;
+    activePageIdRef.current = id;
+    setDesign({ ...design, activePageId: id });
+    setPageName(design.pages.find((page) => page.id === id)?.name ?? "");
+    selectObjects([]);
+  }
 
   function selectPageSet(pageId: string, event: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; checked: boolean }) {
     if (!design) return;
