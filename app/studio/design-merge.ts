@@ -192,7 +192,6 @@ function reorderKnown(current: string[], before: string[], after: string[]) {
   const known = new Set(before);
   const currentKnown = current.filter((id) => known.has(id));
   if (!equal(currentKnown, before)) return null;
-  if (currentKnown.some((id) => !after.includes(id))) return null;
   let index = 0;
   return current.map((id) => known.has(id) ? after[index++] : id);
 }
@@ -265,7 +264,10 @@ export function applyDesignTransaction(current: DesignProject, transaction: Desi
   const conflicts: DesignMergeConflict[] = [];
   for (const change of transaction.changes) {
     if (change.kind === "set") applySet(snapshot, change, conflicts);
-    else if (change.kind === "move") applyMove(snapshot, change, conflicts);
+    else if (change.kind === "move") {
+      const deleteConflict = conflicts.some((conflict) => conflict.reason === "delete" && conflict.change.kind === "delete" && conflict.change.collection === change.collection && conflict.change.parentId === change.parentId);
+      if (!deleteConflict) applyMove(snapshot, change, conflicts);
+    }
     else applyCollectionChange(snapshot, change, conflicts);
   }
   if (!conflicts.length) {

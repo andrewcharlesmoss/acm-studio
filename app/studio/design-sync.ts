@@ -316,8 +316,12 @@ export class DesignSyncSession {
         const result = applyDesignTransaction(this.snapshot, operation.transaction);
         if (result.conflicts.length) {
           const error = new Error("The design changed in another Studio tab.");
-          if (operation.local) this.openConflict(operation.transaction, result, this.optimisticSnapshot, error.message, operation);
-          else { this.rememberOperation(operation.transaction.transactionId, false, error.message); this.sendReject(operation.requestId ?? operation.transaction.transactionId, operation.transaction, error.message, result.conflicts); }
+          if (operation.local) {
+            this.openConflict(operation.transaction, result, this.optimisticSnapshot, error.message, operation);
+            break;
+          }
+          this.rememberOperation(operation.transaction.transactionId, false, error.message);
+          this.sendReject(operation.requestId ?? operation.transaction.transactionId, operation.transaction, error.message, result.conflicts);
           continue;
         }
         try {
@@ -330,7 +334,11 @@ export class DesignSyncSession {
         } catch (caughtError) {
           const error = caughtError instanceof Error ? caughtError : new Error("The design could not be saved.");
           if (!operation.local) { this.rememberOperation(operation.transaction.transactionId, false, error.message); this.sendReject(operation.requestId ?? operation.transaction.transactionId, operation.transaction, error.message, []); }
-          else { this.openConflict(operation.transaction, { snapshot: this.snapshot, conflicts: [] }, this.optimisticSnapshot, error.message, operation); operation.reject?.(error); }
+          else {
+            this.openConflict(operation.transaction, { snapshot: this.snapshot, conflicts: [] }, this.optimisticSnapshot, error.message, operation);
+            operation.reject?.(error);
+            break;
+          }
         }
       }
     } finally { this.processingPrimary = false; }
