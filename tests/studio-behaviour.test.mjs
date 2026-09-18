@@ -473,9 +473,13 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /function reorderLayer\(sourceId: string, targetId: string, position: LayerDropPosition\)/);
   assert.match(editor, /const dropTolerance = 64/);
   assert.match(editor, /function reorderedPages\(pages: DesignPage\[\], sourceId: string, targetId: string, position: "before" \| "after"\)/);
-  assert.match(editor, /if \(!reorderedPages\(design\.pages, draggedPageId, page\.id, position\)\) \{\s*clearDropGuide\(\);\s*return;/);
+  assert.match(editor, /const gapPositions = \[/);
+  assert.match(editor, /if \(!reorderedPages\(pages, draggedPageId, targetPage\.id, position\)\) \{\s*clearDropGuide\(\);\s*return;/);
+  assert.match(editor, /gapPositions\[gapIndex\] - panelBounds\.top \+ panel\.scrollTop - PAGE_DROP_GUIDE_HEIGHT \/ 2/);
+  assert.match(editor, /Math\.max\(\s*0,\s*Math\.min\(\s*panel\.scrollHeight - PAGE_DROP_GUIDE_HEIGHT,/);
   assert.match(editor, /const pages = reorderedPages\(design\.pages, sourceId, targetId, dropPosition\);/);
-  assert.match(editor, /const bounds = event\.currentTarget\.getBoundingClientRect\(\); const position = event\.clientY < bounds\.top \+ bounds\.height \/ 2 \? "before" : "after"; if \(draggedPageId\) reorderPage\(draggedPageId, page\.id, position\);/);
+  assert.match(editor, /event\.preventDefault\(\);\s*event\.stopPropagation\(\);\s*if \(!dropTarget\)/);
+  assert.match(editor, /document\.addEventListener\("drop", handlePageDrop, true\)/);
   assert.match(editor, /const layers = \[\.\.\.page\.objects\]\.reverse\(\)/);
   assert.match(editor, /draggable=\{canMove\}/);
   assert.doesNotMatch(editor, /aria-label=\{`Move \$\{label\} up`\}/);
@@ -484,6 +488,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /<StudioIcon name="drag-handle" size=\{16\}/);
   assert.match(editor, /className=\{`design-canvas-scroll\$\{allPagesVisible/);
   assert.match(css, /\.design-canvas-scroll \{ align-items: safe center; display: flex; justify-content: safe center; min-height: 0; overflow: auto; padding: 25px 25px 89px; \}/);
+  assert.match(css, /@media \(max-width: 980px\) \{\s*\.design-workspace \{ grid-template-columns: var\(--design-pages-width\) minmax\(0, 1fr\) var\(--design-inspector-width\); \}/);
+  assert.doesNotMatch(css, /@media \(max-width: 980px\) \{\s*\.design-workspace \{ --design-pages-width: 180px;/);
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
   assert.match(editor, /className="design-all-page-heading" style=\{\{ width: `\$\{page\.width \* zoom \/ 100\}px` \}\}/);
   assert.match(editor, /const title = page\.name === `Page \$\{index \+ 1\}` \? "" : page\.name/);
@@ -572,7 +578,9 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-resize-handle:focus-visible, \.design-endpoint-handle:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; filter: none; \}/);
   assert.match(css, /\.design-arrow-bend-handle:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; \}/);
   assert.doesNotMatch(css, /\.design-endpoint-handle:focus-visible \{ outline: none; stroke: #284aa9/);
-  assert.match(css, /\.design-pane-tabs button\.is-active \{ border-bottom-color: #6b7075;/);
+  assert.match(css, /\.design-pane-tabs button::after \{ position: absolute; right: 8px; bottom: -1px; left: 8px; height: 2px;/);
+  assert.match(css, /\.design-pane-tabs button:hover::after, \.design-pane-tabs button:focus-visible::after \{ right: 4px; left: 4px; background: #b8b6ae;/);
+  assert.match(css, /\.design-pane-tabs button\.is-active::after \{ background: #555;/);
 });
 
 test("the File tab provides a local design library", () => {
