@@ -14,7 +14,8 @@ import {
   type DesignArrowObject, type DesignAsset, type DesignObject, type DesignPage, type DesignProject, type DesignShapeKind, type DesignShapeObject, type DesignTextObject,
 } from "./design-model";
 import { loadDesigns, saveDesigns } from "./design-store";
-import { createDesignSync, type DesignSyncSession, type DesignSyncStatus } from "./design-sync";
+import { createDesignSync, type DesignSyncConflict, type DesignSyncSession, type DesignSyncStatus } from "./design-sync";
+import type { DesignChange, DesignMergeConflict } from "./design-merge";
 import { StudioIcon } from "./studio-icons";
 import type { StudioIconName } from "./studio-icons";
 import { Ribbon as StudioRibbon, RibbonButton as StudioRibbonButton, RibbonGroup as StudioRibbonGroup, RibbonPanel as StudioRibbonPanel, type RibbonTabDefinition } from "@acm/ribbon";
@@ -78,7 +79,32 @@ const shapeOptions: Array<{ value: DesignShapeKind; label: string }> = [
   { value: "octagon", label: "Octagon" },
 ];
 const ZOOM_OPTIONS = Array.from({ length: 491 }, (_, index) => 10 + index);
+
+function conflictValue(change: DesignChange, value: unknown) {
+  if (change.kind === "move") return "Reordered items";
+  if (change.kind === "insert" || change.kind === "delete") return `${change.kind === "insert" ? "Insert" : "Delete"} ${change.value.id}`;
+  if (change.property === "transform" && value && typeof value === "object") {
+    const transform = value as Record<string, unknown>;
+    return `x ${String(transform.x)}, y ${String(transform.y)}, ${String(transform.width)} × ${String(transform.height)}, rotation ${String(transform.rotation)}°`;
+  }
+  if (typeof value === "string") return value || "Empty";
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value === null || value === undefined) return "Not set";
+  return "Updated value";
+}
+
+function conflictTarget(change: DesignChange) {
+  if (change.kind === "move") return `${change.collection} order`;
+  if (change.kind === "insert" || change.kind === "delete") return `${change.collection} item ${change.value.id}`;
+  return `${change.target}${change.id ? ` ${change.id}` : ""} · ${change.property}`;
+}
+
+function conflictDetails(conflict: DesignMergeConflict) {
+  const yours = conflict.change.kind === "set" ? conflict.change.after : conflict.change;
+  return { target: conflictTarget(conflict.change), other: conflictValue(conflict.change, conflict.current), yours: conflictValue(conflict.change, yours) };
+}
 const ZOOM_SHORTCUT_STEPS = [10, 25, 50, 75, 100, 125, 200, 300, 500] as const;
+const PAGE_DROP_GUIDE_HEIGHT = 2;
 
 function centredScrollOffset(contentCentre: number, viewportSize: number, scrollSize: number, clientSize: number) {
   const maximum = Math.max(0, scrollSize - clientSize);
@@ -749,6 +775,8 @@ export function DesignEditor() {
   const [backgroundMode, setBackgroundMode] = useState<BackgroundRemovalMode>("general");
   const [backgroundEdgeCleanup, setBackgroundEdgeCleanup] = useState(10);
   const [syncStatus, setSyncStatus] = useState<DesignSyncStatus>("disconnected");
+  const [syncConflict, setSyncConflict] = useState<DesignSyncConflict | null>(null);
+  const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<DesignContextMenuState | null>(null);
   const backgroundRemovalRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -760,6 +788,8 @@ export function DesignEditor() {
   const pageResizeRef = useRef<PageResizeInteraction | null>(null);
   const pageDropPositionRef = useRef<{ id: string; position: "before" | "after" } | null>(null);
   const contextMenuReturnRef = useRef<HTMLElement | null>(null);
+  const conflictReviewButtonRef = useRef<HTMLButtonElement>(null);
+  const conflictCloseButtonRef = useRef<HTMLButtonElement>(null);
 
   const closeContextMenu = useCallback(() => {
     const returnTarget = contextMenuReturnRef.current;
@@ -786,7 +816,7 @@ export function DesignEditor() {
 
   const primaryWritable = ownershipState === "writable";
   const peerWritable = ownershipState === "waiting" && syncStatus === "synced";
-  const writable = primaryWritable || peerWritable;
+  const writable = (primaryWritable || peerWritable) && !syncConflict;
   const activePage = design?.pages.find((page) => page.id === design.activePageId) ?? design?.pages[0] ?? null;
   const activePageIndex = activePage && design ? design.pages.findIndex((page) => page.id === activePage.id) : 0;
   const designEditable = writable && !activePage?.locked;
@@ -845,6 +875,19 @@ export function DesignEditor() {
       document.removeEventListener("keydown", closeOnEscape, true);
     };
   }, [closeContextMenu, contextMenu]);
+
+  useEffect(() => {
+    if (!syncConflict || !conflictPanelOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setConflictPanelOpen(false);
+      window.setTimeout(() => conflictReviewButtonRef.current?.focus(), 0);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    window.setTimeout(() => conflictCloseButtonRef.current?.focus(), 0);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [conflictPanelOpen, syncConflict]);
 
   function rememberStyle(object: DesignObject) {
     if (object.type === "arrow") recentStylesRef.current.arrow = { stroke: object.stroke, strokeOpacity: object.strokeOpacity ?? 1, strokeWidth: object.strokeWidth, arrowhead: object.arrowhead, startArrowhead: object.startArrowhead ?? false, arrowheadScale: object.arrowheadScale ?? 1, lineStyle: object.lineStyle ?? "solid" };
@@ -1008,20 +1051,18 @@ export function DesignEditor() {
       onStatus: (next) => {
         setSyncStatus(next);
         if (next === "synced") setStatus("Synced with another ACM Studio tab");
-        else if (next === "conflict") setStatus("Conflict detected — editing is paused");
-        else if (next === "disconnected") setStatus("Connection lost — editing is paused");
+        else if (next === "conflict") setStatus("Resolve conflicting changes");
+        else if (next === "disconnected") setStatus("Connection lost — unsaved changes");
       },
+      onConflict: (next) => { setSyncConflict(next); setConflictPanelOpen(true); setStatus("Resolve conflicting changes"); },
       onSnapshot: (snapshot, source) => {
-        if (source === "conflict") {
-          setError("This design changed in another Studio tab. The latest committed version has been restored.");
-        }
         setDesign(snapshot);
         setDesigns((items) => {
           const next = items.map((item) => item.id === snapshot.id ? snapshot : item);
           designsRef.current = next;
           return next;
         });
-        setHistory([]); setFuture([]);
+        if (source === "welcome") { setHistory([]); setFuture([]); }
         setPageName(snapshot.pages.find((page) => page.id === snapshot.activePageId)?.name ?? snapshot.pages[0]?.name ?? "");
         setSelectedIds((ids) => ids.filter((id) => snapshot.pages.some((page) => page.objects.some((object) => object.id === id))));
         setSelectedId((id) => id && snapshot.pages.some((page) => page.objects.some((object) => object.id === id)) ? id : null);
@@ -1125,8 +1166,9 @@ export function DesignEditor() {
       if (primaryWritable) {
         if (syncRef.current?.isPrimary()) await syncRef.current.commitPrimary(next);
         else await saveDesigns(updated);
-        setStatus("Saved locally just now"); setError("");
+        setStatus("Changes saved"); setError("");
       } else if (syncRef.current?.isConnectedPeer()) {
+        setStatus("Syncing changes");
         await syncRef.current.submit(next);
         setStatus("Synced with another ACM Studio tab"); setError("");
       } else {
@@ -1134,9 +1176,24 @@ export function DesignEditor() {
       }
     } catch (saveError) {
       setError(designSaveErrorMessage(saveError));
-      setStatus(syncStatus === "conflict" ? "Conflict detected — editing is paused" : "Save failed — export an editable backup");
+      setStatus(syncStatus === "conflict" ? "Resolve conflicting changes" : "Save failed — export an editable backup");
     }
   }, [designs, ownershipState, primaryWritable, syncStatus]);
+
+  async function resolveDesignConflict(choice: "mine" | "theirs") {
+    if (!syncConflict || !syncRef.current) return;
+    try {
+      setStatus("Syncing changes");
+      await syncRef.current.resolveConflict(choice);
+      setSyncConflict(null);
+      setConflictPanelOpen(false);
+      setError("");
+      setStatus("Changes saved");
+    } catch (resolveError) {
+      setError(resolveError instanceof Error ? resolveError.message : "The conflict could not be resolved.");
+      setStatus("Resolve conflicting changes");
+    }
+  }
 
   useEffect(() => {
     if (loaded && primaryWritable && design && designs.length === 0) void persist(design);
@@ -2078,8 +2135,16 @@ export function DesignEditor() {
       </StudioRibbon>
     {!peerWritable && ownershipMessage(ownershipState) ? <div className="design-notice" role="status">{ownershipMessage(ownershipState)}{ownershipState === "waiting" ? " Close the other editing tab before making changes." : ""}</div> : null}
     {!primaryWritable && syncStatus === "unsupported" ? <div className="design-notice" role="status">Read-only: this browser cannot synchronise duplicate design tabs.</div> : null}
-    {!primaryWritable && syncStatus === "disconnected" ? <div className="design-notice" role="status">Connection to the primary Studio tab was lost. Editing is paused.</div> : null}
+    {!primaryWritable && syncStatus === "disconnected" ? <div className="design-notice" role="status">Connection to the primary Studio tab was lost — editing is paused. Export an editable backup before closing this tab.</div> : null}
+    {syncConflict && !conflictPanelOpen ? <div className="design-notice" role="status">Conflicting changes need review. <button ref={conflictReviewButtonRef} type="button" onClick={() => setConflictPanelOpen(true)}>Review conflicts</button></div> : null}
     {error ? <div className="design-error" role="alert">{error}</div> : null}
+    {syncConflict && conflictPanelOpen ? <section className="design-conflict-panel" role="dialog" aria-modal="true" aria-labelledby="design-conflict-title">
+      <div className="design-conflict-panel-heading"><div><p className="design-conflict-eyebrow">ACM Studio</p><h2 id="design-conflict-title">Resolve conflicting changes</h2></div><button ref={conflictCloseButtonRef} type="button" aria-label="Close conflict review" onClick={() => { setConflictPanelOpen(false); window.setTimeout(() => conflictReviewButtonRef.current?.focus(), 0); }}><StudioIcon name="close" size={20} /></button></div>
+      <p>{syncConflict.reason}</p>
+      <p>{syncConflict.result.conflicts.length || 1} change{syncConflict.result.conflicts.length === 1 ? "" : "s"} needs your decision. Your document remains protected until you choose a version.</p>
+      {syncConflict.result.conflicts.length ? <ul className="design-conflict-list" aria-label="Conflicting values">{syncConflict.result.conflicts.map((conflict, index) => { const details = conflictDetails(conflict); return <li key={`${details.target}-${index}`}><strong>{details.target}</strong><span><b>Other:</b> {details.other}</span><span><b>Yours:</b> {details.yours}</span></li>; })}</ul> : null}
+      <div className="design-conflict-actions"><button type="button" className="button-secondary" onClick={() => void resolveDesignConflict("theirs")}>Use Other Change</button><button type="button" className="button-primary" onClick={() => void resolveDesignConflict("mine")}>Use My Change</button></div>
+    </section> : null}
     <div className={`design-workspace${pagesCollapsed ? " pages-collapsed" : ""}${inspectorCollapsed ? " inspector-collapsed" : ""}`}>
     <button type="button" className={`design-pane-collapse design-pane-collapse-left${pagesCollapsed ? " is-collapsed" : ""}`} onClick={() => setPagesCollapsed((value) => !value)} aria-expanded={!pagesCollapsed} aria-controls="design-pages-panel" aria-label={pagesCollapsed ? "Show pages and layers" : "Hide pages and layers"}><StudioIcon name="chevron-right" size={18} /></button>
     <button type="button" className={`design-pane-collapse design-pane-collapse-right${inspectorCollapsed ? " is-collapsed" : ""}`} onClick={() => setInspectorCollapsed((value) => !value)} aria-expanded={!inspectorCollapsed} aria-label={inspectorCollapsed ? "Show properties" : "Hide properties"}><StudioIcon name="chevron-right" size={18} /></button>

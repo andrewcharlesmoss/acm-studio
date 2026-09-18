@@ -36,11 +36,14 @@ and Solid defaults.
 
 Duplicate tabs for the same design can edit together when the browser supports
 Web Locks and BroadcastChannel. The tab holding the Studio writer lock remains
-the persistence owner; the other tab sends design edits to it and receives
-committed updates. Conflicting stale edits are rejected visibly rather than
-silently overwriting newer work. Studio media, backups, restores and switching
-or creating designs remain primary-tab operations. If tab synchronisation is
-unavailable, the existing read-only protection remains in place.
+the persistence owner; the other tab sends versioned design transactions to it
+and receives committed transactions. Compatible changes to separate objects or
+properties merge automatically. Competing edits open a conflict review with
+Use My Change and Use Other Change actions; document editing pauses until the
+conflict is resolved, while navigation and export remain available. Studio
+media, backups, restores and switching or creating designs remain primary-tab
+operations. If tab synchronisation is unavailable, the existing read-only
+protection remains in place.
 
 The annotation tools are arranged in a horizontal toolbar above the canvas,
 with a Hide pages / Show pages control for giving the canvas more room during
@@ -49,10 +52,11 @@ navigator when it is shown.
 
 Designs are stored in this browser under the versioned
 `acm-studio-designs-v1` key and are guarded by the same `studioWriteOwnership`
-Web Lock as content and media. A read-only tab can inspect and export designs,
-but cannot change them. Editable design backups are JSON files containing the
-scene and image data. They retain original image material behind editable
-redaction objects and should be kept private.
+Web Lock as content and media. A tab without the writer lock can still edit a
+connected design through its persistence owner; an unavailable or disconnected
+sync channel leaves it read-only. Editable design backups are JSON files
+containing the scene and image data. They retain original image material behind
+editable redaction objects and should be kept private.
 
 The first canvas release supports PNG, JPEG, WebP and GIF image input, file
 selection, drag and drop, clipboard paste, Studio media selection, named page

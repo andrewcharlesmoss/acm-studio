@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Added versioned local design transactions with compatible multi-tab merging,
+  conflict review and explicit local or remote resolution for competing edits.
 - Added a 1080 × 1920 portrait page preset.
 - Arrows now support a draggable centre bend control for custom curved paths.
 
