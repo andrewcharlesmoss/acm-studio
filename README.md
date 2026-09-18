@@ -11,6 +11,11 @@ contracts.
 
 ## Included
 
+- **Ribbon Library** at `/studio/ribbon`: inspect shared components, try isolated
+  ACM Studio and ACM Account examples, and browse original three-scale SVG icons.
+  See [Ribbon Library](docs/ribbon-library.md) for setup and verification, and
+  [the command inventory](docs/ribbon-command-inventory.md) for complete coverage.
+
 - First site pilot: open Mini Golf Scorecard from the control centre and edit
   its inherited home page with the same Gutenberg-style block editor used by
   Studio, including block insertion, rich text, tables, reordering, undo/redo,

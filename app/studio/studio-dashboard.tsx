@@ -1,4 +1,5 @@
 import { miniGolfSites } from "./site-registry";
+import { AcmIcon } from "@acm/icons/react";
 
 const sites = [
   { name: "Andrew Moss", description: "Personal site, writing, videos and work history.", status: "Separate project", statusClass: "dashboard-status-ready", href: "https://andrewmoss.me/" },
@@ -45,6 +46,7 @@ export function StudioDashboard() {
         <section className="dashboard-section dashboard-tools" aria-labelledby="tools-title">
           <div className="dashboard-section-heading"><div><p className="eyebrow">Working tools</p><h2 id="tools-title">Continue building</h2></div><p>The foundation is deliberately local while the shared architecture is being established.</p></div>
           <div className="dashboard-tool-grid">
+            <a className="dashboard-tool-card" href="/studio/ribbon"><span className="dashboard-tool-icon" aria-hidden="true"><AcmIcon name="layout.columns" /></span><span><strong>Ribbon Library</strong><small>Inspect Ribbon components and original ACM SVG symbols.</small></span><span aria-hidden="true" style={{ transform: "rotate(-90deg)" }}><AcmIcon name="navigation.disclosure" /></span></a>
             <a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioIcon name="pencil" /></span><span><strong>Content Studio</strong><small>Create and edit pages and posts with portable blocks.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
             <a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioIcon name="image" /></span><span><strong>Files and media</strong><small>Manage the local media library from the Studio.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
             <a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioIcon name="archive" /></span><span><strong>Backup and restore</strong><small>Protect local content before the persistence layer arrives.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>

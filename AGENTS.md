@@ -37,6 +37,15 @@ Studio interaction controls use source-faithful Gutenberg SVGs through
 redrawn paths for new Studio controls; add the upstream source, revision and
 provenance to `docs/third-party/gutenberg.md` when extending the icon set.
 
+The approved Ribbon Library at `/studio/ribbon` and its navigation entries use
+original ACM symbols from the sibling `@acm/icons` package. This scoped direction
+supersedes the Gutenberg icon rule for this catalogue only; existing product
+icons and their provenance remain unchanged. The catalogue uses the shared
+Inter baseline; product specimens preserve observed typography and dimensions.
+Its typed definitions drive the tree, inspector and renderer. Demo handlers
+must remain memory-only and independent of product stores or write ownership.
+See `docs/ribbon-library.md` for source snapshots, verification and inventory.
+
 Studio interface text uses Gutenberg's 13px system UI baseline through
 `--studio-ui-font` and `--studio-ui-size`. Do not introduce interface text
 smaller than that token: use hierarchy, weight, colour and spacing instead.

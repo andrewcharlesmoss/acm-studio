@@ -1,0 +1,61 @@
+{
+  "capturedAt": "2026-09-18",
+  "governance": {
+    "commit": "029d90672e94d69ceb12db07450197d07ffa96d1",
+    "standards": [
+      {
+        "name": "Workspace AGENTS.md",
+        "version": "unversioned"
+      },
+      {
+        "name": "Workspace STYLE_GUIDE.md",
+        "version": "unversioned"
+      }
+    ]
+  },
+  "studio": {
+    "commit": "dc0461a73cea315248323afcc4e269b35c11eec4",
+    "dirty": true,
+    "files": [
+      {
+        "path": "app/studio/design-editor.tsx",
+        "sha256": "01c2cfc03bd2ae2a2c02b182718e485ef6132cfc0c3767416bfe2ce7768acfda"
+      },
+      {
+        "path": "app/studio/design.css",
+        "sha256": "ac36612352703d6e53e17261b7e3d3b99503edaaf105fb33445117060d02ecfa"
+      }
+    ]
+  },
+  "account": {
+    "commit": "a0982791cb28fb7b0100bb37ddafac910479ca04",
+    "dirty": false,
+    "files": [
+      {
+        "path": "web/app/control-centre/directory-ribbon.tsx",
+        "sha256": "8e958d2bcce1661e23a26020c556eead4e36a6d81fb6c04c2887cc818008a30d"
+      },
+      {
+        "path": "web/app/control-centre/administration-panel.tsx",
+        "sha256": "b2352c3251a4939bb8f0928a93b3e91756c6292bc7a0cda015df917fb45db68e"
+      },
+      {
+        "path": "web/app/globals.css",
+        "sha256": "1c90fdbb44511c99fd19fcc692cf8372ba58faa5e57416994d379d0d495791e3"
+      }
+    ]
+  },
+  "ribbon": {
+    "commit": "c34c6a3fcae6e62cea0c06d81667396feba214c4",
+    "files": [
+      {
+        "path": "src/index.tsx",
+        "sha256": "6bb9e2dcda9819c016767547b183aa65ac2b570a49c79540593568f3b1a0375c"
+      },
+      {
+        "path": "src/styles.css",
+        "sha256": "ed7a435925ab170246117d5c6b8793bc2c775a5510ed959e1a3af072aff95fcd"
+      }
+    ]
+  }
+}

@@ -1,11 +1,11 @@
 "use client";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BackupManager } from "./backup-manager";
 import { SiteNavigation } from "./site-navigation";
 import { MediaManager } from "./media-manager";
 import { StudioEditor, documentCharacterCount, documentWordCount } from "./studio-editor";
 import { StudioIcon } from "./studio-icons";
+import { AcmIcon } from "@acm/icons/react";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
 import { findBlockById } from "./studio-command-operations.mjs";
 import { useStudioDocumentCommands } from "./use-studio-document-commands";
@@ -20,7 +20,6 @@ import {
   type StudioDocument,
   type StudioDocumentKind,
 } from "./editor-model";
-
 function exportJson(value: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -263,6 +262,7 @@ export function StudioPrototype() {
           </div>
           <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
           <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design canvas</strong><small>Create and annotate images</small></a>
+          <a className="library-tool-button" href="/studio/ribbon"><span><AcmIcon name="layout.columns" /></span><strong>Ribbon Library</strong><small>Explore controls and original SVG icons</small></a>
           <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); }}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
           <div className="document-list">
             {workspace.documents.filter((document) => document.kind === libraryKind).map((document) => (

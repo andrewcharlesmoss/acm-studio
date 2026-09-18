@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Added the Ribbon Library: live shared-component specimens, isolated product
+  demonstrations, structure and token inspection, and original ACM SVG icons.
 - Added versioned local design transactions with compatible multi-tab merging,
   conflict review and explicit local or remote resolution for competing edits.
 - Added a 1080 × 1920 portrait page preset.
