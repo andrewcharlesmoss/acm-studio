@@ -41,7 +41,7 @@ const compoundRange = (id: string, label: string, icon: IconName, min: number, m
   description: "Product composition: native range input, output, scope toggle and reset. The shared package does not provide a slider primitive.",
   children: [
     toggle(id + ".scope", label + " Scope", "scope.all", { initial: scope === "all", states: ["All", "Selected"], iconVariants: ["scope.selected"] }),
-    button(id + ".reset", "Reset " + label, "action.reset", { size: "compact" }),
+    button(id + ".reset", "Reset " + label, "action.reset", { size: "compact", iconOnly: true }),
   ],
 });
 
