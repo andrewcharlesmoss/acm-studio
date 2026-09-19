@@ -1,4 +1,5 @@
-import type { ContentBlock, RichTextRun, SiteSectionRole, TextMark } from "../content/model";
+import type { ContentBlock, LayoutOptions, RichTextRun, SiteSectionRole, TextMark } from "../content/model";
+import { hasLayoutOptions } from "../content/layout";
 import { plainTextFromRuns, safeImageSource, safeTextLink } from "../content/rich-text";
 import { validContentBlocks } from "./workspace-validation";
 
@@ -121,14 +122,16 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<aside${attributes} data-embed-url="${escapeAttribute(block.url)}"><a href="${escapeAttribute(block.url)}">${escapeText(block.title)}</a></aside>`;
     case "divider":
       return `<hr${attributes} />`;
+    case "spacer":
+      return `<div${attributes}${classAttribute("studio-spacer")} data-spacer-height="${block.height}" aria-hidden="true"></div>`;
     case "button":
       return `<p${attributes}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}">${escapeText(block.label)}</a></p>`;
     case "field":
       return `<label${attributes}><span>${escapeText(block.label)}</span>${block.control === "select" ? `<select>${(block.options?.length ? block.options : [block.value]).map((option) => `<option${option === block.value ? " selected" : ""}>${escapeText(option)}</option>`).join("")}</select>` : `<input value="${escapeAttribute(block.value)}" />`}</label>`;
     case "section":
-      return `<section${attributes} data-section-role="${escapeAttribute(block.role ?? "")}"${classAttribute(`studio-section layout-${block.layout}`)}>${serialiseChildren(block.children)}</section>`;
+      return `<section${attributes} data-section-role="${escapeAttribute(block.role ?? "")}"${layoutHtmlAttributes(block)}${classAttribute(`studio-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`)}>${serialiseChildren(block.children)}</section>`;
     case "group":
-      return `<div${attributes}${classAttribute(`studio-group layout-${block.layout}`)}>${serialiseChildren(block.children)}</div>`;
+      return `<div${attributes}${layoutHtmlAttributes(block)}${classAttribute(`studio-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`)}>${serialiseChildren(block.children)}</div>`;
     case "component":
       return `<div${attributes}${classAttribute("studio-component")} data-component="${escapeAttribute(block.component)}"${block.source ? ` data-source-module="${escapeAttribute(block.source.module)}" data-source-export="${escapeAttribute(block.source.exportName)}" data-source-revision="${escapeAttribute(block.source.revision)}"` : ""}>${block.children ? serialiseChildren(block.children) : ""}</div>`;
   }
@@ -156,6 +159,20 @@ function runsToHtml(runs: RichTextRun[] | undefined, text: string) {
 
 function classAttribute(value?: string) {
   return value ? ` class="${escapeAttribute(value)}"` : "";
+}
+
+function layoutHtmlAttributes(block: Extract<ContentBlock, { type: "group" | "section" }>) {
+  const options: LayoutOptions = block;
+  return [
+    options.horizontalAlign && ` data-layout-horizontal-align="${escapeAttribute(options.horizontalAlign)}"`,
+    options.verticalAlign && ` data-layout-vertical-align="${escapeAttribute(options.verticalAlign)}"`,
+    options.gap !== undefined && ` data-layout-gap="${options.gap}"`,
+    options.paddingX !== undefined && ` data-layout-padding-x="${options.paddingX}"`,
+    options.paddingY !== undefined && ` data-layout-padding-y="${options.paddingY}"`,
+    options.contentWidth && ` data-layout-width="${escapeAttribute(options.contentWidth)}"`,
+    options.columns !== undefined && ` data-layout-columns="${options.columns}"`,
+    options.stackAt && ` data-layout-stack-at="${escapeAttribute(options.stackAt)}"`,
+  ].filter(Boolean).join("");
 }
 
 function escapeText(value: string) {
@@ -276,6 +293,10 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       return { block: { id, type: "field", control, label: element.querySelector("span")?.textContent ?? "", value: select?.value ?? input?.value ?? "", options: select ? [...select.options].map((option) => option.textContent ?? "") : undefined } };
     }
     case "section": case "div": {
+      if (element.dataset.spacerHeight !== undefined || element.classList.contains("studio-spacer")) {
+        const height = Number(element.dataset.spacerHeight);
+        return { block: { ...(original.type === "spacer" ? original : {}), id, type: "spacer", height } };
+      }
       const type = element.tagName.toLowerCase() === "section" ? "section" : "group";
       if (type === "group" && element.dataset.component) {
         if (original.type !== "component" || original.component !== element.dataset.component) return { error: "Component blocks are code-backed; edit their supported properties in the inspector." };
@@ -302,12 +323,27 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
         children.push(parsed.block);
       }
       const layout = (element.className.match(/layout-(stack|row|columns)/)?.[1] ?? "stack") as "stack" | "row" | "columns";
-      if (type === "section") return { block: { ...(original.type === "section" ? original : {}), id, type: "section", role: sectionRoleFromData(element.dataset.sectionRole), layout, children } };
-      return { block: { ...(original.type === "group" ? original : {}), id, type: "group", layout, children } };
+      const options = parseLayoutOptions(element);
+      if (type === "section") return { block: { ...(original.type === "section" ? original : {}), id, type: "section", role: sectionRoleFromData(element.dataset.sectionRole), layout, ...options, children } };
+      return { block: { ...(original.type === "group" ? original : {}), id, type: "group", layout, ...options, children } };
     }
     default:
       return { error: `This element (${element.tagName.toLowerCase()}) is not supported for this block.` };
   }
+}
+
+function parseLayoutOptions(element: HTMLElement): LayoutOptions {
+  const number = (value: string | undefined) => value === undefined ? undefined : Number(value);
+  return {
+    horizontalAlign: element.dataset.layoutHorizontalAlign as LayoutOptions["horizontalAlign"],
+    verticalAlign: element.dataset.layoutVerticalAlign as LayoutOptions["verticalAlign"],
+    gap: number(element.dataset.layoutGap),
+    paddingX: number(element.dataset.layoutPaddingX),
+    paddingY: number(element.dataset.layoutPaddingY),
+    contentWidth: element.dataset.layoutWidth as LayoutOptions["contentWidth"],
+    columns: number(element.dataset.layoutColumns),
+    stackAt: element.dataset.layoutStackAt as LayoutOptions["stackAt"],
+  };
 }
 
 function sectionRoleFromData(value?: string): SiteSectionRole | undefined {

@@ -737,6 +737,23 @@
 .studio-nested-group { display: grid; gap: 16px; min-width: 0; }
 .studio-nested-group.layout-row { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
 .studio-nested-group.layout-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.studio-nested-group.has-layout-options, .content-group.has-layout-options, .content-section.has-layout-options { display: flex; flex-direction: column; gap: var(--block-layout-gap, 0px); padding: var(--block-layout-padding-y, 0px) var(--block-layout-padding-x, 0px); align-items: var(--block-layout-horizontal-align, stretch); justify-content: var(--block-layout-vertical-align, start); min-width: 0; }
+.studio-nested-group.has-layout-options.layout-row, .content-group.has-layout-options.layout-row, .content-section.has-layout-options.layout-row { flex-direction: row; flex-wrap: wrap; align-items: var(--block-layout-vertical-align, center); justify-content: var(--block-layout-horizontal-align, start); }
+.studio-nested-group.has-layout-options.layout-columns, .content-group.has-layout-options.layout-columns, .content-section.has-layout-options.layout-columns { display: grid; grid-template-columns: repeat(var(--block-layout-columns, 2), minmax(0, 1fr)); align-items: var(--block-layout-vertical-align, stretch); justify-items: var(--block-layout-horizontal-align, stretch); }
+.studio-nested-group.has-layout-options[data-layout-width="full"], .content-group.has-layout-options[data-layout-width="full"], .content-section.has-layout-options[data-layout-width="full"] { width: 100%; max-width: none; }
+.studio-nested-group.has-layout-options[data-layout-width="constrained"], .content-group.has-layout-options[data-layout-width="constrained"], .content-section.has-layout-options[data-layout-width="constrained"] { width: 100%; max-width: min(100%, var(--template-content-width, 1040px)); margin-inline: auto; }
+.studio-nested-group.has-layout-options > .studio-nested-block, .content-section.has-layout-options > .content-section-child, .content-group.has-layout-options > * { min-width: 0; }
+.content-spacer { flex: 0 0 auto; width: 100%; }
+.spacer-field { appearance: none; background: repeating-linear-gradient(135deg, transparent 0 7px, rgba(36, 87, 197, .07) 7px 8px); border: 1px dashed rgba(36, 87, 197, .42); box-sizing: border-box; cursor: pointer; display: block; font: inherit; min-height: 4px; outline: 0; padding: 0; width: 100%; }
+.spacer-field:focus-visible { border-color: #2457c5; outline: 2px solid #2457c5; outline-offset: 2px; }
+@media (max-width: 780px) {
+  :is(.studio-nested-group, .content-group, .content-section)[data-layout-stack-at="tablet"].layout-row { flex-direction: column; align-items: stretch; }
+  :is(.studio-nested-group, .content-group, .content-section)[data-layout-stack-at="tablet"].layout-columns { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  :is(.studio-nested-group, .content-group, .content-section)[data-layout-stack-at="mobile"].layout-row { flex-direction: column; align-items: stretch; }
+  :is(.studio-nested-group, .content-group, .content-section)[data-layout-stack-at="mobile"].layout-columns { grid-template-columns: 1fr; }
+}
 .studio-nested-block { min-width: 0; }
 /* Nested editor blocks use an inset outline so source layout is unchanged. */
 .block-canvas :is(.studio-nested-block, [data-studio-selected]):not([data-studio-selected="true"]):is(:hover, [data-studio-hovered="true"]) { outline: 1px solid #cc1818; outline-offset: -1px; }

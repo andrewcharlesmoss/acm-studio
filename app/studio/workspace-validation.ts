@@ -1,6 +1,19 @@
 import type { ContentBlock } from "../content/model";
 import type { StudioWorkspace } from "./editor-model";
 
+const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6], spacer: [4, 320] } as const;
+function validLayoutOptions(value: Record<string, unknown>): boolean {
+  const finiteWithin = (candidate: unknown, min: number, max: number) => candidate === undefined || (typeof candidate === "number" && Number.isFinite(candidate) && candidate >= min && candidate <= max);
+  return (value.horizontalAlign === undefined || ["left", "centre", "right", "stretch"].includes(value.horizontalAlign as string))
+    && (value.verticalAlign === undefined || ["top", "centre", "bottom", "stretch"].includes(value.verticalAlign as string))
+    && finiteWithin(value.gap, ...LAYOUT_VALUE_LIMITS.gap)
+    && finiteWithin(value.paddingX, ...LAYOUT_VALUE_LIMITS.padding)
+    && finiteWithin(value.paddingY, ...LAYOUT_VALUE_LIMITS.padding)
+    && (value.contentWidth === undefined || ["full", "constrained"].includes(value.contentWidth as string))
+    && (value.columns === undefined || (typeof value.columns === "number" && Number.isInteger(value.columns) && value.columns >= LAYOUT_VALUE_LIMITS.columns[0] && value.columns <= LAYOUT_VALUE_LIMITS.columns[1]))
+    && (value.stackAt === undefined || ["tablet", "mobile", "never"].includes(value.stackAt as string));
+}
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -63,14 +76,17 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
       case "field": return ["text", "select"].includes(block.control as string) && typeof block.label === "string" && typeof block.value === "string"
         && (block.options === undefined || strings(block.options));
       case "divider": return true;
+      case "spacer": return typeof block.height === "number" && Number.isFinite(block.height) && block.height >= LAYOUT_VALUE_LIMITS.spacer[0] && block.height <= LAYOUT_VALUE_LIMITS.spacer[1];
       case "section":
         return ["stack", "row", "columns"].includes(block.layout as string)
+          && validLayoutOptions(block)
           && (block.role === undefined || ["account", "setup", "scorecard", "leaderboard", "share", "hero", "hero-copy", "account-copy", "scorecard-heading", "scorecard-actions", "leaderboard-card", "leaderboard-score", "leaderboard-metrics", "metric", "footer", "footer-brand", "footer-links", "social-link"].includes(block.role as string))
           && (block.data === undefined || (isRecord(block.data) && Object.values(block.data).every((item) => typeof item === "string" || typeof item === "number" || typeof item === "boolean" || strings(item))))
           && (!(block.data && typeof block.data.holes === "number") || (Number.isInteger(block.data.holes) && block.data.holes >= 1 && block.data.holes <= 18))
           && (block.source === undefined || (isRecord(block.source) && typeof block.source.module === "string" && typeof block.source.exportName === "string" && typeof block.source.revision === "string"))
           && Array.isArray(block.children) && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1));
       case "group": return ["stack", "row", "columns"].includes(block.layout as string)
+        && validLayoutOptions(block)
         && (block.data === undefined || (isRecord(block.data) && Object.values(block.data).every((item) => typeof item === "string" || typeof item === "number" || typeof item === "boolean" || strings(item))))
         && (block.source === undefined || (isRecord(block.source) && typeof block.source.module === "string" && typeof block.source.exportName === "string" && typeof block.source.revision === "string"))
         && Array.isArray(block.children) && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1));

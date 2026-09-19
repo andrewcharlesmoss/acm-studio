@@ -3,6 +3,7 @@ import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
 import { normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
+import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
 import { StudioIcon } from "../studio/studio-icons";
 
 export function StatusPill({ status }: { status: Project["status"] }) {
@@ -101,8 +102,9 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           </p>
         );
         if (block.type === "field") return <label className="content-field" key={block.id}><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled><option>{block.value}</option></select> : <input value={block.value} readOnly />}</label>;
-        if (block.type === "section") return <section className={`content-section layout-${block.layout}`} data-section-role={block.role} key={block.id}>{block.children.map((child) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child)}</div>)}</section>;
-        if (block.type === "group") return <div className={`content-group layout-${block.layout}`} key={block.id}>{block.children.map((child) => renderBlock(child))}</div>;
+        if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child)}</div>)}</section>;
+        if (block.type === "group") return <div className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((child) => renderBlock(child))}</div>;
+        if (block.type === "spacer") return <div className="content-spacer" style={{ height: `${block.height}px` }} aria-hidden="true" key={block.id} />;
         if (block.type === "component") return null;
         return studio ? <div className="divider-field" key={block.id}><hr className="content-divider" /></div> : <hr className="content-divider" key={block.id} />;
   }

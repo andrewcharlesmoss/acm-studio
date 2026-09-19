@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { BlockRenderer } from "../components/content";
 import { readingTimeLabel } from "../content/reading-time";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
+import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
 import type { StudioDocument } from "./editor-model";
 import type { SiteStyles, TemplateNode, TemplatePart, TemplateSet, TemplateSnapshot } from "./template-model";
 import { StudioIcon } from "./studio-icons";
@@ -62,7 +63,8 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         {part.nodes.map(child => <div key={child.id}>{render(child, new Set([...ancestors, part.id]), depth + 1, true)}</div>)}
       </TemplatePartRegion>;
     } else if (node.type === "group" || node.type === "section") {
-      result = <div className={`template-group layout-${node.layout}`}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</div>;
+      const Group = node.type === "section" ? "section" : "div";
+      result = <Group className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}`} style={layoutStyleProperties(node)} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</Group>;
     } else if (node.type === "element") {
       const align = node.align === "centre" ? "center" : node.align;
       let element: ReactNode;

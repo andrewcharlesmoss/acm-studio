@@ -28,6 +28,21 @@ centre and user-supplied social/support links on the right. Narrow layouts keep
 that order and centre each area. The Header only renders configured navigation
 links; Studio does not invent destinations.
 
+Groups and Sections use the same Gutenberg-style layout controls in ordinary
+documents and templates. Choose Stack, Row or Columns, then set horizontal and
+vertical alignment, a shared spacing preset or bounded custom gap, separate
+horizontal and vertical padding, full or constrained width, and (for Columns)
+the number of columns. The optional Stack at setting uses only the shared
+780px tablet or 620px mobile breakpoint; blocks cannot create arbitrary
+breakpoints. Section remains a semantic `section` element. Existing groups and
+sections without these optional fields retain their earlier rendering.
+
+Spacer is a Design block with the same spacing presets and a bounded custom
+height. It is a selectable, keyboard-focusable outline while editing, but
+Preview and local publication emit only empty space with `aria-hidden` output.
+It can be nested, moved, duplicated, removed and restored through editor
+history like any other block.
+
 **Add Template Element** inserts identity, navigation, document metadata,
 content or a shared-part reference. Selecting an ordinary group before insertion
 adds the new block or element inside that group. List View supports nested
@@ -69,6 +84,12 @@ that projection is never stored as article content. Imported group metadata
 cannot impersonate these reserved handles. The renderer supplies dynamic
 content from the actual preview/document record and scopes design tokens to
 the template surface.
+
+Layout options and Spacer are additive to the existing typed block contract;
+workspace version 2 and template schema v0.1.0 remain compatible. Older saved
+blocks and packages omit the new fields and continue using their existing
+presentation. New fields are validated at workspace, HTML, template, backup,
+restore, package and publication boundaries rather than being discarded.
 
 Portable packages use `format: acm-studio-template-set`, contain one set and all
 referenced managed images as base64, and are limited to 50 MB. Imports validate

@@ -62,6 +62,30 @@ test("neutral templates validate and their editor projection round-trips without
   assert.equal(m.templateEditorBlocks(set.parts[0].nodes)[0].data, undefined);
 });
 
+test("responsive layout options and Spacer blocks validate and survive template projection", () => {
+  const env = environment(); const validation = env.load("studio/workspace-validation.ts"); const templates = env.load("studio/template-model.ts"); const layout = env.load("content/layout.ts");
+  const spacer = { id: "spacer-1", type: "spacer", height: 48 };
+  const group = { id: "group-1", type: "group", layout: "columns", columns: 3, gap: 24, paddingX: 16, paddingY: 32, contentWidth: "constrained", stackAt: "tablet", horizontalAlign: "centre", verticalAlign: "centre", children: [spacer] };
+  assert.equal(validation.validContentBlocks([group]), true);
+  assert.equal(validation.validContentBlocks([{ ...spacer, height: 321 }]), false);
+  assert.equal(layout.hasLayoutOptions({ layout: "stack" }), false);
+  assert.equal(layout.hasLayoutOptions({ layout: "row" }), true);
+  assert.equal(layout.hasLayoutOptions({ layout: "stack", gap: 24 }), true);
+  const set = templates.createTemplateSet(); set.parts[0].nodes.push(group); templates.validateTemplateSet(set);
+  assert.deepEqual(JSON.parse(JSON.stringify(templates.templateNodesFromBlocks(templates.templateEditorBlocks([group]))[0])), group);
+});
+
+test("HTML editing serialises layout options and Spacer through the executable block boundary", () => {
+  const env = environment(); const html = env.load("studio/studio-html-editor.ts"); const validation = env.load("studio/workspace-validation.ts");
+  const block = { id: "group-1", type: "group", layout: "columns", columns: 3, gap: 24, paddingX: 16, paddingY: 32, contentWidth: "constrained", stackAt: "tablet", children: [{ id: "spacer-1", type: "spacer", height: 48 }] };
+  const serialised = html.blockToHtml(block);
+  assert.match(serialised, /data-layout-gap="24"/);
+  assert.match(serialised, /data-layout-padding-x="16"/);
+  assert.match(serialised, /data-layout-stack-at="tablet"/);
+  assert.match(serialised, /data-spacer-height="48"/);
+  assert.equal(validation.validContentBlocks([block]), true);
+});
+
 test("invalid references, duplicate slots, cycles, duplicate IDs and unsafe URLs are rejected", () => {
   const { load } = environment(); const m = load("studio/template-model.ts");
   for (const mutate of [

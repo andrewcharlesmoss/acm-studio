@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- Added responsive Group and Section layout controls — Stack, Row and Columns,
+  alignment, shared gap and padding presets, constrained/full width, columns
+  and the shared 780px/620px stacking rules — plus a selectable Spacer Design
+  block. These additive fields round-trip through templates, HTML, backups,
+  portable packages and local publication snapshots.
 - Added local template sets with a shared block editor, page/post assignments,
   reusable headers and footers, configurable identity/navigation/styles,
   responsive previews, media-inclusive import/export and full backup/restore.

@@ -1,4 +1,5 @@
-import type { ContentBlock } from "../content/model";
+import type { ContentBlock, LayoutOptions, SiteSectionRole } from "../content/model";
+import { validLayoutOptions } from "../content/layout";
 import type { StudioDocument, StudioDocumentKind } from "./editor-model";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { isRecord, validContentBlocks, validatePublicationSnapshot } from "./workspace-validation";
@@ -8,8 +9,8 @@ export const TEMPLATE_STORAGE_KEY = "acm-studio-templates-v1";
 export const templateElements = ["site-identity", "navigation", "document-title", "subtitle", "cover-image", "post-metadata", "content", "copyright", "social-links"] as const;
 export type TemplateElement = typeof templateElements[number];
 export type TemplateNode = Exclude<ContentBlock, { type: "group" | "section" | "component" }>
-  | { id: string; type: "group"; layout: "stack" | "row" | "columns"; children: TemplateNode[] }
-  | { id: string; type: "section"; layout: "stack" | "row" | "columns"; children: TemplateNode[] }
+  | ({ id: string; type: "group"; layout: "stack" | "row" | "columns"; children: TemplateNode[] } & LayoutOptions)
+  | ({ id: string; type: "section"; layout: "stack" | "row" | "columns"; role?: SiteSectionRole; children: TemplateNode[] } & LayoutOptions)
   | { id: string; type: "element"; element: TemplateElement; align?: "left" | "centre" | "right" }
   | { id: string; type: "part"; partId: string };
 export type PageTemplate = { id: string; name: string; kind: StudioDocumentKind; nodes: TemplateNode[] };
@@ -36,7 +37,7 @@ export function visitTemplateNodes(nodes: TemplateNode[], visit: (node: Template
 export function createTemplateSet(name = "ACM Neutral"): TemplateSet {
   const element = (element: TemplateElement): TemplateNode => ({ id: templateId(), type: "element", element });
   const header: TemplatePart = { id: templateId(), name: "Header", kind: "header", nodes: [{ id: templateId(), type: "group", layout: "row", children: [element("site-identity"), element("navigation")] }] };
-  const footer: TemplatePart = { id: templateId(), name: "Footer", kind: "footer", nodes: [{ id: templateId(), type: "group", layout: "columns", children: [element("site-identity"), element("copyright"), element("social-links")] }] };
+  const footer: TemplatePart = { id: templateId(), name: "Footer", kind: "footer", nodes: [{ id: templateId(), type: "group", layout: "columns", columns: 3, children: [element("site-identity"), element("copyright"), element("social-links")] }] };
   return { id: templateId(), name, parts: [header, footer], templates: (["page", "post"] as const).map(kind => ({ id: templateId(), name: kind === "page" ? "Page" : "Post", kind, nodes: [
     { id: templateId(), type: "part", partId: header.id }, element("document-title"), element("subtitle"), ...(kind === "post" ? [element("post-metadata"), element("cover-image")] : []), element("content"), { id: templateId(), type: "part", partId: footer.id },
   ] })), identity: { name: "Your Site", homeUrl: "/", copyright: "© Your Site" }, navigation: [], socialLinks: [], styles: { background: "#FFFFFF", text: "#1C1C1E", accent: "#2457C5", border: "#D1D1D6", font: "inter", fontSize: 17, spacing: 24, contentWidth: 1040, radius: 8, borderWidth: 1 } };
@@ -74,7 +75,7 @@ export function validateTemplateSet(value: unknown): TemplateSet {
       if (node.type === "element") {
         if (!templateElements.includes(node.element as TemplateElement) || (node.align !== undefined && !["left", "centre", "right"].includes(node.align as string))) invalid("Unknown template element.");
       } else if (node.type === "part") { if (!safeId(node.partId)) invalid("Invalid shared-part reference."); }
-      else if (node.type === "group" || node.type === "section") { if (Object.keys(node).some(key => !["id", "type", "layout", "children"].includes(key)) || !["stack", "row", "columns"].includes(node.layout as string)) invalid("Invalid template layout or unsupported group metadata."); nodes(node.children, depth + 1); }
+      else if (node.type === "group" || node.type === "section") { if (Object.keys(node).some(key => !["id", "type", "layout", "role", "children", "horizontalAlign", "verticalAlign", "gap", "paddingX", "paddingY", "contentWidth", "columns", "stackAt"].includes(key)) || !["stack", "row", "columns"].includes(node.layout as string) || (node.role !== undefined && !["account", "setup", "scorecard", "leaderboard", "share", "hero", "hero-copy", "account-copy", "scorecard-heading", "scorecard-actions", "leaderboard-card", "leaderboard-score", "leaderboard-metrics", "metric", "footer", "footer-brand", "footer-links", "social-link"].includes(node.role as string)) || !validLayoutOptions(node)) invalid("Invalid template layout or unsupported group metadata."); nodes(node.children, depth + 1); }
       else {
         if (node.type === "component" || !validContentBlocks([node])) invalid("Invalid ordinary template block.");
         if ((node.type === "button" || node.type === "embed") && node.url && !safeTextLink(node.url as string)) invalid("Unsafe template link.");
@@ -177,14 +178,18 @@ export function templateMediaIds(set: TemplateSet): string[] {
 export function templateEditorBlocks(nodes: TemplateNode[]): ContentBlock[] {
   return nodes.map((node): ContentBlock => node.type === "element" || node.type === "part"
     ? { id: node.id, type: "group", layout: "stack", children: [], data: node.type === "part" ? { templatePart: node.partId } : { templateElement: node.element, align: node.align ?? "left" } }
-    : node.type === "group" || node.type === "section" ? { id: node.id, type: node.type, layout: node.layout, children: templateEditorBlocks(node.children) } : node);
+    : node.type === "group" || node.type === "section" ? { id: node.id, type: node.type, layout: node.layout, ...(node.type === "section" && node.role ? { role: node.role } : {}), ...pickLayoutOptions(node), children: templateEditorBlocks(node.children) } : node);
 }
 export function templateNodesFromBlocks(blocks: ContentBlock[]): TemplateNode[] {
   return blocks.map((block): TemplateNode => {
     if (block.type === "group" && typeof block.data?.templatePart === "string") return { id: block.id, type: "part", partId: block.data.templatePart };
     if (block.type === "group" && typeof block.data?.templateElement === "string") return { id: block.id, type: "element", element: block.data.templateElement as TemplateElement, align: block.data.align as "left" | "centre" | "right" };
-    if (block.type === "group" || block.type === "section") return { id: block.id, type: block.type, layout: block.layout, children: templateNodesFromBlocks(block.children) };
+    if (block.type === "group" || block.type === "section") return { id: block.id, type: block.type, layout: block.layout, ...(block.type === "section" && block.role ? { role: block.role } : {}), ...pickLayoutOptions(block), children: templateNodesFromBlocks(block.children) };
     if (block.type === "component") return invalid("Product components are not template blocks.");
     return block;
   });
+}
+
+function pickLayoutOptions(block: LayoutOptions): LayoutOptions {
+  return Object.fromEntries(Object.entries(block).filter(([key, value]) => ["horizontalAlign", "verticalAlign", "gap", "paddingX", "paddingY", "contentWidth", "columns", "stackAt"].includes(key) && value !== undefined)) as LayoutOptions;
 }

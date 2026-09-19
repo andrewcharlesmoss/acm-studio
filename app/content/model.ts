@@ -45,6 +45,21 @@ export type SiteContentRole = "logo" | "title" | "eyebrow" | "status" | "progres
   | "player-name" | "score-value" | "score-label" | "metric-label" | "metric-value"
   | "footer-name" | "copyright" | "social-icon" | "social-action";
 export type ContentFieldControl = "text" | "select";
+export type LayoutMode = "stack" | "row" | "columns";
+export type LayoutHorizontalAlignment = "left" | "centre" | "right" | "stretch";
+export type LayoutVerticalAlignment = "top" | "centre" | "bottom" | "stretch";
+export type LayoutContentWidth = "full" | "constrained";
+export type LayoutStackAt = "tablet" | "mobile" | "never";
+export type LayoutOptions = {
+  horizontalAlign?: LayoutHorizontalAlignment;
+  verticalAlign?: LayoutVerticalAlignment;
+  gap?: number;
+  paddingX?: number;
+  paddingY?: number;
+  contentWidth?: LayoutContentWidth;
+  columns?: number;
+  stackAt?: LayoutStackAt;
+};
 
 export type ContentBlock = (
   | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; style?: ParagraphStyle }
@@ -58,8 +73,9 @@ export type ContentBlock = (
   | { id: string; type: "divider" }
   | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary" }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
-  | { id: string; type: "section"; role?: SiteSectionRole; layout: "stack" | "row" | "columns"; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource }
-  | { id: string; type: "group"; layout: "stack" | "row" | "columns"; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource }
+  | { id: string; type: "spacer"; height: number }
+  | ({ id: string; type: "section"; role?: SiteSectionRole; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
+  | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
   | { id: string; type: "component"; component: SiteComponentName; data?: SiteComponentData; source?: SiteComponentSource; children?: ContentBlock[] }) & { siteRole?: SiteContentRole };
 
 export type Project = {

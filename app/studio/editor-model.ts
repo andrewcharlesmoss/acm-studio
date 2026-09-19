@@ -56,6 +56,7 @@ export const blockCatalogue: Array<{
   { type: "button", label: "Button", description: "Add a call to action.", group: "Design", icon: "button" },
   { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Design", icon: "block" },
   { type: "divider", label: "Divider", description: "Separate two sections.", group: "Design", icon: "separator" },
+  { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design", icon: "separator" },
 ];
 
 const fixedDate = "2026-08-20T00:00:00.000Z";
@@ -143,6 +144,7 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "button") return { id, type, label: "Learn more", url: "#", style: "primary" };
   if (type === "field") return { id, type, control: "text", label: "Label", value: "" };
   if (type === "divider") return { id, type };
+  if (type === "spacer") return { id, type, height: 32 };
   return { id, type, text: "Start writing here." };
 }
 

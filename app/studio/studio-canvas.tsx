@@ -14,6 +14,7 @@ import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, normaliseTableColumnWidths, n
 import { createBlock, type StudioDocument, type InsertableBlockType } from "./editor-model";
 import type { StudioPresentation } from "./studio-presentation";
 import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBlock, parseHtmlToBlocks } from "./studio-html-editor";
+import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
 
 function blockLabel(type: ContentBlock["type"]) {
   return type.charAt(0).toUpperCase() + type.slice(1);
@@ -783,7 +784,7 @@ function TransformIcon({ transform }: { transform: BlockTransform }) {
 }
 
 function BlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"]; headingLevel?: HeadingLevel }) {
-  const icons: Partial<Record<ContentBlock["type"], StudioIconName>> = { button: "button", code: "code", divider: "separator", embed: "external", image: "image", list: "list", paragraph: "paragraph", quote: "quote" };
+  const icons: Partial<Record<ContentBlock["type"], StudioIconName>> = { button: "button", code: "code", divider: "separator", embed: "external", image: "image", list: "list", paragraph: "paragraph", quote: "quote", spacer: "separator" };
   if (type === "heading") return <span className="studio-heading-icon" aria-hidden="true">H{headingLevel ?? 2}</span>;
   if (type === "table") return <TableIcon />;
   return <StudioIcon name={icons[type] ?? "block"} />;
@@ -847,7 +848,8 @@ export function BlockField({ block, selectedBlockId, hoveredBlockId, mediaUrl, o
   if (block.type === "embed") return <div className="embed-field"><span><StudioIcon name="external" /></span><div><strong>{block.title}</strong><small>{block.url || "Add a URL in Block settings"}</small></div></div>;
   if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`}>{block.label}</span></div>;
   if (block.type === "field") return <label className="content-field"><span>{block.label}</span>{block.control === "select" ? <select value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })}>{(block.options?.length ? block.options : [block.value]).map((option) => <option key={option}>{option}</option>)}</select> : <input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} />}</label>;
-  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}`} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onChange({ ...block, children: [...block.children, createBlock("paragraph", `nested-paragraph-${crypto.randomUUID()}`)] })}><StudioIcon name="add" size={16} /> Add nested block</button></Group>; }
+  if (block.type === "spacer") return <button type="button" className="spacer-field" style={{ height: `${block.height}px` }} data-studio-block-id={block.id} aria-label="Spacer block" />;
+  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onChange({ ...block, children: [...block.children, createBlock("paragraph", `nested-paragraph-${crypto.randomUUID()}`)] })}><StudioIcon name="add" size={16} /> Add nested block</button></Group>; }
   return <div className="divider-field"><span /></div>;
 }
 
