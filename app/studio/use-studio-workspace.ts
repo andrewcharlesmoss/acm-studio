@@ -2,14 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cloneWorkspace, initialStudioWorkspace, type StudioDocument, type StudioWorkspace } from "./editor-model";
+import { validateStudioWorkspace } from "./workspace-validation";
 import { commitHistory, redoHistory, undoHistory } from "./studio-command-operations.mjs";
 import { browserWorkspaceRepository, type WorkspaceRepository } from "./workspace-repository";
 
 import { studioWriteOwnership, ownershipMessage, type OwnershipState, type StudioWriteOwnership } from "./write-ownership";
+import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus } from "./studio-sync";
 
 const MAX_HISTORY = 60;
 
-export function useStudioWorkspace(repository: WorkspaceRepository = browserWorkspaceRepository, ownership: StudioWriteOwnership = studioWriteOwnership, initialWorkspace: StudioWorkspace = initialStudioWorkspace) {
+export function useStudioWorkspace(repository: WorkspaceRepository = browserWorkspaceRepository, ownership: StudioWriteOwnership = studioWriteOwnership, initialWorkspace: StudioWorkspace = initialStudioWorkspace, scope = "main-studio", validateSnapshot: (value: unknown) => StudioWorkspace = validateStudioWorkspace) {
   const [workspace, setWorkspace] = useState<StudioWorkspace>(() => cloneWorkspace(initialWorkspace));
   const [ready, setReady] = useState(false);
   const [saveLabel, setSaveLabel] = useState("Preparing local workspace…");
@@ -24,6 +26,12 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   const [historyAvailability, setHistoryAvailability] = useState({ undo: false, redo: false });
   const historyRef = useRef<StudioWorkspace[]>([]);
   const futureRef = useRef<StudioWorkspace[]>([]);
+  const workspaceRef = useRef(workspace);
+  const syncRef = useRef<StudioSyncSession<StudioWorkspace> | null>(null);
+  const lastPersistedWorkspaceRef = useRef<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<StudioSyncStatus>("disconnected");
+  const [syncConflict, setSyncConflict] = useState<StudioSyncConflict | null>(null);
+  useEffect(() => { workspaceRef.current = workspace; }, [workspace]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,31 +77,103 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   }, [repository, ownership, attempt, initialWorkspace]);
 
   useEffect(() => {
-    if (!ready || loadedRepository !== repository || loadError || !ownership.canWrite(loadedToken)) return;
+    if (!ready || loadError || ownershipState === "loading" || !["writable", "waiting"].includes(ownershipState)) return;
+    const primary = ownership.canWrite(loadedToken);
+    const session = createStudioSync<StudioWorkspace>({
+      scope,
+      storeKey: "workspace",
+      initialSnapshot: workspaceRef.current,
+      role: primary ? "primary" : "peer",
+      validateSnapshot,
+      cloneSnapshot: cloneWorkspace,
+      loadAuthoritative: () => repository.load() ?? cloneWorkspace(initialWorkspace),
+      onSnapshot: (snapshot, source) => {
+        const activeDocumentId = workspaceRef.current.documents.some(document => document.id === workspaceRef.current.activeDocumentId)
+          ? workspaceRef.current.activeDocumentId
+          : snapshot.activeDocumentId;
+        const displayed = { ...cloneWorkspace(snapshot), activeDocumentId };
+        workspaceRef.current = displayed;
+        setWorkspace(displayed);
+        if (source === "update" || source === "welcome" || source === "failover" || source === "recovery") {
+          historyRef.current = [];
+          futureRef.current = [];
+          setHistoryAvailability({ undo: false, redo: false });
+        }
+      },
+      onConflict: (conflict) => {
+        setSyncConflict(conflict);
+        setSaveError(conflict.reason);
+      },
+      onStatus: setSyncStatus,
+      persistPrimary: (snapshot) => repository.save(snapshot),
+    });
+    syncRef.current = session;
+    setSyncStatus(session.getStatus());
+    return () => {
+      session.close();
+      if (syncRef.current === session) syncRef.current = null;
+      setSyncStatus("disconnected");
+    };
+  }, [ready, loadError, ownershipState, loadedToken, repository, initialWorkspace, ownership, scope, validateSnapshot]);
+
+  const primaryWritable = ownership.canWrite(loadedToken);
+  const peerWritable = !primaryWritable && syncStatus === "synced";
+  const editable = primaryWritable || peerWritable;
+
+  useEffect(() => {
+    if (!ready || loadError || (!primaryWritable && !peerWritable)) return;
     let cancelled = false;
     let message: string;
     let failed = false;
-    try {
-      repository.save(workspace);
-      const latest = workspace.documents.find((item) => item.id === workspace.activeDocumentId)?.updatedAt;
-      const updated = latest ? new Date(latest) : new Date();
-      message = `Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-    } catch {
-      failed = true;
-      message = "Could not save locally";
+    const snapshotKey = JSON.stringify(workspace);
+    if (lastPersistedWorkspaceRef.current === snapshotKey) return;
+    if (primaryWritable && (!syncRef.current?.isAvailable() || !syncRef.current.isPrimary())) {
+      try {
+        repository.save(workspace);
+        const latest = workspace.documents.find((item) => item.id === workspace.activeDocumentId)?.updatedAt;
+        const updated = latest ? new Date(latest) : new Date();
+        queueMicrotask(() => {
+          setSaveError(null);
+          setSaveLabel(`Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
+          lastPersistedWorkspaceRef.current = snapshotKey;
+        });
+      } catch (error) {
+        queueMicrotask(() => {
+          setSaveError(error instanceof Error ? error.message : "Could not save locally");
+          setSaveLabel("Could not save locally");
+        });
+      }
+      return;
     }
-    queueMicrotask(() => {
-      if (cancelled || !ownership.canWrite(loadedToken)) return;
-      setSaveError(failed ? message : null);
-      setSaveLabel(message);
-    });
+    void (async () => {
+      try {
+        if (primaryWritable) {
+          if (syncRef.current?.isAvailable() && syncRef.current.isPrimary()) await syncRef.current.commitPrimary(workspace);
+          else repository.save(workspace);
+        } else if (syncRef.current?.isConnectedPeer()) {
+          await syncRef.current.submit(workspace);
+        } else return;
+        const latest = workspace.documents.find((item) => item.id === workspace.activeDocumentId)?.updatedAt;
+        const updated = latest ? new Date(latest) : new Date();
+        message = primaryWritable ? `Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Synced with another ACM Studio tab";
+        lastPersistedWorkspaceRef.current = snapshotKey;
+      } catch (error) {
+        failed = true;
+        message = error instanceof Error ? error.message : "Could not save locally";
+      }
+      queueMicrotask(() => {
+        if (cancelled || (!primaryWritable && !peerWritable)) return;
+        setSaveError(failed ? message : null);
+        setSaveLabel(message);
+      });
+    })();
     return () => { cancelled = true; };
-  }, [ready, repository, loadedRepository, loadError, workspace, ownership, loadedToken, ownershipState]);
+  }, [ready, repository, loadedRepository, loadError, workspace, ownership, loadedToken, ownershipState, primaryWritable, peerWritable]);
 
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
-    if (!ownership.canWrite(loadedToken)) return;
+    if (!editable) return;
     setWorkspace((current) => {
-      if (!ownership.canWrite(loadedToken)) return current;
+      if (!editable) return current;
       const nextHistory = commitHistory(current, historyRef.current, MAX_HISTORY);
       historyRef.current = nextHistory.history;
       futureRef.current = nextHistory.future;
@@ -103,11 +183,11 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   }
 
   function undo() {
-    if (!ownership.canWrite(loadedToken)) return;
+    if (!editable) return;
     const result = undoHistory(workspace, historyRef.current, futureRef.current, MAX_HISTORY);
     if (!result) return;
     setWorkspace((current) => {
-      if (!ownership.canWrite(loadedToken)) return current;
+      if (!editable) return current;
       const next = undoHistory(current, historyRef.current, futureRef.current, MAX_HISTORY);
       if (!next) return current;
       historyRef.current = next.history;
@@ -118,11 +198,11 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   }
 
   function redo() {
-    if (!ownership.canWrite(loadedToken)) return;
+    if (!editable) return;
     const result = redoHistory(workspace, historyRef.current, futureRef.current, MAX_HISTORY);
     if (!result) return;
     setWorkspace((current) => {
-      if (!ownership.canWrite(loadedToken)) return current;
+      if (!editable) return current;
       const next = redoHistory(current, historyRef.current, futureRef.current, MAX_HISTORY);
       if (!next) return current;
       historyRef.current = next.history;
@@ -155,5 +235,14 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
     setWorkspace((current) => ({ ...current, activeDocumentId: documentId }));
   }
 
-  return { workspace, ready, ownershipGeneration, writable: ownership.canWrite(loadedToken), canUndo: ownership.canWrite(loadedToken) && historyAvailability.undo, canRedo: ownership.canWrite(loadedToken) && historyAvailability.redo, canRetryEditing: ["waiting", "unavailable"].includes(ownershipState), retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: ownershipMessage(ownershipState) ?? loadError ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
+  async function resolveSyncConflict(choice: "mine" | "theirs") {
+    const session = syncRef.current;
+    if (!session) throw new Error("Studio synchronisation is unavailable.");
+    await session.resolveConflict(choice);
+    setSyncConflict(null);
+    setSaveError(null);
+  }
+
+  const statusLabel = syncConflict ? "Resolve conflicting changes" : syncStatus === "disconnected" && !primaryWritable ? "Connection lost — editing is paused" : syncStatus === "unsupported" && !primaryWritable ? "Read-only: this browser cannot synchronise Studio tabs" : null;
+  return { workspace, ready, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing: ["waiting", "unavailable"].includes(ownershipState), retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? ownershipMessage(ownershipState) ?? statusLabel ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
 }

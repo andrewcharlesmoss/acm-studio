@@ -66,12 +66,17 @@ producing an incomplete copy.
 
 Templates share `studioWriteOwnership` with workspace, publication and media
 stores. The host owns one lock lifecycle; template state loads after acquisition.
-Synchronous validated saves report Saving then Saved, and storage errors remain
-visible. Another editing tab leaves the losing tab read-only. Import and set
-duplication use the exclusive restore transaction: drain pending media work,
-stage new media and templates, roll both back on failure, and reload the installed
-snapshot after success. Incomplete rollback blocks editing. Retain the source
-package/backup during recovery.
+Same-origin Studio tabs synchronise workspace and template edits through a
+validated BroadcastChannel coordinator. Compatible changes merge, while
+overlapping field, deletion or ordering changes require a visible conflict
+choice. Remote updates clear local undo/redo history so an older whole snapshot
+cannot overwrite a change made in another tab. Synchronous validated saves
+report Saving then Saved, and storage errors remain visible. If coordination is
+unavailable, the tab remains safely read-only. Import and set duplication use
+the exclusive restore transaction: drain pending media work, stage new media and
+templates, roll both back on failure, and reload the installed snapshot after
+success. Incomplete rollback blocks editing. Retain the source package/backup
+during recovery.
 
 Full Studio backups include templates and assignments. Older backups without
 template data restore as having none. Restore rollback covers workspace,

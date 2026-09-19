@@ -62,10 +62,11 @@ test("design sync validates the design room and commits peer edits through the p
   const channelFactory = channelBus();
   let persisted = design;
   const snapshots = [];
-  const primary = sync.createDesignSync({ designId: design.id, initialSnapshot: design, role: "primary", channelFactory, onSnapshot: () => {}, persistPrimary: async (next) => { persisted = next; } });
+  const primary = sync.createDesignSync({ designId: design.id, initialSnapshot: design, role: "primary", channelFactory, onSnapshot: (next, source) => snapshots.push({ next, source }), persistPrimary: async (next) => { persisted = next; } });
   const peer = sync.createDesignSync({ designId: design.id, initialSnapshot: design, role: "peer", channelFactory, onSnapshot: (next) => snapshots.push(next), persistPrimary: async () => { throw new Error("peer must not persist"); } });
   await settle();
   assert.equal(peer.getStatus(), "synced");
+  assert.equal(snapshots[0].source, "failover");
   await peer.submit({ ...design, name: "Changed in the other tab" });
   assert.equal(persisted.name, "Changed in the other tab");
   assert.equal(snapshots.at(-1).name, "Changed in the other tab");

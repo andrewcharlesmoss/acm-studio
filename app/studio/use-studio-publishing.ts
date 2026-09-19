@@ -11,6 +11,7 @@ export function useStudioPublishing({
   workspace,
   updateActiveDocument,
   setSaveLabel,
+  publishingWritable = true,
   publishingRepository = browserPublishingRepository,
   reservedSlugs = articles.map((article) => article.slug),
 }: {
@@ -18,12 +19,14 @@ export function useStudioPublishing({
   workspace: StudioWorkspace;
   updateActiveDocument: (update: (document: StudioDocument) => StudioDocument) => void;
   setSaveLabel: (label: string) => void;
+  publishingWritable?: boolean;
   publishingRepository?: PublishingRepository;
   reservedSlugs?: string[];
 }) {
   const [publishFeedback, setPublishFeedback] = useState<string | null>(null);
 
   function publish() {
+    if (!publishingWritable) { setPublishFeedback("Publishing is paused while another Studio tab owns local storage."); return false; }
     const error = validatePostForPublication(activeDocument, workspace.documents, reservedSlugs);
     if (error) {
       setPublishFeedback(error);
@@ -54,6 +57,7 @@ export function useStudioPublishing({
 
   function unpublish() {
     if (activeDocument.kind !== "post") return false;
+    if (!publishingWritable) { setPublishFeedback("Publishing is paused while another Studio tab owns local storage."); return false; }
     try {
       publishingRepository.unpublish(activeDocument.id);
     } catch (error) {

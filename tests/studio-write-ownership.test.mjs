@@ -445,7 +445,7 @@ test("media failure restores canonical metadata, clears busy state and handles u
 
 test("takeover remounts Files at root before enabling writes and cannot reuse an old folder callback", async () => {
   const source = readFileSync(path.join(root, "app/studio/studio-prototype.tsx"), "utf8");
-  assert.match(source, /<MediaManager\s+key=\{ownershipGeneration\}\s+writable=\{writable\}/);
+  assert.match(source, /<MediaManager\s+key=\{ownershipGeneration\}\s+writable=\{exclusiveWritable\}/);
   const old = mediaHarness({ writable: false, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
   let tree = await old.flush();
   descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card")).props.onDoubleClick();

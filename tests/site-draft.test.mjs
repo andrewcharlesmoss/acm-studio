@@ -108,6 +108,7 @@ test("Mini Golf uses the canonical shared block editor", () => {
   const siteEditor = readFileSync(new URL("../app/studio/mini-golf-site-editor.tsx", import.meta.url), "utf8");
   assert.match(mainEditor, /from ["']\.\/studio-editor["']/);
   assert.match(siteEditor, /from ["']\.\/studio-editor["']/);
+  assert.match(siteEditor, /useStudioWorkspace\([^;]+validateMiniGolfDraft\)/s);
   assert.doesNotMatch(siteEditor, /MiniGolfInheritedPage|mini-golf-inherited-page/);
   const presentation = readFileSync(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url), "utf8");
   assert.match(siteEditor, /miniGolfPresentation/);

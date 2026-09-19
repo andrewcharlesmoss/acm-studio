@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";
 import { useStudioWorkspace } from "./use-studio-workspace";
-import { initialMiniGolfDraft, initialMiniGolfStagingDraft, miniGolfDraftRepository, miniGolfStagingDraftRepository } from "./mini-golf-draft";
+import { initialMiniGolfDraft, initialMiniGolfStagingDraft, miniGolfDraftRepository, miniGolfStagingDraftRepository, validateMiniGolfDraft } from "./mini-golf-draft";
 import { miniGolfSite as productionSite, type MiniGolfSite } from "./site-registry";
 import { StudioIcon } from "./studio-icons";
 import { studioWriteOwnership } from "./write-ownership";
@@ -22,7 +22,7 @@ import { findBlockById } from "./studio-command-operations.mjs";
 
 export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { site?: MiniGolfSite }) {
   const repository = miniGolfSite.environment === "staging" ? miniGolfStagingDraftRepository : miniGolfDraftRepository;
-  const { workspace, ready, writable, saveLabel, canRetryEditing, retryEditing, updateActiveDocument, updateActiveField, undo, redo, canUndo, canRedo } = useStudioWorkspace(repository, studioWriteOwnership, miniGolfSite.environment === "staging" ? initialMiniGolfStagingDraft : initialMiniGolfDraft);
+  const { workspace, ready, writable, saveLabel, canRetryEditing, retryEditing, updateActiveDocument, updateActiveField, undo, redo, canUndo, canRedo } = useStudioWorkspace(repository, studioWriteOwnership, miniGolfSite.environment === "staging" ? initialMiniGolfStagingDraft : initialMiniGolfDraft, `mini-golf-${miniGolfSite.id}`, validateMiniGolfDraft);
   const [previewing, setPreviewing] = useState(false);
   const [codeEditorDirty, setCodeEditorDirty] = useState(false);
   const [view, setView] = useState<"page" | "files" | "codex" | "settings">("page");

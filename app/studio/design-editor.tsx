@@ -105,6 +105,7 @@ function conflictDetails(conflict: DesignMergeConflict) {
 }
 const ZOOM_SHORTCUT_STEPS = [10, 25, 50, 75, 100, 125, 200, 300, 500] as const;
 const PAGE_DROP_GUIDE_HEIGHT = 2;
+const SAVE_STATUS_MINIMUM_MS = 500;
 
 function centredScrollOffset(contentCentre: number, viewportSize: number, scrollSize: number, clientSize: number) {
   const maximum = Math.max(0, scrollSize - clientSize);
@@ -811,6 +812,7 @@ export function DesignEditor() {
   const recentStylesRef = useRef<RecentStyles>(cloneDesign(defaultRecentStyles));
   const lastTextPointerRef = useRef<{ id: string; at: number } | null>(null);
   const syncRef = useRef<DesignSyncSession | null>(null);
+  const saveStatusSequenceRef = useRef(0);
   const activePageIdRef = useRef<string | null>(null);
   const designsRef = useRef<DesignProject[]>([]);
   const requestedDesignId = useState(() => typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("designId"))[0];
@@ -1104,6 +1106,7 @@ export function DesignEditor() {
         else if (next === "disconnected") setStatus("Connection lost — unsaved changes");
       },
       onConflict: (next) => { setSyncConflict(next); setConflictPanelOpen(true); setStatus("Resolve conflicting changes"); },
+      loadAuthoritative: () => loadDesigns().find((item) => item.id === design.id) ?? design,
       onSnapshot: (snapshot, source) => {
         const localActivePageId = snapshot.pages.some((page) => page.id === activePageIdRef.current) ? activePageIdRef.current : snapshot.activePageId;
         activePageIdRef.current = localActivePageId;
@@ -1114,7 +1117,7 @@ export function DesignEditor() {
           designsRef.current = next;
           return next;
         });
-        if (source === "welcome") { setHistory([]); setFuture([]); }
+        if (source === "welcome" || source === "failover") { setHistory([]); setFuture([]); }
         setPageName(displayedSnapshot.pages.find((page) => page.id === displayedSnapshot.activePageId)?.name ?? displayedSnapshot.pages[0]?.name ?? "");
         setSelectedIds((ids) => ids.filter((id) => snapshot.pages.some((page) => page.objects.some((object) => object.id === id))));
         setSelectedId((id) => id && snapshot.pages.some((page) => page.objects.some((object) => object.id === id)) ? id : null);
@@ -1214,19 +1217,25 @@ export function DesignEditor() {
     const updated = baseDesigns.some((item) => item.id === next.id) ? baseDesigns.map((item) => item.id === next.id ? next : item) : [...baseDesigns, next];
     designsRef.current = updated;
     setDesigns(updated);
+    const saveSequence = primaryWritable ? ++saveStatusSequenceRef.current : null;
+    const saveStartedAt = primaryWritable ? Date.now() : 0;
+    if (primaryWritable) setStatus("Saving…");
+    else if (syncRef.current?.isConnectedPeer()) setStatus("Syncing changes");
     try {
       if (primaryWritable) {
         if (syncRef.current?.isPrimary()) await syncRef.current.commitPrimary(next);
         else await saveDesigns(updated);
-        setStatus("Changes saved"); setError("");
+        const remaining = SAVE_STATUS_MINIMUM_MS - (Date.now() - saveStartedAt);
+        if (remaining > 0) await new Promise<void>((resolve) => window.setTimeout(resolve, remaining));
+        if (saveSequence === saveStatusSequenceRef.current) { setStatus("Saved locally"); setError(""); }
       } else if (syncRef.current?.isConnectedPeer()) {
-        setStatus("Syncing changes");
         await syncRef.current.submit(next);
         setStatus("Synced with another ACM Studio tab"); setError("");
       } else {
         setStatus(ownershipMessage(ownershipState) ?? "Read-only");
       }
     } catch (saveError) {
+      if (saveSequence !== null && saveSequence !== saveStatusSequenceRef.current) return;
       setError(designSaveErrorMessage(saveError));
       setStatus(syncStatus === "conflict" ? "Resolve conflicting changes" : "Save failed — export an editable backup");
     }
@@ -1240,7 +1249,7 @@ export function DesignEditor() {
       setSyncConflict(null);
       setConflictPanelOpen(false);
       setError("");
-      setStatus("Changes saved");
+      setStatus("Saved locally");
     } catch (resolveError) {
       setError(resolveError instanceof Error ? resolveError.message : "The conflict could not be resolved.");
       setStatus("Resolve conflicting changes");
@@ -1642,6 +1651,7 @@ export function DesignEditor() {
     const image = { id: makeId("object"), type: "image" as const, assetId: designAsset.id, x: Math.max(0, (page.width - dimensions.width * scale) / 2), y: Math.max(0, (page.height - dimensions.height * scale) / 2), width: dimensions.width * scale, height: dimensions.height * scale, rotation: 0, opacity: 1 };
     const opened = { ...next, assets: [designAsset], pages: [{ ...page, objects: [image] }] };
     const updated = [...designsRef.current, opened];
+    setStatus("Saving…");
     try {
       await saveDesigns(updated);
       designsRef.current = updated;
@@ -2019,6 +2029,7 @@ export function DesignEditor() {
     if (!primaryWritable) { setError("Only the primary Studio tab can create a new design."); return; }
     const next = createDesign();
     const updated = [...designsRef.current, next];
+    setStatus("Saving…");
     try {
       await saveDesigns(updated);
       designsRef.current = updated;
@@ -2101,6 +2112,7 @@ export function DesignEditor() {
       }
       const copy = { ...imported, id: makeId("design"), name: `${imported.name} copy`, updatedAt: new Date().toISOString() };
       const updated = [...designsRef.current, copy];
+      setStatus("Saving…");
       await saveDesigns(updated);
       designsRef.current = updated;
       setDesigns(updated); setDesign(copy); setStatus("Design imported");

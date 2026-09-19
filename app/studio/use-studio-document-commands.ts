@@ -41,9 +41,9 @@ export function useStudioDocumentCommands({
   }
 
   function deleteDocument() {
-    if (publishingRepository === browserPublishingRepository && !studioWriteOwnership.canWrite()) return false;
     if (workspace.documents.length === 1) return false;
     if (activeDocument.kind === "post" && activeDocument.status === "published") {
+      if (publishingRepository === browserPublishingRepository && !studioWriteOwnership.canWrite()) return false;
       publishingRepository.unpublish(activeDocument.id);
     }
     commit((current) => deleteDocumentFromWorkspace(current, activeDocument.id));

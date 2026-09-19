@@ -286,8 +286,34 @@ test("template hook reports Saving then Saved, supports undo/redo, and never hid
   state.redo(); state = render(); assert.equal(state.store.sets.length, 1);
   env.fail(m.TEMPLATE_STORAGE_KEY); assert.equal(state.commit(store => ({ ...store, sets: [] })), false);
   state = render(); assert.equal(state.saveLabel, "Could not save locally"); assert.match(state.error, /Quota/); assert.equal(state.store.sets.length, 1);
+  await new Promise(resolve => setTimeout(resolve, 520)); state = render(); assert.equal(state.saveLabel, "Could not save locally");
   const staleCommit = state.commit; generation = 2; render(); await h.flush(); state = render();
   assert.equal(staleCommit(store => ({ ...store, sets: [] })), false); assert.equal(state.store.sets.length, 1); release();
+});
+
+test("template remote updates clear local history and failed async saves never report success", async () => {
+  const h = hooks(); let syncOptions; let fail = false;
+  const env = environment({ react: h.react, "./studio-sync": {
+    createStudioSync(options) {
+      syncOptions = options;
+      return { getStatus: () => "primary", isAvailable: () => true, isPrimary: () => true, commitPrimary: async () => { if (fail) throw new Error("Async quota"); }, close() {} };
+    },
+  } });
+  const m = env.load("studio/template-model.ts"); const { useTemplates } = env.load("studio/use-templates.ts"); const { release } = await env.own();
+  let generation = 1; const render = () => h.render(() => useTemplates(generation, true));
+  render(); await h.flush(); let state = render(); await h.flush();
+  assert.ok(syncOptions);
+  assert.equal(state.commit(store => ({ ...store, sets: [m.createTemplateSet()] })), true);
+  state = render(); assert.equal(state.canUndo, true);
+  const remote = plain(state.store); remote.sets[0].name = "Remote change";
+  syncOptions.onSnapshot(remote, "update"); state = render();
+  assert.equal(state.store.sets[0].name, "Remote change"); assert.equal(state.canUndo, false); assert.equal(state.canRedo, false);
+  fail = true;
+  assert.equal(state.commit(store => ({ ...store, sets: [] })), true);
+  state = render(); assert.equal(state.saveLabel, "Saving…");
+  await new Promise(resolve => setImmediate(resolve)); state = render(); assert.equal(state.saveLabel, "Could not save locally");
+  await new Promise(resolve => setTimeout(resolve, 520)); state = render(); assert.equal(state.saveLabel, "Could not save locally");
+  release();
 });
 
 test("history routing undoes interleaved content and assignment changes in order", async () => {

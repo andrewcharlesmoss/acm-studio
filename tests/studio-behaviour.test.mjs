@@ -797,6 +797,15 @@ test("design saves compact unused image assets and explain storage quota failure
   assert.match(editor, /catch \(saveError\) \{[\s\S]{0,240}designSaveErrorMessage\(saveError\)/);
 });
 
+test("design save status settles on a local storage label", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /if \(primaryWritable\) setStatus\("Saving…"\);/);
+  assert.match(editor, /SAVE_STATUS_MINIMUM_MS - \(Date\.now\(\) - saveStartedAt\)/);
+  assert.match(editor, /saveSequence === saveStatusSequenceRef\.current/);
+  assert.match(editor, /setStatus\("Saved locally"\); setError\(""\);/);
+  assert.doesNotMatch(editor, /setStatus\("Changes saved"\)/);
+});
+
 test("background removal keeps the inspector guidance compact", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /<small>Adjust cleanup, then run again\.<\/small>/);
@@ -993,6 +1002,7 @@ test("duplicate design tabs keep the global writer lock and route peer edits thr
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const sync = readFileSync(new URL("../app/studio/design-sync.ts", import.meta.url), "utf8");
   assert.match(editor, /createDesignSync\(/);
+  assert.match(editor, /source === "welcome" \|\| source === "failover"/);
   assert.match(editor, /const primaryWritable = ownershipState === "writable"/);
   assert.match(editor, /const peerWritable = ownershipState === "waiting" && syncStatus === "synced"/);
   assert.match(editor, /syncRef\.current\.submit\(next\)/);
@@ -1063,8 +1073,10 @@ test("shared editor toolbar owns history controls and docks a dismissible List V
     assert.match(source, /canUndo=\{canUndo\}/);
     assert.match(source, /canRedo=\{canRedo\}/);
   }
-  assert.match(read("use-studio-workspace.ts"), /canUndo: ownership.canWrite\(loadedToken\) && historyAvailability.undo/);
-  assert.match(read("use-studio-workspace.ts"), /canRedo: ownership.canWrite\(loadedToken\) && historyAvailability.redo/);
+  assert.match(read("use-studio-workspace.ts"), /canUndo: editable && !syncConflict && historyAvailability.undo/);
+  assert.match(read("use-studio-workspace.ts"), /canRedo: editable && !syncConflict && historyAvailability.redo/);
+  assert.match(read("use-studio-workspace.ts"), /source === "update" \|\| source === "welcome"/);
+  assert.match(read("use-templates.ts"), /source === "update" \|\| source === "welcome"/);
   assert.match(canvas, /className="editor-work-area"/);
   assert.match(canvas, /className="studio-list-backdrop"[^>]*aria-label="Close List View"/);
   assert.match(canvas, /event.key !== "Escape" \|\| event.defaultPrevented/);

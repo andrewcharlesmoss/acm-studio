@@ -30,9 +30,8 @@ function exportJson(value: unknown, filename: string) {
   link.click();
   URL.revokeObjectURL(url);
 }
-
 export function StudioPrototype() {
-  const { workspace, ownershipGeneration, writable, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateControls, templatePresentation, hasTemplate } = useDocumentTemplates(useStudioWorkspace());
+  const { workspace, ownershipGeneration, writable, exclusiveWritable, syncConflict, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateControls, templatePresentation, hasTemplate } = useDocumentTemplates(useStudioWorkspace());
   const [libraryKind, setLibraryKind] = useState<StudioDocumentKind>("page");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"document" | "block">("document");
@@ -45,7 +44,6 @@ export function StudioPrototype() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [designMediaPrompt, setDesignMediaPrompt] = useState<{ asset: MediaAsset; target: "block" | "cover" } | null>(null);
   const [designMediaAltText, setDesignMediaAltText] = useState(""); const designMediaDialogRef = useRef<HTMLDialogElement>(null);
-
   function confirmCodeEditorDiscard() {
     if (!codeEditorDirty) return true;
     if (!window.confirm("Discard unsaved code changes?")) return false;
@@ -74,6 +72,7 @@ export function StudioPrototype() {
     workspace,
     updateActiveDocument,
     setSaveLabel,
+    publishingWritable: exclusiveWritable,
   });
 
   useEffect(() => {
@@ -241,6 +240,7 @@ export function StudioPrototype() {
           {studioSection !== "content" ? <button className="button-secondary" type="button" onClick={() => setStudioSection("content")}>Back to {activeDocument.title}</button> : <>{activeDocument.kind === "post" ? <>{activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}<button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button></> : <button className="button-primary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>}</>}
         </div>
       </header>
+      {syncConflict ? <div className="design-notice" role="alert">Conflicting changes need review. <button type="button" onClick={() => void resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void resolveSyncConflict("mine")}>Use My Change</button></div> : null}
       <div className="studio-notice" role="note"><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</div>
 
       <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection !== "content" ? " is-tool" : ""}`}>
@@ -331,7 +331,7 @@ export function StudioPrototype() {
           }}
         /> : studioSection === "files" ? <MediaManager
           key={ownershipGeneration}
-          writable={writable}
+          writable={exclusiveWritable}
           targetLabel={media.targetCover ? "Cover image" : media.targetBlockId ? "Image block" : "Media library"}
           targetKind={media.targetCover ? "cover" : "block"}
           onInsertImage={media.insertImage}

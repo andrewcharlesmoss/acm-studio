@@ -48,7 +48,7 @@ function storage(initial = null) {
 }
 
 // Run the actual hook's effects and dependency changes, with persistence injected.
-function hookHarness(repository, load) {
+function hookHarness(repository, load, syncOverride = null) {
   const slots = [];
   let index = 0;
   let effects = [];
@@ -73,7 +73,7 @@ function hookHarness(repository, load) {
       }
     },
   };
-  const useWorkspace = modules({ react, "./editor-model": load("app/studio/editor-model.ts"), "./workspace-repository": { browserWorkspaceRepository: repository } }, {
+  const useWorkspace = modules({ react, "./editor-model": load("app/studio/editor-model.ts"), "./workspace-repository": { browserWorkspaceRepository: repository }, ...(syncOverride ? { "./studio-sync": syncOverride } : {}) }, {
     queueMicrotask: (fn) => microtasks.push(fn),
   })("app/studio/use-studio-workspace.ts").useStudioWorkspace;
   let result;
@@ -136,6 +136,26 @@ test("Save feedback cannot hide a quota failure; a successful persistence retry 
   quota = false;
   h.flush().commit((workspace) => ({ ...workspace }));
   assert.match(h.flush().saveLabel, /Saved locally/);
+});
+
+test("authoritative workspace updates clear local undo and redo history", async () => {
+  let syncOptions;
+  const sync = {
+    createStudioSync(options) {
+      syncOptions = options;
+      return { getStatus: () => "primary", isAvailable: () => true, isPrimary: () => true, commitPrimary: async () => {}, close() {} };
+    },
+  };
+  const h = hookHarness({ load: () => null, save() {} }, modules(), sync);
+  let state = h.flush();
+  state.commit(workspace => ({ ...workspace, documents: workspace.documents.map((document, index) => index === 0 ? { ...document, title: "Local edit" } : document) }));
+  state = h.flush(); assert.equal(state.canUndo, true); assert.ok(syncOptions);
+  const remote = structuredClone(state.workspace);
+  remote.documents[0].title = "Remote edit";
+  syncOptions.onSnapshot(remote, "update");
+  state = h.flush();
+  assert.equal(state.workspace.documents[0].title, "Remote edit");
+  assert.equal(state.canUndo, false); assert.equal(state.canRedo, false);
 });
 
 const load = modules();

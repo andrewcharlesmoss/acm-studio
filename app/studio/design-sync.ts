@@ -4,7 +4,7 @@ import { cloneDesign, validateDesignProject, type DesignProject } from "./design
 export { DESIGN_SYNC_PROTOCOL } from "./design-merge";
 export type DesignSyncRole = "primary" | "peer";
 export type DesignSyncStatus = "unsupported" | "connecting" | "primary" | "synced" | "conflict" | "disconnected";
-export type DesignSyncSnapshotSource = "welcome" | "update" | "commit" | "conflict";
+export type DesignSyncSnapshotSource = "welcome" | "update" | "commit" | "conflict" | "failover";
 
 type MessageBase = { protocol: typeof DESIGN_SYNC_PROTOCOL; designId: string; senderId: string };
 
@@ -40,6 +40,7 @@ export type DesignSyncOptions = {
   onSnapshot: (snapshot: DesignProject, source: DesignSyncSnapshotSource) => void;
   onConflict?: (conflict: DesignSyncConflict) => void;
   onStatus?: (status: DesignSyncStatus) => void;
+  loadAuthoritative?: () => DesignProject;
   persistPrimary: (snapshot: DesignProject) => Promise<void>;
   channelFactory?: (name: string) => DesignSyncChannel | null;
   clientId?: string;
@@ -264,6 +265,18 @@ export class DesignSyncSession {
   private send(message: DesignSyncMessage) { if (!this.channel || this.closed) return; try { this.channel.postMessage(message); } catch { this.setStatus("disconnected"); } }
   private announce(kind: "announce" | "status") { this.send({ protocol: DESIGN_SYNC_PROTOCOL, designId: this.options.designId, senderId: this.clientId, kind, brokerEpoch: this.brokerEpoch, revision: this.revision, ...(kind === "status" ? { state: "primary" as const } : {}) } as DesignSyncMessage); }
   private becomePrimary() {
+    this.pendingPeer.forEach((pending) => { clearTimeout(pending.timer); pending.reject(new Error("The Design persistence owner changed. Reload the latest saved state before continuing.")); });
+    this.pendingPeer.clear();
+    this.peerQueue.forEach((pending) => pending.reject(new Error("The Design persistence owner changed.")));
+    this.peerQueue = [];
+    try {
+      if (this.options.loadAuthoritative) this.snapshot = this.validateSnapshot(this.options.loadAuthoritative());
+      this.optimisticSnapshot = cloneDesign(this.snapshot);
+      this.options.onSnapshot(this.snapshot, "failover");
+    } catch {
+      this.setStatus("disconnected");
+      return;
+    }
     this.brokerEpoch = id("epoch");
     this.setStatus("primary");
     this.announce("announce"); this.announce("status");
