@@ -5,6 +5,12 @@
 .template-toolbar { padding: 10px 14px; border-bottom: 1px solid #ddd; background: #fff; font: var(--studio-ui-size)/1.5 var(--studio-ui-font); }
 .template-toolbar label { display: flex; gap: 6px; align-items: center; }
 .template-toolbar select, .template-toolbar button, .template-library button, .template-inspector button { min-height: 34px; }
+.template-zoom-control { align-items: center; display: inline-flex; gap: 3px; margin-left: auto; }
+.template-zoom-label { color: var(--muted); margin-right: 3px; }
+.template-zoom-control button { align-items: center; background: #fff; border: 1px solid #d1cfc7; border-radius: 5px; color: var(--ink); cursor: pointer; display: inline-flex; justify-content: center; min-width: 34px; padding: 6px; }
+.template-zoom-control button:hover, .template-zoom-control button:focus-visible { border-color: #2457c5; color: #2457c5; }
+.template-zoom-control button:disabled { cursor: default; opacity: .45; }
+.template-zoom-control .template-zoom-value { min-width: 58px; font-variant-numeric: tabular-nums; }
 .template-set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 20px; }
 .template-set-card { padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fff; }
 .template-set-card h2 { margin: 0 0 8px; font-size: 1.15rem; }
@@ -104,5 +110,6 @@
   .template-workspace .editor-canvas-scroll { padding: 14px 12px 50px; }
   .template-toolbar label { min-width: 0; max-width: 100%; flex-wrap: wrap; }
   .template-toolbar select { min-width: 0; max-width: 100%; }
+  .template-zoom-control { margin-left: 0; }
   .template-editing .block-canvas, .template-editing .document-preview { padding: 12px; }
 }

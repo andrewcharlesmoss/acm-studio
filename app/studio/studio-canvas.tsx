@@ -51,6 +51,8 @@ export type StudioCanvasProps = {
   toolbarContent?: ReactNode;
   viewportWidth?: number;
   viewportWidthCanOverflow?: boolean;
+  /** Opt-in workspace zoom. Ordinary Studio and Mini Golf callers leave this unset. */
+  canvasZoom?: number;
   className?: string;
   presentation?: StudioPresentation;
   writable?: boolean;
@@ -94,7 +96,7 @@ export type StudioCanvasProps = {
   onSetInserterQuery: (query: string) => void;
 };
 
-export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
   const linkInputRef = useRef<HTMLInputElement>(null);
@@ -113,7 +115,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const [alignmentMenuBlockId, setAlignmentMenuBlockId] = useState<string | null>(null);
   const [tableMenuBlockId, setTableMenuBlockId] = useState<string | null>(null);
   const [blockMenuBlockId, setBlockMenuBlockId] = useState<string | null>(null);
-  const viewportStyle = viewportWidth ? { width: viewportWidth, ...(viewportWidthCanOverflow ? {} : { maxWidth: "100%" }) } : undefined;
+  const viewportStyle = viewportWidth ? { width: viewportWidth, ...(viewportWidthCanOverflow ? {} : { maxWidth: "100%" }), ...(canvasZoom ? { zoom: canvasZoom / 100 } : {}) } : undefined;
   const [htmlEditor, setHtmlEditor] = useState<HtmlEditorState | null>(null);
   const [codeEditor, setCodeEditor] = useState<CodeEditorState | null>(null);
   const [listViewOpen, setListViewOpen] = useState(false);

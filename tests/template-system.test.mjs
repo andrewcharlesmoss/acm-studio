@@ -230,7 +230,7 @@ test("standalone Header and Footer targets retain composed semantic regions in E
       const region = `<${target.kind} class="template-part template-${target.kind}" data-template-part="${target.id}">`;
       assert.ok(html.includes(region), `${target.kind} ${previewing ? "Preview" : "Edit"} uses shared region`);
       assert.ok(composed.includes(region));
-      assert.match(html, /style="width:1200px"/);
+      assert.match(html, /style="width:1200px(?:;zoom:1)?"/);
       assert.doesNotMatch(html, /width:1200px;max-width:100%/);
       if (target.kind === "footer") {
         assert.match(html, /template-copyright/); assert.match(html, /template-social/); assert.match(html, /layout-columns/);
@@ -252,6 +252,42 @@ test("template edit nodes remain keyboard and pointer selectable without visible
   const source = readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
   assert.match(source, /onPointerDown=\{event => \{ event\.stopPropagation\(\); setSelected\(node\.id\); \}\}/);
   assert.match(source, /onKeyDown=\{event => \{/);
+});
+
+test("template zoom shortcuts are bounded, workspace-scoped and leave native editing alone", () => {
+  const env = environment(); const zoom = env.load("studio/template-zoom.ts");
+  const plainTarget = { isContentEditable: false, closest: () => null };
+  const inputTarget = { isContentEditable: false, closest: (selector) => selector.includes("input") ? {} : null };
+  const event = (key, modifiers = {}, target = plainTarget) => ({ key, code: key === "+" ? "Equal" : key === "-" ? "Minus" : key === "0" ? "Digit0" : undefined, target, defaultPrevented: false, altKey: false, metaKey: false, ctrlKey: false, ...modifiers });
+  assert.equal(zoom.templateZoomShortcut(event("+", { metaKey: true }), true), "in");
+  assert.equal(zoom.templateZoomShortcut(event("=", { ctrlKey: true }), true), "in");
+  assert.equal(zoom.templateZoomShortcut({ ...event("x", { ctrlKey: true }), code: "NumpadAdd" }, true), "in");
+  assert.equal(zoom.templateZoomShortcut({ ...event("x", { ctrlKey: true }), code: "NumpadSubtract" }, true), "out");
+  assert.equal(zoom.templateZoomShortcut({ ...event("x", { ctrlKey: true }), code: "Numpad0" }, true), "reset");
+  assert.equal(zoom.templateZoomShortcut(event("+", { ctrlKey: true }, inputTarget), true), null);
+  assert.equal(zoom.templateZoomShortcut(event("+", { ctrlKey: true }), false), null);
+  assert.equal(zoom.changeTemplateZoom(zoom.TEMPLATE_ZOOM_MIN, "out"), zoom.TEMPLATE_ZOOM_MIN);
+  assert.equal(zoom.changeTemplateZoom(zoom.TEMPLATE_ZOOM_MAX, "in"), zoom.TEMPLATE_ZOOM_MAX);
+  assert.equal(zoom.changeTemplateZoom(130, "reset"), 100);
+});
+
+test("template zoom controls and canvas wiring apply consistently to Edit and Preview", () => {
+  const env = environment(); const model = env.load("studio/template-model.ts"); const { TemplateEditor } = env.load("studio/template-editor.tsx");
+  const set = model.createTemplateSet(); const documents = env.load("studio/editor-model.ts").initialStudioWorkspace.documents;
+  const html = renderToStaticMarkup(createElement(TemplateEditor, { set, target: set.templates[0], documents, mediaUrls: {}, writable: true, onChange: () => true, onEditPart() {}, onOpenMedia() {}, undo() {}, redo() {}, canUndo: false, canRedo: false }));
+  assert.match(html, /aria-label="Template canvas zoom"/);
+  assert.match(html, /aria-label="Zoom out"/);
+  assert.match(html, /aria-label="Reset template zoom to 100 percent \(currently 100 percent\)"/);
+  assert.match(html, /aria-label="Zoom in"/);
+  assert.match(html, /style="width:1200px;zoom:1"/);
+  const editor = readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(editor, /canvasZoom: zoom/);
+  assert.match(editor, /document\.addEventListener\("keydown", onKeyDown, true\)/);
+  assert.match(canvas, /canvasZoom\?: number/);
+  assert.match(canvas, /zoom: canvasZoom \/ 100/);
+  const css = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  assert.match(css, /\.template-zoom-control/);
 });
 
 test("template shell keeps configurable brand semantics and documented responsive breakpoints", () => {

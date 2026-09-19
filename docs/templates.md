@@ -8,9 +8,13 @@ links are empty until a real destination is supplied.
 The canvas, ordinary block controls, List View and history are shared with the
 content editor. The editing breadcrumb identifies the selected set and target.
 **Preview Content** selects an existing document; **Width** provides desktop,
-tablet and mobile canvas sizes. The Template inspector owns identity, navigation
-and social/support links; Styles applies to the whole set. Ordinary paragraph
-style overrides take precedence over the set's tokens.
+tablet and mobile canvas sizes. Zoom is independent of that viewport choice and
+is available from the toolbar or with Command/Ctrl + plus/equal, Command/Ctrl +
+minus/underscore and Command/Ctrl + 0 to reset to 100%. These shortcuts only
+belong to the focused template workspace and leave text, code and form editing
+to the browser. The Template inspector owns identity, navigation and
+social/support links; Styles applies to the whole set. Ordinary paragraph style
+overrides take precedence over the set's tokens.
 Templated bodies and ordinary template blocks display dividers in every
 preview and publication surface. Standalone Header/Footer targets use the same
 semantic region and responsive styling as their composed references.
