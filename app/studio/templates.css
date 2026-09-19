@@ -63,10 +63,11 @@
 .template-surface .studio-block-preview, .template-surface .block-textarea, .template-surface .rich-text-editor { color: inherit; font-family: var(--template-font); }
 .template-surface .studio-block-preview p, .template-surface .paragraph-field { font-size: var(--template-font-size); }
 .template-surface .content-button { border-radius: var(--template-radius); }
-.template-edit-part, .template-node-select { font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.template-edit-part { font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-edit-part { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px; padding: 6px 10px; border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; }
 .template-node-selected { outline: 1px solid #2457c5; outline-offset: 4px; }
-.template-node-select { display: block; margin-bottom: 6px; }
+.template-node-selectable { min-width: 0; }
+.template-node-selectable:focus-visible { outline: 2px solid #2457c5; outline-offset: 4px; }
 .template-editing .block-canvas, .template-editing .document-preview { padding: 24px; width: 100%; max-width: 1200px; }
 .template-dialog { border: 1px solid #ccc; border-radius: 10px; padding: 24px; width: min(480px, 90vw); }
 .template-dialog::backdrop { background: #0005; }

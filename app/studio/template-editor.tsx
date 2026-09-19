@@ -72,7 +72,28 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
         if (!["group", "section"].includes(context.block.type)) return null;
         return <TemplateNodes key={context.block.id} set={set} document={sample} nodes={templateNodesFromBlocks([context.block])} mediaUrls={mediaUrls} content={<BlockRenderer blocks={sample.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} />} onEditPart={context.mode === "edit" ? onEditPart : undefined}
           renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
-          decorate={context.mode === "edit" ? (node, result) => findBlockById(blocks, node.id) ? <div className={selected === node.id ? "template-node-selected" : undefined} data-studio-nested-block-id={node.id}><button className="template-node-select" type="button" onClick={event => { event.stopPropagation(); setSelected(node.id); }}>{node.type === "element" ? templateElementLabel(node.element) : node.type === "part" ? "Shared Part" : templateElementLabel(node.type)}</button>{result}</div> : result : undefined} />;
+          decorate={context.mode === "edit" ? (node, result) => {
+            if (!findBlockById(blocks, node.id)) return result;
+            const label = node.type === "element" ? templateElementLabel(node.element) : node.type === "part" ? "Shared Part" : templateElementLabel(node.type);
+            // This named focusable group preserves editable descendants without nesting them in a button.
+            /* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
+            const selectionFrame = <div
+              className={`template-node-selectable${selected === node.id ? " template-node-selected" : ""}`}
+              data-studio-nested-block-id={node.id}
+              role="group"
+              aria-label={`Template node: ${label}`}
+              tabIndex={0}
+              onPointerDown={event => { event.stopPropagation(); setSelected(node.id); }}
+              onFocusCapture={() => setSelected(node.id)}
+              onKeyDown={event => {
+                if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
+                event.preventDefault();
+                setSelected(node.id);
+              }}
+            >{result}</div>;
+            /* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
+            return selectionFrame;
+          } : undefined} />;
       } },
       onOpenInserter: (index, search = "") => { setInsertAfter(index); setQuery(search); setShowInserter(true); }, onSetPublishFeedback: () => {}, onDocumentFieldChange: () => {}, onApplyDocumentCode: () => {}, onFocusDocumentField: () => {}, onOpenCoverMediaLibrary: () => {}, onRemoveCoverImage: () => {}, onSelectBlock: setSelected, onClearBlockSelection: () => setSelected(null), onSetDragOverIndex: setDragOver, onMoveBlockTo: commands.moveBlockTo, onMoveBlock: commands.moveBlock, onDuplicateBlock: commands.duplicateBlock, onRemoveBlock: commands.removeBlock, onUpdateBlock: commands.updateBlock, onInsertBlock: insertBlock, onSetShowInserter: setShowInserter, onSetInserterQuery: setQuery,
     }} />;

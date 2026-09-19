@@ -239,6 +239,21 @@ test("standalone Header and Footer targets retain composed semantic regions in E
   }
 });
 
+test("template edit nodes remain keyboard and pointer selectable without visible duplicate labels", () => {
+  const react = require("react");
+  const env = environment({ react });
+  const model = env.load("studio/template-model.ts");
+  const { TemplateEditor } = env.load("studio/template-editor.tsx");
+  const set = model.createTemplateSet(); const documents = env.load("studio/editor-model.ts").initialStudioWorkspace.documents;
+  const html = renderToStaticMarkup(createElement(TemplateEditor, { set, target: set.parts[0], documents, mediaUrls: {}, writable: true, onChange: () => true, onEditPart() {}, onOpenMedia() {}, undo() {}, redo() {}, canUndo: false, canRedo: false }));
+  assert.doesNotMatch(html, /<button[^>]*class="template-node-select"/);
+  assert.match(html, /class="template-node-selectable"[^>]*role="group"[^>]*aria-label="Template node: Group"[^>]*tabindex="0"/);
+  assert.match(html, /aria-label="Template node: Site Identity"/);
+  const source = readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
+  assert.match(source, /onPointerDown=\{event => \{ event\.stopPropagation\(\); setSelected\(node\.id\); \}\}/);
+  assert.match(source, /onKeyDown=\{event => \{/);
+});
+
 test("template shell keeps configurable brand semantics and documented responsive breakpoints", () => {
   const env = environment(); const m = env.load("studio/template-model.ts"); const renderer = env.load("studio/template-renderer.tsx");
   const set = m.createTemplateSet(); set.identity.name = "North Star Studio"; set.navigation = [{ id: m.templateId(), label: "About", url: "/about" }];
