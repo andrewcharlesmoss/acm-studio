@@ -4,7 +4,9 @@ import { DESIGN_STORAGE_KEY, validateDesignProject, type DesignProject } from ".
 import { loadDesigns } from "./design-store";
 import type { StudioWorkspace } from "./editor-model";
 import { listMediaLibrary, replaceMediaLibrary, type MediaAsset, type MediaFolder } from "./media-store";
-import { isRecord, validatePublicationSnapshot, validateStudioWorkspace } from "./workspace-validation";
+import { isRecord, validateStudioWorkspace } from "./workspace-validation";
+import { TEMPLATE_STORAGE_KEY, validateTemplateStore, templateMediaIds, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
+import { loadTemplates } from "./template-store";
 
 const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
 
@@ -18,6 +20,7 @@ export type StudioBackup = {
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
+  templates?: TemplateStore;
   publications: string | null;
   media: {
     folders: MediaFolder[];
@@ -34,9 +37,10 @@ export type StudioBackupSummary = {
   files: number;
   fileBytes: number;
   designs: number;
+  templateSets: number;
 };
 
-function blobToBase64(blob: Blob) {
+export function blobToBase64(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -48,7 +52,7 @@ function blobToBase64(blob: Blob) {
   });
 }
 
-function base64ToBlob(dataBase64: string, type: string) {
+export function base64ToBlob(dataBase64: string, type: string) {
   const binary = window.atob(dataBase64);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
@@ -63,6 +67,7 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
   validateStudioWorkspace(value.workspace);
+  if (value.templates !== undefined) validateTemplateStore(value.templates, (value.workspace as StudioWorkspace).documents);
   if (value.designs !== undefined) {
     if (!Array.isArray(value.designs)) throw new Error("The design collection is invalid.");
     value.designs.forEach(validateDesignProject);
@@ -111,10 +116,15 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   }
   if (typeof value.publications === "string") {
     try {
-      validatePublicationSnapshot(JSON.parse(value.publications));
+      const snapshot = JSON.parse(value.publications);
+      validatePublicationSnapshot(snapshot);
+      for (const post of snapshot.posts) if (post.templateSnapshot && post.mediaIds.some((id: string) => !assetIds.has(id))) throw new Error("A published template image is missing from the backup.");
     } catch {
       throw new Error("The published-post snapshot is invalid.");
     }
+  }
+  if (value.templates !== undefined) for (const set of (value.templates as TemplateStore).sets) {
+    if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A template image is missing from the backup.");
   }
   return value as StudioBackup;
 }
@@ -138,6 +148,7 @@ export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary
     files: backup.media.assets.length,
     fileBytes: backup.media.assets.reduce((total, asset) => total + asset.size, 0),
     designs: backup.designs?.length ?? 0,
+    templateSets: backup.templates?.sets.length ?? 0,
   };
 }
 
@@ -158,6 +169,7 @@ export async function createStudioBackup(workspace: StudioWorkspace) {
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),
+    templates: loadTemplates(),
     publications,
     media: { folders: library.folders, assets },
   };
@@ -205,9 +217,12 @@ export async function restoreStudioBackup(backup: StudioBackup) {
     const previousWorkspace = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
     const previousPublications = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
     const previousDesigns = window.localStorage.getItem(DESIGN_STORAGE_KEY);
+    const previousTemplates = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
     try {
       await replaceMediaLibrary(assets, backup.media.folders, permit);
       window.localStorage.setItem(LOCAL_WORKSPACE_KEY, JSON.stringify(backup.workspace));
+      if (backup.templates) window.localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(backup.templates));
+      else window.localStorage.removeItem(TEMPLATE_STORAGE_KEY);
       if (backup.designs) window.localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(backup.designs));
       else window.localStorage.removeItem(DESIGN_STORAGE_KEY);
       if (backup.publications) window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, backup.publications);
@@ -216,7 +231,7 @@ export async function restoreStudioBackup(backup: StudioBackup) {
       const rollbackFailures: unknown[] = [];
       try { await replaceMediaLibrary(previousLibrary.assets, previousLibrary.folders, permit); }
       catch (rollbackError) { rollbackFailures.push(rollbackError); }
-      for (const [key, previous] of [[LOCAL_WORKSPACE_KEY, previousWorkspace], [LOCAL_PUBLICATIONS_KEY, previousPublications], [DESIGN_STORAGE_KEY, previousDesigns]] as const) {
+      for (const [key, previous] of [[LOCAL_WORKSPACE_KEY, previousWorkspace], [LOCAL_PUBLICATIONS_KEY, previousPublications], [DESIGN_STORAGE_KEY, previousDesigns], [TEMPLATE_STORAGE_KEY, previousTemplates]] as const) {
         try {
           if (previous !== null) window.localStorage.setItem(key, previous);
           else window.localStorage.removeItem(key);

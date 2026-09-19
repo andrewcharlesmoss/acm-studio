@@ -4,6 +4,7 @@ import type { ContentBlock } from "../content/model";
 import { StudioCanvas, type StudioCanvasProps } from "./studio-canvas";
 import { StudioInspector, type StudioInspectorProps } from "./studio-inspectors";
 import type { StudioDocument } from "./editor-model";
+import { useMemo, type ReactNode } from "react";
 export type { StudioPresentation, StudioPresentationContext } from "./studio-presentation";
 
 /**
@@ -14,21 +15,25 @@ export type { StudioPresentation, StudioPresentationContext } from "./studio-pre
  * canvas and inspector remain one implementation for every workspace.
  */
 export type StudioEditorProps = {
+  target?: { kind: "template" | "part"; id: string; name: string; blocks: ContentBlock[]; inspector: ReactNode };
   writable?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   canvas: Omit<StudioCanvasProps, "activeDocument" | "writable"> & { activeDocument?: StudioDocument };
-  inspector: Omit<StudioInspectorProps, "activeDocument"> & { activeDocument?: StudioDocument };
+  inspector?: Omit<StudioInspectorProps, "activeDocument"> & { activeDocument?: StudioDocument };
 };
 
-export function StudioEditor({ writable = true, onUndo, onRedo, canUndo = false, canRedo = false, canvas, inspector }: StudioEditorProps) {
-  const activeDocument = canvas.activeDocument ?? inspector.activeDocument;
+export function StudioEditor({ target, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, canvas, inspector }: StudioEditorProps) {
+  const previewDocument = canvas.activeDocument ?? inspector?.activeDocument;
+  // A template has its own persistence and inspector; the document supplies
+  // representative content only. This transient projection feeds block tools.
+  const activeDocument = target && previewDocument ? { ...previewDocument, id: target.id, blocks: target.blocks } : previewDocument;
   if (!activeDocument) return null;
   return <>
-    <StudioCanvas key={activeDocument.id} {...canvas} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} writable={writable} activeDocument={activeDocument} />
-    <StudioInspector {...inspector} activeDocument={activeDocument} />
+    <StudioCanvas key={activeDocument.id} {...canvas} targetLabel={target?.kind} allowHtmlEditing={!target} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} writable={writable} activeDocument={activeDocument} />
+    {target ? target.inspector : inspector ? <StudioInspector {...inspector} activeDocument={activeDocument} /> : null}
   </>;
 }
 
@@ -52,4 +57,8 @@ export function documentWordCount(document: StudioDocument) {
 
 export function documentCharacterCount(document: StudioDocument) {
   return document.blocks.flatMap(documentText).join(" ").length;
+}
+
+export function useStudioDocumentCounts(document: StudioDocument | undefined) {
+  return useMemo(() => ({ wordCount: document ? documentWordCount(document) : 0, characterCount: document ? documentCharacterCount(document) : 0 }), [document]);
 }

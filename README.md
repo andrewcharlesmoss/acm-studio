@@ -11,6 +11,13 @@ contracts.
 
 ## Included
 
+- **Templates** at `/studio/templates`: create independent site designs with
+  reusable page/post layouts, shared headers and footers, site identity,
+  navigation and styles. Use **Site Template** in a document's inspector to
+  apply a design. Templates share the block editor, List View, media library,
+  undo/redo and responsive previews. JSON packages include managed images;
+  full backups include templates and assignments. See [Template editing](docs/templates.md).
+
 - **Ribbon Library** at `/studio/ribbon`: inspect shared components, try isolated
   ACM Studio and ACM Account examples, and browse original three-scale SVG icons.
   See [Ribbon Library](docs/ribbon-library.md) for setup and verification, and

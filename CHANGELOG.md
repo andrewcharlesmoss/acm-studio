@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- Added local template sets with a shared block editor, page/post assignments,
+  reusable headers and footers, configurable identity/navigation/styles,
+  responsive previews, media-inclusive import/export and full backup/restore.
+- Locally published posts capture their template design and nested media
+  references; later design changes become visible on explicit Update.
 - Added the Ribbon Library: live shared-component specimens, isolated product
   demonstrations, structure and token inspection, and original ACM SVG icons.
 - Added versioned local design transactions with compatible multi-tab merging,

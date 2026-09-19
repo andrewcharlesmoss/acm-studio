@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ContentBlock } from "../content/model";
 import type { StudioCoverImage, StudioDocument } from "./editor-model";
 import { getMediaAsset, type MediaAsset } from "./media-store";
+import { contentMediaIds } from "../content/media-references";
 
 export function useStudioMedia({
   documents,
@@ -27,9 +28,7 @@ export function useStudioMedia({
   const referencedMediaKey = useMemo(() => documents
     .flatMap((document) => [
       document.coverImage?.mediaId,
-      ...document.blocks
-        .filter((block): block is Extract<ContentBlock, { type: "image" }> => block.type === "image" && Boolean(block.mediaId))
-        .map((block) => block.mediaId),
+      ...contentMediaIds(document.blocks),
     ])
     .filter((id): id is string => Boolean(id))
     .filter((id, index, ids) => ids.indexOf(id) === index)

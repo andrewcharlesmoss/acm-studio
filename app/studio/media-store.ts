@@ -1,4 +1,5 @@
 import { studioWriteOwnership, type RestorePermit } from "./write-ownership";
+import { assertTemplateMediaCanBeDeleted } from "./template-store";
 
 export type MediaFolder = {
   id: string;
@@ -220,6 +221,7 @@ export async function moveMediaFolder(id: string, parentId: string | null) {
 
 export async function deleteMediaAsset(id: string) {
   return studioWriteOwnership.write(async () => {
+    assertTemplateMediaCanBeDeleted(id);
     await withStore(ASSET_STORE, "readwrite", (store) => store.delete(id));
   });
 }

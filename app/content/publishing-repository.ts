@@ -1,5 +1,7 @@
 import { publishDocumentLocally, unpublishDocumentLocally } from "./local-publishing";
 import type { StudioDocument } from "../studio/editor-model";
+import { loadTemplates } from "../studio/template-store";
+import { resolveTemplate } from "../studio/template-model";
 
 export interface PublishingRepository {
   publish(document: StudioDocument): void;
@@ -7,6 +9,6 @@ export interface PublishingRepository {
 }
 
 export const browserPublishingRepository: PublishingRepository = {
-  publish: publishDocumentLocally,
+  publish: document => publishDocumentLocally(document, () => resolveTemplate(loadTemplates(), document)),
   unpublish: unpublishDocumentLocally,
 };

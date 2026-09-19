@@ -7,6 +7,8 @@ import { ArticleByline, PageFrame } from "../../components/site-shell";
 import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, parseLocallyPublishedArticles, restoreLegacyPublicationCover, type LocallyPublishedArticle } from "../../content/local-publishing";
 import { getMediaAsset } from "../../studio/media-store";
 import { safeImageSource } from "../../content/rich-text";
+import { TemplateDocument } from "../../studio/template-renderer";
+import type { StudioDocument } from "../../studio/editor-model";
 
 export function LocalArticlePage({ slug }: { slug: string }) {
   const [article, setArticle] = useState<LocallyPublishedArticle | null | undefined>(undefined);
@@ -83,6 +85,10 @@ export function LocalArticlePage({ slug }: { slug: string }) {
     return <PageFrame><main className="local-article-state"><p className="eyebrow">Post not found</p><h1>This post is not published in this browser.</h1><p>It may still be a draft, have been unpublished, or belong to another browser.</p><a className="primary-action" href="/writing">Return to writing</a></main></PageFrame>;
   }
 
+  if (article.templateSnapshot) {
+    const document: StudioDocument = { id: article.localDocumentId, kind: "post", title: article.title, subtitle: article.subtitle, slug: article.slug, excerpt: article.summary, status: "published", publishedAt: article.publishedAt, updatedAt: article.publishedAt, blocks: article.blocks, tags: [], category: article.section, coverImage: article.coverImage, seoTitle: article.title, seoDescription: article.summary };
+    return <main><div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This post is visible only in this browser.</span><a href="/studio">Edit in Studio</a></div><TemplateDocument snapshot={article.templateSnapshot} document={document} mediaUrls={mediaUrls} /></main>;
+  }
   return (
     <PageFrame>
       <main className="article-page">

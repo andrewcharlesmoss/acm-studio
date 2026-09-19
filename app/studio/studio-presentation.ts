@@ -16,9 +16,13 @@ export type StudioPresentationContext = {
 };
 
 export type StudioPresentation = {
+  /** Composes the canonical editable body inside a site template. */
+  renderDocument?: (context: Omit<StudioPresentationContext, "block">, content: ReactNode) => ReactNode;
   renderHeader?: (context: Omit<StudioPresentationContext, "block">) => ReactNode;
   renderBlock?: (context: StudioPresentationContext) => ReactNode | null;
   renderFooter?: (context: Omit<StudioPresentationContext, "block">) => ReactNode;
   showPublicationDetails?: boolean;
   allowCoverImage?: boolean;
+  /** Legacy previews hide top-level dividers; templates explicitly display them. */
+  hideDividers?: boolean;
 };

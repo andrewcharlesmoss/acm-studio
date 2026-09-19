@@ -67,6 +67,19 @@ additional body content. Verify both modes when changing a block's appearance.
   analytics, scheduling or multi-user permissions during the foundation phase.
 - Do not publish or deploy without an explicit request.
 
+Andrew has explicitly authorised the local template editor described in
+`docs/templates.md`. This is a bounded extension of the foundation: Studio owns
+independent template sets, shared header/footer parts, scoped styles and page/post
+assignments. It is not a general theme/plugin system or an external-site
+integration. Keep templates separate from content bodies and Design canvas data.
+The shared editor uses explicit template/part targets and a transient block
+projection; never persist that projection as a page or post. HTML template editing
+is disabled until references and dynamic elements can round-trip safely.
+Template packages and stored template contracts use v0.1.0. Published local posts
+retain an immutable design snapshot until Update. Template/media imports and full
+restore use the shared ownership coordinator, with complete rollback and reload
+before editing resumes. Invalid existing data must remain recoverable.
+
 ## Git and deployment mapping
 
 - This repository currently has only `main`; treat it as the production branch

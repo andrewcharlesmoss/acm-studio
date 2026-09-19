@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BackupManager } from "./backup-manager";
 import { SiteNavigation } from "./site-navigation";
 import { MediaManager } from "./media-manager";
-import { StudioEditor, documentCharacterCount, documentWordCount } from "./studio-editor";
+import { StudioEditor, useStudioDocumentCounts } from "./studio-editor";
 import { StudioIcon } from "./studio-icons";
 import { AcmIcon } from "@acm/icons/react";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
@@ -13,6 +13,7 @@ import { useStudioMedia } from "./use-studio-media";
 import { useStudioPublishing } from "./use-studio-publishing";
 import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";
 import { useStudioWorkspace } from "./use-studio-workspace";
+import { useDocumentTemplates } from "./use-document-templates";
 import type { MediaAsset } from "./media-store";
 import {
   blockCatalogue,
@@ -31,7 +32,7 @@ function exportJson(value: unknown, filename: string) {
 }
 
 export function StudioPrototype() {
-  const { workspace, ownershipGeneration, writable, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument } = useStudioWorkspace();
+  const { workspace, ownershipGeneration, writable, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateControls, templatePresentation, hasTemplate } = useDocumentTemplates(useStudioWorkspace());
   const [libraryKind, setLibraryKind] = useState<StudioDocumentKind>("page");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"document" | "block">("document");
@@ -105,14 +106,7 @@ export function StudioPrototype() {
     setDesignMediaPrompt(null);
   }
 
-  const wordCount = useMemo(() => {
-    if (!activeDocument) return 0;
-    return documentWordCount(activeDocument);
-  }, [activeDocument]);
-  const characterCount = useMemo(() => {
-    if (!activeDocument) return 0;
-    return documentCharacterCount(activeDocument);
-  }, [activeDocument]);
+  const { wordCount, characterCount } = useStudioDocumentCounts(activeDocument);
 
   const filteredBlocks = useMemo(() => {
     const query = inserterQuery.trim().toLowerCase();
@@ -164,6 +158,10 @@ export function StudioPrototype() {
     if (workspace.documents.length === 1) return;
     if (!confirmCodeEditorDiscard()) return;
     if (!window.confirm(`Delete the local ${activeDocument.kind} “${activeDocument.title}”?`)) return;
+    if (hasTemplate) {
+      publishing.setPublishFeedback("Choose Existing Presentation before deleting a document with a site template.");
+      return;
+    }
     try {
       documentCommands.deleteDocument();
     } catch {
@@ -225,7 +223,7 @@ export function StudioPrototype() {
       }
       if (event.key.toLowerCase() === "s") {
         event.preventDefault();
-        setSaveLabel("Saved locally just now");
+        // Persistence reports its own result; a shortcut cannot prove a save.
       }
     }
     window.addEventListener("keydown", handleShortcut);
@@ -233,7 +231,6 @@ export function StudioPrototype() {
   });
 
   if (!activeDocument) return null;
-
   return (
     <div className="studio-shell" onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <header className="studio-header">
@@ -244,7 +241,6 @@ export function StudioPrototype() {
           {studioSection !== "content" ? <button className="button-secondary" type="button" onClick={() => setStudioSection("content")}>Back to {activeDocument.title}</button> : <>{activeDocument.kind === "post" ? <>{activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}<button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button></> : <button className="button-primary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>}</>}
         </div>
       </header>
-
       <div className="studio-notice" role="note"><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</div>
 
       <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection !== "content" ? " is-tool" : ""}`}>
@@ -262,6 +258,7 @@ export function StudioPrototype() {
           </div>
           <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
           <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design canvas</strong><small>Create and annotate images</small></a>
+          <a className="library-tool-button" href="/studio/templates"><span><StudioIcon name="block" /></span><strong>Templates</strong><small>Shared headers, footers and page designs</small></a>
           <a className="library-tool-button" href="/studio/ribbon"><span><AcmIcon name="layout.columns" /></span><strong>Ribbon Library</strong><small>Explore controls and original SVG icons</small></a>
           <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); }}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
           <div className="document-list">
@@ -280,6 +277,8 @@ export function StudioPrototype() {
         {studioSection === "content" ? <StudioEditor writable={writable} onUndo={undoStudio} onRedo={redoStudio} canUndo={canUndo} canRedo={canRedo}
           canvas={{
             activeDocument,
+            className: hasTemplate ? "template-editing" : undefined,
+            presentation: templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage),
             previewing,
             onPreviewChange: setPreviewing,
             wordCount,
@@ -296,7 +295,7 @@ export function StudioPrototype() {
             publishFeedback: publishing.publishFeedback,
             onOpenInserter: openInserter,
             onSetPublishFeedback: publishing.setPublishFeedback,
-            onDocumentFieldChange: updateActiveField,
+            onDocumentFieldChange: (field, value) => { updateActiveField(field, value); },
             onApplyDocumentCode: (blocks) => updateActiveDocument((document) => ({ ...document, blocks })),
             onCodeEditorDirtyChange: setCodeEditorDirty,
             onFocusDocumentField: () => { setSelectedBlockId(null); setInspectorTab("document"); },
@@ -309,12 +308,13 @@ export function StudioPrototype() {
             onMoveBlock: blockCommands.moveBlock,
             onDuplicateBlock: duplicateBlock,
             onRemoveBlock: removeBlock,
-            onUpdateBlock: blockCommands.updateBlock,
+            onUpdateBlock: (id, update) => { blockCommands.updateBlock(id, update); },
             onInsertBlock: insertBlock,
             onSetShowInserter: setShowInserter,
             onSetInserterQuery: setInserterQuery,
           }}
           inspector={{
+            documentControls: templateControls,
             inspectorTab,
             selectedBlock,
             activeDocument,

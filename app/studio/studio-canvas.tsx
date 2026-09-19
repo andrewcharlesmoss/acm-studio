@@ -24,6 +24,8 @@ function blockChildren(block: ContentBlock) {
 }
 
 function blockOutlineLabel(block: ContentBlock) {
+  if (block.type === "group" && block.data?.templateElement) return String(block.data.templateElement).replaceAll("-", " ");
+  if (block.type === "group" && block.data?.templatePart) return "Shared part";
   if (block.type === "section" && block.role) return block.role.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
   if (block.siteRole) return `${block.siteRole.replaceAll("-", " ")}: ${"text" in block ? block.text.slice(0, 36) : "label" in block ? block.label : block.type}`;
   if (block.type === "heading") return `Heading ${block.level}`;
@@ -44,6 +46,10 @@ function isEditableTextBlock(block: ContentBlock): block is EditableTextBlock {
 }
 
 export type StudioCanvasProps = {
+  allowHtmlEditing?: boolean;
+  targetLabel?: string;
+  toolbarContent?: ReactNode;
+  viewportWidth?: number;
   className?: string;
   presentation?: StudioPresentation;
   writable?: boolean;
@@ -87,7 +93,7 @@ export type StudioCanvasProps = {
   onSetInserterQuery: (query: string) => void;
 };
 
-export function StudioCanvas({ className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
   const linkInputRef = useRef<HTMLInputElement>(null);
@@ -115,6 +121,7 @@ export function StudioCanvas({ className, presentation, writable = true, onUndo,
   const [appenderValue, setAppenderValue] = useState("");
   const showPublicationDetails = presentation?.showPublicationDetails ?? activeDocument.kind === "post";
   const allowCoverImage = presentation?.allowCoverImage ?? activeDocument.kind === "post";
+  const compose = (content: ReactNode, mode: "edit" | "preview") => presentation?.renderDocument?.({ document: activeDocument, mode, onDocumentFieldChange, onFocusDocumentField }, content) ?? content;
 
   function selectBlockFromList(blockId: string) {
     onSelectBlock(blockId);
@@ -393,16 +400,17 @@ export function StudioCanvas({ className, presentation, writable = true, onUndo,
           <button type="button" disabled={!writable || !canRedo} onClick={onRedo} aria-label="Redo" title="Redo"><StudioIcon name="redo" size={20} /></button>
           <button ref={listViewToggleRef} type="button" className={`editor-list-toggle${listViewOpen ? " is-active" : ""}`} disabled={previewing || Boolean(codeEditor)} aria-pressed={listViewOpen && !showInserter} aria-label="List View" title="List View" onClick={() => { setHoveredBlockId(null); onSetShowInserter(false); setListViewOpen((current) => !current); }}><StudioIcon name="list" size={20} /></button>
         </div>
-        <div className="editor-mode-control" role="group" aria-label={`${activeDocument.kind === "post" ? "Post" : "Page"} view`}>
+        <div className="editor-mode-control" role="group" aria-label={`${targetLabel ?? (activeDocument.kind === "post" ? "Post" : "Page")} view`}>
           <button type="button" aria-pressed={!previewing} onClick={() => onPreviewChange(false)}>Edit</button>
           <button type="button" aria-pressed={previewing} onClick={() => { if (codeEditor && !closeCodeEditor(true)) return; setHoveredBlockId(null); setListViewOpen(false); onSetShowInserter(false); onPreviewChange(true); }}>Preview</button>
         </div>
       <div className="editor-document-actions" aria-hidden={previewing}>
-          <button ref={codeEditorToggleRef} type="button" className={`editor-code-toggle${codeEditor ? " is-active" : ""}`} disabled={previewing} aria-pressed={Boolean(codeEditor)} aria-label="Code editor" title="Code editor" onClick={() => codeEditor ? closeCodeEditor(true) : openCodeEditor()}><StudioIcon name="code" size={18} />Code</button>
+          {allowHtmlEditing ? <button ref={codeEditorToggleRef} type="button" className={`editor-code-toggle${codeEditor ? " is-active" : ""}`} disabled={previewing} aria-pressed={Boolean(codeEditor)} aria-label="Code editor" title="Code editor" onClick={() => codeEditor ? closeCodeEditor(true) : openCodeEditor()}><StudioIcon name="code" size={18} />Code</button> : null}
           <span className="editor-document-counts" title={`${wordCount} words · ${characterCount} characters · ${activeDocument.blocks.length} blocks`}><strong>{wordCount} words · {characterCount} characters · {activeDocument.blocks.length} blocks</strong></span>
         </div>
       </div>
       {publishFeedback ? <div className="publish-feedback" role="status"><span>{publishFeedback}</span><button type="button" onClick={() => onSetPublishFeedback(null)} aria-label="Dismiss publication message"><StudioIcon name="close" size={18} /></button></div> : null}
+      {toolbarContent}
       <div className="editor-work-area">
       {showInserter && !previewing && !codeEditor ? <BlockInserter closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={filteredBlocks} onSetQuery={onSetInserterQuery} onInsert={onInsertBlock} onDismiss={dismissInserter} /> : null}
       {!previewing && !showInserter && listViewOpen ? <button className="studio-list-backdrop" type="button" aria-label="Close List View" onClick={closeListView} /> : null}
@@ -421,7 +429,8 @@ export function StudioCanvas({ className, presentation, writable = true, onUndo,
         if (event.target instanceof Element && !event.target.closest(".canvas-block, button, input, textarea, select, [contenteditable=\"true\"]")) onClearBlockSelection();
       }}>
         {codeEditor ? <StudioCodeEditor document={activeDocument} writable={writable} state={codeEditor} inputRef={codeEditorInputRef} onChange={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onFormat={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onDocumentFieldChange={onDocumentFieldChange} onApply={applyCodeEditor} onExit={() => closeCodeEditor(true)} /> : previewing ? (
-          <article className={`document-preview is-${activeDocument.kind}`}>
+          <article className={`document-preview is-${activeDocument.kind}`} style={viewportWidth ? { width: viewportWidth, maxWidth: "100%" } : undefined}>
+            {compose(<>
             {presentation?.renderHeader?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} />}
             {showPublicationDetails ? <p className="article-reading-time">Reading Time: {readingTimeLabel(activeDocument.blocks)}</p> : null}
             {allowCoverImage && showCoverImage ? <div className={`preview-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
@@ -431,11 +440,13 @@ export function StudioCanvas({ className, presentation, writable = true, onUndo,
                 <img src={safeCoverImageUrl} alt={activeDocument.coverImage?.alt || ""} />
               ) : null}
             </div> : null}
-            {presentation?.renderBlock ? activeDocument.blocks.map((block) => presentation.renderBlock?.({ document: activeDocument, block, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockRenderer key={block.id} blocks={[block]} mediaUrls={mediaBlockUrls} variant="studio" hideDividers />) : <BlockRenderer blocks={activeDocument.blocks} mediaUrls={mediaBlockUrls} variant="studio" hideDividers />}
+            {presentation?.renderBlock ? activeDocument.blocks.map((block) => presentation.renderBlock?.({ document: activeDocument, block, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockRenderer key={block.id} blocks={[block]} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation.hideDividers ?? true} />) : <BlockRenderer blocks={activeDocument.blocks} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation?.hideDividers ?? true} />}
             {presentation?.renderFooter?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
+            </>, "preview")}
           </article>
         ) : (
-          <div className="block-canvas">
+          <div className="block-canvas" style={viewportWidth ? { width: viewportWidth, maxWidth: "100%" } : undefined}>
+            {compose(<>
             {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing={false} onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} />}
             {showPublicationDetails ? <EditorPublicationDetails document={activeDocument} /> : null}
             {allowCoverImage && showCoverImage ? <div className="canvas-cover-wrap">
@@ -510,7 +521,7 @@ export function StudioCanvas({ className, presentation, writable = true, onUndo,
                         <div className="block-options-control">
                           <button ref={(element) => { if (element && blockMenuBlockId === block.id) htmlEditorTriggerRef.current = element; }} className={blockMenuBlockId === block.id ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={(event) => { event.stopPropagation(); htmlEditorTriggerRef.current = event.currentTarget; setBlockMenuBlockId((current) => current === block.id ? null : block.id); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); setBlockMenuBlockId(null); } }} aria-haspopup="menu" aria-expanded={blockMenuBlockId === block.id} aria-label="More block options" title="More options"><StudioIcon name="more-vertical" /></button>
                           {blockMenuBlockId === block.id ? <div className="block-options-menu" role="menu" tabIndex={-1} aria-label="Block options" onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); setBlockMenuBlockId(null); } }}>
-                            <button ref={blockMenuItemRef} type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openHtmlEditor(block)}>Edit as HTML</button>
+                            <button ref={blockMenuItemRef} type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openHtmlEditor(block)} disabled={!allowHtmlEditing}>{allowHtmlEditing ? "Edit as HTML" : "HTML editing unavailable for templates"}</button>
                           </div> : null}
                         </div>
                       </div>
@@ -566,6 +577,7 @@ export function StudioCanvas({ className, presentation, writable = true, onUndo,
               </div>
             </div>
             {presentation?.renderFooter?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
+            </>, "edit")}
           </div>
         )}
       </div>

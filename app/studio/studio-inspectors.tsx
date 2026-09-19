@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ContentBlock, HeadingLevel, ParagraphAppearance, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, TextAlignment } from "../content/model";
 import { CODE_LANGUAGE_OPTIONS, isKnownCodeLanguage } from "../content/code-highlighting.mjs";
 import type { StudioDocument, StudioDocumentStatus } from "./editor-model";
@@ -11,6 +11,7 @@ function blockLabel(type: ContentBlock["type"]) {
 }
 
 export type StudioInspectorProps = {
+  documentControls?: ReactNode;
   inspectorTab: "document" | "block";
   selectedBlock: ContentBlock | null;
   activeDocument: StudioDocument;
@@ -30,7 +31,7 @@ export type StudioInspectorProps = {
   onDelete: () => void;
 };
 
-export function StudioInspector({ inspectorTab, selectedBlock, activeDocument, pages, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onBlockChange, onOpenFiles, onPublish, onUnpublish, onDuplicate, onDelete }: StudioInspectorProps) {
+export function StudioInspector({ documentControls, inspectorTab, selectedBlock, activeDocument, pages, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onBlockChange, onOpenFiles, onPublish, onUnpublish, onDuplicate, onDelete }: StudioInspectorProps) {
   return (
     <aside className="studio-inspector">
       <div className="inspector-tabs" role="tablist" aria-label="Editor settings">
@@ -38,6 +39,7 @@ export function StudioInspector({ inspectorTab, selectedBlock, activeDocument, p
         <button className={inspectorTab === "block" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "block"} onClick={() => onSelectTab("block")} disabled={!selectedBlock}>Block</button>
       </div>
       <div className="inspector-scroll">
+        {inspectorTab === "document" ? documentControls : null}
         {inspectorTab === "document" ? (
           <DocumentInspector document={activeDocument} pages={pages} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
         ) : selectedBlock ? (
@@ -219,7 +221,7 @@ function formatPublishDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
-function BlockInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {
+export function BlockInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {
   const alignedBlock = block.type === "paragraph" || block.type === "heading" ? block : null;
   const alignment = alignedBlock?.align ?? null;
   return (

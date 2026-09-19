@@ -59,6 +59,10 @@ export class StudioWriteOwnership {
   assertWritable(token?: symbol | null) {
     if (!this.canWrite(token)) throw new Error("This Studio tab is read-only. Close the other editing tab, then try editing here.");
   }
+  captureWriteToken(): symbol {
+    this.assertWritable();
+    return this.owner!;
+  }
   write<T>(operation: () => Promise<T>, permit?: RestorePermit): Promise<T> {
     if (permit) {
       if (permit !== this.restorePermit) return Promise.reject(new Error("The restore is no longer authorised."));

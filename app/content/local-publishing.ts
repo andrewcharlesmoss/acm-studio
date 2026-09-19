@@ -1,13 +1,17 @@
 import { studioWriteOwnership } from "../studio/write-ownership";
-import { validatePublicationSnapshot } from "../studio/workspace-validation";
-import type { Article, ContentBlock } from "./model";
+import type { Article } from "./model";
 import type { StudioDocument } from "../studio/editor-model";
 import { readingTimeLabel } from "./reading-time";
+import { contentMediaIds } from "./media-references";
+import { copyTemplateData, templateMediaIds, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateSnapshot } from "../studio/template-model";
+import { LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY } from "./local-storage-keys";
 
-export const LOCAL_WORKSPACE_KEY = "acm-studio-workspace-v2";
-export const LOCAL_PUBLICATIONS_KEY = "acm-studio-publications-v1";
+// Preserve the established acm-studio-workspace-v2 and acm-studio-publications-v1
+// public exports while the key definitions stay independent of repositories.
+export { LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY };
 
 export type LocallyPublishedArticle = Article & {
+  templateSnapshot?: TemplateSnapshot;
   localDocumentId: string;
   mediaIds: string[];
   coverImage?: { src: string; mediaId?: string; alt: string } | null;
@@ -70,18 +74,14 @@ export function validatePostForPublication(document: StudioDocument, documents: 
   return null;
 }
 
-export function toLocallyPublishedArticle(document: StudioDocument): LocallyPublishedArticle {
+export function toLocallyPublishedArticle(document: StudioDocument, templateSnapshot?: TemplateSnapshot): LocallyPublishedArticle {
   const publishedAt = document.publishedAt ?? document.updatedAt;
   // Posts show the Studio's generated cover treatment until a real cover is
   // selected. Preserve that same presentation in the browser-local article.
   const coverImage = document.coverImage === undefined && document.kind === "post"
     ? { src: "", alt: "Mock cover image" }
     : document.coverImage === null ? null : document.coverImage;
-  const mediaIds = [...document.blocks
-    .filter((block): block is Extract<ContentBlock, { type: "image" }> => block.type === "image" && Boolean(block.mediaId))
-    .map((block) => block.mediaId as string)
-    .filter((id, index, ids) => ids.indexOf(id) === index), coverImage?.mediaId]
-    .filter((id): id is string => Boolean(id));
+  const mediaIds = Array.from(new Set([...contentMediaIds(document.blocks), ...(templateSnapshot ? templateMediaIds(templateSnapshot.set) : []), coverImage?.mediaId].filter((id): id is string => Boolean(id))));
   return {
     localDocumentId: document.id,
     slug: normalisePostSlug(document.slug),
@@ -92,7 +92,8 @@ export function toLocallyPublishedArticle(document: StudioDocument): LocallyPubl
     displayDate: new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(new Date(publishedAt)),
     readingTime: readingTimeLabel(document.blocks),
     section: document.category ?? "Technology",
-    blocks: document.blocks,
+    blocks: copyTemplateData(document.blocks),
+    ...(templateSnapshot ? { templateSnapshot: copyTemplateData(templateSnapshot) } : {}),
     mediaIds,
     coverImage,
   };
@@ -102,6 +103,7 @@ export function parseLocallyPublishedArticles(serialisedPublications: string | n
   if (!serialisedPublications) return [];
   try {
     const publications = JSON.parse(serialisedPublications) as LocalPublicationStore;
+    validatePublicationSnapshot(publications);
     if (publications?.version !== 1 || !Array.isArray(publications.posts)) return [];
     return publications.posts.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
   } catch {
@@ -129,12 +131,13 @@ function readPublicationsForMutation(serialisedPublications: string | null): Loc
   }
 }
 
-export function publishDocumentLocally(document: StudioDocument) {
+export function publishDocumentLocally(document: StudioDocument, template?: TemplateSnapshot | (() => TemplateSnapshot | undefined)) {
   studioWriteOwnership.assertWritable();
-  const article = toLocallyPublishedArticle(document);
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
+  const article = toLocallyPublishedArticle(document, typeof template === "function" ? template() : template);
   const posts = [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId && item.slug !== article.slug)];
   const store: LocalPublicationStore = { version: 1, posts };
+  validatePublicationSnapshot(store);
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
   return article;
 }
