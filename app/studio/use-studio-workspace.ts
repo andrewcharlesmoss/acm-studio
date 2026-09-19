@@ -26,6 +26,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   const [historyAvailability, setHistoryAvailability] = useState({ undo: false, redo: false });
   const historyRef = useRef<StudioWorkspace[]>([]);
   const futureRef = useRef<StudioWorkspace[]>([]);
+  const initialLoadRef = useRef(false);
   const workspaceRef = useRef(workspace);
   const syncRef = useRef<StudioSyncSession<StudioWorkspace> | null>(null);
   const lastPersistedWorkspaceRef = useRef<string | null>(null);
@@ -63,7 +64,13 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         if (token) ownership.loaded(token, !failed);
       });
     };
-    load(null);
+    // A retry only re-attempts the writer lock. Do not reload the browsing
+    // snapshot on every attempt: a peer tab may be editing through the sync
+    // channel while it waits to become the persistence owner.
+    if (!initialLoadRef.current) {
+      initialLoadRef.current = true;
+      load(null);
+    }
     const release = ownership.acquire((token) => {
       tokenRef.current = token;
       load(token);
@@ -75,6 +82,17 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       release();
     };
   }, [repository, ownership, attempt, initialWorkspace]);
+
+  useEffect(() => {
+    if (ownershipState !== "waiting") return;
+    // Web Locks with ifAvailable do not wake a waiting tab when the current
+    // owner closes. Polling only retries acquisition; it never writes without
+    // the lock and therefore preserves the no-unlocked-fallback rule.
+    const retryTimer = setInterval(() => {
+      if (ownership.getState() === "waiting") setAttempt((value) => value + 1);
+    }, 1000);
+    return () => clearInterval(retryTimer);
+  }, [ownership, ownershipState]);
 
   useEffect(() => {
     if (!ready || loadError || ownershipState === "loading" || !["writable", "waiting"].includes(ownershipState)) return;

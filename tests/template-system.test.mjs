@@ -316,6 +316,23 @@ test("template remote updates clear local history and failed async saves never r
   release();
 });
 
+test("template sync session survives workspace editability changes without reconnecting", async () => {
+  const h = hooks(); let sessions = 0; let closed = 0;
+  const env = environment({ react: h.react, "./studio-sync": {
+    createStudioSync() {
+      sessions++;
+      return { getStatus: () => "primary", isAvailable: () => true, isPrimary: () => true, commitPrimary: async () => {}, close() { closed++; } };
+    },
+  } });
+  const { useTemplates } = env.load("studio/use-templates.ts"); const { release } = await env.own();
+  let writable = true; const render = () => h.render(() => useTemplates(1, writable));
+  render(); await h.flush(); render(); await h.flush();
+  assert.equal(sessions, 1);
+  writable = false; render(); await h.flush(); render();
+  assert.equal(sessions, 1); assert.equal(closed, 0);
+  release();
+});
+
 test("history routing undoes interleaved content and assignment changes in order", async () => {
   const h = hooks(); const env = environment({ react: h.react }); const { useStudioHistoryRouter } = env.load("studio/use-studio-history-router.ts");
   const calls = [];

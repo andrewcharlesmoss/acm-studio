@@ -15,7 +15,7 @@ function modules(globals = {}, overrides = {}) {
     if (cache.has(filename)) return cache.get(filename);
     const exports = {}; cache.set(filename, exports);
     const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-    vm.runInNewContext(source, { exports, AggregateError, Error, Blob, File, crypto, structuredClone, queueMicrotask, ...globals, require(specifier) {
+    vm.runInNewContext(source, { exports, AggregateError, Error, Blob, File, crypto, structuredClone, queueMicrotask, setInterval, clearInterval, ...globals, require(specifier) {
       if (specifier in overrides) return overrides[specifier];
       if (!specifier.startsWith(".")) return require(specifier);
       return load(path.resolve(path.dirname(filename), /\.(mjs|ts)$/.test(specifier) ? specifier : `${specifier}.ts`));
@@ -279,6 +279,8 @@ test("read-only tab can browse; ownership retry reloads fresh content and old cl
   stale.setActiveDocument(otherId);
   const browsing = await second.flush();
   assert.equal(browsing.workspace.activeDocumentId, otherId); assert.equal(writes, before);
+  browsing.retryEditing(); const retrying = await second.flush();
+  assert.equal(retrying.workspace.activeDocumentId, otherId, "retrying ownership must not reset the peer browsing snapshot");
   owner.updateActiveField("title", "Fresh owner title"); await first.flush();
   const latest = raw;
   stale.commit((workspace) => ({ ...workspace, documents: [] })); await second.flush();

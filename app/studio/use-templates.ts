@@ -69,7 +69,7 @@ export function useTemplates(generation: number, writable: boolean) {
       if (syncRef.current === session) syncRef.current = null;
       setSyncStatus("disconnected");
     };
-  }, [ready, loadedGeneration, generation, writable]);
+  }, [ready, loadedGeneration, generation]);
 
   const primaryWritable = studioWriteOwnership.canWrite();
   const peerWritable = !primaryWritable && syncStatus === "synced";
