@@ -33,6 +33,7 @@ export function RibbonCatalogue() {
   const [width, setWidth] = useState("fluid");
   const [outlines, setOutlines] = useState(false);
   const [metrics, setMetrics] = useState<{ dimensions: string; tokens: Record<string, string> }>({ dimensions: "Measuring…", tokens: {} });
+  const [inspectionBox, setInspectionBox] = useState<{ left: number; top: number; width: number; height: number; borderRadius: string } | null>(null);
   const host = useRef<HTMLDivElement>(null);
   const tree = useMemo(() => structureFor(example), [example]);
   const nodes = useMemo(() => flattenStructure(tree), [tree]);
@@ -58,15 +59,22 @@ export function RibbonCatalogue() {
       root.querySelectorAll("[data-inspected]").forEach((element) => element.removeAttribute("data-inspected"));
       const element = root.querySelector<HTMLElement>(selected.selector);
       const ribbon = root.querySelector<HTMLElement>(".acm-ribbon");
-      if (!element || !ribbon) { setMetrics({ dimensions: "Not rendered in this state", tokens: {} }); return; }
+      if (!element || !ribbon) { setInspectionBox(null); setMetrics({ dimensions: "Not rendered in this state", tokens: {} }); return; }
       element.setAttribute("data-inspected", "true");
       const bounds = element.getBoundingClientRect();
+      const preview = root.querySelector<HTMLElement>(".rl-preview");
+      if (preview) {
+        const previewBounds = preview.getBoundingClientRect();
+        const radius = element === ribbon || element.classList.contains("acm-ribbon-header") ? "8px 8px 0 0" : getComputedStyle(element).borderRadius;
+        setInspectionBox({ left: bounds.left - previewBounds.left + 1, top: bounds.top - previewBounds.top + 1, width: Math.max(0, bounds.width - 2), height: Math.max(0, bounds.height - 2), borderRadius: radius });
+      }
       const style = getComputedStyle(element);
       setMetrics({ dimensions: Math.round(bounds.width) + " × " + Math.round(bounds.height) + " px", tokens: Object.fromEntries(ribbonTokens.map((token) => [token, style.getPropertyValue(token).trim() || getComputedStyle(ribbon).getPropertyValue(token).trim()])) });
     };
     const frame = requestAnimationFrame(measure);
     const observer = new ResizeObserver(measure); observer.observe(root);
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); };
+    root.addEventListener("scroll", measure, true);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); root.removeEventListener("scroll", measure, true); };
   }, [selected, width, tab, state.menu, state.handoff, state.linked, section]);
   const displayedIcon = selected.control ? controlPresentation(selected.control, state).icon : undefined;
   const source = example.id === "studio" ? snapshots.studio : example.id === "account" ? snapshots.account : snapshots.ribbon;
@@ -89,7 +97,7 @@ export function RibbonCatalogue() {
           {section === "Overview" && <div className="rl-overview-cards">{[["01", "Structure", "Eight components form the foundation."], ["02", "Composition", "Products supply commands and appearance."], ["03", "Symbols", iconNames.length + " original SVG symbols in three scales."]].map(([number,title,description]) => <article key={number}><span>{number}</span><h2>{title}</h2><p>{description}</p></article>)}</div>}
           <div className="rl-section-heading"><p className="rl-eyebrow">{section === "Product Examples" ? "PRODUCT REFERENCE" : "LIVE SPECIMEN"}</p><h2>{example.label}</h2><p>{example.description}</p></div>
           <div className="rl-preview-tools"><label className="rl-check"><input type="checkbox" checked={outlines} onChange={(event) => setOutlines(event.target.checked)} />Show Boundaries</label><label>Preview Width<select aria-label="Preview Width" value={width} onChange={(event) => setWidth(event.target.value)}><option value="fluid">Available Width</option><option value="1280">Desktop · 1280</option><option value="768">Tablet · 768</option><option value="390">Mobile · 390</option></select></label></div>
-          <div ref={host} className={"rl-preview-viewport" + (outlines ? " rl-outlines" : "")}><div style={{ width: width === "fluid" ? "100%" : Number(width), minWidth: width === "fluid" ? 0 : Number(width) }}><RibbonPreview example={example} tab={tab} setTab={setTab} state={state} setState={setState} /></div></div>
+          <div ref={host} className={"rl-preview-viewport" + (outlines ? " rl-outlines" : "")}><div style={{ width: width === "fluid" ? "100%" : Number(width), minWidth: width === "fluid" ? 0 : Number(width) }}><RibbonPreview example={example} tab={tab} setTab={setTab} state={state} setState={setState} />{inspectionBox && <span className="rl-inspection-box" aria-hidden="true" style={inspectionBox} />}</div></div>
           <p className="rl-secondary">Temporary demo state. Reloading or Reset Demo restores the example.</p>
           <details className="rl-source"><summary>Source reference · {source.commit.slice(0,7)}{"dirty" in source && source.dirty ? " + recorded working changes" : ""}</summary><p>Captured {snapshots.capturedAt}. This example is a maintained snapshot, not a live product connection.</p>{source.files.map((file) => <p key={file.path}><code>{file.path}</code><br /><code>SHA-256 {file.sha256}</code></p>)}</details>
           {section === "Overview" && <div className="rl-overview-copy"><h2>A foundation for future editing.</h2><p>The structure list, inspector and preview share the same definitions. ACM Icons owns the symbols; the Ribbon package supplies components. These examples use temporary data.</p><button type="button" onClick={() => chooseSection("Product Examples")}>Explore Product Examples<AcmIcon name="view.pages" size={18} /></button></div>}
