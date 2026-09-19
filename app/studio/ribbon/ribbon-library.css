@@ -65,7 +65,7 @@
 .rl-preview .acm-ribbon-button-compact { min-width:40px; }
 .rl-product-account .acm-ribbon-controls>.acm-ribbon-button:not(.acm-ribbon-button-compact),.rl-product-account .rl-split>.acm-ribbon-button:not(.acm-ribbon-button-compact) { min-height:76px; min-width:82px; }
 .rl-preview .acm-ribbon-field input,.rl-preview .acm-ribbon-field select { min-width:0; width:100%; }
-.rl-preview [data-inspected] { outline:2px solid #617EAD; outline-offset:-2px; }
+.rl-preview [data-inspected] { border-radius:10px; box-shadow:inset 0 0 0 2px #617EAD; }
 .rl-outlines [data-region],.rl-outlines .acm-ribbon-tabs,.rl-outlines .acm-ribbon-header,.rl-outlines .acm-ribbon-content { box-shadow:inset 0 0 0 1px #7A8CA559; }
 .rl-brand-slot { display:flex; align-items:center; gap:1rem; }
 .rl-brand-slot .acm-ribbon-button { flex-direction:row; min-height:34px; font-size:.8125rem; }
