@@ -23,6 +23,12 @@ export function TemplatePartRegion({ part, children, onEditPart }: { part: Templ
   </Region>;
 }
 
+function brandInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const initials = words.length > 1 ? `${words[0][0]}${words.at(-1)?.[0] ?? ""}` : words[0]?.[0] ?? "";
+  return (initials || "S").toUpperCase();
+}
+
 function TemplateImage({ src, alt }: { src: string; alt: string }) {
   // Managed browser blobs and authored URLs are resolved locally.
   // eslint-disable-next-line @next/next/no-img-element
@@ -74,13 +80,13 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         case "site-identity": {
           const logo = set.identity.logo;
           const src = logo?.mediaId ? safeImageSource(mediaUrls[logo.mediaId] ?? "", { allowBlob: true }) : safeImageSource(logo?.src ?? "");
-          element = <a className="template-brand" href={safeTextLink(set.identity.homeUrl) ?? undefined}>{src ? <TemplateImage src={src} alt={logo?.alt ?? ""} /> : null}<span>{set.identity.name}</span></a>; break;
+          element = <a className="template-brand" href={safeTextLink(set.identity.homeUrl) ?? undefined}>{src ? <TemplateImage src={src} alt={logo?.alt ?? ""} /> : <span className="template-brand-mark" aria-hidden="true">{brandInitials(set.identity.name)}</span>}<span className="template-brand-name">{set.identity.name}</span></a>; break;
         }
         case "navigation": element = <nav aria-label="Site navigation" className="template-navigation">{set.navigation.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined}>{link.label}</a>)}</nav>; break;
         case "copyright": element = <p className="template-copyright">{set.identity.copyright}</p>; break;
         case "social-links": element = <nav className="template-social" aria-label="Social and support links">{set.socialLinks.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined} target="_blank" rel="noopener noreferrer">{link.label}</a>)}</nav>; break;
       }
-      result = <div className={`template-element template-${node.element}`} style={{ textAlign: align }}>{element}</div>;
+      result = <div className={`template-element template-${node.element}`} data-template-element={node.element} style={{ textAlign: align }}>{element}</div>;
     } else result = (!shared ? renderOrdinary?.(node) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} />;
     return (!shared ? decorate?.(node, result) : undefined) ?? result;
   }

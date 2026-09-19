@@ -230,11 +230,29 @@ test("standalone Header and Footer targets retain composed semantic regions in E
       const region = `<${target.kind} class="template-part template-${target.kind}" data-template-part="${target.id}">`;
       assert.ok(html.includes(region), `${target.kind} ${previewing ? "Preview" : "Edit"} uses shared region`);
       assert.ok(composed.includes(region));
+      assert.match(html, /style="width:1200px"/);
+      assert.doesNotMatch(html, /width:1200px;max-width:100%/);
       if (target.kind === "footer") {
         assert.match(html, /template-copyright/); assert.match(html, /template-social/); assert.match(html, /layout-columns/);
       }
     }
   }
+});
+
+test("template shell keeps configurable brand semantics and documented responsive breakpoints", () => {
+  const env = environment(); const m = env.load("studio/template-model.ts"); const renderer = env.load("studio/template-renderer.tsx");
+  const set = m.createTemplateSet(); set.identity.name = "North Star Studio"; set.navigation = [{ id: m.templateId(), label: "About", url: "/about" }];
+  set.socialLinks = [{ id: m.templateId(), label: "Support", url: "https://example.com/support" }];
+  const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0]);
+  const snapshot = { version: m.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
+  const html = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document }));
+  assert.match(html, /template-brand-mark[^>]*>NS</); assert.match(html, /template-brand-name[^>]*>North Star Studio</);
+  assert.match(html, /<nav aria-label="Site navigation" class="template-navigation">/);
+  assert.match(html, /<nav class="template-social" aria-label="Social and support links">/);
+  assert.match(html, /target="_blank" rel="noopener noreferrer"/);
+  const css = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  assert.match(css, /Output breakpoints: 780px/); assert.match(css, /@container \(max-width: 780px\)/); assert.match(css, /@container \(max-width: 620px\)/);
+  assert.match(css, /\.template-footer \.template-social \{ justify-content: flex-end; \}/); assert.match(css, /\.template-footer \.template-social \{ justify-content: center; \}/);
 });
 
 test("template narrow layout restores navigation, settings and save context rather than inheriting hidden panels", () => {

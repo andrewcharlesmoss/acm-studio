@@ -15,6 +15,15 @@ Templated bodies and ordinary template blocks display dividers in every
 preview and publication surface. Standalone Header/Footer targets use the same
 semantic region and responsive styling as their composed references.
 
+The shared shell uses two output breakpoints: 780px changes the Header to a
+wrapped tablet layout, and 620px stacks and centres the Header and Footer. These
+breakpoints are deliberately aligned with the 768px tablet and 390px mobile
+preview widths while leaving the 1200px desktop preview in the full three-area
+layout. The Footer places the configurable brand on the left, copyright in the
+centre and user-supplied social/support links on the right. Narrow layouts keep
+that order and centre each area. The Header only renders configured navigation
+links; Studio does not invent destinations.
+
 **Add Template Element** inserts identity, navigation, document metadata,
 content or a shared-part reference. Selecting an ordinary group before insertion
 adds the new block or element inside that group. List View supports nested

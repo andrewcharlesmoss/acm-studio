@@ -33,18 +33,26 @@
 .template-inspector h2, .template-inspector h3 { font-size: var(--studio-ui-size); }
 .template-link-item { padding-bottom: 12px; border-bottom: 1px solid #ddd; }
 .template-status { padding: 10px 16px; background: #fff8e6; font-size: var(--studio-ui-size); }
+/* Output breakpoints: 780px changes the header to a wrapped tablet layout;
+   620px stacks and centres the header/footer. The editor previews these at
+   1200px (desktop), 768px (tablet) and 390px (mobile). */
 .template-surface { color: var(--template-text); background: var(--template-background); font: var(--template-font-size)/1.6 var(--template-font); container-type: inline-size; max-width: var(--template-content-width); min-width: 0; overflow-wrap: anywhere; margin-inline: auto; padding: var(--template-spacing); border-radius: var(--template-radius); }
 .template-surface .template-node + .template-node { margin-top: var(--template-spacing); }
-.template-surface a { color: var(--template-accent); }
+.template-surface a { color: var(--template-accent); text-decoration-thickness: 0.08em; text-underline-offset: 0.16em; }
+.template-surface a:focus-visible, .template-surface button:focus-visible, .template-surface input:focus-visible { outline: 3px solid var(--template-accent); outline-offset: 3px; }
 .template-surface .template-group { display: flex; flex-direction: column; gap: var(--template-spacing); }
 .template-surface .template-group.layout-row { flex-direction: row; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-.template-surface .template-group.layout-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; }
+.template-surface .template-group.layout-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
 .template-surface .template-group > div { min-width: 0; }
-.template-surface .template-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; }
-.template-brand img { width: 40px; height: 40px; object-fit: contain; }
-.template-navigation, .template-social { display: flex; gap: 16px; flex-wrap: wrap; }
+.template-surface .template-brand { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; color: inherit; text-decoration: none; font-weight: 650; }
+.template-brand-name { min-width: 0; overflow-wrap: anywhere; }
+.template-brand-mark { display: inline-grid; flex: 0 0 40px; width: 40px; height: 40px; place-items: center; border-radius: 11px; background: var(--template-text); color: var(--template-background); font-size: 0.9em; font-weight: 750; letter-spacing: 0.03em; }
+.template-brand img { width: 40px; height: 40px; object-fit: contain; border-radius: min(11px, var(--template-radius)); }
+.template-navigation, .template-social { display: flex; gap: 8px 16px; align-items: center; flex-wrap: wrap; }
+.template-navigation a, .template-social a { display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0.25rem 0.125rem; }
+.template-header .template-navigation { justify-content: flex-end; }
 .template-footer { margin-top: var(--template-spacing); padding-top: var(--template-spacing); border-top: var(--template-border-width) solid var(--template-border); }
-.template-footer .template-copyright { text-align: center; font-size: 1.0625rem; }
+.template-footer .template-copyright { margin: 0; text-align: center; font-size: 1.0625rem; }
 .template-footer .template-social { justify-content: flex-end; }
 .template-surface h1, .template-title-input { font: 600 2.5em/1.15 var(--template-font); color: inherit; margin: 0; }
 .template-surface p { margin-block: 0.5em; }
@@ -65,11 +73,19 @@
 .template-dialog input { display: block; width: 100%; margin: 12px 0; padding: 8px; }
 .template-dialog-close { float: right; }
 .template-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
-@container (max-width: 600px) {
+@container (max-width: 780px) {
+  .template-header .template-group.layout-row { align-items: flex-start; gap: 16px 24px; }
+  .template-header .template-group.layout-row > div { flex: 1 1 calc(50% - 12px); }
+  .template-header .template-navigation { justify-content: flex-start; }
+  .template-footer .template-group.layout-columns { gap: 16px; }
+}
+@container (max-width: 620px) {
   .template-surface .template-group.layout-columns { grid-template-columns: 1fr; }
-  .template-footer { text-align: center; }
+  .template-header .template-group.layout-row { flex-direction: column; align-items: stretch; gap: 16px; }
+  .template-header .template-group.layout-row > div { flex-basis: auto; }
+  .template-header .template-navigation { justify-content: flex-start; gap: 4px 12px; }
+  .template-footer, .template-footer .template-copyright { text-align: center; }
   .template-footer .template-social { justify-content: center; }
-  .template-navigation { gap: 10px; }
 }
 /* Three authoring panes need more room than a tablet or a zoomed desktop. */
 @media (max-width: 1100px) {
