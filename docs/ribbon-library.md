@@ -139,6 +139,28 @@ reflow is separate evidence and must not be presented as a zoom pass.
   write ownership. Final small table-icon optical judgement and true 200% zoom
   remain explicitly distinguished from these completed checks.
 
+### Catalogue review — 19 September 2026
+
+- Overview and component specimens: the structure tree, inspector and selected
+  preview boundary describe the same rendered hierarchy. The boundary uses a
+  preview-level overlay, keeping the header's rounded top corners and every
+  selected group's bottom edge visible.
+- Product references: ACM Studio exposes File, Home, Insert, Arrange, View and
+  Export. ACM Account exposes File, Home, View and Data; File and Home remain
+  visibly empty as recorded. Studio keyboard tab navigation moved from Insert to
+  Arrange. Account File and Home panels were confirmed empty.
+- Interactions: Account row-height keyboard input changed 44px to 48px; the
+  highlight menu closed with Escape; synthetic search narrowed to one row and
+  Clear restored four; Empty Results and Reset Demo restored the fixture. Edit
+  Cell began disabled while locked, became available after Unlock Fields, and
+  opened the scoped cell input.
+- Icons: all 56 symbols were reviewed at 16/24/32px in light and dark specimens.
+  The reference subset and table-related filter remained legible and consistent;
+  the filter produced five table symbols.
+- Preview widths: 1280px, 768px and 390px specimens remained contained in the
+  preview region and retained the fixed 114px Ribbon panel. The provided browser
+  controls still cannot perform a true 200% page-zoom check.
+
 ### Qualified review approval
 
 On 18 September 2026, independent read-only Verifier Godel (task
