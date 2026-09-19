@@ -182,6 +182,28 @@ test("cancelled acquisition cannot request a stale writer lock during effect rep
   release();
 });
 
+test("replacing the ownership module releases its old Web Lock after pending work", async () => {
+  const browserGlobal = {};
+  const manager = locks();
+  const first = modules({ globalThis: browserGlobal })("app/studio/write-ownership.ts").studioWriteOwnership;
+  const releaseFirst = await own(first, manager);
+  let finishWrite;
+  const write = first.write(() => new Promise((resolve) => { finishWrite = resolve; }));
+  await tick();
+
+  const second = modules({ globalThis: browserGlobal })("app/studio/write-ownership.ts").studioWriteOwnership;
+  assert.equal(first.canWrite(), false);
+  assert.equal(manager.held(), true, "pending work must retain the lock");
+  await own(second, manager);
+  assert.equal(second.canWrite(), false);
+
+  finishWrite(); await write; await tick();
+  assert.equal(manager.held(), false);
+  const releaseSecond = await own(second, manager);
+  assert.equal(second.canWrite(), true);
+  releaseFirst(); releaseSecond(); await tick();
+});
+
 function indexedDBFixture(mode) {
   const state = { closed: 0, opened: 0, writes: 0, aborted: 0 };
   const database = {

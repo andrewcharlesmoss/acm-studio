@@ -11,10 +11,26 @@ export class StudioWriteOwnership {
   private pending = new Set<Promise<unknown>>();
   private restorePermit: RestorePermit | null = null;
   private listeners = new Set<() => void>();
+  private disposed = false;
 
   getState = () => this.state;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private notify(state: OwnershipState) { this.state = state; this.listeners.forEach((listener) => listener()); }
+
+  private releaseOwner(token: symbol) {
+    if (this.owner !== token) return;
+    this.owner = null;
+    this.notify("waiting");
+    const release = this.releaseLock;
+    this.releaseLock = null;
+    // Keep the cross-tab lock until writes and any restore have settled.
+    void Promise.allSettled([...this.pending]).then(() => release?.());
+  }
+
+  dispose() {
+    this.disposed = true;
+    if (this.owner) this.releaseOwner(this.owner);
+  }
 
   acquire(onLoad: (token: symbol) => void, locks: LockManagerLike | undefined = globalThis.navigator?.locks) {
     let cancelled = false;
@@ -25,9 +41,9 @@ export class StudioWriteOwnership {
       void Promise.resolve().then(() => {
         // React may replay an effect before this microtask runs. A cancelled
         // attempt must not briefly obtain the lock and block its replacement.
-        if (cancelled) return;
+        if (cancelled || this.disposed) return;
         return locks.request("acm-studio-writer-v1", { mode: "exclusive", ifAvailable: true }, async (lock) => {
-          if (cancelled || !lock) return;
+          if (cancelled || this.disposed || !lock) return;
           token = Symbol("Studio writer");
           this.owner = token;
           this.notify("loading");
@@ -41,14 +57,7 @@ export class StudioWriteOwnership {
     }
     return () => {
       cancelled = true;
-      if (!token || this.owner !== token) return;
-      this.owner = null;
-      this.notify("waiting");
-      const release = this.releaseLock;
-      this.releaseLock = null;
-      // Invalidate UI writes immediately, but retain the cross-tab lock until
-      // transactions and a restore already in progress have settled.
-      void Promise.allSettled([...this.pending]).then(() => release?.());
+      if (token) this.releaseOwner(token);
     };
   }
 
@@ -102,7 +111,13 @@ export class StudioWriteOwnership {
   }
 }
 
+// Vite may replace this module without unloading the page. Release the previous
+// coordinator before replacing it so its lifetime Web Lock cannot strand the
+// refreshed editor in read-only mode.
+const ownershipGlobal = globalThis as typeof globalThis & { __acmStudioWriteOwnershipV1?: StudioWriteOwnership };
+ownershipGlobal.__acmStudioWriteOwnershipV1?.dispose();
 export const studioWriteOwnership = new StudioWriteOwnership();
+ownershipGlobal.__acmStudioWriteOwnershipV1 = studioWriteOwnership;
 
 export function ownershipMessage(state: OwnershipState) {
   if (state === "unavailable") return "Read-only: this browser could not coordinate safe local editing.";
