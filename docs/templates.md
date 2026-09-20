@@ -1,9 +1,11 @@
 # Template editing
 
-Templates are Studio-owned browser-local designs. Open **Templates** from the
-dashboard or Studio sidebar, create a named set, then edit its Page, Post,
-Header or Footer. Each set starts with a neutral Inter design. Social/support
-links are empty until a real destination is supplied.
+Templates are Studio-owned browser-local designs. Open **Templates** beside
+**Pages** and **Posts** in the Content Studio, or use the dashboard shortcut,
+then create a named set and edit its Page, Post, Header or Footer. Each set
+starts with a neutral Inter design. Social/support links are empty until a real
+destination is supplied. Templates remain a separate reusable presentation
+data type even though they share the content editor shell.
 
 The canvas, ordinary block controls, List View and history are shared with the
 content editor. The editing breadcrumb identifies the selected set and target.

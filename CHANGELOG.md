@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- Templates are now a sibling authoring mode beside Pages and Posts in the
+  Content Studio navigation, while retaining their separate reusable data
+  model and `/studio/templates` route.
 - Added responsive Group and Section layout controls — Stack, Row and Columns,
   alignment, shared gap and padding presets, constrained/full width, columns
   and the shared 780px/620px stacking rules — plus a selectable Spacer Design

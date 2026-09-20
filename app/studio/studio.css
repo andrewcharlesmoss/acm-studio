@@ -389,9 +389,10 @@
 .library-create button { align-items: center; background: white; border: 1px solid #d5d3cb; border-radius: 8px; cursor: pointer; display: flex; font-size: var(--studio-ui-size); font-weight: 620; gap: 5px; justify-content: center; padding: 9px 6px; }
 .library-create button:hover { border-color: #969791; }
 .library-create svg { color: var(--accent); height: 15px; width: 15px; }
-.library-tabs { border-bottom: 1px solid #d8d6ce; border-top: 1px solid #d8d6ce; display: grid; grid-template-columns: 1fr 1fr; padding: 0 10px; }
-.library-tabs button { align-items: center; background: transparent; border: 0; border-bottom: 2px solid transparent; cursor: pointer; display: flex; font-size: var(--studio-ui-size); font-weight: 620; gap: 7px; justify-content: center; padding: 12px 5px 10px; }
-.library-tabs button.is-active { border-bottom-color: var(--ink); }
+.library-tabs { border-bottom: 1px solid #d8d6ce; border-top: 1px solid #d8d6ce; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0 6px; }
+.library-tabs button, .library-tab-link { align-items: center; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--ink); cursor: pointer; display: flex; font-size: var(--studio-ui-size); font-weight: 620; gap: 7px; justify-content: center; min-width: 0; padding: 12px 3px 10px; text-decoration: none; }
+.library-tabs button.is-active, .library-tab-link:hover, .library-tab-link:focus-visible { border-bottom-color: var(--ink); }
+.library-tab-link:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -3px; }
 .library-tabs span { align-items: center; background: #e3e1da; border-radius: 999px; display: inline-flex; font-size: var(--studio-ui-size); height: 18px; justify-content: center; min-width: 18px; padding: 0 5px; }
 .document-list { display: grid; gap: 3px; overflow: auto; padding: 10px; }
 .document-item { align-items: center; background: transparent; border: 0; border-radius: 9px; cursor: pointer; display: grid; gap: 9px; grid-template-columns: 28px minmax(0, 1fr) 8px; padding: 9px; text-align: left; width: 100%; }
