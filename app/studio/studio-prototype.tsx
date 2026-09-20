@@ -42,7 +42,7 @@ export function StudioPrototype() {
   const [inserterQuery, setInserterQuery] = useState("");
   const [previewing, setPreviewing] = useState(false);
   const [codeEditorDirty, setCodeEditorDirty] = useState(false);
-  const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup">(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "templates" ? "templates" : "content");
+  const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup">("content");
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [designMediaPrompt, setDesignMediaPrompt] = useState<{ asset: MediaAsset; target: "block" | "cover" } | null>(null);
   const [designMediaAltText, setDesignMediaAltText] = useState(""); const designMediaDialogRef = useRef<HTMLDialogElement>(null);
@@ -210,6 +210,10 @@ export function StudioPrototype() {
   }
 
   useEffect(() => {
+    const mode = new URLSearchParams(window.location.search).get("mode");
+    queueMicrotask(() => { if (mode === "templates") setStudioSection("templates"); });
+  }, []);
+  useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
       if (!(event.metaKey || event.ctrlKey)) {
         if (event.key === "Escape") {
@@ -242,7 +246,7 @@ export function StudioPrototype() {
       <div className="studio-notice" role="note"><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</div>
 
       <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`}>
-        {studioSection === "templates" ? <TemplateWorkspacePanel workspace={studioSession} templates={templateSession} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} /> : <>
+        {studioSection === "templates" ? <TemplateWorkspacePanel workspace={studioSession} templates={templateSession} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onCreateContent={addDocument} onSelectContentKind={(kind) => { setLibraryKind(kind); switchStudioMode("content"); }} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); window.history.replaceState({}, "", "/studio"); }} onExportContent={() => exportJson(workspace, "acm-studio-content.json")} /> : <>
         <aside className="studio-library">
           <div className="library-create">
             <button type="button" onClick={() => addDocument("post")}><StudioIcon name="add" size={16} /> New post</button>

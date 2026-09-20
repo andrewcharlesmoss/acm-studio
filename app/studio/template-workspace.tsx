@@ -6,6 +6,8 @@ import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";
 import { TemplateEditor } from "./template-editor";
 import { MediaManager } from "./media-manager";
 import { StudioIcon } from "./studio-icons";
+import { SiteNavigation } from "./site-navigation";
+import { AcmIcon } from "@acm/icons/react";
 import { createTemplateSet, copyTemplateData, templateId, templateMediaIds, visitTemplateNodes, TEMPLATE_STORAGE_KEY, type TemplateSet, type PageTemplate, type TemplatePart } from "./template-model";
 import { exportTemplatePackage, importTemplatePackage, TEMPLATE_PACKAGE_LIMIT, validateTemplatePackage } from "./template-package";
 import { contentMediaIds, useTemplateMedia } from "./use-template-media";
@@ -26,12 +28,17 @@ export function TemplateWorkspace() {
   return <TemplateWorkspacePanel workspace={workspace} templates={templates} standalone />;
 }
 
-export function TemplateWorkspacePanel({ workspace, templates, standalone = false, manageHistoryShortcuts = true, onBackToContent }: {
+export function TemplateWorkspacePanel({ workspace, templates, standalone = false, manageHistoryShortcuts = true, onBackToContent, onCreateContent, onSelectContentKind, onOpenFiles, onOpenBackup, onExportContent }: {
   workspace: TemplateWorkspaceSession;
   templates: TemplateStoreSession;
   standalone?: boolean;
   manageHistoryShortcuts?: boolean;
   onBackToContent?: () => void;
+  onCreateContent?: (kind: "page" | "post") => void;
+  onSelectContentKind?: (kind: "page" | "post") => void;
+  onOpenFiles?: () => void;
+  onOpenBackup?: () => void;
+  onExportContent?: () => void;
 }) {
   const [setId, setSetId] = useState<string | null>(null);
   const [targetId, setTargetId] = useState<string | null>(null);
@@ -141,9 +148,26 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     {templates.syncConflict ? <div className="template-status template-inline-status" role="alert">Conflicting template changes need review. <button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div> : null}
     {templates.error || feedback || media.error ? <div className="template-status template-inline-status" role="alert">{templates.error ?? feedback ?? media.error}{!templates.ready ? <button type="button" onClick={() => download({ raw: window.localStorage.getItem(TEMPLATE_STORAGE_KEY) }, "acm-template-recovery.json")}>Export Original Data</button> : null}</div> : null}
     <aside className="studio-library">
-      {onBackToContent ? <button className="library-tool-button" type="button" onClick={onBackToContent}><span><StudioIcon name="pencil" /></span><strong>Content</strong><small>Pages and posts</small></button> : <a className="library-tool-button" href="/studio"><span><StudioIcon name="pencil" /></span><strong>Content</strong><small>Pages and posts</small></a>}
-      <button className="library-tool-button is-active" type="button" onClick={library}><span><StudioIcon name="block" /></span><strong>Templates</strong><small>Shared presentation</small></button>
+      {onBackToContent ? <>
+        <div className="library-create">
+          <button type="button" onClick={() => onCreateContent?.("post")}><StudioIcon name="add" size={16} /> New post</button>
+          <button type="button" onClick={() => onCreateContent?.("page")}><StudioIcon name="add" size={16} /> New page</button>
+        </div>
+        <div className="library-tabs" aria-label="Content type">
+          <button type="button" onClick={() => onSelectContentKind?.("page")}>Pages<span>{workspace.workspace.documents.filter(item => item.kind === "page").length}</span></button>
+          <button type="button" onClick={() => onSelectContentKind?.("post")}>Posts<span>{workspace.workspace.documents.filter(item => item.kind === "post").length}</span></button>
+          <button className="is-active" type="button" onClick={library}>Templates<span>{templates.store.sets.length}</span></button>
+        </div>
+        <button className="library-tool-button" type="button" onClick={onOpenFiles}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
+        <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design canvas</strong><small>Create and annotate images</small></a>
+        <a className="library-tool-button" href="/studio/ribbon"><span><AcmIcon name="layout.columns" /></span><strong>Ribbon Library</strong><small>Explore controls and original SVG icons</small></a>
+        <button className="library-tool-button" type="button" onClick={onOpenBackup}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
+      </> : <>
+        <a className="library-tool-button" href="/studio"><span><StudioIcon name="pencil" /></span><strong>Content</strong><small>Pages and posts</small></a>
+        <button className="library-tool-button is-active" type="button" onClick={library}><span><StudioIcon name="block" /></span><strong>Templates</strong><small>Shared presentation</small></button>
+      </>}
       {set ? <><div className="template-targets">{[...set.templates, ...set.parts].map(item => <button type="button" className={item.id === target?.id ? "is-active" : ""} key={item.id} onClick={() => openSet(set, item.id)}>{item.name} <small>({item.kind})</small></button>)}</div><fieldset disabled={!writable}><legend>Add to This Set</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div>{target ? <div className="template-targets"><button type="button" onClick={() => askName("Rename", target.name, name => { return changeSet({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, name } : item), parts: set.parts.map(item => item.id === target.id ? { ...item, name } : item) }); })}>Rename</button><button type="button" onClick={duplicateTarget}>Duplicate</button><button type="button" onClick={deleteTarget}>Delete</button></div> : null}</fieldset></> : null}
+      {onBackToContent ? <><SiteNavigation /><div className="library-footer"><button type="button" onClick={onExportContent}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div></> : null}
     </aside>
     {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : "Template image"} targetKind="block" onInsertImage={insertMedia} /></section> : set && target ? <TemplateEditor key={target.id} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} writable={writable} onChange={changeSet} onEditPart={id => openSet(set, id)} onOpenMedia={(blockId, logo = false) => setMediaTarget({ blockId, logo })} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Site templates</h1><p>Create a consistent page and post design. Each set has its own shared parts, identity and styles.</p><div className="template-library-actions"><button className="button-primary" type="button" disabled={!writable} onClick={() => askName("Create Template Set", uniqueName("ACM Neutral"), name => { const item = createTemplateSet(name); const saved = templates.commit(store => ({ ...store, sets: [...store.sets, item] })); if (saved) openSet(item); return saved; })}><StudioIcon name="add" />Create Template Set</button><button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button><input ref={importRef} hidden type="file" accept=".json,application/json" onChange={event => { void importFile(event.target.files?.[0]); event.target.value = ""; }} /></div><div className="template-set-grid">{templates.store.sets.map(item => <article className="template-set-card" key={item.id}><h2>{item.name}</h2><p>{item.templates.length} templates · {item.parts.length} shared parts</p><button type="button" onClick={() => openSet(item)}>Open Templates</button><div className="template-set-actions"><button type="button" disabled={!writable} onClick={() => askName("Rename Template Set", item.name, name => changeSet({ ...item, name }))}>Rename</button><button type="button" disabled={!exclusiveWritable} onClick={() => void duplicateSet(item)}>Duplicate</button><button type="button" disabled={busy} onClick={() => void exportSet(item)}>Export</button><button type="button" disabled={!writable} onClick={() => deleteSet(item)}>Delete</button></div></article>)}</div>{!templates.store.sets.length && templates.ready ? <p>No template sets yet. Create one to start with the neutral ACM design.</p> : null}</section>}
   </>;

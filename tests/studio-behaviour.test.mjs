@@ -404,9 +404,14 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(studio, /<div className="library-tabs" aria-label="Content type">[\s\S]*<button type="button" onClick=\{\(\) => switchStudioMode\("templates"\)\}>Templates<span>\{templateSession\.store\.sets\.length\}<\/span><\/button>/);
+  assert.match(studio, /const \[studioSection, setStudioSection\] = useState<"content" \| "templates" \| "files" \| "backup">\("content"\)/);
+  assert.match(studio, /const mode = new URLSearchParams\(window\.location\.search\)\.get\("mode"\);\s*queueMicrotask\(\(\) => \{ if \(mode === "templates"\) setStudioSection\("templates"\); \}\);/);
   assert.doesNotMatch(studio, /<a className="library-tool-button" href="\/studio\/templates">/);
   assert.match(styles, /\.library-tabs \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(styles, /\.library-tabs button/);
+  const templateWorkspace = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
+  assert.match(templateWorkspace, /<div className="library-tabs" aria-label="Content type">[\s\S]*Templates<span>\{templates\.store\.sets\.length\}<\/span>/);
+  assert.match(templateWorkspace, /<div className="library-create">[\s\S]*New post[\s\S]*New page/);
 });
 
 
