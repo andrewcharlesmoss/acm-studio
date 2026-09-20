@@ -118,6 +118,17 @@ test("a genuinely absent workspace may initialise and save", () => {
   assert.equal(JSON.parse(localStorage.raw()).version, 2);
 });
 
+test("autosave status reports persistence time rather than a stale document timestamp", () => {
+  const localStorage = storage();
+  const load = modules({}, { window: { localStorage } });
+  const hook = hookHarness(load("app/studio/workspace-repository.ts").browserWorkspaceRepository, load);
+  const state = hook.flush();
+  const expectedMinute = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  state.commit((workspace) => ({ ...workspace, documents: workspace.documents.map((document, index) => index === 0 ? { ...document, title: "Changed locally" } : document) }));
+  const saved = hook.flush();
+  assert.equal(saved.saveLabel, `Saved locally ${expectedMinute}`);
+});
+
 test("denied reads never trigger writes; quota errors are not reported as saved", () => {
   const load = modules();
   let writes = 0;

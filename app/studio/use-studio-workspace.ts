@@ -145,11 +145,11 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
     let failed = false;
     const snapshotKey = JSON.stringify(workspace);
     if (lastPersistedWorkspaceRef.current === snapshotKey) return;
+    setSaveLabel("Saving…");
     if (primaryWritable && (!syncRef.current?.isAvailable() || !syncRef.current.isPrimary())) {
       try {
         repository.save(workspace);
-        const latest = workspace.documents.find((item) => item.id === workspace.activeDocumentId)?.updatedAt;
-        const updated = latest ? new Date(latest) : new Date();
+        const updated = new Date();
         queueMicrotask(() => {
           setSaveError(null);
           setSaveLabel(`Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
@@ -171,8 +171,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         } else if (syncRef.current?.isConnectedPeer()) {
           await syncRef.current.submit(workspace);
         } else return;
-        const latest = workspace.documents.find((item) => item.id === workspace.activeDocumentId)?.updatedAt;
-        const updated = latest ? new Date(latest) : new Date();
+        const updated = new Date();
         message = primaryWritable ? `Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Synced with another ACM Studio tab";
         lastPersistedWorkspaceRef.current = snapshotKey;
       } catch (error) {
