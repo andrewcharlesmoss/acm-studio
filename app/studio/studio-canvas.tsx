@@ -475,7 +475,10 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
             <div className="canvas-blocks">
               {allowCoverImage && showCoverImage ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" onClick={() => openInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
               {activeDocument.blocks.map((block, index) => (
-                <div className="block-position" key={block.id}>
+                <div className="block-position" key={block.id}
+                  onDragOver={(event) => { event.preventDefault(); onSetDragOverIndex(draggingIndexRef.current === index ? null : index); }}
+                  onDrop={(event) => { event.preventDefault(); if (draggingIndexRef.current !== null) onMoveBlockTo(draggingIndexRef.current, index); draggingIndexRef.current = null; onSetDragOverIndex(null); }}
+                >
                   {dragOverIndex === index ? <div className="drop-indicator" aria-hidden="true" /> : null}
                   {index > 0 ? <button className="between-blocks" type="button" onClick={() => openInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
                   <article
@@ -496,8 +499,6 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                       if (event.target instanceof Element && event.target.closest(".mini-golf-nested-controls, .mini-golf-nested-block")) return;
                       onSelectBlock(block.id);
                     }}
-                    onDragOver={(event) => { event.preventDefault(); onSetDragOverIndex(draggingIndexRef.current === index ? null : index); }}
-                    onDrop={() => { if (draggingIndexRef.current !== null) onMoveBlockTo(draggingIndexRef.current, index); draggingIndexRef.current = null; onSetDragOverIndex(null); }}
                   >
                     <div className="canvas-block-toolbar">
                       <BlockTransformControl block={block} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} />
