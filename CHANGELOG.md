@@ -255,6 +255,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Standardised compact top-level block spacing at 20px across Edit and Preview,
+  while keeping intentional cover and nested-layout spacing unchanged.
 - "Use My Change" now applies the chosen edit against the latest saved
   workspace, preserves unrelated tab edits and updates the canvas after saving.
   Other tabs no longer mistake a broadcast rejection for their own conflict.

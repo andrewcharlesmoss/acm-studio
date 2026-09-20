@@ -57,6 +57,13 @@ for editor previews, not the public article's prose theme. Keep selection
 controls and empty-field prompts editor-only; excerpts are metadata, not
 additional body content. Verify both modes when changing a block's appearance.
 
+Blocks should be content-hugging by default: avoid unnecessary fixed height,
+padding or vertical whitespace, keep top and bottom spacing visually balanced,
+and use the shared compact block gap for ordinary block separation. Intentional
+exceptions, such as cover image framing or a user-configured Spacer block, must
+remain explicit in the owning block's styles and behave consistently in Edit,
+Preview and local publication.
+
 ## Foundation boundary
 
 - This phase is deliberately database-free and login-free.

@@ -508,6 +508,7 @@
    column at that width in both Studio modes; the surrounding paper grows with
    its shared padding. */
 .block-canvas, .document-preview {
+  --studio-block-gap: 20px;
   --studio-canvas-block-padding: clamp(44px, 6vw, 78px);
   --studio-canvas-inline-padding: clamp(44px, 6vw, 78px);
   background: var(--paper);
@@ -539,7 +540,7 @@
 .canvas-cover-actions .cover-action-button.is-destructive:hover, .canvas-cover-actions .cover-action-button.is-destructive:focus-visible { border-color: #bd5353; color: #bd5353; }
 .canvas-add-cover { align-items: center; display: inline-flex; gap: 5px; justify-content: center; margin: 24px 0 34px; width: 100%; }
 .canvas-blocks, .studio-block-preview { display: grid; min-width: 0; }
-.studio-block-preview { gap: 30px; }
+.studio-block-preview { gap: var(--studio-block-gap); }
 .cover-inserter-position { height: 30px; position: relative; }
 .cover-inserter-position .between-blocks { top: 0; }
 .block-position { display: flow-root; position: relative; }
@@ -552,7 +553,7 @@
 .between-blocks:hover, .between-blocks:focus-visible { opacity: 1; }
 .canvas-block, .studio-block-preview > .content-block { border: 1px solid transparent; border-radius: 6px; margin: 0; min-width: 0; padding: 0; position: relative; }
 .studio-block-preview > .content-block > * { margin: 0; }
-.block-position + .block-position .canvas-block { margin-top: 30px; }
+.block-position + .block-position .canvas-block { margin-top: var(--studio-block-gap); }
 .canvas-block:hover { border-color: #d9d7cf; }
 .canvas-block:not(.is-selected):is(:hover, [data-studio-hovered="true"]) { border-color: #cc1818; outline: 1px solid #cc1818; outline-offset: -1px; }
 .canvas-block.is-selected { border-color: #cc1818; outline: 1px solid #cc1818; outline-offset: -1px; }
