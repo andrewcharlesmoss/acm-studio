@@ -257,6 +257,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Text alignment controls now use neutral grey selected and hover states with
+  matching dark text instead of blue emphasis.
 - The main Add block control now uses the black primary button treatment.
 - Successful local publication feedback now dismisses automatically after a
   short period; actionable errors remain visible until dismissed.

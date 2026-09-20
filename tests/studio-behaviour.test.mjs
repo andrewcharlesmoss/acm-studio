@@ -1159,6 +1159,12 @@ test("the main Add block control uses the black primary treatment", () => {
   assert.match(css, /\.editor-history-actions button\.editor-add-block \{ background: var\(--ink\); border-color: var\(--ink\); color: white; \}/);
 });
 
+test("text alignment controls use neutral selected states", () => {
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(css, /\.alignment-menu button:hover, \.alignment-menu button\.is-active \{ background: #f0f0f0 !important; color: #1e1e1e !important; \}/);
+  assert.match(css, /\.canvas-format-actions \.alignment-button\.is-active \{ background: #f0f0f0; color: #1e1e1e; \}/);
+});
+
 
 test("full document counts sit beside Code and collapse before crowding the toolbar", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
