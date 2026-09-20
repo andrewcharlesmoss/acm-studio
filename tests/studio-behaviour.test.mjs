@@ -1154,6 +1154,11 @@ test("successful publication feedback dismisses itself", () => {
   assert.match(publishing, /clearTimeout\(timeout\)/);
 });
 
+test("the main Add block control uses the black primary treatment", () => {
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(css, /\.editor-history-actions button\.editor-add-block \{ background: var\(--ink\); border-color: var\(--ink\); color: white; \}/);
+});
+
 
 test("full document counts sit beside Code and collapse before crowding the toolbar", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");

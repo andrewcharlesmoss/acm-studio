@@ -257,6 +257,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- The main Add block control now uses the black primary button treatment.
 - Successful local publication feedback now dismisses automatically after a
   short period; actionable errors remain visible until dismissed.
 - Template sets now keep all of their templates and shared parts expanded in
