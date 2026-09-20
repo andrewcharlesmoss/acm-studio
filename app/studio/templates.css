@@ -18,8 +18,9 @@
 .template-set-actions { margin-top: 16px; }
 .template-targets { display: grid; gap: 6px; margin: 12px 0; }
 .template-targets button { text-align: left; }
-.template-workspace .studio-library { padding: 12px; overflow-y: auto; gap: 12px; }
-.template-workspace .studio-library fieldset { border: 0; padding: 0; margin: 0; }
+.template-workspace .studio-library { padding: 0; overflow-y: auto; gap: 0; }
+.template-workspace .studio-library fieldset { border: 0; padding: 12px; margin: 0; }
+.template-workspace .studio-library .template-document-list { padding: 10px; }
 .template-workspace .studio-library legend { font-size: var(--studio-ui-size); color: var(--muted); padding: 8px 0; }
 .template-targets button { padding: 9px 12px; border: 1px solid #d1cfc7; background: #fff; border-radius: 6px; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-targets button.is-active { color: #174a9c; border-color: #2457c5; background: #eaf1ff; }

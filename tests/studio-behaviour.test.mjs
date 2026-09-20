@@ -403,6 +403,7 @@ test("both editors share history shortcuts without replacing save or Escape hand
 test("content navigation presents Templates as a sibling authoring mode", () => {
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  const templateStyles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   assert.match(studio, /<div className="library-tabs" aria-label="Content type">[\s\S]*<button type="button" onClick=\{\(\) => switchStudioMode\("templates"\)\}>Templates<span>\{templateSession\.store\.sets\.length\}<\/span><\/button>/);
   assert.match(studio, /const \[studioSection, setStudioSection\] = useState<"content" \| "templates" \| "files" \| "backup">\("content"\)/);
   assert.match(studio, /const mode = new URLSearchParams\(window\.location\.search\)\.get\("mode"\);\s*queueMicrotask\(\(\) => \{ if \(mode === "templates"\) setStudioSection\("templates"\); \}\);/);
@@ -415,6 +416,9 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateWorkspace, /className="template-target-list"/);
   assert.match(templateWorkspace, /<TemplateEditor key=\{target\.id\}/);
   assert.match(templateWorkspace, /: standalone \? <section className="template-library"/);
+  assert.match(templateStyles, /\.template-workspace \.studio-library \{ padding: 0; overflow-y: auto; gap: 0; \}/);
+  assert.match(templateStyles, /\.template-workspace \.studio-library fieldset \{ border: 0; padding: 12px; margin: 0; \}/);
+  assert.match(templateStyles, /\.template-workspace \.studio-library \.template-document-list \{ padding: 10px; \}/);
 });
 
 
