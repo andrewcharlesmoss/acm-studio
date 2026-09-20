@@ -729,10 +729,6 @@
 .list-item-remove svg { height: 16px; width: 16px; }
 .list-field-row:hover .list-item-remove, .list-item-remove:focus-visible { opacity: 1; }
 .list-item-remove:hover { background: #eee0dc; color: #9b3d31; }
-.list-item-add { align-items: center; background: var(--paper); border: 1px dashed #bdbbb3; border-radius: 6px; color: var(--muted); cursor: pointer; display: inline-flex; font-size: var(--studio-ui-size); gap: 4px; margin-top: 3px; padding: 2px 8px; position: absolute; right: 0; top: 100%; }
-.list-item-add svg { height: 16px; width: 16px; }
-.canvas-block:not(.is-selected) .list-item-add { visibility: hidden; }
-.list-item-add:hover { border-color: var(--accent); color: var(--accent); }
 /* The table frame owns its only outer edge, including the selected state.
    Clip the cells here, leaving the block toolbar outside the clipped area. */
 .canvas-block.is-table, .studio-block-preview > .content-block.is-table { border: 0; }

@@ -1139,6 +1139,7 @@ function AutoResizeTextarea({ value, ...props }: TextareaHTMLAttributes<HTMLText
 
 function ListField({ block, onChange }: { block: Extract<ContentBlock, { type: "list" }>; onChange: (block: ContentBlock) => void }) {
   const items = block.items.length ? block.items : [""];
+  const listRef = useRef<HTMLDivElement>(null);
   function updateItem(index: number, value: string) {
     const nextItems = [...items];
     nextItems[index] = value;
@@ -1148,16 +1149,24 @@ function ListField({ block, onChange }: { block: Extract<ContentBlock, { type: "
     const nextItems = items.filter((_, itemIndex) => itemIndex !== index);
     onChange({ ...block, items: nextItems.length ? nextItems : [""] });
   }
+  function insertItem(index: number) {
+    const nextItems = [...items];
+    nextItems.splice(index + 1, 0, "");
+    onChange({ ...block, items: nextItems });
+    requestAnimationFrame(() => {
+      const kind = block.style === "ordered" ? "Numbered" : "Bulleted";
+      listRef.current?.querySelector<HTMLTextAreaElement>(`textarea[aria-label="${kind} list item ${index + 2}"]`)?.focus();
+    });
+  }
   return (
-    <div className={`list-field-editor is-${block.style}`}>
+    <div ref={listRef} className={`list-field-editor is-${block.style}`}>
       {items.map((item, index) => (
         <div className="list-field-row" key={`${block.id}-item-${index}`}>
           <span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${index + 1}.` : "•"}</span>
-          <AutoResizeTextarea value={item} onChange={(event) => updateItem(index, event.target.value)} aria-label={`${block.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}`} placeholder="List item" />
+          <AutoResizeTextarea value={item} onChange={(event) => updateItem(index, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); insertItem(index); } }} aria-label={`${block.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}`} placeholder="List item" />
           <button className="list-item-remove" type="button" onClick={() => removeItem(index)} aria-label={`Remove list item ${index + 1}`}><StudioIcon name="close" size={16} /></button>
         </div>
       ))}
-      <button className="list-item-add" type="button" onClick={() => onChange({ ...block, items: [...items, ""] })}><StudioIcon name="add" size={16} />Add item</button>
     </div>
   );
 }

@@ -1119,6 +1119,17 @@ test("shared editor toolbar owns history controls and docks a dismissible List V
   assert.match(css, /@container \(max-width: 680px\) \{\s*\.studio-list-view \{[^}]*position: absolute; top: 0/);
 });
 
+test("list items continue from Return without a permanent Add item control", () => {
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
+  assert.match(listField, /event\.key === "Enter" && !event\.shiftKey/);
+  assert.match(listField, /nextItems\.splice\(index \+ 1, 0, ""\)/);
+  assert.match(listField, /requestAnimationFrame\(\(\) =>/);
+  assert.doesNotMatch(listField, /Add item/);
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.doesNotMatch(css, /\.list-item-add\s*\{/);
+});
+
 
 test("full document counts sit beside Code and collapse before crowding the toolbar", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
