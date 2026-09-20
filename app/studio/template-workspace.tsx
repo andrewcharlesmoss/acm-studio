@@ -164,8 +164,8 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     setMediaTarget(null);
   }
   const panel = <>
-    {templates.syncConflict ? <div className="template-status template-inline-status" role="alert">Conflicting template changes need review. <button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div> : null}
-    {templates.error || feedback || media.error ? <div className="template-status template-inline-status" role="alert">{templates.error ?? feedback ?? media.error}{!templates.ready ? <button type="button" onClick={() => download({ raw: window.localStorage.getItem(TEMPLATE_STORAGE_KEY) }, "acm-template-recovery.json")}>Export Original Data</button> : null}</div> : null}
+    {templates.syncConflict ? <div className="template-status template-inline-status" role="alert"><span>Conflicting template changes need review.</span><div className="template-status-actions"><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}
+    {templates.error || feedback || media.error ? <div className="template-status template-inline-status" role="alert"><span>{templates.error ?? feedback ?? media.error}</span>{!templates.ready ? <div className="template-status-actions"><button type="button" onClick={() => download({ raw: window.localStorage.getItem(TEMPLATE_STORAGE_KEY) }, "acm-template-recovery.json")}>Export Original Data</button></div> : null}</div> : null}
     <aside className="studio-library">
       {onBackToContent ? <>
         <div className="library-create">

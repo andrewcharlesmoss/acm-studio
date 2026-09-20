@@ -416,11 +416,13 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateWorkspace, /className="template-target-list"/);
   assert.match(templateWorkspace, /<TemplateEditor key=\{target\.id\}/);
   assert.match(templateWorkspace, /: standalone \? <section className="template-library"/);
+  assert.match(templateWorkspace, /className="template-status template-inline-status"[^>]*role="alert"[^>]*>.*template-status-actions/s);
   assert.match(templateStyles, /\.template-workspace \.studio-library \{ padding: 0; overflow-y: auto; gap: 0; \}/);
   assert.match(templateStyles, /\.template-workspace \.studio-library fieldset \{ border: 0; padding: 12px; margin: 0; \}/);
   assert.match(templateStyles, /\.template-workspace \.studio-library \.template-document-list \{ padding: 10px; \}/);
   assert.match(templateStyles, /\.template-inspector \.inspector-scroll button/);
   assert.doesNotMatch(templateStyles, /\.template-inspector button \{/);
+  assert.match(templateStyles, /\.template-status-actions button \{ background: #fff; border: 1px solid #c8c6be; border-radius: 7px;/);
 });
 
 

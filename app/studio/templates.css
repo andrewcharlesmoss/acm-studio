@@ -42,7 +42,11 @@
 .template-inspector input[type=color] { height: 36px; }
 .template-inspector h2, .template-inspector h3 { font-size: var(--studio-ui-size); }
 .template-link-item { padding-bottom: 12px; border-bottom: 1px solid #ddd; }
-.template-status { padding: 10px 16px; background: #fff8e6; font-size: var(--studio-ui-size); }
+.template-status { align-items: center; background: #fff8e6; border-bottom: 1px solid #e4d69e; color: #63592f; display: flex; flex-wrap: wrap; font-size: var(--studio-ui-size); gap: 8px 12px; justify-content: space-between; padding: 9px 16px; }
+.template-status > span { min-width: 0; overflow-wrap: anywhere; }
+.template-status-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.template-status-actions button { background: #fff; border: 1px solid #c8c6be; border-radius: 7px; color: inherit; cursor: pointer; font: inherit; padding: 8px 12px; }
+.template-status-actions button:hover { background: #f2f0e8; }
 .template-inline-status { grid-column: 1 / -1; }
 /* Output breakpoints: 780px changes the header to a wrapped tablet layout;
    620px stacks and centres the header/footer. The editor previews these at
