@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { normalisePostSlug, UnreadablePublicationsError, validatePostForPublication } from "../content/local-publishing";
 import { browserPublishingRepository, type PublishingRepository } from "../content/publishing-repository";
 import { articles } from "../content/sample-content";
@@ -26,6 +26,12 @@ export function useStudioPublishing({
   reservedSlugs?: string[];
 }) {
   const [publishFeedback, setPublishFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!publishFeedback?.startsWith("Published locally") && publishFeedback !== "Published post updated locally.") return;
+    const timeout = window.setTimeout(() => setPublishFeedback(null), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [publishFeedback]);
 
   function publish() {
     if (!publishingWritable) { setPublishFeedback("Publishing is paused while another Studio tab owns local storage."); return false; }

@@ -257,6 +257,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Successful local publication feedback now dismisses automatically after a
+  short period; actionable errors remain visible until dismissed.
 - Template sets now keep all of their templates and shared parts expanded in
   the library pane instead of collapsing the set contents into a scroll area.
 - List editing now creates and focuses the next item on Return, with ordered

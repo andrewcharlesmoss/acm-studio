@@ -1146,6 +1146,14 @@ test("template set contents remain expanded in the library pane", () => {
   assert.match(css, /\.template-workspace \.studio-library \.template-document-list \{[^}]*flex: 0 0 auto;[^}]*overflow: visible;/);
 });
 
+test("successful publication feedback dismisses itself", () => {
+  const publishing = readFileSync(new URL("../app/studio/use-studio-publishing.ts", import.meta.url), "utf8");
+  assert.match(publishing, /useEffect, useState/);
+  assert.match(publishing, /publishFeedback\?\.startsWith\("Published locally"\).*Published post updated locally/);
+  assert.match(publishing, /setTimeout\(\(\) => setPublishFeedback\(null\), 4000\)/);
+  assert.match(publishing, /clearTimeout\(timeout\)/);
+});
+
 
 test("full document counts sit beside Code and collapse before crowding the toolbar", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
