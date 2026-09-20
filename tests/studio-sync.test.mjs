@@ -81,6 +81,98 @@ test("studio sync merges stable records and exposes competing field changes", ()
   assert.equal(conflict.conflicts[0].reason, "property");
 });
 
+test("inserting a block does not turn a concurrent deletion into an order conflict", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const base = { blocks: [{ id: "a" }, { id: "b" }, { id: "c" }] };
+  const mine = { blocks: [{ id: "a" }, { id: "b" }, { id: "new" }, { id: "c" }] };
+  const theirs = { blocks: [{ id: "a" }, { id: "c" }] };
+  const transaction = sync.createStudioTransaction(base, mine, { transactionId: "insert", clientId: "mine", brokerEpoch: "epoch", baseRevision: 0 });
+  assert.equal(transaction.changes.some(change => change.kind === "move"), false);
+  const message = { protocol: sync.STUDIO_SYNC_PROTOCOL, scope: "main-studio", storeKey: "workspace", senderId: "mine", kind: "operation", requestId: "request", transaction };
+  assert.ok(sync.validateStudioSyncMessage(message, "workspace", value => value));
+  assert.equal(sync.validateStudioSyncMessage({ ...message, protocol: "acm-studio-sync-v1" }, "workspace", value => value), null);
+  assert.equal(sync.validateStudioSyncMessage({ ...message, transaction: { ...transaction, changes: transaction.changes.map(change => change.kind === "insert" ? { ...change, nextId: undefined } : change) } }, "workspace", value => value), null);
+  const result = sync.applyStudioTransaction(theirs, transaction);
+  assert.equal(result.conflicts.length, 0);
+  assert.deepEqual(Array.from(result.snapshot.blocks, block => block.id), ["a", "new", "c"]);
+});
+
+test("moving and deleting blocks in one edit does not conflict with its own deletion", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const base = { blocks: [{ id: "a" }, { id: "b" }, { id: "c" }], title: "Before" };
+  const mine = { ...base, blocks: [{ id: "c" }, { id: "a" }] };
+  const theirs = { ...base, title: "Other tab" };
+  const transaction = sync.createStudioTransaction(base, mine, { transactionId: "move-delete", clientId: "mine", brokerEpoch: "epoch", baseRevision: 0 });
+  assert.deepEqual(Array.from(transaction.changes, change => change.kind), ["delete", "move"]);
+  const result = sync.applyStudioTransaction(theirs, transaction);
+  assert.equal(result.conflicts.length, 0);
+  assert.deepEqual(Array.from(result.snapshot.blocks, block => block.id), ["c", "a"]);
+  assert.equal(result.snapshot.title, "Other tab");
+});
+
+test("reversed insertion neighbours require an explicit order choice", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const base = { blocks: [{ id: "a" }, { id: "b" }, { id: "c" }] };
+  const inserted = { blocks: [{ id: "a" }, { id: "new" }, { id: "b" }, { id: "c" }] };
+  const reordered = { blocks: [{ id: "b" }, { id: "c" }, { id: "a" }] };
+  const insertion = sync.createStudioTransaction(base, inserted, { transactionId: "insert", clientId: "mine", brokerEpoch: "epoch", baseRevision: 0 });
+  const move = sync.createStudioTransaction(base, reordered, { transactionId: "move", clientId: "other", brokerEpoch: "epoch", baseRevision: 0 });
+  const message = { protocol: sync.STUDIO_SYNC_PROTOCOL, scope: "main-studio", storeKey: "workspace", senderId: "other", kind: "operation", requestId: "request", transaction: move };
+  assert.equal(sync.validateStudioSyncMessage({ ...message, transaction: { ...move, changes: [{ kind: "move", path: ["blocks"], beforeOrder: ["a", "b", "c"], afterOrder: ["a", "a", "c"] }] } }, "workspace", value => value), null);
+  assert.equal(sync.applyStudioTransaction(reordered, insertion).conflicts.some(conflict => conflict.reason === "order"), true);
+  assert.equal(sync.applyStudioTransaction(inserted, move).conflicts.some(conflict => conflict.reason === "order"), true);
+  const resolved = sync.applyStudioTransaction(reordered, insertion, true);
+  assert.equal(resolved.conflicts.length, 0);
+  assert.deepEqual(Array.from(resolved.snapshot.blocks, block => block.id), ["c", "a", "new", "b"]);
+});
+
+test("a compatible remote reorder keeps a locally inserted block between its neighbours", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const base = { blocks: [{ id: "a" }, { id: "b" }, { id: "c" }] };
+  const inserted = { blocks: [{ id: "a" }, { id: "new" }, { id: "b" }, { id: "c" }] };
+  const reordered = { blocks: [{ id: "c" }, { id: "a" }, { id: "b" }] };
+  const move = sync.createStudioTransaction(base, reordered, { transactionId: "move", clientId: "other", brokerEpoch: "epoch", baseRevision: 0 });
+  const result = sync.applyStudioTransaction(inserted, move);
+  assert.equal(result.conflicts.length, 0);
+  assert.deepEqual(Array.from(result.snapshot.blocks, block => block.id), ["c", "a", "new", "b"]);
+});
+
+test("a remote reorder keeps insertions attached to their leading or trailing neighbour", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const base = { blocks: [{ id: "a" }, { id: "b" }, { id: "c" }] };
+  for (const [inserted, reordered, expected] of [
+    [["x", "a", "b", "c"], ["b", "c", "a"], ["b", "c", "x", "a"]],
+    [["a", "b", "c", "x"], ["c", "a", "b"], ["c", "x", "a", "b"]],
+  ]) {
+    const transaction = sync.createStudioTransaction(base, { blocks: reordered.map(id => ({ id })) }, { transactionId: "move", clientId: "other", brokerEpoch: "epoch", baseRevision: 0 });
+    const result = sync.applyStudioTransaction({ blocks: inserted.map(id => ({ id })) }, transaction);
+    assert.equal(result.conflicts.length, 0);
+    assert.deepEqual(Array.from(result.snapshot.blocks, block => block.id), expected);
+  }
+});
+
+test("choosing local order keeps remote-only blocks and respects remote deletions", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const base = { blocks: [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }] };
+  const mine = { blocks: [{ id: "c" }, { id: "a" }, { id: "b" }, { id: "d" }, { id: "new" }] };
+  const theirs = { blocks: [{ id: "a" }, { id: "remote" }, { id: "c" }, { id: "d" }] };
+  const transaction = sync.createStudioTransaction(base, mine, { transactionId: "reorder", clientId: "mine", brokerEpoch: "epoch", baseRevision: 0 });
+  assert.equal(sync.applyStudioTransaction(theirs, transaction).conflicts.some(conflict => conflict.reason === "order"), true);
+  const resolved = sync.applyStudioTransaction(theirs, transaction, true);
+  assert.equal(resolved.conflicts.length, 0);
+  assert.deepEqual(Array.from(resolved.snapshot.blocks, block => block.id), ["c", "remote", "a", "d", "new"]);
+});
+
+test("local resolution does not silently discard an edit inside a remotely deleted group", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const base = { blocks: [{ id: "group", children: [{ id: "child", text: "Before" }] }] };
+  const mine = { blocks: [{ id: "group", children: [{ id: "child", text: "Mine" }] }] };
+  const transaction = sync.createStudioTransaction(base, mine, { transactionId: "nested", clientId: "mine", brokerEpoch: "epoch", baseRevision: 0 });
+  const result = sync.applyStudioTransaction({ blocks: [] }, transaction, true);
+  assert.equal(result.conflicts.some(conflict => conflict.reason === "invalid"), true);
+  assert.deepEqual(Array.from(result.snapshot.blocks), []);
+});
+
 test("studio sync commits peer edits once, rejects duplicates and reloads authoritative state on failover", async () => {
   const sync = load("app/studio/studio-sync.ts");
   const channelFactory = channelBus();
@@ -278,4 +370,77 @@ test("choosing a local conflicting field preserves unrelated peer changes", asyn
   assert.equal(persisted.title, "Mine");
   assert.equal(persisted.subtitle, "Their subtitle");
   primary.close(); other.close(); mine.close();
+});
+
+test("local resolution of a concurrent reorder and deletion retains both surviving edits", async () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const channelFactory = channelBus();
+  const base = { blocks: [{ id: "a" }, { id: "b" }, { id: "c" }] };
+  let persisted = base;
+  const primary = sync.createStudioSync({ scope: "block-resolution", storeKey: "workspace", clientId: "primary", initialSnapshot: base, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { persisted = next; } });
+  const other = sync.createStudioSync({ scope: "block-resolution", storeKey: "workspace", clientId: "other", initialSnapshot: base, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  const mine = sync.createStudioSync({ scope: "block-resolution", storeKey: "workspace", clientId: "mine", initialSnapshot: base, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  await settle();
+  const results = await Promise.allSettled([
+    other.submit({ blocks: [{ id: "a" }, { id: "c" }] }),
+    mine.submit({ blocks: [{ id: "c" }, { id: "a" }, { id: "b" }, { id: "new" }] }),
+  ]);
+  assert.equal(results[0].status, "fulfilled");
+  assert.equal(mine.getConflict()?.conflicts.some(conflict => conflict.reason === "order"), true);
+  await mine.resolveConflict("mine");
+  assert.deepEqual(Array.from(persisted.blocks, block => block.id), ["c", "a", "new"]);
+  primary.close(); other.close(); mine.close();
+});
+
+test("a peer can resume an unresolved conflict after its session restarts", async () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const channelFactory = channelBus();
+  const base = { blocks: [{ id: "a" }, { id: "b" }, { id: "c" }] };
+  let persisted = base;
+  const primary = sync.createStudioSync({ scope: "resume-conflict", storeKey: "workspace", clientId: "primary", initialSnapshot: base, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { persisted = next; } });
+  const other = sync.createStudioSync({ scope: "resume-conflict", storeKey: "workspace", clientId: "other", initialSnapshot: base, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  const mine = sync.createStudioSync({ scope: "resume-conflict", storeKey: "workspace", clientId: "mine", initialSnapshot: base, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  let resumed;
+  try {
+    await settle();
+    await Promise.allSettled([
+      other.submit({ blocks: [{ id: "a" }, { id: "c" }] }),
+      mine.submit({ blocks: [{ id: "c" }, { id: "a" }, { id: "b" }, { id: "new" }] }),
+    ]);
+    const unresolved = mine.getConflict();
+    assert.ok(unresolved);
+    mine.close();
+    resumed = sync.createStudioSync({ scope: "resume-conflict", storeKey: "workspace", clientId: "resumed", initialSnapshot: persisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+    resumed.resumeConflict(unresolved);
+    await settle();
+    assert.equal(resumed.getStatus(), "conflict");
+    assert.deepEqual(Array.from(resumed.getConflict().localSnapshot.blocks, block => block.id), ["c", "a", "new"]);
+    await resumed.resolveConflict("mine");
+    assert.deepEqual(Array.from(persisted.blocks, block => block.id), ["c", "a", "new"]);
+  } finally {
+    primary.close(); other.close(); mine.close(); resumed?.close();
+  }
+});
+
+test("an unresolved conflict survives promotion to the persistence owner", async () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const channelFactory = channelBus();
+  const base = { title: "Original" };
+  let persisted = base;
+  const primary = sync.createStudioSync({ scope: "conflict-takeover", storeKey: "workspace", clientId: "primary", initialSnapshot: base, role: "primary", channelFactory, loadAuthoritative: () => persisted, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { persisted = next; } });
+  const other = sync.createStudioSync({ scope: "conflict-takeover", storeKey: "workspace", clientId: "other", initialSnapshot: base, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  const mine = sync.createStudioSync({ scope: "conflict-takeover", storeKey: "workspace", clientId: "mine", initialSnapshot: base, role: "peer", channelFactory, loadAuthoritative: () => persisted, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { persisted = next; } });
+  try {
+    await settle();
+    await Promise.allSettled([other.submit({ title: "Other" }), mine.submit({ title: "Mine" })]);
+    assert.ok(mine.getConflict());
+    primary.close();
+    mine.setRole("primary");
+    assert.equal(mine.getStatus(), "conflict");
+    assert.equal(mine.getConflict().localSnapshot.title, "Mine");
+    await mine.resolveConflict("mine");
+    assert.equal(persisted.title, "Mine");
+  } finally {
+    primary.close(); other.close(); mine.close();
+  }
 });

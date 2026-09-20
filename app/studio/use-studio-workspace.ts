@@ -29,6 +29,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   const initialLoadRef = useRef(false);
   const workspaceRef = useRef(workspace);
   const syncRef = useRef<StudioSyncSession<StudioWorkspace> | null>(null);
+  const pendingConflictRef = useRef<StudioSyncConflict | null>(null);
   const lastPersistedWorkspaceRef = useRef<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<StudioSyncStatus>("disconnected");
   const [syncConflict, setSyncConflict] = useState<StudioSyncConflict | null>(null);
@@ -51,7 +52,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         : "Local workspace ready";
       queueMicrotask(() => {
         if (cancelled || (token && tokenRef.current !== token)) return;
-        setWorkspace(savedWorkspace ?? cloneWorkspace(initialWorkspace));
+        setWorkspace(pendingConflictRef.current ? validateSnapshot(pendingConflictRef.current.localSnapshot) : savedWorkspace ?? cloneWorkspace(initialWorkspace));
         historyRef.current = [];
         futureRef.current = [];
         setHistoryAvailability({ undo: false, redo: false });
@@ -82,7 +83,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       unsubscribe();
       release();
     };
-  }, [repository, ownership, attempt, initialWorkspace]);
+  }, [repository, ownership, attempt, initialWorkspace, validateSnapshot]);
 
   useEffect(() => {
     if (ownershipState !== "waiting") return;
@@ -107,6 +108,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       cloneSnapshot: cloneWorkspace,
       loadAuthoritative: () => repository.load() ?? cloneWorkspace(initialWorkspace),
       onSnapshot: (snapshot, source) => {
+        if (pendingConflictRef.current && (source === "failover" || source === "welcome")) return;
         const activeDocumentId = workspaceRef.current.documents.some(document => document.id === workspaceRef.current.activeDocumentId)
           ? workspaceRef.current.activeDocumentId
           : snapshot.activeDocumentId;
@@ -120,6 +122,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         }
       },
       onConflict: (conflict) => {
+        pendingConflictRef.current = conflict;
         const local = validateSnapshot(conflict.localSnapshot);
         const activeDocumentId = local.documents.some(document => document.id === workspaceRef.current.activeDocumentId)
           ? workspaceRef.current.activeDocumentId : local.activeDocumentId;
@@ -135,6 +138,9 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
     });
     syncRef.current = session;
     setSyncStatus(session.getStatus());
+    if (pendingConflictRef.current) session.resumeConflict(pendingConflictRef.current);
+    else setSyncConflict(session.getConflict());
+    setSyncResolutionError(null);
     return () => {
       session.close();
       if (syncRef.current === session) syncRef.current = null;
@@ -266,6 +272,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
     setSyncResolutionError(null);
     try {
       await session.resolveConflict(choice);
+      pendingConflictRef.current = null;
       setSyncConflict(null);
       setSaveError(null);
     } catch (error) {

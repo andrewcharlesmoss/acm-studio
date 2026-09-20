@@ -250,6 +250,11 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Studio no longer treats a block insertion or deletion as a competing reorder.
+  Choosing the local order retains unrelated blocks from the other tab;
+  unsafe nested conflicts remain visible instead of losing edits silently.
+  Unresolved choices survive session restarts in the same open editor. The
+  cross-tab protocol is now v2 so older tabs cannot apply unanchored inserts.
 - Preserved legacy publication metadata displays, avoided duplicate template
   metadata for migrated documents using the new blocks, and generated
   collision-safe IDs during workspace migration.

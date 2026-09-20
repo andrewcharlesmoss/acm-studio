@@ -5,7 +5,7 @@
  * tabs submit typed snapshot differences to that owner without sharing local
  * selection, navigation or editor history.
  */
-export const STUDIO_SYNC_PROTOCOL = "acm-studio-sync-v1" as const;
+export const STUDIO_SYNC_PROTOCOL = "acm-studio-sync-v2" as const;
 
 export type StudioSyncRole = "primary" | "peer";
 export type StudioSyncStatus = "unsupported" | "connecting" | "primary" | "synced" | "conflict" | "disconnected";
@@ -13,7 +13,7 @@ export type StudioSyncSnapshotSource = "welcome" | "update" | "commit" | "confli
 
 export type StudioSyncChange =
   | { kind: "set"; path: string[]; beforePresent: boolean; before: unknown; afterPresent: boolean; after: unknown }
-  | { kind: "insert"; path: string[]; index: number; value: Record<string, unknown> }
+  | { kind: "insert"; path: string[]; index: number; value: Record<string, unknown>; previousId: string | null; nextId: string | null }
   | { kind: "delete"; path: string[]; index: number; value: Record<string, unknown> }
   | { kind: "move"; path: string[]; beforeOrder: string[]; afterOrder: string[] };
 
@@ -28,6 +28,7 @@ export type StudioSyncTransaction = {
 export type StudioSyncConflict = {
   transaction: StudioSyncTransaction;
   conflicts: StudioSyncMergeConflict[];
+  baseSnapshot: unknown;
   remoteSnapshot: unknown;
   localSnapshot: unknown;
   reason: string;
@@ -76,7 +77,7 @@ export type StudioSyncOptions<T> = {
 
 type PendingPeer = { requestId: string; transaction: StudioSyncTransaction; baseSnapshot?: unknown; resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> };
 type QueuedPrimary = { requestId?: string; transaction: StudioSyncTransaction; baseSnapshot?: unknown; local: boolean; resolve?: () => void; reject?: (error: Error) => void };
-type ConflictState = StudioSyncConflict & { operation: PendingPeer | QueuedPrimary | null; baseSnapshot: unknown };
+type ConflictState = StudioSyncConflict & { operation: PendingPeer | QueuedPrimary | null };
 
 const MAX_SYNC_BYTES = 8_000_000;
 const HELLO_TIMEOUT_MS = 2_500;
@@ -115,14 +116,20 @@ function diffValues(before: unknown, after: unknown, path: string[], changes: St
   if (isStableArray(before) && isStableArray(after)) {
     const beforeIds = before.map(item => item.id as string);
     const afterIds = after.map(item => item.id as string);
-    if (!equal(beforeIds, afterIds)) changes.push({ kind: "move", path, beforeOrder: beforeIds, afterOrder: afterIds });
     const afterMap = new Map(after.map(item => [item.id as string, item]));
     const beforeMap = new Map(before.map(item => [item.id as string, item]));
+    // Insertions and deletions have their own operations. Treating either as
+    // a move creates a false conflict when another tab removes a different block.
+    const beforeRetained = beforeIds.filter(itemId => afterMap.has(itemId));
+    const afterRetained = afterIds.filter(itemId => beforeMap.has(itemId));
     before.forEach((item, index) => {
       if (!afterMap.has(item.id as string)) changes.push({ kind: "delete", path, index, value: clone(item) });
     });
+    // Remove locally deleted IDs before ordering the retained IDs. A move
+    // alongside a deletion must not conflict with its own deleted block.
+    if (!equal(beforeRetained, afterRetained)) changes.push({ kind: "move", path, beforeOrder: beforeRetained, afterOrder: afterRetained });
     after.forEach((item, index) => {
-      if (!beforeMap.has(item.id as string)) changes.push({ kind: "insert", path, index, value: clone(item) });
+      if (!beforeMap.has(item.id as string)) changes.push({ kind: "insert", path, index, value: clone(item), previousId: afterIds[index - 1] ?? null, nextId: afterIds[index + 1] ?? null });
       else diffValues(beforeMap.get(item.id as string), item, [...path, `@${item.id as string}`], changes);
     });
     return;
@@ -191,12 +198,56 @@ function setPath(root: unknown, path: string[], present: boolean, value: unknown
   }
 }
 
+function sameUniqueIds(before: string[], after: string[]) {
+  if (before.length !== after.length) return false;
+  const beforeSet = new Set(before);
+  return beforeSet.size === before.length && new Set(after).size === after.length && after.every(itemId => beforeSet.has(itemId));
+}
+
 function reorderKnown(current: string[], before: string[], after: string[]) {
+  if (!sameUniqueIds(before, after)) return null;
   const known = new Set(before);
   const currentKnown = current.filter(id => known.has(id));
   if (!equal(currentKnown, before)) return null;
+  const leading: string[] = [];
+  const trailing: string[] = [];
+  const between = new Map<string, string[]>();
+  const afterPosition = new Map(after.map((itemId, index) => [itemId, index]));
+  const followingKnown: Array<string | null> = new Array(current.length);
+  let following: string | null = null;
+  for (let index = current.length - 1; index >= 0; index -= 1) {
+    followingKnown[index] = following;
+    if (known.has(current[index])) following = current[index];
+  }
+  let previous: string | null = null;
+  for (let index = 0; index < current.length; index += 1) {
+    const itemId = current[index];
+    if (known.has(itemId)) { previous = itemId; continue; }
+    const next = followingKnown[index];
+    if (!previous) leading.push(itemId);
+    else if (!next) trailing.push(itemId);
+    else {
+      if (afterPosition.get(next) !== (afterPosition.get(previous) ?? -2) + 1) return null;
+      between.set(previous, [...(between.get(previous) ?? []), itemId]);
+    }
+  }
+  if (!currentKnown.length) return current;
+  const firstKnown = currentKnown[0];
+  const lastKnown = currentKnown.at(-1);
+  return after.flatMap(itemId => [
+    ...(itemId === firstKnown ? leading : []),
+    itemId,
+    ...(between.get(itemId) ?? []),
+    ...(itemId === lastKnown ? trailing : []),
+  ]);
+}
+
+function reorderPresent(current: string[], after: string[]) {
+  const present = new Set(current);
+  const desired = after.filter(itemId => present.has(itemId));
+  const known = new Set(after);
   let index = 0;
-  return current.map(id => known.has(id) ? after[index++] : id);
+  return current.map(itemId => known.has(itemId) ? desired[index++] : itemId);
 }
 
 export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSyncTransaction, preferLocal = false): { snapshot: T; conflicts: StudioSyncMergeConflict[] } {
@@ -205,6 +256,10 @@ export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSy
   for (const change of transaction.changes) {
     if (change.kind === "set") {
       const target = resolveValue(snapshot, change.path);
+      if (resolveParent(snapshot, change.path).parent === null) {
+        conflicts.push({ change, reason: "invalid", current: target.value, currentPresent: target.present });
+        continue;
+      }
       if (ignoredPath(change.path)) { setPath(snapshot, change.path, change.afterPresent, change.after); continue; }
       if (target.present && change.afterPresent && equal(target.value, change.after)) continue;
       if (target.present === change.beforePresent && equal(target.value, change.before)) { setPath(snapshot, change.path, change.afterPresent, change.after); continue; }
@@ -216,7 +271,17 @@ export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSy
       if (change.kind === "insert") {
         const existing = collection.find(item => isRecord(item) && item.id === change.value.id);
         if (existing) { if (!equal(existing, change.value)) { if (preferLocal) collection.splice(collection.indexOf(existing), 1, clone(change.value)); else conflicts.push({ change, reason: "property", current: existing }); } continue; }
-        collection.splice(Math.max(0, Math.min(change.index, collection.length)), 0, clone(change.value));
+        let nextIndex = change.nextId ? collection.findIndex(item => isRecord(item) && item.id === change.nextId) : -1;
+        const previousIndex = change.previousId ? collection.findIndex(item => isRecord(item) && item.id === change.previousId) : -1;
+        if (nextIndex >= 0 && previousIndex >= nextIndex) {
+          if (!preferLocal) { conflicts.push({ change, reason: "order", current: collection.map(item => isRecord(item) ? item.id : null) }); continue; }
+          const [nextBlock] = collection.splice(nextIndex, 1);
+          const preceding = collection.findIndex(item => isRecord(item) && item.id === change.previousId);
+          collection.splice(preceding + 1, 0, nextBlock);
+          nextIndex = preceding + 1;
+        }
+        const insertionIndex = nextIndex >= 0 ? nextIndex : previousIndex >= 0 ? previousIndex + 1 : change.index;
+        collection.splice(Math.max(0, Math.min(insertionIndex, collection.length)), 0, clone(change.value));
       } else if (change.kind === "delete") {
         const index = collection.findIndex(item => isRecord(item) && item.id === change.value.id);
         if (index < 0) continue;
@@ -225,7 +290,8 @@ export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSy
       } else {
         const currentOrder = collection.map(item => isRecord(item) ? String(item.id) : "");
         if (equal(currentOrder, change.afterOrder)) continue;
-        const nextOrder = reorderKnown(currentOrder, change.beforeOrder, change.afterOrder);
+        const nextOrder = reorderKnown(currentOrder, change.beforeOrder, change.afterOrder)
+          ?? (preferLocal ? reorderPresent(currentOrder, change.afterOrder) : null);
         if (!nextOrder) { conflicts.push({ change, reason: "order", current: currentOrder }); continue; }
         const byId = new Map(collection.filter(isRecord).map(item => [String(item.id), item]));
         collection.splice(0, collection.length, ...nextOrder.map(id => byId.get(id)).filter((item): item is Record<string, unknown> => Boolean(item)));
@@ -240,8 +306,11 @@ function validRevision(value: unknown) { return typeof value === "number" && Num
 function validChange(value: unknown): value is StudioSyncChange {
   if (!isRecord(value) || !Array.isArray(value.path) || value.path.some(token => !validId(token))) return false;
   if (value.kind === "set") return typeof value.beforePresent === "boolean" && typeof value.afterPresent === "boolean";
-  if (value.kind === "insert" || value.kind === "delete") return typeof value.index === "number" && Number.isSafeInteger(value.index) && value.index >= 0 && isRecord(value.value) && validId(value.value.id);
-  if (value.kind === "move") return Array.isArray(value.beforeOrder) && Array.isArray(value.afterOrder) && value.beforeOrder.every(validId) && value.afterOrder.every(validId);
+  if (value.kind === "insert" || value.kind === "delete") {
+    if (typeof value.index !== "number" || !Number.isSafeInteger(value.index) || value.index < 0 || !isRecord(value.value) || !validId(value.value.id)) return false;
+    return value.kind === "delete" || ((value.previousId === null || validId(value.previousId)) && (value.nextId === null || validId(value.nextId)));
+  }
+  if (value.kind === "move") return Array.isArray(value.beforeOrder) && Array.isArray(value.afterOrder) && value.beforeOrder.every(validId) && value.afterOrder.every(validId) && sameUniqueIds(value.beforeOrder, value.afterOrder);
   return false;
 }
 function validTransaction(value: unknown): value is StudioSyncTransaction {
@@ -284,6 +353,7 @@ export class StudioSyncSession<T> {
   private optimisticSnapshot: T;
   private status: StudioSyncStatus = "connecting";
   private conflict: ConflictState | null = null;
+  private pendingResumedConflict: StudioSyncConflict | null = null;
   private helloTimer: ReturnType<typeof setTimeout> | null = null;
   private brokerTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -322,6 +392,24 @@ export class StudioSyncSession<T> {
 
   getStatus() { return this.status; }
   getConflict() { return this.conflict; }
+
+  resumeConflict(previous: StudioSyncConflict) {
+    if (this.closed) return;
+    if (this.role === "peer" && this.status !== "synced") {
+      this.pendingResumedConflict = clone(previous);
+      return;
+    }
+    this.installResumedConflict(previous);
+  }
+
+  private installResumedConflict(previous: StudioSyncConflict) {
+    const localSnapshot = this.validate(previous.localSnapshot);
+    const baseSnapshot = this.validate(previous.baseSnapshot);
+    this.optimisticSnapshot = this.cloneSnapshot(localSnapshot);
+    this.conflict = { ...previous, baseSnapshot, localSnapshot: this.cloneSnapshot(localSnapshot), remoteSnapshot: this.cloneSnapshot(this.snapshot), operation: null };
+    this.setStatus("conflict");
+    this.options.onConflict?.(this.conflict);
+  }
   isAvailable() { return this.channel !== null && !this.closed; }
   isPrimary() { return this.role === "primary" && !this.closed; }
   isConnectedPeer() { return this.role === "peer" && this.status === "synced" && this.isAvailable() && !this.conflict; }
@@ -363,7 +451,7 @@ export class StudioSyncSession<T> {
     const localResolution = choice === "mine"
       ? applyStudioTransaction(this.validate(conflict.remoteSnapshot), this.makeTransaction(this.validate(conflict.baseSnapshot), this.validate(conflict.localSnapshot), this.revision), true)
       : null;
-    if (localResolution?.conflicts.length) return Promise.reject(new Error("This change cannot be safely merged. The local version remains available for review."));
+    if (localResolution?.conflicts.length) return Promise.reject(new Error("These changes cannot be merged automatically. Your unsaved version is still in this tab; keep it open while you review it."));
     const candidate = localResolution ? this.validate(localResolution.snapshot) : this.cloneSnapshot(conflict.remoteSnapshot as T);
     this.conflict = null;
     this.snapshot = this.validate(conflict.remoteSnapshot);
@@ -417,6 +505,9 @@ export class StudioSyncSession<T> {
     else this.send({ ...this.base(), kind, brokerEpoch: this.brokerEpoch, revision: this.revision });
   }
   private becomePrimary() {
+    const interruptedConflict = this.conflict ?? this.pendingResumedConflict;
+    this.conflict = null;
+    this.pendingResumedConflict = null;
     this.failPending(new Error("The Studio persistence owner changed. Reload the latest saved state before continuing."));
     this.peerQueue.forEach(operation => operation.reject(new Error("The Studio persistence owner changed.")));
     this.peerQueue = [];
@@ -427,6 +518,7 @@ export class StudioSyncSession<T> {
     } catch { this.setStatus("disconnected"); return; }
     this.brokerEpoch = id("epoch"); this.setStatus("primary"); this.announce("announce"); this.announce("status");
     this.stopHeartbeat(); this.heartbeatTimer = setInterval(() => this.announce("status"), HEARTBEAT_MS);
+    if (interruptedConflict) this.installResumedConflict(interruptedConflict);
   }
   private stopHeartbeat() { if (this.heartbeatTimer) clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }
   private sendHello() {
@@ -438,7 +530,7 @@ export class StudioSyncSession<T> {
   private handleMessage(message: StudioSyncMessage) {
     if (message.kind === "hello") { if (this.isPrimary()) this.sendWelcome(message); return; }
     if (message.kind === "announce") { if (this.role === "peer" && message.brokerEpoch !== this.brokerEpoch) { this.brokerEpoch = message.brokerEpoch; this.revision = message.revision; this.setStatus("connecting"); this.sendHello(); } return; }
-    if (message.kind === "status") { if (this.role === "peer" && (!this.brokerEpoch || message.brokerEpoch === this.brokerEpoch)) { this.brokerEpoch = message.brokerEpoch; this.refreshBrokerTimer(); if (this.status !== "synced") this.sendHello(); } return; }
+    if (message.kind === "status") { if (this.role === "peer" && (!this.brokerEpoch || message.brokerEpoch === this.brokerEpoch)) { this.brokerEpoch = message.brokerEpoch; this.refreshBrokerTimer(); if (this.status !== "synced" && this.status !== "conflict") this.sendHello(); } return; }
     if (message.kind === "welcome") { this.receiveWelcome(message); return; }
     if (message.kind === "operation") { if (this.isPrimary()) void this.receiveOperation(message); return; }
     if (message.kind === "update") { this.receiveUpdate(message); return; }
@@ -449,8 +541,12 @@ export class StudioSyncSession<T> {
   private receiveWelcome(message: Extract<StudioSyncMessage, { kind: "welcome" }>) {
     if (this.role !== "peer") return;
     if (this.brokerEpoch && this.brokerEpoch !== message.brokerEpoch && this.status === "synced") return;
+    const interruptedConflict = this.conflict ?? this.pendingResumedConflict;
+    this.conflict = null;
+    this.pendingResumedConflict = null;
     this.brokerEpoch = message.brokerEpoch; this.revision = message.revision; this.snapshot = this.validate(message.snapshot); this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
     if (this.helloTimer) clearTimeout(this.helloTimer); this.refreshBrokerTimer(); this.setStatus("synced"); this.options.onSnapshot(this.snapshot, "welcome");
+    if (interruptedConflict) this.installResumedConflict(interruptedConflict);
   }
   private async receiveOperation(message: Extract<StudioSyncMessage, { kind: "operation" }>) {
     const transaction = message.transaction; const previous = this.completed.get(transaction.transactionId);

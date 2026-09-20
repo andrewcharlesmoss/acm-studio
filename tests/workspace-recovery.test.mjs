@@ -49,6 +49,7 @@ function storage(initial = null) {
 
 // Run the actual hook's effects and dependency changes, with persistence injected.
 function hookHarness(repository, load, syncOverride = null) {
+  let activeRepository = repository;
   const slots = [];
   let index = 0;
   let effects = [];
@@ -84,12 +85,13 @@ function hookHarness(repository, load, syncOverride = null) {
         assert.ok(++renders < 20, "hook should settle");
         dirty = false; index = 0;
         // eslint-disable-next-line react-hooks/rules-of-hooks -- This harness supplies an isolated dispatcher for each render.
-        result = useWorkspace(repository);
+        result = useWorkspace(activeRepository);
         const pending = effects; effects = []; pending.forEach((fn) => fn());
         const queued = microtasks; microtasks = []; queued.forEach((fn) => fn());
       }
       return result;
     },
+    setRepository(next) { activeRepository = next; dirty = true; },
   };
 }
 
@@ -154,7 +156,7 @@ test("a conflict pauses autosave and reports a failed resolution without losing 
   let commits = 0;
   const sync = { createStudioSync(options) {
     syncOptions = options;
-    return { getStatus: () => "primary", isAvailable: () => true, isPrimary: () => true, commitPrimary: async () => { commits++; }, resolveConflict: async () => { throw Error("quota"); }, close() {} };
+    return { getStatus: () => "primary", getConflict: () => null, isAvailable: () => true, isPrimary: () => true, commitPrimary: async () => { commits++; }, resolveConflict: async () => { throw Error("quota"); }, close() {} };
   } };
   const h = hookHarness({ load: () => null, save() {} }, modules(), sync);
   const initial = h.flush();
@@ -170,12 +172,36 @@ test("a conflict pauses autosave and reports a failed resolution without losing 
   assert.equal(failed.workspace.documents[0].title, "Unsaved title");
 });
 
+test("a writer handover retains an unresolved local canvas for the new sync session", () => {
+  let syncOptions;
+  let resumed;
+  let writes = 0;
+  const sync = { createStudioSync(options) {
+    syncOptions = options;
+    return { getStatus: () => "primary", getConflict: () => null, isAvailable: () => true, isPrimary: () => true, commitPrimary: async () => {}, resumeConflict: conflict => { resumed = conflict; options.onConflict(conflict); }, close() {} };
+  } };
+  const repository = { load: () => null, save: () => { writes++; } };
+  const h = hookHarness(repository, modules(), sync);
+  const initial = h.flush().workspace;
+  const local = structuredClone(initial);
+  local.documents[0].title = "Unsaved during handover";
+  syncOptions.onConflict({ reason: "Concurrent edit", baseSnapshot: initial, remoteSnapshot: initial, localSnapshot: local, conflicts: [], transaction: { changes: [] } });
+  assert.equal(h.flush().writable, false);
+  const beforeHandover = writes;
+  h.setRepository({ load: () => structuredClone(initial), save: () => { writes++; } });
+  const afterHandover = h.flush();
+  assert.equal(afterHandover.workspace.documents[0].title, "Unsaved during handover");
+  assert.equal(afterHandover.writable, false);
+  assert.equal(resumed.localSnapshot.documents[0].title, "Unsaved during handover");
+  assert.equal(writes, beforeHandover);
+});
+
 test("authoritative workspace updates clear local undo and redo history", async () => {
   let syncOptions;
   const sync = {
     createStudioSync(options) {
       syncOptions = options;
-      return { getStatus: () => "primary", isAvailable: () => true, isPrimary: () => true, commitPrimary: async () => {}, close() {} };
+      return { getStatus: () => "primary", getConflict: () => null, isAvailable: () => true, isPrimary: () => true, commitPrimary: async () => {}, close() {} };
     },
   };
   const h = hookHarness({ load: () => null, save() {} }, modules(), sync);

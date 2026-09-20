@@ -137,10 +137,20 @@ stores. The host owns one lock lifecycle; template state loads after acquisition
 Same-origin Studio tabs synchronise workspace and template edits through a
 validated BroadcastChannel coordinator. Compatible changes merge, while
 overlapping field, deletion or ordering changes require a visible conflict
-choice. Remote updates clear local undo/redo history so an older whole snapshot
-cannot overwrite a change made in another tab. Synchronous validated saves
-report Saving then Saved, and storage errors remain visible. If coordination is
-unavailable, the tab remains safely read-only. Import and set duplication use
+choice. Block insertions and deletions do not count as reorders: they can merge
+when they affect different block IDs. Insert operations use neighbouring block
+IDs to retain their intended placement if another tab deletes a block. This is
+sync protocol v2: an older open tab cannot write through the new coordinator
+until it reloads. If another tab reverses an insertion's two neighbours,
+Studio asks for an explicit order choice instead of saving a shifted block.
+If both tabs reorder the same list, a local-order choice keeps blocks added
+elsewhere and honours blocks deleted elsewhere. An edit inside a group removed
+in another tab remains unresolved
+rather than silently disappearing. Remote updates clear local undo/redo history
+so an older whole snapshot cannot overwrite a change made in another tab.
+Synchronous validated saves report Saving then Saved, and storage errors remain
+visible. If coordination is unavailable, the tab remains safely read-only.
+Import and set duplication use
 the exclusive restore transaction: drain pending media work, stage new media and
 templates, roll both back on failure, and reload the installed snapshot after
 success. Incomplete rollback blocks editing. Retain the source package/backup
@@ -149,10 +159,12 @@ during recovery.
 Acknowledgements for older edits do not replace newer unsaved canvas state.
 When a conflict is resolved in favour of the local version, Studio applies the
 local changes to the latest saved version while retaining unrelated edits from
-the other tab. A failed resolution remains visible and retryable; automatic
-workspace saving pauses during conflict review. Conflict choices are held in
-the open tab's memory, not durable recovery storage. Copy any unsaved content
-before reloading or closing a tab with an unresolved conflict.
+the other tab. A failed save remains visible and retryable; a structural change
+that cannot be merged automatically says to keep the tab open for review.
+Automatic workspace saving pauses during conflict review. An unresolved choice
+survives a synchronisation-session restart or writer handover within the same
+mounted editor. It is still held only in tab memory, not durable recovery
+storage: copy unsaved content before reloading or closing the tab.
 
 Full Studio backups include templates and assignments. Older backups without
 template data restore as having none. Restore rollback covers workspace,
