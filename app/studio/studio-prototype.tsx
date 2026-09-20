@@ -18,10 +18,13 @@ import { TemplateWorkspacePanel } from "./template-workspace";
 import type { MediaAsset } from "./media-store";
 import {
   blockCatalogue,
+  createDocumentFromTemplate,
   type InsertableBlockType,
   type StudioDocument,
   type StudioDocumentKind,
 } from "./editor-model";
+import { addDocumentToWorkspace } from "./studio-command-operations.mjs";
+import { copyTemplateData, createTemplateSet, templateId, type PageTemplate, type TemplateNode, type TemplatePart, type TemplateSet } from "./template-model";
 function exportJson(value: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -33,10 +36,10 @@ function exportJson(value: unknown, filename: string) {
 }
 export function StudioPrototype() {
   const studioSession = useStudioWorkspace();
-  const { workspace, ownershipGeneration, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate } = useDocumentTemplates(studioSession);
+  const { workspace, ownershipGeneration, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot } = useDocumentTemplates(studioSession);
   const [libraryKind, setLibraryKind] = useState<StudioDocumentKind>("page");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [inspectorTab, setInspectorTab] = useState<"document" | "block">("document");
+  const [inspectorTab, setInspectorTab] = useState<"document" | "block" | "styles">("document");
   const [showInserter, setShowInserter] = useState(false);
   const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
   const [inserterQuery, setInserterQuery] = useState("");
@@ -70,6 +73,7 @@ export function StudioPrototype() {
   });
   const publishing = useStudioPublishing({
     activeDocument,
+    resolvedDocument,
     workspace,
     updateActiveDocument,
     setSaveLabel,
@@ -142,6 +146,79 @@ export function StudioPrototype() {
     setSelectedBlockId(null);
     setInspectorTab("document");
     switchStudioMode("content");
+  }
+
+  function addDocumentFromTemplate() {
+    if (!confirmCodeEditorDiscard()) return;
+    const choices = templateSession.store.sets.flatMap(set => set.templates.map(template => ({ set, template })));
+    if (!choices.length) { addDocument("page"); return; }
+    const choicePrompt = choices.length === 1 ? "1" : window.prompt(`Choose a template:\n${choices.map((choice, index) => `${index + 1}. ${choice.set.name} — ${choice.template.name}`).join("\n")}`, "1");
+    if (choicePrompt === null) return;
+    const requestedChoice = Number(choicePrompt);
+    const choiceIndex = Number.isFinite(requestedChoice) ? Math.max(0, Math.min(choices.length - 1, requestedChoice - 1)) : 0;
+    const choice = choices[choiceIndex];
+    const document = createDocumentFromTemplate(choice.template.kind);
+    const assigned = templateSession.commit(store => ({ ...store, assignments: [...store.assignments.filter(item => item.documentId !== document.id), { documentId: document.id, kind: document.kind, setId: choice.set.id, templateId: choice.template.id }] }));
+    if (!assigned || !writable) return;
+    commit(current => addDocumentToWorkspace(current, document));
+    setCodeEditorDirty(false); setLibraryKind(document.kind); setSelectedBlockId(null); setInspectorTab("document"); switchStudioMode("content");
+  }
+
+  function saveAsTemplate() {
+    if (!activeDocument) return;
+    const name = window.prompt("Name this template", `${activeDocument.kind === "post" ? "Post" : "Page"} template`);
+    if (!name?.trim()) return;
+    const defaultDestination = templateSnapshot?.set.name ?? templateSession.store.sets[0]?.name ?? "New template set";
+    const destinationName = window.prompt("Destination template set", defaultDestination);
+    if (!destinationName?.trim()) return;
+    window.alert("The document body stays with this document. Only its shell, layout and selected defaults are saved.");
+    const includeAuthor = Boolean(resolvedDocument?.author?.trim()) && window.confirm("Use this document's author as the new template default?");
+    const includeCategory = activeDocument.kind === "post" && Boolean(resolvedDocument?.category) && window.confirm("Use this document's category as the new template default?");
+    const includeTags = activeDocument.kind === "post" && Boolean(resolvedDocument?.tags.length) && window.confirm("Use this document's tags as the new template default?");
+    const sourceSet = templateSnapshot?.set;
+    const assigned = templateSnapshot?.set.templates.find(template => template.id === templateSnapshot.templateId && template.kind === activeDocument.kind);
+    const createFreshNodeCloner = (partIds: Map<string, string>) => (node: TemplateNode): TemplateNode => {
+      const copy = copyTemplateData(node); copy.id = templateId();
+      if (copy.type === "group" || copy.type === "section") copy.children = copy.children.map(createFreshNodeCloner(partIds));
+      if (copy.type === "part") copy.partId = partIds.get(copy.partId) ?? copy.partId;
+      return copy;
+    };
+    const cloneInto = (source: TemplateSet, sourceTemplate: PageTemplate, destination: TemplateSet, templateName: string): { template: PageTemplate; parts: TemplatePart[] } => {
+      const partIds = new Map<string, string>();
+      const referenced = new Set<string>();
+      const collect = (nodes: TemplateNode[]) => nodes.forEach(node => {
+        if (node.type === "part") { referenced.add(node.partId); return; }
+        if (node.type === "group" || node.type === "section") collect(node.children);
+      });
+      collect(sourceTemplate.nodes);
+      const parts: TemplatePart[] = [];
+      const clonePart = (partId: string) => {
+        if (partIds.has(partId)) return;
+        const part = source.parts.find(item => item.id === partId);
+        if (!part) return;
+        partIds.set(part.id, templateId());
+        const nested = new Set<string>();
+        const collectNested = (nodes: TemplateNode[]) => nodes.forEach(node => {
+          if (node.type === "part") nested.add(node.partId);
+          else if (node.type === "group" || node.type === "section") collectNested(node.children);
+        });
+        collectNested(part.nodes);
+        nested.forEach(clonePart);
+        parts.push({ ...copyTemplateData(part), id: partIds.get(part.id)!, nodes: part.nodes.map(createFreshNodeCloner(partIds)) });
+      };
+      if (source.id !== destination.id) referenced.forEach(clonePart);
+      const cloner = createFreshNodeCloner(partIds);
+      return { template: { ...copyTemplateData(sourceTemplate), id: templateId(), name: templateName, nodes: sourceTemplate.nodes.map(cloner) }, parts };
+    };
+    templateSession.commit(store => {
+      const destination = store.sets.find(item => item.name === destinationName.trim()) ?? createTemplateSet(destinationName.trim());
+      const source = sourceSet ?? createTemplateSet();
+      const sourceTemplate = assigned ?? { ...source.templates.find(item => item.kind === activeDocument.kind)!, nodes: source.templates.find(item => item.kind === activeDocument.kind)!.nodes.filter(node => node.type !== "element" || node.element !== "post-metadata") };
+      const { template, parts } = cloneInto(source, sourceTemplate, destination, name.trim());
+      const defaults = { ...(includeAuthor ? { author: resolvedDocument?.author } : {}), ...(includeCategory ? { category: resolvedDocument?.category } : {}), ...(includeTags ? { tags: [...(resolvedDocument?.tags ?? [])] } : {}) };
+      const nextSet = { ...destination, templates: [...destination.templates, { ...template, defaults }], parts: [...destination.parts, ...parts] };
+      return { ...store, sets: store.sets.some(item => item.id === nextSet.id) ? store.sets.map(item => item.id === nextSet.id ? nextSet : item) : [...store.sets, nextSet] };
+    });
   }
 
   function duplicateDocument() {
@@ -251,6 +328,7 @@ export function StudioPrototype() {
           <div className="library-create">
             <button type="button" onClick={() => addDocument("post")}><StudioIcon name="add" size={16} /> New post</button>
             <button type="button" onClick={() => addDocument("page")}><StudioIcon name="add" size={16} /> New page</button>
+            <button type="button" onClick={addDocumentFromTemplate}>New from template</button>
           </div>
           <div className="library-tabs" aria-label="Content type">
             {(["page", "post"] as const).map((kind) => (
@@ -279,7 +357,7 @@ export function StudioPrototype() {
 
         {studioSection === "content" ? <StudioEditor writable={writable} onUndo={undoStudio} onRedo={redoStudio} canUndo={canUndo} canRedo={canRedo}
           canvas={{
-            activeDocument,
+            activeDocument: resolvedDocument,
             className: hasTemplate ? "template-editing" : undefined,
             presentation: templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage),
             previewing,
@@ -324,13 +402,17 @@ export function StudioPrototype() {
             pages: workspace.documents.filter((item) => item.kind === "page"),
             canDelete: workspace.documents.length > 1,
             onSelectTab: setInspectorTab,
-            onDocumentChange: updateActiveField,
+            onDocumentChange: (field, value) => { if (field === "author" || field === "category" || field === "tags") setFieldOverride(field, false); updateActiveField(field, value); },
             onBlockChange: (next) => selectedBlock && blockCommands.updateBlock(selectedBlock.id, () => next),
             onOpenFiles: () => openMediaLibrary(selectedBlock?.id ?? null),
             onPublish: publishing.publish,
             onUnpublish: publishing.unpublish,
             onDuplicate: duplicateDocument,
             onDelete: deleteDocument,
+            resolvedDocument,
+            fieldUsage,
+            onFieldOverride: setFieldOverride,
+            onSaveAsTemplate: saveAsTemplate,
           }}
         /> : studioSection === "files" ? <MediaManager
           key={ownershipGeneration}

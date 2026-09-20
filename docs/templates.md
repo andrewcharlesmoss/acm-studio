@@ -58,10 +58,10 @@ remain visible in the Document inspector even when a block is absent, and a
 missing author or date produces an editor prompt without inventing a Preview
 value. This increment does not add or change template data.
 
-The separate template target intentionally does not offer these body-owned
-metadata blocks in its inserter. Templates continue to use their existing
-document-title, subtitle and post-metadata elements; metadata blocks are
-selected and arranged on page and post documents.
+Templates can also insert Reading Time, Post Author and Post Date as dynamic
+blocks. Their values resolve from the preview document, while Reading Time
+always counts the document body rather than template text. The legacy
+post-metadata element remains readable but is not offered as a new insertion.
 For compatibility, the legacy post-metadata element keeps its category but
 does not repeat reading time or publication date when the document uses the
 new metadata blocks.
@@ -93,7 +93,7 @@ managed images; templates within a set deliberately share that set's parts.
 
 ## Storage and portable contract
 
-The template-store and JSON package schema is **v0.1.0** (`0.1.0` in JSON).
+The template-store and JSON package schema is **v0.2.0** (`0.2.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. Assignments
 reference Studio document IDs. The local-storage key is
@@ -117,11 +117,24 @@ same library pane as content; selecting an entry opens the editor directly
 without a separate template-library page.
 
 Layout options, Spacer and document metadata blocks are additive to the
-existing typed block contract. Workspace data is now version 3, with a reader
-for version 2; local publication snapshots are version 2 and full backups are
-version 2, with readers for their earlier versions. Template packages remain
-schema v0.1.0 and are unchanged by this increment. Older saved blocks and
-packages omit the new fields and continue using their existing presentation.
+existing typed block contract. Workspace data is now version 4, with readers
+for versions 2 and 3; local publication snapshots and full backups are version
+3, with readers for their earlier versions. Template packages are v0.2.0, with
+a reader for v0.1.0. Each Page/Post template may supply Author, Category and Tags
+defaults; legacy set-level defaults remain a fallback. Documents record explicit overrides, including empty values; removing
+an assignment materialises the resolved values before detaching it. Existing
+documents migrate with local overrides so their appearance does not change.
+Older saved blocks and packages omit the new fields and continue using their
+existing presentation.
+
+The content and template inspectors share Document/Template, Block and Styles
+tabs and a field catalogue. Document fields show their resolved value, whether
+the value is a Template Default or Document Override, and whether the field is
+displayed in the document, template, both or nowhere. Inapplicable fields stay
+visible but disabled with an explanation. **New from template** creates an
+independent empty body with inherited defaults; **Save as template** captures
+the shell and layout but never copies the document body. Author, Category and
+Tags are optional defaults when saving.
 New fields are validated at workspace, HTML, backup, restore and publication
 boundaries rather than being discarded.
 

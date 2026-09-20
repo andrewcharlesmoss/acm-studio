@@ -48,7 +48,7 @@ export function ArticleRow({ article }: { article: Article }) {
   );
 }
 
-export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, document }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext }) {
+export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, document, readingTimeBlocks }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; readingTimeBlocks?: ContentBlock[] }) {
   const studio = variant === "studio";
   function renderBlock(block: ContentBlock) {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
@@ -106,7 +106,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         );
         if (block.type === "field") return <label className="content-field" key={block.id}><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled><option>{block.value}</option></select> : <input value={block.value} readOnly />}</label>;
         if (block.type === "reading-time") {
-          const label = `${block.prefix ?? "Reading Time:"} ${readingTimeLabel(blocks)}`;
+          const label = `${block.prefix ?? "Reading Time:"} ${readingTimeLabel(readingTimeBlocks ?? blocks)}`;
           return <p className={`article-reading-time metadata-block${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`} key={block.id}>{block.presentation !== "plain" ? <span className="reading-time-badge">{label}</span> : label}</p>;
         }
         if (block.type === "post-author") {

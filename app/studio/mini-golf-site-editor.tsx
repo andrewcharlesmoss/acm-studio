@@ -29,7 +29,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
   useStudioHistoryShortcuts(undo, redo, view === "page");
   const page = workspace.documents[0];
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [inspectorTab, setInspectorTab] = useState<"document" | "block">("document");
+  const [inspectorTab, setInspectorTab] = useState<"document" | "block" | "styles">("document");
   const [showInserter, setShowInserter] = useState(false);
   const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
   const [inserterQuery, setInserterQuery] = useState("");

@@ -117,7 +117,7 @@ test("a genuinely absent workspace may initialise and save", () => {
   const state = hookHarness(load("app/studio/workspace-repository.ts").browserWorkspaceRepository, load).flush();
   assert.match(state.saveLabel, /Saved locally/);
   assert.equal(localStorage.writes.length, 1);
-  assert.equal(JSON.parse(localStorage.raw()).version, 3);
+  assert.equal(JSON.parse(localStorage.raw()).version, 4);
 });
 
 test("autosave status reports persistence time rather than a stale document timestamp", () => {
@@ -233,7 +233,7 @@ test("workspace v2 migration adds metadata blocks once without changing body IDs
   delete post.author;
   const migrated = validation.migrateStudioWorkspace(legacy);
   assert.equal(legacy.version, 2);
-  assert.equal(migrated.version, 3);
+  assert.equal(migrated.version, 4);
   const nextPost = migrated.documents.find((document) => document.id === post.id);
   assert.equal(nextPost.author, "Andrew Moss");
   assert.deepEqual(Array.from(nextPost.blocks.slice(2), (block) => block.id), bodyIds);

@@ -86,7 +86,7 @@ export function LocalArticlePage({ slug }: { slug: string }) {
   }
 
   if (article.templateSnapshot) {
-    const document: StudioDocument = { id: article.localDocumentId, kind: "post", title: article.title, subtitle: article.subtitle, slug: article.slug, excerpt: article.summary, status: "published", author: article.author, metadataBlocksVersion: article.metadataBlocksVersion, publishedAt: article.publishedAt, updatedAt: article.publishedAt, blocks: article.blocks, tags: [], category: article.section, coverImage: article.coverImage, seoTitle: article.title, seoDescription: article.summary };
+    const document: StudioDocument = { id: article.localDocumentId, kind: "post", title: article.title, subtitle: article.subtitle, slug: article.slug, excerpt: article.summary, status: "published", author: article.author, metadataBlocksVersion: article.metadataBlocksVersion, publishedAt: article.publishedAt, updatedAt: article.publishedAt, blocks: article.blocks, tags: [], category: article.section || undefined, coverImage: article.coverImage, seoTitle: article.title, seoDescription: article.summary };
     return <main><div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This post is visible only in this browser.</span><a href="/studio">Edit in Studio</a></div><TemplateDocument snapshot={article.templateSnapshot} document={document} mediaUrls={mediaUrls} /></main>;
   }
   const legacyMetadata = article.metadataBlocksVersion !== 2;

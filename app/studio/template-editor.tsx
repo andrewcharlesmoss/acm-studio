@@ -8,6 +8,7 @@ import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
 import { TemplateNodes, TemplatePartRegion, TemplateSurface } from "./template-renderer";
 import { templateEditorBlocks, templateNodesFromBlocks, templateElements, templateElementLabel, templateId, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
+import { resolveDocumentFields } from "./document-fields";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
 import { findBlockById } from "./studio-command-operations.mjs";
 import { changeTemplateZoom, TEMPLATE_ZOOM_DEFAULT, TEMPLATE_ZOOM_MAX, TEMPLATE_ZOOM_MIN, templateZoomShortcut } from "./template-zoom";
@@ -21,6 +22,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   const candidates = documents.filter(document => target.kind === "page" || target.kind === "post" ? document.kind === target.kind : true);
   const [sampleId, setSampleId] = useState(candidates[0]?.id);
   const sample = candidates.find(document => document.id === sampleId) ?? candidates[0] ?? documents[0];
+  const resolvedSample = { ...sample, ...resolveDocumentFields(sample, set, target.kind === "page" || target.kind === "post" ? target.defaults : undefined) };
   const [selected, setSelected] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [width, setWidth] = useState(1200);
@@ -31,12 +33,11 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   const [insertAfter, setInsertAfter] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
   const blocks = templateEditorBlocks(target.nodes);
-  // Document metadata blocks belong to page/post bodies. Template nodes already
-  // have explicit document-title, subtitle and post-metadata elements, so do
-  // not offer body-owned metadata blocks in this separate target.
-  const templateBlockCatalogue = blockCatalogue.filter(block => !["reading-time", "post-author", "post-date"].includes(block.type));
+  // Metadata blocks are ordinary dynamic blocks and can be placed in a
+  // template. Their values come from the preview document at render time.
+  const templateBlockCatalogue = blockCatalogue;
   const selectedBlock = selected ? findBlockById(blocks, selected) : null;
-  const editingProjection = { ...sample, blocks };
+  const editingProjection = { ...resolvedSample, blocks };
   const nodesRef = useRef(target.nodes);
   useLayoutEffect(() => { nodesRef.current = target.nodes; }, [target.nodes]);
   useEffect(() => {
@@ -97,17 +98,19 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
       <button type="button" className="template-zoom-value" onClick={() => setZoom(TEMPLATE_ZOOM_DEFAULT)} aria-label={`Reset template zoom to 100 percent (currently ${zoom} percent)`} title="Reset zoom to 100 percent">{zoom}%</button>
       <button type="button" onClick={() => setZoom(value => changeTemplateZoom(value, "in"))} disabled={zoom >= TEMPLATE_ZOOM_MAX} aria-label="Zoom in" title="Zoom in"><StudioIcon name="zoom-in" size={18} /></button>
     </div>
-    {!previewing ? <label>Add Template Element<select value="" disabled={!writable} onChange={event => { const value = event.target.value; if (value.startsWith("part:")) insertNode({ id: templateId(), type: "part", partId: value.slice(5) }); else insertNode({ id: templateId(), type: "element", element: value as typeof templateElements[number] }); }}><option value="" disabled>Choose Element</option>{templateElements.filter(element => element !== "content" || target.kind === "page" || target.kind === "post").map(element => <option key={element} value={element}>{templateElementLabel(element)}</option>)}{set.parts.filter(part => part.id !== target.id).map(part => <option key={part.id} value={`part:${part.id}`}>{part.name} Reference</option>)}</select></label> : null}
+    {!previewing ? <label>Add Template Element<select value="" disabled={!writable} onChange={event => { const value = event.target.value; if (value.startsWith("part:")) insertNode({ id: templateId(), type: "part", partId: value.slice(5) }); else insertNode({ id: templateId(), type: "element", element: value as typeof templateElements[number] }); }}><option value="" disabled>Choose Element</option>{templateElements.filter(element => element !== "post-metadata" && (element !== "content" || target.kind === "page" || target.kind === "post")).map(element => <option key={element} value={element}>{templateElementLabel(element)}</option>)}{set.parts.filter(part => part.id !== target.id).map(part => <option key={part.id} value={`part:${part.id}`}>{part.name} Reference</option>)}</select></label> : null}
     {selectedBlock?.type === "group" && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart ? <span>New blocks will be inserted into the selected group.</span> : null}
   </div>;
   return <StudioEditor writable={writable} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
     target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: <TemplateInspector set={set} target={target} selectedBlock={selectedBlock} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onOpenMedia={logo => onOpenMedia(selectedBlock?.id ?? null, logo)} onEditPart={onEditPart} users={users} /> }}
-    canvas={{ activeDocument: sample, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: templateBlockCatalogue.filter(block => `${block.label} ${block.description}`.toLowerCase().includes(query.toLowerCase())), publishFeedback: null,
+    canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: templateBlockCatalogue.filter(block => `${block.label} ${block.description}`.toLowerCase().includes(query.toLowerCase())), publishFeedback: null,
       presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => <TemplateSurface set={set} editing={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>, renderBlock: context => {
         if (!context.block) return null;
-        if (!["group", "section"].includes(context.block.type)) return null;
-        return <TemplateNodes key={context.block.id} set={set} document={sample} nodes={templateNodesFromBlocks([context.block])} mediaUrls={mediaUrls} content={<BlockRenderer blocks={sample.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={sample} />} onEditPart={context.mode === "edit" ? onEditPart : undefined}
-          renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
+        if (!["group", "section"].includes(context.block.type)) return context.mode === "edit" && writable
+          ? <BlockField block={context.block} rootBlocks={resolvedSample.blocks} document={resolvedSample} selectedBlockId={selected} mediaUrl={context.block.type === "image" && context.block.mediaId ? mediaUrls[context.block.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} />
+          : <BlockRenderer blocks={[context.block]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={resolvedSample} readingTimeBlocks={resolvedSample.blocks} />;
+        return <TemplateNodes key={context.block.id} set={set} document={resolvedSample} nodes={templateNodesFromBlocks([context.block])} mediaUrls={mediaUrls} content={<BlockRenderer blocks={resolvedSample.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={resolvedSample} />} onEditPart={context.mode === "edit" ? onEditPart : undefined}
+          renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} rootBlocks={resolvedSample.blocks} document={resolvedSample} selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
           decorate={context.mode === "edit" ? (node, result) => {
             if (!findBlockById(blocks, node.id)) return result;
             const label = node.type === "element" ? templateElementLabel(node.element) : node.type === "part" ? "Shared Part" : templateElementLabel(node.type);

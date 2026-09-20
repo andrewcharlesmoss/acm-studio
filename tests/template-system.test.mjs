@@ -62,6 +62,36 @@ test("neutral templates validate and their editor projection round-trips without
   assert.equal(m.templateEditorBlocks(set.parts[0].nodes)[0].data, undefined);
 });
 
+test("document fields resolve template defaults and report display ownership", () => {
+  const env = environment(); const fields = env.load("studio/document-fields.ts"); const model = env.load("studio/editor-model.ts");
+  const document = plain(model.initialStudioWorkspace.documents.find(item => item.kind === "post"));
+  const set = env.load("studio/template-model.ts").createTemplateSet();
+  set.defaults = { author: "Template Author", category: "Personal", tags: ["Template"] };
+  document.templateOverrides = { author: false, category: false, tags: false };
+  const resolved = fields.resolveDocumentFields(document, set);
+  assert.equal(resolved.author, "Template Author"); assert.equal(resolved.category, "Personal"); assert.deepEqual(plain(resolved.tags), ["Template"]);
+  const postTemplate = set.templates.find(item => item.kind === "post");
+  postTemplate.defaults = { author: "Post Template Author", category: "Technology", tags: ["Post"] };
+  const templateResolved = fields.resolveDocumentFields(document, set, postTemplate.defaults);
+  assert.equal(templateResolved.author, "Post Template Author"); assert.equal(templateResolved.category, "Technology"); assert.deepEqual(plain(templateResolved.tags), ["Post"]);
+  postTemplate.nodes.push({ id: "template-author", type: "post-author", avatar: true });
+  assert.deepEqual(plain(fields.documentFieldUsage(document, set, postTemplate.id).author), { document: 1, template: 1, total: 2 });
+  document.templateOverrides.author = true; document.author = "Document Author";
+  assert.equal(fields.resolveDocumentFields(document, set).author, "Document Author");
+  const nested = { id: "outer", type: "group", layout: "stack", children: [{ id: "inner", type: "group", layout: "row", children: [{ id: "author", type: "post-author", avatar: true }] }] };
+  document.blocks = [nested]; const usage = fields.documentFieldUsage(document, set);
+  assert.deepEqual(plain(usage.author), { document: 1, template: 1, total: 2 });
+  assert.equal(fields.readingTimeSummary({ ...document, blocks: [{ id: "text", type: "paragraph", text: Array.from({ length: 221 }, () => "word").join(" ") }] }).minutes, 2);
+});
+
+test("legacy template stores migrate to inheritance-aware format without losing IDs", () => {
+  const env = environment(); const model = env.load("studio/template-model.ts"); const editor = env.load("studio/editor-model.ts"); const set = model.createTemplateSet();
+  delete set.defaults;
+  const migrated = model.validateTemplateStore({ version: "0.1.0", sets: [set], assignments: [] });
+  assert.equal(migrated.version, "0.2.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
+  assert.deepEqual(plain(editor.createDocumentFromTemplate("post").blocks), []);
+});
+
 test("responsive layout options and Spacer blocks validate and survive template projection", () => {
   const env = environment(); const validation = env.load("studio/workspace-validation.ts"); const templates = env.load("studio/template-model.ts"); const layout = env.load("content/layout.ts");
   const spacer = { id: "spacer-1", type: "spacer", height: 48 };

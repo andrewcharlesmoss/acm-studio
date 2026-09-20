@@ -25,6 +25,8 @@ export type StudioDocument = {
   blocks: ContentBlock[];
   category?: "Technology" | "Excel" | "Personal";
   tags: string[];
+  /** True means the document owns the value; false means it follows its template default. */
+  templateOverrides?: { author?: boolean; category?: boolean; tags?: boolean };
   template?: "default" | "wide" | "landing";
   parentPageId?: string;
   seoTitle: string;
@@ -32,7 +34,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3;
+  version: 2 | 3 | 4;
   activeDocumentId: string;
   documents: StudioDocument[];
 };
@@ -68,7 +70,7 @@ export const blockCatalogue: Array<{
 const fixedDate = "2026-08-20T00:00:00.000Z";
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 3,
+  version: 4,
   activeDocumentId: "page-home",
   documents: [
     {
@@ -192,5 +194,15 @@ export function createDocument(kind: StudioDocumentKind, id = `${kind}-${Date.no
     template: kind === "page" ? "default" : undefined,
     seoTitle: title,
     seoDescription: "",
+  };
+}
+
+/** A document created from a template owns its body, but starts with no personal content. */
+export function createDocumentFromTemplate(kind: StudioDocumentKind, id = `${kind}-${Date.now()}`): StudioDocument {
+  const title = kind === "page" ? "Untitled page" : "Untitled post";
+  return {
+    id, kind, title, subtitle: "", slug: kind === "page" ? "untitled-page" : "untitled-post", excerpt: "", status: "draft",
+    updatedAt: new Date().toISOString(), blocks: [], tags: [], templateOverrides: { author: false, category: false, tags: false },
+    seoTitle: "", seoDescription: "",
   };
 }

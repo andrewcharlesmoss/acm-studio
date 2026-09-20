@@ -139,7 +139,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -152,12 +152,17 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
       return { ...candidate, author: typeof candidate.author === "string" ? candidate.author : "Andrew Moss", blocks: [...metadata, ...blocks] };
     });
   }
+  if (migrated.version === 3) migrated.version = 4;
+  migrated.documents = (migrated.documents as unknown[]).map(candidate => {
+    if (!isRecord(candidate) || candidate.templateOverrides !== undefined) return candidate;
+    return { ...candidate, templateOverrides: { author: true, category: true, tags: true } };
+  });
   return migrated as StudioWorkspace;
 }
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3].includes(value.version as number) || !Array.isArray(value.documents) || !value.documents.length
+  if (!isRecord(value) || ![2, 3, 4].includes(value.version as number) || !Array.isArray(value.documents) || !value.documents.length
     || !value.documents.every(isRecord) || !uniqueIds(value.documents)) return invalid();
   if (typeof value.activeDocumentId !== "string" || !value.documents.some((item) => item.id === value.activeDocumentId)) return invalid();
   for (const document of value.documents) {
@@ -170,6 +175,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       || (document.publishAt !== undefined && !date(document.publishAt))
       || (document.publishedAt !== undefined && !date(document.publishedAt))
       || (document.category !== undefined && !["Technology", "Excel", "Personal"].includes(document.category as string))
+      || (document.templateOverrides !== undefined && (!isRecord(document.templateOverrides) || !optionalBoolean(document.templateOverrides.author) || !optionalBoolean(document.templateOverrides.category) || !optionalBoolean(document.templateOverrides.tags)))
       || (document.template !== undefined && !["default", "wide", "landing"].includes(document.template as string))) return invalid();
     const cover = document.coverImage;
     if (cover !== undefined && cover !== null && (!isRecord(cover) || typeof cover.src !== "string"
@@ -179,7 +185,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
 }
 
 export function validatePublicationSnapshot(value: unknown): void {
-  if (!isRecord(value) || ![1, 2].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
+  if (!isRecord(value) || ![1, 2, 3].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
   const ids = new Set();
   for (const post of value.posts) {
     if (!isRecord(post) || !["localDocumentId", "slug", "title", "summary", "displayDate", "readingTime"].every((field) => typeof post[field] === "string")
@@ -187,7 +193,7 @@ export function validatePublicationSnapshot(value: unknown): void {
       || !optionalString(post.subtitle) || !optionalString(post.projectSlug)
       || !optionalString(post.author)
       || (post.metadataBlocksVersion !== undefined && post.metadataBlocksVersion !== 2)
-      || !["Technology", "Excel", "Personal"].includes(post.section as string) || ids.has(post.localDocumentId)) {
+      || !["", "Technology", "Excel", "Personal"].includes(post.section as string) || ids.has(post.localDocumentId)) {
       throw new Error("The published-post snapshot is invalid.");
     }
     ids.add(post.localDocumentId);

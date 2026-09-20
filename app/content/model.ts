@@ -114,7 +114,7 @@ export type Article = {
   displayDate: string;
   readingTime: string;
   author?: string;
-  section: "Technology" | "Excel" | "Personal";
+  section: "Technology" | "Excel" | "Personal" | "";
   projectSlug?: string;
   blocks: ContentBlock[];
 };

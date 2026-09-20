@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ContentBlock, HeadingLevel, ParagraphAppearance, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, TextAlignment } from "../content/model";
 import { formatDocumentDate } from "../content/document-metadata";
+import { readingTimeMinutes } from "../content/reading-time";
 import type { LayoutMode } from "../content/model";
 import { LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS, SPACER_HEIGHT_PRESETS } from "../content/layout";
 import { CODE_LANGUAGE_OPTIONS, isKnownCodeLanguage } from "../content/code-highlighting.mjs";
 import type { StudioDocument, StudioDocumentStatus } from "./editor-model";
 import { StudioIcon } from "./studio-icons";
+import type { FieldUsage } from "./document-fields";
 
 function blockLabel(type: ContentBlock["type"]) {
   return type.charAt(0).toUpperCase() + type.slice(1);
@@ -15,7 +17,7 @@ function blockLabel(type: ContentBlock["type"]) {
 
 export type StudioInspectorProps = {
   documentControls?: ReactNode;
-  inspectorTab: "document" | "block";
+  inspectorTab: "document" | "block" | "styles";
   selectedBlock: ContentBlock | null;
   activeDocument: StudioDocument;
   pages: StudioDocument[];
@@ -24,7 +26,7 @@ export type StudioInspectorProps = {
   canOpenFiles?: boolean;
   allowedStatuses?: StudioDocumentStatus[];
   allowedPageTemplates?: NonNullable<StudioDocument["template"]>[];
-  onSelectTab: (tab: "document" | "block") => void;
+  onSelectTab: (tab: "document" | "block" | "styles") => void;
   onDocumentChange: <K extends keyof StudioDocument>(field: K, value: StudioDocument[K]) => void;
   onBlockChange: (block: ContentBlock) => void;
   onOpenFiles: () => void;
@@ -32,20 +34,25 @@ export type StudioInspectorProps = {
   onUnpublish: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  resolvedDocument?: StudioDocument;
+  fieldUsage?: Record<string, FieldUsage>;
+  onFieldOverride?: (field: "author" | "category" | "tags", useTemplate: boolean) => void;
+  onSaveAsTemplate?: () => void;
 };
 
-export function StudioInspector({ documentControls, inspectorTab, selectedBlock, activeDocument, pages, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onBlockChange, onOpenFiles, onPublish, onUnpublish, onDuplicate, onDelete }: StudioInspectorProps) {
+export function StudioInspector({ documentControls, inspectorTab, selectedBlock, activeDocument, pages, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onBlockChange, onOpenFiles, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   return (
     <aside className="studio-inspector">
       <div className="inspector-tabs" role="tablist" aria-label="Editor settings">
-        <button className={inspectorTab === "document" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "document"} onClick={() => onSelectTab("document")}>{activeDocument.kind === "post" ? "Post" : "Page"}</button>
+        <button className={inspectorTab === "document" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "document"} onClick={() => onSelectTab("document")}>Document</button>
         <button className={inspectorTab === "block" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "block"} onClick={() => onSelectTab("block")} disabled={!selectedBlock}>Block</button>
+        <button className={inspectorTab === "styles" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "styles"} onClick={() => onSelectTab("styles")}>Styles</button>
       </div>
       <div className="inspector-scroll">
         {inspectorTab === "document" ? documentControls : null}
         {inspectorTab === "document" ? (
-          <DocumentInspector document={activeDocument} pages={pages} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
-        ) : selectedBlock ? (
+          <DocumentInspector document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
+        ) : inspectorTab === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedBlock ? (
           <BlockInspector block={selectedBlock} onChange={onBlockChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
@@ -67,9 +74,13 @@ type DocumentInspectorProps = {
   canDuplicate: boolean;
   allowedStatuses?: StudioDocumentStatus[];
   allowedPageTemplates?: NonNullable<StudioDocument["template"]>[];
+  resolvedDocument: StudioDocument;
+  fieldUsage?: Record<string, FieldUsage>;
+  onFieldOverride?: (field: "author" | "category" | "tags", useTemplate: boolean) => void;
+  onSaveAsTemplate?: () => void;
 };
 
-function DocumentInspector({ document, pages, onChange, onPublish, onUnpublish, onDuplicate, onDelete, canDelete, canDuplicate, allowedStatuses = ["draft", "pending", "private", "published"], allowedPageTemplates = ["default", "wide", "landing"] }: DocumentInspectorProps) {
+function DocumentInspector({ document, resolvedDocument, fieldUsage, onFieldOverride, onSaveAsTemplate, pages, onChange, onPublish, onUnpublish, onDuplicate, onDelete, canDelete, canDuplicate, allowedStatuses = ["draft", "pending", "private", "published"], allowedPageTemplates = ["default", "wide", "landing"] }: DocumentInspectorProps) {
   const [statusOpen, setStatusOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishPopoverPosition, setPublishPopoverPosition] = useState<{ left: number; top: number } | null>(null);
@@ -153,7 +164,7 @@ function DocumentInspector({ document, pages, onChange, onPublish, onUnpublish, 
 
   return (
     <div className="inspector-sections">
-      <section><h2>Summary</h2><div className="document-summary"><span className={`kind-badge is-${document.kind}`}>{document.kind === "page" ? "P" : "A"}</span><div><strong>{document.title}</strong><small>{document.kind} · {statusLabel}</small></div></div></section>
+      <section><h2>Document Identity</h2><div className="document-summary"><span className={`kind-badge is-${document.kind}`}>{document.kind === "page" ? "P" : "A"}</span><div><strong>{document.title}</strong><small>{document.kind} · {statusLabel}</small></div></div><label><span>Type</span><select value={document.kind} disabled aria-label="Document type"><option value="page">Page</option><option value="post">Post</option></select></label><label><span>Title</span><input value={document.title} onChange={event => onChange("title", event.target.value)} /></label></section>
       <section><h2>Publishing</h2><div className="local-publish-status"><i className={`document-status is-${document.status}`} /><div><strong>{document.status === "published" ? "Published locally" : statusLabel}</strong><small>{document.status === "published" && document.publishedAt ? `Since ${new Date(document.publishedAt).toLocaleDateString("en-GB")}` : "Only visible in Studio"}</small></div></div>
         <div className="inspector-setting-row"><span>Status</span><button className="inspector-setting-trigger" type="button" aria-expanded={statusOpen} onClick={() => setStatusOpen((open) => !open)}>{statusLabel}<StudioIcon name="chevron-right" size={16} /></button></div>
         {statusOpen ? <div className="inspector-popover" role="group" aria-label="Status and visibility"><div className="inspector-popover-heading"><strong>Status &amp; visibility</strong><button type="button" aria-label="Close status and visibility" onClick={() => setStatusOpen(false)}><StudioIcon name="close" size={16} /></button></div><div className="status-options" role="radiogroup" aria-label="Document status">{allowedStatuses.map((status) => <button className="status-option" type="button" role="radio" aria-checked={document.status === status} key={status} onClick={() => { onChange("status", status); setStatusOpen(false); }}><span className="status-radio" aria-hidden="true" /><span><strong>{documentStatusLabel(status)}</strong><small>{documentStatusDescription(status)}</small></span></button>)}</div></div> : null}
@@ -163,14 +174,11 @@ function DocumentInspector({ document, pages, onChange, onPublish, onUnpublish, 
       <section><h2>Address</h2><label><span>Slug</span><input value={document.slug} onChange={(event) => onChange("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label></section>
       <section><h2>Description</h2><label><span>Excerpt</span><textarea rows={4} value={document.excerpt} onChange={(event) => onChange("excerpt", event.target.value)} placeholder="A short public summary" /></label></section>
       <section><h2>Subtitle</h2><label><span>Subtitle</span><textarea rows={3} value={document.subtitle ?? ""} onChange={(event) => onChange("subtitle", event.target.value)} placeholder="A line beneath the title" /></label></section>
-      <section><h2>Document metadata</h2><label><span>Author</span><input value={document.author ?? ""} onChange={(event) => onChange("author", event.target.value)} placeholder="Optional author name" /></label><div className="inspector-value-row"><span>Publication date</span><strong>{formatDocumentDate(document) ?? "Not set"}</strong></div><p className="setting-note">The publication date is changed in Publishing. Metadata can remain saved even when its display blocks are removed.</p></section>
-      {document.kind === "post" ? (
-        <section><h2>Post settings</h2><label><span>Category</span><select value={document.category} onChange={(event) => onChange("category", event.target.value as StudioDocument["category"])}><option>Technology</option><option>Excel</option><option>Personal</option></select></label><label><span>Tags</span><input value={document.tags.join(", ")} onChange={(event) => onChange("tags", event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean))} placeholder="CMS, Building" /></label></section>
-      ) : (
-        <section><h2>Page settings</h2><label><span>Template</span><select value={document.template} onChange={(event) => onChange("template", event.target.value as StudioDocument["template"])}>{allowedPageTemplates.map((template) => <option value={template} key={template}>{template.charAt(0).toUpperCase() + template.slice(1)}</option>)}</select></label><label><span>Parent page</span><select value={document.parentPageId ?? ""} onChange={(event) => onChange("parentPageId", event.target.value || undefined)}><option value="">None</option>{pages.filter((page) => page.id !== document.id).map((page) => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label></section>
-      )}
+      <section><h2>Content Fields</h2><FieldUsageRow label="Subtitle display" usage={fieldUsage?.subtitle} /><div className="inspector-value-row"><span>Cover image</span><strong>{document.coverImage === null ? "Not used" : document.coverImage?.alt || (document.kind === "post" ? "Default cover" : "Not set")}</strong></div><FieldUsageRow label="Cover display" usage={fieldUsage?.coverImage} /><label><span>Author</span><input value={resolvedDocument.author ?? ""} onChange={(event) => onChange("author", event.target.value)} placeholder="Optional author name" /></label><FieldUsageRow label="Author display" usage={fieldUsage?.author} source={document.templateOverrides?.author === false ? "Template Default" : document.templateOverrides?.author === true ? "Document Override" : "Document Value"} onReset={document.templateOverrides?.author === true && onFieldOverride ? () => onFieldOverride("author", true) : undefined} /><div className="inspector-value-row"><span>Publication date</span><strong>{formatDocumentDate(resolvedDocument) ?? "Not set"}</strong></div><FieldUsageRow label="Date display" usage={fieldUsage?.publicationDate} /><div className="inspector-value-row"><span>Reading time</span><strong>{fieldUsage ? `${readingTimeMinutesForInspector(document)} ${readingTimeMinutesForInspector(document) === 1 ? "minute" : "minutes"}` : "Calculated"}</strong></div><FieldUsageRow label="Reading time display" usage={fieldUsage?.readingTime} /><p className="setting-note">Values remain saved when their display blocks are removed. Add or select a display block to show them on the canvas.</p></section>
+      <section><h2>Taxonomy</h2><label><span>Category</span><select disabled={document.kind !== "post"} value={resolvedDocument.category ?? ""} onChange={(event) => onChange("category", (event.target.value || undefined) as StudioDocument["category"])}><option value="">{document.kind === "post" ? "No category" : "Not used by pages"}</option><option>Technology</option><option>Excel</option><option>Personal</option></select></label>{document.kind !== "post" ? <p className="setting-note">Pages do not participate in post categories or tags.</p> : <><FieldUsageRow label="Category display" usage={fieldUsage?.category} source={document.templateOverrides?.category === false ? "Template Default" : document.templateOverrides?.category === true ? "Document Override" : "Document Value"} onReset={document.templateOverrides?.category === true && onFieldOverride ? () => onFieldOverride("category", true) : undefined} /><label><span>Tags</span><input value={resolvedDocument.tags.join(", ")} onChange={(event) => onChange("tags", event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean))} placeholder="CMS, Building" /></label><FieldSettingsRow label="Tags" source={document.templateOverrides?.tags === false ? "Template Default" : document.templateOverrides?.tags === true ? "Document Override" : "Document Value"} onReset={document.templateOverrides?.tags === true && onFieldOverride ? () => onFieldOverride("tags", true) : undefined} /></>}</section>
+      <section><h2>Template</h2><label><span>Page presentation</span><select value={document.template ?? "default"} onChange={(event) => onChange("template", event.target.value as StudioDocument["template"])}>{allowedPageTemplates.map((template) => <option value={template} key={template}>{template.charAt(0).toUpperCase() + template.slice(1)}</option>)}</select></label>{document.kind === "page" ? <label><span>Parent page</span><select value={document.parentPageId ?? ""} onChange={(event) => onChange("parentPageId", event.target.value || undefined)}><option value="">None</option>{pages.filter((page) => page.id !== document.id).map((page) => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label> : <p className="setting-note">Post templates are assigned above. The document type cannot be changed after creation.</p>}</section>
       <section><h2>Search preview</h2><label><span>SEO title</span><input value={document.seoTitle} onChange={(event) => onChange("seoTitle", event.target.value)} /></label><label><span>SEO description</span><textarea rows={4} value={document.seoDescription} onChange={(event) => onChange("seoDescription", event.target.value)} /></label></section>
-      {canDuplicate || canDelete ? <section className="document-operations"><h2>Document actions</h2>{canDuplicate ? <button type="button" onClick={onDuplicate}>Duplicate {document.kind}</button> : null}<button className="danger-button" type="button" onClick={onDelete} disabled={!canDelete}>Delete {document.kind}</button></section> : null}
+      {canDuplicate || canDelete || onSaveAsTemplate ? <section className="document-operations"><h2>Document actions</h2>{onSaveAsTemplate ? <button type="button" onClick={onSaveAsTemplate}>Save as template</button> : null}{canDuplicate ? <button type="button" onClick={onDuplicate}>Duplicate {document.kind}</button> : null}<button className="danger-button" type="button" onClick={onDelete} disabled={!canDelete}>Delete {document.kind}</button></section> : null}
     </div>
   );
 }
@@ -223,6 +231,23 @@ function formatPublishDate(value: string) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "Immediately";
   return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function readingTimeMinutesForInspector(document: StudioDocument) {
+  return readingTimeMinutes(document.blocks);
+}
+
+function FieldUsageRow({ label, usage, source, onReset }: { label: string; usage?: FieldUsage; source?: string; onReset?: () => void }) {
+  const text = !usage || usage.total === 0 ? "Not displayed" : usage.document && usage.template ? `${usage.document} in document · ${usage.template} in template` : usage.template ? `${usage.template} in template` : `${usage.document} in document`;
+  return <div className="inspector-value-row"><span>{label}</span><strong>{source ? `${source} · ` : ""}{text}{onReset ? <button type="button" onClick={onReset}>Use template default</button> : null}</strong></div>;
+}
+
+function FieldSettingsRow({ label, source, onReset }: { label: string; source: string; onReset?: () => void }) {
+  return <div className="inspector-value-row"><span>{label}</span><strong>{source} · Setting{onReset ? <button type="button" onClick={onReset}>Use template default</button> : null}</strong></div>;
+}
+
+function DocumentStylesInspector({ document }: { document: StudioDocument }) {
+  return <div className="inspector-sections"><section><h2>Styles</h2><p className="setting-note">Document styles come from the assigned template and explicit block styles. There is no separate document-level style override.</p><div className="inspector-value-row"><span>Document type</span><strong>{document.kind === "post" ? "Post" : "Page"}</strong></div><div className="inspector-value-row"><span>Breakpoint rules</span><strong>Template controlled</strong></div></section></div>;
 }
 
 export function BlockInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {

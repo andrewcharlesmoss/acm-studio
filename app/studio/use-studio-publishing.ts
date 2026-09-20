@@ -8,6 +8,7 @@ import type { StudioDocument, StudioWorkspace } from "./editor-model";
 
 export function useStudioPublishing({
   activeDocument,
+  resolvedDocument,
   workspace,
   updateActiveDocument,
   setSaveLabel,
@@ -16,6 +17,7 @@ export function useStudioPublishing({
   reservedSlugs = articles.map((article) => article.slug),
 }: {
   activeDocument: StudioDocument;
+  resolvedDocument?: StudioDocument;
   workspace: StudioWorkspace;
   updateActiveDocument: (update: (document: StudioDocument) => StudioDocument) => void;
   setSaveLabel: (label: string) => void;
@@ -44,7 +46,7 @@ export function useStudioPublishing({
       updatedAt: timestamp,
     };
     try {
-      publishingRepository.publish(publication);
+      publishingRepository.publish(resolvedDocument ? { ...publication, author: resolvedDocument.author, category: resolvedDocument.category, tags: resolvedDocument.tags } : publication);
     } catch (error) {
       setPublishFeedback(error instanceof UnreadablePublicationsError ? error.message : "This browser could not store the published post. Your draft is still safe in Studio.");
       return false;
