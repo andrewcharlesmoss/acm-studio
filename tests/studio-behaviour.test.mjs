@@ -343,6 +343,7 @@ test("between-block inserters stay in the reserved gap without margin collapse",
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(css, /\.block-position \{ display: flow-root; position: relative; \}/);
   assert.match(css, /\.block-position \+ \.block-position \.canvas-block \{ margin-top: 30px; \}/);
+  assert.match(css, /\.block-position \+ \.block-position \.drop-indicator \{ top: 13px; \}/);
   assert.match(css, /\.cover-inserter-position \{ height: 30px; position: relative; \}/);
   assert.match(css, /\.cover-inserter-position \.between-blocks \{ top: 0; \}/);
 });
