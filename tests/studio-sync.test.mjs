@@ -213,3 +213,69 @@ test("studio sync does not echo a peer's queued edits as stale snapshots", async
   assert.equal(peer.getConflict(), null);
   primary.close(); peer.close();
 });
+
+test("primary preserves queued local edits while committing an independent peer edit", async () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const channelFactory = channelBus();
+  let releaseSave;
+  const pauseSave = new Promise(resolve => { releaseSave = resolve; });
+  let releaseLocalSave;
+  const pauseLocalSave = new Promise(resolve => { releaseLocalSave = resolve; });
+  let enteredSave;
+  const saving = new Promise(resolve => { enteredSave = resolve; });
+  let enteredLocalSave;
+  const savingLocally = new Promise(resolve => { enteredLocalSave = resolve; });
+  let persisted = { title: "Initial", subtitle: "Initial" };
+  const snapshots = [];
+  let writes = 0;
+  const primary = sync.createStudioSync({ scope: "primary-race", storeKey: "workspace", clientId: "primary", initialSnapshot: persisted, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: (snapshot, source) => snapshots.push({ ...snapshot, source }), persistPrimary: async next => { if (++writes === 1) { enteredSave(); await pauseSave; } else { enteredLocalSave(); await pauseLocalSave; } persisted = next; } });
+  const peer = sync.createStudioSync({ scope: "primary-race", storeKey: "workspace", clientId: "peer", initialSnapshot: persisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  await settle();
+  const remote = peer.submit({ title: "Initial", subtitle: "From peer" });
+  await saving;
+  const local = primary.commitPrimary({ title: "From primary", subtitle: "Initial" });
+  releaseSave();
+  await savingLocally;
+  assert.equal(persisted.title, "Initial");
+  assert.equal(snapshots.some(item => item.source === "update" && item.title === "From primary"), false, "queued local work must not be announced as saved");
+  releaseLocalSave();
+  await Promise.all([remote, local]);
+  assert.equal(persisted.title, "From primary");
+  assert.equal(persisted.subtitle, "From peer");
+  assert.equal(snapshots.some(item => item.source === "update" && item.title === "Initial"), false);
+  primary.close(); peer.close();
+});
+
+test("a failed conflict resolution retains the unsaved choice for a retry", async () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const channelFactory = channelBus();
+  let persisted = { title: "Initial" };
+  let failResolution = true;
+  const primary = sync.createStudioSync({ scope: "resolution-retry", storeKey: "workspace", clientId: "primary", initialSnapshot: persisted, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { if (next.title === "Mine" && failResolution) { failResolution = false; throw new Error("quota"); } persisted = next; } });
+  const other = sync.createStudioSync({ scope: "resolution-retry", storeKey: "workspace", clientId: "other", initialSnapshot: persisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  const mine = sync.createStudioSync({ scope: "resolution-retry", storeKey: "workspace", clientId: "mine", initialSnapshot: persisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  await settle();
+  await Promise.allSettled([other.submit({ title: "Other" }), mine.submit({ title: "Mine" })]);
+  assert.equal(mine.getConflict().localSnapshot.title, "Mine");
+  await assert.rejects(mine.resolveConflict("mine"), /quota/);
+  assert.equal(mine.getConflict().localSnapshot.title, "Mine");
+  await mine.resolveConflict("mine");
+  assert.equal(persisted.title, "Mine");
+  primary.close(); other.close(); mine.close();
+});
+
+test("choosing a local conflicting field preserves unrelated peer changes", async () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const channelFactory = channelBus();
+  let persisted = { title: "Initial", subtitle: "Initial" };
+  const primary = sync.createStudioSync({ scope: "field-resolution", storeKey: "workspace", clientId: "primary", initialSnapshot: persisted, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { persisted = next; } });
+  const other = sync.createStudioSync({ scope: "field-resolution", storeKey: "workspace", clientId: "other", initialSnapshot: persisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  const mine = sync.createStudioSync({ scope: "field-resolution", storeKey: "workspace", clientId: "mine", initialSnapshot: persisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  await settle();
+  await Promise.allSettled([other.submit({ title: "Other", subtitle: "Their subtitle" }), mine.submit({ title: "Mine", subtitle: "Initial" })]);
+  assert.equal(mine.getConflict().localSnapshot.title, "Mine");
+  await mine.resolveConflict("mine");
+  assert.equal(persisted.title, "Mine");
+  assert.equal(persisted.subtitle, "Their subtitle");
+  primary.close(); other.close(); mine.close();
+});

@@ -149,6 +149,27 @@ test("Save feedback cannot hide a quota failure; a successful persistence retry 
   assert.match(h.flush().saveLabel, /Saved locally/);
 });
 
+test("a conflict pauses autosave and reports a failed resolution without losing the local canvas", async () => {
+  let syncOptions;
+  let commits = 0;
+  const sync = { createStudioSync(options) {
+    syncOptions = options;
+    return { getStatus: () => "primary", isAvailable: () => true, isPrimary: () => true, commitPrimary: async () => { commits++; }, resolveConflict: async () => { throw Error("quota"); }, close() {} };
+  } };
+  const h = hookHarness({ load: () => null, save() {} }, modules(), sync);
+  const initial = h.flush();
+  syncOptions.onConflict({ reason: "Concurrent edit", localSnapshot: { ...initial.workspace, documents: initial.workspace.documents.map((document, index) => index === 0 ? { ...document, title: "Unsaved title" } : document) } });
+  const before = commits;
+  const conflicted = h.flush();
+  assert.equal(conflicted.workspace.documents[0].title, "Unsaved title");
+  assert.equal(conflicted.writable, false);
+  assert.equal(commits, before);
+  await conflicted.resolveSyncConflict("mine");
+  const failed = h.flush();
+  assert.match(failed.syncResolutionError, /could not be saved|quota/);
+  assert.equal(failed.workspace.documents[0].title, "Unsaved title");
+});
+
 test("authoritative workspace updates clear local undo and redo history", async () => {
   let syncOptions;
   const sync = {

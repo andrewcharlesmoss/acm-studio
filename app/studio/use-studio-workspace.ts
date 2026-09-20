@@ -32,6 +32,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   const lastPersistedWorkspaceRef = useRef<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<StudioSyncStatus>("disconnected");
   const [syncConflict, setSyncConflict] = useState<StudioSyncConflict | null>(null);
+  const [syncResolutionError, setSyncResolutionError] = useState<string | null>(null);
   useEffect(() => { workspaceRef.current = workspace; }, [workspace]);
 
   useEffect(() => {
@@ -119,7 +120,14 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         }
       },
       onConflict: (conflict) => {
+        const local = validateSnapshot(conflict.localSnapshot);
+        const activeDocumentId = local.documents.some(document => document.id === workspaceRef.current.activeDocumentId)
+          ? workspaceRef.current.activeDocumentId : local.activeDocumentId;
+        const displayed = { ...cloneWorkspace(local), activeDocumentId };
+        workspaceRef.current = displayed;
+        setWorkspace(displayed);
         setSyncConflict(conflict);
+        setSyncResolutionError(null);
         setSaveError(conflict.reason);
       },
       onStatus: setSyncStatus,
@@ -139,7 +147,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   const editable = primaryWritable || peerWritable;
 
   useEffect(() => {
-    if (!ready || loadError || (!primaryWritable && !peerWritable)) return;
+    if (!ready || loadError || syncConflict || (!primaryWritable && !peerWritable)) return;
     let cancelled = false;
     let message: string;
     let failed = false;
@@ -185,7 +193,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       });
     })();
     return () => { cancelled = true; };
-  }, [ready, repository, loadedRepository, loadError, workspace, ownership, loadedToken, ownershipState, primaryWritable, peerWritable]);
+  }, [ready, repository, loadedRepository, loadError, syncConflict, workspace, ownership, loadedToken, ownershipState, primaryWritable, peerWritable]);
 
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
     if (!editable) return;
@@ -255,11 +263,16 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   async function resolveSyncConflict(choice: "mine" | "theirs") {
     const session = syncRef.current;
     if (!session) throw new Error("Studio synchronisation is unavailable.");
-    await session.resolveConflict(choice);
-    setSyncConflict(null);
-    setSaveError(null);
+    setSyncResolutionError(null);
+    try {
+      await session.resolveConflict(choice);
+      setSyncConflict(null);
+      setSaveError(null);
+    } catch (error) {
+      setSyncResolutionError(error instanceof Error ? error.message : "The choice could not be saved. Your changes remain available for another attempt.");
+    }
   }
 
   const statusLabel = syncConflict ? "Resolve conflicting changes" : syncStatus === "disconnected" && !primaryWritable ? "Connection lost — editing is paused" : syncStatus === "unsupported" && !primaryWritable ? "Read-only: this browser cannot synchronise Studio tabs" : null;
-  return { workspace, ready, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing: ["waiting", "unavailable"].includes(ownershipState), retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? ownershipMessage(ownershipState) ?? statusLabel ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
+  return { workspace, ready, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing: ["waiting", "unavailable"].includes(ownershipState), retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? ownershipMessage(ownershipState) ?? statusLabel ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
 }

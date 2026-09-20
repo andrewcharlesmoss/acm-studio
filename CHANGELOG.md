@@ -246,6 +246,9 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Prevented older cross-tab save acknowledgements from replacing newer local
+  edits or reporting queued work as saved; conflict resolution now retains
+  unrelated peer fields and keeps failed choices visible for retry.
 - Design saves now discard unreferenced image assets and show a clear recovery message when browser storage quota is exceeded.
 - Double-clicking a canvas text box now reliably opens its inline editor.
 - Page navigation now remains local to each tab and is not reset by a synchronisation acknowledgement after selecting an object.

@@ -74,9 +74,9 @@ export type StudioSyncOptions<T> = {
   clientId?: string;
 };
 
-type PendingPeer = { requestId: string; transaction: StudioSyncTransaction; resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> };
-type QueuedPrimary = { requestId?: string; transaction: StudioSyncTransaction; local: boolean; resolve?: () => void; reject?: (error: Error) => void };
-type ConflictState = StudioSyncConflict & { operation: PendingPeer | QueuedPrimary | null };
+type PendingPeer = { requestId: string; transaction: StudioSyncTransaction; baseSnapshot?: unknown; resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> };
+type QueuedPrimary = { requestId?: string; transaction: StudioSyncTransaction; baseSnapshot?: unknown; local: boolean; resolve?: () => void; reject?: (error: Error) => void };
+type ConflictState = StudioSyncConflict & { operation: PendingPeer | QueuedPrimary | null; baseSnapshot: unknown };
 
 const MAX_SYNC_BYTES = 8_000_000;
 const HELLO_TIMEOUT_MS = 2_500;
@@ -199,7 +199,7 @@ function reorderKnown(current: string[], before: string[], after: string[]) {
   return current.map(id => known.has(id) ? after[index++] : id);
 }
 
-export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSyncTransaction): { snapshot: T; conflicts: StudioSyncMergeConflict[] } {
+export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSyncTransaction, preferLocal = false): { snapshot: T; conflicts: StudioSyncMergeConflict[] } {
   const snapshot = clone(currentValue);
   const conflicts: StudioSyncMergeConflict[] = [];
   for (const change of transaction.changes) {
@@ -208,18 +208,19 @@ export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSy
       if (ignoredPath(change.path)) { setPath(snapshot, change.path, change.afterPresent, change.after); continue; }
       if (target.present && change.afterPresent && equal(target.value, change.after)) continue;
       if (target.present === change.beforePresent && equal(target.value, change.before)) { setPath(snapshot, change.path, change.afterPresent, change.after); continue; }
-      conflicts.push({ change, reason: "property", current: target.value, currentPresent: target.present });
+      if (preferLocal) setPath(snapshot, change.path, change.afterPresent, change.after);
+      else conflicts.push({ change, reason: "property", current: target.value, currentPresent: target.present });
     } else {
       const collection = resolveValue(snapshot, change.path).value;
       if (!Array.isArray(collection)) { conflicts.push({ change, reason: "invalid", current: collection }); continue; }
       if (change.kind === "insert") {
         const existing = collection.find(item => isRecord(item) && item.id === change.value.id);
-        if (existing) { if (!equal(existing, change.value)) conflicts.push({ change, reason: "property", current: existing }); continue; }
+        if (existing) { if (!equal(existing, change.value)) { if (preferLocal) collection.splice(collection.indexOf(existing), 1, clone(change.value)); else conflicts.push({ change, reason: "property", current: existing }); } continue; }
         collection.splice(Math.max(0, Math.min(change.index, collection.length)), 0, clone(change.value));
       } else if (change.kind === "delete") {
         const index = collection.findIndex(item => isRecord(item) && item.id === change.value.id);
         if (index < 0) continue;
-        if (!equal(collection[index], change.value)) { conflicts.push({ change, reason: "delete", current: collection[index] }); continue; }
+        if (!equal(collection[index], change.value) && !preferLocal) { conflicts.push({ change, reason: "delete", current: collection[index] }); continue; }
         collection.splice(index, 1);
       } else {
         const currentOrder = collection.map(item => isRecord(item) ? String(item.id) : "");
@@ -336,11 +337,12 @@ export class StudioSyncSession<T> {
   submit(snapshot: T) {
     if (!this.isConnectedPeer()) return Promise.reject(new Error("Studio is not connected to its primary tab."));
     const validated = this.validate(snapshot);
+    const baseSnapshot = this.cloneSnapshot(this.optimisticSnapshot);
     const transaction = this.makeTransaction(this.optimisticSnapshot, validated, this.revision + this.peerQueue.length + this.pending.size);
     this.optimisticSnapshot = this.cloneSnapshot(validated);
     if (!transaction.changes.length) return Promise.resolve();
     return new Promise<void>((resolve, reject) => {
-      const operation: PendingPeer = { requestId: id("operation"), transaction, resolve, reject, timer: setTimeout(() => this.failPeer(operation.requestId, new Error("The primary Studio tab stopped responding.")), OPERATION_TIMEOUT_MS) };
+      const operation: PendingPeer = { requestId: id("operation"), transaction, baseSnapshot, resolve, reject, timer: setTimeout(() => this.failPeer(operation.requestId, new Error("The primary Studio tab stopped responding.")), OPERATION_TIMEOUT_MS) };
       this.peerQueue.push(operation); void this.processPeerQueue();
     });
   }
@@ -348,16 +350,21 @@ export class StudioSyncSession<T> {
   commitPrimary(snapshot: T) {
     if (!this.isPrimary()) return Promise.reject(new Error("This tab is not the Studio persistence owner."));
     const validated = this.validate(snapshot);
+    const baseSnapshot = this.cloneSnapshot(this.optimisticSnapshot);
     const transaction = this.makeTransaction(this.optimisticSnapshot, validated, this.revision + this.primaryQueue.length);
     this.optimisticSnapshot = this.cloneSnapshot(validated);
     if (!transaction.changes.length) return Promise.resolve();
-    return new Promise<void>((resolve, reject) => { this.primaryQueue.push({ transaction, local: true, resolve, reject }); void this.processPrimaryQueue(); });
+    return new Promise<void>((resolve, reject) => { this.primaryQueue.push({ transaction, baseSnapshot, local: true, resolve, reject }); void this.processPrimaryQueue(); });
   }
 
   resolveConflict(choice: "mine" | "theirs") {
     if (!this.conflict || this.closed) return Promise.reject(new Error("There is no Studio conflict to resolve."));
     const conflict = this.conflict;
-    const candidate = choice === "mine" ? this.cloneSnapshot(conflict.localSnapshot as T) : this.cloneSnapshot(conflict.remoteSnapshot as T);
+    const localResolution = choice === "mine"
+      ? applyStudioTransaction(this.validate(conflict.remoteSnapshot), this.makeTransaction(this.validate(conflict.baseSnapshot), this.validate(conflict.localSnapshot), this.revision), true)
+      : null;
+    if (localResolution?.conflicts.length) return Promise.reject(new Error("This change cannot be safely merged. The local version remains available for review."));
+    const candidate = localResolution ? this.validate(localResolution.snapshot) : this.cloneSnapshot(conflict.remoteSnapshot as T);
     this.conflict = null;
     this.snapshot = this.validate(conflict.remoteSnapshot);
     this.optimisticSnapshot = this.cloneSnapshot(candidate);
@@ -366,10 +373,19 @@ export class StudioSyncSession<T> {
     if (choice === "theirs") return Promise.resolve();
     const transaction = this.makeTransaction(this.snapshot, candidate, this.revision);
     if (!transaction.changes.length) return Promise.resolve();
-    if (this.role === "primary") return new Promise<void>((resolve, reject) => { this.primaryQueue.unshift({ transaction, local: true, resolve, reject }); void this.processPrimaryQueue(); });
-    return new Promise<void>((resolve, reject) => {
+    const attempt = this.role === "primary" ? new Promise<void>((resolve, reject) => { this.primaryQueue.unshift({ transaction, local: true, resolve, reject }); void this.processPrimaryQueue(); }) : new Promise<void>((resolve, reject) => {
       const operation: PendingPeer = { requestId: id("resolution"), transaction, resolve, reject, timer: setTimeout(() => this.failPeer(operation.requestId, new Error("The primary Studio tab stopped responding.")), OPERATION_TIMEOUT_MS) };
       this.peerQueue.unshift(operation); void this.processPeerQueue();
+    });
+    return attempt.catch((error) => {
+      // A failed resolution must remain retryable, including after a quota
+      // error or a new change from another tab while the choice was in flight.
+      if (!this.conflict) {
+        this.optimisticSnapshot = this.cloneSnapshot(candidate);
+        this.conflict = { ...conflict, remoteSnapshot: this.cloneSnapshot(this.snapshot), localSnapshot: this.cloneSnapshot(candidate), baseSnapshot: this.cloneSnapshot(this.snapshot) };
+        this.setStatus("conflict"); this.options.onConflict?.(this.conflict);
+      }
+      throw error;
     });
   }
 
@@ -451,10 +467,16 @@ export class StudioSyncSession<T> {
         try {
           await this.options.persistPrimary(this.validate(result.snapshot));
           this.snapshot = this.validate(result.snapshot);
-          const hasNewerLocalEdits = operation.local && !equal(this.optimisticSnapshot, this.snapshot);
+          const hasNewerLocalEdits = !equal(this.optimisticSnapshot, this.snapshot);
+          let mergedRemote = false;
           if (!hasNewerLocalEdits) this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
+          else if (!operation.local) {
+            const merged = applyStudioTransaction(this.optimisticSnapshot, operation.transaction);
+            if (!merged.conflicts.length) { this.optimisticSnapshot = this.validate(merged.snapshot); mergedRemote = true; }
+          }
           this.revision += 1; this.remember(operation.transaction.transactionId, true, this.revision);
           if (!hasNewerLocalEdits) this.options.onSnapshot(this.snapshot, operation.local ? "commit" : "update");
+          else if (mergedRemote && !this.primaryQueue.some(pending => pending.local)) this.options.onSnapshot(this.optimisticSnapshot, "update");
           this.send({ ...this.base(), kind: "update", updateId: id("update"), revision: this.revision, transaction: operation.transaction });
           if (operation.requestId) this.send({ ...this.base(), kind: "ack", requestId: operation.requestId, revision: this.revision });
           operation.resolve?.();
@@ -513,7 +535,7 @@ export class StudioSyncSession<T> {
     }
   }
   private openConflict(transaction: StudioSyncTransaction, result: { snapshot: T; conflicts: StudioSyncMergeConflict[] }, operation: PendingPeer | QueuedPrimary | null, reason: string) {
-    this.conflict = { transaction, conflicts: result.conflicts, remoteSnapshot: this.cloneSnapshot(result.snapshot), localSnapshot: this.cloneSnapshot(this.optimisticSnapshot), operation, reason };
+    this.conflict = { transaction, conflicts: result.conflicts, remoteSnapshot: this.cloneSnapshot(result.snapshot), localSnapshot: this.cloneSnapshot(this.optimisticSnapshot), baseSnapshot: this.cloneSnapshot((operation?.baseSnapshot ?? this.snapshot) as T), operation, reason };
     this.setStatus("conflict"); this.options.onConflict?.(this.conflict);
   }
   private async processPeerQueue() {

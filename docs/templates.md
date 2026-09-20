@@ -125,6 +125,14 @@ templates, roll both back on failure, and reload the installed snapshot after
 success. Incomplete rollback blocks editing. Retain the source package/backup
 during recovery.
 
+Acknowledgements for older edits do not replace newer unsaved canvas state.
+When a conflict is resolved in favour of the local version, Studio applies the
+local changes to the latest saved version while retaining unrelated edits from
+the other tab. A failed resolution remains visible and retryable; automatic
+workspace saving pauses during conflict review. Conflict choices are held in
+the open tab's memory, not durable recovery storage. Copy any unsaved content
+before reloading or closing a tab with an unresolved conflict.
+
 Full Studio backups include templates and assignments. Older backups without
 template data restore as having none. Restore rollback covers workspace,
 publications, designs, templates and media. Referenced template images and images

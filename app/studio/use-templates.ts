@@ -54,6 +54,9 @@ export function useTemplates(generation: number, writable: boolean) {
         }
       },
       onConflict: (conflict) => {
+        const local = validateTemplateStore(conflict.localSnapshot);
+        current.current = local;
+        setStore(local);
         setSyncConflict(conflict);
         setError(conflict.reason);
         setSaveLabel("Resolve conflicting changes");
@@ -124,9 +127,13 @@ export function useTemplates(generation: number, writable: boolean) {
   async function resolveSyncConflict(choice: "mine" | "theirs") {
     const session = syncRef.current;
     if (!session) throw new Error("Studio synchronisation is unavailable.");
-    await session.resolveConflict(choice);
-    setSyncConflict(null);
-    setError(null);
+    try {
+      await session.resolveConflict(choice);
+      setSyncConflict(null);
+      setError(null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The choice could not be saved. Your template changes remain available for another attempt.");
+    }
   }
   return { store, ready: ready && loadedGeneration === generation, error, saveLabel, syncStatus, syncConflict, resolveSyncConflict, commit, undo, redo, canUndo: editable && availability.undo, canRedo: editable && availability.redo, writable: editable && ready && loadedGeneration === generation, exclusiveWritable: primaryWritable };
 }
