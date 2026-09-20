@@ -255,6 +255,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Template sets now keep all of their templates and shared parts expanded in
+  the library pane instead of collapsing the set contents into a scroll area.
 - List editing now creates and focuses the next item on Return, with ordered
   lists numbering it automatically; the permanent canvas Add item control has
   been removed while Shift+Return remains available for line breaks. Backspace

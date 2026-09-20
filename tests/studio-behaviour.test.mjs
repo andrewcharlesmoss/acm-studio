@@ -1141,6 +1141,11 @@ test("Backspace removes an empty list item and keeps text editing intact", () =>
   assert.doesNotMatch(css, /\.list-field-row textarea:focus\s*\{/);
 });
 
+test("template set contents remain expanded in the library pane", () => {
+  const css = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  assert.match(css, /\.template-workspace \.studio-library \.template-document-list \{[^}]*flex: 0 0 auto;[^}]*overflow: visible;/);
+});
+
 
 test("full document counts sit beside Code and collapse before crowding the toolbar", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
