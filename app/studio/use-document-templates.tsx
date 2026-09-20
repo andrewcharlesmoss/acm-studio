@@ -36,6 +36,7 @@ export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspa
   return {
     ...session, commit, updateActiveDocument, updateActiveField,
     undo: history.undo, redo: history.redo, canUndo: writable && history.canUndo, canRedo: writable && history.canRedo,
+    templateSession: templates,
     templateControls, templatePresentation, hasTemplate: Boolean(snapshot),
     saveLabel: templates.error ? "Templates need attention" : templates.saveLabel === "Saving…" && !session.saveLabel.startsWith("Could not") ? templates.saveLabel : session.saveLabel,
   };

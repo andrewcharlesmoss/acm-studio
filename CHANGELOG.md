@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- Integrated Templates into the Content Studio workspace beside Pages and
+  Posts, with a template-set count badge, in-place library/editor switching and
+  one shared ownership and synchronisation session. The standalone template
+  route remains available as a deep link.
 - Templates are now a sibling authoring mode beside Pages and Posts in the
   Content Studio navigation, while retaining their separate reusable data
   model and `/studio/templates` route.

@@ -397,10 +397,10 @@ test("both editors share history shortcuts without replacing save or Escape hand
 test("content navigation presents Templates as a sibling authoring mode", () => {
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(studio, /<div className="library-tabs" aria-label="Content type">[\s\S]*<a className="library-tab-link" href="\/studio\/templates">Templates<\/a>/);
+  assert.match(studio, /<div className="library-tabs" aria-label="Content type">[\s\S]*<button type="button" onClick=\{\(\) => switchStudioMode\("templates"\)\}>Templates<span>\{templateSession\.store\.sets\.length\}<\/span><\/button>/);
   assert.doesNotMatch(studio, /<a className="library-tool-button" href="\/studio\/templates">/);
   assert.match(styles, /\.library-tabs \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.match(styles, /\.library-tabs button, \.library-tab-link/);
+  assert.match(styles, /\.library-tabs button/);
 });
 
 

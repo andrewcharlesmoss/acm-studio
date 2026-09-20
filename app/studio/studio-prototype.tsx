@@ -14,6 +14,7 @@ import { useStudioPublishing } from "./use-studio-publishing";
 import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";
 import { useStudioWorkspace } from "./use-studio-workspace";
 import { useDocumentTemplates } from "./use-document-templates";
+import { TemplateWorkspacePanel } from "./template-workspace";
 import type { MediaAsset } from "./media-store";
 import {
   blockCatalogue,
@@ -31,7 +32,8 @@ function exportJson(value: unknown, filename: string) {
   URL.revokeObjectURL(url);
 }
 export function StudioPrototype() {
-  const { workspace, ownershipGeneration, writable, exclusiveWritable, syncConflict, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateControls, templatePresentation, hasTemplate } = useDocumentTemplates(useStudioWorkspace());
+  const studioSession = useStudioWorkspace();
+  const { workspace, ownershipGeneration, writable, exclusiveWritable, syncConflict, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate } = useDocumentTemplates(studioSession);
   const [libraryKind, setLibraryKind] = useState<StudioDocumentKind>("page");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"document" | "block">("document");
@@ -40,7 +42,7 @@ export function StudioPrototype() {
   const [inserterQuery, setInserterQuery] = useState("");
   const [previewing, setPreviewing] = useState(false);
   const [codeEditorDirty, setCodeEditorDirty] = useState(false);
-  const [studioSection, setStudioSection] = useState<"content" | "files" | "backup">("content");
+  const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup">(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "templates" ? "templates" : "content");
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [designMediaPrompt, setDesignMediaPrompt] = useState<{ asset: MediaAsset; target: "block" | "cover" } | null>(null);
   const [designMediaAltText, setDesignMediaAltText] = useState(""); const designMediaDialogRef = useRef<HTMLDialogElement>(null);
@@ -50,7 +52,6 @@ export function StudioPrototype() {
     setCodeEditorDirty(false);
     return true;
   }
-
   const activeDocument = workspace.documents.find((item) => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
   const selectedBlock = activeDocument && selectedBlockId ? findBlockById(activeDocument.blocks, selectedBlockId) : null;
   const showCoverImage = activeDocument ? (activeDocument.coverImage === undefined ? activeDocument.kind === "post" : activeDocument.coverImage !== null) : false;
@@ -74,7 +75,6 @@ export function StudioPrototype() {
     setSaveLabel,
     publishingWritable: exclusiveWritable,
   });
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mediaId = params.get("designMedia");
@@ -89,14 +89,12 @@ export function StudioPrototype() {
     }).catch(() => undefined);
     return () => { cancelled = true; };
   }, [activeDocument, activeDocument?.id, media]);
-
   useEffect(() => {
     const dialog = designMediaDialogRef.current; if (!designMediaPrompt || !dialog) return; if (!dialog.open) dialog.showModal();
     const input = dialog.querySelector<HTMLTextAreaElement>("textarea"); input?.focus(); input?.select();
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); dialog.close(); setDesignMediaPrompt(null); } };
     dialog.addEventListener("keydown", onKeyDown); return () => dialog.removeEventListener("keydown", onKeyDown);
   }, [designMediaPrompt]);
-
   async function insertDesignMedia() {
     if (!designMediaPrompt) return;
     const inserted = await media.insertImageById(designMediaPrompt.asset.id, { target: designMediaPrompt.target }, designMediaAltText.trim());
@@ -104,27 +102,27 @@ export function StudioPrototype() {
     designMediaDialogRef.current?.close();
     setDesignMediaPrompt(null);
   }
-
   const { wordCount, characterCount } = useStudioDocumentCounts(activeDocument);
-
   const filteredBlocks = useMemo(() => {
     const query = inserterQuery.trim().toLowerCase();
     if (!query) return blockCatalogue;
     return blockCatalogue.filter((item) => `${item.label} ${item.description} ${item.group}`.toLowerCase().includes(query));
   }, [inserterQuery]);
-
   function undoStudio() {
     undo();
     setSelectedBlockId(null);
   }
-
   function redoStudio() {
     redo();
     setSelectedBlockId(null);
   }
+  useStudioHistoryShortcuts(studioSection === "templates" ? templateSession.undo : undoStudio, studioSection === "templates" ? templateSession.redo : redoStudio, studioSection === "content" || studioSection === "templates");
 
-  useStudioHistoryShortcuts(undoStudio, redoStudio, studioSection === "content");
-
+  function switchStudioMode(mode: "content" | "templates") {
+    if (!confirmCodeEditorDiscard()) return;
+    setStudioSection(mode); setPreviewing(false); if (mode === "templates") setShowInserter(false);
+    window.history.replaceState({}, "", mode === "templates" ? "/studio?mode=templates" : "/studio");
+  }
   function selectDocument(document: StudioDocument) {
     if (!confirmCodeEditorDiscard()) return;
     documentCommands.selectDocument(document);
@@ -133,7 +131,7 @@ export function StudioPrototype() {
     setSelectedBlockId(null);
     setInspectorTab("document");
     setPreviewing(false);
-    setStudioSection("content");
+    switchStudioMode("content");
   }
 
   function addDocument(kind: StudioDocumentKind) {
@@ -143,7 +141,7 @@ export function StudioPrototype() {
     setLibraryKind(kind);
     setSelectedBlockId(null);
     setInspectorTab("document");
-    setStudioSection("content");
+    switchStudioMode("content");
   }
 
   function duplicateDocument() {
@@ -234,16 +232,17 @@ export function StudioPrototype() {
     <div className="studio-shell" onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <header className="studio-header">
         <a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a>
-        <div className="studio-breadcrumbs">{studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : "Backup"}</strong></> : <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></>}</div>
-        <div className="studio-state"><span className="prototype-pill">Local prototype</span><span aria-live="polite">{saveLabel}</span>{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
+        <div className="studio-breadcrumbs">{studioSection === "templates" ? <><span>Templates</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Shared presentation</strong></> : studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : "Backup"}</strong></> : <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></>}</div>
+        <div className="studio-state"><span className="prototype-pill">Local prototype</span><span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span>{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
-          {studioSection !== "content" ? <button className="button-secondary" type="button" onClick={() => setStudioSection("content")}>Back to {activeDocument.title}</button> : <>{activeDocument.kind === "post" ? <>{activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}<button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button></> : <button className="button-primary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>}</>}
+          {studioSection === "templates" ? <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Content</button> : studioSection !== "content" ? <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Back to {activeDocument.title}</button> : <>{activeDocument.kind === "post" ? <>{activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}<button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button></> : <button className="button-primary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>}</>}
         </div>
       </header>
       {syncConflict ? <div className="design-notice" role="alert">Conflicting changes need review. <button type="button" onClick={() => void resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void resolveSyncConflict("mine")}>Use My Change</button></div> : null}
       <div className="studio-notice" role="note"><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</div>
 
-      <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection !== "content" ? " is-tool" : ""}`}>
+      <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`}>
+        {studioSection === "templates" ? <TemplateWorkspacePanel workspace={studioSession} templates={templateSession} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} /> : <>
         <aside className="studio-library">
           <div className="library-create">
             <button type="button" onClick={() => addDocument("post")}><StudioIcon name="add" size={16} /> New post</button>
@@ -255,7 +254,7 @@ export function StudioPrototype() {
                 {kind === "page" ? "Pages" : "Posts"}<span>{workspace.documents.filter((item) => item.kind === kind).length}</span>
               </button>
             ))}
-            <a className="library-tab-link" href="/studio/templates">Templates</a>
+            <button type="button" onClick={() => switchStudioMode("templates")}>Templates<span>{templateSession.store.sets.length}</span></button>
           </div>
           <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
           <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design canvas</strong><small>Create and annotate images</small></a>
@@ -336,6 +335,7 @@ export function StudioPrototype() {
           targetKind={media.targetCover ? "cover" : "block"}
           onInsertImage={media.insertImage}
         /> : <BackupManager workspace={workspace} />}
+        </>}
       </main>
       {designMediaPrompt ? <dialog ref={designMediaDialogRef} className="media-alt-dialog" aria-labelledby="studio-design-media-title" onClose={() => setDesignMediaPrompt(null)}><form method="dialog" onSubmit={(event) => { event.preventDefault(); void insertDesignMedia(); }}>
           <h2 id="studio-design-media-title">Describe this image</h2><p>Provide alternative text for people who cannot see the image.</p>

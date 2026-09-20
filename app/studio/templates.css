@@ -39,6 +39,7 @@
 .template-inspector h2, .template-inspector h3 { font-size: var(--studio-ui-size); }
 .template-link-item { padding-bottom: 12px; border-bottom: 1px solid #ddd; }
 .template-status { padding: 10px 16px; background: #fff8e6; font-size: var(--studio-ui-size); }
+.template-inline-status { grid-column: 1 / -1; }
 /* Output breakpoints: 780px changes the header to a wrapped tablet layout;
    620px stacks and centres the header/footer. The editor previews these at
    1200px (desktop), 768px (tablet) and 390px (mobile). */

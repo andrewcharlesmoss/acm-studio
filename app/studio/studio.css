@@ -382,7 +382,7 @@
 .icon-button { align-items: center; background: transparent; border: 0; border-radius: 8px; color: #60625f; cursor: pointer; display: inline-flex; justify-content: center; height: 34px; width: 34px; }
 .icon-button svg { height: 20px; width: 20px; }
 .icon-button:hover { background: #e8e7e1; color: var(--ink); }
-.studio-workspace { grid-template-columns: 250px minmax(540px, 1fr) 300px; height: calc(100dvh - 101px); }
+.studio-workspace { --studio-library-width: 290px; grid-template-columns: var(--studio-library-width) minmax(540px, 1fr) 300px; height: calc(100dvh - 101px); }
 
 .studio-library { background: #f4f3ee; border-right: 1px solid #d2d0c8; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 .library-create { display: grid; gap: 7px; grid-template-columns: 1fr 1fr; padding: 15px; }
@@ -971,4 +971,4 @@
 .local-article-state h1 { font-size: clamp(42px, 7vw, 78px); font-weight: 570; letter-spacing: -.055em; line-height: 1; margin: 24px 0; max-width: 900px; }
 .local-article-state > p:not(.eyebrow) { color: var(--muted); font-size: 16px; margin-bottom: 30px; }
 
-.studio-workspace.is-tool { grid-template-columns: 250px minmax(0, 1fr); }
+.studio-workspace.is-tool { grid-template-columns: var(--studio-library-width) minmax(0, 1fr); }

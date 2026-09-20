@@ -2,10 +2,13 @@
 
 Templates are Studio-owned browser-local designs. Open **Templates** beside
 **Pages** and **Posts** in the Content Studio, or use the dashboard shortcut,
-then create a named set and edit its Page, Post, Header or Footer. Each set
-starts with a neutral Inter design. Social/support links are empty until a real
-destination is supplied. Templates remain a separate reusable presentation
-data type even though they share the content editor shell.
+then create a named set and edit its Page, Post, Header or Footer. The Content
+Studio keeps the template library and editor in the same workspace, so changing
+mode does not discard the current content selection or require a separate
+editing session. Each set starts with a neutral Inter design. Social/support
+links are empty until a real destination is supplied. Templates remain a
+separate reusable presentation data type even though they share the content
+editor shell.
 
 The canvas, ordinary block controls, List View and history are shared with the
 content editor. The editing breadcrumb identifies the selected set and target.
@@ -86,6 +89,11 @@ that projection is never stored as article content. Imported group metadata
 cannot impersonate these reserved handles. The renderer supplies dynamic
 content from the actual preview/document record and scopes design tokens to
 the template surface.
+
+The integrated Content Studio route uses `?mode=templates` and retains the
+`/studio/templates` route as a portable deep link. Both entry points mount one
+workspace and one template synchronisation session. The Templates badge counts
+template sets, not individual Page/Post templates or shared parts.
 
 Layout options and Spacer are additive to the existing typed block contract;
 workspace version 2 and template schema v0.1.0 remain compatible. Older saved
