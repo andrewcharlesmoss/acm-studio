@@ -92,7 +92,7 @@ test("studio sync commits peer edits once, rejects duplicates and reloads author
   assert.equal(peer.getStatus(), "synced");
   await peer.submit({ value: "changed", records: [] });
   assert.equal(persisted.value, "changed");
-  assert.equal(snapshots.at(-1).value, "changed");
+  assert.equal(snapshots.at(-1).value, "initial"); // Own commits must not echo over newer local edits.
 
   const duplicate = sync.createStudioTransaction({ value: "changed", records: [] }, { value: "duplicate", records: [] }, { transactionId: "duplicate", clientId: "peer", brokerEpoch: "wrong", baseRevision: 0 });
   assert.ok(sync.validateStudioSyncMessage({ protocol: sync.STUDIO_SYNC_PROTOCOL, scope: "main-studio", storeKey: "workspace", senderId: "peer", kind: "operation", requestId: "request", transaction: duplicate }, "workspace", value => value));
@@ -171,7 +171,45 @@ test("studio sync reports a same-field conflict without overwriting saved data",
   await settle();
   assert.ok(conflict);
   assert.equal(persisted.title === "First" || persisted.title === "Second", true);
-  await second.resolveConflict("theirs");
+  assert.equal(conflict.localSnapshot.title, "Second");
+  await second.resolveConflict("mine");
   assert.equal(second.getConflict(), null);
+  assert.equal(persisted.title, "Second");
   primary.close(); first.close(); second.close();
+});
+
+test("studio sync does not send an older local save back over newer queued edits", async () => {
+  const sync = load("app/studio/studio-sync.ts");
+  let releaseFirst;
+  const firstSave = new Promise(resolve => { releaseFirst = resolve; });
+  let persisted = { title: "Initial" };
+  const snapshots = [];
+  let writes = 0;
+  const primary = sync.createStudioSync({ scope: "rapid-edits", storeKey: "workspace", clientId: "primary", initialSnapshot: persisted, role: "primary", channelFactory: channelBus(), validateSnapshot: value => value, onSnapshot: (snapshot, source) => snapshots.push({ title: snapshot.title, source }), persistPrimary: async next => { if (++writes === 1) await firstSave; persisted = next; } });
+  const first = primary.commitPrimary({ title: "First" });
+  const second = primary.commitPrimary({ title: "Second" });
+  releaseFirst();
+  await Promise.all([first, second]);
+  assert.equal(persisted.title, "Second");
+  assert.deepEqual(snapshots.filter(item => item.source === "commit").map(item => item.title), ["Second"]);
+  assert.equal(primary.getConflict(), null);
+  primary.close();
+});
+
+test("studio sync does not echo a peer's queued edits as stale snapshots", async () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const channelFactory = channelBus();
+  let persisted = { title: "Initial" };
+  const primary = sync.createStudioSync({ scope: "rapid-peer-edits", storeKey: "workspace", clientId: "primary", initialSnapshot: persisted, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { persisted = next; } });
+  const snapshots = [];
+  const peer = sync.createStudioSync({ scope: "rapid-peer-edits", storeKey: "workspace", clientId: "peer", initialSnapshot: persisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: (snapshot, source) => snapshots.push({ title: snapshot.title, source }), persistPrimary: async () => { throw new Error("peer wrote directly"); } });
+  await settle();
+  const first = peer.submit({ title: "First" });
+  const second = peer.submit({ title: "Second" });
+  await Promise.all([first, second]);
+  await settle();
+  assert.equal(persisted.title, "Second");
+  assert.equal(snapshots.some(item => item.source === "update" && item.title === "First"), false);
+  assert.equal(peer.getConflict(), null);
+  primary.close(); peer.close();
 });

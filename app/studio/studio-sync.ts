@@ -450,8 +450,11 @@ export class StudioSyncSession<T> {
         if (result.conflicts.length) { const error = new Error("Studio changes conflict with another tab."); if (operation.local) { this.openConflict(operation.transaction, result, operation, error.message); break; } this.remember(operation.transaction.transactionId, false, this.revision, error.message); this.sendReject(operation.requestId ?? operation.transaction.transactionId, error.message, result.conflicts); continue; }
         try {
           await this.options.persistPrimary(this.validate(result.snapshot));
-          this.snapshot = this.validate(result.snapshot); this.optimisticSnapshot = this.cloneSnapshot(this.snapshot); this.revision += 1; this.remember(operation.transaction.transactionId, true, this.revision);
-          this.options.onSnapshot(this.snapshot, operation.local ? "commit" : "update");
+          this.snapshot = this.validate(result.snapshot);
+          const hasNewerLocalEdits = operation.local && !equal(this.optimisticSnapshot, this.snapshot);
+          if (!hasNewerLocalEdits) this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
+          this.revision += 1; this.remember(operation.transaction.transactionId, true, this.revision);
+          if (!hasNewerLocalEdits) this.options.onSnapshot(this.snapshot, operation.local ? "commit" : "update");
           this.send({ ...this.base(), kind: "update", updateId: id("update"), revision: this.revision, transaction: operation.transaction });
           if (operation.requestId) this.send({ ...this.base(), kind: "ack", requestId: operation.requestId, revision: this.revision });
           operation.resolve?.();
@@ -478,13 +481,23 @@ export class StudioSyncSession<T> {
     if (message.revision !== this.revision + 1) { this.setStatus("connecting"); this.sendHello(); return; }
     const result = applyStudioTransaction(this.snapshot, message.transaction);
     if (result.conflicts.length) { this.openConflict(message.transaction, result, null, "Studio changes conflict with your local changes."); return; }
-    this.revision = message.revision; this.snapshot = this.validate(result.snapshot); this.optimisticSnapshot = this.cloneSnapshot(this.optimisticSnapshot);
+    this.revision = message.revision; this.snapshot = this.validate(result.snapshot);
+    if (message.transaction.clientId === this.clientId) {
+      // The editor already contains this change, possibly followed by newer
+      // keystrokes. Echoing the committed snapshot would overwrite them.
+      this.refreshBrokerTimer();
+      return;
+    }
     const optimistic = applyStudioTransaction(this.optimisticSnapshot, message.transaction);
-    if (!optimistic.conflicts.length) this.optimisticSnapshot = this.validate(optimistic.snapshot);
-    this.options.onSnapshot(this.snapshot, "update"); this.refreshBrokerTimer();
+    if (!optimistic.conflicts.length) {
+      this.optimisticSnapshot = this.validate(optimistic.snapshot);
+      this.options.onSnapshot(this.optimisticSnapshot, "update");
+    }
+    this.refreshBrokerTimer();
   }
   private receiveReject(message: Extract<StudioSyncMessage, { kind: "reject" }>) {
     const operation = this.pending.get(message.requestId);
+    const unsavedSnapshot = this.cloneSnapshot(this.optimisticSnapshot);
     if (operation) { this.pending.delete(message.requestId); clearTimeout(operation.timer); operation.reject(new Error(message.reason)); }
     this.revision = message.revision;
     this.snapshot = this.validate(message.snapshot);
@@ -492,6 +505,7 @@ export class StudioSyncSession<T> {
     const queued = this.peerQueue.splice(0);
     queued.forEach((pending) => pending.reject(new Error("The previous Studio change could not be saved.")));
     if (message.conflicts.length) {
+      this.optimisticSnapshot = unsavedSnapshot;
       this.openConflict(operation?.transaction ?? { transactionId: message.requestId, clientId: this.clientId, brokerEpoch: this.brokerEpoch, baseRevision: message.revision, changes: [] }, { snapshot: this.snapshot, conflicts: message.conflicts }, operation ?? null, message.reason);
     } else {
       this.options.onSnapshot(this.snapshot, "recovery");
