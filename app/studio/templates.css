@@ -4,7 +4,7 @@
 .template-library-actions { margin: 16px 0; }
 .template-toolbar { padding: 10px 14px; border-bottom: 1px solid #ddd; background: #fff; font: var(--studio-ui-size)/1.5 var(--studio-ui-font); }
 .template-toolbar label { display: flex; gap: 6px; align-items: center; }
-.template-toolbar select, .template-toolbar button, .template-library button, .template-inspector button { min-height: 34px; }
+.template-toolbar select, .template-toolbar button, .template-library button, .template-inspector .inspector-scroll button { min-height: 34px; }
 .template-zoom-control { align-items: center; display: inline-flex; gap: 3px; margin-left: auto; }
 .template-zoom-label { color: var(--muted); margin-right: 3px; }
 .template-zoom-control button { align-items: center; background: #fff; border: 1px solid #d1cfc7; border-radius: 5px; color: var(--ink); cursor: pointer; display: inline-flex; justify-content: center; min-width: 34px; padding: 6px; }
@@ -30,7 +30,7 @@
 .template-empty-state { align-content: center; display: grid; min-height: 100%; place-items: center; text-align: center; }
 .template-inspector .inspector-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .template-inspector input, .template-inspector select, .template-inspector textarea, .template-toolbar select, .template-dialog input, .template-assignment select { border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; }
-.template-inspector button, .template-set-actions button, .template-set-card > button, .template-library-actions > button:not(.button-primary), .template-dialog-actions > button:not(.button-primary) { padding: 7px 11px; border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.template-inspector .inspector-scroll button, .template-set-actions button, .template-set-card > button, .template-library-actions > button:not(.button-primary), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-inspector button:disabled, .template-workspace button:disabled { opacity: .5; cursor: default; }
 .template-workspace :is(input,select,textarea,button):focus-visible, .template-dialog :is(input,button):focus-visible { outline: 2px solid #2457c5; outline-offset: 2px; }
 .template-assignment { padding: 18px; border-bottom: 1px solid #dddbd4; display: grid; gap: 10px; }
