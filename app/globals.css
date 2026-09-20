@@ -585,6 +585,11 @@ button, input, textarea, select { font: inherit; }
   margin: 0 0 32px;
 }
 
+/* Author metadata is now its own block; the old combined byline no longer
+   needs to reserve space beneath it. */
+.metadata-block.article-byline,
+.metadata-block-editor.article-byline { margin-bottom: 0; }
+
 .article-byline strong { font-weight: 550; }
 .article-author-avatar {
   align-items: center;

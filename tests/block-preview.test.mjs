@@ -214,6 +214,7 @@ test("reading time rounds body words consistently across editor and publication"
     const document = { kind: "post", status: "draft", title: "Test", slug: "test", author: "Andrew Moss", updatedAt: "2026-09-08T12:00:00Z", blocks };
     const html = renderToStaticMarkup(createElement(StudioCanvas, { activeDocument: document, previewing: false, wordCount: words, characterCount: 0, linkTargets: [], mediaBlockUrls: {} }));
     assert.ok(html.includes(`Reading Time: ${label}`));
+    assert.doesNotMatch(html, /Calculated from ordinary content/);
     assert.equal(toLocallyPublishedArticle(document).readingTime, label);
   }
   assert.equal(readingTimeMinutes([{ id: "t", type: "table", rows: [[Array(220).fill("word").join(" ")]] }, { id: "i", type: "image", caption: "Caption", alt: "Alternative", src: "" }]), 2);
