@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- Reading Time, Post Author and Post Date as ordinary blocks in the **Other**
+  inserter group. Existing posts migrate once to starter metadata blocks;
+  author and publication date remain editable document fields, and the former
+  fixed `0 Comments` placeholder is no longer rendered.
 - Integrated Templates into the Content Studio workspace beside Pages and
   Posts, with a template-set count badge, in-place library/editor switching and
   one shared ownership and synchronisation session. The standalone template
@@ -246,6 +250,9 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Preserved legacy publication metadata displays, avoided duplicate template
+  metadata for migrated documents using the new blocks, and generated
+  collision-safe IDs during workspace migration.
 - Prevented older cross-tab save acknowledgements from replacing newer local
   edits or reporting queued work as saved; conflict resolution now retains
   unrelated peer fields and keeps failed choices visible for retry.

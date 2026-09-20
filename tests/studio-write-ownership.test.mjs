@@ -57,7 +57,7 @@ async function publicationFixture(raw = null, failWrite = false) {
 test("publication mutations preserve exact unreadable bytes without any write", async () => {
   const fixture = await publicationFixture();
   const article = fixture.publication.toLocallyPublishedArticle(fixture.document);
-  const malformed = ["", "{private broken bytes", "null", "[]", JSON.stringify({ version: 2, posts: [] }),
+  const malformed = ["", "{private broken bytes", "null", "[]", JSON.stringify({ version: 3, posts: [] }),
     JSON.stringify({ version: 1, posts: {} }), JSON.stringify({ version: 1, posts: [null] }),
     JSON.stringify({ version: 1, posts: [{ ...article, publishedAt: "not a date" }] }),
     JSON.stringify({ version: 1, posts: [{ ...article, blocks: [{ id: "bad", type: "paragraph", text: 42 }] }] }),

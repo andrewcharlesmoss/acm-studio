@@ -61,6 +61,16 @@ export type LayoutOptions = {
   stackAt?: LayoutStackAt;
 };
 
+export type DocumentRenderContext = {
+  kind: "page" | "post";
+  author?: string;
+  publishAt?: string;
+  publishedAt?: string;
+};
+
+export type ReadingTimePresentation = "badge" | "plain";
+export type PostDateFormat = "long" | "short" | "iso";
+
 export type ContentBlock = (
   | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; style?: ParagraphStyle }
   | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment }
@@ -74,6 +84,9 @@ export type ContentBlock = (
   | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary" }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
   | { id: string; type: "spacer"; height: number }
+  | { id: string; type: "reading-time"; prefix?: string; presentation?: ReadingTimePresentation; align?: TextAlignment }
+  | { id: string; type: "post-author"; prefix?: string; avatar?: boolean; align?: TextAlignment }
+  | { id: string; type: "post-date"; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment }
   | ({ id: string; type: "section"; role?: SiteSectionRole; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
   | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
   | { id: string; type: "component"; component: SiteComponentName; data?: SiteComponentData; source?: SiteComponentSource; children?: ContentBlock[] }) & { siteRole?: SiteContentRole };
@@ -100,6 +113,7 @@ export type Article = {
   publishedAt: string;
   displayDate: string;
   readingTime: string;
+  author?: string;
   section: "Technology" | "Excel" | "Personal";
   projectSlug?: string;
   blocks: ContentBlock[];

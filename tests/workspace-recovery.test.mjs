@@ -115,7 +115,7 @@ test("a genuinely absent workspace may initialise and save", () => {
   const state = hookHarness(load("app/studio/workspace-repository.ts").browserWorkspaceRepository, load).flush();
   assert.match(state.saveLabel, /Saved locally/);
   assert.equal(localStorage.writes.length, 1);
-  assert.equal(JSON.parse(localStorage.raw()).version, 2);
+  assert.equal(JSON.parse(localStorage.raw()).version, 3);
 });
 
 test("autosave status reports persistence time rather than a stale document timestamp", () => {
@@ -192,8 +192,31 @@ test("authoritative workspace updates clear local undo and redo history", async 
 
 const load = modules();
 const { initialStudioWorkspace } = load("app/studio/editor-model.ts");
+const validation = load("app/studio/workspace-validation.ts");
 const backupStore = load("app/studio/backup-store.ts");
 const validBackup = () => ({ format: "acm-studio-backup", version: 1, exportedAt: "2026-08-31T00:00:00Z", workspace: structuredClone(initialStudioWorkspace), publications: null, media: { folders: [], assets: [] } });
+
+test("workspace v2 migration adds metadata blocks once without changing body IDs", () => {
+  const legacy = structuredClone(initialStudioWorkspace);
+  legacy.version = 2;
+  const post = legacy.documents.find((document) => document.kind === "post");
+  post.blocks = post.blocks.filter((block) => block.id !== "foundation-reading-time" && block.id !== "foundation-post-details");
+  post.blocks[0].id = `${post.id}-reading-time`;
+  post.blocks[1].id = `${post.id}-post-details`;
+  const bodyIds = post.blocks.map((block) => block.id);
+  delete post.author;
+  const migrated = validation.migrateStudioWorkspace(legacy);
+  assert.equal(legacy.version, 2);
+  assert.equal(migrated.version, 3);
+  const nextPost = migrated.documents.find((document) => document.id === post.id);
+  assert.equal(nextPost.author, "Andrew Moss");
+  assert.deepEqual(Array.from(nextPost.blocks.slice(2), (block) => block.id), bodyIds);
+  assert.deepEqual(Array.from(nextPost.blocks.slice(0, 2), (block) => block.type), ["reading-time", "group"]);
+  assert.equal(nextPost.blocks[1].stackAt, "mobile");
+  assert.notEqual(nextPost.blocks[0].id, `${post.id}-reading-time`);
+  assert.notEqual(nextPost.blocks[1].id, `${post.id}-post-details`);
+  assert.equal(JSON.stringify(validation.migrateStudioWorkspace(migrated)), JSON.stringify(migrated));
+});
 
 test("current workspace and publication snapshots round-trip validation", () => {
   const backup = validBackup();

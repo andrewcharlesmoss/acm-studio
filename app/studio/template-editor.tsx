@@ -31,6 +31,10 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   const [insertAfter, setInsertAfter] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
   const blocks = templateEditorBlocks(target.nodes);
+  // Document metadata blocks belong to page/post bodies. Template nodes already
+  // have explicit document-title, subtitle and post-metadata elements, so do
+  // not offer body-owned metadata blocks in this separate target.
+  const templateBlockCatalogue = blockCatalogue.filter(block => !["reading-time", "post-author", "post-date"].includes(block.type));
   const selectedBlock = selected ? findBlockById(blocks, selected) : null;
   const editingProjection = { ...sample, blocks };
   const nodesRef = useRef(target.nodes);
@@ -98,11 +102,11 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   </div>;
   return <StudioEditor writable={writable} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
     target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: <TemplateInspector set={set} target={target} selectedBlock={selectedBlock} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onOpenMedia={logo => onOpenMedia(selectedBlock?.id ?? null, logo)} onEditPart={onEditPart} users={users} /> }}
-    canvas={{ activeDocument: sample, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: blockCatalogue.filter(block => `${block.label} ${block.description}`.toLowerCase().includes(query.toLowerCase())), publishFeedback: null,
+    canvas={{ activeDocument: sample, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: templateBlockCatalogue.filter(block => `${block.label} ${block.description}`.toLowerCase().includes(query.toLowerCase())), publishFeedback: null,
       presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => <TemplateSurface set={set} editing={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>, renderBlock: context => {
         if (!context.block) return null;
         if (!["group", "section"].includes(context.block.type)) return null;
-        return <TemplateNodes key={context.block.id} set={set} document={sample} nodes={templateNodesFromBlocks([context.block])} mediaUrls={mediaUrls} content={<BlockRenderer blocks={sample.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} />} onEditPart={context.mode === "edit" ? onEditPart : undefined}
+        return <TemplateNodes key={context.block.id} set={set} document={sample} nodes={templateNodesFromBlocks([context.block])} mediaUrls={mediaUrls} content={<BlockRenderer blocks={sample.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={sample} />} onEditPart={context.mode === "edit" ? onEditPart : undefined}
           renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
           decorate={context.mode === "edit" ? (node, result) => {
             if (!findBlockById(blocks, node.id)) return result;

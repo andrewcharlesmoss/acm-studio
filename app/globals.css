@@ -567,6 +567,13 @@ button, input, textarea, select { font: inherit; }
   margin: 22px 0 20px;
   padding: 11px 16px;
 }
+.article-reading-time.metadata-block.is-plain { background: transparent; border-radius: 0; display: block; font-weight: inherit; padding: 0; }
+.metadata-block.align-centre, .metadata-block-editor.align-centre { justify-content: center; text-align: center; }
+.metadata-block.align-right, .metadata-block-editor.align-right { justify-content: flex-end; text-align: right; }
+.metadata-block-editor { align-items: center; color: #384151; display: flex; flex-wrap: wrap; font-size: clamp(14px, 1.35vw, 19px); gap: 12px 18px; margin: 10px 0; min-height: 36px; }
+.metadata-block-editor.is-plain { display: block; font-weight: inherit; }
+.metadata-block-editor small { color: var(--muted); display: block; flex-basis: 100%; font-size: var(--studio-ui-size); font-weight: 400; }
+.metadata-missing { color: var(--muted); font-style: italic; }
 
 .article-byline {
   align-items: center;

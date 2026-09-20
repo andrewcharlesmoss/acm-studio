@@ -15,6 +15,7 @@ export type LocallyPublishedArticle = Article & {
   localDocumentId: string;
   mediaIds: string[];
   coverImage?: { src: string; mediaId?: string; alt: string } | null;
+  metadataBlocksVersion?: 2;
 };
 
 type StoredWorkspaceDocument = {
@@ -50,7 +51,7 @@ export function restoreLegacyPublicationCover(article: LocallyPublishedArticle, 
 }
 
 type LocalPublicationStore = {
-  version: 1;
+  version: 2;
   posts: LocallyPublishedArticle[];
 };
 
@@ -66,11 +67,14 @@ export function validatePostForPublication(document: StudioDocument, documents: 
   if (!slug) return "Add a valid post address before publishing.";
   if (reservedSlugs.includes(slug)) return "That post address is already used by an existing article.";
   if (documents.some((item) => item.id !== document.id && item.kind === "post" && normalisePostSlug(item.slug) === slug)) return "Another local post already uses that address.";
-  if (!document.blocks.some((block) => {
+  const hasContent = (blocks: StudioDocument["blocks"]): boolean => blocks.some((block) => {
     if (block.type === "paragraph" || block.type === "heading" || block.type === "quote") return Boolean(block.text.trim());
     if (block.type === "list") return block.items.some((item) => item.trim());
+    if (block.type === "section" || block.type === "group" || block.type === "component") return hasContent(block.children ?? []);
+    if (block.type === "reading-time" || block.type === "post-author" || block.type === "post-date" || block.type === "spacer" || block.type === "divider") return false;
     return true;
-  })) return "Add some post content before publishing.";
+  });
+  if (!hasContent(document.blocks)) return "Add some post content before publishing.";
   return null;
 }
 
@@ -91,6 +95,8 @@ export function toLocallyPublishedArticle(document: StudioDocument, templateSnap
     publishedAt: publishedAt.slice(0, 10),
     displayDate: new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(new Date(publishedAt)),
     readingTime: readingTimeLabel(document.blocks),
+    author: document.author?.trim() || undefined,
+    metadataBlocksVersion: 2,
     section: document.category ?? "Technology",
     blocks: copyTemplateData(document.blocks),
     ...(templateSnapshot ? { templateSnapshot: copyTemplateData(templateSnapshot) } : {}),
@@ -104,7 +110,7 @@ export function parseLocallyPublishedArticles(serialisedPublications: string | n
   try {
     const publications = JSON.parse(serialisedPublications) as LocalPublicationStore;
     validatePublicationSnapshot(publications);
-    if (publications?.version !== 1 || !Array.isArray(publications.posts)) return [];
+    if (![1, 2].includes(publications?.version) || !Array.isArray(publications.posts)) return [];
     return publications.posts.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
   } catch {
     return [];
@@ -136,7 +142,7 @@ export function publishDocumentLocally(document: StudioDocument, template?: Temp
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
   const article = toLocallyPublishedArticle(document, typeof template === "function" ? template() : template);
   const posts = [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId && item.slug !== article.slug)];
-  const store: LocalPublicationStore = { version: 1, posts };
+  const store: LocalPublicationStore = { version: 2, posts };
   validatePublicationSnapshot(store);
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
   return article;
@@ -145,6 +151,6 @@ export function publishDocumentLocally(document: StudioDocument, template?: Temp
 export function unpublishDocumentLocally(documentId: string) {
   studioWriteOwnership.assertWritable();
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
-  const store: LocalPublicationStore = { version: 1, posts: existing.filter((item) => item.localDocumentId !== documentId) };
+  const store: LocalPublicationStore = { version: 2, posts: existing.filter((item) => item.localDocumentId !== documentId) };
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
 }

@@ -12,7 +12,7 @@ export function validateTemplatePackage(value: unknown): TemplatePackage {
   if (!isRecord(value) || value.format !== "acm-studio-template-set" || value.version !== TEMPLATE_VERSION || !Array.isArray(value.media)) throw new Error("This is not a supported template package.");
   const set = validateTemplateSet(value.set);
   // Reuse the backup's byte, base64, metadata and duplicate-ID validation.
-  validateStudioBackup({ format: "acm-studio-backup", version: 1, exportedAt: "2026-01-01T00:00:00Z", workspace: initialStudioWorkspace, publications: null, media: { folders: [], assets: value.media } });
+  validateStudioBackup({ format: "acm-studio-backup", version: 2, exportedAt: "2026-01-01T00:00:00Z", workspace: initialStudioWorkspace, publications: null, media: { folders: [], assets: value.media } });
   const required = templateMediaIds(set);
   const assets = value.media as StudioBackupAsset[];
   if (required.length !== assets.length || required.some(id => !assets.some(a => a.id === id && /^image\/(png|jpeg|webp|gif|avif|svg\+xml|bmp|tiff|x-icon|vnd\.microsoft\.icon)$/.test(a.type)))) throw new Error("The package must include every referenced image and no unrelated files.");

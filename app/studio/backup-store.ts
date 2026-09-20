@@ -4,7 +4,7 @@ import { DESIGN_STORAGE_KEY, validateDesignProject, type DesignProject } from ".
 import { loadDesigns } from "./design-store";
 import type { StudioWorkspace } from "./editor-model";
 import { listMediaLibrary, replaceMediaLibrary, type MediaAsset, type MediaFolder } from "./media-store";
-import { isRecord, validateStudioWorkspace } from "./workspace-validation";
+import { isRecord, migrateStudioWorkspace, validateStudioWorkspace } from "./workspace-validation";
 import { TEMPLATE_STORAGE_KEY, validateTemplateStore, templateMediaIds, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
 import { loadTemplates } from "./template-store";
 
@@ -16,7 +16,7 @@ export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
 
 export type StudioBackup = {
   format: "acm-studio-backup";
-  version: 1;
+  version: 1 | 2;
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
@@ -60,14 +60,15 @@ export function base64ToBlob(dataBase64: string, type: string) {
 }
 
 export function validateStudioBackup(value: unknown): StudioBackup {
-  if (!isRecord(value) || value.format !== "acm-studio-backup" || value.version !== 1) {
+  if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2].includes(value.version as number)) {
     throw new Error("This is not a supported ACM Studio backup.");
   }
   if (typeof value.exportedAt !== "string" || !Number.isFinite(Date.parse(value.exportedAt))) {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
-  validateStudioWorkspace(value.workspace);
-  if (value.templates !== undefined) validateTemplateStore(value.templates, (value.workspace as StudioWorkspace).documents);
+  const workspace = migrateStudioWorkspace(value.workspace);
+  validateStudioWorkspace(workspace);
+  if (value.templates !== undefined) validateTemplateStore(value.templates, workspace.documents);
   if (value.designs !== undefined) {
     if (!Array.isArray(value.designs)) throw new Error("The design collection is invalid.");
     value.designs.forEach(validateDesignProject);
@@ -165,7 +166,7 @@ export async function createStudioBackup(workspace: StudioWorkspace) {
   });
   const backup: StudioBackup = {
     format: "acm-studio-backup",
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),

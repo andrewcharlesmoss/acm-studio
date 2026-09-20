@@ -48,6 +48,24 @@ Preview and local publication emit only empty space with `aria-hidden` output.
 It can be nested, moved, duplicated, removed and restored through editor
 history like any other block.
 
+Document metadata blocks are available in the shared editor's **Other**
+inserter group. Reading Time calculates from the document body at 220 words per
+minute and supports a badge or plain presentation. Post Author reads the
+editable document author and can show initials; Post Date reads the selected
+publication date with long, short or ISO formatting and an optional clock
+icon. These are ordinary removable blocks, not template elements. Their values
+remain visible in the Document inspector even when a block is absent, and a
+missing author or date produces an editor prompt without inventing a Preview
+value. This increment does not add or change template data.
+
+The separate template target intentionally does not offer these body-owned
+metadata blocks in its inserter. Templates continue to use their existing
+document-title, subtitle and post-metadata elements; metadata blocks are
+selected and arranged on page and post documents.
+For compatibility, the legacy post-metadata element keeps its category but
+does not repeat reading time or publication date when the document uses the
+new metadata blocks.
+
 **Add Template Element** inserts identity, navigation, document metadata,
 content or a shared-part reference. Selecting an ordinary group before insertion
 adds the new block or element inside that group. List View supports nested
@@ -98,11 +116,14 @@ integrated route, sets and their Page/Post/Header/Footer entries appear in the
 same library pane as content; selecting an entry opens the editor directly
 without a separate template-library page.
 
-Layout options and Spacer are additive to the existing typed block contract;
-workspace version 2 and template schema v0.1.0 remain compatible. Older saved
-blocks and packages omit the new fields and continue using their existing
-presentation. New fields are validated at workspace, HTML, template, backup,
-restore, package and publication boundaries rather than being discarded.
+Layout options, Spacer and document metadata blocks are additive to the
+existing typed block contract. Workspace data is now version 3, with a reader
+for version 2; local publication snapshots are version 2 and full backups are
+version 2, with readers for their earlier versions. Template packages remain
+schema v0.1.0 and are unchanged by this increment. Older saved blocks and
+packages omit the new fields and continue using their existing presentation.
+New fields are validated at workspace, HTML, backup, restore and publication
+boundaries rather than being discarded.
 
 Portable packages use `format: acm-studio-template-set`, contain one set and all
 referenced managed images as base64, and are limited to 50 MB. Imports validate

@@ -124,6 +124,12 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<hr${attributes} />`;
     case "spacer":
       return `<div${attributes}${classAttribute("studio-spacer")} data-spacer-height="${block.height}" aria-hidden="true"></div>`;
+    case "reading-time":
+      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "Reading Time:")}" data-metadata-presentation="${escapeAttribute(block.presentation ?? "badge")}"></p>`;
+    case "post-author":
+      return `<div${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "By")}" data-metadata-avatar="${block.avatar !== false}"></div>`;
+    case "post-date":
+      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-metadata-icon="${block.showIcon !== false}"></p>`;
     case "button":
       return `<p${attributes}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}">${escapeText(block.label)}</a></p>`;
     case "field":
@@ -255,6 +261,10 @@ function parseElement(element: HTMLElement, original: ContentBlock, originals = 
 function parseElementContent(element: HTMLElement, original: ContentBlock, originals: Map<string, ContentBlock>): HtmlParseResult {
   const id = element.dataset.blockId || original.id;
   const textContent = element.textContent ?? "";
+  const declaredType = element.dataset.blockType;
+  if (declaredType === "reading-time") return { block: { id, type: "reading-time", prefix: element.dataset.metadataPrefix ?? (original.type === "reading-time" ? original.prefix : "Reading Time:"), presentation: element.dataset.metadataPresentation === "plain" ? "plain" : "badge", align: alignmentFromClass(element) ?? (original.type === "reading-time" ? original.align : undefined) } };
+  if (declaredType === "post-author") return { block: { id, type: "post-author", prefix: element.dataset.metadataPrefix ?? (original.type === "post-author" ? original.prefix : "By"), avatar: element.dataset.metadataAvatar !== "false", align: alignmentFromClass(element) ?? (original.type === "post-author" ? original.align : undefined) } };
+  if (declaredType === "post-date") return { block: { id, type: "post-date", format: ["long", "short", "iso"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined) } };
   switch (element.tagName.toLowerCase()) {
     case "p": {
       const link = element.querySelector("a");

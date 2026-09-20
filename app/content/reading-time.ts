@@ -2,7 +2,12 @@ import type { ContentBlock } from "./model";
 
 /** Editorial estimate: 220 words per minute, rounded up to at least one minute. */
 export function readingTimeMinutes(blocks: ContentBlock[]): number {
-  const text = blocks.map((block) => {
+  const words = readingTimeText(blocks).trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 220));
+}
+
+function readingTimeText(blocks: ContentBlock[]): string {
+  return blocks.map((block) => {
     switch (block.type) {
       case "paragraph":
       case "heading": return block.text;
@@ -14,10 +19,14 @@ export function readingTimeMinutes(blocks: ContentBlock[]): number {
       case "embed": return block.title;
       case "image": return block.caption ?? "";
       case "divider": return "";
+      case "reading-time":
+      case "post-author":
+      case "post-date": return "";
+      case "section":
+      case "group":
+      case "component": return readingTimeText(block.children ?? []);
     }
   }).join(" ");
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil(words / 220));
 }
 
 export function readingTimeLabel(blocks: ContentBlock[]): string {

@@ -33,13 +33,21 @@ async function compileModule(url) {
 const { BlockRenderer } = await import(await compileModule(new URL("../app/components/content.tsx", import.meta.url)));
 const { safeImageSource } = await import(await compileModule(new URL("../app/content/rich-text.ts", import.meta.url)));
 const { restoreLegacyPublicationCover, toLocallyPublishedArticle } = await import(await compileModule(new URL("../app/content/local-publishing.ts", import.meta.url)));
-const { formatHtml } = await import(await compileModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url)));
+const { blockToHtml, formatHtml } = await import(await compileModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url)));
 
 test("document HTML formatting keeps meaningful inline and preformatted whitespace", () => {
   const formatted = formatHtml("<p><strong>one</strong> <em>two</em></p><pre><code>one  two\n  three</code></pre><pre>   </pre>");
   assert.match(formatted, /<strong>one<\/strong> <em>two<\/em>/);
   assert.equal(formatted.includes("one  two\n  three"), true);
   assert.equal(formatted.includes("<pre>   </pre>"), true);
+});
+
+test("metadata HTML keeps dynamic block identity and settings", () => {
+  const html = blockToHtml({ id: "date", type: "post-date", format: "iso", showIcon: false, align: "right" });
+  assert.match(html, /data-block-type="post-date"/);
+  assert.match(html, /data-metadata-format="iso"/);
+  assert.match(html, /data-metadata-icon="false"/);
+  assert.match(html, /align-right/);
 });
 
 test("Studio preview preserves block order, semantic content and raw whitespace without editable controls", () => {
@@ -196,17 +204,30 @@ test("reading time rounds body words consistently across editor and publication"
   const { StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
   const { toLocallyPublishedArticle } = await import(await compileModule(new URL("../app/content/local-publishing.ts", import.meta.url)));
   for (const [words, minutes] of [[0, 1], [220, 1], [221, 2], [440, 2], [441, 3]]) {
-    const blocks = [{ id: "p", type: "paragraph", text: Array(words).fill("word").join(" ") }];
+    const blocks = [
+      { id: "reading", type: "reading-time", presentation: "badge" },
+      { id: "p", type: "paragraph", text: Array(words).fill("word").join(" ") },
+    ];
     assert.equal(readingTimeMinutes(blocks), minutes);
     const label = `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
     assert.equal(readingTimeLabel(blocks), label);
-    const document = { kind: "post", status: "draft", title: "Test", slug: "test", updatedAt: "2026-09-08T12:00:00Z", blocks };
+    const document = { kind: "post", status: "draft", title: "Test", slug: "test", author: "Andrew Moss", updatedAt: "2026-09-08T12:00:00Z", blocks };
     const html = renderToStaticMarkup(createElement(StudioCanvas, { activeDocument: document, previewing: false, wordCount: words, characterCount: 0, linkTargets: [], mediaBlockUrls: {} }));
     assert.ok(html.includes(`Reading Time: ${label}`));
     assert.equal(toLocallyPublishedArticle(document).readingTime, label);
   }
   assert.equal(readingTimeMinutes([{ id: "t", type: "table", rows: [[Array(220).fill("word").join(" ")]] }, { id: "i", type: "image", caption: "Caption", alt: "Alternative", src: "" }]), 2);
   assert.equal(readingTimeMinutes([{ id: "i", type: "image", alt: Array(500).fill("word").join(" "), src: "" }]), 1);
+  assert.equal(readingTimeMinutes([
+    { id: "section", type: "section", children: [
+      { id: "group", type: "group", layout: "stack", children: [
+        { id: "p", type: "paragraph", text: Array(220).fill("word").join(" ") },
+        { id: "meta", type: "post-author" },
+      ] },
+      { id: "date", type: "post-date" },
+    ] },
+  ]), 1);
+  assert.equal(readingTimeMinutes([{ id: "group", type: "group", children: [{ id: "p", type: "paragraph", text: Array(221).fill("word").join(" ") }] }]), 2);
 });
 
 test("Studio byline follows the selected publication date and never invents a draft date", async () => {
@@ -218,12 +239,15 @@ test("Studio byline follows the selected publication date and never invents a dr
     [{ publishAt: "invalid" }, "Not yet published"],
   ]) {
     const html = renderToStaticMarkup(createElement(StudioCanvas, {
-      activeDocument: { kind: "post", status: "draft", title: "Date test", blocks: [], ...dates },
+      activeDocument: { kind: "post", status: "draft", title: "Date test", author: "Andrew Moss", blocks: [
+        { id: "reading", type: "reading-time" },
+        { id: "author", type: "post-author" },
+        { id: "date", type: "post-date" },
+      ], ...dates },
       previewing: false, wordCount: 0, characterCount: 0, linkTargets: [], mediaBlockUrls: {},
     }));
-    assert.ok(html.includes(expected));
-    if (expected === "Not yet published") assert.doesNotMatch(html, /<time/);
-    else assert.ok(html.includes(`dateTime="${dates.publishAt ?? dates.publishedAt}"`));
+    if (expected === "Not yet published") { assert.match(html, /Add a publication date in Document settings/); assert.doesNotMatch(html, /<time/); }
+    else { assert.ok(html.includes(expected), `missing ${expected}: ${html}`); assert.ok(html.includes(`dateTime="${dates.publishAt ?? dates.publishedAt}"`)); }
   }
 });
 
@@ -247,14 +271,7 @@ test("Studio modes share heading slots, expose the current mode and omit editing
       assert.match(edit, /aria-pressed="true">Edit<\/button>/);
       assert.match(preview, /aria-pressed="true">Preview<\/button>/);
       assert.match(edit, /<label class="canvas-title-label"/);
-      if (kind === "post") {
-        assert.match(edit, /class="editor-publication-details"/);
-        assert.match(edit, /Reading Time: 1 minute/);
-        assert.match(edit, /Andrew Moss/);
-        assert.match(edit, /0 Comments/);
-      } else {
-        assert.doesNotMatch(edit, /editor-publication-details|Reading Time|Andrew Moss|0 Comments/);
-      }
+      assert.doesNotMatch(edit, /editor-publication-details|Reading Time|Andrew Moss|0 Comments/);
       assert.match(preview, /<h1 class="preview-title">Example title<\/h1>/);
       assert.doesNotMatch(preview, /editor-publication-details/);
       assert.doesNotMatch(preview, /POST DRAFT|PAGE DRAFT|preview-meta|canvas-title-label|canvas-subtitle-label|Preview-only metadata|<textarea/);
@@ -264,4 +281,22 @@ test("Studio modes share heading slots, expose the current mode and omit editing
       if (subtitle) assert.ok(preview.includes(subtitle));
     }
   }
+});
+
+test("document metadata blocks share values between Studio and local rendering", async () => {
+  const { BlockRenderer } = await import(await compileModule(new URL("../app/components/content.tsx", import.meta.url)));
+  const blocks = [
+    { id: "reading", type: "reading-time", prefix: "Read:", presentation: "plain" },
+    { id: "author", type: "post-author", prefix: "Written by", avatar: true },
+    { id: "date", type: "post-date", format: "iso", showIcon: false },
+    { id: "body", type: "paragraph", text: "one two" },
+  ];
+  const document = { kind: "post", author: "Ada Lovelace", publishAt: "2026-09-02T12:00:00Z" };
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio", document }));
+  assert.match(html, /Read: 1 minute/);
+  assert.match(html, /Written by <strong>Ada Lovelace<\/strong>/);
+  assert.match(html, /2026-09-02/);
+  assert.doesNotMatch(html, /0 Comments/);
+  const missing = renderToStaticMarkup(createElement(BlockRenderer, { blocks: blocks.slice(0, 3), variant: "studio", document: { kind: "page" } }));
+  assert.doesNotMatch(missing, /Ada Lovelace|2026-09-02/);
 });

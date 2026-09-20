@@ -2,7 +2,8 @@
 
 import { useCallback, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
 import { BlockRenderer } from "../components/content";
-import { ArticleByline } from "../components/site-shell";
+import { ArticleMetaIcon } from "../components/article-meta-icon";
+import { authorInitials, documentAuthor, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
@@ -10,13 +11,16 @@ import { availableBlockTransforms, transformBlock as transformContentBlock, type
 import { StudioIcon, type StudioIconName } from "./studio-icons";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
 import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
-import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
+import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
 import { createBlock, type StudioDocument, type InsertableBlockType } from "./editor-model";
 import type { StudioPresentation } from "./studio-presentation";
 import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBlock, parseHtmlToBlocks } from "./studio-html-editor";
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
 
 function blockLabel(type: ContentBlock["type"]) {
+  if (type === "reading-time") return "Reading Time";
+  if (type === "post-author") return "Post Author";
+  if (type === "post-date") return "Post Date";
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
@@ -147,7 +151,6 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
     onSetDragOverIndex(null);
   }
   const [appenderValue, setAppenderValue] = useState("");
-  const showPublicationDetails = presentation?.showPublicationDetails ?? activeDocument.kind === "post";
   const allowCoverImage = presentation?.allowCoverImage ?? activeDocument.kind === "post";
   const compose = (content: ReactNode, mode: "edit" | "preview") => presentation?.renderDocument?.({ document: activeDocument, mode, onDocumentFieldChange, onFocusDocumentField }, content) ?? content;
 
@@ -460,7 +463,6 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
           <article className={`document-preview is-${activeDocument.kind}`} style={viewportStyle}>
             {compose(<>
             {presentation?.renderHeader?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} />}
-            {showPublicationDetails ? <p className="article-reading-time">Reading Time: {readingTimeLabel(activeDocument.blocks)}</p> : null}
             {allowCoverImage && showCoverImage ? <div className={`preview-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
               {safeCoverImageUrl ? (
                 // Local browser-managed media cannot be known to Next's image optimiser.
@@ -468,7 +470,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                 <img src={safeCoverImageUrl} alt={activeDocument.coverImage?.alt || ""} />
               ) : null}
             </div> : null}
-            {presentation?.renderBlock ? activeDocument.blocks.map((block) => presentation.renderBlock?.({ document: activeDocument, block, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockRenderer key={block.id} blocks={[block]} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation.hideDividers ?? true} />) : <BlockRenderer blocks={activeDocument.blocks} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation?.hideDividers ?? true} />}
+            {presentation?.renderBlock ? activeDocument.blocks.map((block) => presentation.renderBlock?.({ document: activeDocument, block, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockRenderer key={block.id} blocks={[block]} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation.hideDividers ?? true} document={activeDocument} />) : <BlockRenderer blocks={activeDocument.blocks} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation?.hideDividers ?? true} document={activeDocument} />}
             {presentation?.renderFooter?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
             </>, "preview")}
           </article>
@@ -476,7 +478,6 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
           <div className="block-canvas" style={viewportStyle}>
             {compose(<>
             {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing={false} onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} />}
-            {showPublicationDetails ? <EditorPublicationDetails document={activeDocument} /> : null}
             {allowCoverImage && showCoverImage ? <div className="canvas-cover-wrap">
               <div className={`canvas-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
                 {safeCoverImageUrl ? (
@@ -571,7 +572,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                         {htmlEditor.error ? <p className="html-editor-error" role="alert">{htmlEditor.error}</p> : null}
                         <div className="html-editor-actions"><button type="button" onClick={() => setHtmlEditor(null)}>Cancel</button><button className="html-editor-apply" type="submit">Apply</button></div>
                       </form> : null}
-                      {presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockField block={block} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
+                      {presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
                   </article>
                 </div>
               ))}
@@ -760,21 +761,6 @@ function DocumentHeading({ document, previewing, onChange, onFocus }: {
   );
 }
 
-function EditorPublicationDetails({ document }: { document: StudioDocument }) {
-  const publishedAt = document.publishAt ?? document.publishedAt;
-  const date = publishedAt ? new Date(publishedAt) : null;
-  const validDate = date && !Number.isNaN(date.getTime());
-  const displayDate = validDate
-    ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(date)
-    : "Not yet published";
-  return (
-    <div className="editor-publication-details" aria-label="Publication details preview">
-      <p className="article-reading-time">Reading Time: {readingTimeLabel(document.blocks)}</p>
-      <ArticleByline article={{ publishedAt: validDate ? publishedAt! : "", displayDate }} />
-    </div>
-  );
-}
-
 function LinkPreviewPopover({ editor, onEdit, onRemove }: { editor: LinkEditorState; onEdit: () => void; onRemove: () => void }) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
 
@@ -845,7 +831,7 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
         <header><div><p className="eyebrow">Block library</p><h2 id="inserter-title">Choose a block</h2></div><button type="button" onClick={dismiss} aria-label="Close block library"><StudioIcon name="close" /></button></header>
         <input ref={searchInputRef} type="search" value={inserterQuery} onChange={(event) => onSetQuery(event.target.value)} placeholder="Search blocks" aria-label="Search blocks" />
         <div className="inserter-results">
-          {(["Text", "Media", "Design"] as const).map((group) => {
+          {(["Text", "Media", "Design", "Other"] as const).map((group) => {
             const items = filteredBlocks.filter((item) => item.group === group);
             if (!items.length) return null;
             return <div className="inserter-group" key={group}><h3>{group}</h3><div>{items.map((item) => <button type="button" key={item.type} onClick={() => onInsert(item.type)}><span><BlockTypeIcon type={item.type} /></span><strong>{item.label}</strong><small>{item.description}</small></button>)}</div></div>;
@@ -856,7 +842,8 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
   );
 }
 
-export function BlockField({ block, selectedBlockId, hoveredBlockId, mediaUrl, onTableCellFocus, onTextSelection, onLinkActivate, onChange }: { block: ContentBlock; selectedBlockId?: string | null; hoveredBlockId?: string | null; mediaUrl?: string; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null) => void; onLinkActivate: (selection: TextSelection) => void; onChange: (block: ContentBlock) => void }) {
+export function BlockField({ block, rootBlocks = [block], document, selectedBlockId, hoveredBlockId, mediaUrl, onTableCellFocus, onTextSelection, onLinkActivate, onChange }: { block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; selectedBlockId?: string | null; hoveredBlockId?: string | null; mediaUrl?: string; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null) => void; onLinkActivate: (selection: TextSelection) => void; onChange: (block: ContentBlock) => void }) {
+  const documentContext: DocumentRenderContext = document ?? { kind: "page" };
   if (block.type === "paragraph") return <RichTextEditor id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
   if (block.type === "heading") return <RichTextEditor className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
   if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}`}><RichTextEditor className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
@@ -873,7 +860,10 @@ export function BlockField({ block, selectedBlockId, hoveredBlockId, mediaUrl, o
   if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`}>{block.label}</span></div>;
   if (block.type === "field") return <label className="content-field"><span>{block.label}</span>{block.control === "select" ? <select value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })}>{(block.options?.length ? block.options : [block.value]).map((option) => <option key={option}>{option}</option>)}</select> : <input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} />}</label>;
   if (block.type === "spacer") return <button type="button" className="spacer-field" style={{ height: `${block.height}px` }} data-studio-block-id={block.id} aria-label="Spacer block" />;
-  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onChange({ ...block, children: [...block.children, createBlock("paragraph", `nested-paragraph-${crypto.randomUUID()}`)] })}><StudioIcon name="add" size={16} /> Add nested block</button></Group>; }
+  if (block.type === "reading-time") return <div className={`metadata-block-editor${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`}>{block.presentation !== "plain" ? <span className="reading-time-badge">{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span> : <span>{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span>}<small>Calculated from ordinary content at 220 words per minute.</small></div>;
+  if (block.type === "post-author") { const author = documentAuthor(documentContext); return <div className={`metadata-block-editor article-byline align-${block.align ?? "left"}`}>{author ? <>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></> : <span className="metadata-missing">Add an author in Document settings.</span>}</div>; }
+  if (block.type === "post-date") { const date = formatDocumentDate(documentContext, block.format); return <div className={`metadata-block-editor article-byline-detail align-${block.align ?? "left"}`}>{date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={documentContext.publishAt ?? documentContext.publishedAt}>{date}</time></> : <span className="metadata-missing">Add a publication date in Document settings.</span>}</div>; }
+  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} rootBlocks={rootBlocks} document={document} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onChange({ ...block, children: [...block.children, createBlock("paragraph", `nested-paragraph-${crypto.randomUUID()}`)] })}><StudioIcon name="add" size={16} /> Add nested block</button></Group>; }
   return <div className="divider-field"><span /></div>;
 }
 

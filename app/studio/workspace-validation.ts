@@ -1,5 +1,5 @@
 import type { ContentBlock } from "../content/model";
-import type { StudioWorkspace } from "./editor-model";
+import { createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
 
 const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6], spacer: [4, 320] } as const;
 function validLayoutOptions(value: Record<string, unknown>): boolean {
@@ -28,6 +28,30 @@ const optionalParagraphLength = (value: unknown) => value === undefined || (type
 const optionalParagraphColour = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^)]*\))$/i.test(value));
 const optionalParagraphAnchor = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-z][a-z0-9_-]*$/i.test(value));
 const optionalParagraphClasses = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-z0-9 _-]*$/i.test(value));
+
+function collectBlockIds(blocks: ContentBlock[], ids = new Set<string>()) {
+  for (const block of blocks) {
+    ids.add(block.id);
+    if (block.type === "section" || block.type === "group" || block.type === "component") collectBlockIds(block.children ?? [], ids);
+  }
+  return ids;
+}
+
+function uniqueBlockId(base: string, ids: Set<string>) {
+  let candidate = base;
+  let suffix = 2;
+  while (ids.has(candidate)) candidate = `${base}-${suffix++}`;
+  ids.add(candidate);
+  return candidate;
+}
+
+function withUniqueBlockIds(block: ContentBlock, ids: Set<string>): ContentBlock {
+  const id = uniqueBlockId(block.id, ids);
+  if (block.type === "section" || block.type === "group" || block.type === "component") {
+    return { ...block, id, children: (block.children ?? []).map(child => withUniqueBlockIds(child, ids)) };
+  }
+  return { ...block, id };
+}
 
 function validParagraphStyle(value: unknown) {
   if (value === undefined) return true;
@@ -77,6 +101,10 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.options === undefined || strings(block.options));
       case "divider": return true;
       case "spacer": return typeof block.height === "number" && Number.isFinite(block.height) && block.height >= LAYOUT_VALUE_LIMITS.spacer[0] && block.height <= LAYOUT_VALUE_LIMITS.spacer[1];
+      case "reading-time": return optionalString(block.prefix)
+        && (block.presentation === undefined || ["badge", "plain"].includes(block.presentation as string));
+      case "post-author": return optionalString(block.prefix) && optionalBoolean(block.avatar);
+      case "post-date": return (block.format === undefined || ["long", "short", "iso"].includes(block.format as string)) && optionalBoolean(block.showIcon);
       case "section":
         return ["stack", "row", "columns"].includes(block.layout as string)
           && validLayoutOptions(block)
@@ -108,15 +136,36 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
   return value.every((block) => isRecord(block) && validContentBlock(block, ids, 0));
 }
 
+/** Upgrade a v2 workspace without mutating the saved value in place. */
+export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
+  const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
+  if (!isRecord(value) || ![2, 3].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+  if (migrated.version === 2) {
+    migrated.version = 3;
+    migrated.documents = (migrated.documents as unknown[]).map((candidate) => {
+      if (!isRecord(candidate) || candidate.kind !== "post" || !Array.isArray(candidate.blocks)) return candidate;
+      const blocks = candidate.blocks as ContentBlock[];
+      const starter = createPostStarterBlocks(String(candidate.id));
+      const ids = collectBlockIds(blocks);
+      const metadata = starter.slice(0, 2).map(block => withUniqueBlockIds(block, ids));
+      return { ...candidate, author: typeof candidate.author === "string" ? candidate.author : "Andrew Moss", blocks: [...metadata, ...blocks] };
+    });
+  }
+  return migrated as StudioWorkspace;
+}
+
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || value.version !== 2 || !Array.isArray(value.documents) || !value.documents.length
+  if (!isRecord(value) || ![2, 3].includes(value.version as number) || !Array.isArray(value.documents) || !value.documents.length
     || !value.documents.every(isRecord) || !uniqueIds(value.documents)) return invalid();
   if (typeof value.activeDocumentId !== "string" || !value.documents.some((item) => item.id === value.activeDocumentId)) return invalid();
   for (const document of value.documents) {
     if (!["page", "post"].includes(document.kind as string) || !["draft", "pending", "private", "published"].includes(document.status as string)
       || !["title", "slug", "excerpt", "seoTitle", "seoDescription"].every((field) => typeof document[field] === "string")
       || !date(document.updatedAt) || !strings(document.tags) || !validContentBlocks(document.blocks)
+      || !optionalString(document.author)
+      || (document.metadataBlocksVersion !== undefined && document.metadataBlocksVersion !== 2)
       || ![document.subtitle, document.publishedSlug, document.parentPageId].every(optionalString)
       || (document.publishAt !== undefined && !date(document.publishAt))
       || (document.publishedAt !== undefined && !date(document.publishedAt))
@@ -130,12 +179,14 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
 }
 
 export function validatePublicationSnapshot(value: unknown): void {
-  if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
+  if (!isRecord(value) || ![1, 2].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
   const ids = new Set();
   for (const post of value.posts) {
     if (!isRecord(post) || !["localDocumentId", "slug", "title", "summary", "displayDate", "readingTime"].every((field) => typeof post[field] === "string")
       || !date(post.publishedAt) || !validContentBlocks(post.blocks) || !strings(post.mediaIds)
       || !optionalString(post.subtitle) || !optionalString(post.projectSlug)
+      || !optionalString(post.author)
+      || (post.metadataBlocksVersion !== undefined && post.metadataBlocksVersion !== 2)
       || !["Technology", "Excel", "Personal"].includes(post.section as string) || ids.has(post.localDocumentId)) {
       throw new Error("The published-post snapshot is invalid.");
     }

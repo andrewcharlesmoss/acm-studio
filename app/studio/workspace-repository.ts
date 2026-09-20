@@ -1,7 +1,7 @@
 import { studioWriteOwnership } from "./write-ownership";
 import { LOCAL_WORKSPACE_KEY } from "../content/local-publishing";
 import type { StudioWorkspace } from "./editor-model";
-import { validateStudioWorkspace } from "./workspace-validation";
+import { migrateStudioWorkspace, validateStudioWorkspace } from "./workspace-validation";
 
 export interface WorkspaceRepository {
   load(): StudioWorkspace | null;
@@ -12,7 +12,7 @@ export const browserWorkspaceRepository: WorkspaceRepository = {
   load() {
     const serialised = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
     if (serialised === null) return null;
-    return validateStudioWorkspace(JSON.parse(serialised));
+    return validateStudioWorkspace(migrateStudioWorkspace(JSON.parse(serialised)));
   },
   save(workspace) {
     studioWriteOwnership.assertWritable();

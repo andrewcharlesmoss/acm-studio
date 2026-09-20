@@ -13,6 +13,9 @@ export type StudioDocument = {
   coverImage?: StudioCoverImage | null;
   slug: string;
   excerpt: string;
+  author?: string;
+  /** Set only on a publication projection created after metadata became blocks. */
+  metadataBlocksVersion?: 2;
   status: StudioDocumentStatus;
   /** The date/time selected for the next local publication. */
   publishAt?: string;
@@ -29,7 +32,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2;
+  version: 2 | 3;
   activeDocumentId: string;
   documents: StudioDocument[];
 };
@@ -40,7 +43,7 @@ export const blockCatalogue: Array<{
   type: InsertableBlockType;
   label: string;
   description: string;
-  group: "Text" | "Media" | "Design";
+  group: "Text" | "Media" | "Design" | "Other";
   icon: StudioIconName;
 }> = [
   { type: "group", label: "Group", description: "Combine blocks into a stack, row or columns.", group: "Design", icon: "block" },
@@ -57,12 +60,15 @@ export const blockCatalogue: Array<{
   { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Design", icon: "block" },
   { type: "divider", label: "Divider", description: "Separate two sections.", group: "Design", icon: "separator" },
   { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design", icon: "separator" },
+  { type: "reading-time", label: "Reading Time", description: "Show the calculated reading time for this document.", group: "Other", icon: "block" },
+  { type: "post-author", label: "Post Author", description: "Show the document author when one is set.", group: "Other", icon: "block" },
+  { type: "post-date", label: "Post Date", description: "Show the document publication date.", group: "Other", icon: "block" },
 ];
 
 const fixedDate = "2026-08-20T00:00:00.000Z";
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 2,
+  version: 3,
   activeDocumentId: "page-home",
   documents: [
     {
@@ -113,10 +119,16 @@ export const initialStudioWorkspace: StudioWorkspace = {
       status: "draft",
       updatedAt: fixedDate,
       category: "Technology",
+      author: "Andrew Moss",
       tags: ["CMS", "Building"],
       seoTitle: "Building the publishing foundation",
       seoDescription: "Why Andrew's publishing system begins with structured, portable content.",
       blocks: [
+        { id: "foundation-reading-time", type: "reading-time", prefix: "Reading Time:", presentation: "badge" },
+        { id: "foundation-post-details", type: "group", layout: "row", gap: 16, stackAt: "mobile", children: [
+          { id: "foundation-post-author", type: "post-author", prefix: "By", avatar: true },
+          { id: "foundation-post-date", type: "post-date", format: "long", showIcon: true },
+        ] },
         { id: "foundation-intro", type: "paragraph", text: "The first version should prove the writing and publishing experience before it accumulates integrations and settings." },
         { id: "foundation-heading", type: "heading", level: 2, text: "Start with the content" },
         { id: "foundation-list", type: "list", style: "unordered", items: ["Pages and posts", "Portable content blocks", "A clear live preview"] },
@@ -145,7 +157,21 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "field") return { id, type, control: "text", label: "Label", value: "" };
   if (type === "divider") return { id, type };
   if (type === "spacer") return { id, type, height: 32 };
+  if (type === "reading-time") return { id, type, prefix: "Reading Time:", presentation: "badge" };
+  if (type === "post-author") return { id, type, prefix: "By", avatar: true };
+  if (type === "post-date") return { id, type, format: "long", showIcon: true };
   return { id, type, text: "Start writing here." };
+}
+
+export function createPostStarterBlocks(id: string): ContentBlock[] {
+  return [
+    createBlock("reading-time", `${id}-reading-time`),
+    { id: `${id}-post-details`, type: "group", layout: "row", gap: 16, stackAt: "mobile", children: [
+      createBlock("post-author", `${id}-post-author`),
+      createBlock("post-date", `${id}-post-date`),
+    ] },
+    createBlock("paragraph", `${id}-paragraph-1`),
+  ];
 }
 
 export function createDocument(kind: StudioDocumentKind, id = `${kind}-${Date.now()}`): StudioDocument {
@@ -157,9 +183,10 @@ export function createDocument(kind: StudioDocumentKind, id = `${kind}-${Date.no
     subtitle: "",
     slug: kind === "page" ? "untitled-page" : "untitled-post",
     excerpt: "",
+    author: kind === "post" ? "Andrew Moss" : undefined,
     status: "draft",
     updatedAt: new Date().toISOString(),
-    blocks: [createBlock("paragraph", `${id}-paragraph-1`)],
+    blocks: kind === "post" ? createPostStarterBlocks(id) : [createBlock("paragraph", `${id}-paragraph-1`)],
     category: kind === "post" ? "Technology" : undefined,
     tags: [],
     template: kind === "page" ? "default" : undefined,

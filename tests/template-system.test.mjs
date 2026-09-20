@@ -206,6 +206,10 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   assert.match(html, /I make focused products/); assert.doesNotMatch(html, /Edit Header|template-node-select/);
   const edit = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc, editingDocument: true, onDocumentChange() {}, content: createElement("textarea", { "aria-label": "Canonical body" }) }));
   assert.match(edit, /Canonical body/); assert.match(edit, /Document title/);
+  const post = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents.find(document => document.kind === "post"));
+  const postHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { ...snapshot, templateId: set.templates.find(template => template.kind === "post").id }, document: post }));
+  assert.match(postHtml, /class="template-metadata">Technology<\/p>/);
+  assert.doesNotMatch(postHtml, /template-metadata[^<]*Reading Time|template-metadata[^<]*September/);
 });
 
 test("stale asynchronous imports cannot write after ownership is reacquired", async () => {

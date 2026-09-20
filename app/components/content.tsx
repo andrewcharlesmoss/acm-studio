@@ -1,9 +1,12 @@
 import { Fragment, type ReactNode } from "react";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
-import { normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
+import { normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
+import { authorInitials, documentAuthor, formatDocumentDate } from "../content/document-metadata";
+import { readingTimeLabel } from "../content/reading-time";
+import { ArticleMetaIcon } from "./article-meta-icon";
 import { StudioIcon } from "../studio/studio-icons";
 
 export function StatusPill({ status }: { status: Project["status"] }) {
@@ -45,7 +48,7 @@ export function ArticleRow({ article }: { article: Article }) {
   );
 }
 
-export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean }) {
+export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, document }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext }) {
   const studio = variant === "studio";
   function renderBlock(block: ContentBlock) {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
@@ -102,6 +105,20 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           </p>
         );
         if (block.type === "field") return <label className="content-field" key={block.id}><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled><option>{block.value}</option></select> : <input value={block.value} readOnly />}</label>;
+        if (block.type === "reading-time") {
+          const label = `${block.prefix ?? "Reading Time:"} ${readingTimeLabel(blocks)}`;
+          return <p className={`article-reading-time metadata-block${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`} key={block.id}>{block.presentation !== "plain" ? <span className="reading-time-badge">{label}</span> : label}</p>;
+        }
+        if (block.type === "post-author") {
+          const author = document ? documentAuthor(document) : null;
+          if (!author) return null;
+          return <div className={`article-byline metadata-block align-${block.align ?? "left"}`} key={block.id}>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></div>;
+        }
+        if (block.type === "post-date") {
+          const date = document ? formatDocumentDate(document, block.format) : null;
+          if (!date) return null;
+          return <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={document ? document.publishAt ?? document.publishedAt : undefined}>{date}</time></div>;
+        }
         if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child)}</div>)}</section>;
         if (block.type === "group") return <div className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((child) => renderBlock(child))}</div>;
         if (block.type === "spacer") return <div className="content-spacer" style={{ height: `${block.height}px` }} aria-hidden="true" key={block.id} />;

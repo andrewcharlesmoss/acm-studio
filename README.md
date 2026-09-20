@@ -80,6 +80,8 @@ snapshot boundaries and refresh procedure.
 The existing content editor remains available at `/studio`.
 
 - Gutenberg-style editing for pages and posts
+- Reading Time, Post Author and Post Date blocks under the **Other** inserter
+  group, with document-level metadata controls and shared Edit/Preview/publication rendering
 - Typed, portable content records and structured content blocks
 - Page and post library with create, duplicate and delete actions
 - Searchable block inserter and reorderable editing canvas
@@ -110,6 +112,15 @@ Backups are limited to 100 MB and checked before restoration. If a saved
 workspace cannot be read or has an unsupported structure, Studio preserves
 the original value and disables autosave. Restore a valid backup to resume;
 do not clear browser data if the unreadable value still needs recovery.
+
+Post metadata is editable rather than baked into the document canvas. Existing
+posts are upgraded once to include Reading Time, Post Author and Post Date
+blocks; the underlying author and publication date remain document fields, so
+removing a display block does not lose metadata. Reading time uses 220 words
+per minute, excludes metadata and image alternative text, and counts nested
+ordinary content once. Workspace data is stored at version 3 with readers for
+version 2; local publication snapshots use version 2 and backups use version 2
+with readers for their earlier formats.
 
 The architecture and next decision gate are recorded in
 [`docs/FOUNDATION.md`](docs/FOUNDATION.md).
