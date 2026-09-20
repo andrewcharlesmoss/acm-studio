@@ -557,15 +557,15 @@ button, input, textarea, select { font: inherit; }
 }
 
 .article-reading-time {
-  background: #f1f1f1;
-  border-radius: 17px;
+  background: transparent;
+  border-radius: 0;
   color: #2f3440;
   display: inline-flex;
-  font-size: clamp(15px, 1.45vw, 22px);
-  font-weight: 650;
+  font-size: 16px;
+  font-weight: 400;
   line-height: 1.15;
   margin: 22px 0 20px;
-  padding: 11px 16px;
+  padding: 0;
 }
 .article-reading-time.metadata-block.is-plain { background: transparent; border-radius: 0; display: block; font-weight: inherit; padding: 0; }
 .metadata-block.align-centre, .metadata-block-editor.align-centre { justify-content: center; text-align: center; }
@@ -580,7 +580,7 @@ button, input, textarea, select { font: inherit; }
   color: #384151;
   display: flex;
   flex-wrap: wrap;
-  font-size: clamp(14px, 1.35vw, 19px);
+  font-size: 16px;
   gap: 14px 18px;
   margin: 0 0 32px;
 }
@@ -589,6 +589,8 @@ button, input, textarea, select { font: inherit; }
    needs to reserve space beneath it. */
 .metadata-block.article-byline,
 .metadata-block-editor.article-byline { margin-bottom: 0; }
+.metadata-block-editor.article-byline,
+.metadata-block-editor.article-byline-detail { font-size: 16px; }
 
 .article-byline strong { font-weight: 550; }
 .article-author-avatar {
