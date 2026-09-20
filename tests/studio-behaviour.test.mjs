@@ -1130,6 +1130,14 @@ test("list items continue from Return without a permanent Add item control", () 
   assert.doesNotMatch(css, /\.list-item-add\s*\{/);
 });
 
+test("Backspace removes an empty list item and keeps text editing intact", () => {
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
+  assert.match(listField, /event\.key === "Backspace" && !event\.shiftKey && item\.length === 0 && items\.length > 1/);
+  assert.match(listField, /event\.preventDefault\(\); removeItem\(index, index - 1\)/);
+  assert.match(listField, /focusItem\(Math\.min\(Math\.max\(focusIndex, 0\)/);
+});
+
 
 test("full document counts sit beside Code and collapse before crowding the toolbar", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");

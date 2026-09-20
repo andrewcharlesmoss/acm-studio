@@ -1145,25 +1145,29 @@ function ListField({ block, onChange }: { block: Extract<ContentBlock, { type: "
     nextItems[index] = value;
     onChange({ ...block, items: nextItems });
   }
-  function removeItem(index: number) {
+  function focusItem(index: number) {
+    requestAnimationFrame(() => {
+      const kind = block.style === "ordered" ? "Numbered" : "Bulleted";
+      listRef.current?.querySelector<HTMLTextAreaElement>(`textarea[aria-label="${kind} list item ${index + 1}"]`)?.focus();
+    });
+  }
+  function removeItem(index: number, focusIndex?: number) {
     const nextItems = items.filter((_, itemIndex) => itemIndex !== index);
     onChange({ ...block, items: nextItems.length ? nextItems : [""] });
+    if (focusIndex !== undefined) focusItem(Math.min(Math.max(focusIndex, 0), Math.max(nextItems.length - 1, 0)));
   }
   function insertItem(index: number) {
     const nextItems = [...items];
     nextItems.splice(index + 1, 0, "");
     onChange({ ...block, items: nextItems });
-    requestAnimationFrame(() => {
-      const kind = block.style === "ordered" ? "Numbered" : "Bulleted";
-      listRef.current?.querySelector<HTMLTextAreaElement>(`textarea[aria-label="${kind} list item ${index + 2}"]`)?.focus();
-    });
+    focusItem(index + 1);
   }
   return (
     <div ref={listRef} className={`list-field-editor is-${block.style}`}>
       {items.map((item, index) => (
         <div className="list-field-row" key={`${block.id}-item-${index}`}>
           <span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${index + 1}.` : "•"}</span>
-          <AutoResizeTextarea value={item} onChange={(event) => updateItem(index, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); insertItem(index); } }} aria-label={`${block.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}`} placeholder="List item" />
+          <AutoResizeTextarea value={item} onChange={(event) => updateItem(index, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); insertItem(index); } else if (event.key === "Backspace" && !event.shiftKey && item.length === 0 && items.length > 1) { event.preventDefault(); removeItem(index, index - 1); } }} aria-label={`${block.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}`} placeholder="List item" />
           <button className="list-item-remove" type="button" onClick={() => removeItem(index)} aria-label={`Remove list item ${index + 1}`}><StudioIcon name="close" size={16} /></button>
         </div>
       ))}

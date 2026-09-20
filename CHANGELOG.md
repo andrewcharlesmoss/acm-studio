@@ -257,7 +257,8 @@
 ### Fixed
 - List editing now creates and focuses the next item on Return, with ordered
   lists numbering it automatically; the permanent canvas Add item control has
-  been removed while Shift+Return remains available for line breaks.
+  been removed while Shift+Return remains available for line breaks. Backspace
+  removes an empty item and returns focus to the previous item.
 - Standardised compact top-level block spacing at 20px across Edit and Preview,
   while keeping intentional cover and nested-layout spacing unchanged.
 - "Use My Change" now applies the chosen edit against the latest saved
