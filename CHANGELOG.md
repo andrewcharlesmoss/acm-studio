@@ -257,6 +257,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Command+S on macOS and Ctrl+S on Windows/Linux now perform the active
+  post's Update action instead of opening the browser Save Page dialogue.
 - Text alignment controls now use neutral grey selected and hover states with
   matching dark text instead of blue emphasis.
 - The main Add block control now uses the black primary button treatment.

@@ -1165,6 +1165,12 @@ test("text alignment controls use neutral selected states", () => {
   assert.match(css, /\.canvas-format-actions \.alignment-button\.is-active \{ background: #f0f0f0; color: #1e1e1e; \}/);
 });
 
+test("Command or Control-S publishes the active post like Update", () => {
+  const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  assert.match(prototype, /event\.key\.toLowerCase\(\) === "s" && studioSection === "content" && activeDocument\.kind === "post"/);
+  assert.match(prototype, /event\.preventDefault\(\);\s*publishing\.publish\(\);/);
+});
+
 
 test("full document counts sit beside Code and collapse before crowding the toolbar", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");

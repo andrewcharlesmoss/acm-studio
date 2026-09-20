@@ -299,14 +299,14 @@ export function StudioPrototype() {
         }
         return;
       }
-      if (event.key.toLowerCase() === "s") {
+      if (event.key.toLowerCase() === "s" && studioSection === "content" && activeDocument.kind === "post") {
         event.preventDefault();
-        // Persistence reports its own result; a shortcut cannot prove a save.
+        publishing.publish();
       }
     }
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  });
+  }, [activeDocument.kind, publishing, studioSection]);
 
   if (!activeDocument) return null;
   return (
