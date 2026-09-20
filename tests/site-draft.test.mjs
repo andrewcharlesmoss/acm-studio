@@ -82,6 +82,12 @@ test("Mini Golf staging is the primary working copy while production stays a ref
   assert.match(editor, /Production remains separate until an explicit synchronisation is reviewed/);
 });
 
+test("the dashboard exposes the Design canvas alongside the working tools", () => {
+  const dashboard = readFileSync(new URL("../app/studio/studio-dashboard.tsx", import.meta.url), "utf8");
+  assert.match(dashboard, /href="\/studio\/designs"/);
+  assert.match(dashboard, /<strong>Design canvas<\/strong>/);
+});
+
 test("the inherited page retains the real scorecard and styles without executable scripts", () => {
   const html = readFileSync(new URL("../public/site-previews/mini-golf-scorecard.html", import.meta.url), "utf8");
   assert.match(html, /class="panel score-panel"/);

@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Added Design canvas to the home dashboard's Working Tools alongside the
+  other Studio authoring tools.
 - Unified the Document/Block/Styles inspector for pages, posts and templates.
   Added inspectable Template Default/Document Override states for Author,
   Category and Tags, display-usage reporting, New from Template and Save as
