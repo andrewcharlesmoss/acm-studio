@@ -1136,6 +1136,9 @@ test("Backspace removes an empty list item and keeps text editing intact", () =>
   assert.match(listField, /event\.key === "Backspace" && !event\.shiftKey && item\.length === 0 && items\.length > 1/);
   assert.match(listField, /event\.preventDefault\(\); removeItem\(index, index - 1\)/);
   assert.match(listField, /focusItem\(Math\.min\(Math\.max\(focusIndex, 0\)/);
+  assert.doesNotMatch(listField, /list-item-remove/);
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.doesNotMatch(css, /\.list-field-row textarea:focus\s*\{/);
 });
 
 

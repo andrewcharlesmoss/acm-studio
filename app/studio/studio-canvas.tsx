@@ -1168,7 +1168,6 @@ function ListField({ block, onChange }: { block: Extract<ContentBlock, { type: "
         <div className="list-field-row" key={`${block.id}-item-${index}`}>
           <span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${index + 1}.` : "•"}</span>
           <AutoResizeTextarea value={item} onChange={(event) => updateItem(index, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); insertItem(index); } else if (event.key === "Backspace" && !event.shiftKey && item.length === 0 && items.length > 1) { event.preventDefault(); removeItem(index, index - 1); } }} aria-label={`${block.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}`} placeholder="List item" />
-          <button className="list-item-remove" type="button" onClick={() => removeItem(index)} aria-label={`Remove list item ${index + 1}`}><StudioIcon name="close" size={16} /></button>
         </div>
       ))}
     </div>
