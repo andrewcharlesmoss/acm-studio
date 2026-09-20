@@ -345,7 +345,10 @@ test("between-block inserters stay in the reserved gap without margin collapse",
   assert.match(css, /\.block-position \{ display: flow-root; position: relative; \}/);
   assert.match(css, /\.block-position \+ \.block-position \.canvas-block \{ margin-top: 30px; \}/);
   assert.match(css, /\.block-position \+ \.block-position \.drop-indicator \{ top: 13px; \}/);
-  assert.match(canvas, /<div className="block-position" key=\{block\.id\}[\s\S]*?onDragOver=\{\(event\) => \{ event\.preventDefault\(\); onSetDragOverIndex\(draggingIndexRef\.current === index \? null : index\); \}\}/);
+  assert.match(canvas, /function dragInsertionIndex\(event: DragEvent<HTMLDivElement>, index: number\)/);
+  assert.match(canvas, /const target = insertionIndex > from \? insertionIndex - 1 : insertionIndex/);
+  assert.match(canvas, /onDragOver=\{\(event\) => handleBlockDragOver\(event, index\)\}/);
+  assert.match(css, /\.drop-indicator\.is-after \{ bottom: -2px; top: auto; \}/);
   assert.match(css, /\.cover-inserter-position \{ height: 30px; position: relative; \}/);
   assert.match(css, /\.cover-inserter-position \.between-blocks \{ top: 0; \}/);
 });

@@ -545,6 +545,7 @@
 .block-position { display: flow-root; position: relative; }
 .drop-indicator { background: var(--accent); border-radius: 999px; height: 3px; left: -14px; pointer-events: none; position: absolute; right: -14px; top: -2px; z-index: 5; }
 .block-position + .block-position .drop-indicator { top: 13px; }
+.drop-indicator.is-after { bottom: -2px; top: auto; }
 .between-blocks { align-items: center; background: transparent; border: 0; border-radius: 0; color: transparent; cursor: pointer; display: flex; height: 30px; justify-content: center; left: 0; opacity: 0; padding: 0; position: absolute; top: 0; transition: opacity .15s; width: 100%; z-index: 3; }
 .between-blocks::before { background: var(--accent); border-radius: 999px; content: ""; height: 3px; left: 0; position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
 .between-blocks > span { align-items: center; background: var(--accent); border: 3px solid var(--paper); border-radius: 5px; box-sizing: border-box; color: white; display: inline-flex; font-size: 20px; height: 30px; justify-content: center; line-height: 1; position: relative; width: 30px; }

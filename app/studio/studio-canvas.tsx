@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState, type FormEvent, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
 import { BlockRenderer } from "../components/content";
 import { ArticleByline } from "../components/site-shell";
 import { readingTimeLabel } from "../content/reading-time";
@@ -123,6 +123,29 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
   const [tableCellSelections, setTableCellSelections] = useState<Record<string, TableCell>>({});
   const [appenderActive, setAppenderActive] = useState(false);
+  function dragInsertionIndex(event: DragEvent<HTMLDivElement>, index: number) {
+    const block = event.currentTarget.querySelector<HTMLElement>(".canvas-block");
+    if (!block) return index;
+    const bounds = block.getBoundingClientRect();
+    return event.clientY < bounds.top + bounds.height / 2 ? index : index + 1;
+  }
+  function handleBlockDragOver(event: DragEvent<HTMLDivElement>, index: number) {
+    event.preventDefault();
+    const from = draggingIndexRef.current;
+    const insertionIndex = dragInsertionIndex(event, index);
+    onSetDragOverIndex(from === null || insertionIndex === from || insertionIndex === from + 1 ? null : insertionIndex);
+  }
+  function handleBlockDrop(event: DragEvent<HTMLDivElement>, index: number) {
+    event.preventDefault();
+    const from = draggingIndexRef.current;
+    if (from !== null) {
+      const insertionIndex = dragInsertionIndex(event, index);
+      const target = insertionIndex > from ? insertionIndex - 1 : insertionIndex;
+      onMoveBlockTo(from, target);
+    }
+    draggingIndexRef.current = null;
+    onSetDragOverIndex(null);
+  }
   const [appenderValue, setAppenderValue] = useState("");
   const showPublicationDetails = presentation?.showPublicationDetails ?? activeDocument.kind === "post";
   const allowCoverImage = presentation?.allowCoverImage ?? activeDocument.kind === "post";
@@ -476,10 +499,10 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
               {allowCoverImage && showCoverImage ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" onClick={() => openInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
               {activeDocument.blocks.map((block, index) => (
                 <div className="block-position" key={block.id}
-                  onDragOver={(event) => { event.preventDefault(); onSetDragOverIndex(draggingIndexRef.current === index ? null : index); }}
-                  onDrop={(event) => { event.preventDefault(); if (draggingIndexRef.current !== null) onMoveBlockTo(draggingIndexRef.current, index); draggingIndexRef.current = null; onSetDragOverIndex(null); }}
+                  onDragOver={(event) => handleBlockDragOver(event, index)}
+                  onDrop={(event) => handleBlockDrop(event, index)}
                 >
-                  {dragOverIndex === index ? <div className="drop-indicator" aria-hidden="true" /> : null}
+                  {dragOverIndex === index || (index === activeDocument.blocks.length - 1 && dragOverIndex === index + 1) ? <div className={`drop-indicator${dragOverIndex === index + 1 ? " is-after" : ""}`} aria-hidden="true" /> : null}
                   {index > 0 ? <button className="between-blocks" type="button" onClick={() => openInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
                   <article
                     className={`canvas-block is-${block.type}${selectedBlockId === block.id ? " is-selected" : ""}`}
