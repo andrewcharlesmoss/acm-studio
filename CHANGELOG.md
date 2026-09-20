@@ -255,6 +255,9 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- "Use My Change" now applies the chosen edit against the latest saved
+  workspace, preserves unrelated tab edits and updates the canvas after saving.
+  Other tabs no longer mistake a broadcast rejection for their own conflict.
 - Studio no longer treats a block insertion or deletion as a competing reorder.
   Choosing the local order retains unrelated blocks from the other tab;
   unsafe nested conflicts remain visible instead of losing edits silently.

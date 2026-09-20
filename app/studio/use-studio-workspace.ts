@@ -267,10 +267,10 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   }
 
   async function resolveSyncConflict(choice: "mine" | "theirs") {
-    const session = syncRef.current;
-    if (!session) throw new Error("Studio synchronisation is unavailable.");
     setSyncResolutionError(null);
     try {
+      const session = syncRef.current;
+      if (!session) throw new Error("Studio synchronisation is unavailable. Keep this tab open and try again.");
       await session.resolveConflict(choice);
       pendingConflictRef.current = null;
       setSyncConflict(null);

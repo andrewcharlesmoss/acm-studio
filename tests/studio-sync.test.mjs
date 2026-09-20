@@ -60,7 +60,11 @@ function outOfOrderChannelBus() {
       close() { room.delete(listeners); listeners.clear(); },
     };
   };
-  return { factory, releaseReverse() { delayed.splice(0).reverse().forEach((deliver) => deliver()); } };
+  return {
+    factory,
+    releaseInOrder() { delayed.splice(0).forEach((deliver) => deliver()); },
+    releaseReverse() { delayed.splice(0).reverse().forEach((deliver) => deliver()); },
+  };
 }
 
 async function settle() { for (let index = 0; index < 10; index += 1) await Promise.resolve(); }
@@ -358,18 +362,58 @@ test("a failed conflict resolution retains the unsaved choice for a retry", asyn
 
 test("choosing a local conflicting field preserves unrelated peer changes", async () => {
   const sync = load("app/studio/studio-sync.ts");
+  const transport = outOfOrderChannelBus();
+  let persisted = { title: "Initial", subtitle: "Initial", summary: "Initial" };
+  const displayed = [];
+  const otherDisplayed = [];
+  const primary = sync.createStudioSync({ scope: "field-resolution", storeKey: "workspace", clientId: "primary", initialSnapshot: persisted, role: "primary", channelFactory: transport.factory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { persisted = next; } });
+  const other = sync.createStudioSync({ scope: "field-resolution", storeKey: "workspace", clientId: "other", initialSnapshot: persisted, role: "peer", channelFactory: transport.factory, validateSnapshot: value => value, onSnapshot: value => otherDisplayed.push(value), persistPrimary: async () => {} });
+  const mine = sync.createStudioSync({ scope: "field-resolution", storeKey: "workspace", clientId: "mine", initialSnapshot: persisted, role: "peer", channelFactory: transport.factory, validateSnapshot: value => value, onSnapshot: value => displayed.push(value), persistPrimary: async () => {} });
+  try {
+    await settle();
+    await other.submit({ title: "Other", subtitle: "Their subtitle", summary: "Initial" });
+    await assert.rejects(mine.submit({ title: "Mine", subtitle: "Initial", summary: "Initial" }), /conflict/);
+    assert.deepEqual(mine.getConflict().localSnapshot, { title: "Mine", subtitle: "Initial", summary: "Initial" });
+    await primary.commitPrimary({ title: "Newest", subtitle: "Their subtitle", summary: "Latest" });
+    await mine.resolveConflict("mine");
+    assert.equal(persisted.title, "Mine");
+    assert.equal(persisted.subtitle, "Their subtitle");
+    assert.equal(persisted.summary, "Latest");
+    assert.deepEqual(displayed.at(-1), persisted, "the editor must receive the merged snapshot before autosave resumes");
+    transport.releaseInOrder();
+    await settle();
+    assert.deepEqual(otherDisplayed.at(-1), persisted, "another tab must converge on the saved resolution");
+    assert.equal(other.getConflict(), null);
+  } finally {
+    primary.close(); other.close(); mine.close();
+  }
+});
+
+test("the owner resolves a queued local conflict from the saved snapshot", async () => {
+  const sync = load("app/studio/studio-sync.ts");
   const channelFactory = channelBus();
-  let persisted = { title: "Initial", subtitle: "Initial" };
-  const primary = sync.createStudioSync({ scope: "field-resolution", storeKey: "workspace", clientId: "primary", initialSnapshot: persisted, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { persisted = next; } });
-  const other = sync.createStudioSync({ scope: "field-resolution", storeKey: "workspace", clientId: "other", initialSnapshot: persisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
-  const mine = sync.createStudioSync({ scope: "field-resolution", storeKey: "workspace", clientId: "mine", initialSnapshot: persisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
-  await settle();
-  await Promise.allSettled([other.submit({ title: "Other", subtitle: "Their subtitle" }), mine.submit({ title: "Mine", subtitle: "Initial" })]);
-  assert.equal(mine.getConflict().localSnapshot.title, "Mine");
-  await mine.resolveConflict("mine");
-  assert.equal(persisted.title, "Mine");
-  assert.equal(persisted.subtitle, "Their subtitle");
-  primary.close(); other.close(); mine.close();
+  let persisted = { title: "Initial" };
+  let releaseSave;
+  let signalSaving;
+  const saving = new Promise(resolve => { signalSaving = resolve; });
+  const pausedSave = new Promise(resolve => { releaseSave = resolve; });
+  const primary = sync.createStudioSync({ scope: "owner-resolution", storeKey: "workspace", clientId: "primary", initialSnapshot: persisted, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { if (next.title === "Other") { signalSaving(); await pausedSave; } persisted = next; } });
+  const peer = sync.createStudioSync({ scope: "owner-resolution", storeKey: "workspace", clientId: "peer", initialSnapshot: persisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  try {
+    await settle();
+    const remote = peer.submit({ title: "Other" });
+    await saving;
+    const local = primary.commitPrimary({ title: "Mine" });
+    releaseSave();
+    await remote;
+    await assert.rejects(local, /conflict/);
+    assert.deepEqual(primary.getConflict().remoteSnapshot, { title: "Other" });
+    await primary.resolveConflict("mine");
+    assert.equal(persisted.title, "Mine");
+  } finally {
+    releaseSave();
+    primary.close(); peer.close();
+  }
 });
 
 test("local resolution of a concurrent reorder and deletion retains both surviving edits", async () => {
