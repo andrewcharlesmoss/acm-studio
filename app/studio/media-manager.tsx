@@ -608,14 +608,14 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
                   if (event.key === "Enter") { event.preventDefault(); openFolder(folder); }
                   if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) { event.preventDefault(); const rect = event.currentTarget.getBoundingClientRect(); showFolderMenu(folder, event.currentTarget, rect.left, rect.bottom); }
                 }}>
-                  <span className="folder-glyph" style={{ color: folder.colour }}><StudioIcon name="folder" size={64} /></span><strong className={inlineRename?.id === folder.id ? "media-card-name is-renaming" : "media-card-name"}>{folder.name}</strong><small>Folder</small>
+                  <span className="folder-glyph" style={{ color: folder.colour }}><StudioIcon name="folder" size={64} /></span><span className="media-card-copy"><strong className={inlineRename?.id === folder.id ? "media-card-name is-renaming" : "media-card-name"}>{folder.name}</strong><small>Folder</small></span>
                 </button>
                 {inlineRename?.id === folder.id ? inlineNameEditor : null}
                 <button className="media-folder-menu-toggle" type="button" aria-label={`Actions for ${folder.name}`} aria-haspopup="menu" aria-expanded={folderMenu?.id === folder.id} onClick={(event) => { if (folderMenu?.kind === "folder" && folderMenu.id === folder.id) { closeFolderMenu(); return; } const rect = event.currentTarget.getBoundingClientRect(); showFolderMenu(folder, event.currentTarget, rect.left, rect.bottom); }}><StudioIcon className="media-card-menu-icon" name="more-vertical" size={20} /></button>
               </div>
             ))}
             {visibleAssets.map((asset) => (
-              <div className="media-file-entry" key={asset.id}>
+              <div className={`media-file-entry${designLinks[asset.id] ? " has-source-design" : ""}`} key={asset.id}>
               <button className={`media-file-card${selectedAssetId === asset.id ? " is-selected" : ""}`} draggable={canMutate && !inlineRename} onDragStart={(event) => startMediaDrag(event, asset.id, "file")} onDragEnd={endMediaDrag} type="button" aria-haspopup="menu" aria-expanded={folderMenu?.id === asset.id} onContextMenu={(event) => { event.preventDefault(); showFileMenu(asset, event.currentTarget, event.clientX, event.clientY); }} onKeyDown={(event) => {
                 if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) { event.preventDefault(); const rect = event.currentTarget.getBoundingClientRect(); showFileMenu(asset, event.currentTarget, rect.left, rect.bottom); }
               }} onDoubleClick={(event) => openImagePreview(asset, event.currentTarget)} onClick={() => { setSelectedAssetId(asset.id); setSelectedFolderId(null); }}>

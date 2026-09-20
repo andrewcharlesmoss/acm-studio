@@ -1223,6 +1223,8 @@ test("media folders use a folder silhouette, hoverable colour choices and aligne
   const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
   assert.match(css, /\.media-entries.is-list \.folder-glyph \{[^}]*height: 44px;[^}]*margin: 0; width: 46px/);
   assert.match(css, /\.media-entries.is-list \.media-thumbnail \{ height: 44px; width: 46px/);
+  assert.match(manager, /<span className="folder-glyph"[\s\S]*<span className="media-card-copy"><strong className=\{inlineRename\?\.id === folder\.id/);
+  assert.match(css, /\.media-entries.is-grid \.media-folder-card \{ align-content: start; grid-template-rows: 105px min-content; padding: 0; \}/);
 });
 
 
@@ -1392,10 +1394,9 @@ test("folder cards retain keyboard opening and concise Folder metadata", () => {
 test("grid folder labels align with file thumbnail and copy spacing", () => {
   const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
   assert.match(css, /\.media-thumbnail \{[^}]*height: 105px/);
-  assert.match(css, /\.media-entries.is-grid \.media-folder-card \{[^}]*grid-template-rows: 105px min-content min-content; padding: 0/);
+  assert.match(css, /\.media-entries.is-grid \.media-folder-card \{[^}]*grid-template-rows: 105px min-content; padding: 0/);
   assert.match(css, /\.media-card-copy \{ display: grid; padding: 9px/);
-  assert.match(css, /\.media-entries.is-grid \.media-folder-card strong \{ margin: 9px 9px 0/);
-  assert.match(css, /\.media-entries.is-grid \.media-folder-card small \{ margin: 3px 9px 9px/);
+  assert.match(css, /\.media-entries.is-grid \.media-folder-card \.media-card-copy \{ padding: 9px/);
   assert.match(css, /\.media-entries.is-list \.folder-glyph \{[^}]*height: 44px/);
 });
 
@@ -1403,7 +1404,7 @@ test("grid folder labels align with file thumbnail and copy spacing", () => {
 test("grid folders use larger icons without changing their track or list icons", () => {
   const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
   assert.match(css, /\.media-entries.is-grid \.media-folder-card \.folder-glyph svg \{ height: 88px; transform: translateY\(16px\); width: 88px/);
-  assert.match(css, /grid-template-rows: 105px min-content min-content/);
+  assert.match(css, /grid-template-rows: 105px min-content/);
   assert.match(css, /\.media-entries.is-list \.folder-glyph svg \{ height: 26px; width: 26px/);
 });
 
@@ -1426,13 +1427,16 @@ test("list file names shrink and reserve space for their overflow control", () =
   const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
   assert.match(css, /\.media-entries.is-list \.media-folder-card, \.media-entries.is-list \.media-file-card \{ padding-right: 40px/);
   assert.match(css, /\.media-entries.is-list \.media-file-card, \.media-entries.is-list \.media-folder-card \{[^}]*grid-template-columns: 46px minmax\(0, 1fr\)/);
+  assert.match(css, /\.media-entries.is-list \.media-file-entry \{ min-height: 54px; \}/);
+  assert.match(css, /\.media-entries.is-list \.media-file-entry\.has-source-design \.media-file-card \{ padding-right: 150px; \}/);
+  assert.match(css, /\.media-entries.is-list \.media-file-entry \.media-source-design-link \{ align-items: center; display: flex; height: 100%;/);
 });
 
 
 test("grid folder icons sit lower without moving labels or list icons", () => {
   const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
   assert.match(css, /\.media-entries.is-grid \.media-folder-card \.folder-glyph svg \{ height: 88px; transform: translateY\(16px\); width: 88px/);
-  assert.match(css, /grid-template-rows: 105px min-content min-content/);
+  assert.match(css, /grid-template-rows: 105px min-content/);
   assert.match(css, /\.media-entries.is-list \.folder-glyph svg \{ height: 26px; width: 26px; \}/);
 });
 

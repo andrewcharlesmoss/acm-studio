@@ -44,6 +44,9 @@
 .media-entries.is-list .media-thumbnail { height: 44px; width: 46px; }
 .media-entries.is-list .folder-glyph { align-self: center; grid-row: 1 / 3; height: 44px; justify-self: center; margin: 0; width: 46px; }
 .media-entries.is-list .folder-glyph svg { height: 26px; width: 26px; }
+.media-entries.is-list .media-file-entry { min-height: 54px; }
+.media-entries.is-list .media-file-entry.has-source-design .media-file-card { padding-right: 150px; }
+.media-entries.is-list .media-file-entry .media-source-design-link { align-items: center; display: flex; height: 100%; max-width: 140px; overflow: hidden; padding: 0 40px 0 8px; position: absolute; right: 0; top: 0; white-space: nowrap; }
 .media-empty { align-items: center; color: var(--muted); display: flex; flex-direction: column; justify-content: center; min-height: 360px; text-align: center; }
 .media-empty > span { align-items: center; display: inline-flex; justify-content: center; }
 .media-empty > span svg { height: 34px; width: 34px; }
@@ -139,10 +142,9 @@
 .media-breadcrumbs button.is-invalid-drop { background: #fff0f0; border-radius: 3px; outline: 2px solid #cc1818; }
 
 /* Match the file thumbnail track and its 9px text inset in grid view. */
-.media-entries.is-grid .media-folder-card { align-content: start; grid-template-rows: 105px min-content min-content; padding: 0; }
+.media-entries.is-grid .media-folder-card { align-content: start; grid-template-rows: 105px min-content; padding: 0; }
 .media-entries.is-grid .media-folder-card .folder-glyph { align-self: center; justify-self: center; }
 .media-entries.is-grid .media-folder-card .folder-glyph svg { height: 88px; transform: translateY(16px); width: 88px; }
-.media-entries.is-grid .media-folder-card strong { margin: 9px 9px 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.media-entries.is-grid .media-folder-card small { margin: 3px 9px 9px; }
+.media-entries.is-grid .media-folder-card .media-card-copy { padding: 9px; }
 
 .media-card-menu-icon { transform: rotate(90deg); }
