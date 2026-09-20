@@ -7,6 +7,9 @@
   Posts, with a template-set count badge, in-place library/editor switching and
   one shared ownership and synchronisation session. The standalone template
   route remains available as a deep link.
+- Template sets and their Page/Post/Header/Footer entries now appear in the
+  shared Content Studio library pane, opening the selected template directly
+  in the editor instead of using a separate library landing view.
 - Templates are now a sibling authoring mode beside Pages and Posts in the
   Content Studio navigation, while retaining their separate reusable data
   model and `/studio/templates` route.

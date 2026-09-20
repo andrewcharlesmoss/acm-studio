@@ -411,7 +411,10 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(styles, /\.library-tabs button/);
   const templateWorkspace = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
   assert.match(templateWorkspace, /<div className="library-tabs" aria-label="Content type">[\s\S]*Templates<span>\{templates\.store\.sets\.length\}<\/span>/);
-  assert.match(templateWorkspace, /<div className="library-create">[\s\S]*New post[\s\S]*New page/);
+  assert.match(templateWorkspace, /<div className="library-create">[\s\S]*New set[\s\S]*Import/);
+  assert.match(templateWorkspace, /className="template-target-list"/);
+  assert.match(templateWorkspace, /<TemplateEditor key=\{target\.id\}/);
+  assert.match(templateWorkspace, /: standalone \? <section className="template-library"/);
 });
 
 

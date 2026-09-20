@@ -24,6 +24,9 @@
 .template-targets button { padding: 9px 12px; border: 1px solid #d1cfc7; background: #fff; border-radius: 6px; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-targets button.is-active { color: #174a9c; border-color: #2457c5; background: #eaf1ff; }
 .template-targets small { color: var(--muted); font: inherit; }
+.template-target-list { border-left: 1px solid #d8d6ce; margin: 0 0 4px 14px; padding-left: 4px; }
+.template-target-item { border-radius: 6px; padding-left: 6px; width: 100%; }
+.template-empty-state { align-content: center; display: grid; min-height: 100%; place-items: center; text-align: center; }
 .template-inspector .inspector-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .template-inspector input, .template-inspector select, .template-inspector textarea, .template-toolbar select, .template-dialog input, .template-assignment select { border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; }
 .template-inspector button, .template-set-actions button, .template-set-card > button, .template-library-actions > button:not(.button-primary), .template-dialog-actions > button:not(.button-primary) { padding: 7px 11px; border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }

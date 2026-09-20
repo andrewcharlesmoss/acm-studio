@@ -93,7 +93,10 @@ the template surface.
 The integrated Content Studio route uses `?mode=templates` and retains the
 `/studio/templates` route as a portable deep link. Both entry points mount one
 workspace and one template synchronisation session. The Templates badge counts
-template sets, not individual Page/Post templates or shared parts.
+template sets, not individual Page/Post templates or shared parts. In the
+integrated route, sets and their Page/Post/Header/Footer entries appear in the
+same library pane as content; selecting an entry opens the editor directly
+without a separate template-library page.
 
 Layout options and Spacer are additive to the existing typed block contract;
 workspace version 2 and template schema v0.1.0 remain compatible. Older saved
