@@ -557,8 +557,8 @@
 .drop-indicator.is-after { bottom: -2px; top: auto; }
 .between-blocks { align-items: center; background: transparent; border: 0; border-radius: 0; color: transparent; cursor: pointer; display: flex; height: 30px; justify-content: center; left: 0; opacity: 0; padding: 0; position: absolute; top: 0; transition: opacity .15s; width: 100%; z-index: 3; }
 .block-position + .block-position .between-blocks { top: calc((var(--studio-block-gap) / 2) - 15px); }
-.between-blocks::before { background: var(--accent); border-radius: 999px; content: ""; height: 3px; left: 0; position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
-.between-blocks > span { align-items: center; background: var(--accent); border: 3px solid var(--paper); border-radius: 5px; box-sizing: border-box; color: white; display: inline-flex; font-size: 20px; height: 30px; justify-content: center; line-height: 1; position: relative; width: 30px; }
+.between-blocks::before { background: #8f8f8f; border-radius: 999px; content: ""; height: 3px; left: 0; position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+.between-blocks > span { align-items: center; background: #1c1c1e; border: 3px solid var(--paper); border-radius: 5px; box-sizing: border-box; color: white; display: inline-flex; font-size: 20px; height: 30px; justify-content: center; line-height: 1; position: relative; width: 30px; }
 .between-blocks:hover, .between-blocks:focus-visible { opacity: 1; }
 .canvas-block, .studio-block-preview > .content-block { border: 1px solid transparent; border-radius: 6px; margin: 0; min-width: 0; padding: 0; position: relative; }
 .studio-block-preview > .content-block > * { margin: 0; }

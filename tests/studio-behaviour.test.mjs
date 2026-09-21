@@ -1322,6 +1322,13 @@ test("block library cards use neutral grey icons", () => {
 });
 
 
+test("between-block inserters use a grey line and black add control", () => {
+  const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(styles, /\.between-blocks::before \{ background: #8f8f8f;/);
+  assert.match(styles, /\.between-blocks > span \{[^}]*background: #1c1c1e;[^}]*color: white;/);
+});
+
+
 test("Preview and Code transitions dismiss the block library", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(canvas, /onSetShowInserter\(false\); onPreviewChange\(true\)/);
