@@ -137,6 +137,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Centred between-block insertion lines and controls within the shared block gap
+  so they sit evenly between the surrounding blocks.
 - Made content-fitting block sizing an explicit Studio rule and tightened
   shared Edit/Preview defaults so ordinary blocks do not reserve accidental
   height or spacing. Intentional dimensions remain scoped to block contracts.

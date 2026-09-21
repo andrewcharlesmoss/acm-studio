@@ -354,7 +354,8 @@ test("between-block inserters stay in the reserved gap without margin collapse",
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(css, /\.block-position \{ display: flow-root; position: relative; \}/);
-  assert.match(css, /\.block-position \+ \.block-position \.canvas-block \{ margin-top: 30px; \}/);
+  assert.match(css, /\.block-position \+ \.block-position \.canvas-block \{ margin-top: var\(--studio-block-gap\); \}/);
+  assert.match(css, /\.block-position \+ \.block-position \.between-blocks \{ top: calc\(\(var\(--studio-block-gap\) \/ 2\) - 15px\); \}/);
   assert.match(css, /\.block-position \+ \.block-position \.drop-indicator \{ top: 13px; \}/);
   assert.match(canvas, /function dragInsertionIndex\(event: DragEvent<HTMLDivElement>, index: number\)/);
   assert.match(canvas, /const target = insertionIndex > from \? insertionIndex - 1 : insertionIndex/);
@@ -450,7 +451,7 @@ test("ordinary Studio blocks use content-fitting dimensions", () => {
   const instructions = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(instructions, /Every block must be content-fitting by default/);
-  assert.match(instructions, /narrow layouts and 200% zoom/);
+  assert.match(instructions, /narrow\s+layouts and 200% zoom/);
   assert.match(css, /\.studio-block-preview :is\(\.document-dynamic-field, \.metadata-block, \.metadata-block-editor/);
   assert.match(css, /\.studio-block-preview :is\(\.document-dynamic-field h1, \.document-dynamic-field p/);
 });
