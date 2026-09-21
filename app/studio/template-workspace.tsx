@@ -13,7 +13,7 @@ import { exportTemplatePackage, importTemplatePackage, TEMPLATE_PACKAGE_LIMIT, v
 import { contentMediaIds, useTemplateMedia } from "./use-template-media";
 import type { MediaAsset } from "./media-store";
 import { studioWriteOwnership } from "./write-ownership";
-import type { StudioSyncConflict } from "./studio-sync";
+import { studioConflictDetails } from "./studio-sync-description";
 
 type NameDialog = { title: string; name: string; confirm: (name: string) => boolean | void };
 export type TemplateWorkspaceSession = ReturnType<typeof useStudioWorkspace>;
@@ -21,15 +21,6 @@ export type TemplateStoreSession = ReturnType<typeof useTemplates>;
 function download(value: unknown, filename: string) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }));
   const link = document.createElement("a"); link.href = url; link.download = filename; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function templateConflictDetails(conflict: StudioSyncConflict) {
-  const paths = conflict.conflicts.map(item => item.change.path.filter(token => !token.startsWith("@")).join(" › ") || "template structure");
-  const uniquePaths = [...new Set(paths)];
-  if (!uniquePaths.length) return "The saved template changed while this tab still had unsaved changes.";
-  const visiblePaths = uniquePaths.slice(0, 3).join(", ");
-  const remainder = uniquePaths.length > 3 ? `, and ${uniquePaths.length - 3} more` : "";
-  return `Overlapping changes: ${visiblePaths}${remainder}.`;
 }
 
 export function TemplateWorkspace() {
@@ -184,7 +175,7 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     setMediaTarget(null);
   }
   const panel = <>
-    {templates.syncConflict ? <div className="template-status template-inline-status template-conflict-status" role="alert"><div><strong>Another Studio tab changed this template while you were editing.</strong><span>{templates.syncConflict.conflicts.length || 1} overlapping change{templates.syncConflict.conflicts.length === 1 ? "" : "s"} need your decision. Your changes are still available in this tab.</span><small>{templateConflictDetails(templates.syncConflict)} Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</small></div><div className="template-status-actions"><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}
+    {templates.syncConflict ? <div className="template-status template-inline-status template-conflict-status" role="alert"><div><strong>Another Studio tab changed this template while you were editing.</strong><span>{templates.syncConflict.conflicts.length || 1} overlapping change{templates.syncConflict.conflicts.length === 1 ? "" : "s"} need your decision. Your changes are still available in this tab.</span><small>{studioConflictDetails(templates.syncConflict)} Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</small></div><div className="template-status-actions"><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}
     {!templates.syncConflict && (templates.error || feedback || media.error) ? <div className="template-status template-inline-status" role="alert"><span>{templates.error ?? feedback ?? media.error}</span>{!templates.ready ? <div className="template-status-actions"><button type="button" onClick={() => download({ raw: window.localStorage.getItem(TEMPLATE_STORAGE_KEY) }, "acm-template-recovery.json")}>Export Original Data</button></div> : null}</div> : null}
     <aside className="studio-library">
       {onBackToContent ? <>

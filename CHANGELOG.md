@@ -285,6 +285,12 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Prevented Content and Template edits from conflicting with their own earlier
+  saves, kept unsaved edits through independent tab updates and writer handover,
+  and stopped new tabs from resetting existing peers. Content conflicts now
+  identify the overlapping fields and explain the existing resolution choices.
+- Adding an unset optional field such as Category no longer causes a false
+  conflict; repeating a deletion of an already-absent field is also harmless.
 - Tightened the selected dynamic Cover Image block so its red editor border
   hugs the image without exposing the cover's outer spacing as empty block area.
 - Kept dynamic Subtitle blocks to the template's normal body size and removed

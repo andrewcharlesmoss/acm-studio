@@ -15,6 +15,7 @@ import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";
 import { useStudioWorkspace } from "./use-studio-workspace";
 import { useDocumentTemplates } from "./use-document-templates";
 import { TemplateWorkspacePanel } from "./template-workspace";
+import { studioConflictDetails } from "./studio-sync-description";
 import type { MediaAsset } from "./media-store";
 import {
   blockCatalogue,
@@ -353,7 +354,7 @@ export function StudioPrototype() {
           {studioSection === "templates" ? <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Content</button> : studioSection !== "content" ? <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Back to {activeDocument.title}</button> : <>{activeDocument.kind === "post" ? <>{activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}<button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button></> : <button className="button-primary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>}</>}
         </div>
       </header>
-      {syncConflict ? <div className="design-notice" role="alert">Conflicting changes need review. <button type="button" onClick={() => void resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void resolveSyncConflict("mine")}>Use My Change</button>{syncResolutionError ? <span> {syncResolutionError}</span> : null}</div> : null}
+      {syncConflict ? <div className="design-notice" role="alert"><span>{syncConflict.conflicts.length || 1} overlapping change{(syncConflict.conflicts.length || 1) === 1 ? " needs" : "s need"} review. {studioConflictDetails(syncConflict)} Your changes remain in this tab. Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</span> <button type="button" onClick={() => void resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void resolveSyncConflict("mine")}>Use My Change</button>{syncResolutionError ? <span> {syncResolutionError}</span> : null}</div> : null}
       <div className="studio-notice" role="note"><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</div>
 
       <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`}>

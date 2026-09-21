@@ -69,6 +69,16 @@ function outOfOrderChannelBus() {
 
 async function settle() { for (let index = 0; index < 10; index += 1) await Promise.resolve(); }
 
+test("shared conflict descriptions name fields, hide record IDs and bound long lists", () => {
+  const { studioConflictDetails } = load("app/studio/studio-sync-description.ts");
+  const describe = paths => studioConflictDetails({ conflicts: paths.map(path => ({ change: { path } })) });
+  assert.equal(describe([]), "The saved version changed while this tab still had unsaved changes.");
+  assert.equal(describe([["documents", "@private-id", "category"]]), "Overlapping changes: documents › category.");
+  assert.equal(describe([["sets", "@set", "name"], ["sets", "@other-set", "name"]]), "Overlapping changes: sets › name.");
+  assert.equal(describe([[]]), "Overlapping changes: structure.");
+  assert.equal(describe([["author"], ["category"], ["tags"], ["title"], ["subtitle"]]), "Overlapping changes: author, category, tags, and 2 more.");
+});
+
 test("studio sync merges stable records and exposes competing field changes", () => {
   const sync = load("app/studio/studio-sync.ts");
   const base = { records: [{ id: "one", title: "One", colour: "red" }, { id: "two", title: "Two", colour: "blue" }] };
@@ -83,6 +93,27 @@ test("studio sync merges stable records and exposes competing field changes", ()
   const conflict = sync.applyStudioTransaction({ records: base.records.map(item => item.id === "one" ? { ...item, title: "Other" } : item) }, transaction);
   assert.equal(conflict.conflicts.length, 1);
   assert.equal(conflict.conflicts[0].reason, "property");
+});
+
+test("optional fields compare absence by presence, while present mismatches still conflict", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const base = { documents: [{ id: "post", subtitle: "Fourth" }] };
+  const withCategory = { documents: [{ ...base.documents[0], category: "Sync QA" }] };
+  const options = { transactionId: "optional-category", clientId: "owner", brokerEpoch: "epoch", baseRevision: 0 };
+  const insert = sync.createStudioTransaction(base, withCategory, options);
+  assert.equal(insert.changes[0].beforePresent, false);
+  const inserted = sync.applyStudioTransaction(base, insert);
+  assert.equal(inserted.conflicts.length, 0);
+  assert.equal(inserted.snapshot.documents[0].category, "Sync QA");
+  assert.equal(sync.applyStudioTransaction(inserted.snapshot, insert).conflicts.length, 0, "repeated insertion is idempotent");
+  const deletion = sync.createStudioTransaction(withCategory, base, options);
+  const deleted = sync.applyStudioTransaction(withCategory, deletion);
+  assert.equal(deleted.conflicts.length, 0);
+  assert.equal(Object.hasOwn(deleted.snapshot.documents[0], "category"), false);
+  assert.equal(sync.applyStudioTransaction(base, deletion).conflicts.length, 0, "already-absent deletion is idempotent");
+  const competing = { documents: [{ ...base.documents[0], category: "Different" }] };
+  assert.equal(sync.applyStudioTransaction(competing, insert).conflicts.length, 1);
+  assert.equal(sync.applyStudioTransaction(competing, deletion).conflicts.length, 1);
 });
 
 test("inserting a block does not turn a concurrent deletion into an order conflict", () => {

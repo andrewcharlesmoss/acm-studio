@@ -182,6 +182,13 @@ success. Incomplete rollback blocks editing. Retain the source package/backup
 during recovery.
 
 Acknowledgements for older edits do not replace newer unsaved canvas state.
+The coordinator reports committed snapshots separately from optimistic display
+updates. Each accepted local transaction advances the pending-edit baseline;
+only the remaining changes are rebased during writer handover. Selection IDs
+and timestamps do not count as unsaved shared content. Welcome replies are
+matched to the requesting session, so opening another tab cannot reset a peer.
+Storage keys, sync protocol v2 and the lifetime writer lock are unchanged.
+
 When a conflict is resolved in favour of the local version, Studio applies the
 local changes to the latest saved version while retaining unrelated edits from
 the other tab. A failed save remains visible and retryable; a structural change
@@ -190,6 +197,10 @@ Automatic workspace saving pauses during conflict review. An unresolved choice
 survives a synchronisation-session restart or writer handover within the same
 mounted editor. It is still held only in tab memory, not durable recovery
 storage: copy unsaved content before reloading or closing the tab.
+An already-open conflict from an older client still requires explicit review;
+updating the code does not choose either version automatically. Hot replacement
+can preserve a conflict while the hook remains mounted, but is not a backup.
+Reload only after confirming a save or receiving and checking an export file.
 
 Full Studio backups include templates and assignments. Older backups without
 template data restore as having none. Restore rollback covers workspace,

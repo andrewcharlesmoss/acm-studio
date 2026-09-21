@@ -323,7 +323,7 @@ function controlledStudioSync({ deferPeerSubmissions = false } = {}) {
           isAvailable() { return true; },
           isConnectedPeer() { return status === "synced"; },
           isPrimary() { return options.role === "primary"; },
-          async commitPrimary(snapshot) { authoritative = structuredClone(snapshot); await options.persistPrimary(snapshot); },
+          async commitPrimary(snapshot) { authoritative = structuredClone(snapshot); await options.persistPrimary(snapshot); options.onCommittedSnapshot?.(structuredClone(snapshot), { source: "commit" }); },
           async submit(snapshot) {
             operations++;
             if (deferPeerSubmissions && options.role === "peer") {
@@ -332,12 +332,14 @@ function controlledStudioSync({ deferPeerSubmissions = false } = {}) {
             }
             authoritative = structuredClone(snapshot);
             await primaryOptions.persistPrimary(snapshot);
+            options.onCommittedSnapshot?.(structuredClone(snapshot), { source: "commit" });
           },
           async resolveConflict(choice) {
             assert.ok(activeConflict);
             const resolved = structuredClone(choice === "mine" ? activeConflict.localSnapshot : activeConflict.remoteSnapshot);
             await options.persistPrimary(resolved);
             activeConflict = null;
+            options.onCommittedSnapshot?.(resolved, { source: "commit" });
             options.onSnapshot(resolved, "commit");
           },
           resumeConflict(conflict) { activeConflict = conflict; status = "conflict"; options.onConflict?.(conflict); },
@@ -347,6 +349,7 @@ function controlledStudioSync({ deferPeerSubmissions = false } = {}) {
     get operations() { return operations; },
     welcome() {
       assert.ok(peer, "peer session must exist before welcome");
+      peer.options.onCommittedSnapshot?.(structuredClone(authoritative), { source: "welcome" });
       peer.options.onSnapshot(structuredClone(authoritative), "welcome");
       peer.setStatus("synced");
     },

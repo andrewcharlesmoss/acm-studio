@@ -442,7 +442,10 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateWorkspace, /: standalone \? <section className="template-library"/);
   assert.match(templateWorkspace, /className="template-status template-inline-status"[^>]*role="alert"[^>]*>.*template-status-actions/s);
   assert.match(templateWorkspace, /Another Studio tab changed this template while you were editing/);
-  assert.match(templateWorkspace, /templateConflictDetails\(templates\.syncConflict\)/);
+  assert.match(templateWorkspace, /import \{ studioConflictDetails \} from "\.\/studio-sync-description"/);
+  assert.match(templateWorkspace, /studioConflictDetails\(templates\.syncConflict\)/);
+  assert.match(studio, /import \{ studioConflictDetails \} from "\.\/studio-sync-description"/);
+  assert.match(studio, /studioConflictDetails\(syncConflict\)/);
   assert.match(templateWorkspace, /<span role="status">\{templates\.saveLabel\}<\/span>/);
   assert.match(templateWorkspace, /!templates\.syncConflict && \(templates\.error/);
   const templateRenderer = readFileSync(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8");

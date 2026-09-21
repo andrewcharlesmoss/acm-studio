@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { copyTemplateData, emptyTemplateStore, type TemplateStore } from "./template-model";
 import { loadTemplates, saveTemplates } from "./template-store";
 import { studioWriteOwnership } from "./write-ownership";
-import { applyStudioTransaction, createStudioSync, createStudioTransaction, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus } from "./studio-sync";
+import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus, type StudioSyncTransaction } from "./studio-sync";
+import { reconcileStudioPendingSave, type StudioPendingSave } from "./studio-pending-save";
 import { validateTemplateStore } from "./template-model";
 
 /** The host owns the lock lifecycle; this hook only loads after each acquisition. */
@@ -19,7 +20,7 @@ export function useTemplates(generation: number, writable: boolean) {
   const future = useRef<TemplateStore[]>([]);
   const syncRef = useRef<StudioSyncSession<TemplateStore> | null>(null);
   const authoritativeStoreRef = useRef(copyTemplateData(emptyTemplateStore()));
-  const pendingPeerSaveRef = useRef<{ base: TemplateStore; snapshot: TemplateStore } | null>(null);
+  const pendingPeerSaveRef = useRef<StudioPendingSave<TemplateStore> | null>(null);
   const pendingConflictRef = useRef<StudioSyncConflict | null>(null);
   const [syncStatus, setSyncStatus] = useState<StudioSyncStatus>("disconnected");
   const [syncSnapshotReady, setSyncSnapshotReady] = useState(false);
@@ -27,33 +28,14 @@ export function useTemplates(generation: number, writable: boolean) {
   const [availability, setAvailability] = useState({ undo: false, redo: false });
   const sequence = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconcilePendingPeerSave = useCallback((snapshot: TemplateStore) => {
+  const reconcilePendingPeerSave = useCallback((snapshot: TemplateStore, acknowledgedTransaction?: StudioSyncTransaction) => {
     const authoritative = copyTemplateData(snapshot);
     authoritativeStoreRef.current = authoritative;
-    const pending = pendingPeerSaveRef.current;
-    if (!pending) return { store: authoritative, conflict: null };
-    const transaction = createStudioTransaction(pending.base, pending.snapshot, {
-      transactionId: "template-ownership-handover",
-      clientId: "local-template-peer",
-      brokerEpoch: "template-ownership-handover",
-      baseRevision: 0,
-    });
-    const merged = applyStudioTransaction(authoritative, transaction);
-    if (!merged.conflicts.length) {
-      const next = validateTemplateStore(merged.snapshot);
-      pendingPeerSaveRef.current = { base: authoritative, snapshot: copyTemplateData(next) };
-      return { store: next, conflict: null };
-    }
-    const conflict: StudioSyncConflict = {
-      transaction,
-      conflicts: merged.conflicts,
-      baseSnapshot: copyTemplateData(pending.base),
-      remoteSnapshot: authoritative,
-      localSnapshot: copyTemplateData(pending.snapshot),
-      reason: "Templates changed while this tab was taking over local persistence.",
-    };
-    pendingConflictRef.current = conflict;
-    return { store: copyTemplateData(pending.snapshot), conflict };
+    const reconciled = reconcileStudioPendingSave(pendingPeerSaveRef.current, authoritative, validateTemplateStore,
+      "Templates conflict with your unsaved changes.", acknowledgedTransaction);
+    pendingPeerSaveRef.current = reconciled.pending;
+    if (reconciled.conflict) pendingConflictRef.current = reconciled.conflict;
+    return { store: reconciled.snapshot, conflict: reconciled.conflict };
   }, []);
   useEffect(() => {
     let cancelled = false;
@@ -72,6 +54,7 @@ export function useTemplates(generation: number, writable: boolean) {
 
   useEffect(() => {
     if (!ready || loadedGeneration !== generation) return;
+    let closed = false;
     const primary = studioWriteOwnership.canWrite();
     const updateSyncStatus = (status: StudioSyncStatus) => {
       setSyncStatus(status);
@@ -86,13 +69,18 @@ export function useTemplates(generation: number, writable: boolean) {
       initialSnapshot: current.current,
       role: primary ? "primary" : "peer",
       validateSnapshot: (value) => validateTemplateStore(value),
+      onCommittedSnapshot: (snapshot, { acknowledgedTransaction }) => {
+        if (closed) return;
+        if (pendingConflictRef.current) { authoritativeStoreRef.current = copyTemplateData(snapshot); return; }
+        const reconciled = reconcilePendingPeerSave(snapshot, acknowledgedTransaction);
+        if (reconciled.conflict) queueMicrotask(() => { if (!closed) syncRef.current?.resumeConflict(reconciled.conflict!); });
+      },
       onSnapshot: (snapshot, source) => {
-        if (pendingConflictRef.current && (source === "failover" || source === "welcome")) return;
-        const reconciled = reconcilePendingPeerSave(snapshot);
-        current.current = reconciled.store;
+        if (closed || (pendingConflictRef.current && source !== "commit" && source !== "conflict")) return;
+        const view = pendingPeerSaveRef.current?.snapshot ?? snapshot;
+        current.current = view;
         setSyncSnapshotReady(true);
-        setStore(reconciled.store);
-        if (reconciled.conflict) queueMicrotask(() => syncRef.current?.resumeConflict(reconciled.conflict!));
+        setStore(view);
         if (!primary && (source === "welcome" || source === "update" || source === "commit")) setSaveLabel("Synced with another ACM Studio tab");
         if (source === "update" || source === "welcome" || source === "failover" || source === "recovery") {
           history.current = [];
@@ -101,6 +89,7 @@ export function useTemplates(generation: number, writable: boolean) {
         }
       },
       onConflict: (conflict) => {
+        if (closed) return;
         pendingConflictRef.current = conflict;
         const local = validateTemplateStore(conflict.localSnapshot);
         current.current = local;
@@ -119,14 +108,16 @@ export function useTemplates(generation: number, writable: boolean) {
     else if (primary && pendingPeerSaveRef.current) {
       const pendingSnapshot = copyTemplateData(pendingPeerSaveRef.current.snapshot);
       void session.commitPrimary(pendingSnapshot).then(() => {
-        if (pendingPeerSaveRef.current && JSON.stringify(pendingPeerSaveRef.current.snapshot) === JSON.stringify(pendingSnapshot)) pendingPeerSaveRef.current = null;
+        if (closed) return;
         setError(null); setSaveLabel("Saved locally");
       }).catch((reason) => {
+        if (closed) return;
         setError(reason instanceof Error ? reason.message : "Could not save templates locally.");
         setSaveLabel("Could not save locally");
       });
     }
     return () => {
+      closed = true;
       session.close();
       if (syncRef.current === session) syncRef.current = null;
       setSyncSnapshotReady(false);
@@ -143,6 +134,7 @@ export function useTemplates(generation: number, writable: boolean) {
     const saveSequence = ++sequence.current;
     if (timer.current) clearTimeout(timer.current);
     try {
+      const session = syncRef.current;
       let save: Promise<void> | undefined;
       if (primaryWritable) {
         if (syncRef.current?.isAvailable() && syncRef.current.isPrimary()) save = syncRef.current.commitPrimary(next);
@@ -158,11 +150,10 @@ export function useTemplates(generation: number, writable: boolean) {
       if (!save) throw new Error("Studio synchronisation is unavailable.");
       current.current = next; setStore(next); setError(null); setSaveLabel("Saving…");
       void save.then(() => {
-        if (pendingPeerSaveRef.current && JSON.stringify(pendingPeerSaveRef.current.snapshot) === JSON.stringify(next)) pendingPeerSaveRef.current = null;
-        if (sequence.current !== saveSequence) return;
+        if (syncRef.current !== session || sequence.current !== saveSequence) return;
         timer.current = setTimeout(() => { if (sequence.current === saveSequence) setSaveLabel(primaryWritable ? "Saved locally" : "Synced with another ACM Studio tab"); }, 500);
       }).catch((reason) => {
-        if (sequence.current !== saveSequence) return;
+        if (syncRef.current !== session || sequence.current !== saveSequence) return;
         if (timer.current) { clearTimeout(timer.current); timer.current = null; }
         setError(reason instanceof Error ? reason.message : "Could not save templates locally.");
         setSaveLabel("Could not save locally");

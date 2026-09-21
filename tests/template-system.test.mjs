@@ -408,6 +408,22 @@ test("template and publication image references prevent deletion until removed",
   assert.doesNotThrow(() => store.assertTemplateMediaCanBeDeleted("image-source")); release();
 });
 
+test("template text settings commit on blur or Enter, not while text is being entered", () => {
+  const env = environment();
+  const { TemplateTextSetting } = env.load("studio/template-inspector.tsx");
+  const committed = [];
+  const setting = TemplateTextSetting({ label: "Author", value: "", onCommit: value => committed.push(value) });
+  const input = setting.props.children[1];
+  assert.equal(input.props.defaultValue, "");
+  assert.equal(input.props.onChange, undefined);
+  const target = { value: "Template Example Author" };
+  assert.deepEqual(committed, [], "a DOM draft is not yet a saved template value");
+  input.props.onKeyDown({ key: "Enter", currentTarget: { blur() { input.props.onBlur({ target }); } } });
+  assert.deepEqual(committed, ["Template Example Author"]);
+  input.props.onBlur({ target: { value: "" } });
+  assert.equal(committed.length, 1, "unchanged values are not submitted");
+});
+
 function hooks() {
   const slots = []; const pending = []; let cursor = 0;
   const react = {

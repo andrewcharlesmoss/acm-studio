@@ -10,6 +10,11 @@ export const STUDIO_SYNC_PROTOCOL = "acm-studio-sync-v2" as const;
 export type StudioSyncRole = "primary" | "peer";
 export type StudioSyncStatus = "unsupported" | "connecting" | "primary" | "synced" | "conflict" | "disconnected";
 export type StudioSyncSnapshotSource = "welcome" | "update" | "commit" | "conflict" | "failover" | "recovery";
+export type StudioSyncCommit = {
+  source: StudioSyncSnapshotSource;
+  /** Present once for each accepted operation submitted by this session. */
+  acknowledgedTransaction?: StudioSyncTransaction;
+};
 
 export type StudioSyncChange =
   | { kind: "set"; path: string[]; beforePresent: boolean; before: unknown; afterPresent: boolean; after: unknown }
@@ -68,6 +73,8 @@ export type StudioSyncOptions<T> = {
   cloneSnapshot?: (value: T) => T;
   loadAuthoritative?: () => T;
   onSnapshot: (snapshot: T, source: StudioSyncSnapshotSource) => void;
+  /** Persisted state only; unlike onSnapshot, this never contains optimistic edits. */
+  onCommittedSnapshot?: (snapshot: T, commit: StudioSyncCommit) => void;
   onConflict?: (conflict: StudioSyncConflict) => void;
   onStatus?: (status: StudioSyncStatus) => void;
   persistPrimary: (snapshot: T) => Promise<void> | void;
@@ -261,8 +268,8 @@ export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSy
         continue;
       }
       if (ignoredPath(change.path)) { setPath(snapshot, change.path, change.afterPresent, change.after); continue; }
-      if (target.present && change.afterPresent && equal(target.value, change.after)) continue;
-      if (target.present === change.beforePresent && equal(target.value, change.before)) { setPath(snapshot, change.path, change.afterPresent, change.after); continue; }
+      if (target.present === change.afterPresent && (!target.present || equal(target.value, change.after))) continue;
+      if (target.present === change.beforePresent && (!target.present || equal(target.value, change.before))) { setPath(snapshot, change.path, change.afterPresent, change.after); continue; }
       if (preferLocal) setPath(snapshot, change.path, change.afterPresent, change.after);
       else conflicts.push({ change, reason: "property", current: target.value, currentPresent: target.present });
     } else {
@@ -355,6 +362,8 @@ export class StudioSyncSession<T> {
   private conflict: ConflictState | null = null;
   private pendingResumedConflict: StudioSyncConflict | null = null;
   private helloTimer: ReturnType<typeof setTimeout> | null = null;
+  private helloRequestId: string | null = null;
+  private acknowledgedTransactions = new Set<string>();
   private brokerTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private closed = false;
@@ -380,6 +389,7 @@ export class StudioSyncSession<T> {
         try {
           if (this.options.loadAuthoritative) this.snapshot = this.validate(this.options.loadAuthoritative());
           this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
+          this.notifyCommitted("failover");
           this.options.onSnapshot(this.snapshot, "failover");
         } catch { this.status = "disconnected"; this.notifyStatus(); return; }
       }
@@ -503,6 +513,15 @@ export class StudioSyncSession<T> {
   }
 
   private validate(value: unknown) { return this.options.validateSnapshot(value); }
+  private notifyCommitted(source: StudioSyncSnapshotSource, transaction?: StudioSyncTransaction) {
+    let acknowledgedTransaction: StudioSyncTransaction | undefined;
+    if (transaction?.clientId === this.clientId && !this.acknowledgedTransactions.has(transaction.transactionId)) {
+      acknowledgedTransaction = transaction;
+      this.acknowledgedTransactions.add(transaction.transactionId);
+      if (this.acknowledgedTransactions.size > 500) this.acknowledgedTransactions.delete(this.acknowledgedTransactions.values().next().value!);
+    }
+    this.options.onCommittedSnapshot?.(this.cloneSnapshot(this.snapshot), { source, acknowledgedTransaction });
+  }
   private makeTransaction(before: T, after: T, baseRevision: number) { return createStudioTransaction(before, after, { transactionId: id("transaction"), clientId: this.clientId, brokerEpoch: this.brokerEpoch, baseRevision }); }
   private notifyStatus() { this.options.onStatus?.(this.status); }
   private setStatus(status: StudioSyncStatus) { if (this.status === status) return; this.status = status; this.notifyStatus(); if (status === "disconnected") this.failPending(new Error("The primary Studio tab stopped responding.")); }
@@ -525,6 +544,7 @@ export class StudioSyncSession<T> {
     try {
       if (this.options.loadAuthoritative) this.snapshot = this.validate(this.options.loadAuthoritative());
       this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
+      this.notifyCommitted("failover");
       this.options.onSnapshot(this.snapshot, "failover");
     } catch { this.setStatus("disconnected"); return; }
     this.brokerEpoch = id("epoch"); this.setStatus("primary"); this.announce("announce"); this.announce("status");
@@ -533,7 +553,7 @@ export class StudioSyncSession<T> {
   }
   private stopHeartbeat() { if (this.heartbeatTimer) clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }
   private sendHello() {
-    const requestId = id("hello"); this.send({ ...this.base(), kind: "hello", requestId });
+    const requestId = id("hello"); this.helloRequestId = requestId; this.send({ ...this.base(), kind: "hello", requestId });
     if (this.helloTimer) clearTimeout(this.helloTimer);
     this.helloTimer = setTimeout(() => { if (this.role === "peer" && this.status === "connecting") this.setStatus("disconnected"); }, HELLO_TIMEOUT_MS);
   }
@@ -551,15 +571,30 @@ export class StudioSyncSession<T> {
         this.pending.delete(message.requestId);
         clearTimeout(operation.timer);
         const isLatest = message.revision >= this.revision;
-        this.revision = Math.max(this.revision, message.revision);
-        if (operation.resolution && message.snapshot !== undefined && isLatest) {
-          this.snapshot = this.validate(message.snapshot);
-          this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
+        if (message.snapshot !== undefined && isLatest) {
+          const authoritative = this.validate(message.snapshot);
+          const accepted = applyStudioTransaction(this.snapshot, operation.transaction);
+          const remaining = this.makeTransaction(accepted.snapshot, this.optimisticSnapshot, this.revision);
+          const rebased = applyStudioTransaction(authoritative, remaining);
+          const missedRemoteChanges = message.revision > this.revision && this.makeTransaction(accepted.snapshot, authoritative, this.revision).changes.length > 0;
+          this.snapshot = authoritative;
+          this.revision = message.revision;
+          if (operation.resolution) this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
+          else if (!rebased.conflicts.length) this.optimisticSnapshot = this.validate(rebased.snapshot);
+          this.notifyCommitted("commit", operation.transaction);
+          if (!operation.resolution && missedRemoteChanges) {
+            if (rebased.conflicts.length) this.openConflict(remaining, { snapshot: authoritative, conflicts: rebased.conflicts }, operation, "Studio changes conflict with your local changes.");
+            else this.options.onSnapshot(this.optimisticSnapshot, "update");
+          }
         } else if (!operation.resolution && isLatest) {
           // An ACK may precede its broadcast update. Advance only the committed
           // baseline; never replace an editor view that could contain new keystrokes.
           const committed = applyStudioTransaction(this.snapshot, operation.transaction);
-          if (!committed.conflicts.length) this.snapshot = this.validate(committed.snapshot);
+          if (message.revision <= this.revision + 1 && !committed.conflicts.length) {
+            this.snapshot = this.validate(committed.snapshot);
+            this.revision = message.revision;
+            this.notifyCommitted("commit", operation.transaction);
+          } else { this.setStatus("connecting"); this.sendHello(); }
         }
         operation.resolve();
       }
@@ -569,20 +604,27 @@ export class StudioSyncSession<T> {
   }
   private sendWelcome(message: Extract<StudioSyncMessage, { kind: "hello" }>) { this.send({ ...this.base(), kind: "welcome", requestId: message.requestId, brokerEpoch: this.brokerEpoch, revision: this.revision, snapshot: this.snapshot }); }
   private receiveWelcome(message: Extract<StudioSyncMessage, { kind: "welcome" }>) {
-    if (this.role !== "peer") return;
+    if (this.role !== "peer" || message.requestId !== this.helloRequestId) return;
     if (this.brokerEpoch && this.brokerEpoch !== message.brokerEpoch && this.status === "synced") return;
+    if (message.brokerEpoch === this.brokerEpoch && message.revision < this.revision) { this.sendHello(); return; }
+    this.helloRequestId = null;
     const interruptedConflict = this.conflict ?? this.pendingResumedConflict;
     this.conflict = null;
     this.pendingResumedConflict = null;
-    this.brokerEpoch = message.brokerEpoch; this.revision = message.revision; this.snapshot = this.validate(message.snapshot); this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
+    const unsaved = this.makeTransaction(this.snapshot, this.optimisticSnapshot, this.revision);
+    this.brokerEpoch = message.brokerEpoch; this.revision = message.revision; this.snapshot = this.validate(message.snapshot);
+    const rebased = applyStudioTransaction(this.snapshot, unsaved);
+    if (!rebased.conflicts.length) this.optimisticSnapshot = this.validate(rebased.snapshot);
     if (this.helloTimer) clearTimeout(this.helloTimer);
     this.refreshBrokerTimer();
     // Install the authoritative snapshot before exposing a writable peer. A
     // newly opened tab may have loaded older browser storage while it waited
     // for the primary tab to answer.
-    this.options.onSnapshot(this.snapshot, "welcome");
+    this.notifyCommitted("welcome");
+    this.options.onSnapshot(this.optimisticSnapshot, "welcome");
     this.setStatus("synced");
     if (interruptedConflict) this.installResumedConflict(interruptedConflict);
+    else if (rebased.conflicts.length) this.openConflict(unsaved, { snapshot: this.snapshot, conflicts: rebased.conflicts }, null, "Studio changes conflict with your local changes.");
   }
   private async receiveOperation(message: Extract<StudioSyncMessage, { kind: "operation" }>) {
     const transaction = message.transaction; const previous = this.completed.get(transaction.transactionId);
@@ -599,7 +641,10 @@ export class StudioSyncSession<T> {
         try {
           await this.options.persistPrimary(this.validate(result.snapshot));
           this.snapshot = this.validate(result.snapshot);
-          const hasNewerLocalEdits = !equal(this.optimisticSnapshot, this.snapshot);
+          // Selection and timestamps are tab-local, not outstanding content.
+          // For a remote operation, compare with the state before that operation.
+          const localBase = operation.local ? this.snapshot : previousSnapshot;
+          const hasNewerLocalEdits = this.makeTransaction(localBase, this.optimisticSnapshot, this.revision).changes.length > 0;
           let mergedRemote = false;
           if (!hasNewerLocalEdits || (operation.local && operation.resolution)) this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
           else if (!operation.local) {
@@ -607,6 +652,7 @@ export class StudioSyncSession<T> {
             if (!merged.conflicts.length) { this.optimisticSnapshot = this.validate(merged.snapshot); mergedRemote = true; }
           }
           this.revision += 1; this.remember(operation.transaction.transactionId, true, this.revision);
+          this.notifyCommitted("commit", operation.transaction);
           if (!hasNewerLocalEdits) this.options.onSnapshot(this.snapshot, operation.local ? "commit" : "update");
           else if (mergedRemote && !this.primaryQueue.some(pending => pending.local)) this.options.onSnapshot(this.optimisticSnapshot, "update");
           // A resolution may have applied against a newer owner snapshot. Send
@@ -615,11 +661,12 @@ export class StudioSyncSession<T> {
             ? { ...this.makeTransaction(previousSnapshot, this.snapshot, this.revision - 1), transactionId: operation.transaction.transactionId, clientId: operation.transaction.clientId }
             : operation.transaction;
           this.send({ ...this.base(), kind: "update", updateId: id("update"), revision: this.revision, transaction: updateTransaction });
-          if (operation.requestId) this.send({ ...this.base(), kind: "ack", requestId: operation.requestId, revision: this.revision, ...(operation.resolution ? { snapshot: this.snapshot } : {}) });
+          if (operation.requestId) this.send({ ...this.base(), kind: "ack", requestId: operation.requestId, revision: this.revision, snapshot: this.snapshot });
           operation.resolve?.();
         } catch (error) {
           const reason = error instanceof Error ? error.message : "The Studio data could not be saved.";
           this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
+          this.notifyCommitted("recovery");
           this.options.onSnapshot(this.snapshot, "recovery");
           this.remember(operation.transaction.transactionId, false, this.revision, reason);
           this.sendReject(operation.requestId ?? operation.transaction.transactionId, reason, []);
@@ -643,7 +690,7 @@ export class StudioSyncSession<T> {
     if (message.revision !== this.revision + 1) { this.setStatus("connecting"); this.sendHello(); return; }
     const result = applyStudioTransaction(this.snapshot, message.transaction);
     if (result.conflicts.length) {
-      if (!this.pending.size && !this.peerQueue.length && equal(this.optimisticSnapshot, this.snapshot)) {
+      if (!this.pending.size && !this.peerQueue.length && !this.makeTransaction(this.snapshot, this.optimisticSnapshot, this.revision).changes.length) {
         // A committed update that disagrees with our committed copy indicates
         // a missed/out-of-order message, not a local edit to resolve.
         this.setStatus("connecting"); this.sendHello(); return;
@@ -651,6 +698,7 @@ export class StudioSyncSession<T> {
       this.openConflict(message.transaction, result, null, "Studio changes conflict with your local changes."); return;
     }
     this.revision = message.revision; this.snapshot = this.validate(result.snapshot);
+    this.notifyCommitted("update", message.transaction);
     if (message.transaction.clientId === this.clientId) {
       // The editor already contains this change, possibly followed by newer
       // keystrokes. Echoing the committed snapshot would overwrite them.
@@ -672,6 +720,7 @@ export class StudioSyncSession<T> {
     this.pending.delete(message.requestId); clearTimeout(operation.timer); operation.reject(new Error(message.reason));
     this.revision = message.revision;
     this.snapshot = this.validate(message.snapshot);
+    this.notifyCommitted("recovery");
     this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
     const queued = this.peerQueue.splice(0);
     queued.forEach((pending) => pending.reject(new Error("The previous Studio change could not be saved.")));
