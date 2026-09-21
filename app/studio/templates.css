@@ -34,6 +34,7 @@
 .template-inspector .inspector-scroll button, .template-set-actions button, .template-set-card > button, .template-library-actions > button:not(.button-primary), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-inspector button:disabled, .template-workspace button:disabled { opacity: .5; cursor: default; }
 .template-workspace :is(input,select,textarea,button):focus-visible, .template-dialog :is(input,button):focus-visible { outline: 2px solid #2457c5; outline-offset: 2px; }
+.template-workspace .canvas-appender input:focus-visible { box-shadow: none; outline: 0; }
 .template-assignment { padding: 18px; border-bottom: 1px solid #dddbd4; display: grid; gap: 10px; }
 .template-assignment label { display: grid; gap: 6px; }
 .template-assignment select { width: 100%; padding: 8px; }

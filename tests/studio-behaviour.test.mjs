@@ -1310,6 +1310,12 @@ test("template editing shows an empty Content slot instead of sample document bo
 });
 
 
+test("template body appender does not add a blue focus border", () => {
+  const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  assert.match(styles, /\.template-workspace \.canvas-appender input:focus-visible \{ box-shadow: none; outline: 0; \}/);
+});
+
+
 test("Preview and Code transitions dismiss the block library", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(canvas, /onSetShowInserter\(false\); onPreviewChange\(true\)/);
