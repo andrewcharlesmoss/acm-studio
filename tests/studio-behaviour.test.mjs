@@ -1500,3 +1500,14 @@ test("overflow pointer and focus transitions reach toggle handlers before dismis
   assert.match(source, /folderMenu\?\.kind === "folder" && folderMenu.id === folder.id\) \{ closeFolderMenu\(\); return/);
   assert.match(source, /folderMenu\?\.kind === "file" && folderMenu.id === asset.id\) \{ closeFolderMenu\(\); return/);
 });
+
+
+test("content type tabs follow the shared Studio tool menu", () => {
+  const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const prototypeLibrary = prototype.slice(prototype.indexOf('<aside className="studio-library">'), prototype.indexOf('<div className="document-list">'));
+  assert.ok(prototypeLibrary.indexOf('className="library-tool-button"') < prototypeLibrary.indexOf('className="library-tabs"'));
+
+  const templates = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
+  const templateLibrary = templates.slice(templates.indexOf('<aside className="studio-library">'), templates.indexOf('<div className="document-list template-document-list">'));
+  assert.ok(templateLibrary.indexOf('className="library-tool-button"') < templateLibrary.indexOf('className="library-tabs"'));
+});

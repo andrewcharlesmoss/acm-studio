@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Moved the Pages, Posts and Templates tabs below the shared Studio tool menu
+  in the left navigation.
 - Added Design canvas to the home dashboard's Working Tools alongside the
   other Studio authoring tools.
 - Unified the Document/Block/Styles inspector for pages, posts and templates.

@@ -330,6 +330,10 @@ export function StudioPrototype() {
             <button type="button" onClick={() => addDocument("page")}><StudioIcon name="add" size={16} /> New page</button>
             <button type="button" onClick={addDocumentFromTemplate}>New from template</button>
           </div>
+          <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
+          <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design canvas</strong><small>Create and annotate images</small></a>
+          <a className="library-tool-button" href="/studio/ribbon"><span><AcmIcon name="layout.columns" /></span><strong>Ribbon Library</strong><small>Explore controls and original SVG icons</small></a>
+          <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); }}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
           <div className="library-tabs" aria-label="Content type">
             {(["page", "post"] as const).map((kind) => (
               <button className={studioSection === "content" && libraryKind === kind ? "is-active" : ""} type="button" key={kind} onClick={() => { setLibraryKind(kind); setStudioSection("content"); }}>
@@ -338,10 +342,6 @@ export function StudioPrototype() {
             ))}
             <button type="button" onClick={() => switchStudioMode("templates")}>Templates<span>{templateSession.store.sets.length}</span></button>
           </div>
-          <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
-          <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design canvas</strong><small>Create and annotate images</small></a>
-          <a className="library-tool-button" href="/studio/ribbon"><span><AcmIcon name="layout.columns" /></span><strong>Ribbon Library</strong><small>Explore controls and original SVG icons</small></a>
-          <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); }}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
           <div className="document-list">
             {workspace.documents.filter((document) => document.kind === libraryKind).map((document) => (
               <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} onClick={() => selectDocument(document)}>
