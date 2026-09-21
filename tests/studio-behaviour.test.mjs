@@ -1300,6 +1300,16 @@ test("editor shells retain the desktop workspace when the browser is narrow", ()
 });
 
 
+test("template editing shows an empty Content slot instead of sample document body", () => {
+  const editor = readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  assert.match(editor, /const contentSlot = context\.mode === "edit"/);
+  assert.match(editor, /className="template-content-slot"[^>]*aria-label="Content slot"/);
+  assert.match(editor, /Supplied by each document/);
+  assert.match(styles, /\.template-content-slot \{[^}]*min-height: 132px;[^}]*text-align: center;/);
+});
+
+
 test("Preview and Code transitions dismiss the block library", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(canvas, /onSetShowInserter\(false\); onPreviewChange\(true\)/);
