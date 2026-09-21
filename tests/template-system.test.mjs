@@ -411,6 +411,11 @@ test("template and publication image references prevent deletion until removed",
 function hooks() {
   const slots = []; const pending = []; let cursor = 0;
   const react = {
+    useCallback(callback, dependencies) {
+      const id = cursor++; const previous = slots[id];
+      if (!previous || dependencies.some((value, index) => value !== previous.dependencies[index])) slots[id] = { callback, dependencies };
+      return slots[id].callback;
+    },
     useState(initial) { const id = cursor++; if (!(id in slots)) slots[id] = typeof initial === "function" ? initial() : initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; },
     useRef(initial) { const id = cursor++; if (!(id in slots)) slots[id] = { current: initial }; return slots[id]; },
     useEffect(callback, dependencies) {
@@ -478,6 +483,134 @@ test("template sync session survives workspace editability changes without recon
   writable = false; render(); await h.flush(); render();
   assert.equal(sessions, 1); assert.equal(closed, 0);
   release();
+});
+
+test("template peers explain connection state and wait for an authoritative snapshot", async () => {
+  const h = hooks(); let syncOptions; let status = "connecting";
+  const env = environment({ react: h.react, "./studio-sync": {
+    createStudioSync(options) {
+      syncOptions = options;
+      return {
+        getStatus: () => status,
+        isAvailable: () => true,
+        isPrimary: () => false,
+        isConnectedPeer: () => status === "synced",
+        submit: async () => {},
+        close() {},
+      };
+    },
+  } });
+  const { useTemplates } = env.load("studio/use-templates.ts");
+  const render = () => h.render(() => useTemplates(1, false));
+  render(); await h.flush(); let state = render(); await h.flush(); state = render();
+  assert.ok(syncOptions);
+  assert.equal(state.writable, false);
+  assert.equal(state.saveLabel, "Connecting to another ACM Studio tab…");
+
+  syncOptions.onSnapshot(plain(state.store), "welcome");
+  status = "synced"; syncOptions.onStatus(status); state = render();
+  assert.equal(state.writable, true);
+  assert.equal(state.saveLabel, "Synced with another ACM Studio tab");
+
+  status = "disconnected"; syncOptions.onStatus(status); state = render();
+  assert.equal(state.writable, false);
+  assert.equal(state.saveLabel, "Connection lost — template editing is paused");
+});
+
+test("an in-flight template edit survives becoming the persistence owner", async () => {
+  const h = hooks(); let primary = false; let generation = 1; let peerOptions; let authoritative;
+  const transactions = environment().load("studio/studio-sync.ts");
+  const ownership = {
+    canWrite: () => primary,
+    assertWritable() { if (!primary) throw new Error("read-only"); },
+  };
+  const sync = {
+    applyStudioTransaction: transactions.applyStudioTransaction,
+    createStudioTransaction: transactions.createStudioTransaction,
+    createStudioSync(options) {
+      let status = options.role === "primary" ? "primary" : "connecting";
+      const pending = [];
+      if (options.role === "primary") {
+        authoritative = options.loadAuthoritative();
+        options.onSnapshot(plain(authoritative), "failover");
+      } else {
+        authoritative ??= plain(options.initialSnapshot);
+        peerOptions = options;
+      }
+      return {
+        getStatus: () => status,
+        getConflict: () => null,
+        isAvailable: () => true,
+        isPrimary: () => options.role === "primary",
+        isConnectedPeer: () => options.role === "peer" && status === "synced",
+        async submit() { await new Promise((resolve, reject) => pending.push({ resolve, reject })); },
+        async commitPrimary(snapshot) { authoritative = plain(snapshot); await options.persistPrimary(snapshot); },
+        resumeConflict() {},
+        close() { pending.splice(0).forEach(({ reject }) => reject(new Error("closed"))); },
+      };
+    },
+  };
+  const env = environment({ react: h.react, "./write-ownership": { studioWriteOwnership: ownership }, "./studio-sync": sync });
+  const model = env.load("studio/template-model.ts");
+  const initial = { version: model.TEMPLATE_VERSION, sets: [model.createTemplateSet()], assignments: [], defaultTemplateIds: {} };
+  env.storage.setItem(model.TEMPLATE_STORAGE_KEY, JSON.stringify(initial));
+  const { useTemplates } = env.load("studio/use-templates.ts");
+  const render = () => h.render(() => useTemplates(generation, true));
+  const settle = async () => { for (let count = 0; count < 4; count++) { render(); await h.flush(); } return render(); };
+
+  let state = await settle();
+  peerOptions.onSnapshot(plain(authoritative), "welcome");
+  peerOptions.onStatus("synced"); state = render();
+  assert.equal(state.writable, true);
+  assert.equal(state.commit(store => ({ ...store, sets: store.sets.map(set => ({ ...set, name: "Unsaved peer template" })) })), true);
+  state = render();
+  assert.equal(state.store.sets[0].name, "Unsaved peer template");
+
+  primary = true; generation++;
+  state = await settle(); await new Promise(resolve => setImmediate(resolve)); state = render();
+  assert.equal(state.exclusiveWritable, true);
+  assert.equal(state.store.sets[0].name, "Unsaved peer template");
+  assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).sets[0].name, "Unsaved peer template");
+});
+
+for (const choice of ["mine", "theirs"]) test(`template conflict resolution settles ${choice} in the canvas, store and status`, async () => {
+  const h = hooks(); let syncOptions; let activeConflict = null;
+  const ownership = { canWrite: () => true, assertWritable() {} };
+  const sync = { createStudioSync(options) {
+    syncOptions = options;
+    return {
+      getStatus: () => activeConflict ? "conflict" : "primary",
+      getConflict: () => activeConflict,
+      isAvailable: () => true,
+      isPrimary: () => true,
+      commitPrimary: async snapshot => options.persistPrimary(snapshot),
+      resumeConflict(conflict) { activeConflict = conflict; options.onConflict?.(conflict); },
+      async resolveConflict(selected) {
+        const resolved = plain(selected === "mine" ? activeConflict.localSnapshot : activeConflict.remoteSnapshot);
+        await options.persistPrimary(resolved); activeConflict = null; options.onSnapshot(resolved, "commit");
+      },
+      close() {},
+    };
+  } };
+  const env = environment({ react: h.react, "./write-ownership": { studioWriteOwnership: ownership }, "./studio-sync": sync });
+  const model = env.load("studio/template-model.ts");
+  const initial = { version: model.TEMPLATE_VERSION, sets: [model.createTemplateSet()], assignments: [], defaultTemplateIds: {} };
+  env.storage.setItem(model.TEMPLATE_STORAGE_KEY, JSON.stringify(initial));
+  const { useTemplates } = env.load("studio/use-templates.ts");
+  const render = () => h.render(() => useTemplates(1, true));
+  render(); await h.flush(); render(); await h.flush(); let state = render();
+  const base = plain(state.store); const local = plain(base); const remote = plain(base);
+  local.sets[0].name = "My template"; remote.sets[0].name = "Other template";
+  const conflict = { reason: "Concurrent template edit", baseSnapshot: base, localSnapshot: local, remoteSnapshot: remote, conflicts: [], transaction: { changes: [] } };
+  activeConflict = conflict; syncOptions.onConflict(conflict); state = render();
+  assert.equal(state.saveLabel, "Resolve conflicting changes");
+
+  await state.resolveSyncConflict(choice); state = render();
+  const expected = choice === "mine" ? "My template" : "Other template";
+  assert.equal(state.syncConflict, null);
+  assert.equal(state.store.sets[0].name, expected);
+  assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).sets[0].name, expected);
+  assert.equal(state.saveLabel, "Saved locally");
 });
 
 test("history routing undoes interleaved content and assignment changes in order", async () => {

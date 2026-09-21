@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cloneWorkspace, initialStudioWorkspace, type StudioDocument, type StudioWorkspace } from "./editor-model";
 import { validateStudioWorkspace } from "./workspace-validation";
 import { commitHistory, redoHistory, undoHistory } from "./studio-command-operations.mjs";
 import { browserWorkspaceRepository, type WorkspaceRepository } from "./workspace-repository";
 
 import { studioWriteOwnership, ownershipMessage, type OwnershipState, type StudioWriteOwnership } from "./write-ownership";
-import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus } from "./studio-sync";
+import { applyStudioTransaction, createStudioSync, createStudioTransaction, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus } from "./studio-sync";
 
 const MAX_HISTORY = 60;
 
@@ -30,11 +30,43 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   const workspaceRef = useRef(workspace);
   const syncRef = useRef<StudioSyncSession<StudioWorkspace> | null>(null);
   const pendingConflictRef = useRef<StudioSyncConflict | null>(null);
+  const authoritativeWorkspaceRef = useRef(cloneWorkspace(initialWorkspace));
+  const pendingPeerSaveRef = useRef<{ base: StudioWorkspace; snapshot: StudioWorkspace } | null>(null);
   const lastPersistedWorkspaceRef = useRef<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<StudioSyncStatus>("disconnected");
+  const [syncSnapshotReady, setSyncSnapshotReady] = useState(false);
   const [syncConflict, setSyncConflict] = useState<StudioSyncConflict | null>(null);
   const [syncResolutionError, setSyncResolutionError] = useState<string | null>(null);
   useEffect(() => { workspaceRef.current = workspace; }, [workspace]);
+
+  const reconcilePendingPeerSave = useCallback((snapshot: StudioWorkspace) => {
+    const authoritative = cloneWorkspace(snapshot);
+    authoritativeWorkspaceRef.current = authoritative;
+    const pending = pendingPeerSaveRef.current;
+    if (!pending) return { workspace: authoritative, conflict: null };
+    const transaction = createStudioTransaction(pending.base, pending.snapshot, {
+      transactionId: "ownership-handover",
+      clientId: "local-peer",
+      brokerEpoch: "ownership-handover",
+      baseRevision: 0,
+    });
+    const merged = applyStudioTransaction(authoritative, transaction);
+    if (!merged.conflicts.length) {
+      const next = validateSnapshot(merged.snapshot);
+      pendingPeerSaveRef.current = { base: authoritative, snapshot: cloneWorkspace(next) };
+      return { workspace: next, conflict: null };
+    }
+    const conflict: StudioSyncConflict = {
+      transaction,
+      conflicts: merged.conflicts,
+      baseSnapshot: cloneWorkspace(pending.base),
+      remoteSnapshot: authoritative,
+      localSnapshot: cloneWorkspace(pending.snapshot),
+      reason: "Studio changed while this tab was taking over local persistence.",
+    };
+    pendingConflictRef.current = conflict;
+    return { workspace: cloneWorkspace(pending.snapshot), conflict };
+  }, [validateSnapshot]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +84,12 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         : "Local workspace ready";
       queueMicrotask(() => {
         if (cancelled || (token && tokenRef.current !== token)) return;
-        setWorkspace(pendingConflictRef.current ? validateSnapshot(pendingConflictRef.current.localSnapshot) : savedWorkspace ?? cloneWorkspace(initialWorkspace));
+        const loaded = savedWorkspace ?? cloneWorkspace(initialWorkspace);
+        const reconciled = pendingConflictRef.current
+          ? { workspace: validateSnapshot(pendingConflictRef.current.localSnapshot), conflict: pendingConflictRef.current }
+          : reconcilePendingPeerSave(loaded);
+        workspaceRef.current = reconciled.workspace;
+        setWorkspace(reconciled.workspace);
         historyRef.current = [];
         futureRef.current = [];
         setHistoryAvailability({ undo: false, redo: false });
@@ -83,7 +120,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       unsubscribe();
       release();
     };
-  }, [repository, ownership, attempt, initialWorkspace, validateSnapshot]);
+  }, [repository, ownership, attempt, initialWorkspace, validateSnapshot, reconcilePendingPeerSave]);
 
   useEffect(() => {
     if (ownershipState !== "waiting") return;
@@ -109,12 +146,22 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       loadAuthoritative: () => repository.load() ?? cloneWorkspace(initialWorkspace),
       onSnapshot: (snapshot, source) => {
         if (pendingConflictRef.current && (source === "failover" || source === "welcome")) return;
-        const activeDocumentId = workspaceRef.current.documents.some(document => document.id === workspaceRef.current.activeDocumentId)
+        const reconciled = reconcilePendingPeerSave(snapshot);
+        const activeDocumentId = reconciled.workspace.documents.some(document => document.id === workspaceRef.current.activeDocumentId)
           ? workspaceRef.current.activeDocumentId
-          : snapshot.activeDocumentId;
-        const displayed = { ...cloneWorkspace(snapshot), activeDocumentId };
+          : reconciled.workspace.activeDocumentId;
+        const displayed = { ...cloneWorkspace(reconciled.workspace), activeDocumentId };
         workspaceRef.current = displayed;
+        let snapshotWasPersisted = !primary || source !== "failover";
+        if (primary && source === "failover") {
+          try { snapshotWasPersisted = repository.load() !== null; }
+          catch { snapshotWasPersisted = false; }
+        }
+        if (snapshotWasPersisted) lastPersistedWorkspaceRef.current = JSON.stringify({ ...cloneWorkspace(snapshot), activeDocumentId });
+        setSyncSnapshotReady(true);
         setWorkspace(displayed);
+        if (reconciled.conflict) queueMicrotask(() => syncRef.current?.resumeConflict(reconciled.conflict!));
+        if (!primary && (source === "welcome" || source === "update" || source === "commit")) setSaveLabel("Synced with another ACM Studio tab");
         if (source === "update" || source === "welcome" || source === "failover" || source === "recovery") {
           historyRef.current = [];
           futureRef.current = [];
@@ -144,12 +191,13 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
     return () => {
       session.close();
       if (syncRef.current === session) syncRef.current = null;
+      setSyncSnapshotReady(false);
       setSyncStatus("disconnected");
     };
-  }, [ready, loadError, ownershipState, loadedToken, repository, initialWorkspace, ownership, scope, validateSnapshot]);
+  }, [ready, loadError, ownershipState, loadedToken, repository, initialWorkspace, ownership, scope, validateSnapshot, reconcilePendingPeerSave]);
 
   const primaryWritable = ownership.canWrite(loadedToken);
-  const peerWritable = !primaryWritable && syncStatus === "synced";
+  const peerWritable = !primaryWritable && syncStatus === "synced" && syncSnapshotReady;
   const editable = primaryWritable || peerWritable;
 
   useEffect(() => {
@@ -183,11 +231,17 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
           if (syncRef.current?.isAvailable() && syncRef.current.isPrimary()) await syncRef.current.commitPrimary(workspace);
           else repository.save(workspace);
         } else if (syncRef.current?.isConnectedPeer()) {
+          const pending = pendingPeerSaveRef.current;
+          pendingPeerSaveRef.current = {
+            base: pending ? cloneWorkspace(pending.base) : cloneWorkspace(authoritativeWorkspaceRef.current),
+            snapshot: cloneWorkspace(workspace),
+          };
           await syncRef.current.submit(workspace);
         } else return;
         const updated = new Date();
         message = primaryWritable ? `Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Synced with another ACM Studio tab";
         lastPersistedWorkspaceRef.current = snapshotKey;
+        if (pendingPeerSaveRef.current && JSON.stringify(pendingPeerSaveRef.current.snapshot) === snapshotKey) pendingPeerSaveRef.current = null;
       } catch (error) {
         failed = true;
         message = error instanceof Error ? error.message : "Could not save locally";
@@ -268,6 +322,11 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
 
   async function resolveSyncConflict(choice: "mine" | "theirs") {
     setSyncResolutionError(null);
+    const pendingPeerSave = pendingPeerSaveRef.current;
+    // The session conflict already owns the complete local snapshot. Stop the
+    // handover rebase from applying that same pending transaction again while
+    // the chosen resolution installs its result.
+    pendingPeerSaveRef.current = null;
     try {
       const session = syncRef.current;
       if (!session) throw new Error("Studio synchronisation is unavailable. Keep this tab open and try again.");
@@ -276,10 +335,21 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       setSyncConflict(null);
       setSaveError(null);
     } catch (error) {
+      pendingPeerSaveRef.current = pendingPeerSave;
       setSyncResolutionError(error instanceof Error ? error.message : "The choice could not be saved. Your changes remain available for another attempt.");
     }
   }
 
-  const statusLabel = syncConflict ? "Resolve conflicting changes" : syncStatus === "disconnected" && !primaryWritable ? "Connection lost — editing is paused" : syncStatus === "unsupported" && !primaryWritable ? "Read-only: this browser cannot synchronise Studio tabs" : null;
-  return { workspace, ready, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing: ["waiting", "unavailable"].includes(ownershipState), retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? ownershipMessage(ownershipState) ?? statusLabel ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
+  const statusLabel = syncConflict
+    ? "Resolve conflicting changes"
+    : syncStatus === "disconnected" && !primaryWritable
+      ? "Connection lost — editing is paused"
+      : syncStatus === "unsupported" && !primaryWritable
+        ? "Read-only: this browser cannot synchronise Studio tabs"
+        : ownershipState === "waiting" && syncStatus === "connecting"
+          ? "Connecting to another ACM Studio tab…"
+          : null;
+  const ownershipLabel = ownershipState === "waiting" && (peerWritable || syncStatus === "connecting") ? null : ownershipMessage(ownershipState);
+  const canRetryEditing = ownershipState === "unavailable" || (ownershipState === "waiting" && ["unsupported", "disconnected"].includes(syncStatus));
+  return { workspace, ready, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing, retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? statusLabel ?? ownershipLabel ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
 }

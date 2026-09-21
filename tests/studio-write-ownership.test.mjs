@@ -249,9 +249,21 @@ for (const operation of ["folder", "upload", "replace", "read"]) {
   });
 }
 
-function hookTab(storage, manager) {
+function hookTab(storage, manager, studioSync = null) {
   const slots = []; let index = 0; let dirty = true; let effects = []; let result;
+  const registerEffect = (effect, deps) => {
+    const id = index++; const previous = slots[id];
+    if (!previous || deps.some((value, i) => !Object.is(value, previous.deps[i]))) {
+      slots[id] = { deps };
+      effects.push(() => { previous?.cleanup?.(); slots[id].cleanup = effect(); });
+    }
+  };
   const react = {
+    useCallback(callback, deps) {
+      const id = index++; const previous = slots[id];
+      if (!previous || deps.some((value, i) => !Object.is(value, previous.deps[i]))) slots[id] = { callback, deps };
+      return slots[id].callback;
+    },
     useState(initial) {
       const id = index++;
       if (!(id in slots)) slots[id] = typeof initial === "function" ? initial() : initial;
@@ -261,15 +273,10 @@ function hookTab(storage, manager) {
       }];
     },
     useRef(initial) { const id = index++; return slots[id] ??= { current: initial }; },
-    useEffect(effect, deps) {
-      const id = index++; const previous = slots[id];
-      if (!previous || deps.some((value, i) => !Object.is(value, previous.deps[i]))) {
-        slots[id] = { deps };
-        effects.push(() => { previous?.cleanup?.(); slots[id].cleanup = effect(); });
-      }
-    },
+    useEffect: registerEffect,
   };
-  const load = modules({ window: { localStorage: storage }, navigator: { locks: manager } }, { react });
+  const overrides = studioSync ? { react, "./studio-sync": studioSync } : { react };
+  const load = modules({ window: { localStorage: storage }, navigator: { locks: manager } }, overrides);
   const useWorkspace = load("app/studio/use-studio-workspace.ts").useStudioWorkspace;
   return {
     load,
@@ -289,6 +296,151 @@ function hookTab(storage, manager) {
     close() { slots.forEach((slot) => slot?.cleanup?.()); },
   };
 }
+
+function controlledStudioSync({ deferPeerSubmissions = false } = {}) {
+  const transactions = modules()("app/studio/studio-sync.ts");
+  let authoritative = null;
+  let primaryOptions = null;
+  let peer = null;
+  let operations = 0;
+  return {
+    module: {
+      applyStudioTransaction: transactions.applyStudioTransaction,
+      createStudioTransaction: transactions.createStudioTransaction,
+      createStudioSync(options) {
+        let status = options.role === "primary" ? "primary" : "connecting";
+        const pendingSubmissions = [];
+        let activeConflict = null;
+        if (options.role === "primary") { authoritative = structuredClone(options.initialSnapshot); primaryOptions = options; }
+        else peer = { options, setStatus(next) { status = next; options.onStatus?.(next); } };
+        return {
+          close() {
+            status = "disconnected";
+            pendingSubmissions.splice(0).forEach(({ reject }) => reject(new Error("The Studio sync session closed.")));
+          },
+          getConflict() { return activeConflict; },
+          getStatus() { return status; },
+          isAvailable() { return true; },
+          isConnectedPeer() { return status === "synced"; },
+          isPrimary() { return options.role === "primary"; },
+          async commitPrimary(snapshot) { authoritative = structuredClone(snapshot); await options.persistPrimary(snapshot); },
+          async submit(snapshot) {
+            operations++;
+            if (deferPeerSubmissions && options.role === "peer") {
+              await new Promise((resolve, reject) => pendingSubmissions.push({ resolve, reject }));
+              return;
+            }
+            authoritative = structuredClone(snapshot);
+            await primaryOptions.persistPrimary(snapshot);
+          },
+          async resolveConflict(choice) {
+            assert.ok(activeConflict);
+            const resolved = structuredClone(choice === "mine" ? activeConflict.localSnapshot : activeConflict.remoteSnapshot);
+            await options.persistPrimary(resolved);
+            activeConflict = null;
+            options.onSnapshot(resolved, "commit");
+          },
+          resumeConflict(conflict) { activeConflict = conflict; status = "conflict"; options.onConflict?.(conflict); },
+        };
+      },
+    },
+    get operations() { return operations; },
+    welcome() {
+      assert.ok(peer, "peer session must exist before welcome");
+      peer.options.onSnapshot(structuredClone(authoritative), "welcome");
+      peer.setStatus("synced");
+    },
+  };
+}
+
+test("peer installs the owner snapshot before editing and does not echo stale local state", async () => {
+  const manager = locks();
+  const sync = controlledStudioSync();
+  let ownerRaw = null; let peerRaw = null;
+  const ownerStorage = { getItem: () => ownerRaw, setItem: (_key, value) => { ownerRaw = value; } };
+  const peerStorage = { getItem: () => peerRaw, setItem: (_key, value) => { peerRaw = value; } };
+  const ownerTab = hookTab(ownerStorage, manager, sync.module);
+  let owner = await ownerTab.flush();
+  owner.updateActiveField("title", "Authoritative owner title");
+  owner = await ownerTab.flush();
+
+  const peerTab = hookTab(peerStorage, manager, sync.module);
+  let peer = await peerTab.flush();
+  assert.equal(peer.writable, false);
+  assert.equal(peer.saveLabel, "Connecting to another ACM Studio tab…");
+  assert.notEqual(peer.workspace.documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, "Authoritative owner title");
+
+  sync.welcome();
+  peer = await peerTab.flush();
+  assert.equal(peer.writable, true);
+  assert.equal(peer.saveLabel, "Synced with another ACM Studio tab");
+  assert.equal(peer.workspace.documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, "Authoritative owner title");
+  assert.equal(sync.operations, 0, "the welcome snapshot must not be echoed as a peer edit");
+  assert.equal(peerRaw, null, "a peer must never write its own browser store directly");
+
+  peer.updateActiveField("title", "Edited in the peer");
+  await peerTab.flush();
+  assert.equal(sync.operations, 1);
+  assert.equal(JSON.parse(ownerRaw).documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, "Edited in the peer");
+
+  peerTab.close(); ownerTab.close(); await tick();
+});
+
+test("an in-flight peer edit survives becoming the persistence owner", async () => {
+  const manager = locks();
+  const sync = controlledStudioSync({ deferPeerSubmissions: true });
+  let raw = null;
+  const storage = { getItem: () => raw, setItem: (_key, value) => { raw = value; } };
+  const ownerTab = hookTab(storage, manager, sync.module);
+  let owner = await ownerTab.flush();
+  owner.updateActiveField("title", "Saved owner title");
+  owner = await ownerTab.flush();
+
+  const peerTab = hookTab(storage, manager, sync.module);
+  let peer = await peerTab.flush();
+  sync.welcome();
+  peer = await peerTab.flush();
+  peer.updateActiveField("title", "Unsaved peer title");
+  peer = await peerTab.flush();
+  assert.equal(peer.workspace.documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, "Unsaved peer title");
+  assert.equal(sync.operations, 1, "the peer save should be in flight before ownership changes");
+
+  ownerTab.close(); await tick();
+  peer.retryEditing();
+  peer = await peerTab.flush();
+  assert.equal(peer.exclusiveWritable, true);
+  assert.equal(peer.workspace.documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, "Unsaved peer title");
+  assert.equal(JSON.parse(raw).documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, "Unsaved peer title");
+
+  peerTab.close(); await tick();
+});
+
+for (const choice of ["mine", "theirs"]) test(`a takeover conflict resolves ${choice} without reapplying a stale pending edit`, async () => {
+  const manager = locks();
+  const sync = controlledStudioSync({ deferPeerSubmissions: true });
+  let raw = null;
+  const storage = { getItem: () => raw, setItem: (_key, value) => { raw = value; } };
+  const ownerTab = hookTab(storage, manager, sync.module);
+  let owner = await ownerTab.flush();
+  owner.updateActiveField("title", "Shared base title"); owner = await ownerTab.flush();
+
+  const peerTab = hookTab(storage, manager, sync.module);
+  let peer = await peerTab.flush(); sync.welcome(); peer = await peerTab.flush();
+  peer.updateActiveField("title", "Peer title"); peer = await peerTab.flush();
+  owner.updateActiveField("title", "Owner title"); owner = await ownerTab.flush();
+
+  ownerTab.close(); await tick(); peer.retryEditing(); peer = await peerTab.flush();
+  assert.ok(peer.syncConflict, "overlapping edits must remain explicit during takeover");
+  assert.equal(peer.workspace.documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, "Peer title");
+
+  await peer.resolveSyncConflict(choice); peer = await peerTab.flush();
+  const expected = choice === "mine" ? "Peer title" : "Owner title";
+  assert.equal(peer.syncConflict, null);
+  assert.equal(peer.workspace.documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, expected);
+  assert.equal(JSON.parse(raw).documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, expected);
+
+  peerTab.close(); await tick();
+});
 
 test("read-only tab can browse; ownership retry reloads fresh content and old closures cannot save", async () => {
   const manager = locks(); let raw = null; let writes = 0;

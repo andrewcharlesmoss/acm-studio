@@ -56,6 +56,11 @@ function hookHarness(repository, load, syncOverride = null) {
   let microtasks = [];
   let dirty = true;
   const react = {
+    useCallback(callback, deps) {
+      const id = index++; const previous = slots[id];
+      if (!previous || deps.some((value, i) => !Object.is(value, previous.deps[i]))) slots[id] = { callback, deps };
+      return slots[id].callback;
+    },
     useState(initial) {
       const id = index++;
       if (!(id in slots)) slots[id] = typeof initial === "function" ? initial() : initial;

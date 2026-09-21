@@ -12,6 +12,13 @@ editor shell.
 
 The canvas, ordinary block controls, List View and history are shared with the
 content editor. The editing breadcrumb identifies the selected set and target.
+When the same local Studio is open in more than one browser tab, one tab owns
+browser persistence and the others synchronise edits through it. A peer tab
+stays paused until it has installed the owner's latest Content and Template
+snapshots, then reports that it is synchronised; compatible edits merge and
+only overlapping changes require an explicit choice. An edit already being
+sent remains local during an ownership handover and is either rebased onto the
+latest stored snapshot or presented for explicit conflict resolution.
 **Preview Content** selects an existing document; **Width** provides desktop,
 tablet and mobile canvas sizes. Zoom is independent of that viewport choice and
 is available from the toolbar or with Command/Ctrl + plus/equal, Command/Ctrl +

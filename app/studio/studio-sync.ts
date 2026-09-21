@@ -575,7 +575,13 @@ export class StudioSyncSession<T> {
     this.conflict = null;
     this.pendingResumedConflict = null;
     this.brokerEpoch = message.brokerEpoch; this.revision = message.revision; this.snapshot = this.validate(message.snapshot); this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
-    if (this.helloTimer) clearTimeout(this.helloTimer); this.refreshBrokerTimer(); this.setStatus("synced"); this.options.onSnapshot(this.snapshot, "welcome");
+    if (this.helloTimer) clearTimeout(this.helloTimer);
+    this.refreshBrokerTimer();
+    // Install the authoritative snapshot before exposing a writable peer. A
+    // newly opened tab may have loaded older browser storage while it waited
+    // for the primary tab to answer.
+    this.options.onSnapshot(this.snapshot, "welcome");
+    this.setStatus("synced");
     if (interruptedConflict) this.installResumedConflict(interruptedConflict);
   }
   private async receiveOperation(message: Extract<StudioSyncMessage, { kind: "operation" }>) {

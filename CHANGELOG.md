@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Changed
+- Studio tabs now install the persistence owner's latest Content and Template
+  snapshot before enabling peer edits, avoid echoing that snapshot as a stale
+  local change, preserve in-flight Content and Template edits when ownership
+  changes, and report healthy synchronisation instead of a misleading read-only
+  warning.
 - Empty Author and Publication Date blocks now remain visible in the Studio editor with clear metadata prompts, while previews and publications continue to omit unset values.
 
 ### Added

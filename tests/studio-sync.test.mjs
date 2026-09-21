@@ -182,10 +182,11 @@ test("studio sync commits peer edits once, rejects duplicates and reloads author
   const channelFactory = channelBus();
   let persisted = { value: "initial", records: [] };
   const primary = sync.createStudioSync({ storeKey: "workspace", clientId: "primary", initialSnapshot: persisted, role: "primary", channelFactory, loadAuthoritative: () => persisted, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { persisted = next; } });
-  const snapshots = [];
-  const peer = sync.createStudioSync({ storeKey: "workspace", clientId: "peer", initialSnapshot: persisted, role: "peer", channelFactory, loadAuthoritative: () => persisted, validateSnapshot: value => value, onSnapshot: snapshot => snapshots.push(snapshot), persistPrimary: async () => { throw new Error("peer wrote directly"); } });
+  const snapshots = []; const welcomeOrder = [];
+  const peer = sync.createStudioSync({ storeKey: "workspace", clientId: "peer", initialSnapshot: persisted, role: "peer", channelFactory, loadAuthoritative: () => persisted, validateSnapshot: value => value, onSnapshot: (snapshot, source) => { snapshots.push(snapshot); if (source === "welcome") welcomeOrder.push("snapshot"); }, onStatus: status => { if (status === "synced") welcomeOrder.push("writable"); }, persistPrimary: async () => { throw new Error("peer wrote directly"); } });
   await settle();
   assert.equal(peer.getStatus(), "synced");
+  assert.deepEqual(welcomeOrder, ["snapshot", "writable"], "the authoritative snapshot must be installed before peer editing is enabled");
   await peer.submit({ value: "changed", records: [] });
   assert.equal(persisted.value, "changed");
   assert.equal(snapshots.at(-1).value, "initial"); // Own commits must not echo over newer local edits.
