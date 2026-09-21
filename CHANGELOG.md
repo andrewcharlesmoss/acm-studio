@@ -19,12 +19,13 @@
   author and publication date remain editable document fields, and the former
   fixed `0 Comments` placeholder is no longer rendered.
 - Integrated Templates into the Content Studio workspace beside Pages and
-  Posts, with a template-set count badge, in-place library/editor switching and
+  Posts, with an entry count badge, in-place library/editor switching and
   one shared ownership and synchronisation session. The standalone template
   route remains available as a deep link.
-- Template sets and their Page/Post/Header/Footer entries now appear in the
-  shared Content Studio library pane, opening the selected template directly
-  in the editor instead of using a separate library landing view.
+- Page/Post/Header/Footer template entries now appear as separate first-class
+  items in the shared Content Studio library pane, opening the selected
+  template directly in the editor without exposing the internal set hierarchy.
+  Existing template sets remain intact for storage and deep-link compatibility.
 - Templates are now a sibling authoring mode beside Pages and Posts in the
   Content Studio navigation, while retaining their separate reusable data
   model and `/studio/templates` route.

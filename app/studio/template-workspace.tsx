@@ -50,6 +50,8 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
   const importRef = useRef<HTMLInputElement>(null);
   const set = templates.store.sets.find(item => item.id === setId);
   const target = set ? [...set.templates, ...set.parts].find(item => item.id === targetId) ?? set.templates[0] : undefined;
+  const templateEntries = templates.store.sets.flatMap(item => [...item.templates, ...item.parts].map(entry => ({ set: item, entry })));
+  const templateEntryCount = templateEntries.length;
   const media = useTemplateMedia([...(set ? templateMediaIds(set) : []), ...workspace.workspace.documents.flatMap(document => [...contentMediaIds(document.blocks), ...(document.coverImage?.mediaId ? [document.coverImage.mediaId] : [])])]);
   const writable = templates.writable && !busy;
   const exclusiveWritable = templates.exclusiveWritable && !busy;
@@ -177,7 +179,6 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     <aside className="studio-library">
       {onBackToContent ? <>
         <div className="library-create">
-          <button type="button" onClick={createSet}><StudioIcon name="add" size={16} /> New set</button>
           <button type="button" onClick={() => importRef.current?.click()}>Import</button>
         </div>
         <button className="library-tool-button" type="button" onClick={onOpenFiles}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
@@ -187,23 +188,18 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
         <div className="library-tabs" aria-label="Content type">
           <button type="button" onClick={() => onSelectContentKind?.("page")}>Pages<span>{workspace.workspace.documents.filter(item => item.kind === "page").length}</span></button>
           <button type="button" onClick={() => onSelectContentKind?.("post")}>Posts<span>{workspace.workspace.documents.filter(item => item.kind === "post").length}</span></button>
-          <button className="is-active" type="button" onClick={library}>Templates<span>{templates.store.sets.length}</span></button>
+          <button className="is-active" type="button" onClick={library}>Templates<span>{templateEntryCount}</span></button>
         </div>
       </> : <>
         <a className="library-tool-button" href="/studio"><span><StudioIcon name="pencil" /></span><strong>Content</strong><small>Pages and posts</small></a>
         <button className="library-tool-button is-active" type="button" onClick={library}><span><StudioIcon name="block" /></span><strong>Templates</strong><small>Shared presentation</small></button>
       </>}
       {onBackToContent ? <div className="document-list template-document-list">
-        {templates.store.sets.map(item => <div className="template-set-list-item" key={item.id}>
-          <button className={`document-item${item.id === set?.id ? " is-active" : ""}`} type="button" onClick={() => openSet(item)}>
-            <span className="document-kind-mark">T</span><span><strong>{item.name}</strong><small>{item.templates.length} templates · {item.parts.length} parts</small></span><i aria-hidden="true" />
-          </button>
-          {item.id === set?.id ? <div className="template-target-list">{[...item.templates, ...item.parts].map(entry => <button className={`document-item template-target-item${entry.id === target?.id ? " is-active" : ""}`} type="button" key={entry.id} onClick={() => openSet(item, entry.id)}>
-            <span className="document-kind-mark">{entry.kind === "post" ? "A" : entry.kind === "page" ? "P" : "H"}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />
-          </button>)}</div> : null}
-        </div>)}
+        {templateEntries.map(({ set: item, entry }) => <button className={`document-item template-target-item${item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} onClick={() => openSet(item, entry.id)}>
+          <span className="document-kind-mark">{entry.kind === "post" ? "A" : entry.kind === "page" ? "P" : "H"}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />
+        </button>)}
       </div> : null}
-      {set ? <fieldset disabled={!writable}><legend>Add to This Set</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div>{target ? <div className="template-targets"><button type="button" onClick={() => askName("Rename", target.name, name => { return changeSet({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, name } : item), parts: set.parts.map(item => item.id === target.id ? { ...item, name } : item) }); })}>Rename</button><button type="button" onClick={duplicateTarget}>Duplicate</button><button type="button" onClick={deleteTarget}>Delete</button></div> : null}</fieldset> : null}
+      {set ? <fieldset disabled={!writable}><legend>Add template</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div>{target ? <div className="template-targets"><button type="button" onClick={() => askName("Rename", target.name, name => { return changeSet({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, name } : item), parts: set.parts.map(item => item.id === target.id ? { ...item, name } : item) }); })}>Rename</button><button type="button" onClick={duplicateTarget}>Duplicate</button><button type="button" onClick={deleteTarget}>Delete</button></div> : null}</fieldset> : null}
       {onBackToContent ? <><SiteNavigation /><div className="library-footer"><button type="button" onClick={onExportContent}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div></> : null}
     </aside>
     {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : "Template image"} targetKind="block" onInsertImage={insertMedia} /></section> : set && target ? <TemplateEditor key={target.id} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} writable={writable} onChange={changeSet} onEditPart={id => openSet(set, id)} onOpenMedia={(blockId, logo = false) => setMediaTarget({ blockId, logo })} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : standalone ? <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Site templates</h1><p>Create a consistent page and post design. Each set has its own shared parts, identity and styles.</p><div className="template-library-actions"><button className="button-primary" type="button" disabled={!writable} onClick={createSet}><StudioIcon name="add" />Create Template Set</button><button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button><div className="template-set-grid">{templates.store.sets.map(item => <article className="template-set-card" key={item.id}><h2>{item.name}</h2><p>{item.templates.length} templates · {item.parts.length} shared parts</p><button type="button" onClick={() => openSet(item)}>Open Templates</button><div className="template-set-actions"><button type="button" disabled={!writable} onClick={() => askName("Rename Template Set", item.name, name => changeSet({ ...item, name }))}>Rename</button><button type="button" disabled={!exclusiveWritable} onClick={() => void duplicateSet(item)}>Duplicate</button><button type="button" disabled={busy} onClick={() => void exportSet(item)}>Export</button><button type="button" disabled={!writable} onClick={() => deleteSet(item)}>Delete</button></div></article>)}</div>{!templates.store.sets.length && templates.ready ? <p>No template sets yet. Create one to start with the neutral ACM design.</p> : null}</div></section> : <section className="template-library template-empty-state" style={{ gridColumn: "span 2" }}><h1>Select a template</h1><p>Choose a Page, Post or shared part from the Templates list.</p></section>}

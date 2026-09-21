@@ -374,7 +374,7 @@ export function StudioPrototype() {
                 {kind === "page" ? "Pages" : "Posts"}<span>{workspace.documents.filter((item) => item.kind === kind).length}</span>
               </button>
             ))}
-            <button type="button" onClick={() => switchStudioMode("templates")}>Templates<span>{templateSession.store.sets.length}</span></button>
+            <button type="button" onClick={() => switchStudioMode("templates")}>Templates<span>{templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0)}</span></button>
           </div>
           <div className="document-list">
             {workspace.documents.filter((document) => document.kind === libraryKind).map((document) => (

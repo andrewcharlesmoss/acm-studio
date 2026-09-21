@@ -404,7 +404,7 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const templateStyles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
-  assert.match(studio, /<div className="library-tabs" aria-label="Content type">[\s\S]*<button type="button" onClick=\{\(\) => switchStudioMode\("templates"\)\}>Templates<span>\{templateSession\.store\.sets\.length\}<\/span><\/button>/);
+  assert.match(studio, /<div className="library-tabs" aria-label="Content type">[\s\S]*<button type="button" onClick=\{\(\) => switchStudioMode\("templates"\)\}>Templates<span>\{templateSession\.store\.sets\.reduce\(\(count, item\) => count \+ item\.templates\.length \+ item\.parts\.length, 0\)}<\/span><\/button>/);
   assert.match(studio, /const \[studioSection, setStudioSection\] = useState<"content" \| "templates" \| "files" \| "backup">\("content"\)/);
   assert.match(studio, /const mode = new URLSearchParams\(window\.location\.search\)\.get\("mode"\);\s*queueMicrotask\(\(\) => \{ if \(mode === "templates"\) setStudioSection\("templates"\); \}\);/);
   assert.match(studio, /window\.addEventListener\("popstate", syncModeFromLocation\)/);
@@ -413,15 +413,16 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(styles, /\.library-tabs \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(styles, /\.library-tabs button/);
   const templateWorkspace = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
-  assert.match(templateWorkspace, /<div className="library-tabs" aria-label="Content type">[\s\S]*Templates<span>\{templates\.store\.sets\.length\}<\/span>/);
-  assert.match(templateWorkspace, /<div className="library-create">[\s\S]*New set[\s\S]*Import/);
-  assert.match(templateWorkspace, /className="template-target-list"/);
+  assert.match(templateWorkspace, /<div className="library-tabs" aria-label="Content type">[\s\S]*Templates<span>\{templateEntryCount}<\/span>/);
+  assert.match(templateWorkspace, /<div className="library-create">\s*<button type="button" onClick=\{\(\) => importRef\.current\?\.click\(\)\}>Import<\/button>/);
+  assert.match(templateWorkspace, /const templateEntries = templates\.store\.sets\.flatMap/);
+  assert.match(templateWorkspace, /className=\{`document-item template-target-item/);
   assert.match(templateWorkspace, /<TemplateEditor key=\{target\.id\}/);
   assert.match(templateWorkspace, /: standalone \? <section className="template-library"/);
   assert.match(templateWorkspace, /className="template-status template-inline-status"[^>]*role="alert"[^>]*>.*template-status-actions/s);
   assert.match(templateStyles, /\.template-workspace \.studio-library \{ padding: 0; overflow-y: auto; gap: 0; \}/);
   assert.match(templateStyles, /\.template-workspace \.studio-library fieldset \{ border: 0; padding: 12px; margin: 0; \}/);
-  assert.match(templateStyles, /\.template-workspace \.studio-library \.template-document-list \{ padding: 10px; \}/);
+  assert.match(templateStyles, /\.template-workspace \.studio-library \.template-document-list \{[^}]*padding: 10px;/);
   assert.match(templateStyles, /\.template-inspector \.inspector-scroll button/);
   assert.doesNotMatch(templateStyles, /\.template-inspector button \{/);
   assert.match(templateStyles, /\.template-status-actions button \{ background: #fff; border: 1px solid #c8c6be; border-radius: 7px;/);
@@ -1143,9 +1144,13 @@ test("Backspace removes an empty list item and keeps text editing intact", () =>
   assert.doesNotMatch(css, /\.list-field-row textarea:focus\s*\{/);
 });
 
-test("template set contents remain expanded in the library pane", () => {
+test("template targets appear as separate library entries", () => {
+  const workspace = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   assert.match(css, /\.template-workspace \.studio-library \.template-document-list \{[^}]*flex: 0 0 auto;[^}]*overflow: visible;/);
+  assert.match(workspace, /const templateEntries = templates\.store\.sets\.flatMap/);
+  assert.match(workspace, /templateEntries\.map\(\(\{ set: item, entry \}\)/);
+  assert.doesNotMatch(workspace, /className="template-target-list"/);
 });
 
 test("successful publication feedback dismisses itself", () => {
