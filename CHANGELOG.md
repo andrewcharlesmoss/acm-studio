@@ -262,6 +262,10 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Tightened the selected dynamic Cover Image block so its red editor border
+  hugs the image without exposing the cover's outer spacing as empty block area.
+- Kept dynamic Subtitle blocks to the template's normal body size and removed
+  their internal paragraph margins so their selected bounds fit the text.
 - Command+S on macOS and Ctrl+S on Windows/Linux now perform the active
   post's Update action instead of opening the browser Save Page dialogue.
 - Text alignment controls now use neutral grey selected and hover states with

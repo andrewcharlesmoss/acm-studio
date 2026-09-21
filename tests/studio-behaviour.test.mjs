@@ -173,6 +173,17 @@ test("the cover image exposes a between-block inserter", async () => {
   assert.match(source, /openInserter\(-1\)/);
 });
 
+test("dynamic cover blocks keep selection borders tight to the image", async () => {
+  const styles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(styles, /\.canvas-block > \.canvas-cover-wrap\.document-dynamic-cover \{ margin: 0; \}/);
+  assert.match(styles, /\.canvas-block > \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ margin: 0; \}/);
+});
+
+test("dynamic subtitle blocks use compact body sizing", async () => {
+  const styles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(styles, /\.canvas-block > \.metadata-block-editor\.document-dynamic-field\.template-subtitle \{ font: var\(--template-font-size, 1rem\)\/1\.45 var\(--template-font, var\(--font-sans\)\); margin: 0; max-width: 42em; \}/);
+});
+
 test("block hover controls group the source-faithful move chevrons vertically", async () => {
   const [canvas, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),

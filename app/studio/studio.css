@@ -531,6 +531,9 @@
 .document-preview > .preview-cover-image { margin: 24px 0 34px; }
 .canvas-cover-image { margin: 24px 0 0; }
 .canvas-cover-wrap { position: relative; margin: 24px 0 4px; }
+.canvas-block > .canvas-cover-wrap.document-dynamic-cover { margin: 0; }
+.canvas-block > .canvas-cover-wrap.document-dynamic-cover > .canvas-cover-image { margin: 0; }
+.canvas-block > .metadata-block-editor.document-dynamic-field.template-subtitle { font: var(--template-font-size, 1rem)/1.45 var(--template-font, var(--font-sans)); margin: 0; max-width: 42em; }
 .canvas-cover-wrap:hover .canvas-cover-actions, .canvas-cover-wrap:focus-within .canvas-cover-actions { opacity: 1; pointer-events: auto; }
 .canvas-cover-actions { align-items: center; background: rgba(23, 26, 29, .16); display: flex; gap: 10px; inset: 0; justify-content: center; opacity: 0; pointer-events: none; position: absolute; transition: opacity .15s; }
 .canvas-cover-actions button, .canvas-add-cover { background: rgba(255, 255, 255, .94); border: 1px solid transparent; border-radius: 5px; color: var(--ink); cursor: pointer; font-size: var(--studio-ui-size); padding: 7px 9px; }
