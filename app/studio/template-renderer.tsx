@@ -135,7 +135,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         case "social-links": element = <nav className="template-social" aria-label="Social and support links">{set.socialLinks.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined} target="_blank" rel="noopener noreferrer">{link.label}</a>)}</nav>; break;
       }
       result = <div className={`template-element template-${node.element}`} data-template-element={node.element} style={{ textAlign: align }}>{element}</div>;
-    } else result = (!shared ? renderOrdinary?.(node) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} readingTimeBlocks={document.blocks} />;
+    } else result = (!shared ? renderOrdinary?.(node) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} />;
     return (!shared ? decorate?.(node, result) : undefined) ?? result;
   }
   return <>{nodes.map(node => <div className="template-node" key={node.id}>{render(node, new Set(), 0)}</div>)}</>;

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- Empty Author and Publication Date blocks now remain visible in the Studio editor with clear metadata prompts, while previews and publications continue to omit unset values.
+
 ### Added
 - Template sync conflicts now identify the affected changes and explain the
   difference between the saved version and this tab's version. Template mode

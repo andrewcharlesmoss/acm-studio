@@ -253,6 +253,12 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   assert.match(postHtml, /is-post-author/);
   assert.match(postHtml, /is-reading-time/);
   assert.doesNotMatch(postHtml, /template-metadata/);
+  const emptyPost = { ...post, author: undefined, publishAt: undefined, publishedAt: undefined };
+  const emptyEdit = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { ...snapshot, templateId: set.templates.find(template => template.kind === "post").id }, document: emptyPost, editingDocument: true }));
+  assert.match(emptyEdit, /Add an author in Document settings/);
+  assert.match(emptyEdit, /Add a publication date in Document settings/);
+  const emptyPreview = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { ...snapshot, templateId: set.templates.find(template => template.kind === "post").id }, document: emptyPost }));
+  assert.doesNotMatch(emptyPreview, /Add an author in Document settings|Add a publication date in Document settings/);
 });
 
 test("stale asynchronous imports cannot write after ownership is reacquired", async () => {
