@@ -137,6 +137,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Positioned Edit Header and Edit Footer controls outside the selected part
+  boundary so the red selection outline encloses only the part content.
 - Centred between-block insertion lines and controls within the shared block gap
   so they sit evenly between the surrounding blocks.
 - Made content-fitting block sizing an explicit Studio rule and tightened
