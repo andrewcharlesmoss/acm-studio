@@ -350,14 +350,14 @@ test("history supports undo and redo and clears redo after a new commit", () => 
 });
 
 
-test("List View stays blue while hovered and selected canvas blocks use red outlines", () => {
+test("List View stays blue while hovered and selected canvas blocks use grey outlines", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(css, /\.studio-list-item:not\(\.is-selected\):hover\s*\{[^}]*background: var\(--accent-soft\);[^}]*border-color: var\(--accent\)/);
-  assert.match(css, /\.canvas-block:not\(\.is-selected\):is\(:hover, \[data-studio-hovered="true"\]\)\s*\{\s*border-color: #cc1818;/);
-  assert.match(css, /\.canvas-block:not\(\.is-selected\):is\(:hover, \[data-studio-hovered="true"\]\)\s*\{[^}]*outline: 1px solid #cc1818;[^}]*outline-offset: -1px;/);
-  assert.match(css, /\.canvas-block\.is-selected\s*\{[^}]*border-color: #cc1818;[^}]*outline: 1px solid #cc1818;[^}]*outline-offset: -1px;/);
+  assert.match(css, /\.canvas-block:not\(\.is-selected\):is\(:hover, \[data-studio-hovered="true"\]\)\s*\{\s*border-color: #8f8f8f;/);
+  assert.match(css, /\.canvas-block:not\(\.is-selected\):is\(:hover, \[data-studio-hovered="true"\]\)\s*\{[^}]*outline: 1px solid #8f8f8f;[^}]*outline-offset: -1px;/);
+  assert.match(css, /\.canvas-block\.is-selected\s*\{[^}]*border-color: #8f8f8f;[^}]*outline: 1px solid #8f8f8f;[^}]*outline-offset: -1px;/);
   assert.match(css, /\.studio-list-item\.is-selected\s*\{[^}]*border-color: var\(--accent\)/);
-  assert.match(css, /\.canvas-block\.is-table\.is-selected \.table-field \{ border-color: #cc1818;/);
+  assert.match(css, /\.canvas-block\.is-table\.is-selected \.table-field \{ border-color: #8f8f8f;/);
 });
 
 
@@ -365,8 +365,8 @@ test("nested editor hover and selection use red inset outlines", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   const presentation = readFileSync(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url), "utf8");
-  assert.match(css, /\.block-canvas :is\(\.studio-nested-block, \[data-studio-selected\]\):not\(\[data-studio-selected="true"\]\):is\(:hover, \[data-studio-hovered="true"\]\) \{ outline: 1px solid #cc1818; outline-offset: -1px;/);
-  assert.match(css, /\[data-studio-selected="true"\] \{ outline: 1px solid #cc1818; outline-offset: -1px;/);
+  assert.match(css, /\.block-canvas :is\(\.studio-nested-block, \[data-studio-selected\]\):not\(\[data-studio-selected="true"\]\):is\(:hover, \[data-studio-hovered="true"\]\) \{ outline: 1px solid #8f8f8f; outline-offset: -1px;/);
+  assert.match(css, /\[data-studio-selected="true"\] \{ outline: 1px solid #8f8f8f; outline-offset: -1px;/);
   assert.match(canvas, /data-studio-selected=\{selectedBlockId === child.id\}/);
   assert.match(presentation, /"data-studio-selected": context.selectedBlockId === block.id/);
   assert.match(presentation, /<BlockField block=\{block\} selectedBlockId=\{context.selectedBlockId\}/);

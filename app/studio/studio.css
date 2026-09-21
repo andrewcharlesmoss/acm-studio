@@ -566,8 +566,8 @@
 .studio-block-preview :is(.document-dynamic-field h1, .document-dynamic-field p, .metadata-block p, .metadata-block-editor p, .image-field figcaption, .embed-field small) { margin-block: 0; }
 .block-position + .block-position .canvas-block { margin-top: var(--studio-block-gap); }
 .canvas-block:hover { border-color: #d9d7cf; }
-.canvas-block:not(.is-selected):is(:hover, [data-studio-hovered="true"]) { border-color: #cc1818; outline: 1px solid #cc1818; outline-offset: -1px; }
-.canvas-block.is-selected { border-color: #cc1818; outline: 1px solid #cc1818; outline-offset: -1px; }
+.canvas-block:not(.is-selected):is(:hover, [data-studio-hovered="true"]) { border-color: #8f8f8f; outline: 1px solid #8f8f8f; outline-offset: -1px; }
+.canvas-block.is-selected { border-color: #8f8f8f; outline: 1px solid #8f8f8f; outline-offset: -1px; }
 .canvas-block-toolbar {
   --studio-toolbar-background: var(--panel, #fbfaf7);
   --studio-toolbar-border: #1e1e1e;
@@ -740,7 +740,7 @@
    Clip the cells here, leaving the block toolbar outside the clipped area. */
 .canvas-block.is-table, .studio-block-preview > .content-block.is-table { border: 0; }
 .table-field { border: 1px solid #bfc3ca; border-radius: inherit; overflow: hidden; position: relative; }
-.canvas-block.is-table.is-selected .table-field { border-color: #cc1818; }
+.canvas-block.is-table.is-selected .table-field { border-color: #8f8f8f; }
 .studio-nested-group { display: grid; gap: 16px; min-width: 0; }
 .studio-nested-group.layout-row { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
 .studio-nested-group.layout-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -767,8 +767,8 @@
 }
 .studio-nested-block { min-width: 0; }
 /* Nested editor blocks use an inset outline so source layout is unchanged. */
-.block-canvas :is(.studio-nested-block, [data-studio-selected]):not([data-studio-selected="true"]):is(:hover, [data-studio-hovered="true"]) { outline: 1px solid #cc1818; outline-offset: -1px; }
-.block-canvas :is(.studio-nested-block, [data-studio-selected])[data-studio-selected="true"] { outline: 1px solid #cc1818; outline-offset: -1px; }
+.block-canvas :is(.studio-nested-block, [data-studio-selected]):not([data-studio-selected="true"]):is(:hover, [data-studio-hovered="true"]) { outline: 1px solid #8f8f8f; outline-offset: -1px; }
+.block-canvas :is(.studio-nested-block, [data-studio-selected])[data-studio-selected="true"] { outline: 1px solid #8f8f8f; outline-offset: -1px; }
 .nested-add-block { align-items: center; background: transparent; border: 1px dashed #b6b4ac; color: var(--muted); display: inline-flex; gap: 6px; justify-content: center; min-height: 34px; padding: 6px 10px; }
 .table-field-grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 100%; }
 .table-field-grid th, .table-field-grid td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; min-width: 0; padding: 0; position: relative; text-align: left; vertical-align: top; }
