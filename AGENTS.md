@@ -57,12 +57,16 @@ for editor previews, not the public article's prose theme. Keep selection
 controls and empty-field prompts editor-only; excerpts are metadata, not
 additional body content. Verify both modes when changing a block's appearance.
 
-Blocks should be content-hugging by default: avoid unnecessary fixed height,
-padding or vertical whitespace, keep top and bottom spacing visually balanced,
-and use the shared compact block gap for ordinary block separation. Intentional
-exceptions, such as cover image framing or a user-configured Spacer block, must
-remain explicit in the owning block's styles and behave consistently in Edit,
-Preview and local publication.
+Every block must be content-fitting by default. Optimise each block's height
+and width from its actual content: avoid gratuitous `min-height`, fixed
+heights, vertical padding, margins or line-height that create empty space,
+especially around dynamic metadata blocks. Keep top and bottom spacing visually
+balanced and use the shared compact block gap for ordinary block separation.
+Intentional dimensions — such as cover-image framing, image placeholders,
+code/table editing surfaces and user-configured Spacer blocks — must remain
+explicit in the owning block's styles and behave consistently in Edit, Preview
+and local publication. Check the result in Edit and Preview, including narrow
+layouts and 200% zoom, before treating a block-style change as complete.
 
 ## Foundation boundary
 

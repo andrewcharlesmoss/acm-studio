@@ -137,6 +137,9 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Made content-fitting block sizing an explicit Studio rule and tightened
+  shared Edit/Preview defaults so ordinary blocks do not reserve accidental
+  height or spacing. Intentional dimensions remain scoped to block contracts.
 - Shared Header and Footer edit controls now sit in a compact side column beside
   their content instead of creating a separate full-width row above it.
 - Text controls now present individual font names instead of full CSS font-family stacks.

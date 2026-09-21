@@ -446,6 +446,15 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateStyles, /\.template-status-actions button \{ background: #fff; border: 1px solid #c8c6be; border-radius: 7px;/);
 });
 
+test("ordinary Studio blocks use content-fitting dimensions", () => {
+  const instructions = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(instructions, /Every block must be content-fitting by default/);
+  assert.match(instructions, /narrow layouts and 200% zoom/);
+  assert.match(css, /\.studio-block-preview :is\(\.document-dynamic-field, \.metadata-block, \.metadata-block-editor/);
+  assert.match(css, /\.studio-block-preview :is\(\.document-dynamic-field h1, \.document-dynamic-field p/);
+});
+
 
 test("history shortcuts leave independent text editing surfaces to native undo", () => {
   const target = (contexts, editable = true) => ({

@@ -556,6 +556,8 @@
 .between-blocks:hover, .between-blocks:focus-visible { opacity: 1; }
 .canvas-block, .studio-block-preview > .content-block { border: 1px solid transparent; border-radius: 6px; margin: 0; min-width: 0; padding: 0; position: relative; }
 .studio-block-preview > .content-block > * { margin: 0; }
+.studio-block-preview :is(.document-dynamic-field, .metadata-block, .metadata-block-editor, .paragraph-field, .heading-field, .quote-field, .list-field-preview, .image-field, .embed-field, .button-field, .divider-field, .studio-code-preview) { min-height: 0; }
+.studio-block-preview :is(.document-dynamic-field h1, .document-dynamic-field p, .metadata-block p, .metadata-block-editor p, .image-field figcaption, .embed-field small) { margin-block: 0; }
 .block-position + .block-position .canvas-block { margin-top: var(--studio-block-gap); }
 .canvas-block:hover { border-color: #d9d7cf; }
 .canvas-block:not(.is-selected):is(:hover, [data-studio-hovered="true"]) { border-color: #cc1818; outline: 1px solid #cc1818; outline-offset: -1px; }
