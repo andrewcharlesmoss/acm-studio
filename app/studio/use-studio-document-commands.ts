@@ -40,13 +40,14 @@ export function useStudioDocumentCommands({
     return copy;
   }
 
-  function deleteDocument() {
-    if (workspace.documents.length === 1) return false;
-    if (activeDocument.kind === "post" && activeDocument.status === "published") {
+  function deleteDocument(documentId = activeDocument.id) {
+    const document = workspace.documents.find((item) => item.id === documentId);
+    if (!document || workspace.documents.length === 1) return false;
+    if (document.kind === "post" && document.status === "published") {
       if (publishingRepository === browserPublishingRepository && !studioWriteOwnership.canWrite()) return false;
-      publishingRepository.unpublish(activeDocument.id);
+      publishingRepository.unpublish(document.id);
     }
-    commit((current) => deleteDocumentFromWorkspace(current, activeDocument.id));
+    commit((current) => deleteDocumentFromWorkspace(current, document.id));
     return true;
   }
 

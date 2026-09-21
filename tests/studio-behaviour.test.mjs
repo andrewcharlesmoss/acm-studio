@@ -300,6 +300,37 @@ test("document commands add, duplicate and delete documents without losing the a
   assert.equal(afterDelete.documents.length, 1);
 });
 
+test("deleting a non-active document preserves the active document and adjacent deletion selects deterministically", () => {
+  const page = { id: "page-1", kind: "page", title: "Page", blocks: [] };
+  const post = { id: "post-1", kind: "post", title: "Post", blocks: [] };
+  const otherPost = { id: "post-2", kind: "post", title: "Other post", blocks: [] };
+  const workspace = { activeDocumentId: "post-1", documents: [page, post, otherPost] };
+  const afterInactiveDelete = deleteDocumentFromWorkspace(workspace, "page-1");
+  assert.equal(afterInactiveDelete.activeDocumentId, "post-1");
+  const afterActiveDelete = deleteDocumentFromWorkspace(afterInactiveDelete, "post-1");
+  assert.equal(afterActiveDelete.activeDocumentId, "post-2");
+});
+
+test("content and template list rows expose keyboard and pointer context menus", async () => {
+  const [studio, templateWorkspace, menu, styles] = await Promise.all([
+    readFile(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio-list-context-menu.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
+  ]);
+  for (const source of [studio, templateWorkspace]) {
+    assert.match(source, /onContextMenu=\{/);
+    assert.match(source, /event\.key === "ContextMenu"/);
+    assert.match(source, /event\.key === "F10" && event\.shiftKey/);
+    assert.match(source, /aria-haspopup="menu"/);
+  }
+  assert.match(menu, /role="menu"/);
+  assert.match(menu, /role="menuitem"/);
+  assert.match(menu, /event\.key === "Escape"/);
+  assert.match(menu, /returnFocusRef/);
+  assert.match(styles, /\.studio-list-context-menu \{/);
+});
+
 test("history supports undo and redo and clears redo after a new commit", () => {
   const first = { value: 1 };
   const second = { value: 2 };

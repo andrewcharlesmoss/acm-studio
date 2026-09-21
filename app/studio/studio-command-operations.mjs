@@ -119,7 +119,10 @@ export function addDocumentToWorkspace(workspace, document) {
 
 export function deleteDocumentFromWorkspace(workspace, documentId) {
   const documents = workspace.documents.filter((document) => document.id !== documentId);
-  return { ...workspace, documents, activeDocumentId: documents[0]?.id ?? workspace.activeDocumentId };
+  if (!documents.length || workspace.activeDocumentId !== documentId) return { ...workspace, documents };
+  const deletedIndex = workspace.documents.findIndex((document) => document.id === documentId);
+  const fallback = documents[Math.min(deletedIndex, documents.length - 1)];
+  return { ...workspace, documents, activeDocumentId: fallback?.id ?? workspace.activeDocumentId };
 }
 
 export function commitHistory(current, history, maxHistory = 60) {

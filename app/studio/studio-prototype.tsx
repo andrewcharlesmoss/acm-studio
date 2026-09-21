@@ -16,6 +16,7 @@ import { useStudioWorkspace } from "./use-studio-workspace";
 import { useDocumentTemplates } from "./use-document-templates";
 import { TemplateWorkspacePanel } from "./template-workspace";
 import { studioConflictDetails } from "./studio-sync-description";
+import { StudioListContextMenu, type StudioListContextMenuTarget } from "./studio-list-context-menu";
 import type { MediaAsset } from "./media-store";
 import {
   blockCatalogue,
@@ -58,6 +59,12 @@ export function StudioPrototype() {
   const saveTemplateDialogRef = useRef<HTMLDialogElement>(null);
   const [newTemplateChoice, setNewTemplateChoice] = useState<string>();
   const newTemplateDialogRef = useRef<HTMLDialogElement>(null);
+  const documentContextMenuTriggerRef = useRef<HTMLElement | null>(null);
+  function closeDocumentContextMenu() {
+    setDocumentContextMenu(null);
+    requestAnimationFrame(() => documentContextMenuTriggerRef.current?.isConnected && documentContextMenuTriggerRef.current.focus());
+  }
+  const [documentContextMenu, setDocumentContextMenu] = useState<(StudioListContextMenuTarget & { id: string }) | null>(null);
   function confirmCodeEditorDiscard() {
     if (!codeEditorDirty) return true;
     if (!window.confirm("Discard unsaved code changes?")) return false;
@@ -256,16 +263,27 @@ export function StudioPrototype() {
     setCodeEditorDirty(false);
   }
 
-  function deleteDocument() {
-    if (workspace.documents.length === 1) return;
+  function deleteDocument(documentId = activeDocument.id) {
+    const targetDocument = workspace.documents.find((item) => item.id === documentId);
+    if (!targetDocument || workspace.documents.length === 1) return;
     if (!confirmCodeEditorDiscard()) return;
-    if (!window.confirm(`Delete the local ${activeDocument.kind} “${activeDocument.title}”?`)) return;
-    if (hasTemplate) {
+    if (templateSession.store.assignments.some((assignment) => assignment.documentId === documentId)) {
       publishing.setPublishFeedback("Choose Existing Presentation before deleting a document with a site template.");
       return;
     }
+    const publicationWarning = targetDocument.kind === "post" && targetDocument.status === "published" ? " This also removes its local published copy." : "";
+    if (!window.confirm(`Delete the local ${targetDocument.kind} “${targetDocument.title}”?${publicationWarning}`)) return;
     try {
-      documentCommands.deleteDocument();
+      if (!documentCommands.deleteDocument(documentId)) {
+        publishing.setPublishFeedback("The document could not be deleted because this tab no longer owns the local workspace.");
+        return;
+      }
+      if (targetDocument.id === activeDocument.id) {
+        const remaining = workspace.documents.filter((item) => item.id !== documentId);
+        const deletedIndex = workspace.documents.findIndex((item) => item.id === documentId);
+        const nextDocument = remaining[Math.min(deletedIndex, remaining.length - 1)];
+        if (nextDocument) setLibraryKind(nextDocument.kind);
+      }
     } catch {
       publishing.setPublishFeedback("The published copy could not be removed, so the post was not deleted.");
       return;
@@ -379,13 +397,14 @@ export function StudioPrototype() {
           </div>
           <div className="document-list">
             {workspace.documents.filter((document) => document.kind === libraryKind).map((document) => (
-              <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} onClick={() => selectDocument(document)}>
+                <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} aria-haspopup="menu" aria-expanded={documentContextMenu?.id === document.id} onClick={() => selectDocument(document)} onContextMenu={(event) => { event.preventDefault(); documentContextMenuTriggerRef.current = event.currentTarget; selectDocument(document); setDocumentContextMenu({ id: document.id, label: document.title, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); documentContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); selectDocument(document); setDocumentContextMenu({ id: document.id, label: document.title, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
                 <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span>
                 <span><strong>{document.title}</strong><small>/{document.slug}</small></span>
                 <i className={`document-status is-${document.status}`} aria-label={document.status} />
               </button>
             ))}
           </div>
+          {documentContextMenu ? <StudioListContextMenu target={documentContextMenu} canDelete={exclusiveWritable && workspace.documents.length > 1} returnFocusRef={documentContextMenuTriggerRef} onDelete={() => deleteDocument(documentContextMenu.id)} onClose={closeDocumentContextMenu} /> : null}
           <SiteNavigation />
           <div className="library-footer"><button type="button" onClick={() => exportJson(workspace, "acm-studio-content.json")}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>
         </aside>
