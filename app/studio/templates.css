@@ -47,6 +47,10 @@
 .template-status-actions button { background: #fff; border: 1px solid #c8c6be; border-radius: 7px; color: inherit; cursor: pointer; font: inherit; padding: 8px 12px; }
 .template-status-actions button:hover { background: #f2f0e8; }
 .template-inline-status { grid-column: 1 / -1; }
+.template-conflict-status { align-items: flex-start; }
+.template-conflict-status > div:first-child { display: grid; gap: 3px; min-width: 0; }
+.template-conflict-status strong { font-weight: 650; }
+.template-conflict-status small { color: inherit; opacity: .85; }
 /* Output breakpoints: 780px changes the header to a wrapped tablet layout;
    620px stacks and centres the header/footer. The editor previews these at
    1200px (desktop), 768px (tablet) and 390px (mobile). */

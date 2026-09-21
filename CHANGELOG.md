@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- Template sync conflicts now identify the affected changes and explain the
+  difference between the saved version and this tab's version. Template mode
+  also keeps its own save status instead of displaying an unrelated Content
+  workspace error.
 - Moved the Pages, Posts and Templates tabs below the shared Studio tool menu
   in the left navigation.
 - Added Design canvas to the home dashboard's Working Tools alongside the

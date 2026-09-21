@@ -13,6 +13,7 @@ import { exportTemplatePackage, importTemplatePackage, TEMPLATE_PACKAGE_LIMIT, v
 import { contentMediaIds, useTemplateMedia } from "./use-template-media";
 import type { MediaAsset } from "./media-store";
 import { studioWriteOwnership } from "./write-ownership";
+import type { StudioSyncConflict } from "./studio-sync";
 
 type NameDialog = { title: string; name: string; confirm: (name: string) => boolean | void };
 export type TemplateWorkspaceSession = ReturnType<typeof useStudioWorkspace>;
@@ -20,6 +21,15 @@ export type TemplateStoreSession = ReturnType<typeof useTemplates>;
 function download(value: unknown, filename: string) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }));
   const link = document.createElement("a"); link.href = url; link.download = filename; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function templateConflictDetails(conflict: StudioSyncConflict) {
+  const paths = conflict.conflicts.map(item => item.change.path.filter(token => !token.startsWith("@")).join(" › ") || "template structure");
+  const uniquePaths = [...new Set(paths)];
+  if (!uniquePaths.length) return "The saved template changed while this tab still had unsaved changes.";
+  const visiblePaths = uniquePaths.slice(0, 3).join(", ");
+  const remainder = uniquePaths.length > 3 ? `, and ${uniquePaths.length - 3} more` : "";
+  return `Overlapping changes: ${visiblePaths}${remainder}.`;
 }
 
 export function TemplateWorkspace() {
@@ -174,8 +184,8 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     setMediaTarget(null);
   }
   const panel = <>
-    {templates.syncConflict ? <div className="template-status template-inline-status" role="alert"><span>Conflicting template changes need review.{templates.error && templates.error !== templates.syncConflict.reason ? ` ${templates.error} Your changes remain available; try again.` : ""}</span><div className="template-status-actions"><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}
-    {templates.error || feedback || media.error ? <div className="template-status template-inline-status" role="alert"><span>{templates.error ?? feedback ?? media.error}</span>{!templates.ready ? <div className="template-status-actions"><button type="button" onClick={() => download({ raw: window.localStorage.getItem(TEMPLATE_STORAGE_KEY) }, "acm-template-recovery.json")}>Export Original Data</button></div> : null}</div> : null}
+    {templates.syncConflict ? <div className="template-status template-inline-status template-conflict-status" role="alert"><div><strong>Another Studio tab changed this template while you were editing.</strong><span>{templates.syncConflict.conflicts.length || 1} overlapping change{templates.syncConflict.conflicts.length === 1 ? "" : "s"} need your decision. Your changes are still available in this tab.</span><small>{templateConflictDetails(templates.syncConflict)} Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</small></div><div className="template-status-actions"><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}
+    {!templates.syncConflict && (templates.error || feedback || media.error) ? <div className="template-status template-inline-status" role="alert"><span>{templates.error ?? feedback ?? media.error}</span>{!templates.ready ? <div className="template-status-actions"><button type="button" onClick={() => download({ raw: window.localStorage.getItem(TEMPLATE_STORAGE_KEY) }, "acm-template-recovery.json")}>Export Original Data</button></div> : null}</div> : null}
     <aside className="studio-library">
       {onBackToContent ? <>
         <div className="library-create">
@@ -208,7 +218,7 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
   const dialogElement = dialog ? <dialog ref={dialogRef} className="template-dialog" aria-labelledby="template-dialog-title" onCancel={event => { event.preventDefault(); closeDialog(); }}><button className="template-dialog-close" type="button" aria-label="Close" onClick={closeDialog}><StudioIcon name="close" /></button><form onSubmit={event => { event.preventDefault(); if (dialog.confirm(dialog.name.trim()) !== false) closeDialog(); }}><h2 id="template-dialog-title">{dialog.title}</h2>{dialog.title.startsWith("Delete ") ? <p>This removes the local item. A saved export can be imported again.</p> : <label>Name<input required maxLength={160} value={dialog.name} onChange={event => setDialog({ ...dialog, name: event.target.value })} /></label>}<div className="template-dialog-actions"><button type="button" onClick={closeDialog}>Cancel</button><button className="button-primary" type="submit" disabled={!writable}>{dialog.title.startsWith("Delete ") ? "Delete" : "Save"}</button></div></form></dialog> : null;
   if (!standalone) return <>{panel}{dialogElement}</>;
   return <div className="studio-shell template-shell">
-    <header className="studio-header"><a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a><div className="studio-breadcrumbs"><button type="button" className="text-button" onClick={library}>Templates</button>{set ? <><StudioIcon name="chevron-right" size={14} /><span>{set.name}</span><StudioIcon name="chevron-right" size={14} /><strong>{target?.name ?? "Choose a template"}</strong></> : null}</div><div className="studio-state"><span className="prototype-pill">Local prototype</span><span role="status">{workspace.writable ? templates.saveLabel : workspace.saveLabel}</span>{workspace.canRetryEditing ? <button type="button" onClick={workspace.retryEditing}>Try Editing Here</button> : null}</div><div className="studio-actions">{!set || !target || mediaTarget ? <><button type="button" className="icon-button" aria-label="Undo" disabled={!writable || !templates.canUndo} onClick={templates.undo}><StudioIcon name="undo" /></button><button type="button" className="icon-button" aria-label="Redo" disabled={!writable || !templates.canRedo} onClick={templates.redo}><StudioIcon name="redo" /></button></> : null}<a className="button-secondary" href="/studio">Content</a></div></header>
+    <header className="studio-header"><a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a><div className="studio-breadcrumbs"><button type="button" className="text-button" onClick={library}>Templates</button>{set ? <><StudioIcon name="chevron-right" size={14} /><span>{set.name}</span><StudioIcon name="chevron-right" size={14} /><strong>{target?.name ?? "Choose a template"}</strong></> : null}</div><div className="studio-state"><span className="prototype-pill">Local prototype</span><span role="status">{templates.saveLabel}</span>{!templates.writable && workspace.canRetryEditing ? <button type="button" onClick={workspace.retryEditing}>Try Editing Here</button> : null}</div><div className="studio-actions">{!set || !target || mediaTarget ? <><button type="button" className="icon-button" aria-label="Undo" disabled={!writable || !templates.canUndo} onClick={templates.undo}><StudioIcon name="undo" /></button><button type="button" className="icon-button" aria-label="Redo" disabled={!writable || !templates.canRedo} onClick={templates.redo}><StudioIcon name="redo" /></button></> : null}<a className="button-secondary" href="/studio">Content</a></div></header>
     <div className="studio-notice">Templates and media remain in this browser. Export a package or full backup to keep a copy.</div>
     <main className="studio-workspace template-workspace">{panel}</main>
     {dialogElement}
