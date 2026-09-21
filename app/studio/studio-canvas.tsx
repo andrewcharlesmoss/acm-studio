@@ -867,8 +867,8 @@ export function BlockField({ block, rootBlocks = [block], document, selectedBloc
   if (block.type === "embed") return <div className="embed-field"><span><StudioIcon name="external" /></span><div><strong>{block.title}</strong><small>{block.url || "Add a URL in Block settings"}</small></div></div>;
   if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`}>{block.label}</span></div>;
   if (block.type === "field") return <label className="content-field"><span>{block.label}</span>{block.control === "select" ? <select value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })}>{(block.options?.length ? block.options : [block.value]).map((option) => <option key={option}>{option}</option>)}</select> : <input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} />}</label>;
-  if (block.type === "document-title") return <div className={`metadata-block-editor document-dynamic-field align-${block.align ?? "left"}`}><strong>{document?.title || "Add a title in Document settings."}</strong></div>;
-  if (block.type === "document-subtitle") return <div className={`metadata-block-editor document-dynamic-field align-${block.align ?? "left"}`}>{document?.subtitle || "Add a subtitle in Document settings."}</div>;
+  if (block.type === "document-title") return <h1 className={`metadata-block-editor document-dynamic-title align-${block.align ?? "left"}`}>{document?.title || "Add a title in Document settings."}</h1>;
+  if (block.type === "document-subtitle") return <p className={`metadata-block-editor document-dynamic-field template-subtitle align-${block.align ?? "left"}`}>{document?.subtitle || "Add a subtitle in Document settings."}</p>;
   if (block.type === "cover-image") {
     const imageSource = document?.coverImage?.mediaId ? safeImageSource(coverImageUrl ?? "", { allowBlob: true }) : safeImageSource(coverImageUrl ?? "");
     return <div className={`canvas-cover-wrap document-dynamic-cover align-${block.align ?? "left"}`}>

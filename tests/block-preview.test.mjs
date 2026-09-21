@@ -253,7 +253,10 @@ test("Studio byline follows the selected publication date and never invents a dr
 });
 
 test("Studio modes share heading slots, expose the current mode and omit editing metadata from preview", async () => {
-  const { StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const { BlockField, StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const dynamicProps = { onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {}, onChange() {} };
+  assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "title", type: "document-title" }, document: { title: "Example title" } })), /<h1[^>]*>Example title<\/h1>/);
+  assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "subtitle", type: "document-subtitle" }, document: { subtitle: "A supporting summary" } })), /<p[^>]*template-subtitle[^>]*>A supporting summary<\/p>/);
   for (const kind of ["page", "post"]) {
     for (const subtitle of ["A subtitle\nAnother line", ""]) {
       const props = {
