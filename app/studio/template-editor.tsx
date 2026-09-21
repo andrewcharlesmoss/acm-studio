@@ -8,7 +8,7 @@ import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
 import { TemplateNodes, TemplatePartRegion, TemplateSurface, templateDocumentBodyBlocks } from "./template-renderer";
 import { templateEditorBlocks, templateNodesFromBlocks, templateElements, templateElementLabel, templateId, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
-import { resolveDocumentFields } from "./document-fields";
+import { resolveDocumentDisplay, resolveDocumentFields } from "./document-fields";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
 import { findBlockById } from "./studio-command-operations.mjs";
 import { changeTemplateZoom, TEMPLATE_ZOOM_DEFAULT, TEMPLATE_ZOOM_MAX, TEMPLATE_ZOOM_MIN, templateZoomShortcut } from "./template-zoom";
@@ -22,7 +22,11 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   const candidates = documents.filter(document => target.kind === "page" || target.kind === "post" ? document.kind === target.kind : true);
   const [sampleId, setSampleId] = useState(candidates[0]?.id);
   const sample = candidates.find(document => document.id === sampleId) ?? candidates[0] ?? documents[0];
-  const resolvedSample = { ...sample, ...resolveDocumentFields(sample, set, target.kind === "page" || target.kind === "post" ? target.defaults : undefined) };
+  const resolvedSample = {
+    ...sample,
+    ...resolveDocumentFields(sample, set, target.kind === "page" || target.kind === "post" ? target.defaults : undefined),
+    displayOverrides: resolveDocumentDisplay(sample, target.kind === "page" || target.kind === "post" ? target : undefined),
+  };
   const [selected, setSelected] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [width, setWidth] = useState(1200);

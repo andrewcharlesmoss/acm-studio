@@ -3,7 +3,7 @@
 import { useCallback, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
 import { BlockRenderer } from "../components/content";
 import { ArticleMetaIcon } from "../components/article-meta-icon";
-import { authorInitials, documentAuthor, formatDocumentDate } from "../content/document-metadata";
+import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
@@ -867,8 +867,8 @@ export function BlockField({ block, rootBlocks = [block], document, selectedBloc
   if (block.type === "embed") return <div className="embed-field"><span><StudioIcon name="external" /></span><div><strong>{block.title}</strong><small>{block.url || "Add a URL in Block settings"}</small></div></div>;
   if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`}>{block.label}</span></div>;
   if (block.type === "field") return <label className="content-field"><span>{block.label}</span>{block.control === "select" ? <select value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })}>{(block.options?.length ? block.options : [block.value]).map((option) => <option key={option}>{option}</option>)}</select> : <input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} />}</label>;
-  if (block.type === "document-title") return <h1 className={`metadata-block-editor document-dynamic-title align-${block.align ?? "left"}`}>{document?.title || "Add a title in Document settings."}</h1>;
-  if (block.type === "document-subtitle") return <p className={`metadata-block-editor document-dynamic-field template-subtitle align-${block.align ?? "left"}`}>{document?.subtitle || "Add a subtitle in Document settings."}</p>;
+  if (block.type === "document-title") return documentFieldVisible(documentContext, "title") ? <h1 className={`metadata-block-editor document-dynamic-title align-${block.align ?? "left"}`}>{document?.title || "Add a title in Document settings."}</h1> : null;
+  if (block.type === "document-subtitle") return documentFieldVisible(documentContext, "subtitle") ? <p className={`metadata-block-editor document-dynamic-field template-subtitle align-${block.align ?? "left"}`}>{document?.subtitle || "Add a subtitle in Document settings."}</p> : null;
   if (block.type === "cover-image") {
     const imageSource = document?.coverImage?.mediaId ? safeImageSource(coverImageUrl ?? "", { allowBlob: true }) : safeImageSource(coverImageUrl ?? "");
     return <div className={`canvas-cover-wrap document-dynamic-cover align-${block.align ?? "left"}`}>
