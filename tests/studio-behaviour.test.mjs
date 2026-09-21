@@ -1316,6 +1316,12 @@ test("template body appender does not add a blue focus border", () => {
 });
 
 
+test("block library cards use neutral grey icons", () => {
+  const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(styles, /\.inserter-group button > span \{ color: #6b7075; font-size: 20px; \}/);
+});
+
+
 test("Preview and Code transitions dismiss the block library", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(canvas, /onSetShowInserter\(false\); onPreviewChange\(true\)/);
