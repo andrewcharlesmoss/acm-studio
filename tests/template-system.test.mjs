@@ -50,6 +50,10 @@ function environment(overrides = {}) {
 test("neutral templates validate and their editor projection round-trips without lost content", () => {
   const env = environment(); const m = env.load("studio/template-model.ts");
   const set = m.createTemplateSet(); m.validateTemplateSet(set);
+  const post = set.templates.find(item => item.kind === "post");
+  assert.deepEqual(plain(post.nodes.filter(node => node.type !== "part").map(node => node.type)), ["element", "element", "element", "group", "element"]);
+  const metadata = post.nodes.find(node => node.type === "group");
+  assert.deepEqual(plain(metadata.children.map(node => node.type)), ["post-author", "post-date", "reading-time"]);
   for (const item of [...set.templates, ...set.parts]) {
     const actual = m.templateNodesFromBlocks(m.templateEditorBlocks(item.nodes));
     const expected = plain(item.nodes);
@@ -80,7 +84,6 @@ test("document fields resolve template defaults and report display ownership", (
   assert.equal(fields.resolveDocumentDisplay(document, postTemplate).subtitle, "show");
   delete document.displayOverrides.subtitle;
   assert.equal(fields.documentDisplaySource(document, "subtitle", true), "Template Default");
-  postTemplate.nodes.push({ id: "template-author", type: "post-author", avatar: true });
   assert.deepEqual(plain(fields.documentFieldUsage(document, set, postTemplate.id).author), { document: 1, template: 1, total: 2 });
   document.templateOverrides.author = true; document.author = "Document Author";
   assert.equal(fields.resolveDocumentFields(document, set).author, "Document Author");
@@ -244,8 +247,9 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   assert.match(edit, /Canonical body/); assert.match(edit, /Document title/);
   const post = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents.find(document => document.kind === "post"));
   const postHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { ...snapshot, templateId: set.templates.find(template => template.kind === "post").id }, document: post }));
-  assert.match(postHtml, /class="template-metadata">Technology<\/p>/);
-  assert.doesNotMatch(postHtml, /template-metadata[^<]*Reading Time|template-metadata[^<]*September/);
+  assert.match(postHtml, /is-post-author/);
+  assert.match(postHtml, /is-reading-time/);
+  assert.doesNotMatch(postHtml, /template-metadata/);
 });
 
 test("stale asynchronous imports cannot write after ownership is reacquired", async () => {

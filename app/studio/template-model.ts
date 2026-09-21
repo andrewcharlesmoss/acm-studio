@@ -41,8 +41,13 @@ export function createTemplateSet(name = "ACM Neutral"): TemplateSet {
   const element = (element: TemplateElement): TemplateNode => ({ id: templateId(), type: "element", element });
   const header: TemplatePart = { id: templateId(), name: "Header", kind: "header", nodes: [{ id: templateId(), type: "group", layout: "row", children: [element("site-identity"), element("navigation")] }] };
   const footer: TemplatePart = { id: templateId(), name: "Footer", kind: "footer", nodes: [{ id: templateId(), type: "group", layout: "columns", columns: 3, children: [element("site-identity"), element("copyright"), element("social-links")] }] };
+  const postMetadata: TemplateNode = { id: templateId(), type: "group", layout: "row", gap: 16, stackAt: "mobile", children: [
+    { id: templateId(), type: "post-author", prefix: "By", avatar: true },
+    { id: templateId(), type: "post-date", format: "long", showIcon: true },
+    { id: templateId(), type: "reading-time", prefix: "Reading Time:", presentation: "plain" },
+  ] };
   return { id: templateId(), name, defaults: {}, parts: [header, footer], templates: (["page", "post"] as const).map(kind => ({ id: templateId(), name: kind === "page" ? "Page" : "Post", kind, isDefault: true, nodes: [
-    { id: templateId(), type: "part", partId: header.id }, element("document-title"), element("subtitle"), ...(kind === "post" ? [element("post-metadata"), element("cover-image")] : []), element("content"), { id: templateId(), type: "part", partId: footer.id },
+    { id: templateId(), type: "part", partId: header.id }, element("document-title"), element("subtitle"), ...(kind === "post" ? [element("cover-image"), postMetadata] : []), element("content"), { id: templateId(), type: "part", partId: footer.id },
   ] })), identity: { name: "Your Site", homeUrl: "/", copyright: "© Your Site" }, navigation: [], socialLinks: [], styles: { background: "#FFFFFF", text: "#1C1C1E", accent: "#2457C5", border: "#D1D1D6", font: "inter", fontSize: 17, spacing: 24, contentWidth: 1040, radius: 8, borderWidth: 1 } };
 }
 

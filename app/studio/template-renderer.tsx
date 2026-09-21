@@ -20,15 +20,26 @@ function templateHasElement(nodes: TemplateNode[], set: TemplateSet, wanted: str
     || node.type === "part" && !seen.has(node.partId) && Boolean(set.parts.find(part => part.id === node.partId && templateHasElement(part.nodes, set, wanted, new Set([...seen, part.id])))));
 }
 
+function templateHasBlockType(nodes: TemplateNode[], set: TemplateSet, wanted: ContentBlock["type"], seen = new Set<string>()): boolean {
+  return nodes.some(node => node.type === wanted
+    || (node.type === "group" || node.type === "section") && templateHasBlockType(node.children, set, wanted, seen)
+    || node.type === "part" && !seen.has(node.partId) && Boolean(set.parts.find(part => part.id === node.partId && templateHasBlockType(part.nodes, set, wanted, new Set([...seen, part.id])))));
+}
+
 function removeTemplateShellBlocks(blocks: ContentBlock[], set: TemplateSet, nodes: TemplateNode[]): ContentBlock[] {
   const hidden = new Set<ContentBlock["type"]>();
   if (templateHasElement(nodes, set, "document-title")) hidden.add("document-title");
   if (templateHasElement(nodes, set, "subtitle")) hidden.add("document-subtitle");
   if (templateHasElement(nodes, set, "cover-image")) hidden.add("cover-image");
+  for (const type of ["reading-time", "post-author", "post-date"] as const) if (templateHasBlockType(nodes, set, type)) hidden.add(type);
   if (!hidden.size) return blocks;
   return blocks.filter(block => !hidden.has(block.type)).map(block => block.type === "group" || block.type === "section" || block.type === "component"
     ? { ...block, children: removeTemplateShellBlocks(block.children ?? [], set, nodes) }
     : block);
+}
+
+export function templateDocumentBodyBlocks(document: StudioDocument, set: TemplateSet, nodes: TemplateNode[]): ContentBlock[] {
+  return removeTemplateShellBlocks(document.blocks, set, nodes);
 }
 
 export function templateStyleProperties(styles: SiteStyles): CSSProperties {
@@ -76,7 +87,7 @@ export type TemplateRenderContext = {
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
   const { set, document, mediaUrls = {}, content, editingDocument, onDocumentChange, onChangeCover, onRemoveCover, onEditPart, renderOrdinary, decorate } = context;
-  const documentBodyBlocks = removeTemplateShellBlocks(document.blocks, set, nodes);
+  const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
   function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false): ReactNode {
     if (++rendered > 10000 || depth > 16) return <p role="alert">Template expansion limit reached.</p>;

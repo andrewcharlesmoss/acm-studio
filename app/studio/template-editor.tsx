@@ -6,7 +6,7 @@ import { blockCatalogue, createBlock, type StudioDocument, type InsertableBlockT
 import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
-import { TemplateNodes, TemplatePartRegion, TemplateSurface } from "./template-renderer";
+import { TemplateNodes, TemplatePartRegion, TemplateSurface, templateDocumentBodyBlocks } from "./template-renderer";
 import { templateEditorBlocks, templateNodesFromBlocks, templateElements, templateElementLabel, templateId, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
 import { resolveDocumentFields } from "./document-fields";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
@@ -109,7 +109,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
         if (!["group", "section"].includes(context.block.type)) return context.mode === "edit" && writable
           ? <BlockField block={context.block} rootBlocks={resolvedSample.blocks} document={resolvedSample} selectedBlockId={selected} mediaUrl={context.block.type === "image" && context.block.mediaId ? mediaUrls[context.block.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} />
           : <BlockRenderer blocks={[context.block]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={resolvedSample} readingTimeBlocks={resolvedSample.blocks} />;
-        return <TemplateNodes key={context.block.id} set={set} document={resolvedSample} nodes={templateNodesFromBlocks([context.block])} mediaUrls={mediaUrls} content={<BlockRenderer blocks={resolvedSample.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={resolvedSample} />} onEditPart={context.mode === "edit" ? onEditPart : undefined}
+        return <TemplateNodes key={context.block.id} set={set} document={resolvedSample} nodes={templateNodesFromBlocks([context.block])} mediaUrls={mediaUrls} content={<BlockRenderer blocks={templateDocumentBodyBlocks(resolvedSample, set, target.nodes)} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={resolvedSample} />} onEditPart={context.mode === "edit" ? onEditPart : undefined}
           renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} rootBlocks={resolvedSample.blocks} document={resolvedSample} selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
           decorate={context.mode === "edit" ? (node, result) => {
             if (!findBlockById(blocks, node.id)) return result;
