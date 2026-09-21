@@ -1288,6 +1288,18 @@ test("block library shares the docked work area and excludes List View", () => {
 });
 
 
+test("editor shells retain the desktop workspace when the browser is narrow", () => {
+  const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const templates = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  assert.match(prototype, /className="studio-shell studio-desktop-only"/);
+  assert.match(templates, /className="studio-shell studio-desktop-only template-shell"/);
+  assert.match(styles, /\.studio-desktop-only \{ min-width: 1130px; \}/);
+  assert.match(styles, /\.studio-desktop-only \.studio-workspace \{ display: grid; grid-template-columns: 290px minmax\(540px, 1fr\) 300px;/);
+  assert.match(styles, /\.studio-desktop-only \.studio-library, \.studio-desktop-only \.studio-inspector \{ display: flex;/);
+});
+
+
 test("Preview and Code transitions dismiss the block library", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(canvas, /onSetShowInserter\(false\); onPreviewChange\(true\)/);

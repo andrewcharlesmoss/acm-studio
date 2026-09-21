@@ -84,7 +84,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  return <MiniGolfRuntimeProvider blocks={page.blocks} identity={`${miniGolfSite.id}:${page.id}`}><div className="studio-shell mini-golf-editor">
+  return <MiniGolfRuntimeProvider blocks={page.blocks} identity={`${miniGolfSite.id}:${page.id}`}><div className="studio-shell studio-desktop-only mini-golf-editor">
     <header className="studio-header">
       <a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a>
       <nav className="studio-breadcrumbs" aria-label="Breadcrumb"><a href="/">Sites</a><StudioIcon name="chevron-right" size={14} /><strong>{miniGolfSite.name}</strong></nav>

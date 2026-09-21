@@ -139,3 +139,34 @@
   .template-zoom-control { margin-left: 0; }
   .template-editing .block-canvas, .template-editing .document-preview { padding: 12px; }
 }
+
+/* Studio remains a desktop workspace while the browser is narrow. The
+   viewport may scroll horizontally; authoring panes do not switch to the
+   unfinished mobile arrangement until that mode is deliberately designed. */
+.studio-desktop-only { min-width: 1130px; }
+@media (max-width: 1100px) {
+  .studio-desktop-only .studio-header { gap: 20px; grid-template-columns: 235px minmax(160px, 1fr) auto auto; min-height: 66px; padding: 0 18px; }
+  .studio-desktop-only .studio-breadcrumbs { display: flex; flex-wrap: nowrap; font-size: var(--studio-ui-size); overflow: hidden; }
+  .studio-desktop-only .studio-breadcrumbs strong { white-space: nowrap; }
+  .studio-desktop-only .studio-state { display: flex; justify-content: flex-start; flex-wrap: nowrap; }
+  .studio-desktop-only .studio-actions { display: flex; justify-content: flex-end; flex-wrap: nowrap; }
+  .studio-desktop-only .studio-workspace { display: grid; grid-template-columns: 290px minmax(540px, 1fr) 300px; height: calc(100dvh - 101px); overflow: hidden; }
+  .studio-desktop-only .studio-library, .studio-desktop-only .studio-inspector { display: flex; width: auto; max-height: none; }
+  .studio-desktop-only .studio-library { border-right: 1px solid #d2d0c8; }
+  .studio-desktop-only .studio-inspector { border-top: 0; }
+  .studio-desktop-only .block-editor { height: auto; min-height: 0; border-right: 1px solid #d2d0c8; }
+  .studio-desktop-only .editor-canvas-scroll { padding: 30px clamp(18px, 4vw, 48px) 80px; }
+}
+@media (max-width: 680px) {
+  .studio-desktop-only .studio-header { gap: 20px; grid-template-columns: 235px minmax(160px, 1fr) auto auto; padding: 0 18px; }
+  .studio-desktop-only .studio-notice { padding-left: 18px; padding-right: 18px; }
+  .studio-desktop-only .editor-document-bar { gap: 12px; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-rows: none; height: 64px; min-height: 64px; padding: 0 16px; }
+  .studio-desktop-only .editor-mode-control { grid-column: auto; grid-row: auto; }
+  .studio-desktop-only .editor-document-actions { grid-column: auto; grid-row: auto; }
+  .studio-desktop-only .studio-list-view { bottom: auto; box-shadow: none; left: auto; position: static; top: auto; width: 280px; }
+  .studio-desktop-only .studio-list-backdrop { display: none; }
+  .studio-desktop-only .inserter-backdrop { inset: auto; position: relative; width: 320px; }
+  .studio-desktop-only .inserter-dismiss { display: none; }
+  .studio-desktop-only .block-inserter { box-shadow: none; width: 100%; }
+  .studio-desktop-only .between-blocks { display: flex; }
+}
