@@ -87,6 +87,7 @@
 .template-surface p { margin-block: 0.5em; }
 .template-surface .template-title-input, .template-surface .template-subtitle-input { width: 100%; border: none; background: transparent; }
 .template-subtitle, .template-subtitle-input { font: 1.15em/1.45 var(--template-font); max-width: 42em; }
+.template-dynamic-placeholder { color: #7b8088; }
 .template-cover img { width: 100%; height: auto; border-radius: var(--template-radius); }
 .template-cover-placeholder { aspect-ratio: 16 / 9; background: linear-gradient(135deg, var(--template-accent), var(--template-background)); border-radius: var(--template-radius); }
 .template-surface .studio-block-preview, .template-surface .block-textarea, .template-surface .rich-text-editor { color: inherit; font-family: var(--template-font); }
