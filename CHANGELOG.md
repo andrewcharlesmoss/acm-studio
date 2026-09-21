@@ -137,6 +137,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Made template-rendered cover images use the same hover/focus overlay controls
+  as direct cover blocks, removing stray text buttons below the image.
 - Positioned Edit Header and Edit Footer controls outside the selected part
   boundary so the red selection outline encloses only the part content.
 - Centred between-block insertion lines and controls within the shared block gap

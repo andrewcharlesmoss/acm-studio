@@ -179,6 +179,15 @@ test("dynamic cover blocks keep selection borders tight to the image", async () 
   assert.match(styles, /\.canvas-block > \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ margin: 0; \}/);
 });
 
+test("template cover editing uses the shared hover actions", async () => {
+  const source = await readFile(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8");
+  assert.match(source, /className="canvas-cover-wrap document-dynamic-cover"/);
+  assert.match(source, /className="canvas-cover-actions"/);
+  assert.match(source, /aria-label="Change cover image"/);
+  assert.match(source, /aria-label="Remove cover image"/);
+  assert.doesNotMatch(source, />Change Cover Image<\/button>/);
+});
+
 test("dynamic subtitle blocks use compact body sizing", async () => {
   const styles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(styles, /\.canvas-block > \.metadata-block-editor\.document-dynamic-field\.template-subtitle \{ font: var\(--template-font-size, 1rem\)\/1\.45 var\(--template-font, var\(--font-sans\)\); margin: 0; max-width: 42em; \}/);

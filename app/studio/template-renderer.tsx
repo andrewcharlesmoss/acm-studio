@@ -116,7 +116,13 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         case "cover-image": {
           const cover = document.coverImage;
           const src = cover?.mediaId ? safeImageSource(mediaUrls[cover.mediaId] ?? "", { allowBlob: true }) : safeImageSource(cover?.src ?? "");
-          element = documentFieldVisible(document, "coverImage") ? <>{src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : cover !== null && document.kind === "post" ? <div className="template-cover-placeholder" role="img" aria-label="Mock cover image" /> : null}{editingDocument ? <><button type="button" onClick={onChangeCover}>Change Cover Image</button>{cover !== null ? <button type="button" onClick={onRemoveCover}>Remove Cover Image</button> : null}</> : null}</> : null;
+          element = documentFieldVisible(document, "coverImage") ? editingDocument ? <div className="canvas-cover-wrap document-dynamic-cover">
+            <div className={`canvas-cover-image${src ? " is-source" : ""}`} role="img" aria-label={cover?.alt || "Mock cover image"}>{src ? <TemplateImage src={src} alt={cover?.alt ?? ""} /> : null}</div>
+            <div className="canvas-cover-actions">
+              <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label="Change cover image" title="Change cover image"><StudioIcon name="image" /></button>
+              {cover !== null ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCover} aria-label="Remove cover image" title="Remove cover image"><StudioIcon name="trash" /></button> : null}
+            </div>
+          </div> : <>{src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : cover !== null && document.kind === "post" ? <div className="template-cover-placeholder" role="img" aria-label="Mock cover image" /> : null}</> : null;
           break;
         }
         case "site-identity": {
