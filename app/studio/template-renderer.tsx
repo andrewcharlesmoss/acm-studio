@@ -55,7 +55,7 @@ export function TemplatePartRegion({ part, children, onEditPart }: { part: Templ
   const Region = part.kind === "header" ? "header" : "footer";
   return <Region className={`template-part template-${part.kind}`} data-template-part={part.id}>
     {onEditPart ? <button className="template-edit-part" type="button" onClick={() => onEditPart(part.id)}><StudioIcon name="pencil" size={16} />Edit {part.name}</button> : null}
-    {children}
+    <div className="template-part-content">{children}</div>
   </Region>;
 }
 

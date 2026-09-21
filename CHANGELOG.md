@@ -137,6 +137,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Shared Header and Footer edit controls now sit in a compact side column beside
+  their content instead of creating a separate full-width row above it.
 - Text controls now present individual font names instead of full CSS font-family stacks.
 - Objects and pages now show resize handles at each side centre as well as their corners.
 - Page resizing now follows image resizing: Shift switches from proportional to absolute sizing.

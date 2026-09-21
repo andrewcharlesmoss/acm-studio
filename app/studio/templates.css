@@ -86,8 +86,9 @@
 .template-surface .studio-block-preview, .template-surface .block-textarea, .template-surface .rich-text-editor { color: inherit; font-family: var(--template-font); }
 .template-surface .studio-block-preview p, .template-surface .paragraph-field { font-size: var(--template-font-size); }
 .template-surface .content-button { border-radius: var(--template-radius); }
-.template-edit-part { font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
-.template-edit-part { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px; padding: 6px 10px; border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; }
+.template-part { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: start; gap: 12px; }
+.template-part-content { min-width: 0; }
+.template-edit-part { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 6px 10px; border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); white-space: nowrap; }
 .template-node-selected { outline: 1px solid #2457c5; outline-offset: 4px; }
 .template-node-selectable { min-width: 0; }
 .template-node-selectable:focus-visible { outline: 2px solid #2457c5; outline-offset: 4px; }

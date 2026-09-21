@@ -435,6 +435,9 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateWorkspace, /templateConflictDetails\(templates\.syncConflict\)/);
   assert.match(templateWorkspace, /<span role="status">\{templates\.saveLabel\}<\/span>/);
   assert.match(templateWorkspace, /!templates\.syncConflict && \(templates\.error/);
+  const templateRenderer = readFileSync(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8");
+  assert.match(templateRenderer, /className="template-part-content">\{children\}<\/div>/);
+  assert.match(templateStyles, /\.template-part \{ display: grid; grid-template-columns: max-content minmax\(0, 1fr\);/);
   assert.match(templateStyles, /\.template-workspace \.studio-library \{ padding: 0; overflow-y: auto; gap: 0; \}/);
   assert.match(templateStyles, /\.template-workspace \.studio-library fieldset \{ border: 0; padding: 12px; margin: 0; \}/);
   assert.match(templateStyles, /\.template-workspace \.studio-library \.template-document-list \{[^}]*padding: 10px;/);
