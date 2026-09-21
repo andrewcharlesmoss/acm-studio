@@ -409,6 +409,8 @@
 .studio-list-context-menu { background: #fff; border: 1px solid #d2d0c8; border-radius: 8px; box-shadow: 0 8px 24px rgba(23, 25, 28, .18); display: grid; min-width: 180px; padding: 5px; position: fixed; z-index: 80; }
 .studio-list-context-menu button { align-items: center; background: transparent; border: 0; border-radius: 5px; color: var(--ink); cursor: pointer; display: flex; font: inherit; gap: 9px; min-height: 34px; padding: 7px 9px; text-align: left; width: 100%; }
 .studio-list-context-menu button:hover, .studio-list-context-menu button:focus-visible { background: #f1e5e4; color: #8d2525; }
+.studio-list-context-menu button:disabled { color: var(--muted); cursor: default; opacity: .65; }
+.studio-list-context-menu small { color: var(--muted); display: block; font-size: var(--studio-ui-size); line-height: 1.35; max-width: 220px; padding: 6px 9px 4px; }
 .library-footer { border-top: 1px solid #d8d6ce; display: grid; gap: 8px; margin-top: auto; padding: 14px; }
 .library-footer button { background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: var(--studio-ui-size); padding: 0; text-align: left; }
 .library-footer a { align-items: center; color: var(--muted); display: inline-flex; font-size: var(--studio-ui-size); gap: 3px; }

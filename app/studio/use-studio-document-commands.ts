@@ -5,7 +5,7 @@ import { browserPublishingRepository, type PublishingRepository } from "../conte
 import { createDocument, type StudioDocument, type StudioDocumentKind, type StudioWorkspace } from "./editor-model";
 import { addDocumentToWorkspace, deleteDocumentFromWorkspace, duplicateDocumentWithIds } from "./studio-command-operations.mjs";
 
-type CommitWorkspace = (update: (current: StudioWorkspace) => StudioWorkspace) => void;
+type CommitWorkspace = (update: (current: StudioWorkspace) => StudioWorkspace) => boolean | void;
 
 function createUniqueId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -47,8 +47,7 @@ export function useStudioDocumentCommands({
       if (publishingRepository === browserPublishingRepository && !studioWriteOwnership.canWrite()) return false;
       publishingRepository.unpublish(document.id);
     }
-    commit((current) => deleteDocumentFromWorkspace(current, document.id));
-    return true;
+    return commit((current) => deleteDocumentFromWorkspace(current, document.id)) !== false;
   }
 
   return { selectDocument, addDocument, duplicateDocument, deleteDocument };

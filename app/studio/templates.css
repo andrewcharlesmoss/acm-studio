@@ -12,7 +12,9 @@
 .template-zoom-control button:disabled { cursor: default; opacity: .45; }
 .template-zoom-control .template-zoom-value { min-width: 58px; font-variant-numeric: tabular-nums; }
 .template-set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 20px; }
-.template-set-card { padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fff; }
+.template-set-card { padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fff; position: relative; }
+.template-set-context-trigger { position: absolute; right: 12px; top: 12px; padding: 5px; border: 0; background: transparent; color: #6b6b68; }
+.template-set-context-trigger:hover, .template-set-context-trigger:focus-visible { background: #ebe9e2; color: #17191c; }
 .template-set-card h2 { margin: 0 0 8px; font-size: 1.15rem; }
 .template-set-card p { color: #555; }
 .template-set-actions { margin-top: 16px; }

@@ -9,12 +9,14 @@ export type StudioListContextMenuTarget = {
   y: number;
 };
 
-export function StudioListContextMenu({ target, onDelete, onClose, returnFocusRef, canDelete = true }: {
+export function StudioListContextMenu({ target, onDelete, onClose, returnFocusRef, restoreFocus, canDelete = true, disabledReason }: {
   target: StudioListContextMenuTarget;
   onDelete: () => void;
   onClose: () => void;
   returnFocusRef?: RefObject<HTMLElement | null>;
+  restoreFocus?: () => void;
   canDelete?: boolean;
+  disabledReason?: string;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -23,7 +25,7 @@ export function StudioListContextMenu({ target, onDelete, onClose, returnFocusRe
       if (event.target instanceof Node && !menuRef.current?.contains(event.target)) onClose();
     };
     const closeOnKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); onClose(); requestAnimationFrame(() => returnFocusRef?.current?.focus()); return; }
+      if (event.key === "Escape") { event.preventDefault(); onClose(); requestAnimationFrame(() => restoreFocus ? restoreFocus() : returnFocusRef?.current?.focus()); return; }
       if (!menuRef.current || !["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
       const items = [...menuRef.current.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")];
       const current = items.indexOf(document.activeElement as HTMLButtonElement);
@@ -36,12 +38,14 @@ export function StudioListContextMenu({ target, onDelete, onClose, returnFocusRe
       document.removeEventListener("pointerdown", closeOnPointerDown);
       document.removeEventListener("keydown", closeOnKeyDown);
     };
-  }, [onClose, returnFocusRef]);
+  }, [onClose, restoreFocus, returnFocusRef]);
   const viewportWidth = typeof window === "undefined" ? 1024 : window.innerWidth;
   const viewportHeight = typeof window === "undefined" ? 768 : window.innerHeight;
   const left = Math.max(8, Math.min(target.x, viewportWidth - 188));
   const top = Math.max(8, Math.min(target.y, viewportHeight - 58));
+  const helpId = `studio-list-context-menu-help-${target.label.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "item"}`;
   return <div ref={menuRef} className="studio-list-context-menu" role="menu" aria-label={`Actions for ${target.label}`} style={{ left, top }}>
-    <button type="button" role="menuitem" disabled={!canDelete} onClick={() => { onClose(); returnFocusRef?.current?.focus(); onDelete(); }}><StudioIcon name="trash" size={16} />Delete</button>
+    <button type="button" role="menuitem" disabled={!canDelete} aria-describedby={!canDelete && disabledReason ? helpId : undefined} onClick={() => { onClose(); if (restoreFocus) restoreFocus(); else returnFocusRef?.current?.focus(); onDelete(); }}><StudioIcon name="trash" size={16} />Delete</button>
+    {!canDelete && disabledReason ? <small id={helpId} role="status">{disabledReason}</small> : null}
   </div>;
 }

@@ -328,7 +328,12 @@ test("content and template list rows expose keyboard and pointer context menus",
   assert.match(menu, /role="menuitem"/);
   assert.match(menu, /event\.key === "Escape"/);
   assert.match(menu, /returnFocusRef/);
+  assert.match(menu, /disabledReason/);
   assert.match(styles, /\.studio-list-context-menu \{/);
+  assert.match(templateWorkspace, /function renderTemplateSetCard/);
+  assert.match(templateWorkspace, /template-set-context-trigger/);
+  assert.match(templateWorkspace, /setTemplateSetContextMenu\(\{ setId: item\.id, label: item\.name/);
+  assert.match(studio, /Its template assignment will also be removed/);
 });
 
 test("history supports undo and redo and clears redo after a new commit", () => {

@@ -24,6 +24,16 @@ function download(value: unknown, filename: string) {
   const link = document.createElement("a"); link.href = url; link.download = filename; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function TemplateSetActionsMenu({ target, canDelete, disabledReason, onDelete, onClose }: {
+  target: StudioListContextMenuTarget;
+  canDelete: boolean;
+  disabledReason?: string;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  return <StudioListContextMenu target={target} canDelete={canDelete} disabledReason={disabledReason} onDelete={onDelete} onClose={onClose} />;
+}
+
 export function TemplateWorkspace() {
   const workspace = useStudioWorkspace();
   const templates = useTemplates(workspace.ownershipGeneration, workspace.writable);
@@ -48,6 +58,8 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
   const [mediaTarget, setMediaTarget] = useState<{ blockId: string | null; logo: boolean } | null>(null);
   const [dialog, setDialog] = useState<NameDialog | null>(null);
   const [templateContextMenu, setTemplateContextMenu] = useState<(StudioListContextMenuTarget & { setId: string; targetId: string }) | null>(null);
+  const [templateSetContextMenu, setTemplateSetContextMenu] = useState<(StudioListContextMenuTarget & { setId: string }) | null>(null);
+  const [templateSetContextMenuTrigger, setTemplateSetContextMenuTrigger] = useState<HTMLElement | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const templateContextMenuTriggerRef = useRef<HTMLElement | null>(null);
@@ -56,6 +68,7 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     setTemplateContextMenu(null);
     requestAnimationFrame(() => templateContextMenuTriggerRef.current?.isConnected && templateContextMenuTriggerRef.current.focus());
   }
+  function closeTemplateSetContextMenu() { setTemplateSetContextMenu(null); requestAnimationFrame(() => templateSetContextMenuTrigger?.isConnected && templateSetContextMenuTrigger.focus()); }
   const importRef = useRef<HTMLInputElement>(null);
   const set = templates.store.sets.find(item => item.id === setId);
   const target = set ? [...set.templates, ...set.parts].find(item => item.id === targetId) ?? set.templates[0] : undefined;
@@ -148,8 +161,14 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     } catch (error) { setFeedback(error instanceof Error ? error.message : "Import failed."); setBusy(false); }
   }
   function deleteSet(item: TemplateSet) {
-    if (templates.store.assignments.some(a => a.setId === item.id)) { setFeedback("Reassign documents before deleting this template set."); return; }
+    const blockedReason = templateSetDeleteBlockReason(item.id);
+    if (blockedReason) { setFeedback(blockedReason); return; }
     askName(`Delete ${item.name}`, "", () => templates.commit(store => ({ ...store, sets: store.sets.filter(candidate => candidate.id !== item.id) })));
+  }
+  function deleteSetFromContextMenu(item: TemplateSet) {
+    const blockedReason = templateSetDeleteBlockReason(item.id);
+    if (blockedReason || !window.confirm(`Delete the local template set “${item.name}”?`)) return;
+    templates.commit(store => ({ ...store, sets: store.sets.filter(candidate => candidate.id !== item.id) }));
   }
   function addTarget(kind: "page" | "post" | "header" | "footer") {
     if (!set) return;
@@ -167,18 +186,25 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     const next = copy.kind === "page" || copy.kind === "post" ? { ...set, templates: [...set.templates, copy as PageTemplate] } : { ...set, parts: [...set.parts, copy as TemplatePart] };
     if (changeSet(next)) setTargetId(copy.id);
   }
+  function templateSetDeleteBlockReason(setId: string) {
+    return templates.store.assignments.some(a => a.setId === setId) ? "Reassign documents before deleting this template set." : undefined;
+  }
+  function templateDeleteBlockReason(setId: string, targetId: string) {
+    const targetSet = templates.store.sets.find(item => item.id === setId);
+    const targetEntry = targetSet ? [...targetSet.templates, ...targetSet.parts].find(item => item.id === targetId) : undefined;
+    if (!targetSet || !targetEntry) return "This template is no longer available.";
+    if ((targetEntry.kind === "page" || targetEntry.kind === "post") && targetSet.templates.filter(item => item.kind === targetEntry.kind).length <= 1) return `Keep at least one ${targetEntry.kind} template in this set.`;
+    if (templates.store.assignments.some(a => a.setId === targetSet.id && a.templateId === targetEntry.id)) return "Reassign documents before deleting this template.";
+    let referenced = false;
+    [...targetSet.templates, ...targetSet.parts].forEach(item => visitTemplateNodes(item.nodes, node => { if (node.type === "part" && node.partId === targetEntry.id) referenced = true; }));
+    return referenced ? "Replace shared-part references before deleting this item." : undefined;
+  }
   function deleteTemplateEntry(setId: string, targetId: string) {
     const targetSet = templates.store.sets.find(item => item.id === setId);
     const targetEntry = targetSet ? [...targetSet.templates, ...targetSet.parts].find(item => item.id === targetId) : undefined;
     if (!targetSet || !targetEntry) return;
-    const used = templates.store.assignments.some(a => a.setId === targetSet.id && a.templateId === targetEntry.id);
-    if ((targetEntry.kind === "page" || targetEntry.kind === "post") && targetSet.templates.filter(item => item.kind === targetEntry.kind).length <= 1) {
-      setFeedback(`Keep at least one ${targetEntry.kind} template in this set.`);
-      return;
-    }
-    let referenced = false;
-    [...targetSet.templates, ...targetSet.parts].forEach(item => visitTemplateNodes(item.nodes, node => { if (node.type === "part" && node.partId === targetEntry.id) referenced = true; }));
-    if (used || referenced) { setFeedback("Reassign this template or replace its shared-part references before deleting it."); return; }
+    const blockedReason = templateDeleteBlockReason(setId, targetId);
+    if (blockedReason) { setFeedback(blockedReason); return; }
     askName(`Delete ${targetEntry.name}`, "", () => {
       const saved = templates.commit(store => ({ ...store, sets: store.sets.map(item => item.id === targetSet.id ? { ...item, templates: item.templates.filter(t => t.id !== targetEntry.id), parts: item.parts.filter(p => p.id !== targetEntry.id) } : item) }));
       if (saved && setId === targetSet.id && targetId === targetEntry.id) {
@@ -202,6 +228,9 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
       changeSet({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, nodes } : item), parts: set.parts.map(item => item.id === target.id ? { ...item, nodes } : item) });
     }
     setMediaTarget(null);
+  }
+  function renderTemplateSetCard(item: TemplateSet) {
+    return <article className="template-set-card" key={item.id} onContextMenu={(event) => { event.preventDefault(); setTemplateSetContextMenuTrigger(event.currentTarget.querySelector<HTMLButtonElement>("button")); setTemplateSetContextMenu({ setId: item.id, label: item.name, x: event.clientX, y: event.clientY }); }}><button className="template-set-context-trigger" type="button" aria-label={`Actions for ${item.name}`} aria-haspopup="menu" aria-expanded={templateSetContextMenu?.setId === item.id} onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); setTemplateSetContextMenuTrigger(event.currentTarget); setTemplateSetContextMenu({ setId: item.id, label: item.name, x: rect.left, y: rect.bottom }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); const rect = event.currentTarget.getBoundingClientRect(); setTemplateSetContextMenuTrigger(event.currentTarget); setTemplateSetContextMenu({ setId: item.id, label: item.name, x: rect.left, y: rect.bottom }); } }}><StudioIcon name="more-vertical" size={18} /></button><h2>{item.name}</h2><p>{item.templates.length} templates · {item.parts.length} shared parts</p><button type="button" onClick={() => openSet(item)}>Open Templates</button><div className="template-set-actions"><button type="button" disabled={!writable} onClick={() => askName("Rename Template Set", item.name, name => changeSet({ ...item, name }))}>Rename</button><button type="button" disabled={!exclusiveWritable} onClick={() => void duplicateSet(item)}>Duplicate</button><button type="button" disabled={busy} onClick={() => void exportSet(item)}>Export</button><button type="button" disabled={!writable} onClick={() => deleteSet(item)}>Delete</button></div></article>;
   }
   const panel = <>
     {templates.syncConflict ? <div className="template-status template-inline-status template-conflict-status" role="alert"><div><strong>Another Studio tab changed this template while you were editing.</strong><span>{templates.syncConflict.conflicts.length || 1} overlapping change{templates.syncConflict.conflicts.length === 1 ? "" : "s"} need your decision. Your changes are still available in this tab.</span><small>{studioConflictDetails(templates.syncConflict)} Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</small></div><div className="template-status-actions"><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}
@@ -228,12 +257,12 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
         {templateEntries.map(({ set: item, entry }) => <button className={`document-item template-target-item${item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
           <span className="document-kind-mark">{entry.kind === "post" ? "A" : entry.kind === "page" ? "P" : "H"}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />
         </button>)}
-        {templateContextMenu ? <StudioListContextMenu target={templateContextMenu} canDelete={writable} returnFocusRef={templateContextMenuTriggerRef} onDelete={() => deleteTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId)} onClose={closeTemplateContextMenu} /> : null}
+        {templateContextMenu ? <StudioListContextMenu target={templateContextMenu} canDelete={writable && !templateDeleteBlockReason(templateContextMenu.setId, templateContextMenu.targetId)} disabledReason={!writable ? "Editing is unavailable in this tab." : templateDeleteBlockReason(templateContextMenu.setId, templateContextMenu.targetId)} returnFocusRef={templateContextMenuTriggerRef} onDelete={() => deleteTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId)} onClose={closeTemplateContextMenu} /> : null}
       </div> : null}
       {set ? <fieldset disabled={!writable}><legend>Add template</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div>{target ? <div className="template-targets"><button type="button" onClick={() => askName("Rename", target.name, name => { return changeSet({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, name } : item), parts: set.parts.map(item => item.id === target.id ? { ...item, name } : item) }); })}>Rename</button><button type="button" onClick={duplicateTarget}>Duplicate</button><button type="button" onClick={deleteTarget}>Delete</button></div> : null}</fieldset> : null}
       {onBackToContent ? <><SiteNavigation /><div className="library-footer"><button type="button" onClick={onExportContent}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div></> : null}
     </aside>
-    {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : "Template image"} targetKind="block" onInsertImage={insertMedia} /></section> : set && target ? <TemplateEditor key={target.id} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} writable={writable} onChange={changeSet} onEditPart={id => openSet(set, id)} onOpenMedia={(blockId, logo = false) => setMediaTarget({ blockId, logo })} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : standalone ? <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Site templates</h1><p>Create a consistent page and post design. Each set has its own shared parts, identity and styles.</p><div className="template-library-actions"><button className="button-primary" type="button" disabled={!writable} onClick={createSet}><StudioIcon name="add" />Create Template Set</button><button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button><div className="template-set-grid">{templates.store.sets.map(item => <article className="template-set-card" key={item.id}><h2>{item.name}</h2><p>{item.templates.length} templates · {item.parts.length} shared parts</p><button type="button" onClick={() => openSet(item)}>Open Templates</button><div className="template-set-actions"><button type="button" disabled={!writable} onClick={() => askName("Rename Template Set", item.name, name => changeSet({ ...item, name }))}>Rename</button><button type="button" disabled={!exclusiveWritable} onClick={() => void duplicateSet(item)}>Duplicate</button><button type="button" disabled={busy} onClick={() => void exportSet(item)}>Export</button><button type="button" disabled={!writable} onClick={() => deleteSet(item)}>Delete</button></div></article>)}</div>{!templates.store.sets.length && templates.ready ? <p>No template sets yet. Create one to start with the neutral ACM design.</p> : null}</div></section> : <section className="template-library template-empty-state" style={{ gridColumn: "span 2" }}><h1>Select a template</h1><p>Choose a Page, Post or shared part from the Templates list.</p></section>}
+    {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : "Template image"} targetKind="block" onInsertImage={insertMedia} /></section> : set && target ? <TemplateEditor key={target.id} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} writable={writable} onChange={changeSet} onEditPart={id => openSet(set, id)} onOpenMedia={(blockId, logo = false) => setMediaTarget({ blockId, logo })} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : standalone ? <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Site templates</h1><p>Create a consistent page and post design. Each set has its own shared parts, identity and styles.</p><div className="template-library-actions"><button className="button-primary" type="button" disabled={!writable} onClick={createSet}><StudioIcon name="add" />Create Template Set</button><button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button><div className="template-set-grid">{templates.store.sets.map(renderTemplateSetCard)}</div>{!templates.store.sets.length && templates.ready ? <p>No template sets yet. Create one to start with the neutral ACM design.</p> : null}</div>{templateSetContextMenu ? (() => { const item = templates.store.sets.find(candidate => candidate.id === templateSetContextMenu.setId); const blockedReason = item ? templateSetDeleteBlockReason(item.id) : "This template set is no longer available."; return <TemplateSetActionsMenu target={templateSetContextMenu} canDelete={Boolean(item && writable && !blockedReason)} disabledReason={!writable ? "Editing is unavailable in this tab." : blockedReason} onDelete={() => { if (item) deleteSetFromContextMenu(item); }} onClose={closeTemplateSetContextMenu} />; })() : null}</section> : <section className="template-library template-empty-state" style={{ gridColumn: "span 2" }}><h1>Select a template</h1><p>Choose a Page, Post or shared part from the Templates list.</p></section>}
     <input ref={importRef} hidden type="file" accept=".json,application/json" onChange={event => { void importFile(event.target.files?.[0]); event.target.value = ""; }} />
   </>;
   const dialogElement = dialog ? <dialog ref={dialogRef} className="template-dialog" aria-labelledby="template-dialog-title" onCancel={event => { event.preventDefault(); closeDialog(); }}><button className="template-dialog-close" type="button" aria-label="Close" onClick={closeDialog}><StudioIcon name="close" /></button><form onSubmit={event => { event.preventDefault(); if (dialog.confirm(dialog.name.trim()) !== false) closeDialog(); }}><h2 id="template-dialog-title">{dialog.title}</h2>{dialog.title.startsWith("Delete ") ? <p>This removes the local item. A saved export can be imported again.</p> : <label>Name<input required maxLength={160} value={dialog.name} onChange={event => setDialog({ ...dialog, name: event.target.value })} /></label>}<div className="template-dialog-actions"><button type="button" onClick={closeDialog}>Cancel</button><button className="button-primary" type="submit" disabled={!writable}>{dialog.title.startsWith("Delete ") ? "Delete" : "Save"}</button></div></form></dialog> : null;

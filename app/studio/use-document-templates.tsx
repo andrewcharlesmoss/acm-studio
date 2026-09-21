@@ -15,7 +15,7 @@ export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspa
   const document = workspace.documents.find(item => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
   const templates = useTemplates(ownershipGeneration, writable);
   const history = useStudioHistoryRouter(session, templates, ownershipGeneration);
-  const commit: typeof session.commit = update => { if (!writable) return; history.record("document"); session.commit(update); };
+  const commit: typeof session.commit = update => { if (!writable) return false; history.record("document"); return session.commit(update); };
   const updateActiveDocument: typeof session.updateActiveDocument = update => { if (!writable) return; history.record("document"); session.updateActiveDocument(update); };
   const updateActiveField: typeof session.updateActiveField = (field, value) => { if (!writable) return; history.record("document"); session.updateActiveField(field, value); };
   let snapshot: TemplateSnapshot | undefined;

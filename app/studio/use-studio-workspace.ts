@@ -248,15 +248,17 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   }, [ready, repository, loadedRepository, loadError, syncConflict, workspace, ownership, loadedToken, ownershipState, primaryWritable, peerWritable]);
 
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
-    if (!editable) return;
+    if (!editable) return false;
+    let committed = true;
     setWorkspace((current) => {
-      if (!editable) return current;
+      if (!editable) { committed = false; return current; }
       const nextHistory = commitHistory(current, historyRef.current, MAX_HISTORY);
       historyRef.current = nextHistory.history;
       futureRef.current = nextHistory.future;
       setHistoryAvailability({ undo: nextHistory.history.length > 0, redo: nextHistory.future.length > 0 });
       return update(cloneWorkspace(current));
     });
+    return committed;
   }
 
   function undo() {

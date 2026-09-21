@@ -155,7 +155,7 @@ export function StudioPrototype() {
     if (currentPath !== nextPath) window.history.pushState({}, "", nextPath);
   }
   function selectDocument(document: StudioDocument) {
-    if (!confirmCodeEditorDiscard()) return;
+    if (!confirmCodeEditorDiscard()) return false;
     documentCommands.selectDocument(document);
     setCodeEditorDirty(false);
     setLibraryKind(document.kind);
@@ -163,6 +163,7 @@ export function StudioPrototype() {
     setInspectorTab("document");
     setPreviewing(false);
     switchStudioMode("content");
+    return true;
   }
 
   function addDocument(kind: StudioDocumentKind) {
@@ -266,15 +267,19 @@ export function StudioPrototype() {
   function deleteDocument(documentId = activeDocument.id) {
     const targetDocument = workspace.documents.find((item) => item.id === documentId);
     if (!targetDocument || workspace.documents.length === 1) return;
+    const assignment = templateSession.store.assignments.find((item) => item.documentId === documentId);
     if (!confirmCodeEditorDiscard()) return;
-    if (templateSession.store.assignments.some((assignment) => assignment.documentId === documentId)) {
-      publishing.setPublishFeedback("Choose Existing Presentation before deleting a document with a site template.");
-      return;
-    }
     const publicationWarning = targetDocument.kind === "post" && targetDocument.status === "published" ? " This also removes its local published copy." : "";
-    if (!window.confirm(`Delete the local ${targetDocument.kind} “${targetDocument.title}”?${publicationWarning}`)) return;
+    const templateWarning = assignment ? " Its template assignment will also be removed." : "";
+    if (!window.confirm(`Delete the local ${targetDocument.kind} “${targetDocument.title}”?${publicationWarning}${templateWarning}`)) return;
+    const restoreAssignment = () => assignment && templateSession.commit((store) => ({ ...store, assignments: [...store.assignments.filter((item) => item.documentId !== documentId), assignment] }));
     try {
+      if (assignment && !templateSession.commit((store) => ({ ...store, assignments: store.assignments.filter((item) => item.documentId !== documentId) }))) {
+        publishing.setPublishFeedback("The template assignment could not be removed, so the document was not deleted.");
+        return;
+      }
       if (!documentCommands.deleteDocument(documentId)) {
+        restoreAssignment();
         publishing.setPublishFeedback("The document could not be deleted because this tab no longer owns the local workspace.");
         return;
       }
@@ -285,11 +290,14 @@ export function StudioPrototype() {
         if (nextDocument) setLibraryKind(nextDocument.kind);
       }
     } catch {
+      restoreAssignment();
       publishing.setPublishFeedback("The published copy could not be removed, so the post was not deleted.");
       return;
     }
-    setSelectedBlockId(null);
-    setCodeEditorDirty(false);
+    if (targetDocument.id === activeDocument.id) {
+      setSelectedBlockId(null);
+      setCodeEditorDirty(false);
+    }
   }
 
   function insertBlock(type: InsertableBlockType) {
@@ -395,16 +403,23 @@ export function StudioPrototype() {
             ))}
             <button type="button" onClick={() => switchStudioMode("templates")}>Templates<span>{templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0)}</span></button>
           </div>
-          <div className="document-list">
+      <div className="document-list">
             {workspace.documents.filter((document) => document.kind === libraryKind).map((document) => (
-                <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} aria-haspopup="menu" aria-expanded={documentContextMenu?.id === document.id} onClick={() => selectDocument(document)} onContextMenu={(event) => { event.preventDefault(); documentContextMenuTriggerRef.current = event.currentTarget; selectDocument(document); setDocumentContextMenu({ id: document.id, label: document.title, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); documentContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); selectDocument(document); setDocumentContextMenu({ id: document.id, label: document.title, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
+                <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} aria-haspopup="menu" aria-expanded={documentContextMenu?.id === document.id} onClick={() => selectDocument(document)} onContextMenu={(event) => { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; setDocumentContextMenu({ id: document.id, label: document.title, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); setDocumentContextMenu({ id: document.id, label: document.title, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
                 <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span>
                 <span><strong>{document.title}</strong><small>/{document.slug}</small></span>
                 <i className={`document-status is-${document.status}`} aria-label={document.status} />
               </button>
             ))}
           </div>
-          {documentContextMenu ? <StudioListContextMenu target={documentContextMenu} canDelete={exclusiveWritable && workspace.documents.length > 1} returnFocusRef={documentContextMenuTriggerRef} onDelete={() => deleteDocument(documentContextMenu.id)} onClose={closeDocumentContextMenu} /> : null}
+          {documentContextMenu ? (() => {
+            const contextDocument = workspace.documents.find((item) => item.id === documentContextMenu.id);
+            const contextAssignment = templateSession.store.assignments.find((item) => item.documentId === documentContextMenu.id);
+            const requiresExclusiveOwnership = contextDocument?.kind === "post" && contextDocument.status === "published";
+            const canDelete = Boolean(contextDocument && writable && workspace.documents.length > 1 && (!requiresExclusiveOwnership || exclusiveWritable) && (!contextAssignment || templateSession.writable));
+            const disabledReason = !writable ? "Editing is unavailable in this tab." : workspace.documents.length === 1 ? "Keep at least one document in the workspace." : requiresExclusiveOwnership && !exclusiveWritable ? "Published posts require exclusive ownership to remove their local publication." : contextAssignment && !templateSession.writable ? "The template assignment is not writable in this tab." : undefined;
+            return <StudioListContextMenu target={documentContextMenu} canDelete={canDelete} disabledReason={disabledReason} returnFocusRef={documentContextMenuTriggerRef} onDelete={() => deleteDocument(documentContextMenu.id)} onClose={closeDocumentContextMenu} />;
+          })() : null}
           <SiteNavigation />
           <div className="library-footer"><button type="button" onClick={() => exportJson(workspace, "acm-studio-content.json")}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>
         </aside>
