@@ -246,7 +246,10 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   const edit = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc, editingDocument: true, onDocumentChange() {}, content: createElement("textarea", { "aria-label": "Canonical body" }) }));
   assert.match(edit, /Canonical body/); assert.match(edit, /Document title/);
   const post = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents.find(document => document.kind === "post"));
+  post.subtitle = "A supporting summary";
   const postHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { ...snapshot, templateId: set.templates.find(template => template.kind === "post").id }, document: post }));
+  assert.match(postHtml, /<h1>Building the publishing foundation<\/h1>/);
+  assert.match(postHtml, /<p class="template-subtitle">A supporting summary<\/p>/);
   assert.match(postHtml, /is-post-author/);
   assert.match(postHtml, /is-reading-time/);
   assert.doesNotMatch(postHtml, /template-metadata/);
@@ -371,6 +374,7 @@ test("template shell keeps configurable brand semantics and documented responsiv
   assert.match(html, /target="_blank" rel="noopener noreferrer"/);
   const css = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   assert.match(css, /Output breakpoints: 780px/); assert.match(css, /@container \(max-width: 780px\)/); assert.match(css, /@container \(max-width: 620px\)/);
+  assert.match(css, /\.template-subtitle, \.template-subtitle-input \{ font: 1\.15em\/1\.45 var\(--template-font\); max-width: 42em;/);
   assert.match(css, /\.template-footer \.template-social \{ justify-content: flex-end; \}/); assert.match(css, /\.template-footer \.template-social \{ justify-content: center; \}/);
 });
 
