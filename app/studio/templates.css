@@ -91,7 +91,9 @@
 .template-part { display: block; min-width: 0; }
 .template-part-content { min-width: 0; }
 .template-edit-part { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 6px 10px; border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); white-space: nowrap; position: absolute; right: calc(100% + 12px); top: 0; z-index: 4; }
-.template-node-selected { outline: 1px solid #2457c5; outline-offset: 4px; }
+/* The enclosing canvas block already owns the visible selection outline. Keep
+   nested selection semantic without drawing a second, competing border. */
+.template-node-selected { outline: 0; }
 .template-node-selectable { min-width: 0; }
 .template-node-selectable:focus-visible { outline: 2px solid #2457c5; outline-offset: 4px; }
 .template-editing .block-canvas, .template-editing .document-preview { padding: 24px; width: 100%; max-width: 1200px; }

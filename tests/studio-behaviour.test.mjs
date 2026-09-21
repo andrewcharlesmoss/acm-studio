@@ -373,6 +373,13 @@ test("nested editor hover and selection use red inset outlines", () => {
 });
 
 
+test("selected template nodes do not add a competing blue outline", () => {
+  const css = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  assert.match(css, /\.template-node-selected \{ outline: 0; \}/);
+  assert.match(css, /\.template-node-selectable:focus-visible \{ outline: 2px solid #2457c5;/);
+});
+
+
 test("List View pointer hover marks its matching top-level or nested canvas block", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   const presentation = readFileSync(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url), "utf8");
