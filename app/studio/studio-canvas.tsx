@@ -183,6 +183,14 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
     onOpenInserter(afterIndex, query);
   }
 
+  function toggleInserter(afterIndex: number | null, query?: string) {
+    if (showInserter && !inserterClosing) {
+      dismissInserter();
+      return;
+    }
+    openInserter(afterIndex, query);
+  }
+
   function closeListView() {
     setHoveredBlockId(null);
     setListViewOpen(false);
@@ -503,14 +511,14 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
             </div> : allowCoverImage ? <button className="canvas-add-cover" type="button" onClick={onOpenCoverMediaLibrary}><StudioIcon name="add" size={18} />Add cover image</button> : null}
 
             <div className="canvas-blocks">
-              {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" onClick={() => openInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
+              {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" onClick={() => toggleInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
               {activeDocument.blocks.map((block, index) => (
                 <div className="block-position" key={block.id}
                   onDragOver={(event) => handleBlockDragOver(event, index)}
                   onDrop={(event) => handleBlockDrop(event, index)}
                 >
                   {dragOverIndex === index || (index === activeDocument.blocks.length - 1 && dragOverIndex === index + 1) ? <div className={`drop-indicator${dragOverIndex === index + 1 ? " is-after" : ""}`} aria-hidden="true" /> : null}
-                  {index > 0 ? <button className="between-blocks" type="button" onClick={() => openInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
+                  {index > 0 ? <button className="between-blocks" type="button" onClick={() => toggleInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
                   <article
                     className={`canvas-block is-${block.type}${selectedBlockId === block.id ? " is-selected" : ""}`}
                     data-studio-block-anchor-id={block.id}
@@ -609,7 +617,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                     setAppenderActive(false);
                   }}
                 />
-                {appenderActive ? <button className="canvas-appender-button" type="button" onClick={() => { setAppenderValue(""); setAppenderActive(false); openInserter(activeDocument.blocks.length - 1); }} aria-label="Add block" title="Add block"><StudioIcon name="add" /></button> : null}
+                {appenderActive ? <button className="canvas-appender-button" type="button" onClick={() => { setAppenderValue(""); setAppenderActive(false); toggleInserter(activeDocument.blocks.length - 1); }} aria-label="Add block" title="Add block"><StudioIcon name="add" /></button> : null}
               </div>
             </div>
             {presentation?.renderFooter?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}

@@ -170,7 +170,7 @@ test("the block appender exposes Gutenberg's slash prompt and add control", asyn
 test("the cover image exposes a between-block inserter", async () => {
   const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(source, /aria-label="Add block below cover image"/);
-  assert.match(source, /openInserter\(-1\)/);
+  assert.match(source, /toggleInserter\(-1\)/);
 });
 
 test("dynamic cover blocks keep selection borders tight to the image", async () => {
@@ -1334,6 +1334,15 @@ test("Add block cancels an exit in progress and restores the entry animation", (
   assert.match(canvas, /function openInserter[^}]*setInserterClosing\(false\)/);
   assert.match(canvas, /data-closing=\{closing \|\| undefined\}/);
   assert.match(canvas, /if \(closing && event.target === event.currentTarget/);
+});
+
+
+test("between-block add controls toggle the shared block library", () => {
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(canvas, /function toggleInserter\(afterIndex: number \| null, query\?: string\) \{\s*if \(showInserter && !inserterClosing\) \{\s*dismissInserter\(\);/);
+  assert.match(canvas, /className="between-blocks cover-inserter"[^>]*onClick=\{\(\) => toggleInserter\(-1\)\}/);
+  assert.match(canvas, /className="between-blocks"[^>]*onClick=\{\(\) => toggleInserter\(index - 1\)\}/);
+  assert.match(canvas, /className="canvas-appender-button"[^>]*onClick=\{\(\) => \{ setAppenderValue\(""\); setAppenderActive\(false\); toggleInserter\(activeDocument\.blocks\.length - 1\); \}\}/);
 });
 
 
