@@ -1,4 +1,4 @@
-import type { ContentBlock } from "../content/model";
+import type { ContentBlock, DocumentDisplayField, DocumentDisplayMode } from "../content/model";
 import type { StudioIconName } from "./studio-icons";
 
 export type StudioDocumentKind = "post" | "page";
@@ -16,6 +16,8 @@ export type StudioDocument = {
   author?: string;
   /** Set only on a publication projection created after metadata became blocks. */
   metadataBlocksVersion?: 2;
+  /** Marks conversion of the former fixed title/subtitle/cover shell. */
+  documentShellVersion?: 1;
   status: StudioDocumentStatus;
   /** The date/time selected for the next local publication. */
   publishAt?: string;
@@ -23,10 +25,12 @@ export type StudioDocument = {
   publishedSlug?: string;
   updatedAt: string;
   blocks: ContentBlock[];
-  category?: "Technology" | "Excel" | "Personal";
+  category?: string;
   tags: string[];
   /** True means the document owns the value; false means it follows its template default. */
-  templateOverrides?: { author?: boolean; category?: boolean; tags?: boolean };
+  templateOverrides?: { author?: boolean; category?: boolean; tags?: boolean; parentPageId?: boolean };
+  /** Explicit presentation choices are separate from the stored field values. */
+  displayOverrides?: Partial<Record<DocumentDisplayField, DocumentDisplayMode>>;
   template?: "default" | "wide" | "landing";
   parentPageId?: string;
   seoTitle: string;
@@ -34,7 +38,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4;
+  version: 2 | 3 | 4 | 5;
   activeDocumentId: string;
   documents: StudioDocument[];
 };
@@ -62,6 +66,9 @@ export const blockCatalogue: Array<{
   { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Design", icon: "block" },
   { type: "divider", label: "Divider", description: "Separate two sections.", group: "Design", icon: "separator" },
   { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design", icon: "separator" },
+  { type: "document-title", label: "Document Title", description: "Display the current page or post title.", group: "Other", icon: "heading" },
+  { type: "document-subtitle", label: "Document Subtitle", description: "Display the current page or post subtitle.", group: "Other", icon: "paragraph" },
+  { type: "cover-image", label: "Cover Image", description: "Display the document cover image.", group: "Other", icon: "image" },
   { type: "reading-time", label: "Reading Time", description: "Show the calculated reading time for this document.", group: "Other", icon: "block" },
   { type: "post-author", label: "Post Author", description: "Show the document author when one is set.", group: "Other", icon: "block" },
   { type: "post-date", label: "Post Date", description: "Show the document publication date.", group: "Other", icon: "block" },
@@ -70,7 +77,7 @@ export const blockCatalogue: Array<{
 const fixedDate = "2026-08-20T00:00:00.000Z";
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 4,
+  version: 5,
   activeDocumentId: "page-home",
   documents: [
     {
@@ -82,11 +89,15 @@ export const initialStudioWorkspace: StudioWorkspace = {
       excerpt: "The project-led home of Andrew Charles Moss.",
       status: "draft",
       updatedAt: fixedDate,
+      documentShellVersion: 1,
       tags: [],
       template: "landing",
       seoTitle: "Andrew Charles Moss — Projects and writing",
       seoDescription: "Independent products, experiments and useful writing by Andrew Charles Moss.",
       blocks: [
+        { id: "page-home-document-title", type: "document-title" },
+        { id: "page-home-document-subtitle", type: "document-subtitle" },
+        { id: "page-home-cover-image", type: "cover-image" },
         { id: "home-heading", type: "heading", level: 2, text: "I make focused products and document the thinking behind them." },
         { id: "home-intro", type: "paragraph", text: "This is the home of my active projects, smaller experiments and a writing archive built over many years." },
         { id: "home-button", type: "button", label: "Explore the projects", url: "/projects", style: "primary" },
@@ -101,11 +112,15 @@ export const initialStudioWorkspace: StudioWorkspace = {
       excerpt: "A concise introduction to Andrew and the work.",
       status: "draft",
       updatedAt: fixedDate,
+      documentShellVersion: 1,
       tags: [],
       template: "default",
       seoTitle: "About Andrew Moss",
       seoDescription: "About Andrew Moss and his independent projects.",
       blocks: [
+        { id: "page-about-document-title", type: "document-title" },
+        { id: "page-about-document-subtitle", type: "document-subtitle" },
+        { id: "page-about-cover-image", type: "cover-image" },
         { id: "about-heading", type: "heading", level: 2, text: "Useful things, made with care." },
         { id: "about-copy", type: "paragraph", text: "I build focused products and experiments, usually because a small question has become too interesting to leave alone." },
         { id: "about-quote", type: "quote", text: "The useful part should remain visible.", attribution: "Andrew Moss" },
@@ -122,10 +137,14 @@ export const initialStudioWorkspace: StudioWorkspace = {
       updatedAt: fixedDate,
       category: "Technology",
       author: "Andrew Moss",
+      documentShellVersion: 1,
       tags: ["CMS", "Building"],
       seoTitle: "Building the publishing foundation",
       seoDescription: "Why Andrew's publishing system begins with structured, portable content.",
       blocks: [
+        { id: "post-foundation-document-title", type: "document-title" },
+        { id: "post-foundation-document-subtitle", type: "document-subtitle" },
+        { id: "post-foundation-cover-image", type: "cover-image" },
         { id: "foundation-reading-time", type: "reading-time", prefix: "Reading Time:", presentation: "badge" },
         { id: "foundation-post-details", type: "group", layout: "row", gap: 16, stackAt: "mobile", children: [
           { id: "foundation-post-author", type: "post-author", prefix: "By", avatar: true },
@@ -159,6 +178,9 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "field") return { id, type, control: "text", label: "Label", value: "" };
   if (type === "divider") return { id, type };
   if (type === "spacer") return { id, type, height: 32 };
+  if (type === "document-title") return { id, type };
+  if (type === "document-subtitle") return { id, type };
+  if (type === "cover-image") return { id, type };
   if (type === "reading-time") return { id, type, prefix: "Reading Time:", presentation: "badge" };
   if (type === "post-author") return { id, type, prefix: "By", avatar: true };
   if (type === "post-date") return { id, type, format: "long", showIcon: true };
@@ -176,6 +198,14 @@ export function createPostStarterBlocks(id: string): ContentBlock[] {
   ];
 }
 
+export function createDocumentShellBlocks(id: string): ContentBlock[] {
+  return [
+    createBlock("document-title", `${id}-document-title`),
+    createBlock("document-subtitle", `${id}-document-subtitle`),
+    createBlock("cover-image", `${id}-cover-image`),
+  ];
+}
+
 export function createDocument(kind: StudioDocumentKind, id = `${kind}-${Date.now()}`): StudioDocument {
   const title = kind === "page" ? "Untitled page" : "Untitled post";
   return {
@@ -188,7 +218,7 @@ export function createDocument(kind: StudioDocumentKind, id = `${kind}-${Date.no
     author: kind === "post" ? "Andrew Moss" : undefined,
     status: "draft",
     updatedAt: new Date().toISOString(),
-    blocks: kind === "post" ? createPostStarterBlocks(id) : [createBlock("paragraph", `${id}-paragraph-1`)],
+    blocks: [...createDocumentShellBlocks(id), ...(kind === "post" ? createPostStarterBlocks(id) : [createBlock("paragraph", `${id}-paragraph-1`)])],
     category: kind === "post" ? "Technology" : undefined,
     tags: [],
     template: kind === "page" ? "default" : undefined,
@@ -202,7 +232,7 @@ export function createDocumentFromTemplate(kind: StudioDocumentKind, id = `${kin
   const title = kind === "page" ? "Untitled page" : "Untitled post";
   return {
     id, kind, title, subtitle: "", slug: kind === "page" ? "untitled-page" : "untitled-post", excerpt: "", status: "draft",
-    updatedAt: new Date().toISOString(), blocks: [], tags: [], templateOverrides: { author: false, category: false, tags: false },
+    updatedAt: new Date().toISOString(), blocks: [], tags: [], templateOverrides: { author: false, category: false, tags: false, parentPageId: false },
     seoTitle: "", seoDescription: "",
   };
 }

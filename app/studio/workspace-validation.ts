@@ -1,5 +1,5 @@
 import type { ContentBlock } from "../content/model";
-import { createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
+import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
 
 const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6], spacer: [4, 320] } as const;
 function validLayoutOptions(value: Record<string, unknown>): boolean {
@@ -101,6 +101,9 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.options === undefined || strings(block.options));
       case "divider": return true;
       case "spacer": return typeof block.height === "number" && Number.isFinite(block.height) && block.height >= LAYOUT_VALUE_LIMITS.spacer[0] && block.height <= LAYOUT_VALUE_LIMITS.spacer[1];
+      case "document-title":
+      case "document-subtitle":
+      case "cover-image": return true;
       case "reading-time": return optionalString(block.prefix)
         && (block.presentation === undefined || ["badge", "plain"].includes(block.presentation as string));
       case "post-author": return optionalString(block.prefix) && optionalBoolean(block.avatar);
@@ -139,7 +142,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -153,16 +156,30 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
     });
   }
   if (migrated.version === 3) migrated.version = 4;
+  if (migrated.version === 4) migrated.version = 5;
   migrated.documents = (migrated.documents as unknown[]).map(candidate => {
-    if (!isRecord(candidate) || candidate.templateOverrides !== undefined) return candidate;
-    return { ...candidate, templateOverrides: { author: true, category: true, tags: true } };
+    if (!isRecord(candidate)) return candidate;
+    const next = { ...candidate };
+    if (next.documentShellVersion !== 1 && Array.isArray(next.blocks)) {
+      const blocks = next.blocks as ContentBlock[];
+      const existingTypes = new Set(blocks.map(block => block.type));
+      const ids = collectBlockIds(blocks);
+      const shell = createDocumentShellBlocks(String(next.id)).filter(block => {
+        if (existingTypes.has(block.type)) return false;
+        return !ids.has(block.id);
+      }).map(block => withUniqueBlockIds(block, ids));
+      next.blocks = [...shell, ...blocks];
+      next.documentShellVersion = 1;
+    }
+    if (next.templateOverrides !== undefined) return next;
+    return { ...next, templateOverrides: { author: true, category: true, tags: true, parentPageId: true } };
   });
   return migrated as StudioWorkspace;
 }
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4].includes(value.version as number) || !Array.isArray(value.documents) || !value.documents.length
+  if (!isRecord(value) || ![2, 3, 4, 5].includes(value.version as number) || !Array.isArray(value.documents) || !value.documents.length
     || !value.documents.every(isRecord) || !uniqueIds(value.documents)) return invalid();
   if (typeof value.activeDocumentId !== "string" || !value.documents.some((item) => item.id === value.activeDocumentId)) return invalid();
   for (const document of value.documents) {
@@ -171,21 +188,33 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       || !date(document.updatedAt) || !strings(document.tags) || !validContentBlocks(document.blocks)
       || !optionalString(document.author)
       || (document.metadataBlocksVersion !== undefined && document.metadataBlocksVersion !== 2)
+      || (document.documentShellVersion !== undefined && document.documentShellVersion !== 1)
       || ![document.subtitle, document.publishedSlug, document.parentPageId].every(optionalString)
       || (document.publishAt !== undefined && !date(document.publishAt))
       || (document.publishedAt !== undefined && !date(document.publishedAt))
-      || (document.category !== undefined && !["Technology", "Excel", "Personal"].includes(document.category as string))
-      || (document.templateOverrides !== undefined && (!isRecord(document.templateOverrides) || !optionalBoolean(document.templateOverrides.author) || !optionalBoolean(document.templateOverrides.category) || !optionalBoolean(document.templateOverrides.tags)))
+      || (document.category !== undefined && (typeof document.category !== "string" || document.category.length > 200))
+      || (document.templateOverrides !== undefined && (!isRecord(document.templateOverrides) || !optionalBoolean(document.templateOverrides.author) || !optionalBoolean(document.templateOverrides.category) || !optionalBoolean(document.templateOverrides.tags) || !optionalBoolean(document.templateOverrides.parentPageId)))
+      || (document.displayOverrides !== undefined && (!isRecord(document.displayOverrides) || Object.entries(document.displayOverrides).some(([key, candidate]) => !["title", "subtitle", "coverImage", "author", "publicationDate", "readingTime"].includes(key) || !["show", "hide"].includes(candidate as string))))
       || (document.template !== undefined && !["default", "wide", "landing"].includes(document.template as string))) return invalid();
     const cover = document.coverImage;
     if (cover !== undefined && cover !== null && (!isRecord(cover) || typeof cover.src !== "string"
       || typeof cover.alt !== "string" || !optionalString(cover.mediaId))) return invalid();
   }
+  const documentsById = new Map(value.documents.map((document) => [document.id as string, document]));
+  for (const document of value.documents) {
+    const seen = new Set<string>();
+    let parentId = document.parentPageId;
+    while (typeof parentId === "string" && parentId) {
+      if (seen.has(parentId) || parentId === document.id || !documentsById.has(parentId)) return invalid();
+      seen.add(parentId);
+      parentId = documentsById.get(parentId)?.parentPageId;
+    }
+  }
   return value as StudioWorkspace;
 }
 
 export function validatePublicationSnapshot(value: unknown): void {
-  if (!isRecord(value) || ![1, 2, 3].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
+  if (!isRecord(value) || ![1, 2, 3, 4].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
   const ids = new Set();
   for (const post of value.posts) {
     if (!isRecord(post) || !["localDocumentId", "slug", "title", "summary", "displayDate", "readingTime"].every((field) => typeof post[field] === "string")

@@ -1,10 +1,10 @@
-import type { ContentBlock } from "../content/model";
+import type { ContentBlock, DocumentDisplayField, DocumentDisplayMode } from "../content/model";
 import { readingTimeMinutes } from "../content/reading-time";
 import type { StudioDocument, StudioDocumentKind } from "./editor-model";
 import type { TemplateDefaults, TemplateNode, TemplateSet } from "./template-model";
 
 export type DocumentFieldId = "type" | "title" | "slug" | "parentPageId" | "subtitle" | "excerpt" | "coverImage" | "author" | "publicationDate" | "status" | "category" | "tags" | "template" | "seoTitle" | "seoDescription" | "readingTime";
-export type DocumentFieldSection = "Document Identity" | "Content Fields" | "Publishing" | "Taxonomy" | "Template" | "Search and Sharing";
+export type DocumentFieldSection = "Document Identity" | "Content Fields" | "Publishing" | "Organisation" | "Template" | "Search and Sharing";
 export type DocumentField = {
   id: DocumentFieldId;
   label: string;
@@ -17,19 +17,19 @@ export type DocumentField = {
 
 export const DOCUMENT_FIELD_CATALOGUE: readonly DocumentField[] = [
   { id: "type", label: "Type", section: "Document Identity", appliesTo: "both", source: "document" },
-  { id: "title", label: "Title", section: "Document Identity", appliesTo: "both", source: "document", templateElements: ["document-title"] },
+  { id: "title", label: "Title", section: "Document Identity", appliesTo: "both", source: "document", displayBlocks: ["document-title"], templateElements: ["document-title"] },
   { id: "slug", label: "Address", section: "Document Identity", appliesTo: "both", source: "document" },
-  { id: "parentPageId", label: "Parent page", section: "Document Identity", appliesTo: "page", source: "document" },
-  { id: "subtitle", label: "Subtitle", section: "Content Fields", appliesTo: "both", source: "document", templateElements: ["subtitle"] },
+  { id: "parentPageId", label: "Parent page", section: "Document Identity", appliesTo: "both", source: "template-or-document" },
+  { id: "subtitle", label: "Subtitle", section: "Content Fields", appliesTo: "both", source: "document", displayBlocks: ["document-subtitle"], templateElements: ["subtitle"] },
   { id: "excerpt", label: "Excerpt", section: "Content Fields", appliesTo: "both", source: "document" },
-  { id: "coverImage", label: "Cover image", section: "Content Fields", appliesTo: "both", source: "document", templateElements: ["cover-image"] },
+  { id: "coverImage", label: "Cover image", section: "Content Fields", appliesTo: "both", source: "document", displayBlocks: ["cover-image"], templateElements: ["cover-image"] },
   { id: "author", label: "Author", section: "Content Fields", appliesTo: "both", source: "template-or-document", displayBlocks: ["post-author"] },
   { id: "publicationDate", label: "Publication date", section: "Publishing", appliesTo: "both", source: "template-or-document", displayBlocks: ["post-date"] },
   { id: "status", label: "Status", section: "Publishing", appliesTo: "both", source: "document" },
-  { id: "category", label: "Category", section: "Taxonomy", appliesTo: "post", source: "template-or-document", templateElements: ["post-metadata"] },
-  { id: "tags", label: "Tags", section: "Taxonomy", appliesTo: "post", source: "template-or-document" },
+  { id: "category", label: "Category", section: "Organisation", appliesTo: "both", source: "template-or-document", templateElements: ["post-metadata"] },
+  { id: "tags", label: "Tags", section: "Organisation", appliesTo: "both", source: "template-or-document" },
   { id: "template", label: "Template", section: "Template", appliesTo: "both", source: "settings" },
-  { id: "readingTime", label: "Reading time", section: "Content Fields", appliesTo: "post", source: "calculated", displayBlocks: ["reading-time"] },
+  { id: "readingTime", label: "Reading time", section: "Content Fields", appliesTo: "both", source: "calculated", displayBlocks: ["reading-time"] },
   { id: "seoTitle", label: "SEO title", section: "Search and Sharing", appliesTo: "both", source: "settings" },
   { id: "seoDescription", label: "SEO description", section: "Search and Sharing", appliesTo: "both", source: "settings" },
 ];
@@ -38,25 +38,39 @@ export type ResolvedDocumentFields = {
   author?: string;
   category?: StudioDocument["category"];
   tags: string[];
+  parentPageId?: string;
   authorSource: "document" | "template";
   categorySource: "document" | "template";
   tagsSource: "document" | "template";
+  parentPageIdSource: "document" | "template";
 };
 
 export function resolveDocumentFields(document: StudioDocument, set?: TemplateSet, templateDefaults?: TemplateDefaults): ResolvedDocumentFields {
   const defaults = templateDefaults ?? set?.defaults ?? {};
-  const usesTemplateDefault = (field: "author" | "category" | "tags") => Boolean(set && document.templateOverrides?.[field] !== true);
+  const usesTemplateDefault = (field: "author" | "category" | "tags" | "parentPageId") => Boolean(set && document.templateOverrides?.[field] !== true);
   return {
     author: usesTemplateDefault("author") ? defaults.author : document.author,
     category: usesTemplateDefault("category") ? defaults.category : document.category,
     tags: usesTemplateDefault("tags") ? [...(defaults.tags ?? [])] : [...document.tags],
+    parentPageId: usesTemplateDefault("parentPageId") ? defaults.parentPageId : document.parentPageId,
     authorSource: usesTemplateDefault("author") ? "template" : "document",
     categorySource: usesTemplateDefault("category") ? "template" : "document",
     tagsSource: usesTemplateDefault("tags") ? "template" : "document",
+    parentPageIdSource: usesTemplateDefault("parentPageId") ? "template" : "document",
   };
 }
 
 export type FieldUsage = { document: number; template: number; total: number };
+
+export function resolveDocumentDisplay(document: StudioDocument, template?: { displayDefaults?: Partial<Record<DocumentDisplayField, DocumentDisplayMode>> }) {
+  const fields: DocumentDisplayField[] = ["title", "subtitle", "coverImage", "author", "publicationDate", "readingTime"];
+  return Object.fromEntries(fields.map(field => [field, document.displayOverrides?.[field] ?? template?.displayDefaults?.[field] ?? "show"])) as Record<DocumentDisplayField, DocumentDisplayMode>;
+}
+
+export function documentDisplaySource(document: StudioDocument, field: DocumentDisplayField, hasTemplate: boolean) {
+  if (!hasTemplate) return "Document Value";
+  return document.displayOverrides?.[field] === undefined ? "Template Default" : "Document Override";
+}
 
 function countBlockUsage(blocks: ContentBlock[], wanted: ContentBlock["type"]): number {
   return blocks.reduce((count, block) => count + (block.type === wanted ? 1 : 0) + ("children" in block && Array.isArray(block.children) ? countBlockUsage(block.children, wanted) : 0), 0);
@@ -80,7 +94,7 @@ export function documentFieldUsage(document: StudioDocument, set?: TemplateSet, 
   const result = Object.fromEntries(DOCUMENT_FIELD_CATALOGUE.map(field => [field.id, { document: 0, template: 0, total: 0 }])) as Record<DocumentFieldId, FieldUsage>;
   for (const field of DOCUMENT_FIELD_CATALOGUE) {
     const documentCount = field.displayBlocks?.reduce((count, type) => count + countBlockUsage(document.blocks, type), 0) ?? 0;
-    const templateCount = set && (field.templateElements || field.displayBlocks) ? set.templates.filter(template => template.kind === document.kind && (!templateId || template.id === templateId)).reduce((count, template) => count + countTemplateUsage(template.nodes, set, field), 0) : 0;
+    const templateCount = set && (field.templateElements || field.displayBlocks) ? set.templates.filter(template => !templateId || template.id === templateId).reduce((count, template) => count + countTemplateUsage(template.nodes, set, field), 0) : 0;
     result[field.id] = { document: documentCount, template: templateCount, total: documentCount + templateCount };
   }
   return result;

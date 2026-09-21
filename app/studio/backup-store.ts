@@ -16,7 +16,7 @@ export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
 
 export type StudioBackup = {
   format: "acm-studio-backup";
-  version: 1 | 2 | 3;
+  version: 1 | 2 | 3 | 4;
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
@@ -60,7 +60,7 @@ export function base64ToBlob(dataBase64: string, type: string) {
 }
 
 export function validateStudioBackup(value: unknown): StudioBackup {
-  if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2, 3].includes(value.version as number)) {
+  if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2, 3, 4].includes(value.version as number)) {
     throw new Error("This is not a supported ACM Studio backup.");
   }
   if (typeof value.exportedAt !== "string" || !Number.isFinite(Date.parse(value.exportedAt))) {
@@ -166,7 +166,7 @@ export async function createStudioBackup(workspace: StudioWorkspace) {
   });
   const backup: StudioBackup = {
     format: "acm-studio-backup",
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),

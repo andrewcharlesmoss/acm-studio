@@ -1,6 +1,8 @@
 export type ProjectStatus = "Active" | "Exploring" | "Available" | "Prototype";
 
 export type TextAlignment = "left" | "centre" | "right";
+export type DocumentDisplayField = "title" | "subtitle" | "coverImage" | "author" | "publicationDate" | "readingTime";
+export type DocumentDisplayMode = "show" | "hide";
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 export type TextMark = "bold" | "italic" | { type: "link"; url: string; opensInNewTab?: boolean };
 export type RichTextRun = { text: string; marks?: TextMark[] };
@@ -63,9 +65,13 @@ export type LayoutOptions = {
 
 export type DocumentRenderContext = {
   kind: "page" | "post";
+  title?: string;
+  subtitle?: string;
+  coverImage?: { src: string; alt: string } | null;
   author?: string;
   publishAt?: string;
   publishedAt?: string;
+  displayOverrides?: Partial<Record<DocumentDisplayField, DocumentDisplayMode>>;
 };
 
 export type ReadingTimePresentation = "badge" | "plain";
@@ -84,6 +90,9 @@ export type ContentBlock = (
   | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary" }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
   | { id: string; type: "spacer"; height: number }
+  | { id: string; type: "document-title"; align?: TextAlignment }
+  | { id: string; type: "document-subtitle"; align?: TextAlignment }
+  | { id: string; type: "cover-image"; align?: TextAlignment }
   | { id: string; type: "reading-time"; prefix?: string; presentation?: ReadingTimePresentation; align?: TextAlignment }
   | { id: string; type: "post-author"; prefix?: string; avatar?: boolean; align?: TextAlignment }
   | { id: string; type: "post-date"; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment }
@@ -114,7 +123,7 @@ export type Article = {
   displayDate: string;
   readingTime: string;
   author?: string;
-  section: "Technology" | "Excel" | "Personal" | "";
+  section: string;
   projectSlug?: string;
   blocks: ContentBlock[];
 };

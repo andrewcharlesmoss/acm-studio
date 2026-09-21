@@ -51,7 +51,7 @@ export function restoreLegacyPublicationCover(article: LocallyPublishedArticle, 
 }
 
 type LocalPublicationStore = {
-  version: 2 | 3;
+  version: 2 | 3 | 4;
   posts: LocallyPublishedArticle[];
 };
 
@@ -110,7 +110,7 @@ export function parseLocallyPublishedArticles(serialisedPublications: string | n
   try {
     const publications = JSON.parse(serialisedPublications) as LocalPublicationStore;
     validatePublicationSnapshot(publications);
-    if (![1, 2, 3].includes(publications?.version) || !Array.isArray(publications.posts)) return [];
+    if (![1, 2, 3, 4].includes(publications?.version) || !Array.isArray(publications.posts)) return [];
     return publications.posts.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
   } catch {
     return [];
@@ -142,7 +142,7 @@ export function publishDocumentLocally(document: StudioDocument, template?: Temp
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
   const article = toLocallyPublishedArticle(document, typeof template === "function" ? template() : template);
   const posts = [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId && item.slug !== article.slug)];
-  const store: LocalPublicationStore = { version: 3, posts };
+  const store: LocalPublicationStore = { version: 4, posts };
   validatePublicationSnapshot(store);
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
   return article;
@@ -151,6 +151,6 @@ export function publishDocumentLocally(document: StudioDocument, template?: Temp
 export function unpublishDocumentLocally(documentId: string) {
   studioWriteOwnership.assertWritable();
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
-  const store: LocalPublicationStore = { version: 3, posts: existing.filter((item) => item.localDocumentId !== documentId) };
+  const store: LocalPublicationStore = { version: 4, posts: existing.filter((item) => item.localDocumentId !== documentId) };
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
 }

@@ -10,7 +10,9 @@
 - Unified the Document/Block/Styles inspector for pages, posts and templates.
   Added inspectable Template Default/Document Override states for Author,
   Category and Tags, display-usage reporting, New from Template and Save as
-  Template. Workspace v4, template format v0.2.0, publication v3 and backup v3
+  Template. Both document kinds now expose the same ordered field controls,
+  including template-aware Use Template/Show/Hide display settings and dynamic title, subtitle and cover
+  blocks. Workspace v5, template format v0.3.0, publication v4 and backup v4
   readers retain older data and preserve explicit document values.
 - Reading Time, Post Author and Post Date as ordinary blocks in the **Other**
   inserter group. Existing posts migrate once to starter metadata blocks;

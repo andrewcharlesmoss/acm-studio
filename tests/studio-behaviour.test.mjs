@@ -390,7 +390,7 @@ test("both editors share history shortcuts without replacing save or Escape hand
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const miniGolf = readFileSync(new URL("../app/studio/mini-golf-site-editor.tsx", import.meta.url), "utf8");
   const hook = readFileSync(new URL("../app/studio/use-studio-history-shortcuts.ts", import.meta.url), "utf8");
-  assert.match(studio, /useStudioHistoryShortcuts\(undoStudio, redoStudio, studioSection === "content"\)/);
+  assert.match(studio, /useStudioHistoryShortcuts\(studioSection === "templates" \? templateSession\.undo : undoStudio, studioSection === "templates" \? templateSession\.redo : redoStudio, studioSection === "content" \|\| studioSection === "templates"\)/);
   assert.match(studio, /function undoStudio\(\) \{\s*undo\(\);\s*setSelectedBlockId\(null\)/);
   assert.match(studio, /function redoStudio\(\) \{\s*redo\(\);\s*setSelectedBlockId\(null\)/);
   assert.match(miniGolf, /useStudioHistoryShortcuts\(undo, redo, view === "page"\)/);
@@ -407,6 +407,8 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(studio, /<div className="library-tabs" aria-label="Content type">[\s\S]*<button type="button" onClick=\{\(\) => switchStudioMode\("templates"\)\}>Templates<span>\{templateSession\.store\.sets\.length\}<\/span><\/button>/);
   assert.match(studio, /const \[studioSection, setStudioSection\] = useState<"content" \| "templates" \| "files" \| "backup">\("content"\)/);
   assert.match(studio, /const mode = new URLSearchParams\(window\.location\.search\)\.get\("mode"\);\s*queueMicrotask\(\(\) => \{ if \(mode === "templates"\) setStudioSection\("templates"\); \}\);/);
+  assert.match(studio, /window\.addEventListener\("popstate", syncModeFromLocation\)/);
+  assert.match(studio, /if \(currentPath !== nextPath\) window\.history\.pushState/);
   assert.doesNotMatch(studio, /<a className="library-tool-button" href="\/studio\/templates">/);
   assert.match(styles, /\.library-tabs \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(styles, /\.library-tabs button/);

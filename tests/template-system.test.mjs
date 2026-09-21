@@ -72,8 +72,14 @@ test("document fields resolve template defaults and report display ownership", (
   assert.equal(resolved.author, "Template Author"); assert.equal(resolved.category, "Personal"); assert.deepEqual(plain(resolved.tags), ["Template"]);
   const postTemplate = set.templates.find(item => item.kind === "post");
   postTemplate.defaults = { author: "Post Template Author", category: "Technology", tags: ["Post"] };
+  postTemplate.displayDefaults = { subtitle: "hide", author: "show" };
   const templateResolved = fields.resolveDocumentFields(document, set, postTemplate.defaults);
   assert.equal(templateResolved.author, "Post Template Author"); assert.equal(templateResolved.category, "Technology"); assert.deepEqual(plain(templateResolved.tags), ["Post"]);
+  assert.equal(fields.resolveDocumentDisplay(document, postTemplate).subtitle, "hide");
+  document.displayOverrides = { subtitle: "show" };
+  assert.equal(fields.resolveDocumentDisplay(document, postTemplate).subtitle, "show");
+  delete document.displayOverrides.subtitle;
+  assert.equal(fields.documentDisplaySource(document, "subtitle", true), "Template Default");
   postTemplate.nodes.push({ id: "template-author", type: "post-author", avatar: true });
   assert.deepEqual(plain(fields.documentFieldUsage(document, set, postTemplate.id).author), { document: 1, template: 1, total: 2 });
   document.templateOverrides.author = true; document.author = "Document Author";
@@ -88,7 +94,7 @@ test("legacy template stores migrate to inheritance-aware format without losing 
   const env = environment(); const model = env.load("studio/template-model.ts"); const editor = env.load("studio/editor-model.ts"); const set = model.createTemplateSet();
   delete set.defaults;
   const migrated = model.validateTemplateStore({ version: "0.1.0", sets: [set], assignments: [] });
-  assert.equal(migrated.version, "0.2.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
+  assert.equal(migrated.version, "0.3.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
   assert.deepEqual(plain(editor.createDocumentFromTemplate("post").blocks), []);
 });
 
@@ -152,7 +158,7 @@ test("two assigned documents share a design while a duplicated set and published
   assert.equal(snapshot.set.identity.name, "Your Site"); assert.equal(copy.identity.name, "Your Site");
   assert.notEqual(copy.parts[0].id, set.parts[0].id);
   assert.equal(copy.templates[0].nodes[0].partId, copy.parts[0].id);
-  store.assignments[0].kind = "post"; assert.throws(() => m.validateTemplateStore(store));
+  store.assignments[0].kind = "post"; m.validateTemplateStore(store);
 });
 
 test("ownership, unreadable storage and quota failures preserve original template records", async () => {

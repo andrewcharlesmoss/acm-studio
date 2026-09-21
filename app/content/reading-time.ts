@@ -22,6 +22,9 @@ function readingTimeText(blocks: ContentBlock[]): string {
       case "reading-time":
       case "post-author":
       case "post-date": return "";
+      case "document-title":
+      case "document-subtitle":
+      case "cover-image": return "";
       case "section":
       case "group":
       case "component": return readingTimeText(block.children ?? []);

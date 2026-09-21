@@ -56,7 +56,15 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
   useStudioHistoryShortcuts(templates.undo, templates.redo, manageHistoryShortcuts && writable && !dialog);
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
+    const syncTargetFromLocation = () => {
+      const nextQuery = new URLSearchParams(window.location.search);
+      setSetId(nextQuery.get("set"));
+      setTargetId(nextQuery.get("target"));
+      setMediaTarget(null);
+    };
     queueMicrotask(() => { setSetId(query.get("set")); setTargetId(query.get("target")); });
+    window.addEventListener("popstate", syncTargetFromLocation);
+    return () => window.removeEventListener("popstate", syncTargetFromLocation);
   }, []);
   const dialogOpen = dialog !== null;
   useEffect(() => {

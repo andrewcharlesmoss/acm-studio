@@ -1,11 +1,12 @@
-import type { ContentBlock, LayoutOptions, SiteSectionRole } from "../content/model";
+import type { ContentBlock, DocumentDisplayField, DocumentDisplayMode, LayoutOptions, SiteSectionRole } from "../content/model";
 import { validLayoutOptions } from "../content/layout";
 import type { StudioDocument, StudioDocumentKind } from "./editor-model";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { isRecord, validContentBlocks, validatePublicationSnapshot } from "./workspace-validation";
 
 export const LEGACY_TEMPLATE_VERSION = "0.1.0" as const;
-export const TEMPLATE_VERSION = "0.2.0" as const;
+export const TEMPLATE_VERSION = "0.3.0" as const;
+export const LEGACY_TEMPLATE_VERSION_2 = "0.2.0" as const;
 export const TEMPLATE_STORAGE_KEY = "acm-studio-templates-v1";
 export const templateElements = ["site-identity", "navigation", "document-title", "subtitle", "cover-image", "post-metadata", "content", "copyright", "social-links"] as const;
 export type TemplateElement = typeof templateElements[number];
@@ -14,20 +15,20 @@ export type TemplateNode = Exclude<ContentBlock, { type: "group" | "section" | "
   | ({ id: string; type: "section"; layout: "stack" | "row" | "columns"; role?: SiteSectionRole; children: TemplateNode[] } & LayoutOptions)
   | { id: string; type: "element"; element: TemplateElement; align?: "left" | "centre" | "right" }
   | { id: string; type: "part"; partId: string };
-export type PageTemplate = { id: string; name: string; kind: StudioDocumentKind; nodes: TemplateNode[]; defaults?: TemplateDefaults };
+export type PageTemplate = { id: string; name: string; kind: StudioDocumentKind; nodes: TemplateNode[]; defaults?: TemplateDefaults; displayDefaults?: Partial<Record<DocumentDisplayField, DocumentDisplayMode>>; isDefault?: boolean };
 export type TemplatePart = { id: string; name: string; kind: "header" | "footer"; nodes: TemplateNode[] };
 export type SiteStyles = { background: string; text: string; accent: string; border: string; font: "inter" | "serif"; fontSize: number; spacing: number; contentWidth: number; radius: number; borderWidth: number };
 export type SiteLink = { id: string; label: string; url: string };
-export type TemplateDefaults = { author?: string; category?: StudioDocument["category"]; tags?: string[] };
+export type TemplateDefaults = { author?: string; category?: string; tags?: string[]; parentPageId?: string };
 export type TemplateSet = {
   id: string; name: string; templates: PageTemplate[]; parts: TemplatePart[]; styles: SiteStyles;
   identity: { name: string; homeUrl: string; logo?: { mediaId?: string; src: string; alt: string }; copyright: string };
   navigation: SiteLink[]; socialLinks: SiteLink[]; defaults?: TemplateDefaults;
 };
 export type TemplateAssignment = { documentId: string; setId: string; templateId: string; kind: StudioDocumentKind };
-export type TemplateStore = { version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION; sets: TemplateSet[]; assignments: TemplateAssignment[] };
-export type TemplateSnapshot = { version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION; set: TemplateSet; templateId: string };
-export const emptyTemplateStore = (): TemplateStore => ({ version: TEMPLATE_VERSION, sets: [], assignments: [] });
+export type TemplateStore = { version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_2; sets: TemplateSet[]; assignments: TemplateAssignment[]; defaultTemplateIds?: { page?: string; post?: string } };
+export type TemplateSnapshot = { version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_2; set: TemplateSet; templateId: string };
+export const emptyTemplateStore = (): TemplateStore => ({ version: TEMPLATE_VERSION, sets: [], assignments: [], defaultTemplateIds: {} });
 export const templateId = () => `t-${crypto.randomUUID()}`;
 export const templateElementLabel = (value: string) => value.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 export const copyTemplateData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -40,7 +41,7 @@ export function createTemplateSet(name = "ACM Neutral"): TemplateSet {
   const element = (element: TemplateElement): TemplateNode => ({ id: templateId(), type: "element", element });
   const header: TemplatePart = { id: templateId(), name: "Header", kind: "header", nodes: [{ id: templateId(), type: "group", layout: "row", children: [element("site-identity"), element("navigation")] }] };
   const footer: TemplatePart = { id: templateId(), name: "Footer", kind: "footer", nodes: [{ id: templateId(), type: "group", layout: "columns", columns: 3, children: [element("site-identity"), element("copyright"), element("social-links")] }] };
-  return { id: templateId(), name, defaults: {}, parts: [header, footer], templates: (["page", "post"] as const).map(kind => ({ id: templateId(), name: kind === "page" ? "Page" : "Post", kind, nodes: [
+  return { id: templateId(), name, defaults: {}, parts: [header, footer], templates: (["page", "post"] as const).map(kind => ({ id: templateId(), name: kind === "page" ? "Page" : "Post", kind, isDefault: true, nodes: [
     { id: templateId(), type: "part", partId: header.id }, element("document-title"), element("subtitle"), ...(kind === "post" ? [element("post-metadata"), element("cover-image")] : []), element("content"), { id: templateId(), type: "part", partId: footer.id },
   ] })), identity: { name: "Your Site", homeUrl: "/", copyright: "© Your Site" }, navigation: [], socialLinks: [], styles: { background: "#FFFFFF", text: "#1C1C1E", accent: "#2457C5", border: "#D1D1D6", font: "inter", fontSize: 17, spacing: 24, contentWidth: 1040, radius: 8, borderWidth: 1 } };
 }
@@ -89,7 +90,9 @@ export function validateTemplateSet(value: unknown): TemplateSet {
   }
   for (const item of [...set.templates, ...set.parts]) {
     if (!isRecord(item) || !text(item.name, 160) || !item.name.trim()) invalid("Name every template and shared part.");
+    if ((item.kind === "page" || item.kind === "post") && item.isDefault !== undefined && typeof item.isDefault !== "boolean") invalid("Template default flags are invalid.");
     if ((item.kind === "page" || item.kind === "post") && item.defaults !== undefined && !validTemplateDefaults(item.defaults)) invalid("Template defaults are invalid.");
+    if ((item.kind === "page" || item.kind === "post") && item.displayDefaults !== undefined && !validDisplayDefaults(item.displayDefaults)) invalid("Template display defaults are invalid.");
     claimId(item.id, ids); nodes(item.nodes);
   }
   if (set.templates.some(t => !["page", "post"].includes(t.kind)) || set.parts.some(p => !["header", "footer"].includes(p.kind))) invalid("Invalid template or part kind.");
@@ -114,12 +117,21 @@ export function validateTemplateSet(value: unknown): TemplateSet {
   return { ...set, defaults: set.defaults ?? {}, templates: set.templates.map(template => ({ ...template, defaults: template.defaults ?? set.defaults ?? {} })) };
 }
 
-function optionalTemplateString(value: unknown) { return value === undefined || typeof value === "string"; }
-function validTemplateDefaults(value: unknown): value is TemplateDefaults { return isRecord(value) && optionalTemplateString(value.author) && (value.category === undefined || ["Technology", "Excel", "Personal"].includes(value.category as string)) && (value.tags === undefined || (Array.isArray(value.tags) && value.tags.every(item => typeof item === "string"))); }
+function optionalTemplateString(value: unknown) { return value === undefined || (typeof value === "string" && value.length <= 2000); }
+function validTemplateDefaults(value: unknown): value is TemplateDefaults { return isRecord(value) && optionalTemplateString(value.author) && optionalTemplateString(value.category) && optionalTemplateString(value.parentPageId) && (value.tags === undefined || (Array.isArray(value.tags) && value.tags.length <= 100 && value.tags.every(item => typeof item === "string" && item.length <= 160))); }
+function validDisplayDefaults(value: unknown): value is Partial<Record<DocumentDisplayField, DocumentDisplayMode>> {
+  return isRecord(value) && Object.entries(value).every(([key, candidate]) => ["title", "subtitle", "coverImage", "author", "publicationDate", "readingTime"].includes(key) && ["show", "hide"].includes(candidate as string));
+}
 
 export function validateTemplateStore(value: unknown, documents?: Pick<StudioDocument, "id" | "kind">[]): TemplateStore {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000) invalid("Unsupported or invalid saved template data. Original data has been retained.");
-  const store = { ...(value as unknown as TemplateStore), version: TEMPLATE_VERSION, sets: (value.sets as unknown[]).map(item => isRecord(item) ? validateTemplateSet({ ...item, defaults: item.defaults ?? {} }) : item) } as unknown as TemplateStore;
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000) invalid("Unsupported or invalid saved template data. Original data has been retained.");
+  if (value.defaultTemplateIds !== undefined && (!isRecord(value.defaultTemplateIds) || (value.defaultTemplateIds.page !== undefined && !safeId(value.defaultTemplateIds.page)) || (value.defaultTemplateIds.post !== undefined && !safeId(value.defaultTemplateIds.post)))) invalid("The default template selection is invalid.");
+  const store = { ...(value as unknown as TemplateStore), version: TEMPLATE_VERSION, sets: (value.sets as unknown[]).map(item => {
+    if (!isRecord(item)) return item;
+    const set = validateTemplateSet({ ...item, defaults: item.defaults ?? {} });
+    const templates = set.templates.map(template => ({ ...template, isDefault: template.isDefault ?? (!set.templates.some(candidate => candidate.kind === template.kind && candidate.isDefault) && template.id === set.templates.find(candidate => candidate.kind === template.kind)?.id) }));
+    return { ...set, templates };
+  }) } as unknown as TemplateStore;
   const ids = new Set<string>();
   for (const set of store.sets) { validateTemplateSet(set); claimId(set.id, ids); }
   const assigned = new Set<string>();
@@ -127,18 +139,18 @@ export function validateTemplateStore(value: unknown, documents?: Pick<StudioDoc
     if (!isRecord(assignment) || !safeId(assignment.documentId) || assigned.has(assignment.documentId)) invalid("Invalid or duplicate template assignment.");
     const set = store.sets.find(s => s.id === assignment.setId);
     const template = set?.templates.find(t => t.id === assignment.templateId);
-    if (!template || template.kind !== assignment.kind) invalid("The assigned template is missing or has the wrong kind.");
+    if (!template || !["page", "post"].includes(template.kind)) invalid("The assigned template is missing or has the wrong kind.");
     if (documents && !documents.some(d => d.id === assignment.documentId && d.kind === assignment.kind)) invalid("A template assignment refers to a missing document.");
     assigned.add(assignment.documentId);
   }
-  return store;
+  return { ...store, defaultTemplateIds: store.defaultTemplateIds ?? {} };
 }
 
 export function validateTemplateSnapshot(value: unknown): TemplateSnapshot {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
   const snapshot = { ...(value as unknown as TemplateSnapshot), version: TEMPLATE_VERSION };
   const set = validateTemplateSet(snapshot.set);
-  if (!set.templates.some(t => t.id === snapshot.templateId && t.kind === "post")) invalid("Invalid published post template.");
+  if (!set.templates.some(t => t.id === snapshot.templateId && ["page", "post"].includes(t.kind))) invalid("Invalid published template.");
   return { ...snapshot, set };
 }
 
@@ -170,7 +182,7 @@ export function resolveTemplate(store: TemplateStore, document: Pick<StudioDocum
   const assignment = store.assignments.find(a => a.documentId === document.id);
   if (!assignment) return undefined;
   const set = store.sets.find(s => s.id === assignment.setId);
-  if (!set || assignment.kind !== document.kind || !set.templates.some(t => t.id === assignment.templateId && t.kind === document.kind)) return invalid("This document's template is unavailable.");
+  if (!set || !set.templates.some(t => t.id === assignment.templateId && ["page", "post"].includes(t.kind))) return invalid("This document's template is unavailable.");
   return copyTemplateData({ version: TEMPLATE_VERSION, set, templateId: assignment.templateId });
 }
 
@@ -183,12 +195,21 @@ export function templateMediaIds(set: TemplateSet): string[] {
 
 /** Projection for shared block commands only; never stored as a content document. */
 export function templateEditorBlocks(nodes: TemplateNode[]): ContentBlock[] {
-  return nodes.map((node): ContentBlock => node.type === "element" || node.type === "part"
-    ? { id: node.id, type: "group", layout: "stack", children: [], data: node.type === "part" ? { templatePart: node.partId } : { templateElement: node.element, align: node.align ?? "left" } }
+  return nodes.map((node): ContentBlock => node.type === "element" && node.element === "document-title"
+    ? { id: node.id, type: "document-title", align: node.align }
+    : node.type === "element" && node.element === "subtitle"
+      ? { id: node.id, type: "document-subtitle", align: node.align }
+      : node.type === "element" && node.element === "cover-image"
+        ? { id: node.id, type: "cover-image", align: node.align }
+        : node.type === "element" || node.type === "part"
+          ? { id: node.id, type: "group", layout: "stack", children: [], data: node.type === "part" ? { templatePart: node.partId } : { templateElement: node.element, align: node.align ?? "left" } }
     : node.type === "group" || node.type === "section" ? { id: node.id, type: node.type, layout: node.layout, ...(node.type === "section" && node.role ? { role: node.role } : {}), ...pickLayoutOptions(node), children: templateEditorBlocks(node.children) } : node);
 }
 export function templateNodesFromBlocks(blocks: ContentBlock[]): TemplateNode[] {
   return blocks.map((block): TemplateNode => {
+    if (block.type === "document-title") return { id: block.id, type: "element", element: "document-title", align: block.align ?? "left" };
+    if (block.type === "document-subtitle") return { id: block.id, type: "element", element: "subtitle", align: block.align ?? "left" };
+    if (block.type === "cover-image") return { id: block.id, type: "element", element: "cover-image", align: block.align ?? "left" };
     if (block.type === "group" && typeof block.data?.templatePart === "string") return { id: block.id, type: "part", partId: block.data.templatePart };
     if (block.type === "group" && typeof block.data?.templateElement === "string") return { id: block.id, type: "element", element: block.data.templateElement as TemplateElement, align: block.data.align as "left" | "centre" | "right" };
     if (block.type === "group" || block.type === "section") return { id: block.id, type: block.type, layout: block.layout, ...(block.type === "section" && block.role ? { role: block.role } : {}), ...pickLayoutOptions(block), children: templateNodesFromBlocks(block.children) };

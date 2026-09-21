@@ -1,8 +1,10 @@
 import type { CSSProperties, ReactNode } from "react";
 import { BlockRenderer } from "../components/content";
+import { documentFieldVisible } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
+import type { ContentBlock } from "../content/model";
 import type { StudioDocument } from "./editor-model";
 import type { SiteStyles, TemplateNode, TemplatePart, TemplateSet, TemplateSnapshot } from "./template-model";
 import { StudioIcon } from "./studio-icons";
@@ -10,6 +12,23 @@ import { StudioIcon } from "./studio-icons";
 function hasDocumentMetadataBlocks(blocks: StudioDocument["blocks"]): boolean {
   return blocks.some(block => ["reading-time", "post-author", "post-date"].includes(block.type)
     || ((block.type === "section" || block.type === "group" || block.type === "component") && hasDocumentMetadataBlocks(block.children ?? [])));
+}
+
+function templateHasElement(nodes: TemplateNode[], set: TemplateSet, wanted: string, seen = new Set<string>()): boolean {
+  return nodes.some(node => node.type === "element" && node.element === wanted
+    || (node.type === "group" || node.type === "section") && templateHasElement(node.children, set, wanted, seen)
+    || node.type === "part" && !seen.has(node.partId) && Boolean(set.parts.find(part => part.id === node.partId && templateHasElement(part.nodes, set, wanted, new Set([...seen, part.id])))));
+}
+
+function removeTemplateShellBlocks(blocks: ContentBlock[], set: TemplateSet, nodes: TemplateNode[]): ContentBlock[] {
+  const hidden = new Set<ContentBlock["type"]>();
+  if (templateHasElement(nodes, set, "document-title")) hidden.add("document-title");
+  if (templateHasElement(nodes, set, "subtitle")) hidden.add("document-subtitle");
+  if (templateHasElement(nodes, set, "cover-image")) hidden.add("cover-image");
+  if (!hidden.size) return blocks;
+  return blocks.filter(block => !hidden.has(block.type)).map(block => block.type === "group" || block.type === "section" || block.type === "component"
+    ? { ...block, children: removeTemplateShellBlocks(block.children ?? [], set, nodes) }
+    : block);
 }
 
 export function templateStyleProperties(styles: SiteStyles): CSSProperties {
@@ -57,6 +76,7 @@ export type TemplateRenderContext = {
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
   const { set, document, mediaUrls = {}, content, editingDocument, onDocumentChange, onChangeCover, onRemoveCover, onEditPart, renderOrdinary, decorate } = context;
+  const documentBodyBlocks = removeTemplateShellBlocks(document.blocks, set, nodes);
   let rendered = 0;
   function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false): ReactNode {
     if (++rendered > 10000 || depth > 16) return <p role="alert">Template expansion limit reached.</p>;
@@ -74,9 +94,9 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       const align = node.align === "centre" ? "center" : node.align;
       let element: ReactNode;
       switch (node.element) {
-        case "content": element = content ?? <BlockRenderer blocks={document.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} />; break;
-        case "document-title": element = editingDocument ? <input className="template-title-input" aria-label="Document title" value={document.title} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <h1>{document.title}</h1>; break;
-        case "subtitle": element = editingDocument ? <input className="template-subtitle-input" aria-label="Document subtitle" placeholder="Add a subtitle" value={document.subtitle ?? ""} onChange={event => onDocumentChange?.("subtitle", event.target.value)} /> : document.subtitle ? <p className="template-subtitle">{document.subtitle}</p> : null; break;
+        case "content": element = content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} />; break;
+        case "document-title": element = documentFieldVisible(document, "title") ? (editingDocument ? <input className="template-title-input" aria-label="Document title" value={document.title} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <h1>{document.title}</h1>) : null; break;
+        case "subtitle": element = documentFieldVisible(document, "subtitle") && (editingDocument ? <input className="template-subtitle-input" aria-label="Document subtitle" placeholder="Add a subtitle" value={document.subtitle ?? ""} onChange={event => onDocumentChange?.("subtitle", event.target.value)} /> : document.subtitle ? <p className="template-subtitle">{document.subtitle}</p> : null); break;
         case "post-metadata": {
           const metadataBlocks = document.metadataBlocksVersion === 2 || hasDocumentMetadataBlocks(document.blocks);
           element = document.kind === "post" ? <p className="template-metadata">{document.category}{metadataBlocks ? "" : ` · ${readingTimeLabel(document.blocks)}${document.publishedAt ? ` · ${new Date(document.publishedAt).toLocaleDateString("en-GB")}` : ""}`}</p> : null;
@@ -85,7 +105,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         case "cover-image": {
           const cover = document.coverImage;
           const src = cover?.mediaId ? safeImageSource(mediaUrls[cover.mediaId] ?? "", { allowBlob: true }) : safeImageSource(cover?.src ?? "");
-          element = <>{src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : cover !== null && document.kind === "post" ? <div className="template-cover-placeholder" role="img" aria-label="Mock cover image" /> : null}{editingDocument ? <><button type="button" onClick={onChangeCover}>Change Cover Image</button>{cover !== null ? <button type="button" onClick={onRemoveCover}>Remove Cover Image</button> : null}</> : null}</>;
+          element = documentFieldVisible(document, "coverImage") ? <>{src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : cover !== null && document.kind === "post" ? <div className="template-cover-placeholder" role="img" aria-label="Mock cover image" /> : null}{editingDocument ? <><button type="button" onClick={onChangeCover}>Change Cover Image</button>{cover !== null ? <button type="button" onClick={onRemoveCover}>Remove Cover Image</button> : null}</> : null}</> : null;
           break;
         }
         case "site-identity": {

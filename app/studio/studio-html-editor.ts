@@ -124,6 +124,12 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<hr${attributes} />`;
     case "spacer":
       return `<div${attributes}${classAttribute("studio-spacer")} data-spacer-height="${block.height}" aria-hidden="true"></div>`;
+    case "document-title":
+      return `<h1${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)}></h1>`;
+    case "document-subtitle":
+      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)}></p>`;
+    case "cover-image":
+      return `<figure${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)}></figure>`;
     case "reading-time":
       return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "Reading Time:")}" data-metadata-presentation="${escapeAttribute(block.presentation ?? "badge")}"></p>`;
     case "post-author":
@@ -265,6 +271,9 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
   if (declaredType === "reading-time") return { block: { id, type: "reading-time", prefix: element.dataset.metadataPrefix ?? (original.type === "reading-time" ? original.prefix : "Reading Time:"), presentation: element.dataset.metadataPresentation === "plain" ? "plain" : "badge", align: alignmentFromClass(element) ?? (original.type === "reading-time" ? original.align : undefined) } };
   if (declaredType === "post-author") return { block: { id, type: "post-author", prefix: element.dataset.metadataPrefix ?? (original.type === "post-author" ? original.prefix : "By"), avatar: element.dataset.metadataAvatar !== "false", align: alignmentFromClass(element) ?? (original.type === "post-author" ? original.align : undefined) } };
   if (declaredType === "post-date") return { block: { id, type: "post-date", format: ["long", "short", "iso"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined) } };
+  if (declaredType === "document-title") return { block: { id, type: "document-title", align: alignmentFromClass(element) ?? (original.type === "document-title" ? original.align : undefined) } };
+  if (declaredType === "document-subtitle") return { block: { id, type: "document-subtitle", align: alignmentFromClass(element) ?? (original.type === "document-subtitle" ? original.align : undefined) } };
+  if (declaredType === "cover-image") return { block: { id, type: "cover-image", align: alignmentFromClass(element) ?? (original.type === "cover-image" ? original.align : undefined) } };
   switch (element.tagName.toLowerCase()) {
     case "p": {
       const link = element.querySelector("a");

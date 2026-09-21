@@ -20,6 +20,10 @@ export function documentAuthor(document: DocumentRenderContext) {
   return author || null;
 }
 
+export function documentFieldVisible(document: DocumentRenderContext | undefined, field: "title" | "subtitle" | "coverImage" | "author" | "publicationDate" | "readingTime") {
+  return document?.displayOverrides?.[field] !== "hide";
+}
+
 export function authorInitials(author: string) {
   const initials = author.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
   return initials || "?";

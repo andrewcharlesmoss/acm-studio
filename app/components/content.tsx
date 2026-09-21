@@ -4,7 +4,7 @@ import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text"
 import { normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
-import { authorInitials, documentAuthor, formatDocumentDate } from "../content/document-metadata";
+import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { ArticleMetaIcon } from "./article-meta-icon";
 import { StudioIcon } from "../studio/studio-icons";
@@ -105,16 +105,32 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           </p>
         );
         if (block.type === "field") return <label className="content-field" key={block.id}><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled><option>{block.value}</option></select> : <input value={block.value} readOnly />}</label>;
+        if (block.type === "document-title") {
+          if (!document || !documentFieldVisible(document, "title")) return null;
+          return <div className={`document-dynamic-field align-${block.align ?? "left"}`} key={block.id}>{document.title ? <h1>{document.title}</h1> : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
+        }
+        if (block.type === "document-subtitle") {
+          if (!document || !documentFieldVisible(document, "subtitle")) return null;
+          return <div className={`document-dynamic-field align-${block.align ?? "left"}`} key={block.id}>{document.subtitle ? <p>{document.subtitle}</p> : <span className="metadata-missing">Add a subtitle in Document settings.</span>}</div>;
+        }
+        if (block.type === "cover-image") {
+          if (!document || !documentFieldVisible(document, "coverImage") || !document.coverImage) return null;
+          const source = safeImageSource(document.coverImage.src);
+          return <figure className={`document-dynamic-cover align-${block.align ?? "left"}`} key={block.id}>{source ? <img src={source} alt={document.coverImage.alt} /> : <div className="image-placeholder" role="img" aria-label={document.coverImage.alt || "Cover image placeholder"}>Cover image</div>}</figure>;
+        }
         if (block.type === "reading-time") {
+          if (!documentFieldVisible(document, "readingTime")) return null;
           const label = `${block.prefix ?? "Reading Time:"} ${readingTimeLabel(readingTimeBlocks ?? blocks)}`;
           return <p className={`article-reading-time metadata-block${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`} key={block.id}>{block.presentation !== "plain" ? <span className="reading-time-badge">{label}</span> : label}</p>;
         }
         if (block.type === "post-author") {
+          if (!documentFieldVisible(document, "author")) return null;
           const author = document ? documentAuthor(document) : null;
           if (!author) return null;
           return <div className={`article-byline metadata-block align-${block.align ?? "left"}`} key={block.id}>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></div>;
         }
         if (block.type === "post-date") {
+          if (!documentFieldVisible(document, "publicationDate")) return null;
           const date = document ? formatDocumentDate(document, block.format) : null;
           if (!date) return null;
           return <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={document ? document.publishAt ?? document.publishedAt : undefined}>{date}</time></div>;

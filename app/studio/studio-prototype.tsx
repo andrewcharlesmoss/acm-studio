@@ -36,19 +36,27 @@ function exportJson(value: unknown, filename: string) {
 }
 export function StudioPrototype() {
   const studioSession = useStudioWorkspace();
-  const { workspace, ownershipGeneration, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot } = useDocumentTemplates(studioSession);
+  const [previewing, setPreviewing] = useState(false);
+  const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup">("content");
+  const openTemplateTarget = (setId: string, targetId: string) => {
+    setStudioSection("templates"); setPreviewing(false);
+    window.history.pushState({}, "", `/studio?mode=templates&set=${encodeURIComponent(setId)}&target=${encodeURIComponent(targetId)}`);
+  };
+  const { workspace, ownershipGeneration, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot } = useDocumentTemplates(studioSession, openTemplateTarget);
   const [libraryKind, setLibraryKind] = useState<StudioDocumentKind>("page");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"document" | "block" | "styles">("document");
   const [showInserter, setShowInserter] = useState(false);
   const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
   const [inserterQuery, setInserterQuery] = useState("");
-  const [previewing, setPreviewing] = useState(false);
   const [codeEditorDirty, setCodeEditorDirty] = useState(false);
-  const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup">("content");
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [designMediaPrompt, setDesignMediaPrompt] = useState<{ asset: MediaAsset; target: "block" | "cover" } | null>(null);
   const [designMediaAltText, setDesignMediaAltText] = useState(""); const designMediaDialogRef = useRef<HTMLDialogElement>(null);
+  const [saveTemplateDialog, setSaveTemplateDialog] = useState<{ name: string; destination: string; includeAuthor: boolean; includeCategory: boolean; includeTags: boolean; includeParentPage: boolean }>();
+  const saveTemplateDialogRef = useRef<HTMLDialogElement>(null);
+  const [newTemplateChoice, setNewTemplateChoice] = useState<string>();
+  const newTemplateDialogRef = useRef<HTMLDialogElement>(null);
   function confirmCodeEditorDiscard() {
     if (!codeEditorDirty) return true;
     if (!window.confirm("Discard unsaved code changes?")) return false;
@@ -99,6 +107,15 @@ export function StudioPrototype() {
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); dialog.close(); setDesignMediaPrompt(null); } };
     dialog.addEventListener("keydown", onKeyDown); return () => dialog.removeEventListener("keydown", onKeyDown);
   }, [designMediaPrompt]);
+  useEffect(() => {
+    if (!saveTemplateDialog || !saveTemplateDialogRef.current) return;
+    if (!saveTemplateDialogRef.current.open) saveTemplateDialogRef.current.showModal();
+    saveTemplateDialogRef.current.querySelector<HTMLInputElement>("input")?.focus();
+  }, [saveTemplateDialog]);
+  useEffect(() => {
+    if (!newTemplateChoice || !newTemplateDialogRef.current) return;
+    if (!newTemplateDialogRef.current.open) newTemplateDialogRef.current.showModal();
+  }, [newTemplateChoice]);
   async function insertDesignMedia() {
     if (!designMediaPrompt) return;
     const inserted = await media.insertImageById(designMediaPrompt.asset.id, { target: designMediaPrompt.target }, designMediaAltText.trim());
@@ -125,7 +142,9 @@ export function StudioPrototype() {
   function switchStudioMode(mode: "content" | "templates") {
     if (!confirmCodeEditorDiscard()) return;
     setStudioSection(mode); setPreviewing(false); if (mode === "templates") setShowInserter(false);
-    window.history.replaceState({}, "", mode === "templates" ? "/studio?mode=templates" : "/studio");
+    const nextPath = mode === "templates" ? "/studio?mode=templates" : "/studio";
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    if (currentPath !== nextPath) window.history.pushState({}, "", nextPath);
   }
   function selectDocument(document: StudioDocument) {
     if (!confirmCodeEditorDiscard()) return;
@@ -140,7 +159,13 @@ export function StudioPrototype() {
 
   function addDocument(kind: StudioDocumentKind) {
     if (!confirmCodeEditorDiscard()) return;
-    documentCommands.addDocument(kind);
+    const defaultChoice = templateSession.store.sets.flatMap(set => set.templates.map(template => ({ set, template }))).find(choice => choice.template.kind === kind && choice.template.isDefault);
+    if (defaultChoice) {
+      const document = createDocumentFromTemplate(kind);
+      const assigned = templateSession.commit(store => ({ ...store, assignments: [...store.assignments, { documentId: document.id, kind, setId: defaultChoice.set.id, templateId: defaultChoice.template.id }] }));
+      if (!assigned) return;
+      commit(current => addDocumentToWorkspace(current, document));
+    } else documentCommands.addDocument(kind);
     setCodeEditorDirty(false);
     setLibraryKind(kind);
     setSelectedBlockId(null);
@@ -152,31 +177,31 @@ export function StudioPrototype() {
     if (!confirmCodeEditorDiscard()) return;
     const choices = templateSession.store.sets.flatMap(set => set.templates.map(template => ({ set, template })));
     if (!choices.length) { addDocument("page"); return; }
-    const choicePrompt = choices.length === 1 ? "1" : window.prompt(`Choose a template:\n${choices.map((choice, index) => `${index + 1}. ${choice.set.name} — ${choice.template.name}`).join("\n")}`, "1");
-    if (choicePrompt === null) return;
-    const requestedChoice = Number(choicePrompt);
-    const choiceIndex = Number.isFinite(requestedChoice) ? Math.max(0, Math.min(choices.length - 1, requestedChoice - 1)) : 0;
-    const choice = choices[choiceIndex];
+    setNewTemplateChoice(`${choices[0].set.id}/${choices[0].template.id}`);
+  }
+
+  function commitNewDocumentFromTemplate() {
+    if (!newTemplateChoice || !writable) return;
+    const [setId, templateId] = newTemplateChoice.split("/");
+    const choice = templateSession.store.sets.flatMap(set => set.templates.map(template => ({ set, template }))).find(item => item.set.id === setId && item.template.id === templateId);
+    if (!choice) return;
     const document = createDocumentFromTemplate(choice.template.kind);
     const assigned = templateSession.commit(store => ({ ...store, assignments: [...store.assignments.filter(item => item.documentId !== document.id), { documentId: document.id, kind: document.kind, setId: choice.set.id, templateId: choice.template.id }] }));
     if (!assigned || !writable) return;
     commit(current => addDocumentToWorkspace(current, document));
-    setCodeEditorDirty(false); setLibraryKind(document.kind); setSelectedBlockId(null); setInspectorTab("document"); switchStudioMode("content");
+    newTemplateDialogRef.current?.close(); setNewTemplateChoice(undefined); setCodeEditorDirty(false); setLibraryKind(document.kind); setSelectedBlockId(null); setInspectorTab("document"); switchStudioMode("content");
   }
 
   function saveAsTemplate() {
     if (!activeDocument) return;
-    const name = window.prompt("Name this template", `${activeDocument.kind === "post" ? "Post" : "Page"} template`);
-    if (!name?.trim()) return;
     const defaultDestination = templateSnapshot?.set.name ?? templateSession.store.sets[0]?.name ?? "New template set";
-    const destinationName = window.prompt("Destination template set", defaultDestination);
-    if (!destinationName?.trim()) return;
-    window.alert("The document body stays with this document. Only its shell, layout and selected defaults are saved.");
-    const includeAuthor = Boolean(resolvedDocument?.author?.trim()) && window.confirm("Use this document's author as the new template default?");
-    const includeCategory = activeDocument.kind === "post" && Boolean(resolvedDocument?.category) && window.confirm("Use this document's category as the new template default?");
-    const includeTags = activeDocument.kind === "post" && Boolean(resolvedDocument?.tags.length) && window.confirm("Use this document's tags as the new template default?");
+    setSaveTemplateDialog({ name: `${activeDocument.kind === "post" ? "Post" : "Page"} template`, destination: defaultDestination, includeAuthor: false, includeCategory: false, includeTags: false, includeParentPage: false });
+  }
+
+  function commitSaveAsTemplate({ name, destination: destinationName, includeAuthor, includeCategory, includeTags, includeParentPage }: NonNullable<typeof saveTemplateDialog>) {
+    if (!activeDocument || !name.trim() || !destinationName.trim()) return;
     const sourceSet = templateSnapshot?.set;
-    const assigned = templateSnapshot?.set.templates.find(template => template.id === templateSnapshot.templateId && template.kind === activeDocument.kind);
+    const assigned = templateSnapshot?.set.templates.find(template => template.id === templateSnapshot.templateId);
     const createFreshNodeCloner = (partIds: Map<string, string>) => (node: TemplateNode): TemplateNode => {
       const copy = copyTemplateData(node); copy.id = templateId();
       if (copy.type === "group" || copy.type === "section") copy.children = copy.children.map(createFreshNodeCloner(partIds));
@@ -215,10 +240,12 @@ export function StudioPrototype() {
       const source = sourceSet ?? createTemplateSet();
       const sourceTemplate = assigned ?? { ...source.templates.find(item => item.kind === activeDocument.kind)!, nodes: source.templates.find(item => item.kind === activeDocument.kind)!.nodes.filter(node => node.type !== "element" || node.element !== "post-metadata") };
       const { template, parts } = cloneInto(source, sourceTemplate, destination, name.trim());
-      const defaults = { ...(includeAuthor ? { author: resolvedDocument?.author } : {}), ...(includeCategory ? { category: resolvedDocument?.category } : {}), ...(includeTags ? { tags: [...(resolvedDocument?.tags ?? [])] } : {}) };
+      const defaults = { ...(includeAuthor ? { author: resolvedDocument?.author } : {}), ...(includeCategory ? { category: resolvedDocument?.category } : {}), ...(includeTags ? { tags: [...(resolvedDocument?.tags ?? [])] } : {}), ...(includeParentPage ? { parentPageId: resolvedDocument?.parentPageId } : {}) };
       const nextSet = { ...destination, templates: [...destination.templates, { ...template, defaults }], parts: [...destination.parts, ...parts] };
       return { ...store, sets: store.sets.some(item => item.id === nextSet.id) ? store.sets.map(item => item.id === nextSet.id ? nextSet : item) : [...store.sets, nextSet] };
     });
+    saveTemplateDialogRef.current?.close();
+    setSaveTemplateDialog(undefined);
   }
 
   function duplicateDocument() {
@@ -287,8 +314,15 @@ export function StudioPrototype() {
   }
 
   useEffect(() => {
+    const syncModeFromLocation = () => {
+      const mode = new URLSearchParams(window.location.search).get("mode");
+      setStudioSection(mode === "templates" ? "templates" : "content");
+      setPreviewing(false);
+    };
     const mode = new URLSearchParams(window.location.search).get("mode");
     queueMicrotask(() => { if (mode === "templates") setStudioSection("templates"); });
+    window.addEventListener("popstate", syncModeFromLocation);
+    return () => window.removeEventListener("popstate", syncModeFromLocation);
   }, []);
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
@@ -402,7 +436,7 @@ export function StudioPrototype() {
             pages: workspace.documents.filter((item) => item.kind === "page"),
             canDelete: workspace.documents.length > 1,
             onSelectTab: setInspectorTab,
-            onDocumentChange: (field, value) => { if (field === "author" || field === "category" || field === "tags") setFieldOverride(field, false); updateActiveField(field, value); },
+            onDocumentChange: (field, value) => { if (field === "author" || field === "category" || field === "tags" || field === "parentPageId") setFieldOverride(field, false); updateActiveField(field, value); },
             onBlockChange: (next) => selectedBlock && blockCommands.updateBlock(selectedBlock.id, () => next),
             onOpenFiles: () => openMediaLibrary(selectedBlock?.id ?? null),
             onPublish: publishing.publish,
@@ -410,6 +444,7 @@ export function StudioPrototype() {
             onDuplicate: duplicateDocument,
             onDelete: deleteDocument,
             resolvedDocument,
+            hasTemplate,
             fieldUsage,
             onFieldOverride: setFieldOverride,
             onSaveAsTemplate: saveAsTemplate,
@@ -423,6 +458,8 @@ export function StudioPrototype() {
         /> : <BackupManager workspace={workspace} />}
         </>}
       </main>
+      {newTemplateChoice ? <dialog ref={newTemplateDialogRef} className="template-dialog" aria-labelledby="new-template-title" onCancel={event => { event.preventDefault(); newTemplateDialogRef.current?.close(); setNewTemplateChoice(undefined); }} onClose={() => setNewTemplateChoice(undefined)}><form onSubmit={event => { event.preventDefault(); commitNewDocumentFromTemplate(); }}><h2 id="new-template-title">New from template</h2><p>Choose a presentation first. The new document starts empty and inherits only the reusable settings supplied by this template.</p><label><span>Template</span><select value={newTemplateChoice} onChange={event => setNewTemplateChoice(event.target.value)}>{templateSession.store.sets.flatMap(set => set.templates.map(template => <option key={`${set.id}/${template.id}`} value={`${set.id}/${template.id}`}>{set.name} — {template.name} ({template.kind === "post" ? "Post" : "Page"})</option>))}</select></label><p className="setting-note">The document remains a {templateSession.store.sets.flatMap(set => set.templates.map(template => ({ set, template }))).find(item => `${item.set.id}/${item.template.id}` === newTemplateChoice)?.template.kind === "post" ? "post" : "page"} after creation. You can override inherited values in the Document pane.</p><div className="template-dialog-actions"><button type="button" onClick={() => { newTemplateDialogRef.current?.close(); setNewTemplateChoice(undefined); }}>Cancel</button><button className="button-primary" type="submit" disabled={!writable}>Create document</button></div></form></dialog> : null}
+      {saveTemplateDialog ? <dialog ref={saveTemplateDialogRef} className="template-dialog" aria-labelledby="save-template-title" onCancel={event => { event.preventDefault(); saveTemplateDialogRef.current?.close(); setSaveTemplateDialog(undefined); }} onClose={() => setSaveTemplateDialog(undefined)}><form onSubmit={event => { event.preventDefault(); void commitSaveAsTemplate(saveTemplateDialog); }}><h2 id="save-template-title">Save as template</h2><p>The document body and personal content stay with this document. Choose reusable defaults below; the template keeps the layout and dynamic field structure.</p><label><span>Template name</span><input required value={saveTemplateDialog.name} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, name: event.target.value })} /></label><label><span>Template set</span><input required value={saveTemplateDialog.destination} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, destination: event.target.value })} /></label><fieldset><legend>Reusable defaults</legend><label className="checkbox-setting"><input type="checkbox" checked={saveTemplateDialog.includeAuthor} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, includeAuthor: event.target.checked })} /><span>Author</span></label><label className="checkbox-setting"><input type="checkbox" checked={saveTemplateDialog.includeCategory} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, includeCategory: event.target.checked })} /><span>Category</span></label><label className="checkbox-setting"><input type="checkbox" checked={saveTemplateDialog.includeTags} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, includeTags: event.target.checked })} /><span>Tags</span></label><label className="checkbox-setting"><input type="checkbox" checked={saveTemplateDialog.includeParentPage} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, includeParentPage: event.target.checked })} /><span>Parent page</span></label></fieldset><p className="setting-note">The review is deliberately conservative: dynamic structure and layout are captured, while ordinary document text, media and publication state stay with the source document.</p><div className="template-dialog-actions"><button type="button" onClick={() => { saveTemplateDialogRef.current?.close(); setSaveTemplateDialog(undefined); }}>Cancel</button><button className="button-primary" type="submit" disabled={!writable}>Save template</button></div></form></dialog> : null}
       {designMediaPrompt ? <dialog ref={designMediaDialogRef} className="media-alt-dialog" aria-labelledby="studio-design-media-title" onClose={() => setDesignMediaPrompt(null)}><form method="dialog" onSubmit={(event) => { event.preventDefault(); void insertDesignMedia(); }}>
           <h2 id="studio-design-media-title">Describe this image</h2><p>Provide alternative text for people who cannot see the image.</p>
           <label><span>Alternative text</span><textarea rows={4} value={designMediaAltText} onChange={(event) => setDesignMediaAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>

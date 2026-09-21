@@ -21,6 +21,9 @@ function blockLabel(type: ContentBlock["type"]) {
   if (type === "reading-time") return "Reading Time";
   if (type === "post-author") return "Post Author";
   if (type === "post-date") return "Post Date";
+  if (type === "document-title") return "Document Title";
+  if (type === "document-subtitle") return "Document Subtitle";
+  if (type === "cover-image") return "Cover Image";
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
@@ -421,6 +424,9 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const safeCoverImageUrl = activeDocument.coverImage?.mediaId
     ? safeImageSource(coverImageUrl ?? "", { allowBlob: true })
     : safeImageSource(coverImageUrl ?? "");
+  const hasDynamicTitle = activeDocument.blocks.some((block) => block.type === "document-title");
+  const hasDynamicSubtitle = activeDocument.blocks.some((block) => block.type === "document-subtitle");
+  const hasDynamicCover = activeDocument.blocks.some((block) => block.type === "cover-image");
 
   return (
     <section className={`block-editor${className ? ` ${className}` : ""}`} aria-label={`${activeDocument.kind} editor`} data-readonly={!writable || undefined} onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
@@ -462,8 +468,8 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
         {codeEditor ? <StudioCodeEditor document={activeDocument} writable={writable} state={codeEditor} inputRef={codeEditorInputRef} onChange={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onFormat={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onDocumentFieldChange={onDocumentFieldChange} onApply={applyCodeEditor} onExit={() => closeCodeEditor(true)} /> : previewing ? (
           <article className={`document-preview is-${activeDocument.kind}`} style={viewportStyle}>
             {compose(<>
-            {presentation?.renderHeader?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} />}
-            {allowCoverImage && showCoverImage ? <div className={`preview-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
+            {presentation?.renderHeader?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
+            {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className={`preview-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
               {safeCoverImageUrl ? (
                 // Local browser-managed media cannot be known to Next's image optimiser.
                 // eslint-disable-next-line @next/next/no-img-element
@@ -477,8 +483,8 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
         ) : (
           <div className="block-canvas" style={viewportStyle}>
             {compose(<>
-            {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing={false} onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} />}
-            {allowCoverImage && showCoverImage ? <div className="canvas-cover-wrap">
+            {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing={false} onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
+            {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="canvas-cover-wrap">
               <div className={`canvas-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
                 {safeCoverImageUrl ? (
                   // Local browser-managed media cannot be known to Next's image optimiser.
@@ -497,7 +503,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
             </div> : allowCoverImage ? <button className="canvas-add-cover" type="button" onClick={onOpenCoverMediaLibrary}><StudioIcon name="add" size={18} />Add cover image</button> : null}
 
             <div className="canvas-blocks">
-              {allowCoverImage && showCoverImage ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" onClick={() => openInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
+              {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" onClick={() => openInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
               {activeDocument.blocks.map((block, index) => (
                 <div className="block-position" key={block.id}
                   onDragOver={(event) => handleBlockDragOver(event, index)}
@@ -735,28 +741,30 @@ function StudioListView({ blocks, selectedBlockId, onSelectBlock, onHoverBlock, 
   </aside>;
 }
 
-function DocumentHeading({ document, previewing, onChange, onFocus }: {
+function DocumentHeading({ document, previewing, onChange, onFocus, showTitle = true, showSubtitle = true }: {
   document: StudioDocument;
   previewing: boolean;
   onChange: StudioCanvasProps["onDocumentFieldChange"];
   onFocus: () => void;
+  showTitle?: boolean;
+  showSubtitle?: boolean;
 }) {
   const titleRef = useFittedTextHeight<HTMLHeadingElement>(document.title, previewing);
   const subtitleRef = useFittedTextHeight<HTMLParagraphElement>(document.subtitle, previewing);
   return (
     <header className="document-heading">
-      <div className="document-title-field">
+      {showTitle ? <div className="document-title-field">
         {previewing ? <h1 className="preview-title" ref={titleRef}>{document.title || `Untitled ${document.kind}`}</h1> : <>
           <label className="canvas-title-label" htmlFor="document-title">{document.kind} title</label>
           <AutoResizeTextarea id="document-title" className="canvas-title" value={document.title} onFocus={onFocus} onChange={(event) => onChange("title", event.target.value)} placeholder={`Add ${document.kind} title`} />
         </>}
-      </div>
-      {previewing && !document.subtitle?.trim() ? null : <div className="document-subtitle-field">
+      </div> : null}
+      {showSubtitle && (previewing && !document.subtitle?.trim() ? null : <div className="document-subtitle-field">
         {previewing ? <p className="preview-subtitle" ref={subtitleRef}>{document.subtitle}</p> : <>
           <label className="canvas-subtitle-label" htmlFor="document-subtitle">Subtitle</label>
           <AutoResizeTextarea id="document-subtitle" className="canvas-subtitle" value={document.subtitle ?? ""} onFocus={onFocus} onChange={(event) => onChange("subtitle", event.target.value)} placeholder="Add a subtitle" />
         </>}
-      </div>}
+      </div>)}
     </header>
   );
 }
@@ -859,6 +867,9 @@ export function BlockField({ block, rootBlocks = [block], document, selectedBloc
   if (block.type === "embed") return <div className="embed-field"><span><StudioIcon name="external" /></span><div><strong>{block.title}</strong><small>{block.url || "Add a URL in Block settings"}</small></div></div>;
   if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`}>{block.label}</span></div>;
   if (block.type === "field") return <label className="content-field"><span>{block.label}</span>{block.control === "select" ? <select value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })}>{(block.options?.length ? block.options : [block.value]).map((option) => <option key={option}>{option}</option>)}</select> : <input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} />}</label>;
+  if (block.type === "document-title") return <div className={`metadata-block-editor document-dynamic-field align-${block.align ?? "left"}`}><strong>{document?.title || "Add a title in Document settings."}</strong></div>;
+  if (block.type === "document-subtitle") return <div className={`metadata-block-editor document-dynamic-field align-${block.align ?? "left"}`}>{document?.subtitle || "Add a subtitle in Document settings."}</div>;
+  if (block.type === "cover-image") return <div className={`metadata-block-editor document-dynamic-cover align-${block.align ?? "left"}`}>{document?.coverImage ? <span>Cover image</span> : "Add a cover image in Document settings."}</div>;
   if (block.type === "spacer") return <button type="button" className="spacer-field" style={{ height: `${block.height}px` }} data-studio-block-id={block.id} aria-label="Spacer block" />;
   if (block.type === "reading-time") return <div className={`metadata-block-editor reading-time-block-editor${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`}>{block.presentation !== "plain" ? <span className="reading-time-badge">{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span> : <span>{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span>}</div>;
   if (block.type === "post-author") { const author = documentAuthor(documentContext); return <div className={`metadata-block-editor article-byline align-${block.align ?? "left"}`}>{author ? <>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></> : <span className="metadata-missing">Add an author in Document settings.</span>}</div>; }
