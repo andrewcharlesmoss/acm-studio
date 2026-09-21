@@ -1317,6 +1317,7 @@ test("library dismissal waits for its own exit animation except with reduced mot
   assert.match(canvas, /inert=\{closing\}/);
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(css, /\.block-inserter\[data-closing="true"\] \{ animation: studio-inserter-exit 180ms ease-in forwards/);
+  assert.match(canvas, /onClick=\{\(\) => \{ dismiss\(\); onCloseAnimationEnd\(\); \}\}/);
 });
 
 

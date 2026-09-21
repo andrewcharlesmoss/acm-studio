@@ -836,7 +836,7 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
     <div className="inserter-backdrop">
       <button className="inserter-dismiss" type="button" onClick={dismiss} aria-label="Close block library" />
       <section className="block-inserter" data-closing={closing || undefined} aria-labelledby="inserter-title" inert={closing} onAnimationEnd={(event) => { if (closing && event.target === event.currentTarget && event.animationName === "studio-inserter-exit") onCloseAnimationEnd(); }}>
-        <header><div><p className="eyebrow">Block library</p><h2 id="inserter-title">Choose a block</h2></div><button type="button" onClick={dismiss} aria-label="Close block library"><StudioIcon name="close" /></button></header>
+        <header><div><p className="eyebrow">Block library</p><h2 id="inserter-title">Choose a block</h2></div><button type="button" onClick={() => { dismiss(); onCloseAnimationEnd(); }} aria-label="Close block library"><StudioIcon name="close" /></button></header>
         <input ref={searchInputRef} type="search" value={inserterQuery} onChange={(event) => onSetQuery(event.target.value)} placeholder="Search blocks" aria-label="Search blocks" />
         <div className="inserter-results">
           {(["Text", "Media", "Design", "Other"] as const).map((group) => {
