@@ -209,6 +209,17 @@ test("template dynamic fields use neutral placeholders", async () => {
   assert.match(styles, /\.template-dynamic-placeholder \{ color: #7b8088; \}/);
 });
 
+test("Studio environment badges use the neutral LOCAL label", async () => {
+  const [dashboard, prototype, workspace, styles] = await Promise.all([
+    readFile(new URL("../app/studio/studio-dashboard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
+  ]);
+  for (const source of [dashboard, prototype, workspace]) assert.match(source, /className="prototype-pill">LOCAL<\/span>/);
+  assert.match(styles, /\.prototype-pill \{\s*background: #e7e7e7;\s*border-radius: 999px;\s*color: #1c1c1e;/);
+});
+
 test("block hover controls group the source-faithful move chevrons vertically", async () => {
   const [canvas, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),

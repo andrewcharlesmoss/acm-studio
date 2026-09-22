@@ -14,7 +14,7 @@ export function StudioDashboard() {
       <header className="studio-header">
         <a className="studio-brand" href="/" aria-label="ACM Studio home"><span>AM</span><strong>ACM Studio</strong></a>
         <div className="studio-breadcrumbs" aria-label="Breadcrumb"><strong>Control centre</strong></div>
-        <div className="studio-state"><span className="prototype-pill">Local prototype</span><span>Browser storage only</span></div>
+        <div className="studio-state"><span className="prototype-pill">LOCAL</span><span>Browser storage only</span></div>
         <div className="studio-actions"><a className="button-secondary" href="https://andrewmoss.me/">View Andrew Moss <StudioIcon name="external" size={16} /></a><a className="button-primary" href="/studio">Open Studio</a></div>
       </header>
 
