@@ -230,6 +230,13 @@ test("template cover actions only render when handlers are available", async () 
   assert.match(styles, /\.canvas-cover-wrap:hover \.canvas-cover-actions, \.canvas-cover-wrap:focus-within \.canvas-cover-actions \{[^}]*pointer-events: auto/);
 });
 
+test("document cover actions only render when handlers are available", async () => {
+  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(source, /\{onOpenCoverMediaLibrary \|\| onRemoveCoverImage \? <div className="canvas-cover-actions">/);
+  assert.match(source, /onOpenCoverMediaLibrary \? <button className="cover-action-button"/);
+  assert.match(source, /onRemoveCoverImage \? <button className="cover-action-button is-destructive"/);
+});
+
 test("block hover controls group the source-faithful move chevrons vertically", async () => {
   const [canvas, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),

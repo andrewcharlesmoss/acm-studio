@@ -886,10 +886,10 @@ export function BlockField({ block, rootBlocks = [block], document, templatePlac
           <img src={imageSource} alt={document?.coverImage?.alt || ""} />
         </> : null}
       </div>
-      <div className="canvas-cover-actions">
-        <button className="cover-action-button" type="button" onClick={(event) => { event.stopPropagation(); onOpenCoverMediaLibrary?.(); }} aria-label="Change cover image" title="Change cover image"><StudioIcon name="image" /></button>
-        <button className="cover-action-button is-destructive" type="button" onClick={(event) => { event.stopPropagation(); onRemoveCoverImage?.(); }} aria-label="Remove cover image" title="Remove cover image"><StudioIcon name="trash" /></button>
-      </div>
+      {onOpenCoverMediaLibrary || onRemoveCoverImage ? <div className="canvas-cover-actions">
+        {onOpenCoverMediaLibrary ? <button className="cover-action-button" type="button" onClick={(event) => { event.stopPropagation(); onOpenCoverMediaLibrary(); }} aria-label="Change cover image" title="Change cover image"><StudioIcon name="image" /></button> : null}
+        {onRemoveCoverImage ? <button className="cover-action-button is-destructive" type="button" onClick={(event) => { event.stopPropagation(); onRemoveCoverImage(); }} aria-label="Remove cover image" title="Remove cover image"><StudioIcon name="trash" /></button> : null}
+      </div> : null}
     </div>;
   }
   if (block.type === "spacer") return <button type="button" className="spacer-field" style={{ height: `${block.height}px` }} data-studio-block-id={block.id} aria-label="Spacer block" />;
