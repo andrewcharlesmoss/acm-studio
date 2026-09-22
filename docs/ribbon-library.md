@@ -4,7 +4,7 @@
 
 Open `/studio/ribbon` from Studio's tools or the main dashboard. The catalogue
 combines live shared-component specimens, isolated ACM Studio and ACM Account
-references, and 69 original ACM icons with 207 SVG variants. The inventory has
+references, and 85 original ACM icons with 255 SVG variants. The inventory has
 73 command/control entries, including conditional links, header controls,
 menu actions, text-only fields and state alternatives.
 
@@ -53,7 +53,7 @@ snapshot revision/hashes and review the rendered result together.
 
 The shared workspace AGENTS.md and STYLE_GUIDE.md are unversioned; this work used
 governance commit `029d90672e94d69ceb12db07450197d07ffa96d1`. The current icon contract
-is [ACM icon specification v0.2.0](../../acm-icons/SPECIFICATION.md).
+is [ACM icon specification v0.3.0](../../acm-icons/SPECIFICATION.md).
 
 ## Local setup and verification
 
@@ -264,3 +264,92 @@ unavailable true 200% zoom check. The reviewed icon source is local commit
 `9e94119df890dc5afe8dad0247dab23652989299`; this Studio increment records its
 catalogue integration and verification without adopting the symbols into
 product controls.
+
+## Shared text editing and formatting batch — 22 September 2026
+
+ACM Icons v0.3.0 adds 16 shared symbols and 48 optical variants, bringing the
+library to 85 symbols and 255 standalone SVGs. These symbols belong to the
+reusable ACM icon library; the Ribbon Library remains their current review
+surface. The catalogue UI remains v0.1.0.
+
+The batch contains Bold, Italic, Underline, Strikethrough, Align Text Left,
+Align Text Centre, Align Text Right, Justify Text, Link, Unlink, Bulleted List,
+Numbered List, Paragraph, Heading, Quote and Code. The letterforms, pilcrow,
+quotation marks and list numerals are original SVG paths, with no embedded
+fonts or copied outlines. Every symbol has explicit geometry for 16/24/32px.
+
+Text alignment uses lines and explicit text labels, separate from the object
+alignment family's rectangles and reference guides. Numbered List has two
+numbered rows rather than Numbered Step's circled marker. Link and Unlink share
+a chain family with visibly connected or separated ends. The larger counter
+spaces, Underline gap and list numerals remain optical review priorities.
+
+The previous 69 symbols and metadata records, existing labels and IDs, asset
+paths and 14-symbol golden set are preserved. Search aliases include “center”,
+“ordered list”, “unordered list”, “hyperlink” and “strike”, without duplicate
+keywords in the new entries. All new symbols retain “Supporting catalogue
+symbol” usage. Product controls, demo commands and captured product references
+are unchanged; adoption, publication and deployment are outside this increment.
+
+The shared AGENTS.md and STYLE_GUIDE.md are unversioned; this increment uses
+governance commit `6f80c6e02bb72b45eb055221e995be449a6af10a` and the ACM icon
+specification v0.3.0. The earlier dated verification records remain historical
+evidence for their respective batches.
+
+### Automated verification
+
+- Icon package: six tests pass; all 258 generated distribution files match the
+  masters deterministically, including 255 standalone SVGs. The 48 new variants
+  resolve through package exports and render through React, including their
+  filled paths. Tests compare path geometry independently of stroke width.
+- Against icon baseline `9e94119df890dc5afe8dad0247dab23652989299`, all 276
+  existing master/SVG files are byte-identical, and all 69 existing geometry
+  and metadata records are unchanged. The golden set remains 14 symbols.
+- Studio: eleven focused catalogue tests, the 73-command inventory and focused
+  TypeScript check pass. The production build succeeds. Full tests pass 453 of
+  461; the same eight baseline failures remain: three Design CSS, two template,
+  one Studio modularity and two write-ownership tests.
+- Full typecheck reports 21 errors, with output byte-identical to the fresh
+  pre-change baseline. Lint passes with no errors and seven existing warnings.
+  These limitations are unrelated to this icon increment.
+- The workspace documentation audit passes for 17 registered paths with no
+  errors or warnings. Both repository whitespace checks pass.
+
+### Rendered verification
+
+Main reviewed all 48 new variants at 16/24/32px beside loaded Inter on light
+and dark surfaces, without clipping. Bold was strengthened after its first
+review; the corrected filled silhouette retains two visibly open counters at
+16px. Underline's gap, Unlink's break, the pilcrow and both list numerals remain
+legible. Side-by-side comparisons distinguish text/object alignment,
+Heading/Text/Paragraph and Numbered List/Numbered Step.
+
+The live catalogue was checked at 1440 × 1000 desktop, 768 × 1024 tablet and
+390 × 844 mobile sizes. Each layout has no horizontal document overflow;
+labels, cards and the inspector remain accessible. Mobile selection with long
+labels and list aliases passed. Real Tab navigation showed a 2px focus outline;
+Space selected Bold and its inspector displayed the description, three scales,
+original provenance, specification v0.3.0 and supporting-symbol usage.
+
+Search for “text.” returns 14 symbols, “hyperlink” returns Link and Unlink,
+“center” returns the two existing object centres and Align Text Centre, and
+“strike” returns Strikethrough. “unordered list” returns Bulleted List;
+“ordered list” returns both list symbols because the existing substring search
+also matches “unordered list”. That search behaviour is unchanged. Empty
+results were verified. Combining “text.” with the golden filter returns no
+symbols; clearing the query restores the unchanged 14-symbol golden set.
+
+True 200% browser zoom remains unavailable in the in-app browser: repeated
+zoom shortcuts left the 1280px viewport and device pixel ratio of 1 unchanged.
+Viewport reflow checks are separate evidence and do not constitute a browser
+zoom pass. No product adoption, package publication or deployment occurred.
+
+### Independent review and local source
+
+A separate read-only Verifier approved the scoped local commits on 22 September
+2026 with no actionable findings. Approval retains the documented baseline
+failures and unavailable true 200% zoom check. The reviewed icon source is
+`bac868095c5e5eb186e29cec4dde610075c4dc80`; Studio's pre-change baseline is
+`022200c9850c6810665c556e6f0c91790c5441dc`. The Studio increment records the
+shared library's catalogue integration and evidence without replacing product
+icons.

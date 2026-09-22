@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- Added 16 shared ACM text editing and formatting symbols to the icon catalogue,
+  with three optical variants each. The library now has 85 symbols; product
+  controls retain their existing icons.
 - Added a separate Pane Library with working left/right skeletons, persistent
   edge collapse controls, optional regions, structure/token inspection and five
   isolated Studio examples. Existing product panes are unchanged.

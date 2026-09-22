@@ -107,7 +107,7 @@ export function RibbonCatalogue() {
         <p className="rl-eyebrow">SYMBOL INSPECTOR</p><h2>{iconMetadata[icon].label}</h2><code>{icon}</code><div className="rl-enlarged"><AcmIcon name={icon} size={144} /></div><p>{iconMetadata[icon].description}</p>
         <div className="rl-scale-samples">{iconScales.map((scale,index) => <div key={scale}><AcmIcon name={icon} scale={scale} size={[16,24,32][index]} /><span>{scale}<small>{[16,24,32][index]}px</small></span></div>)}</div>
         <h3>Used by</h3><ul className="rl-usage">{usages.map((control) => <li key={control.id}><small>{control.product === "skeleton" ? "Component Specimen" : control.product === "studio" ? "ACM Studio" : "ACM Account"}</small>{control.label}{icon !== control.icon ? " (state variant)" : ""}</li>)}</ul>{!usages.length && <p>Supporting catalogue symbol.</p>}
-        <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>acm-icons/masters/{icon}.svg</code><p>Three editable scale groups. ACM icon specification v0.2.0.</p></details>
+        <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>acm-icons/masters/{icon}.svg</code><p>Three editable scale groups. ACM icon specification v0.3.0.</p></details>
       </> : <>
         <p className="rl-eyebrow">STRUCTURE INSPECTOR</p><h2>{selected.label}</h2><code>{selected.component}</code><p>{selected.purpose}</p>
         <dl className="rl-properties"><dt>Component Owner</dt><dd>{selected.owner}</dd><dt>Composition / Command Owner</dt><dd>{example.label}</dd><dt>Region</dt><dd><code>{selected.id}</code></dd><dt>Rendered Size</dt><dd>{metrics.dimensions}</dd>
