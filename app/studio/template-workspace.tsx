@@ -77,6 +77,12 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
   const media = useTemplateMedia([...(set ? templateMediaIds(set) : []), ...workspace.workspace.documents.flatMap(document => [...contentMediaIds(document.blocks), ...(document.coverImage?.mediaId ? [document.coverImage.mediaId] : [])])]);
   const writable = templates.writable && !busy;
   const exclusiveWritable = templates.exclusiveWritable && !busy;
+  const templateContextMenuSet = templateContextMenu ? templates.store.sets.find(item => item.id === templateContextMenu.setId) : undefined;
+  const templateContextMenuEntry = templateContextMenuSet && templateContextMenu ? [...templateContextMenuSet.templates, ...templateContextMenuSet.parts].find(item => item.id === templateContextMenu.targetId) : undefined;
+  const templateContextMenuUnavailableReason = "This template is no longer available.";
+  const templateContextMenuMutationReason = !writable ? "Editing is unavailable in this tab." : !templateContextMenuEntry ? templateContextMenuUnavailableReason : undefined;
+  const templateContextMenuDeleteReason = templateContextMenu && templateContextMenuEntry ? templateDeleteBlockReason(templateContextMenu.setId, templateContextMenu.targetId) : templateContextMenuUnavailableReason;
+  const templateContextMenuActions = templateContextMenu ? [{ label: "Rename", icon: "pencil" as const, onClick: () => renameTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId), disabled: Boolean(templateContextMenuMutationReason), disabledReason: templateContextMenuMutationReason }, { label: "Duplicate", icon: "copy" as const, onClick: () => duplicateTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId), disabled: Boolean(templateContextMenuMutationReason), disabledReason: templateContextMenuMutationReason }] : [];
   useStudioHistoryShortcuts(templates.undo, templates.redo, manageHistoryShortcuts && writable && !dialog);
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -180,11 +186,23 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
       if (saved) setTargetId(id); return saved;
     });
   }
-  function duplicateTarget() {
-    if (!set || !target) return;
-    const copy = copyTemplateData(target); copy.id = templateId(); copy.name = `${copy.name} Copy`; visitTemplateNodes(copy.nodes, node => { node.id = templateId(); });
-    const next = copy.kind === "page" || copy.kind === "post" ? { ...set, templates: [...set.templates, copy as PageTemplate] } : { ...set, parts: [...set.parts, copy as TemplatePart] };
-    if (changeSet(next)) setTargetId(copy.id);
+  function renameTemplateEntry(setId: string, targetId: string) {
+    const targetSet = templates.store.sets.find(item => item.id === setId);
+    const targetEntry = targetSet ? [...targetSet.templates, ...targetSet.parts].find(item => item.id === targetId) : undefined;
+    if (!targetSet || !targetEntry) return;
+    askName("Rename", targetEntry.name, name => {
+      const saved = changeSet({ ...targetSet, templates: targetSet.templates.map(item => item.id === targetEntry.id ? { ...item, name } : item), parts: targetSet.parts.map(item => item.id === targetEntry.id ? { ...item, name } : item) });
+      if (saved) openSet(targetSet, targetEntry.id);
+      return saved;
+    });
+  }
+  function duplicateTemplateEntry(setId: string, targetId: string) {
+    const targetSet = templates.store.sets.find(item => item.id === setId);
+    const targetEntry = targetSet ? [...targetSet.templates, ...targetSet.parts].find(item => item.id === targetId) : undefined;
+    if (!targetSet || !targetEntry) return;
+    const copy = copyTemplateData(targetEntry); copy.id = templateId(); copy.name = `${copy.name} Copy`; visitTemplateNodes(copy.nodes, node => { node.id = templateId(); });
+    const next = copy.kind === "page" || copy.kind === "post" ? { ...targetSet, templates: [...targetSet.templates, copy as PageTemplate] } : { ...targetSet, parts: [...targetSet.parts, copy as TemplatePart] };
+    if (changeSet(next)) openSet(targetSet, copy.id);
   }
   function templateSetDeleteBlockReason(setId: string) {
     return templates.store.assignments.some(a => a.setId === setId) ? "Reassign documents before deleting this template set." : undefined;
@@ -216,7 +234,6 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
       return saved;
     });
   }
-  function deleteTarget() { if (set && target) deleteTemplateEntry(set.id, target.id); }
   function insertMedia(asset: MediaAsset, _destination?: unknown, altText?: string) {
     if (!set || !target || !mediaTarget || !writable) return;
     if (mediaTarget.logo) changeSet({ ...set, identity: { ...set.identity, logo: { src: "", mediaId: asset.id, alt: altText || asset.altText || asset.name } } });
@@ -261,9 +278,9 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
         {templateEntries.map(({ set: item, entry }) => <button className={`document-item template-target-item${item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
           <span className="document-kind-mark">{entry.kind === "post" ? "A" : entry.kind === "page" ? "P" : "H"}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />
         </button>)}
-        {templateContextMenu ? <StudioListContextMenu target={templateContextMenu} canDelete={writable && !templateDeleteBlockReason(templateContextMenu.setId, templateContextMenu.targetId)} disabledReason={!writable ? "Editing is unavailable in this tab." : templateDeleteBlockReason(templateContextMenu.setId, templateContextMenu.targetId)} returnFocusRef={templateContextMenuTriggerRef} onDelete={() => deleteTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId)} onClose={closeTemplateContextMenu} /> : null}
+        {templateContextMenu ? <StudioListContextMenu target={templateContextMenu} actions={templateContextMenuActions} canDelete={writable && Boolean(templateContextMenuEntry) && !templateContextMenuDeleteReason} disabledReason={!writable ? "Editing is unavailable in this tab." : templateContextMenuDeleteReason} returnFocusRef={templateContextMenuTriggerRef} onDelete={() => deleteTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId)} onClose={closeTemplateContextMenu} /> : null}
       </div> : null}
-      {set ? <fieldset disabled={!writable}><legend>Add template</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div>{target ? <div className="template-targets"><button type="button" onClick={() => askName("Rename", target.name, name => { return changeSet({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, name } : item), parts: set.parts.map(item => item.id === target.id ? { ...item, name } : item) }); })}>Rename</button><button type="button" onClick={duplicateTarget}>Duplicate</button><button type="button" onClick={deleteTarget}>Delete</button></div> : null}</fieldset> : null}
+      {set ? <fieldset disabled={!writable}><legend>Add template</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div></fieldset> : null}
       {onBackToContent ? <><SiteNavigation /><div className="library-footer"><button type="button" onClick={onExportContent}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div></> : null}
     </aside>
     {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : "Template image"} targetKind="block" onInsertImage={insertMedia} /></section> : set && target ? <TemplateEditor key={target.id} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} writable={writable} onChange={changeSet} onEditPart={id => openSet(set, id)} onOpenMedia={(blockId, logo = false) => setMediaTarget({ blockId, logo })} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : standalone ? <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Site templates</h1><p>Create a consistent page and post design. Each set has its own shared parts, identity and styles.</p><div className="template-library-actions"><button className="button-primary" type="button" disabled={!writable} onClick={createSet}><StudioIcon name="add" />Create Template Set</button><button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button><div className="template-set-grid">{templates.store.sets.map(renderTemplateSetCard)}</div>{!templates.store.sets.length && templates.ready ? <p>No template sets yet. Create one to start with the neutral ACM design.</p> : null}</div>{templateSetContextMenu ? (() => { const item = templates.store.sets.find(candidate => candidate.id === templateSetContextMenu.setId); const blockedReason = item ? templateSetDeleteBlockReason(item.id) : "This template set is no longer available."; return <TemplateSetActionsMenu target={templateSetContextMenu} canDelete={Boolean(item && writable && !blockedReason)} disabledReason={!writable ? "Editing is unavailable in this tab." : blockedReason} onDelete={() => { if (item) deleteSetFromContextMenu(item); }} onClose={closeTemplateSetContextMenu} />; })() : null}</section> : <section className="template-library template-empty-state" style={{ gridColumn: "span 2" }}><h1>Select a template</h1><p>Choose a Page, Post or shared part from the Templates list.</p></section>}

@@ -382,10 +382,20 @@ test("content and template list rows expose keyboard and pointer context menus",
   assert.match(menu, /event\.key === "Escape"/);
   assert.match(menu, /returnFocusRef/);
   assert.match(menu, /disabledReason/);
+  assert.match(menu, /actions = \[\]/);
+  assert.match(menu, /getBoundingClientRect\(\)/);
+  assert.match(menu, /viewportHeight - menuHeight - 8/);
+  assert.match(menu, /is-destructive/);
   assert.match(styles, /\.studio-list-context-menu \{/);
   assert.match(templateWorkspace, /function renderTemplateSetCard/);
   assert.match(templateWorkspace, /template-set-context-trigger/);
   assert.match(templateWorkspace, /setTemplateSetContextMenu\(\{ setId: item\.id, label: item\.name/);
+  assert.match(templateWorkspace, /function renameTemplateEntry\(setId: string, targetId: string\)/);
+  assert.match(templateWorkspace, /function duplicateTemplateEntry\(setId: string, targetId: string\)/);
+  assert.match(templateWorkspace, /icon: "pencil"/);
+  assert.match(templateWorkspace, /icon: "copy"/);
+  assert.doesNotMatch(templateWorkspace, /function duplicateTarget\(\)/);
+  assert.doesNotMatch(templateWorkspace, /function deleteTarget\(\)/);
   assert.match(studio, /Its template assignment will also be removed/);
 });
 
