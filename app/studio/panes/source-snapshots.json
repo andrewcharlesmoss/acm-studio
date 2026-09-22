@@ -1,0 +1,12 @@
+{
+  "capturedAt": "2026-09-22",
+  "commit": "84dc3b2c60f412045c1b09719bba5a5183dd842d",
+  "files": [
+    { "path": "app/studio/studio-prototype.tsx", "sha256": "406677ef1ff93d477e9102b9386a2139283aeb4021c463e50b705019b0d1bc39" },
+    { "path": "app/studio/studio-canvas.tsx", "sha256": "42d9d0f1752cdeff2664cacb1b83ca366ff99c47986b99f1d6341ac3bf6c6201" },
+    { "path": "app/studio/studio-inspectors.tsx", "sha256": "2d74bc762df6d7ac6f3628b7cd590b53157067c77dafdf6227853c89fb40e0d7" },
+    { "path": "app/studio/design-editor.tsx", "sha256": "9d5b58c1bdb4751c10cec698d07fdf3f70dc988de7cbae8cb681d58100f2c07a" },
+    { "path": "app/studio/studio.css", "sha256": "7785517d800245da9f75a6a5dbc9c22afafecefc8256a6fbac20ea73d7ffa3c2" },
+    { "path": "app/studio/design.css", "sha256": "ac36612352703d6e53e17261b7e3d3b99503edaaf105fb33445117060d02ecfa" }
+  ]
+}

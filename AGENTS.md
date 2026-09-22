@@ -51,6 +51,13 @@ Studio interface text uses Gutenberg's 13px system UI baseline through
 smaller than that token: use hierarchy, weight, colour and spacing instead.
 Article and block content may retain their content-specific typography.
 
+The Pane Library at `/studio/panes` is a catalogue-only reference. Its internal
+v0.1.0 components and fixtures stay separate from product stores and existing
+panes; see `docs/pane-library.md`. The catalogue shell is responsive and uses
+Inter. Its specimens deliberately retain fixed desktop pane widths with
+contained horizontal scrolling at narrow widths; collapse controls remain
+available. This scoped desktop-layout exception does not change product panes.
+
 Edit and Preview must share block presentation rules, including typography,
 colours, spacing and dimensions. Use the Studio variant of `BlockRenderer`
 for editor previews, not the public article's prose theme. Keep selection

@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["next-env.d.ts", "app/studio/panes/**/*.ts", "app/studio/panes/**/*.tsx"],
+  "exclude": ["node_modules"]
+}

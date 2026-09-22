@@ -22,6 +22,9 @@ contracts.
   ACM Studio and ACM Account examples, and browse original three-scale SVG icons.
   See [Ribbon Library](docs/ribbon-library.md) for setup and verification, and
   [the command inventory](docs/ribbon-command-inventory.md) for complete coverage.
+- **Pane Library** at `/studio/panes`: explore working left/right pane skeletons,
+  collapse controls and isolated Studio examples. See [Pane Library](docs/pane-library.md)
+  for the v0.1.0 component contract, source references and verification.
 
 - First site pilot: open Mini Golf Scorecard from the control centre and edit
   its inherited home page with the same Gutenberg-style block editor used by
