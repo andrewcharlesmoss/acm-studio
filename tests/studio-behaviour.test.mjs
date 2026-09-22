@@ -205,6 +205,17 @@ test("template dynamic fields use neutral placeholders", async () => {
   assert.match(styles, /\.template-dynamic-placeholder \{ color: #7b8088; \}/);
 });
 
+test("editor mode exposes a visible edit or preview status", async () => {
+  const [canvas, styles] = await Promise.all([
+    readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(canvas, /className=\{`block-editor\$\{previewing \? " is-previewing" : " is-editing"\}/);
+  assert.match(canvas, /className="editor-mode-label" aria-live="polite"/);
+  assert.match(canvas, /previewing \? "Previewing document" : targetLabel === "template" \? "Editing template" : "Editing document"/);
+  assert.match(styles, /\.editor-mode-label \{[^}]*font-weight: 650;[^}]*white-space: nowrap;/);
+});
+
 test("block hover controls group the source-faithful move chevrons vertically", async () => {
   const [canvas, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),

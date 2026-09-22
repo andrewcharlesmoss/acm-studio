@@ -437,7 +437,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const hasDynamicCover = activeDocument.blocks.some((block) => block.type === "cover-image");
 
   return (
-    <section className={`block-editor${className ? ` ${className}` : ""}`} aria-label={`${activeDocument.kind} editor`} data-readonly={!writable || undefined} onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
+    <section className={`block-editor${previewing ? " is-previewing" : " is-editing"}${className ? ` ${className}` : ""}`} aria-label={`${activeDocument.kind} editor`} data-readonly={!writable || undefined} onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <div className="editor-document-bar">
         <div className="editor-history-actions" role="group" aria-label="Editor tools">
           <button className="editor-add-block" type="button" disabled={!writable || previewing || Boolean(codeEditor)} onClick={() => showInserter && !inserterClosing ? dismissInserter() : openInserter(null)} aria-label="Add block" title="Add block" aria-pressed={showInserter && !inserterClosing && !previewing && !codeEditor}><StudioIcon name="add" size={20} /></button>
@@ -446,6 +446,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
           <button ref={listViewToggleRef} type="button" className={`editor-list-toggle${listViewOpen ? " is-active" : ""}`} disabled={previewing || Boolean(codeEditor)} aria-pressed={listViewOpen && !showInserter} aria-label="List View" title="List View" onClick={() => { setHoveredBlockId(null); onSetShowInserter(false); setListViewOpen((current) => !current); }}><StudioIcon name="list" size={20} /></button>
         </div>
         <div className="editor-mode-control" role="group" aria-label={`${targetLabel ?? (activeDocument.kind === "post" ? "Post" : "Page")} view`}>
+          <span className="editor-mode-label" aria-live="polite">{previewing ? "Previewing document" : targetLabel === "template" ? "Editing template" : "Editing document"}</span>
           <button type="button" aria-pressed={!previewing} onClick={() => onPreviewChange(false)}>Edit</button>
           <button type="button" aria-pressed={previewing} onClick={() => { if (codeEditor && !closeCodeEditor(true)) return; setHoveredBlockId(null); setListViewOpen(false); onSetShowInserter(false); onPreviewChange(true); }}>Preview</button>
         </div>

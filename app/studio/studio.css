@@ -435,6 +435,7 @@
 .editor-document-actions button:disabled { cursor: default; }
 .editor-document-actions[aria-hidden="true"] { visibility: hidden; }
 .editor-mode-control { align-items: center; background: #e6e4dd; border: 1px solid #d2d0c8; border-radius: 7px; box-sizing: border-box; display: flex; gap: 2px; height: 40px; justify-self: center; padding: 3px; }
+.editor-mode-label { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 650; padding: 0 8px; white-space: nowrap; }
 .editor-mode-control button { align-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--muted); cursor: pointer; display: inline-flex; height: 32px; justify-content: center; line-height: 1; min-width: 64px; padding: 0 12px; }
 .editor-mode-control button:hover { background: #d8d6cf; color: var(--ink); }
 .editor-mode-control button[aria-pressed="true"] { background: var(--ink); color: white; }
