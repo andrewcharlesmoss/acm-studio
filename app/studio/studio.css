@@ -399,7 +399,7 @@
 .document-item:hover { background: #ebe9e2; }
 .document-item.is-active { background: white; box-shadow: 0 1px 3px rgba(27, 28, 29, .08); }
 .document-kind-mark { align-items: center; background: #e4e3dd; border-radius: 6px; display: flex; font-size: var(--studio-ui-size); font-weight: 750; height: 28px; justify-content: center; width: 28px; }
-.document-item.is-active .document-kind-mark { background: var(--accent-soft); color: #284aa9; }
+.template-target-item.is-active .document-kind-mark { background: #e4e3dd; color: inherit; }
 .document-item > span:nth-child(2) { display: grid; min-width: 0; }
 .document-item strong, .document-item small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .document-item strong { font-size: var(--studio-ui-size); font-weight: 640; }

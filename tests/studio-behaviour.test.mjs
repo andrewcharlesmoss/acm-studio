@@ -534,6 +534,7 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateWorkspace, /<div className="library-create">\s*<button type="button" onClick=\{\(\) => importRef\.current\?\.click\(\)\}>Import<\/button>/);
   assert.match(templateWorkspace, /const templateEntries = templates\.store\.sets\.flatMap/);
   assert.match(templateWorkspace, /className=\{`document-item template-target-item/);
+  assert.match(styles, /\.template-target-item\.is-active \.document-kind-mark \{ background: #e4e3dd; color: inherit; \}/);
   assert.match(templateWorkspace, /<TemplateEditor key=\{target\.id\}/);
   assert.match(templateWorkspace, /: standalone \? <section className="template-library"/);
   assert.match(templateWorkspace, /className="template-status template-inline-status"[^>]*role="alert"[^>]*>.*template-status-actions/s);
