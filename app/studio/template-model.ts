@@ -14,7 +14,7 @@ export type TemplateElement = typeof templateElements[number];
 export type TemplateImage = { src: string; mediaId?: string; alt: string };
 type TemplateElementNode =
   | { id: string; type: "element"; element: Exclude<TemplateElement, "cover-image">; align?: "left" | "centre" | "right" }
-  | { id: string; type: "element"; element: "cover-image"; align?: "left" | "centre" | "right"; fixedImage?: TemplateImage };
+  | { id: string; type: "element"; element: "cover-image"; align?: "left" | "centre" | "right"; fixedImage?: TemplateImage; coverImageHidden?: boolean };
 export type TemplateNode = Exclude<ContentBlock, { type: "group" | "section" | "component" }>
   | ({ id: string; type: "group"; layout: "stack" | "row" | "columns"; children: TemplateNode[] } & LayoutOptions)
   | ({ id: string; type: "section"; layout: "stack" | "row" | "columns"; role?: SiteSectionRole; children: TemplateNode[] } & LayoutOptions)
@@ -90,7 +90,8 @@ export function validateTemplateSet(value: unknown): TemplateSet {
       if (node.type === "element") {
         if (!templateElements.includes(node.element as TemplateElement) || (node.align !== undefined && !["left", "centre", "right"].includes(node.align as string))) invalid("Unknown template element.");
         if (node.element === "cover-image" && node.fixedImage !== undefined && !validTemplateImage(node.fixedImage)) invalid("The fixed template cover image is invalid.");
-        if (node.element !== "cover-image" && "fixedImage" in node) invalid("Only a Cover Image element can use a fixed image.");
+        if (node.element === "cover-image" && node.coverImageHidden !== undefined && typeof node.coverImageHidden !== "boolean") invalid("The template cover image visibility is invalid.");
+        if (node.element !== "cover-image" && ("fixedImage" in node || "coverImageHidden" in node)) invalid("Only a Cover Image element can use cover image settings.");
       } else if (node.type === "part") { if (!safeId(node.partId)) invalid("Invalid shared-part reference."); }
       else if (node.type === "group" || node.type === "section") { if (Object.keys(node).some(key => !["id", "type", "layout", "role", "children", "horizontalAlign", "verticalAlign", "gap", "paddingX", "paddingY", "contentWidth", "columns", "stackAt"].includes(key)) || !["stack", "row", "columns"].includes(node.layout as string) || (node.role !== undefined && !["account", "setup", "scorecard", "leaderboard", "share", "hero", "hero-copy", "account-copy", "scorecard-heading", "scorecard-actions", "leaderboard-card", "leaderboard-score", "leaderboard-metrics", "metric", "footer", "footer-brand", "footer-links", "social-link"].includes(node.role as string)) || !validLayoutOptions(node)) invalid("Invalid template layout or unsupported group metadata."); nodes(node.children, depth + 1); }
       else {
@@ -229,7 +230,10 @@ export function templateNodesFromBlocks(blocks: ContentBlock[], sourceNodes: Tem
     if (block.type === "document-subtitle") return { id: block.id, type: "element", element: "subtitle", align: block.align ?? "left" };
     if (block.type === "cover-image") {
       const source = sourceById.get(block.id);
-      return { id: block.id, type: "element", element: "cover-image", align: block.align ?? "left", ...(source?.type === "element" && source.element === "cover-image" && source.fixedImage ? { fixedImage: copyTemplateData(source.fixedImage) } : {}) };
+      return { id: block.id, type: "element", element: "cover-image", align: block.align ?? "left", ...(source?.type === "element" && source.element === "cover-image" ? {
+        ...(source.fixedImage ? { fixedImage: copyTemplateData(source.fixedImage) } : {}),
+        ...(source.coverImageHidden ? { coverImageHidden: true } : {}),
+      } : {}) };
     }
     if (block.type === "group" && typeof block.data?.templatePart === "string") return { id: block.id, type: "part", partId: block.data.templatePart };
     if (block.type === "group" && typeof block.data?.templateElement === "string") return { id: block.id, type: "element", element: block.data.templateElement as TemplateElement, align: block.data.align as "left" | "centre" | "right" };

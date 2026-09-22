@@ -76,15 +76,14 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     visitTemplateNodes(nodesRef.current, node => { if (node.id === id) found = node; });
     return found;
   }
-  function removeCoverImage(id: string) {
-    const node = findTemplateNode(id);
-    if (node?.type === "element" && node.element === "cover-image" && node.fixedImage) {
-      const next = copyTemplateData(nodesRef.current);
-      visitTemplateNodes(next, candidate => { if (candidate.id === id && candidate.type === "element" && candidate.element === "cover-image") delete candidate.fixedImage; });
-      updateNodes(next);
-      return;
-    }
-    commands.removeBlock(id);
+  function clearCoverImage(id: string) {
+    const next = copyTemplateData(nodesRef.current);
+    visitTemplateNodes(next, candidate => {
+      if (candidate.id !== id || candidate.type !== "element" || candidate.element !== "cover-image") return;
+      delete candidate.fixedImage;
+      candidate.coverImageHidden = true;
+    });
+    updateNodes(next);
   }
   function insertNode(node: TemplateNode) {
     if (!writable) return;
@@ -133,7 +132,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
         const contentSlot = <div className="template-content-slot" role="note" aria-label="Content slot"><strong>Content</strong><span>Supplied by each document</span></div>;
         const sourceNode = context.block.type === "cover-image" ? findTemplateNode(context.block.id) : undefined;
         const nodes = sourceNode ? [sourceNode] : templateNodesFromBlocks([context.block]);
-        return <TemplateNodes key={context.block.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={nodes} mediaUrls={mediaUrls} content={contentSlot} editingDocument={context.mode === "edit" && writable} templatePreview={context.mode === "preview"} onChangeCover={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => onOpenMedia(context.block.id) : undefined} onRemoveCover={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => removeCoverImage(context.block.id) : undefined} onEditPart={context.mode === "edit" ? onEditPart : undefined}
+        return <TemplateNodes key={context.block.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={nodes} mediaUrls={mediaUrls} content={contentSlot} editingDocument={context.mode === "edit" && writable} templatePreview={context.mode === "preview"} onChangeCover={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => onOpenMedia(context.block.id) : undefined} onRemoveCoverImage={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => clearCoverImage(context.block.id) : undefined} onRemoveCoverBlock={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => commands.removeBlock(context.block.id) : undefined} onEditPart={context.mode === "edit" ? onEditPart : undefined}
           renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} rootBlocks={resolvedSample.blocks} document={resolvedSample} templatePlaceholder selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
           decorate={context.mode === "edit" ? (node, result) => {
             if (!findBlockById(blocks, node.id)) return result;

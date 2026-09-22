@@ -106,11 +106,13 @@ test("fixed template cover images validate, survive projection and retain their 
   const post = set.templates.find(item => item.kind === "post");
   const cover = post.nodes.find(node => node.type === "element" && node.element === "cover-image");
   cover.fixedImage = { src: "", mediaId: "asset-cover", alt: "A fixed cover" };
+  cover.coverImageHidden = true;
   model.validateTemplateSet(set);
   assert.deepEqual(plain(model.templateMediaIds(set)), ["asset-cover"]);
   const projected = model.templateEditorBlocks(post.nodes);
   const roundTrip = model.templateNodesFromBlocks(projected, post.nodes);
   assert.deepEqual(plain(roundTrip.find(node => node.id === cover.id).fixedImage), plain(cover.fixedImage));
+  assert.equal(roundTrip.find(node => node.id === cover.id).coverImageHidden, true);
 });
 
 test("responsive layout options and Spacer blocks validate and survive template projection", () => {

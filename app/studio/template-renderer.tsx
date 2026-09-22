@@ -80,14 +80,15 @@ export type TemplateRenderContext = {
   templatePreview?: boolean;
   onDocumentChange?: (field: "title" | "subtitle", value: string) => void;
   onChangeCover?: () => void;
-  onRemoveCover?: () => void;
+  onRemoveCoverImage?: () => void;
+  onRemoveCoverBlock?: () => void;
   onEditPart?: (id: string) => void;
   renderOrdinary?: (node: TemplateNode) => ReactNode;
   decorate?: (node: TemplateNode, result: ReactNode) => ReactNode;
 };
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
-  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, onDocumentChange, onChangeCover, onRemoveCover, onEditPart, renderOrdinary, decorate } = context;
+  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
   function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false): ReactNode {
@@ -117,13 +118,16 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         case "cover-image": {
           const cover = node.fixedImage ?? document.coverImage;
           const src = cover?.mediaId ? safeImageSource(mediaUrls[cover.mediaId] ?? "", { allowBlob: true }) : safeImageSource(cover?.src ?? "");
-          const fixed = Boolean(node.fixedImage);
-          const placeholder = <div className="template-cover-placeholder" role="img" aria-label={fixed ? "Fixed cover image placeholder" : "Cover image placeholder"} />;
+          const hidden = node.coverImageHidden === true;
+          const fixed = Boolean(node.fixedImage) && !hidden;
+          const placeholder = <div className="template-cover-placeholder" role="img" aria-label={hidden ? "Cover image hidden" : fixed ? "Fixed cover image placeholder" : "Cover image placeholder"} />;
           const actions = onChangeCover ? <div className="canvas-cover-actions">
             <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label="Choose fixed cover image" title="Choose fixed cover image"><StudioIcon name="image" /></button>
-            {onRemoveCover ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCover} aria-label={fixed ? "Remove fixed cover image" : "Remove cover image from template"} title={fixed ? "Remove fixed cover image" : "Remove cover image from template"}><StudioIcon name="trash" /></button> : null}
+            {!hidden && onRemoveCoverImage ? <button className="cover-action-button" type="button" onClick={onRemoveCoverImage} aria-label="Remove cover image" title="Remove cover image"><StudioIcon name="close" /></button> : null}
+            {onRemoveCoverBlock ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCoverBlock} aria-label="Delete cover image block" title="Delete cover image block"><StudioIcon name="trash" /></button> : null}
           </div> : null;
-          element = documentFieldVisible(document, "coverImage") ? fixed && templatePreview ? src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : placeholder
+          element = hidden ? editingDocument ? <div className="canvas-cover-wrap document-dynamic-cover"><div className="canvas-cover-image" role="img" aria-label="Cover image hidden" />{actions}</div> : null
+            : documentFieldVisible(document, "coverImage") ? fixed && templatePreview ? src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : placeholder
             : templatePreview ? placeholder : editingDocument ? <div className="canvas-cover-wrap document-dynamic-cover">
               <div className={`canvas-cover-image${src ? " is-source" : ""}`} role="img" aria-label={cover?.alt || "Mock cover image"}>{src ? <TemplateImage src={src} alt={cover?.alt ?? ""} /> : null}</div>
               {actions}
