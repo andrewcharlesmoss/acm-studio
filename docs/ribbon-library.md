@@ -4,7 +4,7 @@
 
 Open `/studio/ribbon` from Studio's tools or the main dashboard. The catalogue
 combines live shared-component specimens, isolated ACM Studio and ACM Account
-references, and 56 original ACM icons with 168 SVG variants. The inventory has
+references, and 69 original ACM icons with 207 SVG variants. The inventory has
 73 command/control entries, including conditional links, header controls,
 menu actions, text-only fields and state alternatives.
 
@@ -52,8 +52,8 @@ synchronisation. When product commands change, refresh the inventory, scenarios,
 snapshot revision/hashes and review the rendered result together.
 
 The shared workspace AGENTS.md and STYLE_GUIDE.md are unversioned; this work used
-governance commit `029d90672e94d69ceb12db07450197d07ffa96d1`. The new icon contract
-is [ACM icon specification v0.1.0](../../acm-icons/SPECIFICATION.md).
+governance commit `029d90672e94d69ceb12db07450197d07ffa96d1`. The current icon contract
+is [ACM icon specification v0.2.0](../../acm-icons/SPECIFICATION.md).
 
 ## Local setup and verification
 
@@ -182,3 +182,85 @@ Saved Ribbon editing, SVG path editing, package publication, deployment and
 product icon replacement are outside this increment. Future editing can build
 on stable definitions and the shared renderer without introducing executable
 handlers into the portable definition.
+
+## Object editing and arrangement batch — 22 September 2026
+
+The private icon package and symbol contract advance to v0.2.0. The catalogue
+UI remains v0.1.0. Thirteen new symbols provide 39 optical variants: Copy,
+Paste, Group, Ungroup, six object-alignment actions, Layers, Crop and Rotate.
+The catalogue now contains 69 symbols and 207 standalone SVGs. Original
+masters, existing asset paths and golden membership are unchanged.
+
+Copy uses two portrait sheets, Duplicate uses square objects, Pages contains
+page-content lines, and Layers uses stacked planes. Group has a common outer
+boundary; Ungroup shows separate object boundaries. Object alignment uses
+unequal outlined bars and a reference line, preserving a distinct visual
+family for future text alignment. Crop uses crossing edges; Rotate includes an
+angled object beneath its curved arrow. All variants have explicit geometry
+for their intended 16/24/32px rendering.
+
+The new entries use the existing metadata-driven grid, search and inspector.
+They report “Supporting catalogue symbol”; no product usage, product control,
+demo command or source snapshot was added or changed. Product adoption and
+publication remain separate work.
+
+The shared AGENTS.md and STYLE_GUIDE.md are unversioned; this increment uses
+governance commit `6f80c6e02bb72b45eb055221e995be449a6af10a` and the ACM icon
+specification v0.2.0. Its local verification record follows separately from
+the historical checkpoints above.
+
+### Automated verification
+
+- Icon package: six tests pass; deterministic generation verifies all 210
+  distribution files, including 207 SVGs. Every new symbol and scale resolves
+  through the package exports and renders through the React adapter. Path
+  geometry is distinct across scales independently of stroke width.
+- Against icon baseline `52d43c6c7deab9e623843893a9a4f6b9df35c884`, all 224
+  existing master/SVG files are byte-identical, and all 56 existing generated
+  geometry and metadata records are unchanged. The golden set retains 14 symbols.
+- Studio: ten focused catalogue tests, the 73-command inventory and focused
+  TypeScript check pass. The production build succeeds. Full tests pass 452 of
+  460; the eight failures are unchanged baseline cases: three Design CSS, two
+  template, one Studio modularity and two write-ownership tests.
+- Full lint passes with no errors and seven existing warnings. Full typecheck
+  retains 21 pre-existing errors. These broad failures were established before
+  icon changes; no unrelated product source was changed for this increment.
+- The workspace documentation audit passes for 17 registered paths with no
+  errors or warnings. Both repository whitespace checks pass.
+
+### Rendered verification
+
+Main inspected all 39 new variants at 16/24/32px in the live catalogue on light
+and dark surfaces. A separate local browser comparison of the generated SVGs
+confirmed distinguishable Copy/Duplicate/Pages/Layers, Group/Ungroup/Selection
+Outline, Crop/Fit Canvas and Rotate/Undo/Refresh. The first Ungroup design's
+inward corners met at a misleading central cross. Following review, medium and
+large corners are separated and small omits the inward corners to keep the
+objects open; the corrected variants passed the rendered review.
+
+The live catalogue was checked at 1440px desktop, 768px tablet and 390px phone
+widths. Document scroll width matched each viewport. Long alignment labels and
+IDs wrap, and the mobile inspector remains accessible. Real Tab navigation
+from search through the golden and dark filters to Copy showed a visible 2px
+focus outline; Space selected Copy and displayed its supporting-symbol usage.
+
+Search returned two symbols for “clipboard”, ten for “object” and one for
+“crop”. Combining a new-symbol search with the golden filter showed the empty
+state; keyboard clearing restored the unchanged 14-symbol golden set. The
+inspector displayed original provenance and specification v0.2.0.
+
+True 200% browser zoom remains unverified: the available browser shortcut had
+no effect on viewport width or device pixel ratio. Responsive viewport checks
+are separate evidence and are not a browser-zoom pass. Review covers the local
+catalogue only; product adoption, package publication and deployment did not
+occur.
+
+### Independent review and local source
+
+A separate read-only Verifier reviewed the final scoped changes and the
+recorded evidence, found no actionable issues and approved local commits on
+22 September 2026. Approval retains the existing broad-check failures and the
+unavailable true 200% zoom check. The reviewed icon source is local commit
+`9e94119df890dc5afe8dad0247dab23652989299`; this Studio increment records its
+catalogue integration and verification without adopting the symbols into
+product controls.
