@@ -81,6 +81,7 @@
 .template-navigation a, .template-social a { display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0.25rem 0.125rem; }
 .template-header .template-navigation { justify-content: flex-end; }
 .template-footer { margin-top: var(--template-spacing); padding-top: var(--template-spacing); border-top: var(--template-border-width) solid var(--template-border); }
+.template-editing .template-node:has(> .template-node-selectable > .template-footer), .template-editing .template-footer { margin-top: 0; }
 .template-footer .template-copyright { margin: 0; text-align: center; font-size: 1.0625rem; }
 .template-footer .template-social { justify-content: flex-end; }
 .template-surface h1, .template-title-input { font: 600 2.5em/1.15 var(--template-font); color: inherit; margin: 0; }

@@ -212,6 +212,11 @@ test("template dynamic fields use neutral placeholders", async () => {
   assert.match(styles, /\.template-dynamic-placeholder \{ color: #7b8088; \}/);
 });
 
+test("template footer selection removes duplicate top spacing", async () => {
+  const styles = await readFile(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  assert.match(styles, /\.template-editing \.template-node:has\(> \.template-node-selectable > \.template-footer\), \.template-editing \.template-footer \{ margin-top: 0; \}/);
+});
+
 test("Studio environment badges use the neutral LOCAL label", async () => {
   const [dashboard, prototype, workspace, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-dashboard.tsx", import.meta.url), "utf8"),
