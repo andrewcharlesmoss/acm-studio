@@ -77,6 +77,7 @@ export type TemplateRenderContext = {
   mediaUrls?: Record<string, string>;
   content?: ReactNode;
   editingDocument?: boolean;
+  templatePreview?: boolean;
   onDocumentChange?: (field: "title" | "subtitle", value: string) => void;
   onChangeCover?: () => void;
   onRemoveCover?: () => void;
@@ -86,7 +87,7 @@ export type TemplateRenderContext = {
 };
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
-  const { set, document, mediaUrls = {}, content, editingDocument, onDocumentChange, onChangeCover, onRemoveCover, onEditPart, renderOrdinary, decorate } = context;
+  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, onDocumentChange, onChangeCover, onRemoveCover, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
   function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false): ReactNode {
@@ -106,17 +107,17 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       let element: ReactNode;
       switch (node.element) {
         case "content": element = content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} />; break;
-        case "document-title": element = documentFieldVisible(document, "title") ? (editingDocument ? <input className="template-title-input" aria-label="Document title" value={document.title} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <h1>{document.title}</h1>) : null; break;
-        case "subtitle": element = documentFieldVisible(document, "subtitle") && (editingDocument ? <input className="template-subtitle-input" aria-label="Document subtitle" placeholder="Add a subtitle" value={document.subtitle ?? ""} onChange={event => onDocumentChange?.("subtitle", event.target.value)} /> : document.subtitle ? <p className="template-subtitle">{document.subtitle}</p> : null); break;
+        case "document-title": element = documentFieldVisible(document, "title") ? templatePreview ? <h1 className="template-dynamic-placeholder">Title</h1> : editingDocument ? <input className="template-title-input" aria-label="Document title" value={document.title} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <h1>{document.title}</h1> : null; break;
+        case "subtitle": element = documentFieldVisible(document, "subtitle") && (templatePreview ? <p className="template-subtitle template-dynamic-placeholder">Subtitle</p> : editingDocument ? <input className="template-subtitle-input" aria-label="Document subtitle" placeholder="Add a subtitle" value={document.subtitle ?? ""} onChange={event => onDocumentChange?.("subtitle", event.target.value)} /> : document.subtitle ? <p className="template-subtitle">{document.subtitle}</p> : null); break;
         case "post-metadata": {
           const metadataBlocks = document.metadataBlocksVersion === 2 || hasDocumentMetadataBlocks(document.blocks);
-          element = document.kind === "post" ? <p className="template-metadata">{document.category}{metadataBlocks ? "" : ` · ${readingTimeLabel(document.blocks)}${document.publishedAt ? ` · ${new Date(document.publishedAt).toLocaleDateString("en-GB")}` : ""}`}</p> : null;
+          element = document.kind === "post" ? templatePreview ? <p className="template-metadata template-dynamic-placeholder">Author · Publication date · Reading time</p> : <p className="template-metadata">{document.category}{metadataBlocks ? "" : ` · ${readingTimeLabel(document.blocks)}${document.publishedAt ? ` · ${new Date(document.publishedAt).toLocaleDateString("en-GB")}` : ""}`}</p> : null;
           break;
         }
         case "cover-image": {
           const cover = document.coverImage;
           const src = cover?.mediaId ? safeImageSource(mediaUrls[cover.mediaId] ?? "", { allowBlob: true }) : safeImageSource(cover?.src ?? "");
-          element = documentFieldVisible(document, "coverImage") ? editingDocument ? <div className="canvas-cover-wrap document-dynamic-cover">
+          element = documentFieldVisible(document, "coverImage") ? templatePreview ? <div className="template-cover-placeholder" role="img" aria-label="Cover image placeholder" /> : editingDocument ? <div className="canvas-cover-wrap document-dynamic-cover">
             <div className={`canvas-cover-image${src ? " is-source" : ""}`} role="img" aria-label={cover?.alt || "Mock cover image"}>{src ? <TemplateImage src={src} alt={cover?.alt ?? ""} /> : null}</div>
             <div className="canvas-cover-actions">
               <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label="Change cover image" title="Change cover image"><StudioIcon name="image" /></button>

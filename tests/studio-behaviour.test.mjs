@@ -194,14 +194,18 @@ test("dynamic subtitle blocks use compact body sizing", async () => {
 });
 
 test("template dynamic fields use neutral placeholders", async () => {
-  const [canvas, editor, styles] = await Promise.all([
+  const [canvas, editor, renderer, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/templates.css", import.meta.url), "utf8"),
   ]);
   assert.match(canvas, /templatePlaceholder \? "Title" : document\?\.title \|\| "Add a title in Document settings\."/);
   assert.match(canvas, /templatePlaceholder \? "Subtitle" : document\?\.subtitle \|\| "Add a subtitle in Document settings\."/);
-  assert.match(editor, /document=\{resolvedSample\} templatePlaceholder/);
+  assert.match(editor, /const contentSlot = <div className="template-content-slot"/);
+  assert.match(editor, /templatePreview=\{context\.mode === "preview"\}/);
+  assert.match(renderer, /templatePreview \? <h1 className="template-dynamic-placeholder">Title<\/h1>/);
+  assert.match(renderer, /templatePreview \? <p className="template-subtitle template-dynamic-placeholder">Subtitle<\/p>/);
   assert.match(styles, /\.template-dynamic-placeholder \{ color: #7b8088; \}/);
 });
 

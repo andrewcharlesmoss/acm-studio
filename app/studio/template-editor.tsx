@@ -6,7 +6,7 @@ import { blockCatalogue, createBlock, type StudioDocument, type InsertableBlockT
 import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
-import { TemplateNodes, TemplatePartRegion, TemplateSurface, templateDocumentBodyBlocks } from "./template-renderer";
+import { TemplateNodes, TemplatePartRegion, TemplateSurface } from "./template-renderer";
 import { templateEditorBlocks, templateNodesFromBlocks, templateElements, templateElementLabel, templateId, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
 import { resolveDocumentDisplay, resolveDocumentFields } from "./document-fields";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
@@ -27,6 +27,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     ...resolveDocumentFields(sample, set, target.kind === "page" || target.kind === "post" ? target.defaults : undefined),
     displayOverrides: resolveDocumentDisplay(sample, target.kind === "page" || target.kind === "post" ? target : undefined),
   };
+  const templatePreviewDocument = { ...resolvedSample, title: "", subtitle: "", coverImage: { src: "", alt: "" }, author: undefined, publishAt: undefined, publishedAt: undefined, blocks: [] };
   const [selected, setSelected] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [width, setWidth] = useState(1200);
@@ -110,13 +111,12 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: templateBlockCatalogue.filter(block => `${block.label} ${block.description}`.toLowerCase().includes(query.toLowerCase())), publishFeedback: null,
       presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => <TemplateSurface set={set} editing={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>, renderBlock: context => {
         if (!context.block) return null;
-        if (!["group", "section"].includes(context.block.type)) return context.mode === "edit" && writable
-          ? <BlockField block={context.block} rootBlocks={resolvedSample.blocks} document={resolvedSample} templatePlaceholder selectedBlockId={selected} mediaUrl={context.block.type === "image" && context.block.mediaId ? mediaUrls[context.block.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} />
-          : <BlockRenderer blocks={[context.block]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={resolvedSample} readingTimeBlocks={resolvedSample.blocks} />;
-        const contentSlot = context.mode === "edit"
-          ? <div className="template-content-slot" role="note" aria-label="Content slot"><strong>Content</strong><span>Supplied by each document</span></div>
-          : <BlockRenderer blocks={templateDocumentBodyBlocks(resolvedSample, set, target.nodes)} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={resolvedSample} />;
-        return <TemplateNodes key={context.block.id} set={set} document={resolvedSample} nodes={templateNodesFromBlocks([context.block])} mediaUrls={mediaUrls} content={contentSlot} onEditPart={context.mode === "edit" ? onEditPart : undefined}
+        const previewDynamicPlaceholder = context.mode === "preview" && ["document-title", "document-subtitle"].includes(context.block.type);
+        if (!["group", "section"].includes(context.block.type)) return context.mode === "edit" && writable || previewDynamicPlaceholder
+          ? <BlockField block={context.block} rootBlocks={resolvedSample.blocks} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} templatePlaceholder selectedBlockId={selected} mediaUrl={context.block.type === "image" && context.block.mediaId ? mediaUrls[context.block.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} />
+          : <BlockRenderer blocks={[context.block]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={templatePreviewDocument} readingTimeBlocks={templatePreviewDocument.blocks} />;
+        const contentSlot = <div className="template-content-slot" role="note" aria-label="Content slot"><strong>Content</strong><span>Supplied by each document</span></div>;
+        return <TemplateNodes key={context.block.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={templateNodesFromBlocks([context.block])} mediaUrls={mediaUrls} content={contentSlot} templatePreview={context.mode === "preview"} onEditPart={context.mode === "edit" ? onEditPart : undefined}
           renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} rootBlocks={resolvedSample.blocks} document={resolvedSample} templatePlaceholder selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
           decorate={context.mode === "edit" ? (node, result) => {
             if (!findBlockById(blocks, node.id)) return result;
