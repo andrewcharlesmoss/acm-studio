@@ -538,6 +538,8 @@
 .canvas-cover-wrap { position: relative; margin: 24px 0 4px; }
 .canvas-block > .canvas-cover-wrap.document-dynamic-cover { margin: 0; }
 .canvas-block > .canvas-cover-wrap.document-dynamic-cover > .canvas-cover-image { margin: 0; }
+.template-editing .canvas-block.is-cover-image .canvas-cover-wrap.document-dynamic-cover { margin: 0; }
+.template-editing .canvas-block.is-cover-image .canvas-cover-wrap.document-dynamic-cover > .canvas-cover-image { margin: 0; }
 .canvas-block > .metadata-block-editor.document-dynamic-field.template-subtitle { font: var(--template-font-size, 1rem)/1.45 var(--template-font, var(--font-sans)); margin: 0; max-width: 42em; }
 .canvas-cover-wrap:hover .canvas-cover-actions, .canvas-cover-wrap:focus-within .canvas-cover-actions { opacity: 1; pointer-events: auto; }
 .canvas-cover-actions { align-items: center; background: rgba(23, 26, 29, .16); display: flex; gap: 10px; inset: 0; justify-content: center; opacity: 0; pointer-events: none; position: absolute; transition: opacity .15s; }

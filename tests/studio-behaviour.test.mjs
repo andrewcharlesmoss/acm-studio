@@ -177,6 +177,8 @@ test("dynamic cover blocks keep selection borders tight to the image", async () 
   const styles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(styles, /\.canvas-block > \.canvas-cover-wrap\.document-dynamic-cover \{ margin: 0; \}/);
   assert.match(styles, /\.canvas-block > \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ margin: 0; \}/);
+  assert.match(styles, /\.template-editing \.canvas-block\.is-cover-image \.canvas-cover-wrap\.document-dynamic-cover \{ margin: 0; \}/);
+  assert.match(styles, /\.template-editing \.canvas-block\.is-cover-image \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ margin: 0; \}/);
 });
 
 test("template cover editing uses the shared hover actions", async () => {
