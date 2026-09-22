@@ -76,10 +76,11 @@ does not repeat reading time or publication date when the document uses the
 new metadata blocks.
 
 **Add Template Element** inserts identity, navigation, document metadata,
-content or a shared-part reference. Selecting an ordinary group before insertion
-adds the new block or element inside that group. List View supports nested
-selection, movement and removal. Every Page/Post template must retain exactly
-one Content element. Shared parts cannot contain Content, reference a missing
+content or a shared-part reference. The block library also offers Content for
+Page/Post templates. Selecting an ordinary group before insertion adds the new
+block or element inside that group. List View supports nested selection,
+movement and removal. Content is optional while exploring, and a Page/Post
+template may contain at most one Content element. Shared parts cannot contain Content, reference a missing
 part, form cycles or expand beyond the bounded rendering budget. A shared-part
 editor lists the templates which use it. HTML editing is unavailable in this
 increment because its parser does not preserve these template contracts.

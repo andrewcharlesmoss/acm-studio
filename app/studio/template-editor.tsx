@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ContentBlock } from "../content/model";
 import { BlockRenderer } from "../components/content";
-import { blockCatalogue, createBlock, type StudioDocument, type InsertableBlockType } from "./editor-model";
+import { blockCatalogue, createBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
 import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
@@ -40,7 +40,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   const blocks = templateEditorBlocks(target.nodes);
   // Metadata blocks are ordinary dynamic blocks and can be placed in a
   // template. Their values come from the preview document at render time.
-  const templateBlockCatalogue = blockCatalogue;
+  const templateBlockCatalogue = target.kind === "page" || target.kind === "post" ? [...blockCatalogue, { type: "template-content" as const, label: "Content", description: "Show the body supplied by each document.", group: "Other" as const, icon: "block" as const }] : blockCatalogue;
   const selectedBlock = selected ? findBlockById(blocks, selected) : null;
   const editingProjection = { ...resolvedSample, blocks };
   const nodesRef = useRef(target.nodes);
@@ -95,7 +95,8 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     setSelected(node.id); setShowInserter(false); setQuery("");
     return projected;
   }
-  function insertBlock(type: InsertableBlockType) {
+  function insertBlock(type: BlockLibraryItemType) {
+    if (type === "template-content") return insertNode({ id: templateId(), type: "element", element: "content" })!;
     const block = createBlock(type, templateId()); insertNode(templateNodesFromBlocks([block])[0]); return block;
   }
   const users: string[] = [];

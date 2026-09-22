@@ -127,7 +127,7 @@ export function validateTemplateSet(value: unknown): TemplateSet {
     return slots;
   }
   for (const part of set.parts) { expansion = 0; if (countContent(part.nodes, new Set([part.id])) !== 0) invalid("Content belongs in a page or post template, not a shared part."); }
-  for (const template of set.templates) { expansion = 0; if (countContent(template.nodes, new Set()) !== 1) invalid("Each template must contain exactly one Content element."); }
+  for (const template of set.templates) { expansion = 0; if (countContent(template.nodes, new Set()) > 1) invalid("Each template may contain at most one Content element."); }
   return { ...set, defaults: set.defaults ?? {}, templates: set.templates.map(template => ({ ...template, defaults: template.defaults ?? set.defaults ?? {} })) };
 }
 

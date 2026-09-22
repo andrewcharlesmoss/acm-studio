@@ -66,6 +66,16 @@ test("neutral templates validate and their editor projection round-trips without
   assert.equal(m.templateEditorBlocks(set.parts[0].nodes)[0].data, undefined);
 });
 
+test("page and post templates may temporarily omit their Content slot but reject duplicates", () => {
+  const env = environment(); const m = env.load("studio/template-model.ts"); const set = m.createTemplateSet();
+  const page = set.templates.find(item => item.kind === "page");
+  page.nodes = page.nodes.filter(node => node.type !== "element" || node.element !== "content");
+  assert.doesNotThrow(() => m.validateTemplateSet(set));
+  page.nodes.push({ id: m.templateId(), type: "element", element: "content" });
+  page.nodes.push({ id: m.templateId(), type: "element", element: "content" });
+  assert.throws(() => m.validateTemplateSet(set), /at most one Content element/);
+});
+
 test("document fields resolve template defaults and report display ownership", () => {
   const env = environment(); const fields = env.load("studio/document-fields.ts"); const model = env.load("studio/editor-model.ts");
   const document = plain(model.initialStudioWorkspace.documents.find(item => item.kind === "post"));
@@ -143,7 +153,6 @@ test("invalid references, duplicate slots, cycles, duplicate IDs and unsafe URLs
   const { load } = environment(); const m = load("studio/template-model.ts");
   for (const mutate of [
     set => { set.templates[0].nodes.push({ id: m.templateId(), type: "element", element: "content" }); },
-    set => { set.templates[0].nodes = set.templates[0].nodes.filter(n => n.element !== "content"); },
     set => { set.templates[0].nodes[0].partId = "missing"; },
     set => { set.parts[0].nodes.push({ id: m.templateId(), type: "part", partId: set.parts[0].id }); },
     set => { set.parts[0].nodes[0].id = set.parts[1].id; },

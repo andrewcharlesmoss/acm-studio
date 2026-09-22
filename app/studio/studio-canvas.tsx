@@ -12,7 +12,7 @@ import { StudioIcon, type StudioIconName } from "./studio-icons";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
 import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
 import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
-import { createBlock, type StudioDocument, type InsertableBlockType } from "./editor-model";
+import { createBlock, type StudioDocument, type BlockLibraryItemType } from "./editor-model";
 import type { StudioPresentation } from "./studio-presentation";
 import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBlock, parseHtmlToBlocks } from "./studio-html-editor";
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
@@ -99,7 +99,7 @@ export type StudioCanvasProps = {
   onDuplicateBlock: (index: number) => void;
   onRemoveBlock: (blockId: string) => void;
   onUpdateBlock: (blockId: string, update: (block: ContentBlock) => ContentBlock) => void;
-  onInsertBlock: (type: InsertableBlockType) => ContentBlock;
+  onInsertBlock: (type: BlockLibraryItemType) => ContentBlock;
   onSetShowInserter: (show: boolean) => void;
   onSetInserterQuery: (query: string) => void;
 };
@@ -809,14 +809,15 @@ function TransformIcon({ transform }: { transform: BlockTransform }) {
   return <StudioIcon name={transform.icon} />;
 }
 
-function BlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"]; headingLevel?: HeadingLevel }) {
+function BlockTypeIcon({ type, headingLevel }: { type: BlockLibraryItemType; headingLevel?: HeadingLevel }) {
+  if (type === "template-content") return <StudioIcon name="block" />;
   const icons: Partial<Record<ContentBlock["type"], StudioIconName>> = { button: "button", code: "code", divider: "separator", embed: "external", image: "image", list: "list", paragraph: "paragraph", quote: "quote", spacer: "separator" };
   if (type === "heading") return <span className="studio-heading-icon" aria-hidden="true">H{headingLevel ?? 2}</span>;
   if (type === "table") return <TableIcon />;
   return <StudioIcon name={icons[type] ?? "block"} />;
 }
 
-function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: InsertableBlockType) => void; onDismiss: () => void }) {
+function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: BlockLibraryItemType) => void; onDismiss: () => void }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const dismiss = useCallback(() => {

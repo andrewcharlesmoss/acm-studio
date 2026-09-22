@@ -44,9 +44,10 @@ export type StudioWorkspace = {
 };
 
 export type InsertableBlockType = Exclude<ContentBlock["type"], "component">;
+export type BlockLibraryItemType = InsertableBlockType | "template-content";
 
 export const blockCatalogue: Array<{
-  type: InsertableBlockType;
+  type: BlockLibraryItemType;
   label: string;
   description: string;
   group: "Text" | "Media" | "Design" | "Other";

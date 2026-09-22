@@ -1363,6 +1363,18 @@ test("template editing shows an empty Content slot instead of sample document bo
   assert.match(styles, /\.template-content-slot \{[^}]*min-height: 132px;[^}]*text-align: center;/);
 });
 
+test("template Content is available in the block library and can be removed", () => {
+  const [editor, model, inspector] = [
+    readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8"),
+    readFileSync(new URL("../app/studio/template-model.ts", import.meta.url), "utf8"),
+    readFileSync(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8"),
+  ];
+  assert.match(editor, /type: "template-content"/);
+  assert.match(editor, /type === "template-content"\) return insertNode\(\{ id: templateId\(\), type: "element", element: "content" \}\)/);
+  assert.match(model, /countContent\(template\.nodes, new Set\(\)\) > 1/);
+  assert.match(inspector, /Content is optional while exploring; add at most one Content element/);
+});
+
 
 test("template body appender does not add a blue focus border", () => {
   const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
