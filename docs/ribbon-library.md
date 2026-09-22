@@ -4,7 +4,7 @@
 
 Open `/studio/ribbon` from Studio's tools or the main dashboard. The catalogue
 combines live shared-component specimens, isolated ACM Studio and ACM Account
-references, and 85 original ACM icons with 255 SVG variants. The inventory has
+references, and 97 original ACM icons with 291 SVG variants. The inventory has
 73 command/control entries, including conditional links, header controls,
 menu actions, text-only fields and state alternatives.
 
@@ -53,7 +53,7 @@ snapshot revision/hashes and review the rendered result together.
 
 The shared workspace AGENTS.md and STYLE_GUIDE.md are unversioned; this work used
 governance commit `029d90672e94d69ceb12db07450197d07ffa96d1`. The current icon contract
-is [ACM icon specification v0.3.0](../../acm-icons/SPECIFICATION.md).
+is [ACM icon specification v0.4.0](../../acm-icons/SPECIFICATION.md).
 
 ## Local setup and verification
 
@@ -352,4 +352,100 @@ failures and unavailable true 200% zoom check. The reviewed icon source is
 `bac868095c5e5eb186e29cec4dde610075c4dc80`; Studio's pre-change baseline is
 `022200c9850c6810665c556e6f0c91790c5441dc`. The Studio increment records the
 shared library's catalogue integration and evidence without replacing product
+icons.
+
+## Shared interface actions and feedback batch — 22 September 2026
+
+ACM Icons v0.4.0 adds 12 symbols and 36 optical variants, bringing the shared
+library to 97 symbols and 291 standalone SVGs. The additions are Add, Remove,
+Settings, More Actions, Menu, Filter, Sort Ascending, Sort Descending,
+Information, Help, Warning and Error. They are reusable interface symbols;
+the Ribbon Library is their current review surface and retains UI v0.1.0.
+
+The eight-tooth Settings gear has an open counter and independently tuned
+optical tooth widths and depths. More Actions has three separated filled dots.
+Menu's three equal lines differ from text alignment's four-line family. Filter
+uses the existing Clear funnel language without a cross. Sort Ascending and
+Sort Descending share unequal bars with opposite arrow directions, keeping
+them distinct from object alignment's rectangles and reference guides.
+
+Information has a separate dot and short lowercase i stem to distinguish it
+from the circled Numbered Step. Warning's triangle and Error's circle are
+distinguishable without colour; Error's enclosure separates it from Close.
+Each symbol has explicit Regular-S/M/L path geometry for 16/24/32px rendering.
+
+The previous 85 symbols and metadata records, stable IDs and labels, existing
+asset paths and 14-symbol golden set are preserved. New entries have original
+ACM provenance and deduplicated search keywords including plus, minus,
+preferences, ellipsis, navigation, funnel, ascending, descending, info,
+question, caution and failure. They retain “Supporting catalogue symbol” usage.
+No product controls, demo commands, product snapshots or React contracts change.
+
+The shared AGENTS.md and STYLE_GUIDE.md are unversioned; this increment uses
+governance commit `6f80c6e02bb72b45eb055221e995be449a6af10a` and the ACM icon
+specification v0.4.0. Earlier verification checkpoints remain historical
+evidence for their respective batches. Adoption, publication and deployment
+are outside this increment.
+
+### Automated verification
+
+- Icon package: six tests pass; deterministic generation verifies all 294
+  distribution files, including 291 standalone SVGs. The 36 new variants
+  resolve through package exports and render through React, including filled
+  details. Path geometry differs independently of stroke width at each scale.
+- Against icon baseline `bac868095c5e5eb186e29cec4dde610075c4dc80`, all 340
+  existing master/SVG files are byte-identical and all 85 geometry and metadata
+  records are unchanged. The golden set remains 14 symbols.
+- Studio: eleven focused catalogue tests, the 73-command inventory and focused
+  TypeScript check pass. The production build succeeds. Full tests pass 453 of
+  461; the exact same eight failures remain as in the fresh baseline: three
+  Design CSS, two template, one Studio modularity and two write-ownership tests.
+- Full typecheck retains 21 errors with its complete log byte-identical to the
+  baseline. Lint passes with no errors and the same seven existing warnings.
+  These broad-check limitations are unrelated to this icon increment.
+- The workspace documentation audit passes for 17 registered paths with no
+  errors or warnings. Both repository whitespace checks pass.
+
+### Rendered verification
+
+Main and the independent Verifier reviewed all 36 new variants at 16/24/32px
+beside confirmed-loaded Inter on light and dark surfaces. Gear teeth and its
+open counter, More Actions dot gaps, arrowheads and punctuation remain legible
+at 16px. No artwork corrections were needed. Side-by-side comparisons clearly
+distinguish Filter/Clear, Menu/text alignment, sorting/object alignment,
+Information/Numbered Step and Error/Close. Warning and Error remain distinct
+without relying on colour.
+
+The live catalogue was checked at 1440 × 1000 desktop, 768 × 1024 tablet and
+390 × 844 mobile sizes, without horizontal document overflow. Cards, labels and
+the inspector remain accessible. Real Tab navigation showed a 2px focus outline;
+Space selected Settings and its inspector displayed the correct description,
+three scales, original ACM provenance, specification v0.4.0 and supporting-symbol
+usage. Dark sorting/feedback specimens, mobile sorting selection and mobile
+Information metadata were also checked.
+
+All required search aliases were checked: “plus” finds Add, “minus” Remove,
+“preferences” Settings, “ellipsis” More Actions, “funnel” Filter, “ascending”
+and “descending” their respective sort symbols, “info” Information, “question”
+Help, “caution” Warning and “failure” Error. “navigation” finds the existing
+Back and Disclosure entries plus Menu. Empty results were verified. Combining
+“preferences” with the golden filter gives no results; clearing the query
+restores the unchanged 14-symbol golden set.
+
+True 200% zoom remains unavailable in the in-app browser: five zoom shortcuts
+left the settled 3061 × 1994 viewport and device pixel ratio of 1 unchanged.
+The reset shortcut was sent and viewport overrides were cleared afterwards.
+Responsive viewport checks are separate evidence and do not constitute a
+browser-zoom pass. No product adoption, package publication or deployment
+occurred.
+
+### Independent review and local source
+
+A separate read-only Verifier approved the scoped local commits on 22 September
+2026 with no actionable findings after reviewing source, preservation checks,
+rendered artwork and the final verification record. Approval retains the
+existing broad-check failures and unavailable true 200% zoom check. The reviewed
+icon source is `0dc91a04be6f9bade3203ccadfc36a4dc52cc4a9`; Studio's pre-change
+baseline is `b199bc831bf1c25c256cca1b44bf29e45b0aa96e`. The Studio increment
+records this shared library's catalogue integration without replacing product
 icons.
