@@ -290,6 +290,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Gave the Ribbon Library's Studio demo canvas a clear sample layout, on-page
+  duplicate placement and correctly sized scrolling at different zoom levels.
 - Prevented Content and Template edits from conflicting with their own earlier
   saves, kept unsaved edits through independent tab updates and writer handover,
   and stopped new tabs from resetting existing peers. Content conflicts now

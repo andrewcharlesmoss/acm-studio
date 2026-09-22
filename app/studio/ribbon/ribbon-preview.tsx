@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, type Dispatch, type SetStateAction, type Keyb
 import { AcmIcon } from "@acm/icons/react";
 import { Ribbon, RibbonPanel, RibbonGroup, RibbonControls, RibbonButton, RibbonToggleButton, RibbonField } from "@acm/ribbon";
 import type { ControlDefinition, ExampleDefinition } from "./catalogue-model";
-import { controlPresentation, disabledReason, fixtureColumns, hasAccountSelection, initialDemo, rangeValue, runDemoCommand, setAccountColumns, setDemoSelection, visibleRows, type DemoState } from "./demo-state";
+import { controlPresentation, demoCanvasSize, disabledReason, fixtureColumns, hasAccountSelection, initialDemo, rangeValue, runDemoCommand, setAccountColumns, setDemoSelection, visibleRows, type DemoState } from "./demo-state";
 
 type StateSetter = Dispatch<SetStateAction<DemoState>>;
 type ControlProps = { control: ControlDefinition; state: DemoState; setState: StateSetter; rememberTrigger?: (element: HTMLButtonElement) => void };
@@ -48,15 +48,19 @@ function Fixture({ example, state, setState }: { example: ExampleDefinition; sta
   const editField = useRef<HTMLInputElement>(null);
   useEffect(() => { if (state.editing) editField.current?.focus(); }, [state.editing]);
   const rows = visibleRows(state);
+  const canvasScale = Number(state.values["studio.zoom"] ?? 100) / 100;
   if (example.id === "skeleton") return <div className="rl-specimen-note"><AcmIcon name="tool.select" size={32} /><h3>A working component specimen</h3><p>Try the tabs, toggle and fields. Use Tab for keyboard focus, or choose an item in Structure to inspect its boundary.</p><p>Range inputs are native controls wrapped by RibbonField.</p></div>;
   if (example.id === "studio") return <div className="rl-canvas-fixture">
     {state.values["studio.pages.toggle"] && <aside aria-label="Demo Pages"><span>Pages</span><button type="button" aria-pressed={state.selected} onClick={() => setState((current) => ({ ...current, selected: !current.selected }))}>01 — Summer Notes</button>{state.values["studio.all-pages"] && <button type="button">02 — Details</button>}</aside>}
-    <div className="rl-canvas-scroll"><div className="rl-demo-canvas" style={{ transform: "scale(" + Number(state.values["studio.zoom"] ?? 100) / 100 + ")" }}>
-      <span className="rl-canvas-caption">A small canvas for trying commands</span>
-      {state.objects.map((object, index) => <button key={object.id} type="button" aria-label={"Select " + object.label} aria-pressed={state.selected && object.id === state.selectedObjectId} onClick={() => setState((current) => ({ ...current, selected: true, selectedObjectId: object.id }))} className={"rl-object rl-object-" + object.kind + (state.selected && object.id === state.selectedObjectId ? " rl-object-selected" : "") + (state.values["studio.border"] ? " rl-purple" : "")} style={{ left: 35 + (object.id - 1) * 42, top: 65 + (object.id - 1) * 35, zIndex: index }}>
+    {/* Keyboard users need to focus this region to scroll the zoomed page. */}
+    {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
+    <div className="rl-canvas-scroll" role="region" aria-label="Demo canvas" tabIndex={0}>
+      <p className="rl-canvas-help">Select an object, then try Duplicate, Arrange or Zoom in the ribbon. This sample is not a drawing editor.</p>
+      <div className="rl-canvas-size" style={{ width: demoCanvasSize.width * canvasScale, height: demoCanvasSize.height * canvasScale }}><div className="rl-demo-canvas" style={{ width: demoCanvasSize.width, height: demoCanvasSize.height, transform: "scale(" + canvasScale + ")" }}>
+      {state.objects.map((object, index) => <button key={object.id} type="button" aria-label={"Select " + object.label} title={object.label} aria-pressed={state.selected && object.id === state.selectedObjectId} onClick={() => setState((current) => ({ ...current, selected: true, selectedObjectId: object.id }))} className={"rl-object rl-object-" + object.kind + (state.selected && object.id === state.selectedObjectId ? " rl-object-selected" : "") + (state.values["studio.border"] ? " rl-purple" : "")} style={{ left: object.x, top: object.y, width: object.width, height: object.height, zIndex: index }}>
         {object.kind === "text" ? object.label : object.kind === "image" ? <AcmIcon name="insert.image" size={52} /> : null}
       </button>)}
-    </div></div>
+    </div></div></div>
     <p className="rl-fixture-caption">Tool: {String(state.values["studio.tool"] ?? "select")} · Shape: {String(state.values["studio.shapes"])} · Zoom: {String(state.values["studio.zoom"])}% · {state.locked ? "Locked" : "Unlocked"}</p>
   </div>;
   return <div className="rl-table-fixture">

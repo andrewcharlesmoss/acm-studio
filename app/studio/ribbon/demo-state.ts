@@ -2,7 +2,8 @@ import type { IconName } from "@acm/icons";
 import { flattenControls, type ControlDefinition, type ExampleDefinition } from "./catalogue-model.ts";
 
 export type DemoRow = { id: string; name: string; username: string; email: string; status: string };
-export type DemoObject = { id: number; label: string; kind: string };
+export type DemoObject = { id: number; label: string; kind: string; x: number; y: number; width: number; height: number };
+export const demoCanvasSize = { width: 520, height: 340 };
 export type DemoState = {
   values: Record<string, string | number | boolean>;
   selected: boolean; locked: boolean; linked: boolean; handoff: boolean; loading: boolean; empty: boolean;
@@ -24,7 +25,10 @@ export function initialDemo(example: ExampleDefinition): DemoState {
   return {
     values: Object.fromEntries(flattenControls(example).map((control) => [control.id, control.initial ?? false])),
     selected: true, locked: example.id === "account", linked: false, handoff: false, loading: false, empty: false,
-    objects: [{ id: 1, label: "Summer Notes", kind: "text" }, { id: 2, label: "Amber Shape", kind: "rectangle" }],
+    objects: [
+      { id: 1, label: "Summer Notes", kind: "text", x: 40, y: 40, width: 360, height: 60 },
+      { id: 2, label: "Amber Shape", kind: "rectangle", x: 40, y: 140, width: 160, height: 120 },
+    ],
     history: [], future: [], selectedObjectId: 2, selectedRow: "sample-1", selectedColumn: "name",
     rows: fixtureRows.map((row) => ({ ...row })), query: "", filter: "", highlight: "none", lastHighlight: "row",
     rowHeights: {}, columnWidths: {}, allRowHeight: 44, allColumnWidth: 150, columns: [...fixtureColumns],
@@ -108,7 +112,10 @@ export const demoCommands: Record<string, Handler> = {
     const selected = state.objects.find((object) => object.id === state.selectedObjectId);
     if (!selected) return state;
     const id = Math.max(...state.objects.map((object) => object.id)) + 1;
-    return { ...objectChange(state, [...state.objects, { ...selected, id, label: selected.label + " Copy" }]), selectedObjectId: id };
+    // Keep repeated copies on the page, with a visible offset for layer commands.
+    const x = selected.x + 24 + selected.width <= demoCanvasSize.width - 16 ? selected.x + 24 : 40;
+    const y = selected.y + 24 + selected.height <= demoCanvasSize.height - 16 ? selected.y + 24 : 40;
+    return { ...objectChange(state, [...state.objects, { ...selected, id, x, y, label: selected.label + " Copy" }]), selectedObjectId: id };
   },
   "studio.backward": (state) => moveSelection(state, "backward"),
   "studio.forward": (state) => moveSelection(state, "forward"),
@@ -117,7 +124,10 @@ export const demoCommands: Record<string, Handler> = {
   "studio.zoom-in": zoom(1), "studio.zoom-out": zoom(-1),
   "studio.fit": (state) => ({ ...state, values: { ...state.values, "studio.zoom": "100" } }),
   "studio.save-media": (state) => ({ ...state, handoff: true, linked: true }),
-  "studio.image": (state) => objectChange(state, [...state.objects, { id: Math.max(...state.objects.map((object) => object.id)) + 1, label: "Sample Image", kind: "image" }]),
+  "studio.image": (state) => {
+    const id = Math.max(0, ...state.objects.map((object) => object.id)) + 1;
+    return { ...objectChange(state, [...state.objects, { id, label: "Sample Image", kind: "image", x: 280, y: 140, width: 160, height: 120 }]), selected: true, selectedObjectId: id };
+  },
   "account.lock": (state) => ({ ...state, locked: !state.locked, editing: false }),
   "account.highlight": (state) => ({ ...state, highlight: state.highlight === "none" ? state.lastHighlight : "none" }),
   "account.highlight.row": (state) => ({ ...state, highlight: "row", lastHighlight: "row", menu: null }),

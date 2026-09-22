@@ -102,13 +102,15 @@
 .rl-overview-copy p { color:var(--rl-muted); margin:.75rem 0; }
 .rl-overview-copy button { display:inline-flex; align-items:center; gap:.6rem; background:#FFF; border:1px solid var(--rl-line); padding:.6rem .8rem; border-radius:6px; }
 .rl-canvas-fixture { display:flex; flex-wrap:wrap; background:#EDEFF2; min-height:350px; }
-.rl-canvas-fixture>aside { width:130px; padding:15px; background:#FAFBFC; border-right:1px solid var(--rl-line); font-size:.8125rem; }
+.rl-canvas-fixture>aside { width:130px; flex-shrink:0; padding:15px; background:#FAFBFC; border-right:1px solid var(--rl-line); font-size:.8125rem; }
 .rl-canvas-fixture>aside button { display:block; margin-top:12px; border:1px solid var(--rl-line); border-radius:4px; background:#FFF; padding:15px 7px; font-size:.8125rem; }
-.rl-canvas-scroll { flex:1; min-width:0; overflow:auto; padding:20px; }
-.rl-demo-canvas { background:#FFFEFA; width:380px; height:250px; position:relative; transform-origin:top left; box-shadow:0 2px 8px #00000012; }
-.rl-canvas-caption { position:absolute; top:18px; left:24px; color:#7A7B79; font-size:.8125rem; }
-.rl-object { position:absolute; border:0; background:#DDB275; width:120px; height:95px; border-radius:3px; color:#253044; font-size:1.5rem!important; font-weight:600!important; }
-.rl-object-text { background:transparent; width:240px; height:70px; }
+.rl-canvas-scroll { flex:1; min-width:0; overflow:auto; padding:24px; max-height:560px; }
+.rl-canvas-help { color:var(--rl-muted); font-size:.8125rem; margin:0 0 20px; max-width:520px; }
+.rl-canvas-size { position:relative; margin-inline:auto; }
+.rl-demo-canvas { background:#FFFEFA; position:absolute; inset:0 auto auto 0; transform-origin:top left; box-shadow:0 2px 8px #00000012; }
+.rl-object { position:absolute; display:grid; place-items:center; border:0; background:#DDB275; border-radius:3px; color:#253044; padding:8px; overflow:hidden; font-size:1.5rem!important; font-weight:600!important; }
+.rl-object-text { background:transparent; text-align:left; justify-items:start; }
+.rl-object-image { background:#E2E8EE; }
 .rl-object-selected { outline:2px solid #65819C; outline-offset:4px; }
 .rl-object-selected.rl-purple { outline-color:#8554AA; }
 .rl-fixture-caption { width:100%; padding:10px 16px; color:var(--rl-muted); font-size:.8125rem; }

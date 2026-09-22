@@ -24,10 +24,32 @@ test("multiple real Ribbon instances render unique accessible tab/panel relation
 import { readFileSync } from "node:fs";
 import { iconNames, iconScales, iconGeometry } from "@acm/icons";
 import { commandInventory, componentDescriptions, examples, flattenControls, flattenStructure, shapeOptions, structureFor, studioExample, accountExample, zoomOptions } from "../app/studio/ribbon/catalogue-model.ts";
-import { controlPresentation, disabledReason, hasAccountSelection, initialDemo, rangeValue, runDemoCommand, setAccountColumns, setDemoSelection, visibleRows } from "../app/studio/ribbon/demo-state.ts";
+import { controlPresentation, demoCanvasSize, disabledReason, hasAccountSelection, initialDemo, rangeValue, runDemoCommand, setAccountColumns, setDemoSelection, visibleRows } from "../app/studio/ribbon/demo-state.ts";
 const control = (id) => { const result = commandInventory.find((item) => item.id === id); assert.ok(result,id); return result; };
 const run = (state,id,value) => runDemoCommand(state,control(id),value);
 const freeze = (value) => { if (value && typeof value === "object" && !Object.isFrozen(value)) { Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
+test("Studio canvas starts separated and preserves bounded geometry through commands", () => {
+  const initial = freeze(initialDemo(studioExample));
+  const [title, shape] = initial.objects;
+  assert.ok(title.y + title.height < shape.y);
+  let state = initial;
+  for (let index = 0; index < 30; index++) state = run(state, "studio.duplicate");
+  for (const object of state.objects) {
+    assert.ok(object.x >= 0 && object.y >= 0);
+    assert.ok(object.x + object.width <= demoCanvasSize.width);
+    assert.ok(object.y + object.height <= demoCanvasSize.height);
+  }
+  const before = state.objects;
+  state = run(state, "studio.back");
+  assert.deepEqual(state.objects.find((object) => object.id === state.selectedObjectId), before.at(-1));
+  state = run(state, "studio.undo");
+  assert.deepEqual(state.objects, before);
+  state = run(initial, "studio.image");
+  assert.equal(state.objects.at(-1).id, state.selectedObjectId);
+  assert.equal(state.objects.at(-1).kind, "image");
+  assert.deepEqual(initialDemo(studioExample).objects, initial.objects);
+  assert.equal(run({ ...initial, locked: true }, "studio.duplicate").objects, initial.objects);
+});
 test("every typed command appears in the same structure and resolves to valid original assets", () => {
   assert.equal(new Set(commandInventory.map((item) => item.id)).size,commandInventory.length);
   for (const example of examples) {
