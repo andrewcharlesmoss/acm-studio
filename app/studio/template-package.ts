@@ -1,15 +1,15 @@
 import { blobToBase64, base64ToBlob, validateStudioBackup, type StudioBackupAsset } from "./backup-store";
 import { initialStudioWorkspace } from "./editor-model";
 import { listMediaLibrary, replaceMediaLibrary } from "./media-store";
-import { copyTemplateData, duplicateTemplateSet, templateId, templateMediaIds, visitTemplateNodes, validateTemplateSet, validateTemplateStore, LEGACY_TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_2, TEMPLATE_STORAGE_KEY, TEMPLATE_VERSION, type TemplateSet } from "./template-model";
+import { copyTemplateData, duplicateTemplateSet, templateId, templateMediaIds, visitTemplateNodes, validateTemplateSet, validateTemplateStore, LEGACY_TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION_3, TEMPLATE_STORAGE_KEY, TEMPLATE_VERSION, type TemplateSet } from "./template-model";
 import { loadTemplates } from "./template-store";
 import { studioWriteOwnership } from "./write-ownership";
 import { isRecord } from "./workspace-validation";
 
-export type TemplatePackage = { format: "acm-studio-template-set"; version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION; set: TemplateSet; media: StudioBackupAsset[] };
+export type TemplatePackage = { format: "acm-studio-template-set"; version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_3 | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION; set: TemplateSet; media: StudioBackupAsset[] };
 export const TEMPLATE_PACKAGE_LIMIT = 50 * 1024 * 1024;
 export function validateTemplatePackage(value: unknown): TemplatePackage {
-  if (!isRecord(value) || value.format !== "acm-studio-template-set" || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.media)) throw new Error("This is not a supported template package.");
+  if (!isRecord(value) || value.format !== "acm-studio-template-set" || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.media)) throw new Error("This is not a supported template package.");
   const set = validateTemplateSet(value.set);
   // Reuse the backup's byte, base64, metadata and duplicate-ID validation.
   validateStudioBackup({ format: "acm-studio-backup", version: 4, exportedAt: "2026-01-01T00:00:00Z", workspace: initialStudioWorkspace, publications: null, media: { folders: [], assets: value.media } });

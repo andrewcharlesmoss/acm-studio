@@ -115,15 +115,19 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           break;
         }
         case "cover-image": {
-          const cover = document.coverImage;
+          const cover = node.fixedImage ?? document.coverImage;
           const src = cover?.mediaId ? safeImageSource(mediaUrls[cover.mediaId] ?? "", { allowBlob: true }) : safeImageSource(cover?.src ?? "");
-          element = documentFieldVisible(document, "coverImage") ? templatePreview ? <div className="template-cover-placeholder" role="img" aria-label="Cover image placeholder" /> : editingDocument ? <div className="canvas-cover-wrap document-dynamic-cover">
-            <div className={`canvas-cover-image${src ? " is-source" : ""}`} role="img" aria-label={cover?.alt || "Mock cover image"}>{src ? <TemplateImage src={src} alt={cover?.alt ?? ""} /> : null}</div>
-            {onChangeCover ? <div className="canvas-cover-actions">
-              <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label="Change cover image" title="Change cover image"><StudioIcon name="image" /></button>
-              {cover !== null && onRemoveCover ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCover} aria-label="Remove cover image" title="Remove cover image"><StudioIcon name="trash" /></button> : null}
-            </div> : null}
-          </div> : <>{src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : cover !== null && document.kind === "post" ? <div className="template-cover-placeholder" role="img" aria-label="Mock cover image" /> : null}</> : null;
+          const fixed = Boolean(node.fixedImage);
+          const placeholder = <div className="template-cover-placeholder" role="img" aria-label={fixed ? "Fixed cover image placeholder" : "Cover image placeholder"} />;
+          const actions = onChangeCover ? <div className="canvas-cover-actions">
+            <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label="Choose fixed cover image" title="Choose fixed cover image"><StudioIcon name="image" /></button>
+            {onRemoveCover ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCover} aria-label={fixed ? "Remove fixed cover image" : "Remove cover image from template"} title={fixed ? "Remove fixed cover image" : "Remove cover image from template"}><StudioIcon name="trash" /></button> : null}
+          </div> : null;
+          element = documentFieldVisible(document, "coverImage") ? fixed && templatePreview ? src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : placeholder
+            : templatePreview ? placeholder : editingDocument ? <div className="canvas-cover-wrap document-dynamic-cover">
+              <div className={`canvas-cover-image${src ? " is-source" : ""}`} role="img" aria-label={cover?.alt || "Mock cover image"}>{src ? <TemplateImage src={src} alt={cover?.alt ?? ""} /> : null}</div>
+              {actions}
+            </div> : <>{src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : cover !== null && document.kind === "post" ? placeholder : null}</> : null;
           break;
         }
         case "site-identity": {

@@ -223,7 +223,11 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     else {
       const nodes = copyTemplateData(target.nodes);
       let found = false;
-      visitTemplateNodes(nodes, node => { if (node.id === mediaTarget.blockId && node.type === "image") { node.mediaId = asset.id; node.src = ""; node.alt = altText || asset.altText || asset.name; found = true; } });
+      visitTemplateNodes(nodes, node => {
+        if (node.id !== mediaTarget.blockId) return;
+        if (node.type === "image") { node.mediaId = asset.id; node.src = ""; node.alt = altText || asset.altText || asset.name; found = true; }
+        if (node.type === "element" && node.element === "cover-image") { node.fixedImage = { src: "", mediaId: asset.id, alt: altText || asset.altText || asset.name }; found = true; }
+      });
       if (!found) nodes.push({ id: templateId(), type: "image", src: "", mediaId: asset.id, alt: altText || asset.altText || asset.name, caption: asset.caption });
       changeSet({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, nodes } : item), parts: set.parts.map(item => item.id === target.id ? { ...item, nodes } : item) });
     }

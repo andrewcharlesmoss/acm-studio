@@ -11,6 +11,10 @@
 - Empty Author and Publication Date blocks now remain visible in the Studio editor with clear metadata prompts, while previews and publications continue to omit unset values.
 
 ### Added
+- Fixed cover images can now be stored in reusable templates. The template
+  image controls choose or remove the managed fixed image without changing a
+  document's own cover image. Template format v0.4.0 remains readable
+  alongside v0.1.0, v0.2.0 and v0.3.0 data.
 - Template sync conflicts now identify the affected changes and explain the
   difference between the saved version and this tab's version. Template mode
   also keeps its own save status instead of displaying an unrelated Content

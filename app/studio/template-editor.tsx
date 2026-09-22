@@ -7,7 +7,7 @@ import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
 import { TemplateNodes, TemplatePartRegion, TemplateSurface } from "./template-renderer";
-import { templateEditorBlocks, templateNodesFromBlocks, templateElements, templateElementLabel, templateId, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
+import { copyTemplateData, templateEditorBlocks, templateNodesFromBlocks, templateElements, templateElementLabel, templateId, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
 import { resolveDocumentDisplay, resolveDocumentFields } from "./document-fields";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
 import { findBlockById } from "./studio-command-operations.mjs";
@@ -70,7 +70,22 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   const updateNodes = (nodes: TemplateNode[]) => {
     if (onChange({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, nodes } : item), parts: set.parts.map(item => item.id === target.id ? { ...item, nodes } : item) })) nodesRef.current = nodes;
   };
-  const commands = useStudioBlockCommands({ activeDocument: editingProjection, updateActiveDocument: update => { if (writable) updateNodes(templateNodesFromBlocks(update({ ...sample, blocks: templateEditorBlocks(nodesRef.current) }).blocks)); } });
+  const commands = useStudioBlockCommands({ activeDocument: editingProjection, updateActiveDocument: update => { if (writable) updateNodes(templateNodesFromBlocks(update({ ...sample, blocks: templateEditorBlocks(nodesRef.current) }).blocks, nodesRef.current)); } });
+  function findTemplateNode(id: string): TemplateNode | undefined {
+    let found: TemplateNode | undefined;
+    visitTemplateNodes(nodesRef.current, node => { if (node.id === id) found = node; });
+    return found;
+  }
+  function removeCoverImage(id: string) {
+    const node = findTemplateNode(id);
+    if (node?.type === "element" && node.element === "cover-image" && node.fixedImage) {
+      const next = copyTemplateData(nodesRef.current);
+      visitTemplateNodes(next, candidate => { if (candidate.id === id && candidate.type === "element" && candidate.element === "cover-image") delete candidate.fixedImage; });
+      updateNodes(next);
+      return;
+    }
+    commands.removeBlock(id);
+  }
   function insertNode(node: TemplateNode) {
     if (!writable) return;
     const projected = templateEditorBlocks([node])[0];
@@ -112,11 +127,13 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
       presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => <TemplateSurface set={set} editing={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>, renderBlock: context => {
         if (!context.block) return null;
         const previewDynamicPlaceholder = context.mode === "preview" && ["document-title", "document-subtitle"].includes(context.block.type);
-        if (!["group", "section"].includes(context.block.type)) return context.mode === "edit" && writable || previewDynamicPlaceholder
+        if (!["group", "section", "cover-image"].includes(context.block.type)) return context.mode === "edit" && writable || previewDynamicPlaceholder
           ? <BlockField block={context.block} rootBlocks={resolvedSample.blocks} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} templatePlaceholder selectedBlockId={selected} mediaUrl={context.block.type === "image" && context.block.mediaId ? mediaUrls[context.block.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} />
           : <BlockRenderer blocks={[context.block]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={templatePreviewDocument} readingTimeBlocks={templatePreviewDocument.blocks} />;
         const contentSlot = <div className="template-content-slot" role="note" aria-label="Content slot"><strong>Content</strong><span>Supplied by each document</span></div>;
-        return <TemplateNodes key={context.block.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={templateNodesFromBlocks([context.block])} mediaUrls={mediaUrls} content={contentSlot} templatePreview={context.mode === "preview"} onEditPart={context.mode === "edit" ? onEditPart : undefined}
+        const sourceNode = context.block.type === "cover-image" ? findTemplateNode(context.block.id) : undefined;
+        const nodes = sourceNode ? [sourceNode] : templateNodesFromBlocks([context.block]);
+        return <TemplateNodes key={context.block.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={nodes} mediaUrls={mediaUrls} content={contentSlot} editingDocument={context.mode === "edit" && writable} templatePreview={context.mode === "preview"} onChangeCover={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => onOpenMedia(context.block.id) : undefined} onRemoveCover={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => removeCoverImage(context.block.id) : undefined} onEditPart={context.mode === "edit" ? onEditPart : undefined}
           renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} rootBlocks={resolvedSample.blocks} document={resolvedSample} templatePlaceholder selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
           decorate={context.mode === "edit" ? (node, result) => {
             if (!findBlockById(blocks, node.id)) return result;

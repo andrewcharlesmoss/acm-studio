@@ -97,8 +97,20 @@ test("legacy template stores migrate to inheritance-aware format without losing 
   const env = environment(); const model = env.load("studio/template-model.ts"); const editor = env.load("studio/editor-model.ts"); const set = model.createTemplateSet();
   delete set.defaults;
   const migrated = model.validateTemplateStore({ version: "0.1.0", sets: [set], assignments: [] });
-  assert.equal(migrated.version, "0.3.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
+  assert.equal(migrated.version, "0.4.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
   assert.deepEqual(plain(editor.createDocumentFromTemplate("post").blocks), []);
+});
+
+test("fixed template cover images validate, survive projection and retain their media reference", () => {
+  const env = environment(); const model = env.load("studio/template-model.ts"); const set = model.createTemplateSet();
+  const post = set.templates.find(item => item.kind === "post");
+  const cover = post.nodes.find(node => node.type === "element" && node.element === "cover-image");
+  cover.fixedImage = { src: "", mediaId: "asset-cover", alt: "A fixed cover" };
+  model.validateTemplateSet(set);
+  assert.deepEqual(plain(model.templateMediaIds(set)), ["asset-cover"]);
+  const projected = model.templateEditorBlocks(post.nodes);
+  const roundTrip = model.templateNodesFromBlocks(projected, post.nodes);
+  assert.deepEqual(plain(roundTrip.find(node => node.id === cover.id).fixedImage), plain(cover.fixedImage));
 });
 
 test("responsive layout options and Spacer blocks validate and survive template projection", () => {

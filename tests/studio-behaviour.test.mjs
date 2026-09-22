@@ -183,8 +183,8 @@ test("template cover editing uses the shared hover actions", async () => {
   const source = await readFile(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8");
   assert.match(source, /className="canvas-cover-wrap document-dynamic-cover"/);
   assert.match(source, /className="canvas-cover-actions"/);
-  assert.match(source, /aria-label="Change cover image"/);
-  assert.match(source, /aria-label="Remove cover image"/);
+  assert.match(source, /aria-label="Choose fixed cover image"/);
+  assert.match(source, /aria-label=\{fixed \? "Remove fixed cover image" : "Remove cover image from template"\}/);
   assert.doesNotMatch(source, />Change Cover Image<\/button>/);
 });
 
@@ -225,8 +225,8 @@ test("template cover actions only render when handlers are available", async () 
     readFile(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
-  assert.match(renderer, /\{onChangeCover \? <div className="canvas-cover-actions">/);
-  assert.match(renderer, /cover !== null && onRemoveCover \? <button className="cover-action-button is-destructive"/);
+  assert.match(renderer, /const actions = onChangeCover \? <div className="canvas-cover-actions">/);
+  assert.match(renderer, /onRemoveCover \? <button className="cover-action-button is-destructive"/);
   assert.match(styles, /\.canvas-cover-wrap:hover \.canvas-cover-actions, \.canvas-cover-wrap:focus-within \.canvas-cover-actions \{[^}]*pointer-events: auto/);
 });
 

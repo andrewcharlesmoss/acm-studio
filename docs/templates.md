@@ -102,7 +102,7 @@ managed images; templates within a set deliberately share that set's parts.
 
 ## Storage and portable contract
 
-The template-store and JSON package schema is **v0.3.0** (`0.3.0` in JSON).
+The template-store and JSON package schema is **v0.4.0** (`0.4.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. Assignments
 reference Studio document IDs. The local-storage key is
@@ -129,14 +129,16 @@ Layout options, Spacer, document metadata and dynamic document-field blocks are
 additive to the existing typed block contract. Workspace data is now version 5,
 with readers for versions 2–4; local publication snapshots and full backups are
 version 4, with readers for their earlier versions. Template packages are
-v0.3.0, with readers for v0.1.0 and v0.2.0. Each Page/Post template may supply
+v0.4.0, with readers for v0.1.0, v0.2.0 and v0.3.0. Each Page/Post template may supply
 Author, Category, Tags and Parent page defaults plus display defaults for
 dynamic fields; legacy set-level defaults remain a fallback. Documents record
 explicit value and display overrides, including empty values;
 removing an assignment materialises the resolved values before detaching it.
 Existing documents migrate with local overrides so their appearance does not
 change. Older saved blocks and packages omit the new fields and continue using
-their existing presentation.
+their existing presentation. A Cover Image template element may optionally
+store a managed fixed image; when absent, it continues to resolve from each
+document's cover image.
 
 The content and template inspectors share Document/Template, Block and Styles
 tabs and a field catalogue. Page and Post documents expose the same ordered
