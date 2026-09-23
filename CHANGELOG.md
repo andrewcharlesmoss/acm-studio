@@ -328,6 +328,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Changed the New post and New page plus icons to black.
 - Changed the Publish date popover's Now action, month arrows and selected day
   to black, with a neutral grey hover state.
 - Restored the selected block toolbar above each block instead of in the left

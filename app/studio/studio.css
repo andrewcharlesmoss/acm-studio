@@ -388,7 +388,7 @@
 .library-create { display: grid; gap: 7px; grid-template-columns: 1fr 1fr; padding: 15px; }
 .library-create button { align-items: center; background: white; border: 1px solid #d5d3cb; border-radius: 8px; cursor: pointer; display: flex; font-size: var(--studio-ui-size); font-weight: 620; gap: 5px; justify-content: center; padding: 9px 6px; }
 .library-create button:hover { border-color: #969791; }
-.library-create svg { color: var(--accent); height: 15px; width: 15px; }
+.library-create svg { color: var(--ink); height: 15px; width: 15px; }
 .library-tabs { border-bottom: 1px solid #d8d6ce; border-top: 1px solid #d8d6ce; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0 6px; }
 .library-tabs button, .library-tab-link { align-items: center; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--ink); cursor: pointer; display: flex; font-size: var(--studio-ui-size); font-weight: 620; gap: 7px; justify-content: center; min-width: 0; padding: 12px 3px 10px; text-decoration: none; }
 .library-tabs button.is-active, .library-tab-link:hover, .library-tab-link:focus-visible { border-bottom-color: var(--ink); }
