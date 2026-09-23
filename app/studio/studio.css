@@ -994,7 +994,7 @@
 .local-article-state > p:not(.eyebrow) { color: var(--muted); font-size: 16px; margin-bottom: 30px; }
 
 .studio-workspace.is-tool { grid-template-columns: var(--studio-library-width) minmax(0, 1fr); }
-.studio-bin { background: #f9f8f4; grid-column: span 2; min-width: 0; overflow: auto; padding: clamp(24px, 4vw, 56px); }
+.studio-bin { background: #f9f8f4; grid-column: 2; min-width: 0; overflow: auto; padding: clamp(24px, 4vw, 56px); }
 .studio-bin > header { align-items: end; border-bottom: 1px solid #d2d0c8; display: flex; gap: 24px; justify-content: space-between; margin: 0 auto 24px; max-width: 980px; padding-bottom: 20px; }
 .studio-bin h1 { font-size: clamp(26px, 3vw, 38px); letter-spacing: -.04em; margin: 0; }
 .studio-bin > header p:not(.studio-eyebrow) { color: var(--muted); margin: 8px 0 0; }

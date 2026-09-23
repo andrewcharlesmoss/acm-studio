@@ -156,6 +156,9 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- The Bin now fills the Studio's main workspace pane. Moving a page, post or
+  template to the Bin is immediate; the confirmation dialog remains for
+  permanent deletion from the Bin.
 - Studio tabs now install the persistence owner's latest Content and Template
   snapshot before enabling peer edits, avoid echoing that snapshot as a stale
   local change, preserve in-flight Content and Template edits when ownership

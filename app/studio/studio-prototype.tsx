@@ -62,8 +62,6 @@ export function StudioPrototype() {
   const [renameDocumentDialog, setRenameDocumentDialog] = useState<{ documentId: string; name: string } | null>(null);
   const renameDocumentDialogRef = useRef<HTMLDialogElement>(null);
   const renameDocumentOpenerRef = useRef<HTMLElement | null>(null);
-  const [deleteDocumentTarget, setDeleteDocumentTarget] = useState<StudioDocument | null>(null);
-  const deleteDocumentDialogRef = useRef<HTMLDialogElement>(null);
   const [newTemplateChoice, setNewTemplateChoice] = useState<string>();
   const newTemplateDialogRef = useRef<HTMLDialogElement>(null);
   const documentContextMenuTriggerRef = useRef<HTMLElement | null>(null);
@@ -145,11 +143,6 @@ export function StudioPrototype() {
     input?.focus();
     input?.select();
   }, [renameDocumentDialog]);
-  useEffect(() => {
-    if (!deleteDocumentTarget || !deleteDocumentDialogRef.current) return;
-    if (!deleteDocumentDialogRef.current.open) deleteDocumentDialogRef.current.showModal();
-    deleteDocumentDialogRef.current.querySelector<HTMLButtonElement>(".template-dialog-close")?.focus();
-  }, [deleteDocumentTarget]);
   async function insertDesignMedia() {
     if (!designMediaPrompt) return;
     const inserted = await media.insertImageById(designMediaPrompt.asset.id, { target: designMediaPrompt.target }, designMediaAltText.trim());
@@ -326,8 +319,10 @@ export function StudioPrototype() {
 
   function requestDeleteDocument(documentId = activeDocument.id) {
     const targetDocument = workspace.documents.find((item) => item.id === documentId);
-    if (!targetDocument || !canDeleteDocument(targetDocument)) return;
-    setDeleteDocumentTarget(targetDocument);
+    if (!targetDocument) return;
+    if (codeEditorDirty) { publishing.setPublishFeedback("Apply or discard the code editor changes before moving this document to the Bin."); return; }
+    if (!canDeleteDocument(targetDocument)) return;
+    deleteDocument(documentId);
   }
 
   function deleteDocument(documentId: string) {
@@ -374,25 +369,6 @@ export function StudioPrototype() {
       setSelectedBlockId(null);
       setCodeEditorDirty(false);
     }
-  }
-
-  function confirmDeleteDocument() {
-    if (!deleteDocumentTarget) return;
-    const targetDocument = workspace.documents.find(item => item.id === deleteDocumentTarget.id);
-    if (!targetDocument || !canDeleteDocument(targetDocument)) {
-      cancelDeleteDocument();
-      return;
-    }
-    const documentId = targetDocument.id;
-    deleteDocumentDialogRef.current?.close();
-    setDeleteDocumentTarget(null);
-    setCodeEditorDirty(false);
-    deleteDocument(documentId);
-  }
-
-  function cancelDeleteDocument() {
-    deleteDocumentDialogRef.current?.close();
-    setDeleteDocumentTarget(null);
   }
 
   function insertBlock(type: InsertableBlockType) {
@@ -624,12 +600,6 @@ export function StudioPrototype() {
           <label><span>Name</span><input required maxLength={160} value={renameDocumentDialog.name} onChange={event => setRenameDocumentDialog({ ...renameDocumentDialog, name: event.target.value })} /></label>
           <div className="template-dialog-actions"><button type="button" onClick={closeRenameDocumentDialog}>Cancel</button><button className="button-primary" type="submit" disabled={!writable || !renameDocumentDialog.name.trim()}>Rename</button></div>
         </form>
-      </dialog> : null}
-      {deleteDocumentTarget ? <dialog ref={deleteDocumentDialogRef} className="template-dialog" aria-labelledby="delete-document-title" aria-describedby="delete-document-description" onCancel={event => { event.preventDefault(); cancelDeleteDocument(); }} onClose={() => setDeleteDocumentTarget(null)}>
-        <button className="template-dialog-close" type="button" aria-label="Close delete confirmation" onClick={cancelDeleteDocument}><StudioIcon name="close" size={20} /></button>
-        <h2 id="delete-document-title">Move {deleteDocumentTarget.kind} to Bin</h2>
-        <p id="delete-document-description">Move “{deleteDocumentTarget.title}” to the Bin? You can restore it later or permanently delete it there.{codeEditorDirty ? " Any unsaved code editor changes will be discarded." : ""}{deleteDocumentTarget.kind === "post" && deleteDocumentTarget.status === "published" ? " Its local published copy will be removed until you restore the post." : ""}</p>
-        <div className="template-dialog-actions"><button type="button" onClick={cancelDeleteDocument}>Cancel</button><button className="button-primary" type="button" onClick={confirmDeleteDocument} disabled={!canDeleteDocument(deleteDocumentTarget)}>Move to Bin</button></div>
       </dialog> : null}
       {designMediaPrompt ? <dialog ref={designMediaDialogRef} className="media-alt-dialog" aria-labelledby="studio-design-media-title" onClose={() => setDesignMediaPrompt(null)}><form method="dialog" onSubmit={(event) => { event.preventDefault(); void insertDesignMedia(); }}>
           <h2 id="studio-design-media-title">Describe this image</h2><p>Provide alternative text for people who cannot see the image.</p>
