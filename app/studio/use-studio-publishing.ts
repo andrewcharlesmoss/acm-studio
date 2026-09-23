@@ -28,7 +28,7 @@ export function useStudioPublishing({
   const [publishFeedback, setPublishFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!publishFeedback?.startsWith("Published locally") && publishFeedback !== "Published post updated locally.") return;
+    if (!publishFeedback?.startsWith("Published locally") && !publishFeedback?.startsWith("Scheduled locally") && publishFeedback !== "Published post updated locally." && publishFeedback !== "Scheduled post updated locally.") return;
     const timeout = window.setTimeout(() => setPublishFeedback(null), 4000);
     return () => window.clearTimeout(timeout);
   }, [publishFeedback]);
@@ -40,14 +40,15 @@ export function useStudioPublishing({
       setPublishFeedback(error);
       return false;
     }
-    const firstPublication = !activeDocument.publishedAt;
+    const scheduled = activeDocument.status === "scheduled";
+    const firstPublication = activeDocument.status !== "published" && activeDocument.status !== "scheduled";
     const timestamp = new Date().toISOString();
     const slug = normalisePostSlug(activeDocument.slug);
     const publication: StudioDocument = {
       ...activeDocument,
       slug,
-      status: "published",
-      publishedAt: activeDocument.publishAt ?? activeDocument.publishedAt ?? timestamp,
+      status: scheduled ? "scheduled" : "published",
+      publishedAt: scheduled ? activeDocument.publishAt : activeDocument.publishAt ?? activeDocument.publishedAt ?? timestamp,
       publishedSlug: slug,
       updatedAt: timestamp,
     };
@@ -58,8 +59,10 @@ export function useStudioPublishing({
       return false;
     }
     updateActiveDocument(() => publication);
-    setPublishFeedback(firstPublication ? "Published locally. This post is now visible in the Writing archive on this browser." : "Published post updated locally.");
-    setSaveLabel("Published locally just now");
+    setPublishFeedback(scheduled
+      ? firstPublication ? `Scheduled locally for ${new Date(activeDocument.publishAt!).toLocaleString("en-GB")}. It will appear in the Writing archive on this browser at that time.` : "Scheduled post updated locally."
+      : firstPublication ? "Published locally. This post is now visible in the Writing archive on this browser." : "Published post updated locally.");
+    setSaveLabel(scheduled ? "Post scheduled locally" : "Published locally just now");
     return true;
   }
 
@@ -72,8 +75,14 @@ export function useStudioPublishing({
       setPublishFeedback(error instanceof UnreadablePublicationsError ? error.message : "This browser could not remove the published post.");
       return false;
     }
-    updateActiveDocument((document) => ({ ...document, status: "draft" }));
-    setPublishFeedback("Post returned to draft and removed from the local Writing archive.");
+    const cancelledSchedule = activeDocument.status === "scheduled";
+    updateActiveDocument((document) => {
+      const draft = { ...document };
+      delete draft.publishedAt;
+      delete draft.publishedSlug;
+      return { ...draft, status: "draft" };
+    });
+    setPublishFeedback(cancelledSchedule ? "Schedule cancelled and removed from the local Writing archive." : "Post returned to draft and removed from the local Writing archive.");
     setSaveLabel("Draft saved locally");
     return true;
   }

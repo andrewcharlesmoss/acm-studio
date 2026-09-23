@@ -993,10 +993,12 @@
 .status-option span { display: grid; gap: 2px; }
 .status-option small { color: var(--muted); font-size: var(--studio-ui-size); line-height: 1.35; }
 .password-protection-option { border-top: 1px solid #deddd7; display: grid; gap: 14px; margin-top: 9px; padding-top: 13px; }
+.sticky-post-option { border-top: 1px solid #deddd7; display: grid; gap: 14px; margin-top: 9px; padding-top: 13px; }
 .password-protection-toggle { align-items: flex-start; display: flex; gap: 9px; }
 .password-protection-toggle input { accent-color: var(--accent); flex: 0 0 auto; height: 16px; margin: 2px 0 0; width: 16px; }
 .password-protection-toggle label { cursor: pointer; display: grid; gap: 3px; }
 .password-protection-option strong { font-size: 14px; }
+.sticky-post-option strong { font-size: 14px; }
 .password-protection-option small { color: var(--muted); font-size: var(--studio-ui-size); line-height: 1.4; }
 .password-protection-editor { display: grid; gap: 8px; padding-left: 25px; }
 .password-protection-editor > label { color: #52565d; font-size: var(--studio-ui-size); font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }

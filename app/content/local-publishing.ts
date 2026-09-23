@@ -17,6 +17,8 @@ export type LocallyPublishedArticle = Article & {
   coverImage?: { src: string; mediaId?: string; alt: string } | null;
   metadataBlocksVersion?: 2;
   passwordProtection?: StudioPasswordProtection;
+  sticky?: boolean;
+  scheduledAt?: string;
 };
 
 type StoredWorkspaceDocument = {
@@ -68,6 +70,7 @@ export function validatePostForPublication(document: StudioDocument, documents: 
   if (!slug) return "Add a valid post address before publishing.";
   if (reservedSlugs.includes(slug)) return "That post address is already used by an existing article.";
   if (documents.some((item) => item.id !== document.id && item.kind === "post" && normalisePostSlug(item.slug) === slug)) return "Another local post already uses that address.";
+  if (document.status === "scheduled" && (!document.publishAt || Date.parse(document.publishAt) <= Date.now())) return "Choose a future publish date and time before scheduling this post.";
   const hasContent = (blocks: StudioDocument["blocks"]): boolean => blocks.some((block) => {
     if (block.type === "paragraph" || block.type === "heading" || block.type === "quote") return Boolean(block.text.trim());
     if (block.type === "list") return block.items.some((item) => item.trim());
@@ -80,7 +83,8 @@ export function validatePostForPublication(document: StudioDocument, documents: 
 }
 
 export function toLocallyPublishedArticle(document: StudioDocument, templateSnapshot?: TemplateSnapshot): LocallyPublishedArticle {
-  const publishedAt = document.publishedAt ?? document.updatedAt;
+  const scheduledAt = document.status === "scheduled" ? document.publishAt : undefined;
+  const publishedAt = scheduledAt ?? document.publishedAt ?? document.updatedAt;
   // Posts show the Studio's generated cover treatment until a real cover is
   // selected. Preserve that same presentation in the browser-local article.
   const coverImage = document.coverImage === undefined && document.kind === "post"
@@ -99,6 +103,8 @@ export function toLocallyPublishedArticle(document: StudioDocument, templateSnap
     author: document.author?.trim() || undefined,
     metadataBlocksVersion: 2,
     ...(document.passwordProtection ? { passwordProtection: document.passwordProtection } : {}),
+    ...(document.kind === "post" && document.sticky ? { sticky: true } : {}),
+    ...(scheduledAt ? { scheduledAt } : {}),
     section: document.templateOverrides?.category === true ? (document.category ?? "") : (document.category ?? "Technology"),
     blocks: copyTemplateData(document.blocks),
     ...(templateSnapshot ? { templateSnapshot: copyTemplateData(templateSnapshot) } : {}),
@@ -113,7 +119,7 @@ export function parseLocallyPublishedArticles(serialisedPublications: string | n
     const publications = JSON.parse(serialisedPublications) as LocalPublicationStore;
     validatePublicationSnapshot(publications);
     if (![1, 2, 3, 4].includes(publications?.version) || !Array.isArray(publications.posts)) return [];
-    return publications.posts.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+    return publications.posts.sort((a, b) => Number(Boolean(b.sticky)) - Number(Boolean(a.sticky)) || b.publishedAt.localeCompare(a.publishedAt));
   } catch {
     return [];
   }

@@ -14,6 +14,7 @@ import { StudioIcon } from "../../studio/studio-icons";
 
 export function LocalArticlePage({ slug }: { slug: string }) {
   const [article, setArticle] = useState<LocallyPublishedArticle | null | undefined>(undefined);
+  const [now, setNow] = useState(() => Date.now());
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -32,7 +33,13 @@ export function LocalArticlePage({ slug }: { slug: string }) {
   }, [slug]);
 
   useEffect(() => {
-    if (!article || (article.passwordProtection && !passwordUnlocked)) return;
+    if (!article?.scheduledAt || Date.parse(article.scheduledAt) <= now) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [article, now]);
+
+  useEffect(() => {
+    if (!article || (article.scheduledAt && Date.parse(article.scheduledAt) > now) || (article.passwordProtection && !passwordUnlocked)) return;
     let cancelled = false;
     void Promise.all(article.mediaIds.map(async (id) => ({ id, asset: await getMediaAsset(id) }))).then((records) => {
       if (cancelled) return;
@@ -51,7 +58,7 @@ export function LocalArticlePage({ slug }: { slug: string }) {
       });
     }).catch(() => undefined);
     return () => { cancelled = true; };
-  }, [article, passwordUnlocked]);
+  }, [article, now, passwordUnlocked]);
 
   // Older local publications predate cover metadata. Treat their missing
   // value as the same generated cover that Studio shows for posts.
@@ -71,7 +78,7 @@ export function LocalArticlePage({ slug }: { slug: string }) {
   }, []);
 
   useEffect(() => {
-    if (!article || (article.passwordProtection && !passwordUnlocked)) return;
+    if (!article || (article.scheduledAt && Date.parse(article.scheduledAt) > now) || (article.passwordProtection && !passwordUnlocked)) return;
     const previousTitle = document.title;
     const description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     const previousDescription = description?.content;
@@ -81,7 +88,7 @@ export function LocalArticlePage({ slug }: { slug: string }) {
       document.title = previousTitle;
       if (description && previousDescription !== undefined) description.content = previousDescription;
     };
-  }, [article, passwordUnlocked]);
+  }, [article, now, passwordUnlocked]);
 
   if (article === undefined) {
     return <PageFrame><main className="local-article-state"><p className="eyebrow">Browser-local publication</p><h1>Loading locally published post…</h1></main></PageFrame>;
@@ -89,6 +96,10 @@ export function LocalArticlePage({ slug }: { slug: string }) {
 
   if (article === null) {
     return <PageFrame><main className="local-article-state"><p className="eyebrow">Post not found</p><h1>This post is not published in this browser.</h1><p>It may still be a draft, have been unpublished, or belong to another browser.</p><a className="primary-action" href="/writing">Return to writing</a></main></PageFrame>;
+  }
+
+  if (article.scheduledAt && Date.parse(article.scheduledAt) > now) {
+    return <PageFrame><main className="local-article-state"><p className="eyebrow">Scheduled local post</p><h1>This post is not available yet.</h1><p>It will appear in this browser’s Writing archive at its scheduled time.</p><a className="primary-action" href="/writing">Return to writing</a></main></PageFrame>;
   }
 
   if (article.passwordProtection && !passwordUnlocked) {

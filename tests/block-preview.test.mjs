@@ -32,7 +32,7 @@ async function compileModule(url) {
 
 const { BlockRenderer } = await import(await compileModule(new URL("../app/components/content.tsx", import.meta.url)));
 const { safeImageSource } = await import(await compileModule(new URL("../app/content/rich-text.ts", import.meta.url)));
-const { restoreLegacyPublicationCover, toLocallyPublishedArticle } = await import(await compileModule(new URL("../app/content/local-publishing.ts", import.meta.url)));
+const { parseLocallyPublishedArticles, restoreLegacyPublicationCover, toLocallyPublishedArticle, validatePostForPublication } = await import(await compileModule(new URL("../app/content/local-publishing.ts", import.meta.url)));
 const { blockToHtml, formatHtml } = await import(await compileModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url)));
 
 test("document HTML formatting keeps meaningful inline and preformatted whitespace", () => {
@@ -114,6 +114,32 @@ test("local publications use the selected publication date", () => {
   });
   assert.equal(article.publishedAt, "2026-09-03");
   assert.equal(article.displayDate, "3 September 2026");
+});
+
+test("scheduled posts retain their scheduled time and sticky posts sort first", () => {
+  const scheduledAt = "2026-09-24T14:30:00.000Z";
+  const scheduled = toLocallyPublishedArticle({
+    id: "scheduled-post", kind: "post", title: "Scheduled", subtitle: "", slug: "scheduled", excerpt: "Summary",
+    status: "scheduled", publishAt: scheduledAt, sticky: true, updatedAt: "2026-09-23T15:00:00.000Z",
+    blocks: [{ id: "paragraph-scheduled", type: "paragraph", text: "Scheduled content" }],
+  });
+  const regular = toLocallyPublishedArticle({
+    id: "regular-post", kind: "post", title: "Regular", subtitle: "", slug: "regular", excerpt: "Summary",
+    status: "published", publishedAt: "2026-09-25T12:00:00.000Z", updatedAt: "2026-09-25T12:00:00.000Z",
+    blocks: [{ id: "paragraph-regular", type: "paragraph", text: "Regular content" }],
+  });
+  assert.equal(scheduled.scheduledAt, scheduledAt);
+  assert.equal(scheduled.sticky, true);
+  assert.deepEqual(parseLocallyPublishedArticles(JSON.stringify({ version: 4, posts: [regular, scheduled] })).map((article) => article.localDocumentId), ["scheduled-post", "regular-post"]);
+});
+
+test("scheduled posts require a future publication time", () => {
+  const document = {
+    id: "scheduled-post", kind: "post", title: "Scheduled", slug: "scheduled", excerpt: "Summary",
+    status: "scheduled", updatedAt: "2026-09-23T15:00:00.000Z", tags: [], blocks: [{ id: "body", type: "paragraph", text: "Content" }],
+  };
+  assert.match(validatePostForPublication(document, [document], []), /Choose a future publish date and time/);
+  assert.equal(validatePostForPublication({ ...document, publishAt: "2999-09-24T14:30:00.000Z" }, [document], []), null);
 });
 
 test("legacy local publications recover the selected cover from the matching workspace document", () => {

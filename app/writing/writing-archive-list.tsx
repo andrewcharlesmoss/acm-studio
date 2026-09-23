@@ -7,6 +7,7 @@ import type { Article } from "../content/model";
 
 export function WritingArchiveList({ articles }: { articles: Article[] }) {
   const [localArticles, setLocalArticles] = useState<LocallyPublishedArticle[]>([]);
+  const [now, setNow] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -19,20 +20,24 @@ export function WritingArchiveList({ articles }: { articles: Article[] }) {
       if (event.key === LOCAL_PUBLICATIONS_KEY) readLocalArticles();
     };
     window.addEventListener("storage", handleStorage);
+    const scheduleTimer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => {
       cancelled = true;
       window.removeEventListener("storage", handleStorage);
+      window.clearInterval(scheduleTimer);
     };
   }, []);
 
+  const visibleLocalArticles = localArticles.filter((article) => !article.scheduledAt || Date.parse(article.scheduledAt) <= now);
+
   return (
     <section className="writing-index" aria-label="Articles">
-      <div className="writing-index-labels"><span>{articles.length + localArticles.length} selected articles</span><span>Newest first</span></div>
-      {localArticles.length ? (
+      <div className="writing-index-labels"><span>{articles.length + visibleLocalArticles.length} selected articles</span><span>Newest first</span></div>
+      {visibleLocalArticles.length ? (
         <div className="local-writing-group">
           <div className="local-writing-label"><span>Published from ACM Studio</span><small>Visible on this browser only</small></div>
           <div className="article-list">
-            {localArticles.map((article) => <ArticleRow article={article} passwordProtected={Boolean(article.passwordProtection)} key={article.localDocumentId} />)}
+            {visibleLocalArticles.map((article) => <ArticleRow article={article} passwordProtected={Boolean(article.passwordProtection)} key={article.localDocumentId} />)}
           </div>
         </div>
       ) : null}

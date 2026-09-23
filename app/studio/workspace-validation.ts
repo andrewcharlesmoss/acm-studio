@@ -199,7 +199,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
     || (value.documents.length > 0 && !value.documents.some((item) => item.id === value.activeDocumentId))
     || (value.documents.length === 0 && value.activeDocumentId !== "")) return invalid();
   for (const document of allDocuments) {
-    if (!["page", "post"].includes(document.kind as string) || !["draft", "pending", "private", "published"].includes(document.status as string)
+    if (!["page", "post"].includes(document.kind as string) || !["draft", "pending", "private", "scheduled", "published"].includes(document.status as string)
       || !["title", "slug", "excerpt", "seoTitle", "seoDescription"].every((field) => typeof document[field] === "string")
       || !date(document.updatedAt) || !strings(document.tags) || !validContentBlocks(document.blocks)
       || !optionalString(document.author)
@@ -207,6 +207,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       || (document.documentShellVersion !== undefined && document.documentShellVersion !== 1)
       || ![document.subtitle, document.publishedSlug, document.parentPageId].every(optionalString)
       || !validPasswordProtection(document.passwordProtection)
+      || !optionalBoolean(document.sticky)
       || (document.publishAt !== undefined && !date(document.publishAt))
       || (document.publishedAt !== undefined && !date(document.publishedAt))
       || (document.category !== undefined && (typeof document.category !== "string" || document.category.length > 200))
@@ -239,6 +240,8 @@ export function validatePublicationSnapshot(value: unknown): void {
       || !optionalString(post.subtitle) || !optionalString(post.projectSlug)
       || !optionalString(post.author)
       || !validPasswordProtection(post.passwordProtection)
+      || !optionalBoolean(post.sticky) || !optionalString(post.scheduledAt)
+      || (post.scheduledAt !== undefined && !date(post.scheduledAt))
       || (post.metadataBlocksVersion !== undefined && post.metadataBlocksVersion !== 2)
       || !["", "Technology", "Excel", "Personal"].includes(post.section as string) || ids.has(post.localDocumentId)) {
       throw new Error("The published-post snapshot is invalid.");

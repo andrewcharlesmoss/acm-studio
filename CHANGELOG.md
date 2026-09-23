@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- Added Scheduled status for pages and posts, with local post scheduling tied
+  to the selected publish date and time. Added a post-only Sticky option that
+  pins locally published posts to the top of the Writing archive.
 - Added a recoverable Bin for deleted pages, posts, templates and template
   sets. Restore preserves document assignments and local publication snapshots;
   items stay in the Bin until individually and explicitly deleted permanently.
