@@ -880,7 +880,7 @@
 .document-summary > div { display: grid; min-width: 0; }
 .document-summary strong { font-size: var(--studio-ui-size); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .document-summary small { color: var(--muted); font-size: var(--studio-ui-size); margin-top: 2px; text-transform: capitalize; }
-.kind-badge { align-items: center; background: var(--accent-soft); border-radius: 7px; color: #284aa9; display: flex; font-size: var(--studio-ui-size); font-weight: 750; height: 34px; justify-content: center; width: 34px; }
+.kind-badge { align-items: center; background: #e9e8e2; border-radius: 7px; color: var(--ink); display: flex; font-size: var(--studio-ui-size); font-weight: 750; height: 34px; justify-content: center; width: 34px; }
 .checkbox-setting { align-items: center; display: flex !important; grid-template-columns: auto 1fr; }
 .checkbox-setting input { width: auto; }
 .document-operations button { background: white; border: 1px solid #d1cfc7; border-radius: 7px; cursor: pointer; font-size: var(--studio-ui-size); padding: 9px; }
@@ -950,8 +950,8 @@
 .local-publish-status small { color: var(--muted); font-size: var(--studio-ui-size); margin-top: 2px; }
 .inspector-setting-row { align-items: center; display: grid; gap: 12px; grid-template-columns: 1fr auto; }
 .inspector-setting-row > span { color: var(--muted); font-size: var(--studio-ui-size); }
-.inspector-setting-trigger { align-items: center; background: #eef2ff; border: 0; border-radius: 5px; color: #3155bd; cursor: pointer; display: inline-flex; font-size: var(--studio-ui-size); gap: 7px; justify-content: space-between; min-height: 34px; padding: 7px 8px 7px 10px; }
-.inspector-setting-trigger:hover { background: #e2e9ff; }
+.inspector-setting-trigger { align-items: center; background: #e9e8e2; border: 0; border-radius: 5px; color: var(--ink); cursor: pointer; display: inline-flex; font-size: var(--studio-ui-size); gap: 7px; justify-content: space-between; min-height: 34px; padding: 7px 8px 7px 10px; }
+.inspector-setting-trigger:hover { background: #deddd7; }
 .inspector-setting-trigger svg { flex: 0 0 auto; }
 .inspector-popover { background: white; border: 1px solid #d2d0c8; border-radius: 8px; box-shadow: 0 8px 24px rgba(27, 28, 29, .12); display: grid; gap: 12px; padding: 12px; }
 .inspector-popover-heading { align-items: center; display: flex; justify-content: space-between; }
