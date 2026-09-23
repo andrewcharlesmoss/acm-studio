@@ -1,5 +1,5 @@
-.design-shell { --accent: #8f8f8f; --accent-soft: #e7e7e7; --focus-ring-colour: rgba(143, 143, 143, .72); --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa; color: var(--ink); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr); height: 100dvh; min-height: 620px; }
-.design-library-shell { --accent: #8f8f8f; --accent-soft: #e7e7e7; --focus-ring-colour: rgba(143, 143, 143, .72); --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa; color: var(--ink); min-height: 100dvh; }
+.design-shell { --accent: #8f8f8f; --accent-soft: #e7e7e7; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa; color: var(--ink); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr); height: 100dvh; min-height: 620px; }
+.design-library-shell { --accent: #8f8f8f; --accent-soft: #e7e7e7; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa; color: var(--ink); min-height: 100dvh; }
 .design-library-main { margin: 0 auto; max-width: 1180px; padding: clamp(34px, 6vw, 72px) clamp(22px, 5vw, 76px) 72px; }
 .design-library-heading { align-items: flex-start; display: flex; gap: 24px; justify-content: space-between; margin-bottom: 34px; }
 .design-library-eyebrow { color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: .08em; margin: 0 0 8px; text-transform: uppercase; }
@@ -210,7 +210,7 @@
 .design-background-removal button { background: #cc1818; border: 0; border-radius: 5px; color: white; cursor: pointer; font: inherit; font-size: var(--studio-ui-size, .8125rem); padding: 8px 10px; }
 .design-background-removal small, .design-background-removal [role="status"] { color: var(--muted); font-size: var(--studio-ui-size, .8125rem); line-height: 1.4; }
 .design-background-removal button:disabled { cursor: not-allowed; opacity: .5; }
-.design-background-removal button:focus-visible { outline: 2px solid #3858e9; outline-offset: 2px; }
+.design-background-removal button:focus-visible { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
 .design-background-removal progress { width: 100%; }
 .design-background-removal { grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .design-background-removal label, .design-background-removal .design-inspector-label { font-size: var(--studio-ui-size, .8125rem); }
@@ -267,7 +267,7 @@
 .design-conflict-panel-heading { align-items: start; display: flex; gap: 20px; justify-content: space-between; }
 .design-conflict-panel-heading h2 { font-size: 18px; margin: 0; }
 .design-conflict-panel-heading > button { background: transparent; border: 0; color: var(--ink); cursor: pointer; font-size: 26px; line-height: 1; padding: 0 2px; }
-.design-conflict-panel-heading > button:focus-visible, .design-conflict-actions button:focus-visible, .design-notice button:focus-visible { outline: 2px solid #3858e9; outline-offset: 2px; }
+.design-conflict-panel-heading > button:focus-visible, .design-conflict-actions button:focus-visible, .design-notice button:focus-visible { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
 .design-conflict-eyebrow { color: var(--muted); font-size: 12px; margin: 0 0 4px; }
 .design-conflict-panel p { color: var(--muted); font-size: var(--studio-ui-size, .8125rem); line-height: 1.5; margin: 0; }
 .design-conflict-list { border: 1px solid #dedbd2; display: grid; gap: 8px; list-style: none; margin: 0; max-height: 220px; overflow: auto; padding: 8px; }

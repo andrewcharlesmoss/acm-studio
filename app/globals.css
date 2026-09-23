@@ -9,8 +9,8 @@
   --panel: #fbfaf7;
   --accent: #3158c9;
   --accent-soft: #dfe6fa;
-  /* Shared keyboard focus ring: inset so adjacent labels and controls stay clear. */
-  --focus-ring-colour: rgba(49, 88, 201, 0.72);
+  /* Shared neutral keyboard focus ring: inset so adjacent labels and controls stay clear. */
+  --focus-ring-colour: rgba(92, 94, 92, 0.82);
   --focus-ring-width: 2px;
   --focus-ring-offset: -2px;
   --green: #0e7c66;
@@ -49,6 +49,11 @@ textarea:focus-visible,
 select:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-colour);
   outline-offset: var(--focus-ring-offset);
+}
+
+:where(.studio-shell, .design-shell, .design-library-shell, .pane-workspace, .pl-catalogue, .rl-shell, .template-surface) :focus {
+  border-color: #5c5e5c !important;
+  outline-color: var(--focus-ring-colour) !important;
 }
 
 button, input, textarea, select { font: inherit; }

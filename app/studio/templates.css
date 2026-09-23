@@ -8,7 +8,7 @@
 .template-zoom-control { align-items: center; display: inline-flex; gap: 3px; margin-left: auto; }
 .template-zoom-label { color: var(--muted); margin-right: 3px; }
 .template-zoom-control button { align-items: center; background: #fff; border: 1px solid #d1cfc7; border-radius: 5px; color: var(--ink); cursor: pointer; display: inline-flex; justify-content: center; min-width: 34px; padding: 6px; }
-.template-zoom-control button:hover, .template-zoom-control button:focus-visible { border-color: #2457c5; color: #2457c5; }
+.template-zoom-control button:hover, .template-zoom-control button:focus-visible { border-color: #5c5e5c; color: #17191c; }
 .template-zoom-control button:disabled { cursor: default; opacity: .45; }
 .template-zoom-control .template-zoom-value { min-width: 58px; font-variant-numeric: tabular-nums; }
 .template-set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 20px; }
@@ -33,7 +33,7 @@
 .template-inspector input, .template-inspector select, .template-inspector textarea, .template-toolbar select, .template-dialog input, .template-assignment select { border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; }
 .template-inspector .inspector-scroll button, .template-set-actions button, .template-set-card > button, .template-library-actions > button:not(.button-primary), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-inspector button:disabled, .template-workspace button:disabled { opacity: .5; cursor: default; }
-.template-workspace :is(input,select,textarea,button):focus-visible, .template-dialog :is(input,button):focus-visible { outline: 2px solid #2457c5; outline-offset: 2px; }
+.template-workspace :is(input,select,textarea,button):focus-visible, .template-dialog :is(input,button):focus-visible { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
 .template-workspace .canvas-appender input:focus-visible { box-shadow: none; outline: 0; }
 .template-assignment { padding: 18px; border-bottom: 1px solid #dddbd4; display: grid; gap: 10px; }
 .template-assignment label { display: grid; gap: 6px; }
@@ -60,7 +60,7 @@
 .template-surface { color: var(--template-text); background: var(--template-background); font: var(--template-font-size)/1.6 var(--template-font); container-type: inline-size; max-width: var(--template-content-width); min-width: 0; overflow-wrap: anywhere; margin-inline: auto; padding: var(--template-spacing); border-radius: var(--template-radius); }
 .template-surface .template-node + .template-node { margin-top: var(--template-spacing); }
 .template-surface a { color: var(--template-accent); text-decoration-thickness: 0.08em; text-underline-offset: 0.16em; }
-.template-surface a:focus-visible, .template-surface button:focus-visible, .template-surface input:focus-visible { outline: 3px solid var(--template-accent); outline-offset: 3px; }
+.template-surface a:focus-visible, .template-surface button:focus-visible, .template-surface input:focus-visible { outline: 3px solid #5c5e5c; outline-offset: 3px; }
 .template-surface .template-group { display: flex; flex-direction: column; gap: var(--template-spacing); }
 .template-surface .template-group.layout-row { flex-direction: row; justify-content: space-between; align-items: center; flex-wrap: wrap; }
 .template-surface .template-group.layout-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
@@ -101,7 +101,7 @@
    nested selection semantic without drawing a second, competing border. */
 .template-node-selected { outline: 0; }
 .template-node-selectable { min-width: 0; }
-.template-node-selectable:focus-visible { outline: 2px solid #2457c5; outline-offset: 4px; }
+.template-node-selectable:focus-visible { outline: 2px solid #5c5e5c; outline-offset: 4px; }
 .template-editing .block-canvas, .template-editing .document-preview { padding: 24px; width: 100%; max-width: 1200px; }
 .template-dialog { border: 1px solid #ccc; border-radius: 10px; padding: 24px; width: min(480px, 90vw); }
 .template-dialog::backdrop { background: #0005; }

@@ -156,6 +156,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Replaced blue focus borders with neutral grey indicators across Studio and
+  its editor tools while keeping keyboard focus visible.
 - Reorganised the Page inspector around identity and publishing controls, with
   secondary metadata in expandable sections. Template assignment, cover image,
   field display and override settings, SEO and page actions remain available.

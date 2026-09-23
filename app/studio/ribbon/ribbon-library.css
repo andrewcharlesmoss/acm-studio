@@ -3,7 +3,7 @@
 .rl-shell button,.rl-shell input,.rl-shell select { font:inherit; }
 .rl-shell button { cursor:pointer; }
 .rl-shell button:disabled { cursor:default; }
-.rl-shell :focus-visible { outline:2px solid #375C91; outline-offset:3px; }
+.rl-shell :focus-visible { outline:2px solid var(--focus-ring-colour); outline-offset:3px; }
 .rl-shell h1,.rl-shell h2,.rl-shell h3,.rl-shell p { margin:0; }
 .rl-shell h2 { font-size:1.125rem; font-weight:600; line-height:1.35; }
 .rl-shell h3 { font-size:1rem; font-weight:600; margin-top:1.5rem; }
