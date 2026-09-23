@@ -142,7 +142,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -157,6 +157,8 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   }
   if (migrated.version === 3) migrated.version = 4;
   if (migrated.version === 4) migrated.version = 5;
+  if (migrated.version === 5) migrated.version = 6;
+  if (!Array.isArray(migrated.bin)) migrated.bin = [];
   migrated.documents = (migrated.documents as unknown[]).map(candidate => {
     if (!isRecord(candidate)) return candidate;
     const next = { ...candidate };
@@ -179,12 +181,21 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5].includes(value.version as number) || !Array.isArray(value.documents)
-    || !value.documents.every(isRecord) || !uniqueIds(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6].includes(value.version as number) || !Array.isArray(value.documents)
+    || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
+  const binnedDocuments = value.bin.map(item => {
+    if (!isRecord(item) || typeof item.id !== "string" || typeof item.deletedAt !== "string" || !date(item.deletedAt) || !isRecord(item.document)) return invalid();
+    if (item.assignment !== undefined && (!isRecord(item.assignment) || item.assignment.documentId !== item.document.id)) return invalid();
+    if (item.publication !== undefined && (!isRecord(item.publication) || item.publication.localDocumentId !== item.document.id)) return invalid();
+    return item.document;
+  });
+  if (!uniqueIds(value.bin as Record<string, unknown>[])) return invalid();
+  const allDocuments = [...value.documents, ...binnedDocuments];
+  if (!uniqueIds(allDocuments)) return invalid();
   if (typeof value.activeDocumentId !== "string"
     || (value.documents.length > 0 && !value.documents.some((item) => item.id === value.activeDocumentId))
     || (value.documents.length === 0 && value.activeDocumentId !== "")) return invalid();
-  for (const document of value.documents) {
+  for (const document of allDocuments) {
     if (!["page", "post"].includes(document.kind as string) || !["draft", "pending", "private", "published"].includes(document.status as string)
       || !["title", "slug", "excerpt", "seoTitle", "seoDescription"].every((field) => typeof document[field] === "string")
       || !date(document.updatedAt) || !strings(document.tags) || !validContentBlocks(document.blocks)
@@ -202,8 +213,8 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
     if (cover !== undefined && cover !== null && (!isRecord(cover) || typeof cover.src !== "string"
       || typeof cover.alt !== "string" || !optionalString(cover.mediaId))) return invalid();
   }
-  const documentsById = new Map(value.documents.map((document) => [document.id as string, document]));
-  for (const document of value.documents) {
+  const documentsById = new Map(allDocuments.map((document) => [document.id as string, document]));
+  for (const document of allDocuments) {
     const seen = new Set<string>();
     let parentId = document.parentPageId;
     while (typeof parentId === "string" && parentId) {
@@ -212,7 +223,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       parentId = documentsById.get(parentId)?.parentPageId;
     }
   }
-  return value as StudioWorkspace;
+  return { ...value, version: 6, bin: value.bin } as StudioWorkspace;
 }
 
 export function validatePublicationSnapshot(value: unknown): void {

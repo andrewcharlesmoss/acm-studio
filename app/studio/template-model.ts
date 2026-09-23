@@ -5,7 +5,8 @@ import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { isRecord, validContentBlocks, validatePublicationSnapshot } from "./workspace-validation";
 
 export const LEGACY_TEMPLATE_VERSION = "0.1.0" as const;
-export const TEMPLATE_VERSION = "0.4.0" as const;
+export const TEMPLATE_VERSION = "0.5.0" as const;
+export const LEGACY_TEMPLATE_VERSION_4 = "0.4.0" as const;
 export const LEGACY_TEMPLATE_VERSION_2 = "0.2.0" as const;
 export const LEGACY_TEMPLATE_VERSION_3 = "0.3.0" as const;
 export const TEMPLATE_STORAGE_KEY = "acm-studio-templates-v1";
@@ -31,9 +32,10 @@ export type TemplateSet = {
   navigation: SiteLink[]; socialLinks: SiteLink[]; defaults?: TemplateDefaults;
 };
 export type TemplateAssignment = { documentId: string; setId: string; templateId: string; kind: StudioDocumentKind };
-export type TemplateStore = { version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION_3; sets: TemplateSet[]; assignments: TemplateAssignment[]; defaultTemplateIds?: { page?: string; post?: string } };
-export type TemplateSnapshot = { version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION_3; set: TemplateSet; templateId: string };
-export const emptyTemplateStore = (): TemplateStore => ({ version: TEMPLATE_VERSION, sets: [], assignments: [], defaultTemplateIds: {} });
+export type StudioBinnedTemplate = { id: string; deletedAt: string; kind: "template"; setId: string; setName: string; entry: PageTemplate | TemplatePart; setSnapshot: TemplateSet } | { id: string; deletedAt: string; kind: "set"; set: TemplateSet };
+export type TemplateStore = { version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION_3; sets: TemplateSet[]; assignments: TemplateAssignment[]; bin: StudioBinnedTemplate[]; defaultTemplateIds?: { page?: string; post?: string } };
+export type TemplateSnapshot = { version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION_3; set: TemplateSet; templateId: string };
+export const emptyTemplateStore = (): TemplateStore => ({ version: TEMPLATE_VERSION, sets: [], assignments: [], bin: [], defaultTemplateIds: {} });
 export const templateId = () => `t-${crypto.randomUUID()}`;
 export const templateElementLabel = (value: string) => value.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 export const copyTemplateData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -63,7 +65,7 @@ function invalid(message: string): never { throw new Error(message); }
 function claimId(value: unknown, ids: Set<string>) { if (!safeId(value) || ids.has(value)) invalid("Template identifiers must be safe and unique."); ids.add(value as string); }
 
 export function validateTemplateSet(value: unknown): TemplateSet {
-  if (!isRecord(value) || !safeId(value.id) || !text(value.name, 160) || !value.name.trim() || !Array.isArray(value.templates) || !value.templates.length || value.templates.length > 100 || !Array.isArray(value.parts) || value.parts.length > 100) invalid("The template set is invalid.");
+  if (!isRecord(value) || !safeId(value.id) || !text(value.name, 160) || !value.name.trim() || !Array.isArray(value.templates) || value.templates.length > 100 || !Array.isArray(value.parts) || value.parts.length > 100) invalid("The template set is invalid.");
   const set = value as unknown as TemplateSet;
   if (set.defaults !== undefined && !validTemplateDefaults(set.defaults)) invalid("Template defaults are invalid.");
   const ids = new Set<string>([set.id]);
@@ -138,9 +140,9 @@ function validDisplayDefaults(value: unknown): value is Partial<Record<DocumentD
 }
 
 export function validateTemplateStore(value: unknown, documents?: Pick<StudioDocument, "id" | "kind">[]): TemplateStore {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000) invalid("Unsupported or invalid saved template data. Original data has been retained.");
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000 || (value.bin !== undefined && (!Array.isArray(value.bin) || value.bin.length > 10000))) invalid("Unsupported or invalid saved template data. Original data has been retained.");
   if (value.defaultTemplateIds !== undefined && (!isRecord(value.defaultTemplateIds) || (value.defaultTemplateIds.page !== undefined && !safeId(value.defaultTemplateIds.page)) || (value.defaultTemplateIds.post !== undefined && !safeId(value.defaultTemplateIds.post)))) invalid("The default template selection is invalid.");
-  const store = { ...(value as unknown as TemplateStore), version: TEMPLATE_VERSION, sets: (value.sets as unknown[]).map(item => {
+  const store = { ...(value as unknown as TemplateStore), version: TEMPLATE_VERSION, bin: value.bin ?? [], sets: (value.sets as unknown[]).map(item => {
     if (!isRecord(item)) return item;
     const set = validateTemplateSet({ ...item, defaults: item.defaults ?? {} });
     const templates = set.templates.map(template => ({ ...template, isDefault: template.isDefault ?? (!set.templates.some(candidate => candidate.kind === template.kind && candidate.isDefault) && template.id === set.templates.find(candidate => candidate.kind === template.kind)?.id) }));
@@ -148,6 +150,16 @@ export function validateTemplateStore(value: unknown, documents?: Pick<StudioDoc
   }) } as unknown as TemplateStore;
   const ids = new Set<string>();
   for (const set of store.sets) { validateTemplateSet(set); claimId(set.id, ids); }
+  const binIds = new Set<string>();
+  for (const item of store.bin) {
+    if (!isRecord(item) || !safeId(item.id) || binIds.has(item.id) || typeof item.deletedAt !== "string" || !Number.isFinite(Date.parse(item.deletedAt))) invalid("The Bin contains an invalid template item.");
+    binIds.add(item.id as string);
+    if (item.kind === "set") validateTemplateSet(item.set);
+    else if (item.kind === "template") {
+      const snapshot = validateTemplateSet(item.setSnapshot);
+      if (!safeId(item.setId) || !text(item.setName, 160) || !isRecord(item.entry) || ![...snapshot.templates, ...snapshot.parts].some(entry => entry.id === item.entry!.id && entry.kind === item.entry!.kind)) invalid("The Bin contains an invalid template item.");
+    } else invalid("The Bin contains an unknown item.");
+  }
   const assigned = new Set<string>();
   for (const assignment of store.assignments) {
     if (!isRecord(assignment) || !safeId(assignment.documentId) || assigned.has(assignment.documentId)) invalid("Invalid or duplicate template assignment.");
@@ -161,7 +173,7 @@ export function validateTemplateStore(value: unknown, documents?: Pick<StudioDoc
 }
 
 export function validateTemplateSnapshot(value: unknown): TemplateSnapshot {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
   const snapshot = { ...(value as unknown as TemplateSnapshot), version: TEMPLATE_VERSION };
   const set = validateTemplateSet(snapshot.set);
   if (!set.templates.some(t => t.id === snapshot.templateId && ["page", "post"].includes(t.kind))) invalid("Invalid published template.");

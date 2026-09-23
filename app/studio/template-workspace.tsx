@@ -61,7 +61,7 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
   const [templateSetContextMenu, setTemplateSetContextMenu] = useState<(StudioListContextMenuTarget & { setId: string }) | null>(null);
   const [templateSetContextMenuTrigger, setTemplateSetContextMenuTrigger] = useState<HTMLElement | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const openerRef = useRef<HTMLElement | null>(null);
+  const [dialogOpener, setDialogOpener] = useState<HTMLElement | null>(null);
   const templateContextMenuTriggerRef = useRef<HTMLElement | null>(null);
   const pendingTemplateFocusRef = useRef<string | null>(null);
   function closeTemplateContextMenu() {
@@ -121,8 +121,8 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
       window.history.replaceState({}, "", `${path}?${query.toString()}`);
     });
   }, [setId, standalone, templates.ready, templates.store.sets]);
-  function closeDialog() { dialogRef.current?.close(); setDialog(null); openerRef.current?.focus(); }
-  function askName(title: string, name: string, confirm: NameDialog["confirm"], message?: string) { openerRef.current = document.activeElement as HTMLElement; setDialog({ title, name, confirm, message }); }
+  function closeDialog() { dialogRef.current?.close(); setDialog(null); dialogOpener?.focus(); }
+  function askName(title: string, name: string, confirm: NameDialog["confirm"], message?: string) { setDialogOpener(document.activeElement as HTMLElement); setDialog({ title, name, confirm, message }); }
   function openSet(item: TemplateSet, id = item.templates[0]?.id) {
     setSetId(item.id); setTargetId(id ?? null); setMediaTarget(null);
     const path = standalone ? "/studio/templates" : "/studio";
@@ -169,12 +169,12 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
   function deleteSet(item: TemplateSet) {
     const blockedReason = templateSetDeleteBlockReason(item.id);
     if (blockedReason) { setFeedback(blockedReason); return; }
-    askName(`Delete ${item.name}`, "", () => templates.commit(store => ({ ...store, sets: store.sets.filter(candidate => candidate.id !== item.id) })));
+    askName(`Move ${item.name} to Bin`, "", () => templates.commit(store => ({ ...store, sets: store.sets.filter(candidate => candidate.id !== item.id), bin: [...store.bin, { id: templateId(), kind: "set", deletedAt: new Date().toISOString(), set: copyTemplateData(item) }] })));
   }
   function deleteSetFromContextMenu(item: TemplateSet) {
     const blockedReason = templateSetDeleteBlockReason(item.id);
-    if (blockedReason || !window.confirm(`Delete the local template set “${item.name}”?`)) return;
-    templates.commit(store => ({ ...store, sets: store.sets.filter(candidate => candidate.id !== item.id) }));
+    if (blockedReason) return;
+    askName(`Move ${item.name} to Bin`, "", () => templates.commit(store => ({ ...store, sets: store.sets.filter(candidate => candidate.id !== item.id), bin: [...store.bin, { id: templateId(), kind: "set", deletedAt: new Date().toISOString(), set: copyTemplateData(item) }] })), "You can restore this template set from the Bin until you permanently delete it.");
   }
   function addTarget(kind: "page" | "post" | "header" | "footer") {
     if (!set) return;
@@ -205,14 +205,18 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     if (changeSet(next)) openSet(targetSet, copy.id);
   }
   function templateSetDeleteBlockReason(setId: string) {
-    return templates.store.assignments.some(a => a.setId === setId) ? "Reassign documents before deleting this template set." : undefined;
+    if (templates.store.assignments.some(a => a.setId === setId)) return "Reassign documents before moving this template set to the Bin.";
+    if (workspace.workspace.bin.some(item => item.assignment?.setId === setId)) return "Restore or permanently delete the binned documents assigned to this template set first.";
+    if (templates.store.bin.some(item => item.kind === "template" && item.setId === setId)) return "Restore or permanently delete this set’s binned templates first.";
+    return undefined;
   }
   function templateDeleteBlockReason(setId: string, targetId: string) {
     const targetSet = templates.store.sets.find(item => item.id === setId);
     const targetEntry = targetSet ? [...targetSet.templates, ...targetSet.parts].find(item => item.id === targetId) : undefined;
     if (!targetSet || !targetEntry) return "This template is no longer available.";
-    if ((targetEntry.kind === "page" || targetEntry.kind === "post") && targetSet.templates.filter(item => item.kind === targetEntry.kind).length <= 1) return `Keep at least one ${targetEntry.kind} template in this set.`;
-    if (templates.store.assignments.some(a => a.setId === targetSet.id && a.templateId === targetEntry.id)) return "Reassign documents before deleting this template.";
+    if (templates.store.assignments.some(a => a.setId === targetSet.id && a.templateId === targetEntry.id)) return "Reassign documents before moving this template to the Bin.";
+    if (workspace.workspace.bin.some(item => item.assignment?.setId === targetSet.id && item.assignment.templateId === targetEntry.id)) return "Restore or permanently delete the binned documents assigned to this template first.";
+    if ((targetEntry.kind === "header" || targetEntry.kind === "footer") && countSharedPartReferences(targetSet, targetEntry.id)) return "Remove this shared part from its templates before moving it to the Bin.";
     return undefined;
   }
   function removeSharedPartReferences(nodes: TemplateNode[], partId: string): { nodes: TemplateNode[]; removedReference: boolean } {
@@ -248,10 +252,11 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
       ? countSharedPartReferences(targetSet, targetEntry.id)
       : 0;
     const message = sharedPartReferences
-      ? `This removes the shared part and its ${sharedPartReferences} reference${sharedPartReferences === 1 ? "" : "s"} from templates in this set.`
-      : "This removes the local item. A saved export can be imported again.";
-    askName(`Delete ${targetEntry.name}`, "", () => {
-      const saved = templates.commit(store => ({ ...store, sets: store.sets.map(item => {
+      ? `Remove this shared part from its ${sharedPartReferences} template reference${sharedPartReferences === 1 ? "" : "s"} before moving it to the Bin.`
+      : "You can restore this item from the Bin until you permanently delete it.";
+    if (sharedPartReferences) { setFeedback(message); return; }
+    askName(`Move ${targetEntry.name} to Bin`, "", () => {
+      const saved = templates.commit(store => ({ ...store, bin: [...store.bin, { id: templateId(), kind: "template", deletedAt: new Date().toISOString(), setId: targetSet.id, setName: targetSet.name, entry: copyTemplateData(targetEntry), setSnapshot: copyTemplateData(targetSet) }], sets: store.sets.map(item => {
         if (item.id !== targetSet.id) return item;
         const templates = item.templates.filter(template => template.id !== targetEntry.id).map(template => {
           if (!sharedPartReferences) return template;
@@ -306,6 +311,7 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
         <a className="library-tool-button" href="/studio/ribbon"><span><AcmIcon name="layout.columns" /></span><strong>Ribbon Library</strong><small>Explore controls and original SVG icons</small></a>
         <a className="library-tool-button" href="/studio/panes"><span><StudioIcon name="archive" /></span><strong>Pane Library</strong><small>Explore pane structures and collapse controls</small></a>
         <button className="library-tool-button" type="button" onClick={onOpenBackup}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
+        <a className="library-tool-button" href="/studio?mode=bin"><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
         <div className="library-tabs" aria-label="Content type">
           <button type="button" onClick={() => onSelectContentKind?.("page")}>Pages<span>{workspace.workspace.documents.filter(item => item.kind === "page").length}</span></button>
           <button type="button" onClick={() => onSelectContentKind?.("post")}>Posts<span>{workspace.workspace.documents.filter(item => item.kind === "post").length}</span></button>
@@ -313,6 +319,7 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
         </div>
       </> : <>
         <a className="library-tool-button" href="/studio"><span><StudioIcon name="pencil" /></span><strong>Content</strong><small>Pages and posts</small></a>
+        <a className="library-tool-button" href="/studio?mode=bin"><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
         <button className="library-tool-button is-active" type="button" onClick={library}><span><StudioIcon name="block" /></span><strong>Templates</strong><small>Shared presentation</small></button>
       </>}
       {onBackToContent ? <div className="document-list template-document-list">
@@ -327,7 +334,7 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : "Template image"} targetKind="block" onInsertImage={insertMedia} /></section> : set && target ? <TemplateEditor key={target.id} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} writable={writable} onChange={changeSet} onEditPart={id => openSet(set, id)} onOpenMedia={(blockId, logo = false) => setMediaTarget({ blockId, logo })} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : standalone ? <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Site templates</h1><p>Create a consistent page and post design. Each set has its own shared parts, identity and styles.</p><div className="template-library-actions"><button className="button-primary" type="button" disabled={!writable} onClick={createSet}><StudioIcon name="add" />Create Template Set</button><button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button><div className="template-set-grid">{templates.store.sets.map(renderTemplateSetCard)}</div>{!templates.store.sets.length && templates.ready ? <p>No template sets yet. Create one to start with the neutral ACM design.</p> : null}</div>{templateSetContextMenu ? (() => { const item = templates.store.sets.find(candidate => candidate.id === templateSetContextMenu.setId); const blockedReason = item ? templateSetDeleteBlockReason(item.id) : "This template set is no longer available."; return <TemplateSetActionsMenu target={templateSetContextMenu} canDelete={Boolean(item && writable && !blockedReason)} disabledReason={!writable ? "Editing is unavailable in this tab." : blockedReason} onDelete={() => { if (item) deleteSetFromContextMenu(item); }} onClose={closeTemplateSetContextMenu} />; })() : null}</section> : <section className="template-library template-empty-state" style={{ gridColumn: "span 2" }}><h1>Select a template</h1><p>Choose a Page, Post or shared part from the Templates list.</p></section>}
     <input ref={importRef} hidden type="file" accept=".json,application/json" onChange={event => { void importFile(event.target.files?.[0]); event.target.value = ""; }} />
   </>;
-  const dialogElement = dialog ? <dialog ref={dialogRef} className="template-dialog" aria-labelledby="template-dialog-title" onCancel={event => { event.preventDefault(); closeDialog(); }}><button className="template-dialog-close" type="button" aria-label="Close" onClick={closeDialog}><StudioIcon name="close" /></button><form onSubmit={event => { event.preventDefault(); if (dialog.confirm(dialog.name.trim()) !== false) closeDialog(); }}><h2 id="template-dialog-title">{dialog.title}</h2>{dialog.title.startsWith("Delete ") ? <p>{dialog.message ?? "This removes the local item. A saved export can be imported again."}</p> : <label>Name<input required maxLength={160} value={dialog.name} onChange={event => setDialog({ ...dialog, name: event.target.value })} /></label>}<div className="template-dialog-actions"><button type="button" onClick={closeDialog}>Cancel</button><button className="button-primary" type="submit" disabled={!writable}>{dialog.title.startsWith("Delete ") ? "Delete" : "Save"}</button></div></form></dialog> : null;
+  const dialogElement = dialog ? <dialog ref={dialogRef} className="template-dialog" aria-labelledby="template-dialog-title" onCancel={event => { event.preventDefault(); closeDialog(); }}><button className="template-dialog-close" type="button" aria-label="Close" onClick={closeDialog}><StudioIcon name="close" /></button><form onSubmit={event => { event.preventDefault(); if (dialog.confirm(dialog.name.trim()) !== false) closeDialog(); }}><h2 id="template-dialog-title">{dialog.title}</h2>{dialog.title.startsWith("Move ") ? <p>{dialog.message ?? "You can restore this item from the Bin until you permanently delete it."}</p> : <label>Name<input required maxLength={160} value={dialog.name} onChange={event => setDialog({ ...dialog, name: event.target.value })} /></label>}<div className="template-dialog-actions"><button type="button" onClick={closeDialog}>Cancel</button><button className="button-primary" type="submit" disabled={!writable}>{dialog.title.startsWith("Move ") ? "Move to Bin" : "Save"}</button></div></form></dialog> : null;
   if (!standalone) return <>{panel}{dialogElement}</>;
   return <div className="studio-shell studio-desktop-only template-shell">
     <header className="studio-header"><a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a><div className="studio-breadcrumbs"><button type="button" className="text-button" onClick={library}>Templates</button>{set ? <><StudioIcon name="chevron-right" size={14} /><span>{set.name}</span><StudioIcon name="chevron-right" size={14} /><strong>{target?.name ?? "Choose a template"}</strong></> : null}</div><div className="studio-state"><span className="prototype-pill">LOCAL</span><span role="status">{templates.saveLabel}</span>{!templates.writable && workspace.canRetryEditing ? <button type="button" onClick={workspace.retryEditing}>Try Editing Here</button> : null}</div><div className="studio-actions">{!set || !target || mediaTarget ? <><button type="button" className="icon-button" aria-label="Undo" disabled={!writable || !templates.canUndo} onClick={templates.undo}><StudioIcon name="undo" /></button><button type="button" className="icon-button" aria-label="Redo" disabled={!writable || !templates.canRedo} onClick={templates.redo}><StudioIcon name="redo" /></button></> : null}<a className="button-secondary" href="/studio">Content</a></div></header>

@@ -32,7 +32,7 @@ export function StudioListContextMenu({ target, actions = [], onDelete, onClose,
   const [menuSize, setMenuSize] = useState({ width: 0, height: 0 });
   const menuActions: StudioListContextMenuAction[] = [
     ...actions,
-    ...(onDelete ? [{ label: "Delete", icon: "trash" as const, onClick: onDelete, disabled: !canDelete, disabledReason: !canDelete ? disabledReason : undefined, destructive: true }] : []),
+    ...(onDelete ? [{ label: "Move to Bin", icon: "archive" as const, onClick: onDelete, disabled: !canDelete, disabledReason: !canDelete ? disabledReason : undefined }] : []),
   ];
   const menuSizeKey = menuActions.map(action => `${action.label}:${action.disabled ? "disabled" : "enabled"}:${action.disabledReason ?? ""}`).join("|");
   useLayoutEffect(() => {

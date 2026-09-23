@@ -154,3 +154,20 @@ export function unpublishDocumentLocally(documentId: string) {
   const store: LocalPublicationStore = { version: 4, posts: existing.filter((item) => item.localDocumentId !== documentId) };
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
 }
+
+export function getLocallyPublishedArticle(documentId: string) {
+  const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
+  const article = existing.find((item) => item.localDocumentId === documentId);
+  return article ? copyTemplateData(article) : undefined;
+}
+
+export function restoreLocallyPublishedArticle(article: LocallyPublishedArticle) {
+  studioWriteOwnership.assertWritable();
+  const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
+  if (existing.some((item) => item.localDocumentId !== article.localDocumentId && item.slug === article.slug)) {
+    throw new Error(`The address “${article.slug}” is now used by another published post.`);
+  }
+  const store: LocalPublicationStore = { version: 4, posts: [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId)] };
+  validatePublicationSnapshot(store);
+  window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
+}

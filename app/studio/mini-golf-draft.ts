@@ -227,6 +227,7 @@ function hydrateTransitionalSections(blocks: ContentBlock[], transitionalIds: Se
 export const initialMiniGolfDraft: StudioWorkspace = {
   version: 2,
   activeDocumentId: "mini-golf-home",
+  bin: [],
   documents: [{
     id: "mini-golf-home", kind: "page", title: "Mini Golf Scorecard",
     subtitle: "", slug: "home", excerpt: "",

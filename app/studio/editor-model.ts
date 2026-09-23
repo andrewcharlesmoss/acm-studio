@@ -1,5 +1,7 @@
 import type { ContentBlock, DocumentDisplayField, DocumentDisplayMode } from "../content/model";
 import type { StudioIconName } from "./studio-icons";
+import type { LocallyPublishedArticle } from "../content/local-publishing";
+import type { TemplateAssignment } from "./template-model";
 
 export type StudioDocumentKind = "post" | "page";
 export type StudioDocumentStatus = "draft" | "pending" | "private" | "published";
@@ -38,11 +40,21 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5;
+  version: 2 | 3 | 4 | 5 | 6;
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
   documents: StudioDocument[];
+  bin: StudioBinnedDocument[];
 };
+
+export type StudioBinnedDocument = {
+  id: string;
+  deletedAt: string;
+  document: StudioDocument;
+  assignment?: TemplateAssignment;
+  publication?: LocallyPublishedArticle;
+};
+
 
 export type InsertableBlockType = Exclude<ContentBlock["type"], "component">;
 export type BlockLibraryItemType = InsertableBlockType | "template-content";
@@ -97,8 +109,9 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 5,
+  version: 6,
   activeDocumentId: "page-home",
+  bin: [],
   documents: [
     {
       id: "page-home",

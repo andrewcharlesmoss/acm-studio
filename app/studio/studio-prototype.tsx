@@ -27,6 +27,8 @@ import {
 } from "./editor-model";
 import { addDocumentToWorkspace } from "./studio-command-operations.mjs";
 import { copyTemplateData, createTemplateSet, templateId, type PageTemplate, type TemplateNode, type TemplatePart, type TemplateSet } from "./template-model";
+import { getLocallyPublishedArticle, restoreLocallyPublishedArticle, unpublishDocumentLocally } from "../content/local-publishing";
+import { StudioBin } from "./studio-bin";
 function exportJson(value: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -39,7 +41,7 @@ function exportJson(value: unknown, filename: string) {
 export function StudioPrototype() {
   const studioSession = useStudioWorkspace();
   const [previewing, setPreviewing] = useState(false);
-  const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup">("content");
+  const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup" | "bin">("content");
   const openTemplateTarget = (setId: string, targetId: string) => {
     setStudioSection("templates"); setPreviewing(false);
     window.history.pushState({}, "", `/studio?mode=templates&set=${encodeURIComponent(setId)}&target=${encodeURIComponent(targetId)}`);
@@ -171,10 +173,10 @@ export function StudioPrototype() {
   }
   useStudioHistoryShortcuts(studioSection === "templates" ? templateSession.undo : undoStudio, studioSection === "templates" ? templateSession.redo : redoStudio, studioSection === "content" || studioSection === "templates");
 
-  function switchStudioMode(mode: "content" | "templates") {
+  function switchStudioMode(mode: "content" | "templates" | "bin") {
     if (!confirmCodeEditorDiscard()) return;
     setStudioSection(mode); setPreviewing(false); if (mode === "templates") setShowInserter(false);
-    const nextPath = mode === "templates" ? "/studio?mode=templates" : "/studio";
+    const nextPath = mode === "templates" ? "/studio?mode=templates" : mode === "bin" ? "/studio?mode=bin" : "/studio";
     const currentPath = `${window.location.pathname}${window.location.search}`;
     if (currentPath !== nextPath) window.history.pushState({}, "", nextPath);
   }
@@ -332,15 +334,29 @@ export function StudioPrototype() {
     const targetDocument = workspace.documents.find((item) => item.id === documentId);
     if (!targetDocument || !writable) return;
     const assignment = templateSession.store.assignments.find((item) => item.documentId === documentId);
+    const publication = targetDocument.kind === "post" ? getLocallyPublishedArticle(documentId) : undefined;
     const restoreAssignment = () => assignment && templateSession.commit((store) => ({ ...store, assignments: [...store.assignments.filter((item) => item.documentId !== documentId), assignment] }));
     try {
       if (assignment && !templateSession.commit((store) => ({ ...store, assignments: store.assignments.filter((item) => item.documentId !== documentId) }))) {
         publishing.setPublishFeedback("The template assignment could not be removed, so the document was not deleted.");
         return;
       }
-      if (!documentCommands.deleteDocument(documentId)) {
+      if (publication) {
+        try { unpublishDocumentLocally(documentId); }
+        catch { restoreAssignment(); publishing.setPublishFeedback("The published copy could not be moved to the Bin."); return; }
+      }
+      const moved = commit(current => ({
+        ...current,
+        documents: current.documents.filter(item => item.id !== documentId),
+        bin: [...current.bin, { id: templateId(), deletedAt: new Date().toISOString(), document: targetDocument, ...(assignment ? { assignment } : {}), ...(publication ? { publication } : {}) }],
+        activeDocumentId: current.activeDocumentId === documentId ? (current.documents.find(item => item.id !== documentId)?.id ?? "") : current.activeDocumentId,
+      }));
+      if (!moved) {
+        if (publication) {
+          try { restoreLocallyPublishedArticle(publication); }
+          catch { publishing.setPublishFeedback("The post could not be moved to the Bin, and its publication could not be restored. Keep this page open and export a Backup."); }
+        }
         restoreAssignment();
-        publishing.setPublishFeedback("The document could not be deleted because this tab no longer owns the local workspace.");
         return;
       }
       if (targetDocument.id === activeDocument.id) {
@@ -422,11 +438,11 @@ export function StudioPrototype() {
   useEffect(() => {
     const syncModeFromLocation = () => {
       const mode = new URLSearchParams(window.location.search).get("mode");
-      setStudioSection(mode === "templates" ? "templates" : "content");
+      setStudioSection(mode === "templates" ? "templates" : mode === "bin" ? "bin" : "content");
       setPreviewing(false);
     };
     const mode = new URLSearchParams(window.location.search).get("mode");
-    queueMicrotask(() => { if (mode === "templates") setStudioSection("templates"); });
+    queueMicrotask(() => { if (mode === "templates") setStudioSection("templates"); else if (mode === "bin") setStudioSection("bin"); });
     window.addEventListener("popstate", syncModeFromLocation);
     return () => window.removeEventListener("popstate", syncModeFromLocation);
   }, []);
@@ -452,7 +468,7 @@ export function StudioPrototype() {
     <div className="studio-shell studio-desktop-only" onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <header className="studio-header">
         <a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a>
-        <div className="studio-breadcrumbs">{studioSection === "templates" ? <><span>Templates</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Shared presentation</strong></> : studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : "Backup"}</strong></> : hasContentDocuments ? <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></> : <><span>Content</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Empty workspace</strong></>}</div>
+        <div className="studio-breadcrumbs">{studioSection === "templates" ? <><span>Templates</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Shared presentation</strong></> : studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"}</strong></> : hasContentDocuments ? <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></> : <><span>Content</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Empty workspace</strong></>}</div>
         <div className="studio-state"><span className="prototype-pill">LOCAL</span><span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span>{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
           {studioSection === "templates" ? (
@@ -472,8 +488,8 @@ export function StudioPrototype() {
       {syncConflict ? <div className="design-notice" role="alert"><span>{syncConflict.conflicts.length || 1} overlapping change{(syncConflict.conflicts.length || 1) === 1 ? " needs" : "s need"} review. {studioConflictDetails(syncConflict)} Your changes remain in this tab. Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</span> <button type="button" onClick={() => void resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void resolveSyncConflict("mine")}>Use My Change</button>{syncResolutionError ? <span> {syncResolutionError}</span> : null}</div> : null}
       <div className="studio-notice" role="note"><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</div>
 
-      <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`}>
-        {studioSection === "templates" ? <TemplateWorkspacePanel workspace={studioSession} templates={templateSession} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onSelectContentKind={(kind) => { setLibraryKind(kind); switchStudioMode("content"); }} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); window.history.replaceState({}, "", "/studio"); }} onExportContent={() => exportJson(workspace, "acm-studio-content.json")} /> : <>
+      <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" || studioSection === "bin" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`}>
+      {studioSection === "templates" ? <TemplateWorkspacePanel workspace={studioSession} templates={templateSession} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onSelectContentKind={(kind) => { setLibraryKind(kind); switchStudioMode("content"); }} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); window.history.replaceState({}, "", "/studio"); }} onExportContent={() => exportJson(workspace, "acm-studio-content.json")} /> : <>
         <aside className="studio-library">
           <div className="library-create">
             <button type="button" onClick={() => addDocument("post")}><StudioIcon name="add" size={16} /> New post</button>
@@ -485,6 +501,7 @@ export function StudioPrototype() {
           <a className="library-tool-button" href="/studio/ribbon"><span><AcmIcon name="layout.columns" /></span><strong>Ribbon Library</strong><small>Explore controls and original SVG icons</small></a>
           <a className="library-tool-button" href="/studio/panes"><span><StudioIcon name="archive" /></span><strong>Pane Library</strong><small>Explore pane structures and collapse controls</small></a>
           <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); }}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
+          <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("bin"); setPreviewing(false); window.history.replaceState({}, "", "/studio?mode=bin"); }}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.bin.length + templateSession.store.bin.length} deleted items</small></button>
           <div className="library-tabs" aria-label="Content type">
             {(["page", "post"] as const).map((kind) => (
               <button className={studioSection === "content" && libraryKind === kind ? "is-active" : ""} type="button" key={kind} onClick={() => { setLibraryKind(kind); setStudioSection("content"); }}>
@@ -519,7 +536,7 @@ export function StudioPrototype() {
           <div className="library-footer"><button type="button" onClick={() => exportJson(workspace, "acm-studio-content.json")}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>
         </aside>
 
-        {studioSection === "content" && !hasContentDocuments ? <section className="studio-empty-workspace" aria-labelledby="studio-empty-title">
+        {studioSection === "bin" ? <StudioBin workspace={studioSession} templates={templateSession} /> : studioSection === "content" && !hasContentDocuments ? <section className="studio-empty-workspace" aria-labelledby="studio-empty-title">
           <span className="studio-empty-icon" aria-hidden="true"><StudioIcon name="archive" size={24} /></span>
           <h1 id="studio-empty-title">No {libraryKind === "page" ? "pages" : "posts"} yet</h1>
           <p>Create a page or post when you’re ready. Your content stays in this browser.</p>
@@ -610,9 +627,9 @@ export function StudioPrototype() {
       </dialog> : null}
       {deleteDocumentTarget ? <dialog ref={deleteDocumentDialogRef} className="template-dialog" aria-labelledby="delete-document-title" aria-describedby="delete-document-description" onCancel={event => { event.preventDefault(); cancelDeleteDocument(); }} onClose={() => setDeleteDocumentTarget(null)}>
         <button className="template-dialog-close" type="button" aria-label="Close delete confirmation" onClick={cancelDeleteDocument}><StudioIcon name="close" size={20} /></button>
-        <h2 id="delete-document-title">Delete {deleteDocumentTarget.kind}</h2>
-        <p id="delete-document-description">Delete the local {deleteDocumentTarget.kind} “{deleteDocumentTarget.title}”?{codeEditorDirty ? " Any unsaved code editor changes will be discarded." : ""}{deleteDocumentTarget.kind === "post" && deleteDocumentTarget.status === "published" ? " This also removes its local published copy." : ""}{templateSession.store.assignments.some(item => item.documentId === deleteDocumentTarget.id) ? " Its template assignment will also be removed." : ""}</p>
-        <div className="template-dialog-actions"><button type="button" onClick={cancelDeleteDocument}>Cancel</button><button className="button-primary" type="button" onClick={confirmDeleteDocument} disabled={!canDeleteDocument(deleteDocumentTarget)}>Delete {deleteDocumentTarget.kind}</button></div>
+        <h2 id="delete-document-title">Move {deleteDocumentTarget.kind} to Bin</h2>
+        <p id="delete-document-description">Move “{deleteDocumentTarget.title}” to the Bin? You can restore it later or permanently delete it there.{codeEditorDirty ? " Any unsaved code editor changes will be discarded." : ""}{deleteDocumentTarget.kind === "post" && deleteDocumentTarget.status === "published" ? " Its local published copy will be removed until you restore the post." : ""}</p>
+        <div className="template-dialog-actions"><button type="button" onClick={cancelDeleteDocument}>Cancel</button><button className="button-primary" type="button" onClick={confirmDeleteDocument} disabled={!canDeleteDocument(deleteDocumentTarget)}>Move to Bin</button></div>
       </dialog> : null}
       {designMediaPrompt ? <dialog ref={designMediaDialogRef} className="media-alt-dialog" aria-labelledby="studio-design-media-title" onClose={() => setDesignMediaPrompt(null)}><form method="dialog" onSubmit={(event) => { event.preventDefault(); void insertDesignMedia(); }}>
           <h2 id="studio-design-media-title">Describe this image</h2><p>Provide alternative text for people who cannot see the image.</p>

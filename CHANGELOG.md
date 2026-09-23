@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- Added a recoverable Bin for deleted pages, posts, templates and template
+  sets. Restore preserves document assignments and local publication snapshots;
+  items stay in the Bin until individually and explicitly deleted permanently.
+  Bin contents are included in full backups and protect referenced media. A
+  template set can remain empty while its layouts are in the Bin.
+- Added Bin storage to workspace v6 and template schema v0.5.0, with migration
+  support for earlier workspace and template data.
 - Added 12 shared ACM interface action and feedback symbols with three optical
   variants each. The catalogue now contains 97 symbols; product controls retain
   their existing icons.
@@ -13,8 +20,8 @@
   isolated Studio examples. Existing product panes are unchanged.
 - Fixed cover images can now be stored in reusable templates. The template
   image controls choose or remove the managed fixed image without changing a
-  document's own cover image. Template format v0.4.0 remains readable
-  alongside v0.1.0, v0.2.0 and v0.3.0 data.
+  document's own cover image. Template format v0.5.0 reads v0.1.0 through
+  v0.4.0 data.
 - Template sync conflicts now identify the affected changes and explain the
   difference between the saved version and this tab's version. Template mode
   also keeps its own save status instead of displaying an unrelated Content

@@ -124,8 +124,13 @@ export function validateStudioBackup(value: unknown): StudioBackup {
       throw new Error("The published-post snapshot is invalid.");
     }
   }
+  for (const item of workspace.bin) if (item.publication && item.publication.mediaIds.some(id => !assetIds.has(id))) throw new Error("A binned published post is missing one or more media files from the backup.");
   if (value.templates !== undefined) for (const set of (value.templates as TemplateStore).sets) {
     if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A template image is missing from the backup.");
+  }
+  if (value.templates !== undefined) for (const item of (value.templates as TemplateStore).bin) {
+    const set = item.kind === "set" ? item.set : item.setSnapshot;
+    if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A binned template image is missing from the backup.");
   }
   return value as StudioBackup;
 }

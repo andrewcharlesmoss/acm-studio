@@ -1,5 +1,9 @@
 import { studioWriteOwnership, type RestorePermit } from "./write-ownership";
 import { assertTemplateMediaCanBeDeleted } from "./template-store";
+import { LOCAL_WORKSPACE_KEY } from "../content/local-storage-keys";
+import { contentMediaIds } from "../content/media-references";
+import { migrateStudioWorkspace, validateStudioWorkspace } from "./workspace-validation";
+import type { StudioWorkspace } from "./editor-model";
 
 export type MediaFolder = {
   id: string;
@@ -222,6 +226,19 @@ export async function moveMediaFolder(id: string, parentId: string | null) {
 export async function deleteMediaAsset(id: string) {
   return studioWriteOwnership.write(async () => {
     assertTemplateMediaCanBeDeleted(id);
+    const rawWorkspace = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
+    if (rawWorkspace !== null) {
+      let workspace: StudioWorkspace;
+      try { workspace = validateStudioWorkspace(migrateStudioWorkspace(JSON.parse(rawWorkspace))); }
+      catch { throw new Error("The saved workspace could not be checked. Restore a valid backup before deleting files."); }
+      const documents = [...workspace.documents, ...workspace.bin.map(item => item.document)];
+      if (documents.some(document => document.coverImage?.mediaId === id || contentMediaIds(document.blocks).includes(id))) {
+        throw new Error("This file is used by a page or post, including an item in the Bin. Replace those references or permanently delete the binned item first.");
+      }
+      if (workspace.bin.some(item => item.publication?.mediaIds.includes(id))) {
+        throw new Error("This file is used by a published copy in the Bin. Permanently delete the binned post first.");
+      }
+    }
     await withStore(ASSET_STORE, "readwrite", (store) => store.delete(id));
   });
 }

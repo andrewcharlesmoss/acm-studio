@@ -94,16 +94,25 @@ assigned drafts. Page documents remain drafts/previews. Publishing or updating
 a local post captures a separate template snapshot and media references; later
 design changes do not alter that published snapshot until **Update**.
 
-Template sets support Rename, Duplicate, Delete, Import and Export. Additional
-page/post layouts and header/footer variants can be created, renamed and
-duplicated within a set. Reassign documents and replace part references before
-deleting an item they use. Revert an assigned document to Existing Presentation
-before deleting that document. Duplicate sets are independent copies, including
-managed images; templates within a set deliberately share that set's parts.
+Template sets support Rename, Duplicate, Move to Bin, Import and Export.
+Additional page/post layouts and header/footer variants can be created, renamed
+and duplicated within a set. A set may have no active templates while layouts
+are in the Bin. Assigned templates and sets cannot be moved to the Bin until
+their documents are reassigned, restored from the Bin or permanently deleted.
+Shared parts must have no references before they can be moved. A set cannot be
+moved while one of its entries remains in the Bin. Duplicate sets are
+independent copies, including managed images; templates within a set deliberately
+share that set's parts.
+
+The Studio Bin also holds deleted pages and posts, template entries and template
+sets. Restore returns an item to its original workspace or set. A post restored
+from the Bin also regains its local published snapshot. Items remain in the Bin
+until they are individually permanently deleted with confirmation; the Bin does
+not empty itself. The Bin is included in full Studio backups.
 
 ## Storage and portable contract
 
-The template-store and JSON package schema is **v0.4.0** (`0.4.0` in JSON).
+The template-store and JSON package schema is **v0.5.0** (`0.5.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. Assignments
 reference Studio document IDs. The local-storage key is
@@ -127,10 +136,10 @@ same library pane as content; selecting an entry opens the editor directly
 without a separate template-library page.
 
 Layout options, Spacer, document metadata and dynamic document-field blocks are
-additive to the existing typed block contract. Workspace data is now version 5,
-with readers for versions 2–4; local publication snapshots and full backups are
+additive to the existing typed block contract. Workspace data is now version 6,
+with readers for versions 2–5; local publication snapshots and full backups are
 version 4, with readers for their earlier versions. Template packages are
-v0.4.0, with readers for v0.1.0, v0.2.0 and v0.3.0. Each Page/Post template may supply
+v0.5.0, with readers for v0.1.0–v0.4.0. Each Page/Post template may supply
 Author, Category, Tags and Parent page defaults plus display defaults for
 dynamic fields; legacy set-level defaults remain a fallback. Documents record
 explicit value and display overrides, including empty values;
