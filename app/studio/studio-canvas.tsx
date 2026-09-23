@@ -31,6 +31,16 @@ function blockChildren(block: ContentBlock) {
   return (block.type === "section" || block.type === "group" || block.type === "component") ? (block.children ?? []) : [];
 }
 
+function lastParagraphBlock(blocks: ContentBlock[]): Extract<ContentBlock, { type: "paragraph" }> | null {
+  for (let index = blocks.length - 1; index >= 0; index -= 1) {
+    const block = blocks[index];
+    if (block.type === "paragraph") return block;
+    const nestedParagraph = lastParagraphBlock(blockChildren(block));
+    if (nestedParagraph) return nestedParagraph;
+  }
+  return null;
+}
+
 function blockOutlineLabel(block: ContentBlock) {
   if (block.type === "group" && block.data?.templateElement) return String(block.data.templateElement).replaceAll("-", " ");
   if (block.type === "group" && block.data?.templatePart) return "Shared part";
@@ -622,6 +632,20 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                     setAppenderValue(value);
                   }}
                   onKeyDown={(event) => {
+                    if (event.key === "Backspace" && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && appenderValue.length === 0 && event.currentTarget.selectionStart === 0) {
+                      const previousParagraph = lastParagraphBlock(activeDocument.blocks);
+                      if (previousParagraph) {
+                        event.preventDefault();
+                        setAppenderActive(false);
+                        onSelectBlock(previousParagraph.id);
+                        window.requestAnimationFrame(() => {
+                          const target = [...document.querySelectorAll<HTMLElement>(".rich-text-editor")]
+                            .find((editor) => editor.dataset.studioBlockId === previousParagraph.id || editor.dataset.blockId === previousParagraph.id);
+                          if (target) focusRichTextEditorAtOffset(target, previousParagraph.text.length);
+                        });
+                        return;
+                      }
+                    }
                     if (event.key !== "Enter" || !appenderValue.trim()) return;
                     event.preventDefault();
                     const block = onInsertBlock("paragraph");

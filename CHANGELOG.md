@@ -175,6 +175,7 @@
   preserving the normal gap between template elements and body blocks.
 - Backspace at the start of a paragraph joins it to the preceding paragraph,
   preserving rich-text formatting and placing the caret at the join.
+- Backspace in the empty block appender returns focus to the last paragraph.
 - Removed explanatory notes from the Publishing and Template sections of the
   Page inspector while retaining their settings and values.
 - The Bin now fills the Studio's main workspace pane. Moving a page, post or
