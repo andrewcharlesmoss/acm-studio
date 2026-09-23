@@ -159,6 +159,9 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Kept WordPress-familiar page and post settings together in the main inspector
+  tab and moved Studio-specific display and template controls to a separate
+  Studio tab.
 - Selecting a content block no longer inserts layout padding, so the text and
   surrounding blocks stay in place while its toolbar appears.
 - Focused title and subtitle fields now use the same neutral inset edge as

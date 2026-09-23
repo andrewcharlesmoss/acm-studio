@@ -49,7 +49,7 @@ export function StudioPrototype() {
   const { workspace, ownershipGeneration, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot } = useDocumentTemplates(studioSession, openTemplateTarget);
   const [libraryKind, setLibraryKind] = useState<StudioDocumentKind>("page");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [inspectorTab, setInspectorTab] = useState<"document" | "block" | "styles">("document");
+  const [inspectorTab, setInspectorTab] = useState<"document" | "studio" | "block" | "styles">("document");
   const [showInserter, setShowInserter] = useState(false);
   const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
   const [inserterQuery, setInserterQuery] = useState("");

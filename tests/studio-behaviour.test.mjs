@@ -310,7 +310,7 @@ test("the document inspector exposes Gutenberg-style status and publish date con
   assert.match(source, /UTC\+0/);
   assert.match(source, /Now/);
   assert.match(source, /const publishDate = document\.publishAt \? formatPublishDate\(document\.publishAt\) : "Immediately";/);
-  assert.match(source, /function publishImmediately\(\) \{\s*onChange\("publishAt", undefined\);/);
+  assert.match(source, /function publishImmediately\(\) \{\s*const now = new Date\(\)\.toISOString\(\);\s*onChange\("publishAt", undefined\);/);
   assert.doesNotMatch(source, /Use immediately/);
   assert.match(source, /documentStatusDescription/);
   assert.match(source, /onChange\("publishAt"/);
@@ -320,6 +320,29 @@ test("the document inspector exposes Gutenberg-style status and publish date con
   assert.match(source, /event\.target\.closest\("button, input, select, textarea, a\[href\], \[tabindex\]:not\(\[tabindex='-1'\]\)"\)/);
   assert.match(source, /event\.key !== "Escape"/);
   assert.match(styles, /\.publish-date-popover \{[^}]*position: fixed[^}]*z-index: 20/);
+});
+
+test("document settings keep WordPress-like fields separate from Studio-specific controls", async () => {
+  const [source, styles] = await Promise.all([
+    readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(source, /activeDocument\.kind === "page" \? "Page" : "Post"/);
+  assert.match(source, /event\.key === "ArrowRight"/);
+  assert.match(source, /event\.key === "ArrowLeft"/);
+  assert.match(source, /event\.key === "Home"/);
+  assert.match(source, /event\.key === "End"/);
+  assert.match(source, /tabIndex=\{activeTabIndex === 0 \? 0 : -1\}/);
+  assert.match(source, /role="tabpanel" aria-labelledby=\{tabId\(inspectorTab\)\}/);
+  assert.equal((source.match(/title="Content fields"/g) ?? []).length, 1);
+  assert.match(source, /documentControls=\{documentControls\}/);
+  assert.match(source, /inspectorTab === "document" \|\| inspectorTab === "studio" \?[\s\S]*panel=\{inspectorTab\}/);
+  assert.match(source, /const isDocumentPanel = panel === "document"/);
+  assert.match(source, /<span>Slug<\/span>/);
+  assert.match(source, /title="Categories and tags"/);
+  assert.match(source, /title="Studio template presentation"/);
+  assert.match(source, /"Search preview"/);
+  assert.match(styles, /\.inspector-tabs \{[^}]*grid-template-columns: repeat\(4, 1fr\)/);
 });
 
 test("text blocks expose the source-faithful Gutenberg transform control", async () => {

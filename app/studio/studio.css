@@ -847,19 +847,12 @@
 .canvas-appender-button:hover { background: var(--accent); }
 
 .studio-inspector { background: #f7f6f2; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-.inspector-tabs { border-bottom: 1px solid #d2d0c8; display: grid; grid-template-columns: repeat(3, 1fr); min-height: 50px; padding: 0 12px; }
+.inspector-tabs { border-bottom: 1px solid #d2d0c8; display: grid; grid-template-columns: repeat(4, 1fr); min-height: 50px; padding: 0 12px; }
 .inspector-tabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer; font-size: var(--studio-ui-size); font-weight: 620; }
 .inspector-tabs button.is-active { border-bottom-color: var(--ink); color: var(--ink); }
 .inspector-tabs button:disabled { cursor: default; opacity: .4; }
 .inspector-scroll { min-height: 0; overflow: auto; }
 .inspector-sections > section { border-bottom: 1px solid #dddbd4; display: grid; gap: 12px; padding: 18px; }
-.inspector-sections > .page-inspector-disclosure { border-bottom: 1px solid #dddbd4; }
-.page-inspector-disclosure > summary { align-items: center; cursor: pointer; display: flex; font-size: var(--studio-ui-size); font-weight: 650; justify-content: space-between; list-style: none; min-height: 48px; padding: 12px 18px; }
-.page-inspector-disclosure > summary::-webkit-details-marker { display: none; }
-.page-inspector-disclosure > summary::after { border-bottom: 1.5px solid currentColor; border-right: 1.5px solid currentColor; content: ""; height: 7px; transform: rotate(45deg) translateY(-2px); transition: transform .15s; width: 7px; }
-.page-inspector-disclosure[open] > summary::after { transform: rotate(225deg) translate(-2px, -1px); }
-.page-inspector-disclosure > summary:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -3px; }
-.page-inspector-disclosure > div { display: grid; gap: 12px; padding: 0 18px 18px; }
 .inspector-sections h2 { font-size: var(--studio-ui-size); font-weight: 720; letter-spacing: .06em; text-transform: uppercase; }
 .inspector-sections label { display: grid; gap: 5px; }
 .inspector-sections label > span { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 620; }
