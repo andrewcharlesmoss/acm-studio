@@ -1101,6 +1101,17 @@ export function RichTextEditor({ as: elementName = "div", text, runs, onChange, 
     if (!atEdge) return false;
     const editors = [...document.querySelectorAll<HTMLElement>(".rich-text-editor")].filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
     const target = editors[editors.indexOf(editor) + direction];
+    const blockPosition = editor.closest(".block-position");
+    const nextIsAppender = direction > 0 && blockPosition?.nextElementSibling?.classList.contains("canvas-appender");
+    const appender = nextIsAppender
+      ? blockPosition?.nextElementSibling?.querySelector<HTMLInputElement>("input[placeholder='Type / to choose a block']")
+      : null;
+    if (appender && (!target || target.closest(".block-position") !== blockPosition)) {
+      event.preventDefault();
+      appender.focus({ preventScroll: true });
+      appender.setSelectionRange(appender.value.length, appender.value.length);
+      return true;
+    }
     if (!target) return false;
     const targetRect = target.getBoundingClientRect();
     const lineHeight = Number.parseFloat(getComputedStyle(target).lineHeight) || caretRect.height || 20;
