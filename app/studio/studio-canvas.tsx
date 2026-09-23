@@ -130,6 +130,12 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
   const [tableCellSelections, setTableCellSelections] = useState<Record<string, TableCell>>({});
   const [appenderActive, setAppenderActive] = useState(false);
+  const [appenderValue, setAppenderValue] = useState("");
+  const hasAppenderDraft = Boolean(appenderValue.trim());
+  const appenderWordCount = appenderValue.trim().split(/\s+/).filter(Boolean).length;
+  const displayedWordCount = wordCount + appenderWordCount;
+  const displayedCharacterCount = characterCount + appenderValue.length + (hasAppenderDraft && activeDocument.blocks.length > 0 ? 1 : 0);
+  const displayedBlockCount = activeDocument.blocks.length + (hasAppenderDraft ? 1 : 0);
   function dragInsertionIndex(event: DragEvent<HTMLDivElement>, index: number) {
     const block = event.currentTarget.querySelector<HTMLElement>(".canvas-block");
     if (!block) return index;
@@ -153,7 +159,6 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
     draggingIndexRef.current = null;
     onSetDragOverIndex(null);
   }
-  const [appenderValue, setAppenderValue] = useState("");
   const allowCoverImage = presentation?.allowCoverImage ?? activeDocument.kind === "post";
   const compose = (content: ReactNode, mode: "edit" | "preview") => presentation?.renderDocument?.({ document: activeDocument, mode, onDocumentFieldChange, onFocusDocumentField }, content) ?? content;
 
@@ -451,7 +456,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
         </div>
       <div className="editor-document-actions" aria-hidden={previewing}>
           {allowHtmlEditing ? <button ref={codeEditorToggleRef} type="button" className={`editor-code-toggle${codeEditor ? " is-active" : ""}`} disabled={previewing} aria-pressed={Boolean(codeEditor)} aria-label="Code editor" title="Code editor" onClick={() => codeEditor ? closeCodeEditor(true) : openCodeEditor()}><StudioIcon name="code" size={18} />Code</button> : null}
-          <span className="editor-document-counts" title={`${wordCount} words · ${characterCount} characters · ${activeDocument.blocks.length} blocks`}><strong>{wordCount} words · {characterCount} characters · {activeDocument.blocks.length} blocks</strong></span>
+          <span className="editor-document-counts" title={`${displayedWordCount} words · ${displayedCharacterCount} characters · ${displayedBlockCount} blocks`}><strong>{displayedWordCount} words · {displayedCharacterCount} characters · {displayedBlockCount} blocks</strong></span>
         </div>
       </div>
       {publishFeedback ? <div className="publish-feedback" role="status"><span>{publishFeedback}</span><button type="button" onClick={() => onSetPublishFeedback(null)} aria-label="Dismiss publication message"><StudioIcon name="close" size={18} /></button></div> : null}
