@@ -571,6 +571,11 @@ export function StudioPrototype() {
               if (nextId) { setDocumentFieldSelection(null); setSelectedBlockId(nextId); setInspectorTab("block"); }
               return nextId;
             },
+            onMergeParagraphBackward: (id) => {
+              const merged = blockCommands.mergeParagraphBackward(id);
+              if (merged) { setDocumentFieldSelection(null); setSelectedBlockId(merged.blockId); setInspectorTab("block"); }
+              return merged;
+            },
             onSplitParagraphs: (id, paragraphs) => blockCommands.splitParagraphs(id, paragraphs),
             onInsertBlock: insertBlock,
             onSetShowInserter: setShowInserter,

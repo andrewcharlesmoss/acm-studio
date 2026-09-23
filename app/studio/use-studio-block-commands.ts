@@ -1,6 +1,7 @@
 "use client";
 
 import type { ContentBlock, RichTextRun } from "../content/model";
+import { normaliseTextRuns } from "../content/rich-text";
 import { createBlock, type InsertableBlockType, type StudioDocument } from "./editor-model";
 import {
   findBlockById,
@@ -57,6 +58,40 @@ export function useStudioBlockCommands({
       return { ...document, blocks: split(document.blocks) };
     });
     return nextId;
+  }
+
+  function mergeParagraphBackward(blockId: string) {
+    let merged: { blockId: string; offset: number } | null = null;
+    function merge(blocks: ContentBlock[]): ContentBlock[] {
+      const next = [...blocks];
+      const index = next.findIndex((block) => block.id === blockId);
+      if (index >= 0) {
+        const current = next[index];
+        const previous = next[index - 1];
+        if (current.type !== "paragraph" || previous?.type !== "paragraph") return blocks;
+        const previousRuns = previous.runs?.length ? previous.runs : [{ text: previous.text }];
+        const currentRuns = current.runs?.length ? current.runs : [{ text: current.text }];
+        merged = { blockId: previous.id, offset: previous.text.length };
+        next.splice(index - 1, 2, {
+          ...previous,
+          text: previous.text + current.text,
+          runs: normaliseTextRuns([...previousRuns, ...currentRuns]),
+        });
+        return next;
+      }
+      return blocks.map((block) => {
+        if ((block.type === "section" || block.type === "group" || block.type === "component") && Array.isArray(block.children)) {
+          const children = merge(block.children);
+          if (children !== block.children) return { ...block, children } as ContentBlock;
+        }
+        return block;
+      });
+    }
+
+    merge(activeDocument.blocks);
+    if (!merged) return null;
+    updateActiveDocument((document) => ({ ...document, blocks: merge(document.blocks) }));
+    return merged;
   }
 
   function splitParagraphs(blockId: string, paragraphs: RichTextRun[][]) {
@@ -154,5 +189,5 @@ export function useStudioBlockCommands({
     updateActiveDocument((document) => removeNestedBlockById(document, blockId));
   }
 
-  return { updateBlock, insertBlock, splitParagraph, splitParagraphs, moveBlock, moveBlockTo, duplicateBlock, duplicateBlockById, removeBlock };
+  return { updateBlock, insertBlock, splitParagraph, mergeParagraphBackward, splitParagraphs, moveBlock, moveBlockTo, duplicateBlock, duplicateBlockById, removeBlock };
 }
