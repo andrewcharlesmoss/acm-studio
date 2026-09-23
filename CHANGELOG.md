@@ -156,6 +156,9 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Reorganised the Page inspector around identity and publishing controls, with
+  secondary metadata in expandable sections. Template assignment, cover image,
+  field display and override settings, SEO and page actions remain available.
 - The Bin now fills the Studio's main workspace pane. Moving a page, post or
   template to the Bin is immediate; the confirmation dialog remains for
   permanent deletion from the Bin.

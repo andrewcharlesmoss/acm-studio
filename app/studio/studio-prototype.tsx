@@ -577,6 +577,8 @@ export function StudioPrototype() {
             onDocumentChange: (field, value) => { if (field === "author" || field === "category" || field === "tags" || field === "parentPageId") setFieldOverride(field, false); updateActiveField(field, value); },
             onBlockChange: (next) => selectedBlock && blockCommands.updateBlock(selectedBlock.id, () => next),
             onOpenFiles: () => openMediaLibrary(selectedBlock?.id ?? null),
+            onOpenCoverMediaLibrary: openCoverMediaLibrary,
+            onRemoveCoverImage: media.removeCoverImage,
             onPublish: publishing.publish,
             onUnpublish: publishing.unpublish,
             onDuplicate: duplicateDocument,
