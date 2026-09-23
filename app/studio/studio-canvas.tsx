@@ -1134,9 +1134,11 @@ export function RichTextEditor({ as: elementName = "div", text, runs, onChange, 
     const firstLineTop = lineRects.length ? Math.min(...lineRects.map(rect => rect.top)) : editorRect.top;
     const lastLineBottom = lineRects.length ? Math.max(...lineRects.map(rect => rect.bottom)) : editorRect.bottom;
     const direction = event.key === "ArrowUp" ? -1 : 1;
+    const editorLineHeight = Number.parseFloat(getComputedStyle(editor).lineHeight) || caretRect.height;
+    const edgeTolerance = Math.max(3, Math.min(caretRect.height, editorLineHeight * 0.7));
     const atEdge = direction < 0
-      ? caretRect.top <= firstLineTop + Math.max(2, caretRect.height / 2)
-      : caretRect.bottom >= lastLineBottom - Math.max(2, caretRect.height / 2);
+      ? caretRect.top <= firstLineTop + edgeTolerance
+      : caretRect.bottom >= lastLineBottom - edgeTolerance;
     if (!atEdge) return false;
     const editors = [...document.querySelectorAll<HTMLElement>(".rich-text-editor")].filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
     const target = editors[editors.indexOf(editor) + direction];

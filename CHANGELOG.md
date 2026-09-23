@@ -337,6 +337,8 @@
   document field in the Block inspector, including in assigned site templates.
 - Blank-line-separated text now becomes distinct paragraph blocks in the editor,
   and Up/Down navigation moves between adjacent text blocks at their edges.
+- Up Arrow now recognises the first visual line more reliably and moves to the
+  previous paragraph in one keypress while retaining the horizontal position.
 - Right Arrow at the end of a paragraph now moves to the next paragraph or the
   empty block appender when it follows the last paragraph.
 - Left Arrow at the start of a paragraph or in the empty block appender now
