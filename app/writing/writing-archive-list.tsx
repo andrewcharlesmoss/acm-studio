@@ -32,7 +32,7 @@ export function WritingArchiveList({ articles }: { articles: Article[] }) {
         <div className="local-writing-group">
           <div className="local-writing-label"><span>Published from ACM Studio</span><small>Visible on this browser only</small></div>
           <div className="article-list">
-            {localArticles.map((article) => <ArticleRow article={article} key={article.localDocumentId} />)}
+            {localArticles.map((article) => <ArticleRow article={article} passwordProtected={Boolean(article.passwordProtection)} key={article.localDocumentId} />)}
           </div>
         </div>
       ) : null}

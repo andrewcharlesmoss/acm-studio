@@ -9,10 +9,16 @@ import { getMediaAsset } from "../../studio/media-store";
 import { safeImageSource } from "../../content/rich-text";
 import { TemplateDocument } from "../../studio/template-renderer";
 import type { StudioDocument } from "../../studio/editor-model";
+import { verifyPassword } from "../../content/password-protection";
+import { StudioIcon } from "../../studio/studio-icons";
 
 export function LocalArticlePage({ slug }: { slug: string }) {
   const [article, setArticle] = useState<LocallyPublishedArticle | null | undefined>(undefined);
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordUnlocked, setPasswordUnlocked] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   const mediaUrlsRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
@@ -26,7 +32,7 @@ export function LocalArticlePage({ slug }: { slug: string }) {
   }, [slug]);
 
   useEffect(() => {
-    if (!article) return;
+    if (!article || (article.passwordProtection && !passwordUnlocked)) return;
     let cancelled = false;
     void Promise.all(article.mediaIds.map(async (id) => ({ id, asset: await getMediaAsset(id) }))).then((records) => {
       if (cancelled) return;
@@ -45,7 +51,7 @@ export function LocalArticlePage({ slug }: { slug: string }) {
       });
     }).catch(() => undefined);
     return () => { cancelled = true; };
-  }, [article]);
+  }, [article, passwordUnlocked]);
 
   // Older local publications predate cover metadata. Treat their missing
   // value as the same generated cover that Studio shows for posts.
@@ -65,7 +71,7 @@ export function LocalArticlePage({ slug }: { slug: string }) {
   }, []);
 
   useEffect(() => {
-    if (!article) return;
+    if (!article || (article.passwordProtection && !passwordUnlocked)) return;
     const previousTitle = document.title;
     const description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     const previousDescription = description?.content;
@@ -75,7 +81,7 @@ export function LocalArticlePage({ slug }: { slug: string }) {
       document.title = previousTitle;
       if (description && previousDescription !== undefined) description.content = previousDescription;
     };
-  }, [article]);
+  }, [article, passwordUnlocked]);
 
   if (article === undefined) {
     return <PageFrame><main className="local-article-state"><p className="eyebrow">Browser-local publication</p><h1>Loading locally published post…</h1></main></PageFrame>;
@@ -83,6 +89,10 @@ export function LocalArticlePage({ slug }: { slug: string }) {
 
   if (article === null) {
     return <PageFrame><main className="local-article-state"><p className="eyebrow">Post not found</p><h1>This post is not published in this browser.</h1><p>It may still be a draft, have been unpublished, or belong to another browser.</p><a className="primary-action" href="/writing">Return to writing</a></main></PageFrame>;
+  }
+
+  if (article.passwordProtection && !passwordUnlocked) {
+    return <PageFrame><main className="local-password-gate"><p className="eyebrow">Password protected preview</p><h1>{article.title}</h1><p>Enter the password to view this locally published post.</p><form onSubmit={async (event) => { event.preventDefault(); if (await verifyPassword(passwordInput, article.passwordProtection!)) { setPasswordUnlocked(true); setPasswordError(""); } else setPasswordError("That password is incorrect."); }}><label htmlFor="local-article-password">Password</label><div className="local-password-input"><input id="local-article-password" type={passwordVisible ? "text" : "password"} autoComplete="current-password" value={passwordInput} onChange={(event) => setPasswordInput(event.target.value)} /><button type="button" title={passwordVisible ? "Hide password" : "Show password"} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(value => !value)}><StudioIcon name={passwordVisible ? "seen-off" : "seen"} size={18} /></button></div>{passwordError ? <p role="alert">{passwordError}</p> : null}<button className="primary-action" type="submit" disabled={!passwordInput}>View post</button><small>This password gate applies only to this browser’s local preview. It does not secure a hosted page.</small></form></main></PageFrame>;
   }
 
   if (article.templateSnapshot) {

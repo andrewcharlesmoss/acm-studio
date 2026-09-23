@@ -1,6 +1,6 @@
 import { studioWriteOwnership } from "../studio/write-ownership";
 import type { Article } from "./model";
-import type { StudioDocument } from "../studio/editor-model";
+import type { StudioDocument, StudioPasswordProtection } from "../studio/editor-model";
 import { readingTimeLabel } from "./reading-time";
 import { contentMediaIds } from "./media-references";
 import { copyTemplateData, templateMediaIds, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateSnapshot } from "../studio/template-model";
@@ -16,6 +16,7 @@ export type LocallyPublishedArticle = Article & {
   mediaIds: string[];
   coverImage?: { src: string; mediaId?: string; alt: string } | null;
   metadataBlocksVersion?: 2;
+  passwordProtection?: StudioPasswordProtection;
 };
 
 type StoredWorkspaceDocument = {
@@ -97,6 +98,7 @@ export function toLocallyPublishedArticle(document: StudioDocument, templateSnap
     readingTime: readingTimeLabel(document.blocks),
     author: document.author?.trim() || undefined,
     metadataBlocksVersion: 2,
+    ...(document.passwordProtection ? { passwordProtection: document.passwordProtection } : {}),
     section: document.templateOverrides?.category === true ? (document.category ?? "") : (document.category ?? "Technology"),
     blocks: copyTemplateData(document.blocks),
     ...(templateSnapshot ? { templateSnapshot: copyTemplateData(templateSnapshot) } : {}),

@@ -10,6 +10,7 @@ import { CODE_LANGUAGE_OPTIONS, isKnownCodeLanguage } from "../content/code-high
 import type { StudioDocument, StudioDocumentStatus } from "./editor-model";
 import { StudioIcon } from "./studio-icons";
 import { documentDisplaySource, type FieldUsage } from "./document-fields";
+import { createPasswordProtection } from "../content/password-protection";
 
 function blockLabel(type: ContentBlock["type"]) {
   return type.charAt(0).toUpperCase() + type.slice(1);
@@ -54,7 +55,7 @@ export function StudioInspector({ documentControls, inspectorTab, selectedBlock,
       <div className="inspector-scroll">
         {inspectorTab === "document" ? documentControls : null}
         {inspectorTab === "document" ? (
-          <DocumentInspector document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
+          <DocumentInspector key={activeDocument.id} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
         ) : inspectorTab === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedBlock ? (
           <BlockInspector block={selectedBlock} onChange={onBlockChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
         ) : (
@@ -88,8 +89,16 @@ type DocumentInspectorProps = {
 
 function DocumentInspector({ document, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate, pages, onOpenCoverMediaLibrary, onRemoveCoverImage, onChange, onPublish, onUnpublish, onDuplicate, onDelete, canDelete, canDuplicate, allowedStatuses = ["draft", "pending", "private", "published"], allowedPageTemplates = ["default", "wide", "landing"] }: DocumentInspectorProps) {
   const [statusOpen, setStatusOpen] = useState(false);
+  const [passwordEditorOpen, setPasswordEditorOpen] = useState(false);
+  const [passwordDraft, setPasswordDraft] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const passwordSavingRef = useRef(false);
+  const passwordSaveGenerationRef = useRef(0);
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishPopoverPosition, setPublishPopoverPosition] = useState<{ left: number; top: number } | null>(null);
+  const statusTriggerRef = useRef<HTMLButtonElement>(null);
   const publishTriggerRef = useRef<HTMLButtonElement>(null);
   const publishPopoverRef = useRef<HTMLDivElement>(null);
   const publishHourInputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +146,39 @@ function DocumentInspector({ document, resolvedDocument, hasTemplate = false, fi
   const calendarDays = getCalendarDays(calendarMonth);
 
   useEffect(() => {
+    if (!statusOpen) return;
+    function closeWithEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setStatusOpen(false);
+      requestAnimationFrame(() => statusTriggerRef.current?.focus());
+    }
+    globalThis.document.addEventListener("keydown", closeWithEscape);
+    return () => globalThis.document.removeEventListener("keydown", closeWithEscape);
+  }, [statusOpen]);
+
+  async function savePasswordProtection(value = passwordDraft) {
+    if (!value || passwordSavingRef.current) return;
+    passwordSavingRef.current = true;
+    const generation = passwordSaveGenerationRef.current;
+    setPasswordSaving(true);
+    setPasswordError("");
+    try {
+      const protection = await createPasswordProtection(value);
+      if (generation !== passwordSaveGenerationRef.current) return;
+      onChange("passwordProtection", protection);
+      setPasswordDraft("");
+      setPasswordVisible(false);
+      setPasswordEditorOpen(false);
+    } catch {
+      if (generation === passwordSaveGenerationRef.current) setPasswordError("This browser could not save the password. Try again.");
+    } finally {
+      passwordSavingRef.current = false;
+      setPasswordSaving(false);
+    }
+  }
+
+  useEffect(() => {
     if (!publishOpen) return;
     function positionPublishPopover() {
       const trigger = publishTriggerRef.current;
@@ -178,8 +220,8 @@ function DocumentInspector({ document, resolvedDocument, hasTemplate = false, fi
     <div className="inspector-sections">
       <section><h2>Document Identity</h2><div className="document-summary"><span className={`kind-badge is-${document.kind}`}>{document.kind === "page" ? "P" : "A"}</span><div><strong>{document.title}</strong><small>{document.kind} · {statusLabel}</small></div></div><label><span>Type</span><select value={document.kind} disabled aria-label="Document type"><option value="page">Page</option><option value="post">Post</option></select></label><label><span>Title</span><input value={document.title} onChange={event => onChange("title", event.target.value)} /></label><FieldDisplaySetting label="Title display" field="title" document={document} resolvedDocument={resolvedDocument} hasTemplate={hasTemplate} usage={fieldUsage?.title} onChange={value => changeDisplay("title", value)} />{document.kind === "page" && onOpenCoverMediaLibrary ? <div className="page-featured-image"><span>Featured image</span><div><button type="button" className="choose-media-button" onClick={onOpenCoverMediaLibrary}>{document.coverImage ? "Replace featured image" : "Set featured image"}</button>{document.coverImage && onRemoveCoverImage ? <button type="button" className="page-featured-image-remove" onClick={onRemoveCoverImage}>Remove image</button> : null}</div></div> : null}<label><span>Address</span><input value={document.slug} onChange={(event) => onChange("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label><label><span>Parent page</span><select value={resolvedDocument.parentPageId ?? ""} onChange={(event) => { onFieldOverride?.("parentPageId", false); onChange("parentPageId", event.target.value || undefined); }}><option value="">None</option>{pages.filter((page) => page.id !== document.id).map((page) => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label><FieldSettingsRow label="Parent page source" source={valueSource("parentPageId")} onReset={hasTemplate && document.templateOverrides?.parentPageId === true && onFieldOverride ? () => onFieldOverride("parentPageId", true) : undefined} /></section>
       <section><h2>Publishing</h2><div className="local-publish-status"><i className={`document-status is-${document.status}`} /><div><strong>{document.status === "published" ? "Published locally" : statusLabel}</strong><small>{document.status === "published" && document.publishedAt ? `Since ${new Date(document.publishedAt).toLocaleDateString("en-GB")}` : "Only visible in Studio"}</small></div></div>
-        <div className="inspector-setting-row"><span>Status</span><button className="inspector-setting-trigger" type="button" aria-expanded={statusOpen} onClick={() => setStatusOpen((open) => !open)}>{statusLabel}<StudioIcon name="chevron-right" size={16} /></button></div>
-        {statusOpen ? <div className="inspector-popover" role="group" aria-label="Status and visibility"><div className="inspector-popover-heading"><strong>Status &amp; visibility</strong><button type="button" aria-label="Close status and visibility" onClick={() => setStatusOpen(false)}><StudioIcon name="close" size={16} /></button></div><div className="status-options" role="radiogroup" aria-label="Document status">{allowedStatuses.map((status) => <button className="status-option" type="button" role="radio" aria-checked={document.status === status} key={status} onClick={() => { onChange("status", status); setStatusOpen(false); }}><span className="status-radio" aria-hidden="true" /><span><strong>{documentStatusLabel(status)}</strong><small>{documentStatusDescription(status)}</small></span></button>)}</div></div> : null}
+        <div className="inspector-setting-row"><span>Status</span><button ref={statusTriggerRef} className="inspector-setting-trigger" type="button" aria-expanded={statusOpen} aria-haspopup="true" onClick={() => setStatusOpen((open) => !open)}>{statusLabel}<StudioIcon name="chevron-right" size={16} /></button></div>
+        {statusOpen ? <div className="inspector-popover" role="group" aria-label="Status and visibility"><div className="inspector-popover-heading"><strong>Status &amp; visibility</strong><button type="button" aria-label="Close status and visibility" onClick={() => { setStatusOpen(false); requestAnimationFrame(() => statusTriggerRef.current?.focus()); }}><StudioIcon name="close" size={16} /></button></div><div className="status-options" role="radiogroup" aria-label="Document status">{allowedStatuses.map((status) => <button className="status-option" type="button" role="radio" aria-checked={document.status === status} key={status} onClick={() => { onChange("status", status); setStatusOpen(false); }}><span className="status-radio" aria-hidden="true" /><span><strong>{documentStatusLabel(status)}</strong><small>{documentStatusDescription(status)}</small></span></button>)}</div><div className="password-protection-option"><div className="password-protection-toggle"><input id="password-protection-toggle" type="checkbox" checked={Boolean(document.passwordProtection) || passwordEditorOpen} onChange={(event) => { setPasswordError(""); if (event.target.checked) setPasswordEditorOpen(true); else { passwordSaveGenerationRef.current += 1; onChange("passwordProtection", null); setPasswordEditorOpen(false); setPasswordDraft(""); } }} /><label htmlFor="password-protection-toggle"><strong>Password protected</strong><small>Only visible to people who know the password.</small></label></div>{passwordEditorOpen ? <div className="password-protection-editor">{document.kind === "page" ? <small>Page publishing is not available yet, so this setting does not protect a page preview.</small> : null}<label htmlFor="document-password">Password</label><div className="password-protection-input" aria-busy={passwordSaving} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) void savePasswordProtection(); }}><input id="document-password" type={passwordVisible ? "text" : "password"} autoComplete="new-password" maxLength={256} placeholder={document.passwordProtection ? "Enter a new password to replace it" : "Use a secure password"} value={passwordDraft} onChange={(event) => setPasswordDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void savePasswordProtection(); } }} /><button type="button" title={passwordVisible ? "Hide password" : "Show password"} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(value => !value)}><StudioIcon name={passwordVisible ? "seen-off" : "seen"} size={18} /></button></div>{document.passwordProtection ? <button className="password-protection-cancel" type="button" onClick={() => { passwordSaveGenerationRef.current += 1; setPasswordEditorOpen(false); setPasswordDraft(""); setPasswordVisible(false); }}>Cancel</button> : null}{passwordError ? <p role="status">{passwordError}</p> : null}</div> : document.passwordProtection ? <div className="password-protection-saved"><small>Password is set.</small><button type="button" onClick={() => { setPasswordError(""); setPasswordEditorOpen(true); }}>Change password</button></div> : null}</div></div> : null}
         <div className="inspector-setting-row"><span>Publish</span><button ref={publishTriggerRef} className="inspector-setting-trigger" type="button" aria-expanded={publishOpen} aria-haspopup="dialog" aria-controls="publish-date-popover" onClick={openPublishDate}>{publishDate}<StudioIcon name="chevron-right" size={16} /></button></div>
         {publishOpen ? <div ref={publishPopoverRef} id="publish-date-popover" className="inspector-popover publish-date-popover" role="dialog" aria-label="Publish date" style={publishPopoverPosition ?? undefined}><div className="inspector-popover-heading"><strong>Publish</strong><button className="publish-now-button" type="button" onClick={publishImmediately}>Now</button><button type="button" aria-label="Close publish date" onClick={() => { setPublishOpen(false); requestAnimationFrame(() => publishTriggerRef.current?.focus()); }}><StudioIcon name="close" size={20} /></button></div><div className="publish-time-row"><strong>Time</strong><div className="publish-time-controls"><div className="publish-time-input"><input ref={publishHourInputRef} aria-label="Hour" inputMode="numeric" min="0" max="23" value={String(selectedDate.getHours()).padStart(2, "0")} onChange={(event) => updateDateParts({ hours: clampNumber(event.target.value, 0, 23) })} /><span>:</span><input aria-label="Minute" inputMode="numeric" min="0" max="59" value={String(selectedDate.getMinutes()).padStart(2, "0")} onChange={(event) => updateDateParts({ minutes: clampNumber(event.target.value, 0, 59) })} /></div><span className="publish-timezone">UTC+0</span></div></div><div className="publish-date-fields"><strong>Date</strong><div><input aria-label="Day" inputMode="numeric" min="1" max="31" value={String(selectedDate.getDate()).padStart(2, "0")} onChange={(event) => updateDateParts({ day: clampNumber(event.target.value, 1, 31) })} /><select aria-label="Month" value={selectedDate.getMonth()} onChange={(event) => updateDateParts({ month: Number(event.target.value) })}>{MONTH_NAMES.map((month, index) => <option value={index} key={month}>{month}</option>)}</select><input aria-label="Year" inputMode="numeric" value={selectedDate.getFullYear()} onChange={(event) => updateDateParts({ year: clampNumber(event.target.value, 1, 9999) })} /></div></div><div className="publish-calendar"><div className="publish-calendar-heading"><button type="button" aria-label="Previous month" onClick={() => moveCalendarMonth(-1)}><StudioIcon name="arrow-left" size={20} /></button><strong>{formatCalendarMonth(calendarMonth)}</strong><button type="button" aria-label="Next month" onClick={() => moveCalendarMonth(1)}><StudioIcon name="arrow-right" size={20} /></button></div><div className="publish-calendar-weekdays">{WEEKDAY_NAMES.map((weekday) => <span key={weekday}>{weekday}</span>)}</div><div className="publish-calendar-grid">{calendarDays.map((day, index) => day ? <button type="button" className={isSameCalendarDay(day, selectedDate) ? "is-selected" : ""} aria-label={day.toLocaleDateString("en-GB", { dateStyle: "full" })} key={day.toISOString()} onClick={() => updatePublicationDate(new Date(day.getFullYear(), day.getMonth(), day.getDate(), selectedDate.getHours(), selectedDate.getMinutes()))}>{day.getDate()}</button> : <span aria-hidden="true" key={`empty-${index}`} />)}</div></div><p className="setting-note">This date is used when the {document.kind} is published locally.</p></div> : null}
         {document.kind === "post" ? <div className="publishing-actions"><button className="publish-action" type="button" onClick={onPublish}>{document.status === "published" ? "Update published post" : "Publish post"}</button>{document.status === "published" ? <button type="button" onClick={onUnpublish}>Return to draft</button> : null}</div> : <p className="setting-note">Page publishing will follow after the post workflow is proven. These settings are saved with the page.</p>}<p className="setting-note">Local publication is visible only in this browser.</p></section>

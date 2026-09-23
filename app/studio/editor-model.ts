@@ -5,6 +5,7 @@ import type { TemplateAssignment } from "./template-model";
 
 export type StudioDocumentKind = "post" | "page";
 export type StudioDocumentStatus = "draft" | "pending" | "private" | "published";
+export type StudioPasswordProtection = { salt: string; hash: string };
 export type StudioCoverImage = { src: string; mediaId?: string; alt: string };
 
 export type StudioDocument = {
@@ -21,6 +22,7 @@ export type StudioDocument = {
   /** Marks conversion of the former fixed title/subtitle/cover shell. */
   documentShellVersion?: 1;
   status: StudioDocumentStatus;
+  passwordProtection?: StudioPasswordProtection | null;
   /** The date/time selected for the next local publication. */
   publishAt?: string;
   publishedAt?: string;

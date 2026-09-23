@@ -116,6 +116,17 @@ test("optional fields compare absence by presence, while present mismatches stil
   assert.equal(sync.applyStudioTransaction(competing, deletion).conflicts.length, 1);
 });
 
+test("clearing an optional password verifier to null is serialisable across tabs", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const base = { documents: [{ id: "post", title: "Post", passwordProtection: { salt: "salt", hash: "hash" } }] };
+  const cleared = { documents: [{ id: "post", title: "Post", passwordProtection: null }] };
+  const transaction = sync.createStudioTransaction(base, cleared, { transactionId: "clear-password", clientId: "owner", brokerEpoch: "epoch", baseRevision: 0 });
+  assert.doesNotThrow(() => JSON.stringify(transaction));
+  const result = sync.applyStudioTransaction(base, transaction);
+  assert.equal(result.conflicts.length, 0);
+  assert.equal(result.snapshot.documents[0].passwordProtection, null);
+});
+
 test("inserting a block does not turn a concurrent deletion into an order conflict", () => {
   const sync = load("app/studio/studio-sync.ts");
   const base = { blocks: [{ id: "a" }, { id: "b" }, { id: "c" }] };

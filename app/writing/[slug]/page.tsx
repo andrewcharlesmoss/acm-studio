@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 export default async function ArticleDetailPage({ params }: ArticlePageProps) {
   const { slug } = await params;
   const article = getArticle(slug);
-  if (!article) return <LocalArticlePage slug={slug} />;
+  if (!article) return <LocalArticlePage key={slug} slug={slug} />;
 
   return (
     <PageFrame>

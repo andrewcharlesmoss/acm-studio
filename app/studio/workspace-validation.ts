@@ -21,6 +21,9 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === "string");
 const optionalString = (value: unknown) => value === undefined || typeof value === "string";
 const optionalBoolean = (value: unknown) => value === undefined || typeof value === "boolean";
+const validPasswordProtection = (value: unknown) => value === undefined || value === null || (isRecord(value)
+  && typeof value.salt === "string" && /^[A-Za-z0-9+/]{20,32}={0,2}$/.test(value.salt)
+  && typeof value.hash === "string" && /^[A-Za-z0-9+/]{40,48}={0,2}$/.test(value.hash));
 const date = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value));
 const uniqueIds = (records: Record<string, unknown>[]) => records.every((item) => typeof item.id === "string" && item.id.length > 0)
   && new Set(records.map((item) => item.id)).size === records.length;
@@ -203,6 +206,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       || (document.metadataBlocksVersion !== undefined && document.metadataBlocksVersion !== 2)
       || (document.documentShellVersion !== undefined && document.documentShellVersion !== 1)
       || ![document.subtitle, document.publishedSlug, document.parentPageId].every(optionalString)
+      || !validPasswordProtection(document.passwordProtection)
       || (document.publishAt !== undefined && !date(document.publishAt))
       || (document.publishedAt !== undefined && !date(document.publishedAt))
       || (document.category !== undefined && (typeof document.category !== "string" || document.category.length > 200))
@@ -234,6 +238,7 @@ export function validatePublicationSnapshot(value: unknown): void {
       || !date(post.publishedAt) || !validContentBlocks(post.blocks) || !strings(post.mediaIds)
       || !optionalString(post.subtitle) || !optionalString(post.projectSlug)
       || !optionalString(post.author)
+      || !validPasswordProtection(post.passwordProtection)
       || (post.metadataBlocksVersion !== undefined && post.metadataBlocksVersion !== 2)
       || !["", "Technology", "Excel", "Personal"].includes(post.section as string) || ids.has(post.localDocumentId)) {
       throw new Error("The published-post snapshot is invalid.");

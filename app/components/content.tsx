@@ -32,7 +32,7 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
   );
 }
 
-export function ArticleRow({ article }: { article: Article }) {
+export function ArticleRow({ article, passwordProtected = false }: { article: Article; passwordProtected?: boolean }) {
   return (
     <article className="article-row">
       <div className="article-meta">
@@ -41,7 +41,7 @@ export function ArticleRow({ article }: { article: Article }) {
       </div>
       <div className="article-summary">
         <h3><a href={`/writing/${article.slug}`}>{article.title}</a></h3>
-        <p>{article.summary}</p>
+        <p>{passwordProtected ? "Password protected · Enter the password to read this post." : article.summary}</p>
       </div>
       <span className="article-arrow" aria-hidden="true">↗</span>
     </article>
