@@ -328,6 +328,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Restored the selected block toolbar above each block instead of in the left
+  gutter, without changing the document layout when a block is selected.
 - Selecting a post or page title and subtitle now selects the corresponding
   document field in the Block inspector, including in assigned site templates.
 - Blank-line-separated text now becomes distinct paragraph blocks in the editor,

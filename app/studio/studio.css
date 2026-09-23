@@ -614,9 +614,6 @@
   z-index: 4;
 }
 .canvas-block.is-selected .canvas-block-toolbar { opacity: 1; transform: translateY(calc(-100% - 8px)); visibility: visible; }
-/* Keep a middle block's toolbar in the canvas gutter so it never covers the
-   preceding paragraph while selection leaves the document layout unchanged. */
-.block-position + .block-position .canvas-block.is-selected .canvas-block-toolbar { left: auto; right: calc(100% + 8px); top: 0; transform: none; }
 .canvas-block-toolbar > span { border-left: 1px solid var(--studio-toolbar-divider); border-right: 1px solid var(--studio-toolbar-divider); font-size: var(--studio-ui-size); font-weight: 700; letter-spacing: .04em; margin: 0 4px; padding: 4px 8px; text-transform: uppercase; }
 .canvas-block-toolbar > div { display: flex; }
 .heading-level-control { position: relative; }
