@@ -328,6 +328,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Resetting a document field's display setting to Use Template now reads the
+  stored override state instead of the canvas's resolved template values.
 - Keep the rename dialog's initial text selection from resetting while typing.
 - Changed the New post and New page plus icons to black.
 - Changed the Publish date popover's Now action, month arrows and selected day

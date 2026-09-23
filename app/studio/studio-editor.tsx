@@ -33,7 +33,7 @@ export function StudioEditor({ target, writable = true, onUndo, onRedo, canUndo 
   if (!activeDocument) return null;
   return <>
     <StudioCanvas key={activeDocument.id} {...canvas} targetLabel={target?.kind} allowHtmlEditing={!target} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} writable={writable} activeDocument={activeDocument} />
-    {target ? target.inspector : inspector ? <StudioInspector {...inspector} activeDocument={activeDocument} /> : null}
+    {target ? target.inspector : inspector ? <StudioInspector {...inspector} activeDocument={inspector.activeDocument ?? activeDocument} /> : null}
   </>;
 }
 
