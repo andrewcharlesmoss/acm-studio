@@ -305,6 +305,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- The floating text toolbar now follows the caret when moving between
+  paragraphs within a text block.
 - Allow deleting the last local page or post, validate and synchronise an empty
   content workspace, and show page/post creation actions instead of a phantom
   document.

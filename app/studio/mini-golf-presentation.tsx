@@ -27,7 +27,7 @@ function selected(context: Context, block: ContentBlock, props: Record<string, u
 function editableText(context: Context, block: Extract<ContentBlock, { type: "heading" | "paragraph" }>, tag: string, className?: string, content?: ReactNode): ReactNode {
   const style = { ...(block.type === "paragraph" ? paragraphStyleToCss(block.style) : {}), ...(block.align ? { textAlign: block.align === "centre" ? "center" as const : block.align } : {}) };
   const props = selected(context, block, { className, style, role: block.siteRole === "status" ? "status" : undefined, "data-block-id": block.id });
-  if (context.mode === "edit") return <RichTextEditor {...props} as={tag as RichTextEditorProps["as"]} text={block.text} runs={block.runs} onSelectionChange={() => undefined} onLinkActivate={() => undefined} onChange={(text, runs) => context.onUpdateBlock?.(block.id, (current) => current.type === block.type ? { ...current, text, runs } : current)} />;
+  if (context.mode === "edit") return <RichTextEditor {...props} as={tag as RichTextEditorProps["as"]} text={block.text} runs={block.runs} onSelectionChange={() => context.onCaretMove?.()} onLinkActivate={() => undefined} onChange={(text, runs) => context.onUpdateBlock?.(block.id, (current) => current.type === block.type ? { ...current, text, runs } : current)} />;
   return createElement(tag, props, content ?? renderText(block.text, block.runs));
 }
 
@@ -202,7 +202,7 @@ function renderBlock(context: Context, parentRole?: Section["role"], tableFontSi
     return action(context, block, `button ${block.siteRole === "auto-resize" ? "compact-toggle" : block.siteRole === "new-game" ? "ghost" : block.style}`);
   }
   if (context.mode === "preview") return <BlockRenderer blocks={[block]} variant="studio" hideDividers />;
-  return <div {...selected(context, block)}><BlockField block={block} selectedBlockId={context.selectedBlockId} hoveredBlockId={context.hoveredBlockId} onTableCellFocus={() => context.onSelectBlock?.(block.id)} onTextSelection={() => undefined} onLinkActivate={() => undefined} onChange={(next) => context.onUpdateBlock?.(block.id, () => next)} /></div>;
+  return <div {...selected(context, block)}><BlockField block={block} selectedBlockId={context.selectedBlockId} hoveredBlockId={context.hoveredBlockId} onTableCellFocus={() => context.onSelectBlock?.(block.id)} onTextSelection={() => context.onCaretMove?.()} onLinkActivate={() => undefined} onChange={(next) => context.onUpdateBlock?.(block.id, () => next)} /></div>;
 }
 
 function ConnectedBlock({ context }: { context: Context }) {
