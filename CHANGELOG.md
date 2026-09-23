@@ -328,6 +328,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Updated active Bold and Italic controls to use WordPress-style dark pressed styling.
 - Bold and Italic toolbar buttons now reflect whether selected text is marked,
   including an accessible mixed state for selections with varied formatting.
 - Resetting a document field's display setting to Use Template now reads the
