@@ -1,6 +1,6 @@
 "use client";
 
-import type { ContentBlock } from "../content/model";
+import type { ContentBlock, RichTextRun } from "../content/model";
 import { createBlock, type InsertableBlockType, type StudioDocument } from "./editor-model";
 import {
   findBlockById,
@@ -29,6 +29,34 @@ export function useStudioBlockCommands({
     const block = createBlock(type);
     updateActiveDocument((document) => insertBlockAt(document, block, afterIndex));
     return block;
+  }
+
+  function splitParagraph(blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) {
+    const source = findBlockById(activeDocument.blocks, blockId);
+    if (!source || source.type !== "paragraph") return null;
+    const nextId = createUniqueId("paragraph");
+    const beforeText = beforeRuns.map((run) => run.text).join("");
+    const afterText = afterRuns.map((run) => run.text).join("");
+    const before = { ...source, text: beforeText, runs: beforeRuns };
+    const after = { ...source, id: nextId, text: afterText, runs: afterRuns };
+
+    updateActiveDocument((document) => {
+      function split(blocks: ContentBlock[]): ContentBlock[] {
+        const next: ContentBlock[] = [];
+        for (const block of blocks) {
+          if (block.id === blockId && block.type === "paragraph") {
+            next.push(before, after);
+          } else if ((block.type === "section" || block.type === "group" || block.type === "component") && Array.isArray(block.children)) {
+            next.push({ ...block, children: split(block.children) } as ContentBlock);
+          } else {
+            next.push(block);
+          }
+        }
+        return next;
+      }
+      return { ...document, blocks: split(document.blocks) };
+    });
+    return nextId;
   }
 
   function moveBlock(blockIndex: number, direction: -1 | 1) {
@@ -94,5 +122,5 @@ export function useStudioBlockCommands({
     updateActiveDocument((document) => removeNestedBlockById(document, blockId));
   }
 
-  return { updateBlock, insertBlock, moveBlock, moveBlockTo, duplicateBlock, duplicateBlockById, removeBlock };
+  return { updateBlock, insertBlock, splitParagraph, moveBlock, moveBlockTo, duplicateBlock, duplicateBlockById, removeBlock };
 }

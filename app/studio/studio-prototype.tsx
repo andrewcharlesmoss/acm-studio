@@ -555,6 +555,11 @@ export function StudioPrototype() {
             onDuplicateBlock: duplicateBlock,
             onRemoveBlock: removeBlock,
             onUpdateBlock: (id, update) => { blockCommands.updateBlock(id, update); },
+            onSplitParagraph: (id, beforeRuns, afterRuns) => {
+              const nextId = blockCommands.splitParagraph(id, beforeRuns, afterRuns);
+              if (nextId) { setSelectedBlockId(nextId); setInspectorTab("block"); }
+              return nextId;
+            },
             onInsertBlock: insertBlock,
             onSetShowInserter: setShowInserter,
             onSetInserterQuery: setInserterQuery,

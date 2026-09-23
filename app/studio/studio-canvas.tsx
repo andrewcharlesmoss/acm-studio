@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type HTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
 import { BlockRenderer } from "../components/content";
 import { ArticleMetaIcon } from "../components/article-meta-icon";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
@@ -99,12 +99,13 @@ export type StudioCanvasProps = {
   onDuplicateBlock: (index: number) => void;
   onRemoveBlock: (blockId: string) => void;
   onUpdateBlock: (blockId: string, update: (block: ContentBlock) => ContentBlock) => void;
+  onSplitParagraph: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null;
   onInsertBlock: (type: BlockLibraryItemType) => ContentBlock;
   onSetShowInserter: (show: boolean) => void;
   onSetInserterQuery: (query: string) => void;
 };
 
-export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onSplitParagraph, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
   const linkInputRef = useRef<HTMLInputElement>(null);
@@ -591,7 +592,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                         {htmlEditor.error ? <p className="html-editor-error" role="alert">{htmlEditor.error}</p> : null}
                         <div className="html-editor-actions"><button type="button" onClick={() => setHtmlEditor(null)}>Cancel</button><button className="html-editor-apply" type="submit">Apply</button></div>
                       </form> : null}
-                      {presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
+                      {presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onSplitParagraph={onSplitParagraph} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
                   </article>
                 </div>
               ))}
@@ -864,9 +865,9 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
   );
 }
 
-export function BlockField({ block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, mediaUrl, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onChange }: { block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; templatePlaceholder?: boolean; selectedBlockId?: string | null; hoveredBlockId?: string | null; mediaUrl?: string; coverImageUrl?: string; onOpenCoverMediaLibrary?: () => void; onRemoveCoverImage?: () => void; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null) => void; onLinkActivate: (selection: TextSelection) => void; onChange: (block: ContentBlock) => void }) {
+export function BlockField({ block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, mediaUrl, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onSplitParagraph, onChange }: { block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; templatePlaceholder?: boolean; selectedBlockId?: string | null; hoveredBlockId?: string | null; mediaUrl?: string; coverImageUrl?: string; onOpenCoverMediaLibrary?: () => void; onRemoveCoverImage?: () => void; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null) => void; onLinkActivate: (selection: TextSelection) => void; onSplitParagraph?: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null; onChange: (block: ContentBlock) => void }) {
   const documentContext: DocumentRenderContext = document ?? { kind: "page" };
-  if (block.type === "paragraph") return <RichTextEditor id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
+  if (block.type === "paragraph") return <RichTextEditor id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph ? (beforeRuns, afterRuns) => onSplitParagraph(block.id, beforeRuns, afterRuns) : undefined} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
   if (block.type === "heading") return <RichTextEditor className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
   if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}`}><RichTextEditor className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
   if (block.type === "list") return <ListField block={block} onChange={onChange} />;
@@ -902,7 +903,7 @@ export function BlockField({ block, rootBlocks = [block], document, templatePlac
   if (block.type === "reading-time") return <div className={`metadata-block-editor reading-time-block-editor${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`}>{block.presentation !== "plain" ? <span className="reading-time-badge">{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span> : <span>{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span>}</div>;
   if (block.type === "post-author") { const author = documentAuthor(documentContext); return <div className={`metadata-block-editor article-byline align-${block.align ?? "left"}`}>{author ? <>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></> : <span className="metadata-missing">Add an author in Document settings.</span>}</div>; }
   if (block.type === "post-date") { const date = formatDocumentDate(documentContext, block.format); return <div className={`metadata-block-editor article-byline-detail align-${block.align ?? "left"}`}>{date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={documentContext.publishAt ?? documentContext.publishedAt}>{date}</time></> : <span className="metadata-missing">Add a publication date in Document settings.</span>}</div>; }
-  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} rootBlocks={rootBlocks} document={document} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onChange({ ...block, children: [...block.children, createBlock("paragraph", `nested-paragraph-${crypto.randomUUID()}`)] })}><StudioIcon name="add" size={16} /> Add nested block</button></Group>; }
+  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} rootBlocks={rootBlocks} document={document} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onChange({ ...block, children: [...block.children, createBlock("paragraph", `nested-paragraph-${crypto.randomUUID()}`)] })}><StudioIcon name="add" size={16} /> Add nested block</button></Group>; }
   return <div className="divider-field"><span /></div>;
 }
 
@@ -975,9 +976,10 @@ export type RichTextEditorProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   onChange: (text: string, runs: RichTextRun[]) => void;
   onSelectionChange: (selection: TextSelection | null) => void;
   onLinkActivate: (selection: TextSelection) => void;
+  onSplitParagraph?: (beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null;
 };
 
-export function RichTextEditor({ as: elementName = "div", text, runs, onChange, onSelectionChange, onLinkActivate, className, ...props }: RichTextEditorProps) {
+export function RichTextEditor({ as: elementName = "div", text, runs, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onKeyDown: onKeyDownProp, className, ...props }: RichTextEditorProps) {
   const Tag = elementName as "div";
   const editorRef = useRef<HTMLDivElement>(null);
   const renderedRuns = runs?.length ? runs : textToRuns(text);
@@ -1013,8 +1015,43 @@ export function RichTextEditor({ as: elementName = "div", text, runs, onChange, 
     readSelection();
   }
 
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    onKeyDownProp?.(event);
+    if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || !onSplitParagraph) return;
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return;
+    event.preventDefault();
+
+    const range = selection.getRangeAt(0);
+    const sourceRuns = editorToRuns(editor);
+    const sourceLength = plainTextFromRuns(sourceRuns).length;
+    const firstOffset = Math.min(editorTextOffset(editor, range.startContainer, range.startOffset), sourceLength);
+    const secondOffset = Math.min(editorTextOffset(editor, range.endContainer, range.endOffset), sourceLength);
+    const selectionStart = Math.min(firstOffset, secondOffset);
+    const selectionEnd = Math.max(firstOffset, secondOffset);
+    const beforeRuns = sliceRichRuns(sourceRuns, 0, selectionStart);
+    const afterRuns = sliceRichRuns(sourceRuns, selectionEnd, plainTextFromRuns(sourceRuns).length);
+    const nextBlockId = onSplitParagraph(beforeRuns, afterRuns);
+    onSelectionChange(null);
+    if (!nextBlockId) return;
+
+    window.requestAnimationFrame(() => {
+      const nextEditor = [...document.querySelectorAll<HTMLElement>("[data-studio-block-id]")]
+        .find((element) => element.dataset.studioBlockId === nextBlockId);
+      if (!nextEditor) return;
+      nextEditor.focus();
+      const nextRange = document.createRange();
+      nextRange.selectNodeContents(nextEditor);
+      nextRange.collapse(true);
+      const nextSelection = window.getSelection();
+      nextSelection?.removeAllRanges();
+      nextSelection?.addRange(nextRange);
+    });
+  }
+
   // Select links in-place and show their Gutenberg-style controls instead of navigating away from Studio.
-  return <Tag {...props} ref={editorRef} className={`${className ?? ""} rich-text-editor`} contentEditable role="textbox" tabIndex={0} aria-multiline="true" suppressContentEditableWarning onInput={handleInput} onSelect={readSelection} onKeyUp={readSelection} onMouseUp={readSelection} onFocus={(event) => { props.onFocus?.(event); readSelection(); }} onClick={(event) => {
+  return <Tag {...props} ref={editorRef} className={`${className ?? ""} rich-text-editor`} contentEditable role="textbox" tabIndex={0} aria-multiline="true" suppressContentEditableWarning onInput={handleInput} onKeyDown={handleKeyDown} onSelect={readSelection} onKeyUp={readSelection} onMouseUp={readSelection} onFocus={(event) => { props.onFocus?.(event); readSelection(); }} onClick={(event) => {
     const link = (event.target as HTMLElement).closest("a");
     if (!link || !editorRef.current?.contains(link)) return;
     event.preventDefault();
@@ -1038,6 +1075,35 @@ function editorOffset(root: HTMLElement, container: Node, offset: number) {
   range.selectNodeContents(root);
   range.setEnd(container, offset);
   return range.toString().length;
+}
+
+function editorTextOffset(root: HTMLElement, container: Node, offset: number) {
+  function nodeLength(node: Node): number {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent?.length ?? 0;
+    if (node.nodeType !== Node.ELEMENT_NODE) return 0;
+    const element = node as HTMLElement;
+    if (element.tagName === "BR") return 1;
+    const childrenLength = Array.from(element.childNodes).reduce((total, child) => total + nodeLength(child), 0);
+    return childrenLength + (element.tagName === "DIV" || element.tagName === "P" ? 1 : 0);
+  }
+
+  function countBefore(node: Node): number | null {
+    if (node === container) {
+      if (node.nodeType === Node.TEXT_NODE) return Math.max(0, Math.min(offset, node.textContent?.length ?? 0));
+      return Array.from(node.childNodes).slice(0, Math.max(0, Math.min(offset, node.childNodes.length))).reduce((total, child) => total + nodeLength(child), 0);
+    }
+    let total = 0;
+    for (const child of Array.from(node.childNodes)) {
+      if (child === container || child.contains(container)) {
+        const nested = countBefore(child);
+        return nested === null ? null : total + nested;
+      }
+      total += nodeLength(child);
+    }
+    return null;
+  }
+
+  return countBefore(root) ?? 0;
 }
 
 function selectionWithinEditor(editor: HTMLElement): TextSelection | null {
@@ -1098,6 +1164,19 @@ function runsToEditorHtml(runs: RichTextRun[]) {
     }
     return html;
   }).join("");
+}
+
+function sliceRichRuns(runs: RichTextRun[], start: number, end: number) {
+  let offset = 0;
+  return normaliseTextRuns(runs.flatMap((run) => {
+    const runStart = offset;
+    const runEnd = runStart + run.text.length;
+    offset = runEnd;
+    const sliceStart = Math.max(start, runStart);
+    const sliceEnd = Math.min(end, runEnd);
+    if (sliceEnd <= sliceStart) return [];
+    return [{ text: run.text.slice(sliceStart - runStart, sliceEnd - runStart), marks: run.marks?.length ? [...run.marks] : undefined }];
+  }));
 }
 
 function editorToRuns(editor: HTMLElement) {
