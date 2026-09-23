@@ -156,8 +156,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
-- Focused title and subtitle fields now use a hairline neutral border without
-  an additional focus ring.
+- Focused title and subtitle fields now use the same neutral inset edge as
+  selected content blocks in document and template editors.
 - Replaced blue focus borders with neutral grey indicators across Studio and
   its editor tools while keeping keyboard focus visible.
 - Reorganised the Page inspector around identity and publishing controls, with

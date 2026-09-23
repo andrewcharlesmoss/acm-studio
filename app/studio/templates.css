@@ -61,6 +61,7 @@
 .template-surface .template-node + .template-node { margin-top: var(--template-spacing); }
 .template-surface a { color: var(--template-accent); text-decoration-thickness: 0.08em; text-underline-offset: 0.16em; }
 .template-surface a:focus-visible, .template-surface button:focus-visible, .template-surface input:focus-visible { outline: 3px solid #5c5e5c; outline-offset: 3px; }
+.template-surface input.template-title-input:focus, .template-surface input.template-subtitle-input:focus { border: 1px solid #8f8f8f !important; box-shadow: none !important; outline: 1px solid #8f8f8f !important; outline-offset: -1px !important; }
 .template-surface .template-group { display: flex; flex-direction: column; gap: var(--template-spacing); }
 .template-surface .template-group.layout-row { flex-direction: row; justify-content: space-between; align-items: center; flex-wrap: wrap; }
 .template-surface .template-group.layout-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
