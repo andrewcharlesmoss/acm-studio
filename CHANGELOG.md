@@ -328,6 +328,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Changed the Publish date popover's Now action, month arrows and selected day
+  to black, with a neutral grey hover state.
 - Restored the selected block toolbar above each block instead of in the left
   gutter, without changing the document layout when a block is selected.
 - Selecting a post or page title and subtitle now selects the corresponding
