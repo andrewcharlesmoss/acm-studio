@@ -61,6 +61,7 @@ export function StudioPrototype() {
   const [saveTemplateDialog, setSaveTemplateDialog] = useState<{ name: string; destination: string; includeAuthor: boolean; includeCategory: boolean; includeTags: boolean; includeParentPage: boolean }>();
   const saveTemplateDialogRef = useRef<HTMLDialogElement>(null);
   const [renameDocumentDialog, setRenameDocumentDialog] = useState<{ documentId: string; name: string } | null>(null);
+  const renameDocumentId = renameDocumentDialog?.documentId;
   const renameDocumentDialogRef = useRef<HTMLDialogElement>(null);
   const renameDocumentOpenerRef = useRef<HTMLElement | null>(null);
   const [newTemplateChoice, setNewTemplateChoice] = useState<string>();
@@ -139,12 +140,12 @@ export function StudioPrototype() {
     if (!newTemplateDialogRef.current.open) newTemplateDialogRef.current.showModal();
   }, [newTemplateChoice]);
   useEffect(() => {
-    if (!renameDocumentDialog || !renameDocumentDialogRef.current) return;
+    if (!renameDocumentId || !renameDocumentDialogRef.current) return;
     if (!renameDocumentDialogRef.current.open) renameDocumentDialogRef.current.showModal();
     const input = renameDocumentDialogRef.current.querySelector<HTMLInputElement>("input");
     input?.focus();
     input?.select();
-  }, [renameDocumentDialog]);
+  }, [renameDocumentId]);
   async function insertDesignMedia() {
     if (!designMediaPrompt) return;
     const inserted = await media.insertImageById(designMediaPrompt.asset.id, { target: designMediaPrompt.target }, designMediaAltText.trim());
