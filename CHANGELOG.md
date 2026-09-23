@@ -175,7 +175,7 @@
   preserving the normal gap between template elements and body blocks.
 - Backspace at the start of a paragraph joins it to the preceding paragraph,
   preserving rich-text formatting and placing the caret at the join.
-- Backspace in the empty block appender returns focus to the last paragraph.
+- Backspace and Arrow Up in the empty block appender return focus to the last paragraph.
 - Arrow Down at the bottom of the final paragraph moves focus into the appender.
 - Removed explanatory notes from the Publishing and Template sections of the
   Page inspector while retaining their settings and values.
