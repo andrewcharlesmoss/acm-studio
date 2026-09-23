@@ -312,6 +312,7 @@
 .mini-golf-footer img { width:25px; height:25px; vertical-align:middle; margin-right:7px; border-radius:8px; }
 .mini-golf-editor-surface .canvas-block { background:transparent; }
 .mini-golf-editor-surface .block-position + .block-position .canvas-block { margin-top:0; }
+.mini-golf-editor-surface .block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom:58px; }
 .mini-golf-editor-surface .canvas-block:has(> .account-bar),
 .mini-golf-editor-surface .canvas-block:has(> .setup),
 .mini-golf-editor-surface .canvas-block:has(> .score-panel),

@@ -341,6 +341,8 @@
   empty block appender when it follows the last paragraph.
 - Left Arrow at the start of a paragraph or in the empty block appender now
   moves the caret to the previous paragraph.
+- Make room for the selected block toolbar in the gap between paragraphs so it
+  stays clear of their text.
 - Keep the floating text toolbar above its selected block so it never covers
   paragraph text as the caret moves.
 - Allow deleting the last local page or post, validate and synchronise an empty
