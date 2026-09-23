@@ -337,7 +337,8 @@
   document field in the Block inspector, including in assigned site templates.
 - Blank-line-separated text now becomes distinct paragraph blocks in the editor,
   and Up/Down navigation moves between adjacent text blocks at their edges.
-- Right Arrow at the end of a paragraph now moves the caret to the next paragraph.
+- Right Arrow at the end of a paragraph now moves to the next paragraph or the
+  empty block appender when it follows the last paragraph.
 - Left Arrow at the start of a paragraph or in the empty block appender now
   moves the caret to the previous paragraph.
 - Keep the floating text toolbar above its selected block so it never covers

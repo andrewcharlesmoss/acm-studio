@@ -1090,7 +1090,18 @@ export function RichTextEditor({ as: elementName = "div", text, runs, onChange, 
       const paragraphs = [...document.querySelectorAll<HTMLElement>(".rich-text-editor.paragraph-field[data-studio-block-id]")]
         .filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
       const target = paragraphs[paragraphs.indexOf(editor) + 1];
-      if (!target) return false;
+      if (!target) {
+        const blockPosition = editor.closest(".block-position");
+        const nextPosition = blockPosition?.nextElementSibling;
+        const appender = nextPosition?.classList.contains("canvas-appender")
+          ? nextPosition.querySelector<HTMLInputElement>("input[placeholder='Type / to choose a block']")
+          : null;
+        if (!appender) return false;
+        event.preventDefault();
+        appender.focus({ preventScroll: true });
+        appender.setSelectionRange(appender.value.length, appender.value.length);
+        return true;
+      }
       event.preventDefault();
       focusRichTextEditorAtOffset(target, 0);
       return true;
