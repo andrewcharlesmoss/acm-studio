@@ -560,11 +560,13 @@
 .canvas-cover-actions .cover-action-button.is-destructive:hover, .canvas-cover-actions .cover-action-button.is-destructive:focus-visible { border-color: #bd5353; color: #bd5353; }
 .canvas-add-cover { align-items: center; display: inline-flex; gap: 5px; justify-content: center; margin: 24px 0 34px; width: 100%; }
 .canvas-blocks, .studio-block-preview { display: grid; min-width: 0; }
+.canvas-blocks { padding-top: 52px; }
 .studio-block-preview { gap: var(--studio-block-gap); }
 .cover-inserter-position { height: 30px; position: relative; }
 .cover-inserter-position .between-blocks { top: 0; }
 .block-position { display: flow-root; position: relative; }
-.block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom: 26px; }
+/* Keep the toolbar's 42px row and 8px clearance in the gaps around its block. */
+.block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom: 32px; }
 .drop-indicator { background: var(--accent); border-radius: 999px; height: 3px; left: -14px; pointer-events: none; position: absolute; right: -14px; top: -2px; z-index: 5; }
 .block-position + .block-position .drop-indicator { top: 13px; }
 .drop-indicator.is-after { bottom: -2px; top: auto; }
@@ -600,13 +602,13 @@
   padding: 2px;
   pointer-events: none;
   position: absolute;
-  top: -46px;
-  transform: translateY(-4px);
+  top: 0;
+  transform: translateY(calc(-100% - 4px));
   transition: opacity .15s, transform .15s, visibility .15s;
   visibility: hidden;
   z-index: 4;
 }
-.canvas-block.is-selected .canvas-block-toolbar { opacity: 1; transform: translateY(0); visibility: visible; }
+.canvas-block.is-selected .canvas-block-toolbar { opacity: 1; transform: translateY(calc(-100% - 8px)); visibility: visible; }
 .canvas-block-toolbar > span { border-left: 1px solid var(--studio-toolbar-divider); border-right: 1px solid var(--studio-toolbar-divider); font-size: var(--studio-ui-size); font-weight: 700; letter-spacing: .04em; margin: 0 4px; padding: 4px 8px; text-transform: uppercase; }
 .canvas-block-toolbar > div { display: flex; }
 .heading-level-control { position: relative; }

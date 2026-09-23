@@ -307,8 +307,8 @@
 ### Fixed
 - Blank-line-separated text now becomes distinct paragraph blocks in the editor,
   and Up/Down navigation moves between adjacent text blocks at their edges.
-- The floating text toolbar now follows the caret when moving between
-  paragraphs within a text block.
+- Keep the floating text toolbar above its selected block so it never covers
+  paragraph text as the caret moves.
 - Allow deleting the last local page or post, validate and synchronise an empty
   content workspace, and show page/post creation actions instead of a phantom
   document.

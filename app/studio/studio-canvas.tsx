@@ -125,7 +125,6 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const [alignmentMenuBlockId, setAlignmentMenuBlockId] = useState<string | null>(null);
   const [tableMenuBlockId, setTableMenuBlockId] = useState<string | null>(null);
   const [blockMenuBlockId, setBlockMenuBlockId] = useState<string | null>(null);
-  const [textToolbarPosition, setTextToolbarPosition] = useState<{ blockId: string; top: number } | null>(null);
   const viewportStyle = viewportWidth ? { width: viewportWidth, ...(viewportWidthCanOverflow ? {} : { maxWidth: "100%" }), ...(canvasZoom ? { zoom: canvasZoom / 100 } : {}) } : undefined;
   const [htmlEditor, setHtmlEditor] = useState<HtmlEditorState | null>(null);
   const [codeEditor, setCodeEditor] = useState<CodeEditorState | null>(null);
@@ -139,6 +138,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const displayedWordCount = wordCount + appenderWordCount;
   const displayedCharacterCount = characterCount + appenderValue.length + (hasAppenderDraft && activeDocument.blocks.length > 0 ? 1 : 0);
   const displayedBlockCount = activeDocument.blocks.length + (hasAppenderDraft ? 1 : 0);
+
   function dragInsertionIndex(event: DragEvent<HTMLDivElement>, index: number) {
     const block = event.currentTarget.querySelector<HTMLElement>(".canvas-block");
     if (!block) return index;
@@ -172,31 +172,6 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
         .find((element) => element.dataset.studioBlockAnchorId === blockId || element.dataset.studioBlockId === blockId || element.dataset.studioNestedBlockId === blockId);
       target?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
-  }
-
-  function updateTextToolbarPosition() {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-    const focusNode = selection.focusNode;
-    if (!focusNode) return;
-    const anchor = focusNode instanceof Element ? focusNode : focusNode.parentElement;
-    const editor = anchor?.closest<HTMLElement>(".rich-text-editor");
-    const article = editor?.closest<HTMLElement>(".canvas-block");
-    const blockId = article?.dataset.studioBlockAnchorId;
-    if (!editor || !article || !blockId) return;
-    const caretRange = document.createRange();
-    caretRange.setStart(focusNode, selection.focusOffset);
-    caretRange.collapse(true);
-    const caretBounds = caretRange.getBoundingClientRect();
-    if (!caretBounds.height) return;
-    const toolbar = article.querySelector<HTMLElement>(".canvas-block-toolbar");
-    if (!toolbar) return;
-    const articleBounds = article.getBoundingClientRect();
-    const zoomFactor = canvasZoom ? canvasZoom / 100 : 1;
-    const toolbarHeight = toolbar.getBoundingClientRect().height;
-    const requestedTop = (caretBounds.top - articleBounds.top - toolbarHeight) / zoomFactor - 8;
-    const maxTop = articleBounds.height / zoomFactor - toolbarHeight / zoomFactor - 8;
-    setTextToolbarPosition({ blockId, top: Math.max(-46, Math.min(requestedTop, maxTop)) });
   }
 
   function finishInserterClose() {
@@ -571,7 +546,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                       onSelectBlock(block.id);
                     }}
                   >
-                    <div className="canvas-block-toolbar" style={textToolbarPosition?.blockId === block.id ? { top: textToolbarPosition.top } : undefined}>
+                    <div className="canvas-block-toolbar">
                       <BlockTransformControl block={block} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} />
                       <button className="drag-handle" type="button" draggable onClick={() => onSelectBlock(block.id)} onDragStart={(event) => { event.stopPropagation(); draggingIndexRef.current = index; onSetDragOverIndex(null); }} onDragEnd={() => { draggingIndexRef.current = null; onSetDragOverIndex(null); }} aria-label={`Drag to reorder ${blockLabel(block.type)} block`} title="Drag to reorder block"><StudioIcon name="drag-handle" /></button>
                       <div className="block-move-controls" role="group" aria-label="Move block">
@@ -619,7 +594,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                         {htmlEditor.error ? <p className="html-editor-error" role="alert">{htmlEditor.error}</p> : null}
                         <div className="html-editor-actions"><button type="button" onClick={() => setHtmlEditor(null)}>Cancel</button><button className="html-editor-apply" type="submit">Apply</button></div>
                       </form> : null}
-                      {presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField, onCaretMove: updateTextToolbarPosition, onSplitParagraphs }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => { setTextSelection(block.id, selection); updateTextToolbarPosition(); }} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onSplitParagraph={onSplitParagraph} onSplitParagraphs={onSplitParagraphs} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
+                      {presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField, onSplitParagraphs }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onSplitParagraph={onSplitParagraph} onSplitParagraphs={onSplitParagraphs} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
                   </article>
                 </div>
               ))}

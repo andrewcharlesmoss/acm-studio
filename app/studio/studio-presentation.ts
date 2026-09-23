@@ -13,7 +13,6 @@ export type StudioPresentationContext = {
   onTableCellFocus?: (blockId: string, rowIndex: number, columnIndex: number) => void;
   onSelectBlock?: (blockId: string) => void;
   onUpdateBlock?: (blockId: string, update: (block: ContentBlock) => ContentBlock) => void;
-  onCaretMove?: () => void;
   onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null;
 };
 
