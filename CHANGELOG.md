@@ -171,6 +171,8 @@
 - Reorganised the Page inspector around identity and publishing controls, with
   secondary metadata in expandable sections. Template assignment, cover image,
   field display and override settings, SEO and page actions remain available.
+- Removed explanatory notes from the Publishing and Template sections of the
+  Page inspector while retaining their settings and values.
 - The Bin now fills the Studio's main workspace pane. Moving a page, post or
   template to the Bin is immediate; the confirmation dialog remains for
   permanent deletion from the Bin.
