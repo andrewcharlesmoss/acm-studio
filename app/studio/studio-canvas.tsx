@@ -1095,6 +1095,20 @@ export function RichTextEditor({ as: elementName = "div", text, runs, onChange, 
       focusRichTextEditorAtOffset(target, 0);
       return true;
     }
+    if (event.key === "ArrowLeft") {
+      const selection = window.getSelection();
+      if (!editor.classList.contains("paragraph-field") || !selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
+      const caretOffset = editorTextOffset(editor, selection.focusNode, selection.focusOffset);
+      if (caretOffset !== 0) return false;
+      const paragraphs = [...document.querySelectorAll<HTMLElement>(".rich-text-editor.paragraph-field[data-studio-block-id]")]
+        .filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
+      const target = paragraphs[paragraphs.indexOf(editor) - 1];
+      if (!target) return false;
+      const targetEnd = editorTextOffset(target, target, target.childNodes.length);
+      event.preventDefault();
+      focusRichTextEditorAtOffset(target, targetEnd);
+      return true;
+    }
     if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return false;
     const selection = window.getSelection();
     if (!selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
