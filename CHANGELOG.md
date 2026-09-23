@@ -156,6 +156,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Selecting a content block no longer inserts layout padding, so the text and
+  surrounding blocks stay in place while its toolbar appears.
 - Focused title and subtitle fields now use the same neutral inset edge as
   selected content blocks in document and template editors.
 - Replaced blue focus borders with neutral grey indicators across Studio and

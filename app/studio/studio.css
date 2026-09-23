@@ -567,8 +567,6 @@
 .cover-inserter-position { height: 30px; position: relative; }
 .cover-inserter-position .between-blocks { top: 0; }
 .block-position { display: flow-root; position: relative; }
-/* Keep the toolbar's 42px row and 8px clearance in the gaps around its block. */
-.block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom: 32px; }
 .drop-indicator { background: var(--accent); border-radius: 999px; height: 3px; left: -14px; pointer-events: none; position: absolute; right: -14px; top: -2px; z-index: 5; }
 .block-position + .block-position .drop-indicator { top: 13px; }
 .drop-indicator.is-after { bottom: -2px; top: auto; }
@@ -611,6 +609,9 @@
   z-index: 4;
 }
 .canvas-block.is-selected .canvas-block-toolbar { opacity: 1; transform: translateY(calc(-100% - 8px)); visibility: visible; }
+/* Keep a middle block's toolbar in the canvas gutter so it never covers the
+   preceding paragraph while selection leaves the document layout unchanged. */
+.block-position + .block-position .canvas-block.is-selected .canvas-block-toolbar { left: auto; right: calc(100% + 8px); top: 0; transform: none; }
 .canvas-block-toolbar > span { border-left: 1px solid var(--studio-toolbar-divider); border-right: 1px solid var(--studio-toolbar-divider); font-size: var(--studio-ui-size); font-weight: 700; letter-spacing: .04em; margin: 0 4px; padding: 4px 8px; text-transform: uppercase; }
 .canvas-block-toolbar > div { display: flex; }
 .heading-level-control { position: relative; }
