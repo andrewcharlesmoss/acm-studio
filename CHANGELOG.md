@@ -320,6 +320,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Selecting a post or page title and subtitle now selects the corresponding
+  document field in the Block inspector, including in assigned site templates.
 - Blank-line-separated text now becomes distinct paragraph blocks in the editor,
   and Up/Down navigation moves between adjacent text blocks at their edges.
 - Keep the floating text toolbar above its selected block so it never covers

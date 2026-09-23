@@ -78,6 +78,7 @@ export type StudioCanvasProps = {
   coverImageUrl?: string;
   mediaBlockUrls: Record<string, string>;
   selectedBlockId: string | null;
+  selectedDocumentField?: "title" | "subtitle" | null;
   dragOverIndex: number | null;
   showInserter: boolean;
   inserterQuery: string;
@@ -88,7 +89,7 @@ export type StudioCanvasProps = {
   onDocumentFieldChange: <K extends keyof StudioDocument>(field: K, value: StudioDocument[K]) => void;
   onApplyDocumentCode: (blocks: ContentBlock[]) => void;
   onCodeEditorDirtyChange?: (dirty: boolean) => void;
-  onFocusDocumentField: () => void;
+  onFocusDocumentField: (field?: "title" | "subtitle") => void;
   onOpenCoverMediaLibrary: () => void;
   onRemoveCoverImage: () => void;
   onSelectBlock: (blockId: string) => void;
@@ -106,7 +107,7 @@ export type StudioCanvasProps = {
   onSetInserterQuery: (query: string) => void;
 };
 
-export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onSplitParagraph, onSplitParagraphs, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onSplitParagraph, onSplitParagraphs, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
   const linkInputRef = useRef<HTMLInputElement>(null);
@@ -163,7 +164,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
     onSetDragOverIndex(null);
   }
   const allowCoverImage = presentation?.allowCoverImage ?? activeDocument.kind === "post";
-  const compose = (content: ReactNode, mode: "edit" | "preview") => presentation?.renderDocument?.({ document: activeDocument, mode, onDocumentFieldChange, onFocusDocumentField }, content) ?? content;
+  const compose = (content: ReactNode, mode: "edit" | "preview") => presentation?.renderDocument?.({ document: activeDocument, mode, selectedBlockId, selectedDocumentField, onSelectBlock, onDocumentFieldChange, onFocusDocumentField }, content) ?? content;
 
   function selectBlockFromList(blockId: string) {
     onSelectBlock(blockId);
@@ -440,6 +441,9 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const safeCoverImageUrl = activeDocument.coverImage?.mediaId
     ? safeImageSource(coverImageUrl ?? "", { allowBlob: true })
     : safeImageSource(coverImageUrl ?? "");
+  function selectDocumentField(field: "title" | "subtitle") {
+    onFocusDocumentField(field);
+  }
   const hasDynamicTitle = activeDocument.blocks.some((block) => block.type === "document-title");
   const hasDynamicSubtitle = activeDocument.blocks.some((block) => block.type === "document-subtitle");
   const hasDynamicCover = activeDocument.blocks.some((block) => block.type === "cover-image");
@@ -484,7 +488,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
         {codeEditor ? <StudioCodeEditor document={activeDocument} writable={writable} state={codeEditor} inputRef={codeEditorInputRef} onChange={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onFormat={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onDocumentFieldChange={onDocumentFieldChange} onApply={applyCodeEditor} onExit={() => closeCodeEditor(true)} /> : previewing ? (
           <article className={`document-preview is-${activeDocument.kind}`} style={viewportStyle}>
             {compose(<>
-            {presentation?.renderHeader?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
+            {presentation?.renderHeader?.({ document: activeDocument, mode: "preview", selectedBlockId, selectedDocumentField, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} selectedDocumentField={selectedDocumentField} previewing onChange={onDocumentFieldChange} onFocus={selectDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
             {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className={`preview-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
               {safeCoverImageUrl ? (
                 // Local browser-managed media cannot be known to Next's image optimiser.
@@ -499,7 +503,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
         ) : (
           <div className="block-canvas" style={viewportStyle}>
             {compose(<>
-            {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} previewing={false} onChange={onDocumentFieldChange} onFocus={onFocusDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
+            {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, selectedDocumentField, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} selectedDocumentField={selectedDocumentField} previewing={false} onChange={onDocumentFieldChange} onFocus={selectDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
             {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="canvas-cover-wrap">
               <div className={`canvas-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
                 {safeCoverImageUrl ? (
@@ -757,11 +761,12 @@ function StudioListView({ blocks, selectedBlockId, onSelectBlock, onHoverBlock, 
   </aside>;
 }
 
-function DocumentHeading({ document, previewing, onChange, onFocus, showTitle = true, showSubtitle = true }: {
+function DocumentHeading({ document, selectedDocumentField, previewing, onChange, onFocus, showTitle = true, showSubtitle = true }: {
   document: StudioDocument;
+  selectedDocumentField?: "title" | "subtitle" | null;
   previewing: boolean;
   onChange: StudioCanvasProps["onDocumentFieldChange"];
-  onFocus: () => void;
+  onFocus: (field: "title" | "subtitle") => void;
   showTitle?: boolean;
   showSubtitle?: boolean;
 }) {
@@ -769,16 +774,16 @@ function DocumentHeading({ document, previewing, onChange, onFocus, showTitle = 
   const subtitleRef = useFittedTextHeight<HTMLParagraphElement>(document.subtitle, previewing);
   return (
     <header className="document-heading">
-      {showTitle ? <div className="document-title-field">
+      {showTitle ? <div className={`document-title-field${selectedDocumentField === "title" ? " is-document-field-selected" : ""}`} data-document-field="title">
         {previewing ? <h1 className="preview-title" ref={titleRef}>{document.title || `Untitled ${document.kind}`}</h1> : <>
           <label className="canvas-title-label" htmlFor="document-title">{document.kind} title</label>
-          <AutoResizeTextarea id="document-title" className="canvas-title" value={document.title} onFocus={onFocus} onChange={(event) => onChange("title", event.target.value)} placeholder={`Add ${document.kind} title`} />
+          <AutoResizeTextarea id="document-title" className="canvas-title" value={document.title} onFocus={() => onFocus("title")} onChange={(event) => onChange("title", event.target.value)} placeholder={`Add ${document.kind} title`} />
         </>}
       </div> : null}
-      {showSubtitle && (previewing && !document.subtitle?.trim() ? null : <div className="document-subtitle-field">
+      {showSubtitle && (previewing && !document.subtitle?.trim() ? null : <div className={`document-subtitle-field${selectedDocumentField === "subtitle" ? " is-document-field-selected" : ""}`} data-document-field="subtitle">
         {previewing ? <p className="preview-subtitle" ref={subtitleRef}>{document.subtitle}</p> : <>
           <label className="canvas-subtitle-label" htmlFor="document-subtitle">Subtitle</label>
-          <AutoResizeTextarea id="document-subtitle" className="canvas-subtitle" value={document.subtitle ?? ""} onFocus={onFocus} onChange={(event) => onChange("subtitle", event.target.value)} placeholder="Add a subtitle" />
+          <AutoResizeTextarea id="document-subtitle" className="canvas-subtitle" value={document.subtitle ?? ""} onFocus={() => onFocus("subtitle")} onChange={(event) => onChange("subtitle", event.target.value)} placeholder="Add a subtitle" />
         </>}
       </div>)}
     </header>

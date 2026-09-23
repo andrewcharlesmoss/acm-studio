@@ -78,6 +78,8 @@ export type TemplateRenderContext = {
   content?: ReactNode;
   editingDocument?: boolean;
   templatePreview?: boolean;
+  selectedDocumentField?: "title" | "subtitle" | null;
+  onFocusDocumentField?: (field?: "title" | "subtitle") => void;
   onDocumentChange?: (field: "title" | "subtitle", value: string) => void;
   onChangeCover?: () => void;
   onRemoveCoverImage?: () => void;
@@ -88,7 +90,7 @@ export type TemplateRenderContext = {
 };
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
-  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
+  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
   function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false): ReactNode {
@@ -108,8 +110,8 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       let element: ReactNode;
       switch (node.element) {
         case "content": element = content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} />; break;
-        case "document-title": element = documentFieldVisible(document, "title") ? templatePreview ? <h1 className="template-dynamic-placeholder">Title</h1> : editingDocument ? <input className="template-title-input" aria-label="Document title" value={document.title} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <h1>{document.title}</h1> : null; break;
-        case "subtitle": element = documentFieldVisible(document, "subtitle") && (templatePreview ? <p className="template-subtitle template-dynamic-placeholder">Subtitle</p> : editingDocument ? <input className="template-subtitle-input" aria-label="Document subtitle" placeholder="Add a subtitle" value={document.subtitle ?? ""} onChange={event => onDocumentChange?.("subtitle", event.target.value)} /> : document.subtitle ? <p className="template-subtitle">{document.subtitle}</p> : null); break;
+        case "document-title": element = documentFieldVisible(document, "title") ? templatePreview ? <h1 className="template-dynamic-placeholder">Title</h1> : editingDocument ? <input className="template-title-input" aria-label="Document title" value={document.title} onFocus={() => onFocusDocumentField?.("title")} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <h1>{document.title}</h1> : null; break;
+        case "subtitle": element = documentFieldVisible(document, "subtitle") && (templatePreview ? <p className="template-subtitle template-dynamic-placeholder">Subtitle</p> : editingDocument ? <input className="template-subtitle-input" aria-label="Document subtitle" placeholder="Add a subtitle" value={document.subtitle ?? ""} onFocus={() => onFocusDocumentField?.("subtitle")} onChange={event => onDocumentChange?.("subtitle", event.target.value)} /> : document.subtitle ? <p className="template-subtitle">{document.subtitle}</p> : null); break;
         case "post-metadata": {
           const metadataBlocks = document.metadataBlocksVersion === 2 || hasDocumentMetadataBlocks(document.blocks);
           element = document.kind === "post" ? templatePreview ? <p className="template-metadata template-dynamic-placeholder">Author · Publication date · Reading time</p> : <p className="template-metadata">{document.category}{metadataBlocks ? "" : ` · ${readingTimeLabel(document.blocks)}${document.publishedAt ? ` · ${new Date(document.publishedAt).toLocaleDateString("en-GB")}` : ""}`}</p> : null;
@@ -143,7 +145,9 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         case "copyright": element = <p className="template-copyright">{set.identity.copyright}</p>; break;
         case "social-links": element = <nav className="template-social" aria-label="Social and support links">{set.socialLinks.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined} target="_blank" rel="noopener noreferrer">{link.label}</a>)}</nav>; break;
       }
-      result = <div className={`template-element template-${node.element}`} data-template-element={node.element} style={{ textAlign: align }}>{element}</div>;
+      const field = node.element === "document-title" ? "title" : node.element === "subtitle" ? "subtitle" : null;
+      const isSelectedDocumentField = editingDocument && field !== null && selectedDocumentField === field;
+      result = <div className={`template-element template-${node.element}${isSelectedDocumentField ? " is-document-field-selected" : ""}`} data-template-element={node.element} data-document-field={field ?? undefined} onPointerDown={editingDocument && field ? () => onFocusDocumentField?.(field) : undefined} style={{ textAlign: align }}>{element}</div>;
     } else result = (!shared ? renderOrdinary?.(node) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} />;
     return (!shared ? decorate?.(node, result) : undefined) ?? result;
   }

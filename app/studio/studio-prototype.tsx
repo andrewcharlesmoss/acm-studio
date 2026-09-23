@@ -49,6 +49,7 @@ export function StudioPrototype() {
   const { workspace, ownershipGeneration, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument, updateActiveField, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot } = useDocumentTemplates(studioSession, openTemplateTarget);
   const [libraryKind, setLibraryKind] = useState<StudioDocumentKind>("page");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [documentFieldSelection, setDocumentFieldSelection] = useState<{ documentId: string; field: "title" | "subtitle" } | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"document" | "studio" | "block" | "styles">("document");
   const [showInserter, setShowInserter] = useState(false);
   const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
@@ -77,6 +78,7 @@ export function StudioPrototype() {
     return true;
   }
   const activeDocument = workspace.documents.find((item) => item.id === workspace.activeDocumentId) ?? workspace.documents[0] ?? resolvedDocument;
+  const selectedDocumentField = documentFieldSelection?.documentId === activeDocument.id ? documentFieldSelection.field : null;
   const hasContentDocuments = workspace.documents.length > 0;
   function canDeleteDocument(targetDocument: StudioDocument | null | undefined) {
     if (!targetDocument || !workspace.documents.some(item => item.id === targetDocument.id) || !writable) return false;
@@ -158,10 +160,12 @@ export function StudioPrototype() {
   }, [inserterQuery]);
   function undoStudio() {
     undo();
+    setDocumentFieldSelection(null);
     setSelectedBlockId(null);
   }
   function redoStudio() {
     redo();
+    setDocumentFieldSelection(null);
     setSelectedBlockId(null);
   }
   useStudioHistoryShortcuts(studioSection === "templates" ? templateSession.undo : undoStudio, studioSection === "templates" ? templateSession.redo : redoStudio, studioSection === "content" || studioSection === "templates");
@@ -178,6 +182,7 @@ export function StudioPrototype() {
     documentCommands.selectDocument(document);
     setCodeEditorDirty(false);
     setLibraryKind(document.kind);
+    setDocumentFieldSelection(null);
     setSelectedBlockId(null);
     setInspectorTab("document");
     setPreviewing(false);
@@ -196,6 +201,7 @@ export function StudioPrototype() {
     } else documentCommands.addDocument(kind);
     setCodeEditorDirty(false);
     setLibraryKind(kind);
+    setDocumentFieldSelection(null);
     setSelectedBlockId(null);
     setInspectorTab("document");
     switchStudioMode("content");
@@ -366,6 +372,7 @@ export function StudioPrototype() {
       return;
     }
     if (targetDocument.id === activeDocument.id) {
+      setDocumentFieldSelection(null);
       setSelectedBlockId(null);
       setCodeEditorDirty(false);
     }
@@ -373,6 +380,7 @@ export function StudioPrototype() {
 
   function insertBlock(type: InsertableBlockType) {
     const block = blockCommands.insertBlock(type, insertAfterIndex);
+    setDocumentFieldSelection(null);
     setSelectedBlockId(block.id);
     setInspectorTab("block");
     setShowInserter(false);
@@ -382,11 +390,12 @@ export function StudioPrototype() {
 
   function duplicateBlock(blockIndex: number) {
     const copy = blockCommands.duplicateBlock(blockIndex);
-    if (copy) setSelectedBlockId(copy.id);
+    if (copy) { setDocumentFieldSelection(null); setSelectedBlockId(copy.id); setInspectorTab("block"); }
   }
 
   function removeBlock(blockId: string) {
     blockCommands.removeBlock(blockId);
+    setDocumentFieldSelection(null);
     setSelectedBlockId(null);
     setInspectorTab("document");
   }
@@ -427,6 +436,7 @@ export function StudioPrototype() {
       if (!(event.metaKey || event.ctrlKey)) {
         if (event.key === "Escape") {
           setShowInserter(false);
+          setDocumentFieldSelection(null);
           setSelectedBlockId(null);
         }
         return;
@@ -544,11 +554,12 @@ export function StudioPrototype() {
             onDocumentFieldChange: (field, value) => { updateActiveField(field, value); },
             onApplyDocumentCode: (blocks) => updateActiveDocument((document) => ({ ...document, blocks })),
             onCodeEditorDirtyChange: setCodeEditorDirty,
-            onFocusDocumentField: () => { setSelectedBlockId(null); setInspectorTab("document"); },
+            selectedDocumentField,
+            onFocusDocumentField: (field) => { setSelectedBlockId(null); setDocumentFieldSelection(field ? { documentId: activeDocument.id, field } : null); setInspectorTab(field ? "block" : "document"); },
             onOpenCoverMediaLibrary: openCoverMediaLibrary,
             onRemoveCoverImage: media.removeCoverImage,
-            onSelectBlock: (blockId) => { setSelectedBlockId(blockId); setInspectorTab("block"); },
-            onClearBlockSelection: () => { setSelectedBlockId(null); setInspectorTab("document"); },
+            onSelectBlock: (blockId) => { setDocumentFieldSelection(null); setSelectedBlockId(blockId); setInspectorTab("block"); },
+            onClearBlockSelection: () => { setDocumentFieldSelection(null); setSelectedBlockId(null); setInspectorTab("document"); },
             onSetDragOverIndex: setDragOverIndex,
             onMoveBlockTo: blockCommands.moveBlockTo,
             onMoveBlock: blockCommands.moveBlock,
@@ -557,7 +568,7 @@ export function StudioPrototype() {
             onUpdateBlock: (id, update) => { blockCommands.updateBlock(id, update); },
             onSplitParagraph: (id, beforeRuns, afterRuns) => {
               const nextId = blockCommands.splitParagraph(id, beforeRuns, afterRuns);
-              if (nextId) { setSelectedBlockId(nextId); setInspectorTab("block"); }
+              if (nextId) { setDocumentFieldSelection(null); setSelectedBlockId(nextId); setInspectorTab("block"); }
               return nextId;
             },
             onSplitParagraphs: (id, paragraphs) => blockCommands.splitParagraphs(id, paragraphs),
@@ -569,6 +580,7 @@ export function StudioPrototype() {
             documentControls: templateControls,
             inspectorTab,
             selectedBlock,
+            selectedDocumentField,
             activeDocument,
             pages: workspace.documents.filter((item) => item.kind === "page"),
             canDelete: canDeleteDocument(activeDocument),

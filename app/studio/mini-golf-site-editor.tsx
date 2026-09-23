@@ -29,6 +29,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
   useStudioHistoryShortcuts(undo, redo, view === "page");
   const page = workspace.documents[0];
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [selectedDocumentField, setSelectedDocumentField] = useState<"title" | "subtitle" | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"document" | "studio" | "block" | "styles">("document");
   const [showInserter, setShowInserter] = useState(false);
   const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
@@ -50,6 +51,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
 
   function insertBlock(type: InsertableBlockType) {
     const block = blockCommands.insertBlock(type, insertAfterIndex);
+    setSelectedDocumentField(null);
     setSelectedBlockId(block.id);
     setInspectorTab("block");
     setShowInserter(false);
@@ -59,11 +61,12 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
 
   function duplicateBlock(index: number) {
     const copy = blockCommands.duplicateBlock(index);
-    if (copy) setSelectedBlockId(copy.id);
+    if (copy) { setSelectedDocumentField(null); setSelectedBlockId(copy.id); setInspectorTab("block"); }
   }
 
   function removeBlock(blockId: string) {
     blockCommands.removeBlock(blockId);
+    setSelectedDocumentField(null);
     setSelectedBlockId(null);
     setInspectorTab("document");
   }
@@ -122,6 +125,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
             showCoverImage: false,
             mediaBlockUrls: {},
             selectedBlockId,
+            selectedDocumentField,
             dragOverIndex,
             showInserter,
             inserterQuery,
@@ -132,11 +136,11 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
             onDocumentFieldChange: updateActiveField,
             onApplyDocumentCode: (blocks) => updateActiveDocument((document) => ({ ...document, blocks })),
             onCodeEditorDirtyChange: setCodeEditorDirty,
-            onFocusDocumentField: () => { setSelectedBlockId(null); setInspectorTab("document"); },
+            onFocusDocumentField: (field) => { setSelectedBlockId(null); setSelectedDocumentField(field ?? null); setInspectorTab(field ? "block" : "document"); },
             onOpenCoverMediaLibrary: () => undefined,
             onRemoveCoverImage: () => undefined,
-            onSelectBlock: (blockId) => { setSelectedBlockId(blockId); setInspectorTab("block"); },
-            onClearBlockSelection: () => { setSelectedBlockId(null); setInspectorTab("document"); },
+            onSelectBlock: (blockId) => { setSelectedDocumentField(null); setSelectedBlockId(blockId); setInspectorTab("block"); },
+            onClearBlockSelection: () => { setSelectedDocumentField(null); setSelectedBlockId(null); setInspectorTab("document"); },
             onSetDragOverIndex: setDragOverIndex,
             onMoveBlockTo: blockCommands.moveBlockTo,
             onMoveBlock: blockCommands.moveBlock,
@@ -145,7 +149,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
             onUpdateBlock: blockCommands.updateBlock,
             onSplitParagraph: (id, beforeRuns, afterRuns) => {
               const nextId = blockCommands.splitParagraph(id, beforeRuns, afterRuns);
-              if (nextId) { setSelectedBlockId(nextId); setInspectorTab("block"); }
+              if (nextId) { setSelectedDocumentField(null); setSelectedBlockId(nextId); setInspectorTab("block"); }
               return nextId;
             },
             onSplitParagraphs: (id, paragraphs) => blockCommands.splitParagraphs(id, paragraphs),
@@ -156,6 +160,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
           inspector={{
             inspectorTab,
             selectedBlock,
+            selectedDocumentField,
             activeDocument: page,
             pages: [page],
             canDelete: false,

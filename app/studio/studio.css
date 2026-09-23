@@ -583,6 +583,11 @@
 .canvas-block:hover { border-color: #d9d7cf; }
 .canvas-block:not(.is-selected):is(:hover, [data-studio-hovered="true"]) { border-color: #8f8f8f; outline: 1px solid #8f8f8f; outline-offset: -1px; }
 .canvas-block.is-selected { border-color: #8f8f8f; outline: 1px solid #8f8f8f; outline-offset: -1px; }
+.template-element.is-document-field-selected { outline: 1px solid #8f8f8f; outline-offset: -1px; }
+.document-title-field.is-document-field-selected, .document-subtitle-field.is-document-field-selected { outline: 1px solid #8f8f8f; outline-offset: -1px; }
+.document-field-inspector { padding: 20px; }
+.document-field-inspector h2 { margin: 0 0 8px; font-size: 14px; }
+.document-field-inspector p { margin: 0; color: var(--text-muted, #6b7280); }
 .canvas-block-toolbar {
   --studio-toolbar-background: var(--panel, #fbfaf7);
   --studio-toolbar-border: #1e1e1e;

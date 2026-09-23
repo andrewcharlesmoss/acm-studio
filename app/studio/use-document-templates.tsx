@@ -51,7 +51,7 @@ export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspa
     const resolved = snapshot;
     return {
       renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false,
-      renderDocument: (context, content) => <TemplateDocument snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} editingDocument={context.mode === "edit" && writable} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCover={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} />,
+      renderDocument: (context, content) => <TemplateDocument snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} editingDocument={context.mode === "edit" && writable} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} />,
     };
   }
   function setFieldOverride(field: "author" | "category" | "tags" | "parentPageId", useTemplate: boolean) {

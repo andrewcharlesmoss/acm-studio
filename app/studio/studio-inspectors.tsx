@@ -20,6 +20,7 @@ export type StudioInspectorProps = {
   documentControls?: ReactNode;
   inspectorTab: "document" | "studio" | "block" | "styles";
   selectedBlock: ContentBlock | null;
+  selectedDocumentField?: "title" | "subtitle" | null;
   activeDocument: StudioDocument;
   pages: StudioDocument[];
   canDelete: boolean;
@@ -44,7 +45,7 @@ export type StudioInspectorProps = {
   onSaveAsTemplate?: () => void;
 };
 
-export function StudioInspector({ documentControls, inspectorTab, selectedBlock, activeDocument, pages, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onBlockChange, onOpenFiles, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
+export function StudioInspector({ documentControls, inspectorTab, selectedBlock, selectedDocumentField = null, activeDocument, pages, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onBlockChange, onOpenFiles, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
   const activeTabIndex = tabs.indexOf(inspectorTab);
@@ -72,13 +73,18 @@ export function StudioInspector({ documentControls, inspectorTab, selectedBlock,
       <div className="inspector-tabs" role="tablist" aria-label="Editor settings" tabIndex={-1} onKeyDown={handleTabKeyDown}>
         <button id={tabId("document")} className={inspectorTab === "document" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "document"} aria-controls={inspectorTab === "document" ? panelId : undefined} tabIndex={activeTabIndex === 0 ? 0 : -1} onClick={() => onSelectTab("document")}>{activeDocument.kind === "page" ? "Page" : "Post"}</button>
         <button id={tabId("studio")} className={inspectorTab === "studio" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "studio"} aria-controls={inspectorTab === "studio" ? panelId : undefined} tabIndex={activeTabIndex === 1 ? 0 : -1} onClick={() => onSelectTab("studio")}>Studio</button>
-        <button id={tabId("block")} className={inspectorTab === "block" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "block"} aria-controls={inspectorTab === "block" ? panelId : undefined} tabIndex={activeTabIndex === 2 ? 0 : -1} onClick={() => onSelectTab("block")} disabled={!selectedBlock}>Block</button>
+        <button id={tabId("block")} className={inspectorTab === "block" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "block"} aria-controls={inspectorTab === "block" ? panelId : undefined} tabIndex={activeTabIndex === 2 ? 0 : -1} onClick={() => onSelectTab("block")} disabled={!selectedBlock && !selectedDocumentField}>Block</button>
         <button id={tabId("styles")} className={inspectorTab === "styles" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "styles"} aria-controls={inspectorTab === "styles" ? panelId : undefined} tabIndex={activeTabIndex === 3 ? 0 : -1} onClick={() => onSelectTab("styles")}>Styles</button>
       </div>
       <div className="inspector-scroll" id={panelId} role="tabpanel" aria-labelledby={tabId(inspectorTab)} tabIndex={0}>
         {inspectorTab === "document" || inspectorTab === "studio" ? (
           <DocumentInspector key={activeDocument.id} panel={inspectorTab} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
-        ) : inspectorTab === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedBlock ? (
+        ) : inspectorTab === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedDocumentField ? (
+          <section className="document-field-inspector" aria-labelledby="document-field-inspector-title">
+            <h2 id="document-field-inspector-title">Document {selectedDocumentField}</h2>
+            <p>This field is part of the document. Edit it on the canvas.</p>
+          </section>
+        ) : selectedBlock ? (
           <BlockInspector block={selectedBlock} onChange={onBlockChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>

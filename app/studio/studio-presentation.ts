@@ -7,7 +7,8 @@ export type StudioPresentationContext = {
   block?: ContentBlock;
   mode: "edit" | "preview";
   onDocumentFieldChange: <K extends keyof StudioDocument>(field: K, value: StudioDocument[K]) => void;
-  onFocusDocumentField: () => void;
+  onFocusDocumentField: (field?: "title" | "subtitle") => void;
+  selectedDocumentField?: "title" | "subtitle" | null;
   selectedBlockId?: string | null;
   hoveredBlockId?: string | null;
   onTableCellFocus?: (blockId: string, rowIndex: number, columnIndex: number) => void;
