@@ -328,6 +328,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Bold and Italic toolbar buttons now reflect whether selected text is marked,
+  including an accessible mixed state for selections with varied formatting.
 - Resetting a document field's display setting to Use Template now reads the
   stored override state instead of the canvas's resolved template values.
 - Keep the rename dialog's initial text selection from resetting while typing.

@@ -664,6 +664,7 @@
 .canvas-format-actions .alignment-button.is-active { background: #f0f0f0; color: #1e1e1e; }
 .canvas-format-actions strong, .canvas-format-actions em { font-size: 18px; }
 .canvas-format-actions button.is-active { background: var(--studio-toolbar-active); color: var(--accent); }
+.canvas-format-actions button.is-mixed { background: #f0f0f0; box-shadow: inset 0 -2px var(--accent); color: var(--ink); }
 .link-editor-popover, .link-preview-popover { background: white; border: 1px solid #cbc9c1; border-radius: 8px; box-shadow: 0 8px 16px rgba(27, 28, 29, .18); color: var(--ink); margin: 0; pointer-events: auto; position: absolute; width: min(352px, calc(100vw - 40px)); z-index: 10; }
 .link-editor-popover { display: grid; gap: 15px; padding: 16px; }
 .link-editor-fields { display: grid; gap: 13px; }

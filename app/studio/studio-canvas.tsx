@@ -121,6 +121,7 @@ export type StudioCanvasProps = {
 export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
+  const [textSelections, setTextSelections] = useState<Record<string, TextSelection | null>>({});
   const linkInputRef = useRef<HTMLInputElement>(null);
   const htmlInputRef = useRef<HTMLTextAreaElement>(null);
   const blockMenuItemRef = useRef<HTMLButtonElement>(null);
@@ -318,7 +319,10 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
 
   function setTextSelection(blockId: string, selection: TextSelection | null) {
     // Keep the last range when focus briefly moves to the formatting toolbar.
-    if (selection) textSelectionsRef.current[blockId] = selection;
+    if (selection) {
+      textSelectionsRef.current[blockId] = selection;
+      setTextSelections((current) => ({ ...current, [blockId]: selection }));
+    }
   }
 
   function currentTextSelection(blockId: string) {
@@ -330,7 +334,32 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
     const end = editorOffset(editor, range.endContainer, range.endOffset);
     const nextSelection = start <= end ? { start, end } : { start: end, end: start };
     textSelectionsRef.current[blockId] = nextSelection;
+    setTextSelections((current) => ({ ...current, [blockId]: nextSelection }));
     return nextSelection;
+  }
+
+  function textMarkState(block: EditableTextBlock, mark: "bold" | "italic"): boolean | "mixed" {
+    const selection = textSelections[block.id] ?? textSelectionsRef.current[block.id];
+    if (!selection || selection.start === selection.end) return false;
+    const runs = block.runs?.length ? block.runs : textToRuns(block.text);
+    const selectedStates: boolean[] = [];
+    let offset = 0;
+    for (const run of runs) {
+      const runStart = offset;
+      const runEnd = runStart + run.text.length;
+      offset = runEnd;
+      if (runStart >= selection.end || runEnd <= selection.start) continue;
+      selectedStates.push((run.marks ?? []).includes(mark));
+    }
+    if (selectedStates.length === 0 || selectedStates.every((active) => !active)) return false;
+    if (selectedStates.every(Boolean)) return true;
+    return "mixed";
+  }
+
+  function formatMarkButton(block: EditableTextBlock, mark: "bold" | "italic") {
+    const state = textMarkState(block, mark);
+    const label = mark === "bold" ? "Bold selected text" : "Italicise selected text";
+    return <button className={state === true ? "is-active" : state === "mixed" ? "is-mixed" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, mark)} aria-pressed={state} aria-label={label} title={mark === "bold" ? "Bold" : "Italic"}><StudioIcon name={mark === "bold" ? "format-bold" : "format-italic"} /></button>;
   }
 
   function setTextAlignment(block: EditableTextBlock, align: TextAlignment) {
@@ -578,8 +607,8 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                       </div> : null}</div> : null}
                       {isEditableTextBlock(block) ? <div className="canvas-format-actions" aria-label="Text formatting">
                         <div className="alignment-control"><button className={`alignment-button${alignmentMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => setAlignmentMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={alignmentMenuBlockId === block.id} aria-label="Text alignment" title="Text alignment"><AlignmentIcon align={block.align ?? "left"} /><StudioIcon name="chevron-down" size={16} /></button>{alignmentMenuBlockId === block.id ? <div className="alignment-menu" role="menu" aria-label="Text alignment">{(["left", "centre", "right"] as TextAlignment[]).map((align) => <button className={block.align === align || (!block.align && align === "left") ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={block.align === align || (!block.align && align === "left")} key={align} onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, align)}><AlignmentIcon align={align} /><span>Align text {align}</span></button>)}</div> : null}</div>
-                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-label="Bold selected text" title="Bold"><StudioIcon name="format-bold" /></button>
-                        <button type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "italic")} aria-label="Italicise selected text" title="Italic"><StudioIcon name="format-italic" /></button>
+                        {formatMarkButton(block, "bold")}
+                        {formatMarkButton(block, "italic")}
                         <button type="button" onMouseDown={(event) => { preserveTextSelection(event); openLinkEditor(block); }} aria-label="Add hyperlink to selected text" title="Add hyperlink"><StudioIcon name="link" /></button>
                       </div> : null}
                       <div className="canvas-block-actions">
