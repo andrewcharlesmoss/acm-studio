@@ -59,6 +59,8 @@
    1200px (desktop), 768px (tablet) and 390px (mobile). */
 .template-surface { color: var(--template-text); background: var(--template-background); font: var(--template-font-size)/1.6 var(--template-font); container-type: inline-size; max-width: var(--template-content-width); min-width: 0; overflow-wrap: anywhere; margin-inline: auto; padding: var(--template-spacing); border-radius: var(--template-radius); }
 .template-surface .template-node + .template-node { margin-top: var(--template-spacing); }
+.template-editing .template-content > .canvas-blocks { padding-top: 0; }
+.template-editing .template-content > .canvas-blocks > .canvas-appender:only-child { margin-top: 0; }
 .template-surface a { color: var(--template-accent); text-decoration-thickness: 0.08em; text-underline-offset: 0.16em; }
 .template-surface a:focus-visible, .template-surface button:focus-visible, .template-surface input:focus-visible { outline: 3px solid #5c5e5c; outline-offset: 3px; }
 .template-surface input.template-title-input:focus, .template-surface input.template-subtitle-input:focus { border-color: #8f8f8f; box-shadow: none; outline: none; }
