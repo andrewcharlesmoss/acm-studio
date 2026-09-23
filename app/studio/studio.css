@@ -543,7 +543,7 @@
 .canvas-title, .document-heading .preview-title { background: transparent; border: 0; color: var(--ink); display: block; font-family: var(--font-sans); font-size: clamp(34px, 4vw, 48px); font-weight: 560; letter-spacing: -.055em; line-height: 1.02; margin: 0; min-height: 0; outline: 0; overflow: hidden; padding: 0; resize: none; white-space: pre-wrap; overflow-wrap: anywhere; width: 100%; }
 .canvas-subtitle, .document-heading .preview-subtitle { background: transparent; border: 0; color: var(--muted); display: block; font-family: var(--font-sans); font-size: 20px; line-height: 1.35; margin: 0; min-height: 27px; outline: 0; padding: 0; resize: none; white-space: pre-wrap; overflow-wrap: anywhere; width: 100%; }
 .canvas-title, .canvas-subtitle { border: 1px solid transparent; border-radius: 6px; padding-inline: 3px; }
-.canvas-title:focus, .canvas-subtitle:focus { border-color: #8f8f8f !important; outline: 0; }
+.canvas-title:focus, .canvas-subtitle:focus { border: 0.5px solid #8f8f8f !important; box-shadow: none !important; outline: none !important; }
 .document-preview > .studio-block-preview { margin-top: 34px; }
 .document-preview > .preview-cover-image { margin: 24px 0 34px; }
 .canvas-cover-image { margin: 24px 0 0; }
