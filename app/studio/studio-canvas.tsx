@@ -632,7 +632,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                     setAppenderValue(value);
                   }}
                   onKeyDown={(event) => {
-                    if ((event.key === "Backspace" || event.key === "ArrowUp") && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && appenderValue.length === 0 && event.currentTarget.selectionStart === 0) {
+                    if ((event.key === "Backspace" || event.key === "ArrowUp" || event.key === "ArrowLeft") && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && appenderValue.length === 0 && event.currentTarget.selectionStart === 0) {
                       const previousParagraph = lastParagraphBlock(activeDocument.blocks);
                       if (previousParagraph) {
                         event.preventDefault();

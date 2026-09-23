@@ -338,7 +338,8 @@
 - Blank-line-separated text now becomes distinct paragraph blocks in the editor,
   and Up/Down navigation moves between adjacent text blocks at their edges.
 - Right Arrow at the end of a paragraph now moves the caret to the next paragraph.
-- Left Arrow at the start of a paragraph now moves the caret to the previous paragraph.
+- Left Arrow at the start of a paragraph or in the empty block appender now
+  moves the caret to the previous paragraph.
 - Keep the floating text toolbar above its selected block so it never covers
   paragraph text as the caret moves.
 - Allow deleting the last local page or post, validate and synchronise an empty
