@@ -148,6 +148,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
               if (nextId) { setSelectedBlockId(nextId); setInspectorTab("block"); }
               return nextId;
             },
+            onSplitParagraphs: (id, paragraphs) => blockCommands.splitParagraphs(id, paragraphs),
             onInsertBlock: insertBlock,
             onSetShowInserter: setShowInserter,
             onSetInserterQuery: setInserterQuery,

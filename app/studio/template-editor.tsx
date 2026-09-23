@@ -77,6 +77,11 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     if (nextId) setSelected(nextId);
     return nextId;
   }
+  function splitParagraphs(id: string, paragraphs: RichTextRun[][]) {
+    const ids = writable ? commands.splitParagraphs(id, paragraphs) : null;
+    if (ids?.[0]) setSelected(ids[0]);
+    return ids;
+  }
   function findTemplateNode(id: string): TemplateNode | undefined {
     let found: TemplateNode | undefined;
     visitTemplateNodes(nodesRef.current, node => { if (node.id === id) found = node; });
@@ -134,13 +139,13 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
         if (!context.block) return null;
         const previewDynamicPlaceholder = context.mode === "preview" && ["document-title", "document-subtitle"].includes(context.block.type);
         if (!["group", "section", "cover-image"].includes(context.block.type)) return context.mode === "edit" && writable || previewDynamicPlaceholder
-          ? <BlockField block={context.block} rootBlocks={resolvedSample.blocks} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} templatePlaceholder selectedBlockId={selected} mediaUrl={context.block.type === "image" && context.block.mediaId ? mediaUrls[context.block.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => context.onCaretMove?.()} onLinkActivate={() => {}} onSplitParagraph={splitParagraph} onChange={block => commands.updateBlock(block.id, () => block)} />
+          ? <BlockField block={context.block} rootBlocks={resolvedSample.blocks} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} templatePlaceholder selectedBlockId={selected} mediaUrl={context.block.type === "image" && context.block.mediaId ? mediaUrls[context.block.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => context.onCaretMove?.()} onLinkActivate={() => {}} onSplitParagraph={splitParagraph} onSplitParagraphs={splitParagraphs} onChange={block => commands.updateBlock(block.id, () => block)} />
           : <BlockRenderer blocks={[context.block]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={templatePreviewDocument} readingTimeBlocks={templatePreviewDocument.blocks} />;
         const contentSlot = <div className="template-content-slot" role="note" aria-label="Content slot"><strong>Content</strong><span>Supplied by each document</span></div>;
         const sourceNode = context.block.type === "cover-image" ? findTemplateNode(context.block.id) : undefined;
         const nodes = sourceNode ? [sourceNode] : templateNodesFromBlocks([context.block]);
         return <TemplateNodes key={context.block.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={nodes} mediaUrls={mediaUrls} content={contentSlot} editingDocument={context.mode === "edit" && writable} templatePreview={context.mode === "preview"} onChangeCover={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => onOpenMedia(context.block.id) : undefined} onRemoveCoverImage={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => clearCoverImage(context.block.id) : undefined} onRemoveCoverBlock={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => commands.removeBlock(context.block.id) : undefined} onEditPart={context.mode === "edit" ? onEditPart : undefined}
-          renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} rootBlocks={resolvedSample.blocks} document={resolvedSample} templatePlaceholder selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => context.onCaretMove?.()} onLinkActivate={() => {}} onSplitParagraph={splitParagraph} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
+          renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} rootBlocks={resolvedSample.blocks} document={resolvedSample} templatePlaceholder selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => context.onCaretMove?.()} onLinkActivate={() => {}} onSplitParagraph={splitParagraph} onSplitParagraphs={splitParagraphs} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
           decorate={context.mode === "edit" ? (node, result) => {
             if (!findBlockById(blocks, node.id)) return result;
             const label = node.type === "element" ? templateElementLabel(node.element) : node.type === "part" ? "Shared Part" : templateElementLabel(node.type);
@@ -164,6 +169,6 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
             return selectionFrame;
           } : undefined} />;
       } },
-      onOpenInserter: (index, search = "") => { setInsertAfter(index); setQuery(search); setShowInserter(true); }, onSetPublishFeedback: () => {}, onDocumentFieldChange: () => {}, onApplyDocumentCode: () => {}, onFocusDocumentField: () => {}, onOpenCoverMediaLibrary: () => {}, onRemoveCoverImage: () => {}, onSelectBlock: setSelected, onClearBlockSelection: () => setSelected(null), onSetDragOverIndex: setDragOver, onMoveBlockTo: commands.moveBlockTo, onMoveBlock: commands.moveBlock, onDuplicateBlock: commands.duplicateBlock, onRemoveBlock: commands.removeBlock, onUpdateBlock: commands.updateBlock, onSplitParagraph: splitParagraph, onInsertBlock: insertBlock, onSetShowInserter: setShowInserter, onSetInserterQuery: setQuery,
+      onOpenInserter: (index, search = "") => { setInsertAfter(index); setQuery(search); setShowInserter(true); }, onSetPublishFeedback: () => {}, onDocumentFieldChange: () => {}, onApplyDocumentCode: () => {}, onFocusDocumentField: () => {}, onOpenCoverMediaLibrary: () => {}, onRemoveCoverImage: () => {}, onSelectBlock: setSelected, onClearBlockSelection: () => setSelected(null), onSetDragOverIndex: setDragOver, onMoveBlockTo: commands.moveBlockTo, onMoveBlock: commands.moveBlock, onDuplicateBlock: commands.duplicateBlock, onRemoveBlock: commands.removeBlock, onUpdateBlock: commands.updateBlock, onSplitParagraph: splitParagraph, onSplitParagraphs: splitParagraphs, onInsertBlock: insertBlock, onSetShowInserter: setShowInserter, onSetInserterQuery: setQuery,
     }} />;
 }

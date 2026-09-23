@@ -59,6 +59,38 @@ export function useStudioBlockCommands({
     return nextId;
   }
 
+  function splitParagraphs(blockId: string, paragraphs: RichTextRun[][]) {
+    const source = findBlockById(activeDocument.blocks, blockId);
+    if (!source || source.type !== "paragraph" || paragraphs.length < 2) return null;
+    const replacements = paragraphs.map((runs, index) => ({
+      ...source,
+      id: index === 0 ? blockId : createUniqueId("paragraph"),
+      text: runs.map(run => run.text).join(""),
+      runs,
+    }));
+    const ids = replacements.map(block => block.id);
+    updateActiveDocument(document => {
+      let replaced = false;
+      function split(blocks: ContentBlock[]): ContentBlock[] {
+        const next: ContentBlock[] = [];
+        for (const block of blocks) {
+          if (block.id === blockId && block.type === "paragraph") {
+            next.push(...replacements);
+            replaced = true;
+          } else if ((block.type === "section" || block.type === "group" || block.type === "component") && Array.isArray(block.children)) {
+            next.push({ ...block, children: split(block.children) } as ContentBlock);
+          } else {
+            next.push(block);
+          }
+        }
+        return next;
+      }
+      const blocks = split(document.blocks);
+      return replaced ? { ...document, blocks } : document;
+    });
+    return ids;
+  }
+
   function moveBlock(blockIndex: number, direction: -1 | 1) {
     const target = blockIndex + direction;
     if (target < 0 || target >= activeDocument.blocks.length) return;
@@ -122,5 +154,5 @@ export function useStudioBlockCommands({
     updateActiveDocument((document) => removeNestedBlockById(document, blockId));
   }
 
-  return { updateBlock, insertBlock, splitParagraph, moveBlock, moveBlockTo, duplicateBlock, duplicateBlockById, removeBlock };
+  return { updateBlock, insertBlock, splitParagraph, splitParagraphs, moveBlock, moveBlockTo, duplicateBlock, duplicateBlockById, removeBlock };
 }

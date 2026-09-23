@@ -27,7 +27,7 @@ function selected(context: Context, block: ContentBlock, props: Record<string, u
 function editableText(context: Context, block: Extract<ContentBlock, { type: "heading" | "paragraph" }>, tag: string, className?: string, content?: ReactNode): ReactNode {
   const style = { ...(block.type === "paragraph" ? paragraphStyleToCss(block.style) : {}), ...(block.align ? { textAlign: block.align === "centre" ? "center" as const : block.align } : {}) };
   const props = selected(context, block, { className, style, role: block.siteRole === "status" ? "status" : undefined, "data-block-id": block.id });
-  if (context.mode === "edit") return <RichTextEditor {...props} as={tag as RichTextEditorProps["as"]} text={block.text} runs={block.runs} onSelectionChange={() => context.onCaretMove?.()} onLinkActivate={() => undefined} onChange={(text, runs) => context.onUpdateBlock?.(block.id, (current) => current.type === block.type ? { ...current, text, runs } : current)} />;
+  if (context.mode === "edit") return <RichTextEditor {...props} as={tag as RichTextEditorProps["as"]} text={block.text} runs={block.runs} onSelectionChange={() => context.onCaretMove?.()} onLinkActivate={() => undefined} onSplitParagraphs={block.type === "paragraph" && context.onSplitParagraphs ? paragraphs => context.onSplitParagraphs?.(block.id, paragraphs) ?? null : undefined} onChange={(text, runs) => context.onUpdateBlock?.(block.id, (current) => current.type === block.type ? { ...current, text, runs } : current)} />;
   return createElement(tag, props, content ?? renderText(block.text, block.runs));
 }
 
