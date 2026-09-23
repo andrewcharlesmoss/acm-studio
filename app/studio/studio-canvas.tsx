@@ -1081,6 +1081,20 @@ export function RichTextEditor({ as: elementName = "div", text, runs, onChange, 
   function moveCaretBetweenEditors(event: ReactKeyboardEvent<HTMLDivElement>) {
     const editor = editorRef.current;
     if (!editor || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return false;
+    if (event.key === "ArrowRight") {
+      const selection = window.getSelection();
+      if (!editor.classList.contains("paragraph-field") || !selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
+      const caretOffset = editorTextOffset(editor, selection.focusNode, selection.focusOffset);
+      const editorEnd = editorTextOffset(editor, editor, editor.childNodes.length);
+      if (caretOffset !== editorEnd) return false;
+      const paragraphs = [...document.querySelectorAll<HTMLElement>(".rich-text-editor.paragraph-field[data-studio-block-id]")]
+        .filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
+      const target = paragraphs[paragraphs.indexOf(editor) + 1];
+      if (!target) return false;
+      event.preventDefault();
+      focusRichTextEditorAtOffset(target, 0);
+      return true;
+    }
     if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return false;
     const selection = window.getSelection();
     if (!selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
