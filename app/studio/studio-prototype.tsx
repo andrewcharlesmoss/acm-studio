@@ -76,9 +76,10 @@ export function StudioPrototype() {
     setCodeEditorDirty(false);
     return true;
   }
-  const activeDocument = workspace.documents.find((item) => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
+  const activeDocument = workspace.documents.find((item) => item.id === workspace.activeDocumentId) ?? workspace.documents[0] ?? resolvedDocument;
+  const hasContentDocuments = workspace.documents.length > 0;
   function canDeleteDocument(targetDocument: StudioDocument | null | undefined) {
-    if (!targetDocument || !workspace.documents.some(item => item.id === targetDocument.id) || !writable || workspace.documents.length <= 1) return false;
+    if (!targetDocument || !workspace.documents.some(item => item.id === targetDocument.id) || !writable) return false;
     const requiresExclusiveOwnership = targetDocument.kind === "post" && targetDocument.status === "published";
     const hasTemplateAssignment = templateSession.store.assignments.some((item) => item.documentId === targetDocument.id);
     return (!requiresExclusiveOwnership || exclusiveWritable) && (!hasTemplateAssignment || templateSession.writable);
@@ -329,7 +330,7 @@ export function StudioPrototype() {
 
   function deleteDocument(documentId: string) {
     const targetDocument = workspace.documents.find((item) => item.id === documentId);
-    if (!targetDocument || !writable || workspace.documents.length === 1) return;
+    if (!targetDocument || !writable) return;
     const assignment = templateSession.store.assignments.find((item) => item.documentId === documentId);
     const restoreAssignment = () => assignment && templateSession.commit((store) => ({ ...store, assignments: [...store.assignments.filter((item) => item.documentId !== documentId), assignment] }));
     try {
@@ -447,15 +448,25 @@ export function StudioPrototype() {
     return () => window.removeEventListener("keydown", handleShortcut);
   }, [activeDocument.kind, publishing, studioSection]);
 
-  if (!activeDocument) return null;
   return (
     <div className="studio-shell studio-desktop-only" onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <header className="studio-header">
         <a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a>
-        <div className="studio-breadcrumbs">{studioSection === "templates" ? <><span>Templates</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Shared presentation</strong></> : studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : "Backup"}</strong></> : <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></>}</div>
+        <div className="studio-breadcrumbs">{studioSection === "templates" ? <><span>Templates</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Shared presentation</strong></> : studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : "Backup"}</strong></> : hasContentDocuments ? <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></> : <><span>Content</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Empty workspace</strong></>}</div>
         <div className="studio-state"><span className="prototype-pill">LOCAL</span><span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span>{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
-          {studioSection === "templates" ? <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Content</button> : studioSection !== "content" ? <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Back to {activeDocument.title}</button> : <>{activeDocument.kind === "post" ? <>{activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}<button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button></> : <button className="button-primary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>}</>}
+          {studioSection === "templates" ? (
+            <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Content</button>
+          ) : studioSection !== "content" ? (
+            <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Back to Content</button>
+          ) : hasContentDocuments ? activeDocument.kind === "post" ? (
+            <>
+              {activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}
+              <button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button>
+            </>
+          ) : (
+            <button className="button-primary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>
+          ) : null}
         </div>
       </header>
       {syncConflict ? <div className="design-notice" role="alert"><span>{syncConflict.conflicts.length || 1} overlapping change{(syncConflict.conflicts.length || 1) === 1 ? " needs" : "s need"} review. {studioConflictDetails(syncConflict)} Your changes remain in this tab. Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</span> <button type="button" onClick={() => void resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void resolveSyncConflict("mine")}>Use My Change</button>{syncResolutionError ? <span> {syncResolutionError}</span> : null}</div> : null}
@@ -482,7 +493,7 @@ export function StudioPrototype() {
             ))}
             <button type="button" onClick={() => switchStudioMode("templates")}>Templates<span>{templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0)}</span></button>
           </div>
-      <div className="document-list">
+          <div className="document-list">
             {workspace.documents.filter((document) => document.kind === libraryKind).map((document) => (
                 <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} aria-haspopup="menu" aria-expanded={documentContextMenu?.id === document.id} onClick={() => selectDocument(document)} onContextMenu={(event) => { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; setDocumentContextMenu({ id: document.id, label: document.title, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); setDocumentContextMenu({ id: document.id, label: document.title, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
                 <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span>
@@ -490,13 +501,14 @@ export function StudioPrototype() {
                 <i className={`document-status is-${document.status}`} aria-label={document.status} />
               </button>
             ))}
+            {!workspace.documents.some((document) => document.kind === libraryKind) ? <p className="document-list-empty">No {libraryKind === "page" ? "pages" : "posts"} yet.</p> : null}
           </div>
           {documentContextMenu ? (() => {
             const contextDocument = workspace.documents.find((item) => item.id === documentContextMenu.id);
             const contextAssignment = templateSession.store.assignments.find((item) => item.documentId === documentContextMenu.id);
             const requiresExclusiveOwnership = contextDocument?.kind === "post" && contextDocument.status === "published";
             const canDelete = canDeleteDocument(contextDocument);
-            const disabledReason = !writable ? "Editing is unavailable in this tab." : workspace.documents.length === 1 ? "Keep at least one document in the workspace." : requiresExclusiveOwnership && !exclusiveWritable ? "Published posts require exclusive ownership to remove their local publication." : contextAssignment && !templateSession.writable ? "The template assignment is not writable in this tab." : undefined;
+            const disabledReason = !writable ? "Editing is unavailable in this tab." : requiresExclusiveOwnership && !exclusiveWritable ? "Published posts require exclusive ownership to remove their local publication." : contextAssignment && !templateSession.writable ? "The template assignment is not writable in this tab." : undefined;
             const actions = contextDocument ? [
               { label: "Rename", icon: "pencil" as const, onClick: () => requestRenameDocument(contextDocument.id), disabled: !writable },
               { label: "Duplicate", icon: "copy" as const, onClick: duplicateDocument, disabled: !writable || codeEditorDirty, disabledReason: !writable ? "Editing is unavailable in this tab." : codeEditorDirty ? "Apply the code editor changes before duplicating this document." : undefined },
@@ -507,7 +519,15 @@ export function StudioPrototype() {
           <div className="library-footer"><button type="button" onClick={() => exportJson(workspace, "acm-studio-content.json")}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>
         </aside>
 
-        {studioSection === "content" ? <StudioEditor writable={writable} onUndo={undoStudio} onRedo={redoStudio} canUndo={canUndo} canRedo={canRedo}
+        {studioSection === "content" && !hasContentDocuments ? <section className="studio-empty-workspace" aria-labelledby="studio-empty-title">
+          <span className="studio-empty-icon" aria-hidden="true"><StudioIcon name="archive" size={24} /></span>
+          <h1 id="studio-empty-title">No {libraryKind === "page" ? "pages" : "posts"} yet</h1>
+          <p>Create a page or post when you’re ready. Your content stays in this browser.</p>
+          <div className="studio-empty-actions">
+            <button className="button-primary" type="button" disabled={!writable} onClick={() => addDocument(libraryKind)}>Create {libraryKind}</button>
+            <button className="button-secondary" type="button" disabled={!writable} onClick={() => addDocument(libraryKind === "page" ? "post" : "page")}>Create {libraryKind === "page" ? "post" : "page"}</button>
+          </div>
+        </section> : studioSection === "content" ? <StudioEditor writable={writable} onUndo={undoStudio} onRedo={redoStudio} canUndo={canUndo} canRedo={canRedo}
           canvas={{
             activeDocument: resolvedDocument,
             className: hasTemplate ? "template-editing" : undefined,

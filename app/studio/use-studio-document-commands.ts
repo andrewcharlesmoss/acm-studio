@@ -42,7 +42,7 @@ export function useStudioDocumentCommands({
 
   function deleteDocument(documentId = activeDocument.id) {
     const document = workspace.documents.find((item) => item.id === documentId);
-    if (!document || workspace.documents.length === 1) return false;
+    if (!document) return false;
     if (document.kind === "post" && document.status === "published") {
       if (publishingRepository === browserPublishingRepository && !studioWriteOwnership.canWrite()) return false;
       publishingRepository.unpublish(document.id);

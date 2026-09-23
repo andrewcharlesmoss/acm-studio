@@ -39,6 +39,7 @@ export type StudioDocument = {
 
 export type StudioWorkspace = {
   version: 2 | 3 | 4 | 5;
+  /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
   documents: StudioDocument[];
 };
@@ -76,6 +77,24 @@ export const blockCatalogue: Array<{
 ];
 
 const fixedDate = "2026-08-20T00:00:00.000Z";
+
+/** Transient editor context used when previewing a template without content. */
+export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "studio-empty-preview"): StudioDocument {
+  return {
+    id,
+    kind,
+    title: "",
+    subtitle: "",
+    slug: "",
+    excerpt: "",
+    status: "draft",
+    updatedAt: fixedDate,
+    blocks: [],
+    tags: [],
+    seoTitle: "",
+    seoDescription: "",
+  };
+}
 
 export const initialStudioWorkspace: StudioWorkspace = {
   version: 5,

@@ -295,6 +295,9 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Allow deleting the last local page or post, validate and synchronise an empty
+  content workspace, and show page/post creation actions instead of a phantom
+  document.
 - Deleting the selected page or post now saves a fallback only when the
   receiver's own selection was removed. This prevents validation errors without
   replacing a valid tab-local selection.

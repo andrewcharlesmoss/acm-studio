@@ -164,15 +164,19 @@ function diffValues(before: unknown, after: unknown, path: string[], changes: St
 export function createStudioTransaction<T>(before: T, after: T, options: { transactionId: string; clientId: string; brokerEpoch: string; baseRevision: number }): StudioSyncTransaction {
   const changes: StudioSyncChange[] = [];
   diffValues(before, after, [], changes);
-  // Keep selection local unless its document is deleted. The receiver adopts
-  // this fallback only when its own selection is also no longer available.
+  // Keep selection local normally. Include the sender's fallback with deletions
+  // so a receiver can replace a selection whose document no longer exists.
   if (isRecord(before) && isRecord(after)
     && typeof before.activeDocumentId === "string" && typeof after.activeDocumentId === "string"
     && Array.isArray(before.documents) && Array.isArray(after.documents)) {
-    const wasActiveDocument = before.documents.some(document => isRecord(document) && document.id === before.activeDocumentId);
+    const hadActiveDocument = before.documents.some(document => isRecord(document) && document.id === before.activeDocumentId);
     const activeDocumentRemains = after.documents.some(document => isRecord(document) && document.id === before.activeDocumentId);
-    const fallbackDocumentExists = after.documents.some(document => isRecord(document) && document.id === after.activeDocumentId);
-    if (wasActiveDocument && !activeDocumentRemains && fallbackDocumentExists) {
+    const nextSelectionExists = after.documents.some(document => isRecord(document) && document.id === after.activeDocumentId);
+    const nextSelectionIsEmpty = after.documents.length === 0 && after.activeDocumentId === "";
+    const documentWasDeleted = changes.some(change => change.kind === "delete" && equal(change.path, ["documents"]));
+    if ((documentWasDeleted || !hadActiveDocument || !activeDocumentRemains)
+      && (nextSelectionExists || nextSelectionIsEmpty)
+      && (documentWasDeleted || before.activeDocumentId !== after.activeDocumentId)) {
       changes.push({ kind: "set", path: ["activeDocumentId"], beforePresent: true, before: before.activeDocumentId, afterPresent: true, after: after.activeDocumentId });
     }
   }
@@ -285,9 +289,18 @@ export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSy
           const activeDocumentId = snapshot.activeDocumentId;
           const currentSelectionRemains = typeof activeDocumentId === "string"
             && documents.some(item => isRecord(item) && item.id === activeDocumentId);
-          if (!currentSelectionRemains && change.afterPresent && typeof change.after === "string"
-            && documents.some(item => isRecord(item) && item.id === change.after)) {
-            setPath(snapshot, change.path, change.afterPresent, change.after);
+          const nextSelectionExists = change.afterPresent && typeof change.after === "string"
+            && documents.some(item => isRecord(item) && item.id === change.after);
+          const nextSelectionIsEmpty = documents.length === 0 && change.afterPresent && change.after === "";
+          if (!currentSelectionRemains) {
+            if (nextSelectionExists || nextSelectionIsEmpty) {
+              setPath(snapshot, change.path, change.afterPresent, change.after);
+            } else if (documents.length > 0) {
+              const fallbackDocument = documents.find(item => isRecord(item) && typeof item.id === "string");
+              if (isRecord(fallbackDocument) && typeof fallbackDocument.id === "string") {
+                setPath(snapshot, change.path, true, fallbackDocument.id);
+              }
+            }
           }
         }
         continue;

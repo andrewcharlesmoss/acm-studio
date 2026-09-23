@@ -6,13 +6,17 @@ import { documentFieldUsage, resolveDocumentDisplay, resolveDocumentFields } fro
 import { useTemplateMedia } from "./use-template-media";
 import { TemplateDocument } from "./template-renderer";
 import { DocumentTemplateControls } from "./document-template-controls";
+import { createWorkspacePreviewDocument } from "./editor-model";
 import type { useStudioWorkspace } from "./use-studio-workspace";
 import type { StudioPresentation } from "./studio-presentation";
+
+const emptyWorkspaceDocument = createWorkspacePreviewDocument("page");
 
 /** Keeps document/template orchestration out of the screen coordinator. */
 export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspace>, onEditPart?: (setId: string, targetId: string) => void) {
   const { workspace, ownershipGeneration, writable } = session;
-  const document = workspace.documents.find(item => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
+  const savedDocument = workspace.documents.find(item => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
+  const document = savedDocument ?? emptyWorkspaceDocument;
   const templates = useTemplates(ownershipGeneration, writable);
   const history = useStudioHistoryRouter(session, templates, ownershipGeneration);
   const commit: typeof session.commit = update => { if (!writable) return false; history.record("document"); return session.commit(update); };
@@ -20,7 +24,7 @@ export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspa
   const updateActiveField: typeof session.updateActiveField = (field, value) => { if (!writable) return; history.record("document"); session.updateActiveField(field, value); };
   let snapshot: TemplateSnapshot | undefined;
   let resolutionError: string | null = null;
-  try { if (templates.ready && document) snapshot = resolveTemplate(templates.store, document); }
+  try { if (templates.ready && savedDocument) snapshot = resolveTemplate(templates.store, savedDocument); }
   catch (error) { resolutionError = error instanceof Error ? error.message : "Template unavailable."; }
   const media = useTemplateMedia(snapshot ? templateMediaIds(snapshot.set) : []);
   const selectedTemplate = snapshot?.set.templates.find(item => item.id === snapshot.templateId);

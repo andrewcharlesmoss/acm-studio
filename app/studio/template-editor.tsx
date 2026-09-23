@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ContentBlock } from "../content/model";
 import { BlockRenderer } from "../components/content";
-import { blockCatalogue, createBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
+import { blockCatalogue, createBlock, createWorkspacePreviewDocument, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
 import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
@@ -21,7 +21,8 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
 }) {
   const candidates = documents.filter(document => target.kind === "page" || target.kind === "post" ? document.kind === target.kind : true);
   const [sampleId, setSampleId] = useState(candidates[0]?.id);
-  const sample = candidates.find(document => document.id === sampleId) ?? candidates[0] ?? documents[0];
+  const sample = candidates.find(document => document.id === sampleId) ?? candidates[0] ?? documents[0]
+    ?? createWorkspacePreviewDocument(target.kind === "post" ? "post" : "page");
   const resolvedSample = {
     ...sample,
     ...resolveDocumentFields(sample, set, target.kind === "page" || target.kind === "post" ? target.defaults : undefined),
@@ -110,7 +111,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     if (references(template.nodes)) users.push(template.name);
   }
   const toolbar = <div className="template-toolbar">
-    <label>Preview Content<select value={sample.id} onChange={event => setSampleId(event.target.value)}>{candidates.map(document => <option key={document.id} value={document.id}>{document.title}</option>)}</select></label>
+    <label>Preview Content<select value={sample.id} disabled={!candidates.length} onChange={event => setSampleId(event.target.value)}>{candidates.length ? candidates.map(document => <option key={document.id} value={document.id}>{document.title}</option>) : <option value={sample.id}>No pages or posts yet</option>}</select></label>
     <label>Width<select value={width} onChange={event => setWidth(Number(event.target.value))}><option value={1200}>Desktop</option><option value={768}>Tablet</option><option value={390}>Mobile</option></select></label>
     <div className="template-zoom-control" role="group" aria-label="Template canvas zoom">
       <span className="template-zoom-label">Zoom</span>

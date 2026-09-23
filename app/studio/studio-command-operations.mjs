@@ -119,7 +119,8 @@ export function addDocumentToWorkspace(workspace, document) {
 
 export function deleteDocumentFromWorkspace(workspace, documentId) {
   const documents = workspace.documents.filter((document) => document.id !== documentId);
-  if (!documents.length || workspace.activeDocumentId !== documentId) return { ...workspace, documents };
+  if (!documents.length) return { ...workspace, documents, activeDocumentId: "" };
+  if (workspace.activeDocumentId !== documentId) return { ...workspace, documents };
   const deletedIndex = workspace.documents.findIndex((document) => document.id === documentId);
   const fallback = documents[Math.min(deletedIndex, documents.length - 1)];
   return { ...workspace, documents, activeDocumentId: fallback?.id ?? workspace.activeDocumentId };

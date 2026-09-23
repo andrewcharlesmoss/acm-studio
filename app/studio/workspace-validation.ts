@@ -179,9 +179,11 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5].includes(value.version as number) || !Array.isArray(value.documents) || !value.documents.length
+  if (!isRecord(value) || ![2, 3, 4, 5].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !uniqueIds(value.documents)) return invalid();
-  if (typeof value.activeDocumentId !== "string" || !value.documents.some((item) => item.id === value.activeDocumentId)) return invalid();
+  if (typeof value.activeDocumentId !== "string"
+    || (value.documents.length > 0 && !value.documents.some((item) => item.id === value.activeDocumentId))
+    || (value.documents.length === 0 && value.activeDocumentId !== "")) return invalid();
   for (const document of value.documents) {
     if (!["page", "post"].includes(document.kind as string) || !["draft", "pending", "private", "published"].includes(document.status as string)
       || !["title", "slug", "excerpt", "seoTitle", "seoDescription"].every((field) => typeof document[field] === "string")
