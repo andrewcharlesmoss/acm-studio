@@ -295,6 +295,15 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Deleting the selected page or post now saves a fallback only when the
+  receiver's own selection was removed. This prevents validation errors without
+  replacing a valid tab-local selection.
+- Document Rename now uses a Studio dialog instead of a browser prompt and
+  preserves open code edits.
+- Document Duplicate stays unavailable while code edits are pending, avoiding a
+  browser prompt and a stale copy.
+- Deleting a shared part removes its references while preserving unrelated
+  empty groups and sections.
 - Gave the Ribbon Library's Studio demo canvas a clear sample layout, on-page
   duplicate placement and correctly sized scrolling at different zoom levels.
 - Prevented Content and Template edits from conflicting with their own earlier

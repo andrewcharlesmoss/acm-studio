@@ -57,6 +57,11 @@ export function StudioPrototype() {
   const [designMediaAltText, setDesignMediaAltText] = useState(""); const designMediaDialogRef = useRef<HTMLDialogElement>(null);
   const [saveTemplateDialog, setSaveTemplateDialog] = useState<{ name: string; destination: string; includeAuthor: boolean; includeCategory: boolean; includeTags: boolean; includeParentPage: boolean }>();
   const saveTemplateDialogRef = useRef<HTMLDialogElement>(null);
+  const [renameDocumentDialog, setRenameDocumentDialog] = useState<{ documentId: string; name: string } | null>(null);
+  const renameDocumentDialogRef = useRef<HTMLDialogElement>(null);
+  const renameDocumentOpenerRef = useRef<HTMLElement | null>(null);
+  const [deleteDocumentTarget, setDeleteDocumentTarget] = useState<StudioDocument | null>(null);
+  const deleteDocumentDialogRef = useRef<HTMLDialogElement>(null);
   const [newTemplateChoice, setNewTemplateChoice] = useState<string>();
   const newTemplateDialogRef = useRef<HTMLDialogElement>(null);
   const documentContextMenuTriggerRef = useRef<HTMLElement | null>(null);
@@ -72,6 +77,12 @@ export function StudioPrototype() {
     return true;
   }
   const activeDocument = workspace.documents.find((item) => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
+  function canDeleteDocument(targetDocument: StudioDocument | null | undefined) {
+    if (!targetDocument || !workspace.documents.some(item => item.id === targetDocument.id) || !writable || workspace.documents.length <= 1) return false;
+    const requiresExclusiveOwnership = targetDocument.kind === "post" && targetDocument.status === "published";
+    const hasTemplateAssignment = templateSession.store.assignments.some((item) => item.documentId === targetDocument.id);
+    return (!requiresExclusiveOwnership || exclusiveWritable) && (!hasTemplateAssignment || templateSession.writable);
+  }
   const selectedBlock = activeDocument && selectedBlockId ? findBlockById(activeDocument.blocks, selectedBlockId) : null;
   const showCoverImage = activeDocument ? (activeDocument.coverImage === undefined ? activeDocument.kind === "post" : activeDocument.coverImage !== null) : false;
   const blockCommands = useStudioBlockCommands({ activeDocument, updateActiveDocument });
@@ -124,6 +135,18 @@ export function StudioPrototype() {
     if (!newTemplateChoice || !newTemplateDialogRef.current) return;
     if (!newTemplateDialogRef.current.open) newTemplateDialogRef.current.showModal();
   }, [newTemplateChoice]);
+  useEffect(() => {
+    if (!renameDocumentDialog || !renameDocumentDialogRef.current) return;
+    if (!renameDocumentDialogRef.current.open) renameDocumentDialogRef.current.showModal();
+    const input = renameDocumentDialogRef.current.querySelector<HTMLInputElement>("input");
+    input?.focus();
+    input?.select();
+  }, [renameDocumentDialog]);
+  useEffect(() => {
+    if (!deleteDocumentTarget || !deleteDocumentDialogRef.current) return;
+    if (!deleteDocumentDialogRef.current.open) deleteDocumentDialogRef.current.showModal();
+    deleteDocumentDialogRef.current.querySelector<HTMLButtonElement>(".template-dialog-close")?.focus();
+  }, [deleteDocumentTarget]);
   async function insertDesignMedia() {
     if (!designMediaPrompt) return;
     const inserted = await media.insertImageById(designMediaPrompt.asset.id, { target: designMediaPrompt.target }, designMediaAltText.trim());
@@ -258,20 +281,56 @@ export function StudioPrototype() {
   }
 
   function duplicateDocument() {
-    if (!confirmCodeEditorDiscard()) return;
+    if (codeEditorDirty) {
+      publishing.setPublishFeedback("Apply the code editor changes before duplicating this document.");
+      return;
+    }
     documentCommands.duplicateDocument();
     setSelectedBlockId(null);
-    setCodeEditorDirty(false);
   }
 
-  function deleteDocument(documentId = activeDocument.id) {
+  function closeRenameDocumentDialog() {
+    renameDocumentDialogRef.current?.close();
+    setRenameDocumentDialog(null);
+    requestAnimationFrame(() => renameDocumentOpenerRef.current?.isConnected && renameDocumentOpenerRef.current.focus());
+  }
+
+  function requestRenameDocument(documentId: string) {
+    const targetDocument = workspace.documents.find(item => item.id === documentId);
+    if (!targetDocument || !writable) return;
+    renameDocumentOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : documentContextMenuTriggerRef.current;
+    setRenameDocumentDialog({ documentId, name: targetDocument.title });
+  }
+
+  function confirmRenameDocument() {
+    if (!renameDocumentDialog) return;
+    const targetDocument = workspace.documents.find(item => item.id === renameDocumentDialog.documentId);
+    const title = renameDocumentDialog.name.trim();
+    if (!targetDocument || !writable || !title) return;
+    if (title === targetDocument.title) {
+      closeRenameDocumentDialog();
+      return;
+    }
+    const saved = commit(current => ({
+      ...current,
+      documents: current.documents.map(document => document.id === renameDocumentDialog.documentId
+        ? { ...document, title, updatedAt: new Date().toISOString() }
+        : document),
+    }));
+    if (!saved) return;
+    closeRenameDocumentDialog();
+  }
+
+  function requestDeleteDocument(documentId = activeDocument.id) {
     const targetDocument = workspace.documents.find((item) => item.id === documentId);
-    if (!targetDocument || workspace.documents.length === 1) return;
+    if (!targetDocument || !canDeleteDocument(targetDocument)) return;
+    setDeleteDocumentTarget(targetDocument);
+  }
+
+  function deleteDocument(documentId: string) {
+    const targetDocument = workspace.documents.find((item) => item.id === documentId);
+    if (!targetDocument || !writable || workspace.documents.length === 1) return;
     const assignment = templateSession.store.assignments.find((item) => item.documentId === documentId);
-    if (!confirmCodeEditorDiscard()) return;
-    const publicationWarning = targetDocument.kind === "post" && targetDocument.status === "published" ? " This also removes its local published copy." : "";
-    const templateWarning = assignment ? " Its template assignment will also be removed." : "";
-    if (!window.confirm(`Delete the local ${targetDocument.kind} “${targetDocument.title}”?${publicationWarning}${templateWarning}`)) return;
     const restoreAssignment = () => assignment && templateSession.commit((store) => ({ ...store, assignments: [...store.assignments.filter((item) => item.documentId !== documentId), assignment] }));
     try {
       if (assignment && !templateSession.commit((store) => ({ ...store, assignments: store.assignments.filter((item) => item.documentId !== documentId) }))) {
@@ -298,6 +357,25 @@ export function StudioPrototype() {
       setSelectedBlockId(null);
       setCodeEditorDirty(false);
     }
+  }
+
+  function confirmDeleteDocument() {
+    if (!deleteDocumentTarget) return;
+    const targetDocument = workspace.documents.find(item => item.id === deleteDocumentTarget.id);
+    if (!targetDocument || !canDeleteDocument(targetDocument)) {
+      cancelDeleteDocument();
+      return;
+    }
+    const documentId = targetDocument.id;
+    deleteDocumentDialogRef.current?.close();
+    setDeleteDocumentTarget(null);
+    setCodeEditorDirty(false);
+    deleteDocument(documentId);
+  }
+
+  function cancelDeleteDocument() {
+    deleteDocumentDialogRef.current?.close();
+    setDeleteDocumentTarget(null);
   }
 
   function insertBlock(type: InsertableBlockType) {
@@ -417,9 +495,13 @@ export function StudioPrototype() {
             const contextDocument = workspace.documents.find((item) => item.id === documentContextMenu.id);
             const contextAssignment = templateSession.store.assignments.find((item) => item.documentId === documentContextMenu.id);
             const requiresExclusiveOwnership = contextDocument?.kind === "post" && contextDocument.status === "published";
-            const canDelete = Boolean(contextDocument && writable && workspace.documents.length > 1 && (!requiresExclusiveOwnership || exclusiveWritable) && (!contextAssignment || templateSession.writable));
+            const canDelete = canDeleteDocument(contextDocument);
             const disabledReason = !writable ? "Editing is unavailable in this tab." : workspace.documents.length === 1 ? "Keep at least one document in the workspace." : requiresExclusiveOwnership && !exclusiveWritable ? "Published posts require exclusive ownership to remove their local publication." : contextAssignment && !templateSession.writable ? "The template assignment is not writable in this tab." : undefined;
-            return <StudioListContextMenu target={documentContextMenu} canDelete={canDelete} disabledReason={disabledReason} returnFocusRef={documentContextMenuTriggerRef} onDelete={() => deleteDocument(documentContextMenu.id)} onClose={closeDocumentContextMenu} />;
+            const actions = contextDocument ? [
+              { label: "Rename", icon: "pencil" as const, onClick: () => requestRenameDocument(contextDocument.id), disabled: !writable },
+              { label: "Duplicate", icon: "copy" as const, onClick: duplicateDocument, disabled: !writable || codeEditorDirty, disabledReason: !writable ? "Editing is unavailable in this tab." : codeEditorDirty ? "Apply the code editor changes before duplicating this document." : undefined },
+            ] : [];
+            return <StudioListContextMenu target={documentContextMenu} actions={actions} canDelete={canDelete} disabledReason={disabledReason} returnFocusRef={documentContextMenuTriggerRef} onDelete={() => requestDeleteDocument(documentContextMenu.id)} onClose={closeDocumentContextMenu} />;
           })() : null}
           <SiteNavigation />
           <div className="library-footer"><button type="button" onClick={() => exportJson(workspace, "acm-studio-content.json")}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>
@@ -470,7 +552,8 @@ export function StudioPrototype() {
             selectedBlock,
             activeDocument,
             pages: workspace.documents.filter((item) => item.kind === "page"),
-            canDelete: workspace.documents.length > 1,
+            canDelete: canDeleteDocument(activeDocument),
+            canDuplicate: writable && !codeEditorDirty,
             onSelectTab: setInspectorTab,
             onDocumentChange: (field, value) => { if (field === "author" || field === "category" || field === "tags" || field === "parentPageId") setFieldOverride(field, false); updateActiveField(field, value); },
             onBlockChange: (next) => selectedBlock && blockCommands.updateBlock(selectedBlock.id, () => next),
@@ -478,7 +561,7 @@ export function StudioPrototype() {
             onPublish: publishing.publish,
             onUnpublish: publishing.unpublish,
             onDuplicate: duplicateDocument,
-            onDelete: deleteDocument,
+            onDelete: () => requestDeleteDocument(),
             resolvedDocument,
             hasTemplate,
             fieldUsage,
@@ -494,8 +577,23 @@ export function StudioPrototype() {
         /> : <BackupManager workspace={workspace} />}
         </>}
       </main>
-      {newTemplateChoice ? <dialog ref={newTemplateDialogRef} className="template-dialog" aria-labelledby="new-template-title" onCancel={event => { event.preventDefault(); newTemplateDialogRef.current?.close(); setNewTemplateChoice(undefined); }} onClose={() => setNewTemplateChoice(undefined)}><form onSubmit={event => { event.preventDefault(); commitNewDocumentFromTemplate(); }}><h2 id="new-template-title">New from template</h2><p>Choose a presentation first. The new document starts empty and inherits only the reusable settings supplied by this template.</p><label><span>Template</span><select value={newTemplateChoice} onChange={event => setNewTemplateChoice(event.target.value)}>{templateSession.store.sets.flatMap(set => set.templates.map(template => <option key={`${set.id}/${template.id}`} value={`${set.id}/${template.id}`}>{set.name} — {template.name} ({template.kind === "post" ? "Post" : "Page"})</option>))}</select></label><p className="setting-note">The document remains a {templateSession.store.sets.flatMap(set => set.templates.map(template => ({ set, template }))).find(item => `${item.set.id}/${item.template.id}` === newTemplateChoice)?.template.kind === "post" ? "post" : "page"} after creation. You can override inherited values in the Document pane.</p><div className="template-dialog-actions"><button type="button" onClick={() => { newTemplateDialogRef.current?.close(); setNewTemplateChoice(undefined); }}>Cancel</button><button className="button-primary" type="submit" disabled={!writable}>Create document</button></div></form></dialog> : null}
+      {newTemplateChoice ? <dialog ref={newTemplateDialogRef} className="template-dialog" aria-labelledby="new-template-title" onCancel={event => { event.preventDefault(); newTemplateDialogRef.current?.close(); setNewTemplateChoice(undefined); }} onClose={() => setNewTemplateChoice(undefined)}><form onSubmit={event => { event.preventDefault(); commitNewDocumentFromTemplate(); }}><h2 id="new-template-title">New from template</h2><p>Choose a presentation first. The new document starts empty and inherits only the reusable settings supplied by this template.</p><label><span>Template</span><select value={newTemplateChoice} onChange={event => setNewTemplateChoice(event.target.value)}>{templateSession.store.sets.flatMap(set => set.templates.map(template => <option key={`${set.id}/${template.id}`} value={`${set.id}/${template.id}`}>{template.name} ({template.kind === "post" ? "Post" : "Page"})</option>))}</select></label><p className="setting-note">The document remains a {templateSession.store.sets.flatMap(set => set.templates.map(template => ({ set, template }))).find(item => `${item.set.id}/${item.template.id}` === newTemplateChoice)?.template.kind === "post" ? "post" : "page"} after creation. You can override inherited values in the Document pane.</p><div className="template-dialog-actions"><button type="button" onClick={() => { newTemplateDialogRef.current?.close(); setNewTemplateChoice(undefined); }}>Cancel</button><button className="button-primary" type="submit" disabled={!writable}>Create document</button></div></form></dialog> : null}
       {saveTemplateDialog ? <dialog ref={saveTemplateDialogRef} className="template-dialog" aria-labelledby="save-template-title" onCancel={event => { event.preventDefault(); saveTemplateDialogRef.current?.close(); setSaveTemplateDialog(undefined); }} onClose={() => setSaveTemplateDialog(undefined)}><form onSubmit={event => { event.preventDefault(); void commitSaveAsTemplate(saveTemplateDialog); }}><h2 id="save-template-title">Save as template</h2><p>The document body and personal content stay with this document. Choose reusable defaults below; the template keeps the layout and dynamic field structure.</p><label><span>Template name</span><input required value={saveTemplateDialog.name} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, name: event.target.value })} /></label><label><span>Template set</span><input required value={saveTemplateDialog.destination} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, destination: event.target.value })} /></label><fieldset><legend>Reusable defaults</legend><label className="checkbox-setting"><input type="checkbox" checked={saveTemplateDialog.includeAuthor} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, includeAuthor: event.target.checked })} /><span>Author</span></label><label className="checkbox-setting"><input type="checkbox" checked={saveTemplateDialog.includeCategory} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, includeCategory: event.target.checked })} /><span>Category</span></label><label className="checkbox-setting"><input type="checkbox" checked={saveTemplateDialog.includeTags} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, includeTags: event.target.checked })} /><span>Tags</span></label><label className="checkbox-setting"><input type="checkbox" checked={saveTemplateDialog.includeParentPage} onChange={event => setSaveTemplateDialog({ ...saveTemplateDialog, includeParentPage: event.target.checked })} /><span>Parent page</span></label></fieldset><p className="setting-note">The review is deliberately conservative: dynamic structure and layout are captured, while ordinary document text, media and publication state stay with the source document.</p><div className="template-dialog-actions"><button type="button" onClick={() => { saveTemplateDialogRef.current?.close(); setSaveTemplateDialog(undefined); }}>Cancel</button><button className="button-primary" type="submit" disabled={!writable}>Save template</button></div></form></dialog> : null}
+      {renameDocumentDialog ? <dialog ref={renameDocumentDialogRef} className="template-dialog" aria-labelledby="rename-document-title" aria-describedby="rename-document-description" onCancel={event => { event.preventDefault(); closeRenameDocumentDialog(); }} onClose={() => setRenameDocumentDialog(null)}>
+        <button className="template-dialog-close" type="button" aria-label="Close rename dialog" onClick={closeRenameDocumentDialog}><StudioIcon name="close" size={20} /></button>
+        <form onSubmit={event => { event.preventDefault(); confirmRenameDocument(); }}>
+          <h2 id="rename-document-title">Rename {workspace.documents.find(item => item.id === renameDocumentDialog.documentId)?.kind ?? "document"}</h2>
+          <p id="rename-document-description">Change the title of this local document.</p>
+          <label><span>Name</span><input required maxLength={160} value={renameDocumentDialog.name} onChange={event => setRenameDocumentDialog({ ...renameDocumentDialog, name: event.target.value })} /></label>
+          <div className="template-dialog-actions"><button type="button" onClick={closeRenameDocumentDialog}>Cancel</button><button className="button-primary" type="submit" disabled={!writable || !renameDocumentDialog.name.trim()}>Rename</button></div>
+        </form>
+      </dialog> : null}
+      {deleteDocumentTarget ? <dialog ref={deleteDocumentDialogRef} className="template-dialog" aria-labelledby="delete-document-title" aria-describedby="delete-document-description" onCancel={event => { event.preventDefault(); cancelDeleteDocument(); }} onClose={() => setDeleteDocumentTarget(null)}>
+        <button className="template-dialog-close" type="button" aria-label="Close delete confirmation" onClick={cancelDeleteDocument}><StudioIcon name="close" size={20} /></button>
+        <h2 id="delete-document-title">Delete {deleteDocumentTarget.kind}</h2>
+        <p id="delete-document-description">Delete the local {deleteDocumentTarget.kind} “{deleteDocumentTarget.title}”?{codeEditorDirty ? " Any unsaved code editor changes will be discarded." : ""}{deleteDocumentTarget.kind === "post" && deleteDocumentTarget.status === "published" ? " This also removes its local published copy." : ""}{templateSession.store.assignments.some(item => item.documentId === deleteDocumentTarget.id) ? " Its template assignment will also be removed." : ""}</p>
+        <div className="template-dialog-actions"><button type="button" onClick={cancelDeleteDocument}>Cancel</button><button className="button-primary" type="button" onClick={confirmDeleteDocument} disabled={!canDeleteDocument(deleteDocumentTarget)}>Delete {deleteDocumentTarget.kind}</button></div>
+      </dialog> : null}
       {designMediaPrompt ? <dialog ref={designMediaDialogRef} className="media-alt-dialog" aria-labelledby="studio-design-media-title" onClose={() => setDesignMediaPrompt(null)}><form method="dialog" onSubmit={(event) => { event.preventDefault(); void insertDesignMedia(); }}>
           <h2 id="studio-design-media-title">Describe this image</h2><p>Provide alternative text for people who cannot see the image.</p>
           <label><span>Alternative text</span><textarea rows={4} value={designMediaAltText} onChange={(event) => setDesignMediaAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>

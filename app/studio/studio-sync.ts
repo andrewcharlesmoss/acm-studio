@@ -2,8 +2,8 @@
  * Same-origin coordination for browser-local Studio records.
  *
  * The Web Lock still chooses one persistence owner. This protocol lets other
- * tabs submit typed snapshot differences to that owner without sharing local
- * selection, navigation or editor history.
+ * tabs submit typed snapshot differences to that owner without synchronising
+ * valid local selections, navigation or editor history.
  */
 export const STUDIO_SYNC_PROTOCOL = "acm-studio-sync-v2" as const;
 
@@ -164,6 +164,18 @@ function diffValues(before: unknown, after: unknown, path: string[], changes: St
 export function createStudioTransaction<T>(before: T, after: T, options: { transactionId: string; clientId: string; brokerEpoch: string; baseRevision: number }): StudioSyncTransaction {
   const changes: StudioSyncChange[] = [];
   diffValues(before, after, [], changes);
+  // Keep selection local unless its document is deleted. The receiver adopts
+  // this fallback only when its own selection is also no longer available.
+  if (isRecord(before) && isRecord(after)
+    && typeof before.activeDocumentId === "string" && typeof after.activeDocumentId === "string"
+    && Array.isArray(before.documents) && Array.isArray(after.documents)) {
+    const wasActiveDocument = before.documents.some(document => isRecord(document) && document.id === before.activeDocumentId);
+    const activeDocumentRemains = after.documents.some(document => isRecord(document) && document.id === before.activeDocumentId);
+    const fallbackDocumentExists = after.documents.some(document => isRecord(document) && document.id === after.activeDocumentId);
+    if (wasActiveDocument && !activeDocumentRemains && fallbackDocumentExists) {
+      changes.push({ kind: "set", path: ["activeDocumentId"], beforePresent: true, before: before.activeDocumentId, afterPresent: true, after: after.activeDocumentId });
+    }
+  }
   return { ...options, changes };
 }
 
@@ -267,7 +279,19 @@ export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSy
         conflicts.push({ change, reason: "invalid", current: target.value, currentPresent: target.present });
         continue;
       }
-      if (ignoredPath(change.path)) { setPath(snapshot, change.path, change.afterPresent, change.after); continue; }
+      if (ignoredPath(change.path)) {
+        if (change.path.length === 1 && change.path[0] === "activeDocumentId" && isRecord(snapshot) && Array.isArray(snapshot.documents)) {
+          const documents = snapshot.documents;
+          const activeDocumentId = snapshot.activeDocumentId;
+          const currentSelectionRemains = typeof activeDocumentId === "string"
+            && documents.some(item => isRecord(item) && item.id === activeDocumentId);
+          if (!currentSelectionRemains && change.afterPresent && typeof change.after === "string"
+            && documents.some(item => isRecord(item) && item.id === change.after)) {
+            setPath(snapshot, change.path, change.afterPresent, change.after);
+          }
+        }
+        continue;
+      }
       if (target.present === change.afterPresent && (!target.present || equal(target.value, change.after))) continue;
       if (target.present === change.beforePresent && (!target.present || equal(target.value, change.before))) { setPath(snapshot, change.path, change.afterPresent, change.after); continue; }
       if (preferLocal) setPath(snapshot, change.path, change.afterPresent, change.after);
