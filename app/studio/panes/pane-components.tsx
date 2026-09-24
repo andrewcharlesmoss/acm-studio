@@ -43,7 +43,7 @@ export function PaneCollapseButton({ side, collapsed, label, controls, icon, onC
   return <button ref={buttonRef} type="button" className="pane-collapse" data-side={side}
     data-collapsed={collapsed} data-resizable={resizable && !collapsed} data-resize-pressed={resizePressed} data-pane-region={`${side}.collapse`} aria-label={action}
     aria-description={resizable && !collapsed ? "Drag to resize; use Left and Right arrows to adjust width." : undefined}
-    title={resizable && !collapsed ? `${action} · drag to resize` : action}
+    title={resizable && !collapsed ? undefined : action}
     aria-expanded={!collapsed} aria-controls={controls} onClick={onClick}
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
     onPointerCancel={onPointerCancel} onLostPointerCapture={onLostPointerCapture} onKeyDown={onKeyDown}>{icon}</button>;
