@@ -1061,6 +1061,8 @@
 .local-publish-status small { color: var(--muted); font-size: var(--studio-ui-size); margin-top: 2px; }
 .inspector-setting-row { align-items: center; display: grid; gap: 12px; grid-template-columns: 1fr auto; }
 .inspector-setting-row > span { color: var(--muted); font-size: var(--studio-ui-size); }
+.inspector-value-row { align-items: baseline; display: flex; flex-wrap: wrap; gap: 4px 10px; min-width: 0; }
+.inspector-value-row > strong { min-width: 0; overflow-wrap: anywhere; }
 .inspector-setting-trigger { align-items: center; background: #e9e8e2; border: 0; border-radius: 5px; color: var(--ink); cursor: pointer; display: inline-flex; font-size: var(--studio-ui-size); gap: 7px; justify-content: space-between; min-height: 34px; padding: 7px 8px 7px 10px; }
 .inspector-setting-trigger:hover { background: #deddd7; }
 .inspector-setting-trigger svg { flex: 0 0 auto; }
