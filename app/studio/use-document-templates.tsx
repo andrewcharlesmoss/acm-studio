@@ -55,7 +55,11 @@ export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspa
     };
   }
   function setFieldOverride(field: "author" | "category" | "tags" | "parentPageId", useTemplate: boolean) {
-    updateActiveDocument(current => ({ ...current, templateOverrides: { ...current.templateOverrides, [field]: !useTemplate } }));
+    updateActiveDocument(current => ({
+      ...current,
+      ...(field === "category" && useTemplate ? { category: undefined, categoryIds: undefined } : {}),
+      templateOverrides: { ...current.templateOverrides, [field]: !useTemplate },
+    }));
   }
   return {
     ...session, commit, updateActiveDocument, updateActiveField,

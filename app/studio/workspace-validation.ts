@@ -145,7 +145,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -179,20 +179,69 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
     if (next.templateOverrides !== undefined) return next;
     return { ...next, templateOverrides: { author: true, category: true, tags: true, parentPageId: true } };
   });
+  if (migrated.version === 6) {
+    const binned = migrated.bin as unknown[];
+    const allDocuments = [
+      ...(migrated.documents as unknown[]),
+      ...binned.flatMap(item => isRecord(item) && isRecord(item.document) ? [item.document] : []),
+    ];
+    const categories: Array<{ id: string; name: string }> = [{ id: "category-uncategorised", name: "Uncategorised" }];
+    const idsByName = new Map<string, string>();
+    idsByName.set("uncategorised", "category-uncategorised");
+    for (const candidate of allDocuments) {
+      if (!isRecord(candidate) || typeof candidate.category !== "string" || !candidate.category.trim()) continue;
+      const name = candidate.category.trim();
+      const key = name.toLocaleLowerCase("en-GB");
+      if (idsByName.has(key)) continue;
+      const slug = name.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `term-${categories.length + 1}`;
+      let id = `category-${slug}`;
+      let suffix = 2;
+      while (categories.some(category => category.id === id)) id = `category-${slug}-${suffix++}`;
+      categories.push({ id, name });
+      idsByName.set(key, id);
+    }
+    const migrateDocument = (candidate: unknown) => {
+      if (!isRecord(candidate)) return candidate;
+      if (isRecord(candidate.templateOverrides) && candidate.templateOverrides.category === false) return { ...candidate, categoryIds: undefined };
+      const id = typeof candidate.category === "string" ? idsByName.get(candidate.category.trim().toLocaleLowerCase("en-GB")) : undefined;
+      return { ...candidate, ...(id ? { categoryIds: [id] } : { categoryIds: [] }) };
+    };
+    migrated.documents = (migrated.documents as unknown[]).map(migrateDocument);
+    migrated.bin = binned.map(item => isRecord(item) && isRecord(item.document) ? { ...item, document: migrateDocument(item.document) } : item);
+    migrated.categories = categories;
+    migrated.version = 7;
+  }
   return migrated as StudioWorkspace;
 }
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6].includes(value.version as number) || !Array.isArray(value.documents)
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
+  const categories = value.categories === undefined && value.version !== 7 ? [] : value.categories;
   const binnedDocuments = value.bin.map(item => {
     if (!isRecord(item) || typeof item.id !== "string" || typeof item.deletedAt !== "string" || !date(item.deletedAt) || !isRecord(item.document)) return invalid();
     if (item.assignment !== undefined && (!isRecord(item.assignment) || item.assignment.documentId !== item.document.id)) return invalid();
     if (item.publication !== undefined && (!isRecord(item.publication) || item.publication.localDocumentId !== item.document.id)) return invalid();
     return item.document;
   });
-  if (!uniqueIds(value.bin as Record<string, unknown>[])) return invalid();
+  if (!uniqueIds(value.bin as Record<string, unknown>[]) || !Array.isArray(categories) || !categories.every(isRecord) || !uniqueIds(categories as Record<string, unknown>[])) return invalid();
+  const categoryIds = new Set<string>();
+  for (const category of categories) {
+    if (typeof category.name !== "string" || !category.name.trim() || category.name.length > 200
+      || !optionalString(category.parentId)) return invalid();
+    categoryIds.add(category.id as string);
+  }
+  for (const category of categories) {
+    if (typeof category.parentId === "string" && (!categoryIds.has(category.parentId) || category.parentId === category.id)) return invalid();
+    const seen = new Set<string>([category.id as string]);
+    let parentId = category.parentId;
+    while (typeof parentId === "string") {
+      if (seen.has(parentId)) return invalid();
+      seen.add(parentId);
+      parentId = (categories.find(item => item.id === parentId) as Record<string, unknown> | undefined)?.parentId;
+    }
+  }
   const allDocuments = [...value.documents, ...binnedDocuments];
   if (!uniqueIds(allDocuments)) return invalid();
   if (typeof value.activeDocumentId !== "string"
@@ -201,7 +250,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   for (const document of allDocuments) {
     if (!["page", "post"].includes(document.kind as string) || !["draft", "pending", "private", "scheduled", "published"].includes(document.status as string)
       || !["title", "slug", "excerpt", "seoTitle", "seoDescription"].every((field) => typeof document[field] === "string")
-      || !date(document.updatedAt) || !strings(document.tags) || !validContentBlocks(document.blocks)
+      || !date(document.updatedAt) || !strings(document.tags) || (document.categoryIds !== undefined && (!strings(document.categoryIds) || document.categoryIds.length > categories.length || new Set(document.categoryIds).size !== document.categoryIds.length)) || !validContentBlocks(document.blocks)
       || !optionalString(document.author)
       || (document.metadataBlocksVersion !== undefined && document.metadataBlocksVersion !== 2)
       || (document.documentShellVersion !== undefined && document.documentShellVersion !== 1)
@@ -218,6 +267,9 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
     if (cover !== undefined && cover !== null && (!isRecord(cover) || typeof cover.src !== "string"
       || typeof cover.alt !== "string" || !optionalString(cover.mediaId))) return invalid();
   }
+  for (const document of allDocuments) {
+    if (Array.isArray(document.categoryIds) && document.categoryIds.some(id => !categoryIds.has(id))) return invalid();
+  }
   const documentsById = new Map(allDocuments.map((document) => [document.id as string, document]));
   for (const document of allDocuments) {
     const seen = new Set<string>();
@@ -228,7 +280,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       parentId = documentsById.get(parentId)?.parentPageId;
     }
   }
-  return { ...value, version: 6, bin: value.bin } as StudioWorkspace;
+  return { ...value, version: 7, bin: value.bin, categories } as StudioWorkspace;
 }
 
 export function validatePublicationSnapshot(value: unknown): void {
@@ -243,7 +295,7 @@ export function validatePublicationSnapshot(value: unknown): void {
       || !optionalBoolean(post.sticky) || !optionalString(post.scheduledAt)
       || (post.scheduledAt !== undefined && !date(post.scheduledAt))
       || (post.metadataBlocksVersion !== undefined && post.metadataBlocksVersion !== 2)
-      || !["", "Technology", "Excel", "Personal"].includes(post.section as string) || ids.has(post.localDocumentId)) {
+      || typeof post.section !== "string" || post.section.length > 200 || ids.has(post.localDocumentId)) {
       throw new Error("The published-post snapshot is invalid.");
     }
     ids.add(post.localDocumentId);

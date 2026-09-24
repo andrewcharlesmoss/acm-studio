@@ -7,6 +7,7 @@ export type StudioDocumentKind = "post" | "page";
 export type StudioDocumentStatus = "draft" | "pending" | "private" | "scheduled" | "published";
 export type StudioPasswordProtection = { salt: string; hash: string };
 export type StudioCoverImage = { src: string; mediaId?: string; alt: string };
+export type StudioCategory = { id: string; name: string; parentId?: string };
 
 export type StudioDocument = {
   id: string;
@@ -30,6 +31,8 @@ export type StudioDocument = {
   publishedSlug?: string;
   updatedAt: string;
   blocks: ContentBlock[];
+  /** Selected category terms. The legacy category field mirrors the primary term. */
+  categoryIds?: string[];
   category?: string;
   tags: string[];
   /** True means the document owns the value; false means it follows its template default. */
@@ -43,11 +46,12 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6;
+  version: 2 | 3 | 4 | 5 | 6 | 7;
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
   documents: StudioDocument[];
   bin: StudioBinnedDocument[];
+  categories: StudioCategory[];
 };
 
 export type StudioBinnedDocument = {
@@ -112,9 +116,10 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 6,
+  version: 7,
   activeDocumentId: "page-home",
   bin: [],
+  categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],
   documents: [
     {
       id: "page-home",
@@ -172,6 +177,7 @@ export const initialStudioWorkspace: StudioWorkspace = {
       status: "draft",
       updatedAt: fixedDate,
       category: "Technology",
+      categoryIds: ["category-technology"],
       author: "Andrew Moss",
       documentShellVersion: 1,
       tags: ["CMS", "Building"],
@@ -256,6 +262,7 @@ export function createDocument(kind: StudioDocumentKind, id = `${kind}-${Date.no
     updatedAt: new Date().toISOString(),
     blocks: [...createDocumentShellBlocks(id), ...(kind === "post" ? createPostStarterBlocks(id) : [createBlock("paragraph", `${id}-paragraph-1`)])],
     category: kind === "post" ? "Technology" : undefined,
+    categoryIds: kind === "post" ? ["category-technology"] : undefined,
     tags: [],
     template: kind === "page" ? "default" : undefined,
     seoTitle: title,

@@ -24,6 +24,7 @@ import {
   type InsertableBlockType,
   type StudioDocument,
   type StudioDocumentKind,
+  type StudioCategory,
 } from "./editor-model";
 import { addDocumentToWorkspace } from "./studio-command-operations.mjs";
 import { copyTemplateData, createTemplateSet, templateId, type PageTemplate, type TemplateNode, type TemplatePart, type TemplateSet } from "./template-model";
@@ -624,11 +625,31 @@ export function StudioPrototype() {
             selectedBlock,
             selectedDocumentField,
             activeDocument,
+            categories: workspace.categories,
             pages: workspace.documents.filter((item) => item.kind === "page"),
             canDelete: canDeleteDocument(activeDocument),
             canDuplicate: writable && !codeEditorDirty,
             onSelectTab: setInspectorTab,
             onDocumentChange: (field, value) => { if (field === "author" || field === "category" || field === "tags" || field === "parentPageId") setFieldOverride(field, false); updateActiveField(field, value); },
+            onCategorySelectionChange: (categoryIds) => {
+              const primaryCategory = workspace.categories.find(category => category.id === categoryIds[0]);
+              commit(current => ({ ...current, documents: current.documents.map(item => item.id === activeDocument.id ? { ...item, categoryIds, category: primaryCategory?.name, templateOverrides: { ...item.templateOverrides, category: true } } : item) }));
+            },
+            onAddCategory: (name, parentId) => {
+              const existing = workspace.categories.find(category => category.name.toLocaleLowerCase("en-GB") === name.toLocaleLowerCase("en-GB") && (category.parentId || "") === (parentId || ""));
+              const category: StudioCategory = existing ?? { id: `category-${crypto.randomUUID()}`, name, ...(parentId ? { parentId } : {}) };
+              commit(current => ({
+                ...current,
+                categories: existing ? current.categories : [...current.categories, category],
+                documents: current.documents.map(item => {
+                  if (item.id !== activeDocument.id) return item;
+                  const previousIds = item.categoryIds ?? (item.category ? current.categories.filter(term => term.name.toLocaleLowerCase("en-GB") === item.category?.trim().toLocaleLowerCase("en-GB")).map(term => term.id) : []);
+                  const categoryIds = previousIds.includes(category.id) ? previousIds : [...previousIds, category.id];
+                  const primaryCategory = current.categories.find(term => term.id === categoryIds[0]) ?? category;
+                  return { ...item, categoryIds, category: primaryCategory.name, templateOverrides: { ...item.templateOverrides, category: true } };
+                }),
+              }));
+            },
             onBlockChange: (next) => selectedBlock && blockCommands.updateBlock(selectedBlock.id, () => next),
             onOpenFiles: () => openMediaLibrary(selectedBlock?.id ?? null),
             onOpenCoverMediaLibrary: openCoverMediaLibrary,

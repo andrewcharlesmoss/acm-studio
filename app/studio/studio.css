@@ -886,6 +886,18 @@
 .kind-badge { align-items: center; background: #e9e8e2; border-radius: 7px; color: var(--ink); display: flex; font-size: var(--studio-ui-size); font-weight: 750; height: 34px; justify-content: center; width: 34px; }
 .checkbox-setting { align-items: center; display: flex !important; grid-template-columns: auto 1fr; }
 .checkbox-setting input { width: auto; }
+.post-categories-section > h2 { margin: 0; }
+.post-categories-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: space-between; letter-spacing: inherit; padding: 0; text-align: left; text-transform: inherit; width: 100%; }
+.post-category-list { display: grid; gap: 8px; }
+.post-category-option > label { align-items: center; display: flex !important; gap: 9px !important; }
+.post-category-option input[type="checkbox"] { accent-color: var(--accent); flex: 0 0 16px; height: 16px; margin: 0; padding: 0; width: 16px; }
+.post-category-option label > span { color: var(--ink) !important; font-size: var(--studio-ui-size) !important; font-weight: 400 !important; letter-spacing: normal !important; text-transform: none !important; }
+.post-category-add-toggle { background: transparent; border: 0; color: var(--accent-strong); cursor: pointer; font: inherit; justify-self: start; padding: 2px 0; text-decoration: underline; text-underline-offset: 2px; }
+.post-category-form { border-top: 1px solid #dddbd4; display: grid; gap: 12px; padding-top: 14px; }
+.post-category-form > label > span { color: var(--ink) !important; text-transform: none !important; }
+.post-category-submit { background: white; border: 1px solid var(--accent-strong); border-radius: 6px; color: var(--accent-strong); cursor: pointer; font: inherit; font-weight: 650; justify-self: start; min-height: 40px; padding: 8px 14px; }
+.post-category-submit:disabled { cursor: default; opacity: .45; }
+.post-categories-heading:focus-visible, .post-category-add-toggle:focus-visible, .post-category-submit:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
 .document-operations button { background: white; border: 1px solid #d1cfc7; border-radius: 7px; cursor: pointer; font-size: var(--studio-ui-size); padding: 9px; }
 .document-operations .danger-button { color: #a03939; }
 .document-operations button:disabled { cursor: default; opacity: .4; }

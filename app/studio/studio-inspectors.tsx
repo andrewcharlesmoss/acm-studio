@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphAppearance, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, TextAlignment } from "../content/model";
 import { formatDocumentDate } from "../content/document-metadata";
 import { readingTimeMinutes } from "../content/reading-time";
 import type { LayoutMode } from "../content/model";
 import { LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS, SPACER_HEIGHT_PRESETS } from "../content/layout";
 import { CODE_LANGUAGE_OPTIONS, isKnownCodeLanguage } from "../content/code-highlighting.mjs";
-import type { StudioDocument, StudioDocumentKind, StudioDocumentStatus } from "./editor-model";
+import type { StudioCategory, StudioDocument, StudioDocumentKind, StudioDocumentStatus } from "./editor-model";
 import { StudioIcon } from "./studio-icons";
 import { documentDisplaySource, type FieldUsage } from "./document-fields";
 import { createPasswordProtection } from "../content/password-protection";
@@ -22,6 +22,7 @@ export type StudioInspectorProps = {
   selectedBlock: ContentBlock | null;
   selectedDocumentField?: "title" | "subtitle" | null;
   activeDocument: StudioDocument;
+  categories: StudioCategory[];
   pages: StudioDocument[];
   canDelete: boolean;
   canDuplicate?: boolean;
@@ -30,6 +31,8 @@ export type StudioInspectorProps = {
   allowedPageTemplates?: NonNullable<StudioDocument["template"]>[];
   onSelectTab: (tab: "document" | "studio" | "block" | "styles") => void;
   onDocumentChange: <K extends keyof StudioDocument>(field: K, value: StudioDocument[K]) => void;
+  onCategorySelectionChange: (categoryIds: string[]) => void;
+  onAddCategory: (name: string, parentId?: string) => void;
   onBlockChange: (block: ContentBlock) => void;
   onOpenFiles: () => void;
   onOpenCoverMediaLibrary?: () => void;
@@ -45,7 +48,7 @@ export type StudioInspectorProps = {
   onSaveAsTemplate?: () => void;
 };
 
-export function StudioInspector({ documentControls, inspectorTab, selectedBlock, selectedDocumentField = null, activeDocument, pages, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onBlockChange, onOpenFiles, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
+export function StudioInspector({ documentControls, inspectorTab, selectedBlock, selectedDocumentField = null, activeDocument, pages, categories, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onOpenFiles, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
   const activeTabIndex = tabs.indexOf(inspectorTab);
@@ -78,7 +81,7 @@ export function StudioInspector({ documentControls, inspectorTab, selectedBlock,
       </div>
       <div className="inspector-scroll" id={panelId} role="tabpanel" aria-labelledby={tabId(inspectorTab)} tabIndex={0}>
         {inspectorTab === "document" || inspectorTab === "studio" ? (
-          <DocumentInspector key={activeDocument.id} panel={inspectorTab} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
+          <DocumentInspector key={activeDocument.id} panel={inspectorTab} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} categories={categories} onCategorySelectionChange={onCategorySelectionChange} onAddCategory={onAddCategory} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
         ) : inspectorTab === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedDocumentField ? (
           <section className="document-field-inspector" aria-labelledby="document-field-inspector-title">
             <h2 id="document-field-inspector-title">Document {selectedDocumentField}</h2>
@@ -98,6 +101,9 @@ type DocumentInspectorProps = {
   panel: "document" | "studio";
   documentControls?: ReactNode;
   document: StudioDocument;
+  categories: StudioCategory[];
+  onCategorySelectionChange: (categoryIds: string[]) => void;
+  onAddCategory: (name: string, parentId?: string) => void;
   onOpenCoverMediaLibrary?: () => void;
   onRemoveCoverImage?: () => void;
   pages: StudioDocument[];
@@ -117,7 +123,7 @@ type DocumentInspectorProps = {
   onSaveAsTemplate?: () => void;
 };
 
-function DocumentInspector({ panel, documentControls, document, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate, pages, onOpenCoverMediaLibrary, onRemoveCoverImage, onChange, onPublish, onUnpublish, onDuplicate, onDelete, canDelete, canDuplicate, allowedStatuses = ["draft", "pending", "private", "scheduled", "published"], allowedPageTemplates = ["default", "wide", "landing"] }: DocumentInspectorProps) {
+function DocumentInspector({ panel, documentControls, document, resolvedDocument, categories, onCategorySelectionChange, onAddCategory, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate, pages, onOpenCoverMediaLibrary, onRemoveCoverImage, onChange, onPublish, onUnpublish, onDuplicate, onDelete, canDelete, canDuplicate, allowedStatuses = ["draft", "pending", "private", "scheduled", "published"], allowedPageTemplates = ["default", "wide", "landing"] }: DocumentInspectorProps) {
   const [statusOpen, setStatusOpen] = useState(false);
   const [passwordEditorOpen, setPasswordEditorOpen] = useState(false);
   const [passwordDraft, setPasswordDraft] = useState("");
@@ -136,7 +142,25 @@ function DocumentInspector({ panel, documentControls, document, resolvedDocument
   const publishDate = document.publishAt ? formatPublishDate(document.publishAt) : "Immediately";
   const selectedDate = parsePublicationDate(document.publishAt) ?? new Date();
   const [calendarMonth, setCalendarMonth] = useState(startOfMonth(selectedDate));
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
+  const [addCategoryOpen, setAddCategoryOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryParentId, setNewCategoryParentId] = useState("");
   const valueSource = (field: "author" | "category" | "tags" | "parentPageId") => !hasTemplate ? "Document Value" : document.templateOverrides?.[field] === true ? "Document Override" : "Template Default";
+  const selectedCategoryIds = document.categoryIds ?? (resolvedDocument.category ? categories.filter(category => category.name.toLocaleLowerCase("en-GB") === resolvedDocument.category?.trim().toLocaleLowerCase("en-GB")).map(category => category.id) : []);
+  const categoriesByParent = (parentId?: string): StudioCategory[] => categories.filter(category => (category.parentId || undefined) === parentId);
+  const renderCategoryOptions = (parentId?: string, depth = 0): ReactNode => categoriesByParent(parentId).map(category => <div className="post-category-option" key={category.id} style={{ paddingInlineStart: `${depth * 18}px` }}><label><input type="checkbox" checked={selectedCategoryIds.includes(category.id)} onChange={event => { const nextIds = event.target.checked ? [...selectedCategoryIds, category.id] : selectedCategoryIds.filter(id => id !== category.id); onCategorySelectionChange(nextIds); }} /><span>{category.name}</span></label>{renderCategoryOptions(category.id, depth + 1)}</div>);
+  const categoryName = newCategoryName.trim();
+  const duplicateCategory = categories.some(category => category.name.toLocaleLowerCase("en-GB") === categoryName.toLocaleLowerCase("en-GB") && (category.parentId || "") === newCategoryParentId);
+  const categoryParentOptions = (parentId?: string, depth = 0): Array<{ category: StudioCategory; depth: number }> => categoriesByParent(parentId).flatMap(category => [{ category, depth }, ...categoryParentOptions(category.id, depth + 1)]);
+  function submitNewCategory(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!categoryName || duplicateCategory) return;
+    onAddCategory(categoryName, newCategoryParentId || undefined);
+    setNewCategoryName("");
+    setNewCategoryParentId("");
+    setAddCategoryOpen(false);
+  }
   function changeDisplay(field: DocumentDisplayField, value: "template" | "show" | "hide") {
     const next = { ...(document.displayOverrides ?? {}) };
     if (value === "template") delete next[field]; else next[field] = value;
@@ -276,10 +300,21 @@ function DocumentInspector({ panel, documentControls, document, resolvedDocument
         {documentControls}
         {document.kind === "page" ? <section aria-label="Parent page"><label><span>Parent</span><select value={resolvedDocument.parentPageId ?? ""} onChange={(event) => { onFieldOverride?.("parentPageId", false); onChange("parentPageId", event.target.value || undefined); }}><option value="">None</option>{pages.filter((page) => page.id !== document.id).map((page) => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label></section> : null}
         {document.kind === "post" ? <section><h2>Address</h2><label><span>Slug</span><input value={document.slug} onChange={(event) => onChange("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label></section> : null}
-        {hasCategories ? <InspectorSection kind={document.kind} title="Categories and tags">
-          <label><span>Category</span><input value={resolvedDocument.category ?? ""} onChange={(event) => { onFieldOverride?.("category", false); onChange("category", event.target.value || undefined); }} placeholder="Optional category" /></label>
-          <label><span>Tags</span><input value={resolvedDocument.tags.join(", ")} onChange={(event) => { onFieldOverride?.("tags", false); onChange("tags", event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean)); }} placeholder="Optional tags" /></label>
-        </InspectorSection> : null}
+        {hasCategories ? <>
+          <section className="post-categories-section">
+            <h2><button type="button" className="post-categories-heading" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen(open => !open)}><span>Categories</span><StudioIcon name={categoriesOpen ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
+            {categoriesOpen ? <>
+              <div className="post-category-list" aria-label="Categories">{renderCategoryOptions() || <p className="setting-note">No categories yet.</p>}</div>
+              <button type="button" className="post-category-add-toggle" aria-expanded={addCategoryOpen} onClick={() => setAddCategoryOpen(open => !open)}>{addCategoryOpen ? "Cancel" : "Add category"}</button>
+              {addCategoryOpen ? <form className="post-category-form" onSubmit={submitNewCategory}>
+                <label><span>New category name</span><input autoFocus required maxLength={200} value={newCategoryName} onChange={event => setNewCategoryName(event.target.value)} /></label>
+                <label><span>Parent category</span><select value={newCategoryParentId} onChange={event => setNewCategoryParentId(event.target.value)}><option value="">— Parent category —</option>{categoryParentOptions().map(({ category, depth }) => <option key={category.id} value={category.id}>{`${"— ".repeat(depth)}${category.name}`}</option>)}</select></label>
+                <button className="post-category-submit" type="submit" disabled={!categoryName || duplicateCategory}>Add category</button>
+              </form> : null}
+            </> : null}
+          </section>
+          <InspectorSection kind={document.kind} title="Tags"><label><span>Tags</span><input value={resolvedDocument.tags.join(", ")} onChange={(event) => { onFieldOverride?.("tags", false); onChange("tags", event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean)); }} placeholder="Optional tags" /></label></InspectorSection>
+        </> : null}
         {canDelete ? <section className="document-operations"><h2>Document actions</h2><button type="button" onClick={onDelete} disabled={!canDelete}>Move {document.kind} to Bin</button></section> : null}
       </> : <>
         <section><h2>Title and subtitle</h2><p className="setting-note">Control how these values appear through blocks in the assigned template.</p><FieldDisplaySetting label="Title display" field="title" document={document} resolvedDocument={resolvedDocument} hasTemplate={hasTemplate} usage={fieldUsage?.title} onChange={value => changeDisplay("title", value)} /><label><span>Subtitle</span><textarea rows={3} value={document.subtitle ?? ""} onChange={(event) => onChange("subtitle", event.target.value)} placeholder="A line beneath the title" /></label><FieldDisplaySetting label="Subtitle display" field="subtitle" document={document} resolvedDocument={resolvedDocument} hasTemplate={hasTemplate} usage={fieldUsage?.subtitle} onChange={value => changeDisplay("subtitle", value)} /></section>
