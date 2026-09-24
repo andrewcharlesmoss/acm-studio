@@ -195,7 +195,7 @@ export function StudioPrototype() {
     setLibraryKind(document.kind);
     setDocumentFieldSelection(null);
     setSelectedBlockId(null);
-    setInspectorTab("document");
+    if (inspectorTab === "block") setInspectorTab("document");
     setPreviewing(false);
     switchStudioMode("content");
     return true;
