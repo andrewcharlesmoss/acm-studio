@@ -864,6 +864,13 @@
 .inspector-scroll { min-height: 0; overflow: auto; }
 .inspector-sections > section { border-bottom: 1px solid #dddbd4; display: grid; gap: 12px; padding: 18px; }
 .inspector-sections h2 { font-size: var(--studio-ui-size); font-weight: 720; letter-spacing: .06em; text-transform: uppercase; }
+.inspector-accordion-section > h2 { margin: 0; }
+.inspector-accordion-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: flex-start; letter-spacing: inherit; padding: 0; text-align: left; text-transform: inherit; width: 100%; }
+.inspector-accordion-detail { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 500; letter-spacing: normal; margin-left: 6px; text-transform: none; }
+.inspector-accordion-heading svg { margin-left: auto; }
+.inspector-accordion-heading:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
+.inspector-accordion-content { display: grid; gap: 12px; }
+.inspector-accordion-content[hidden] { display: none; }
 .inspector-sections label { display: grid; gap: 5px; }
 .inspector-sections label > span { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 620; }
 .inspector-sections input, .inspector-sections textarea, .inspector-sections select { background: white; border: 1px solid #d1cfc7; border-radius: 7px; color: var(--ink); font-family: inherit; font-size: 13px; padding: 8px 9px; resize: vertical; width: 100%; }

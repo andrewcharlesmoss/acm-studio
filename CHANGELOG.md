@@ -161,6 +161,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Made the Excerpt and Author sections collapsible and removed their repeated
+  field labels.
 - Made post excerpts optional; posts without one now use a short summary
   generated from their opening content, with the title as a fallback when no
   summary text can be extracted.
