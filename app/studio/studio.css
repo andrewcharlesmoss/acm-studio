@@ -888,6 +888,8 @@
 .checkbox-setting input { width: auto; }
 .post-categories-section > h2 { margin: 0; }
 .post-categories-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: space-between; letter-spacing: inherit; padding: 0; text-align: left; text-transform: inherit; width: 100%; }
+.post-tags-section > h2 { margin: 0; }
+.post-taxonomy-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: space-between; letter-spacing: inherit; padding: 0; text-align: left; text-transform: inherit; width: 100%; }
 .post-category-list { display: grid; gap: 8px; }
 .post-category-option > label { align-items: center; display: flex !important; gap: 9px !important; }
 .post-category-option input[type="checkbox"] { accent-color: var(--accent); flex: 0 0 16px; height: 16px; margin: 0; padding: 0; width: 16px; }
@@ -898,6 +900,20 @@
 .post-category-submit { background: white; border: 1px solid var(--accent-strong); border-radius: 6px; color: var(--accent-strong); cursor: pointer; font: inherit; font-weight: 650; justify-self: start; min-height: 40px; padding: 8px 14px; }
 .post-category-submit:disabled { cursor: default; opacity: .45; }
 .post-categories-heading:focus-visible, .post-category-add-toggle:focus-visible, .post-category-submit:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
+.post-tags-label { color: var(--ink); font-size: var(--studio-ui-size); font-weight: 650; letter-spacing: .03em; }
+.post-tags-input-area { align-items: center; background: white; border: 1px solid #d1cfc7; border-radius: 6px; cursor: text; display: flex; flex-wrap: wrap; gap: 6px; min-height: 48px; padding: 6px 8px; }
+.post-tags-input-area:focus-within { border-color: var(--accent-strong); outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
+.post-tag-chip { align-items: center; background: #e7e6e0; border-radius: 2px; color: var(--ink); display: inline-flex; flex: 0 0 auto; gap: 7px; max-width: 100%; padding: 5px 6px 5px 9px; }
+.post-tag-chip > span { overflow-wrap: anywhere; }
+.post-tag-chip button { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: inline-flex; flex: 0 0 auto; justify-content: center; padding: 2px; }
+.post-tags-input-area > input { background: transparent !important; border: 0 !important; flex: 1 1 100px; min-height: 32px; min-width: 100px; outline: 0 !important; padding: 4px 6px !important; resize: none; width: auto; }
+.post-tags-input-area > input:focus { outline: 0 !important; }
+.post-tags-help { color: var(--muted); font-size: var(--studio-ui-size); margin-top: -4px; }
+.post-tags-suggestions { display: grid; gap: 8px; }
+.post-tags-suggestions h3 { color: var(--ink); font-size: var(--studio-ui-size); font-weight: 650; letter-spacing: .03em; }
+.post-tags-suggestions > div { display: flex; flex-wrap: wrap; gap: 7px 10px; }
+.post-tags-suggestions button { background: transparent; border: 0; color: var(--accent-strong); cursor: pointer; font: inherit; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+.post-taxonomy-heading:focus-visible, .post-tag-chip button:focus-visible, .post-tags-suggestions button:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
 .document-operations button { background: white; border: 1px solid #d1cfc7; border-radius: 7px; cursor: pointer; font-size: var(--studio-ui-size); padding: 9px; }
 .document-operations .danger-button { color: #a03939; }
 .document-operations button:disabled { cursor: default; opacity: .4; }

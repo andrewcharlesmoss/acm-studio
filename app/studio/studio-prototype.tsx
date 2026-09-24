@@ -93,6 +93,18 @@ export function StudioPrototype() {
     return true;
   }
   const activeDocument = workspace.documents.find((item) => item.id === workspace.activeDocumentId) ?? workspace.documents[0] ?? resolvedDocument;
+  const tagSuggestions = useMemo(() => {
+    const counts = new Map<string, { label: string; count: number }>();
+    for (const post of workspace.documents.filter(item => item.kind === "post")) {
+      for (const tag of post.tags) {
+        const key = tag.trim().toLocaleLowerCase("en-GB");
+        if (!key) continue;
+        const previous = counts.get(key);
+        counts.set(key, { label: previous?.label ?? tag.trim(), count: (previous?.count ?? 0) + 1 });
+      }
+    }
+    return [...counts.values()].sort((first, second) => second.count - first.count || first.label.localeCompare(second.label, "en-GB")).slice(0, 16).map(item => item.label);
+  }, [workspace.documents]);
   const selectedDocumentField = documentFieldSelection?.documentId === activeDocument.id ? documentFieldSelection.field : null;
   const hasContentDocuments = workspace.documents.length > 0;
   function canDeleteDocument(targetDocument: StudioDocument | null | undefined) {
@@ -626,6 +638,7 @@ export function StudioPrototype() {
             selectedDocumentField,
             activeDocument,
             categories: workspace.categories,
+            tagSuggestions,
             pages: workspace.documents.filter((item) => item.kind === "page"),
             canDelete: canDeleteDocument(activeDocument),
             canDuplicate: writable && !codeEditorDirty,

@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Added WordPress-style post tag chips with Enter or comma entry, removal
+  controls and frequently used tag suggestions.
 - Added Scheduled status for pages and posts, with local post scheduling tied
   to the selected publish date and time. Added a post-only Sticky option that
   pins locally published posts to the top of the Writing archive.

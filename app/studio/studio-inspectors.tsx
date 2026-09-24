@@ -23,6 +23,7 @@ export type StudioInspectorProps = {
   selectedDocumentField?: "title" | "subtitle" | null;
   activeDocument: StudioDocument;
   categories: StudioCategory[];
+  tagSuggestions: string[];
   pages: StudioDocument[];
   canDelete: boolean;
   canDuplicate?: boolean;
@@ -48,7 +49,7 @@ export type StudioInspectorProps = {
   onSaveAsTemplate?: () => void;
 };
 
-export function StudioInspector({ documentControls, inspectorTab, selectedBlock, selectedDocumentField = null, activeDocument, pages, categories, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onOpenFiles, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
+export function StudioInspector({ documentControls, inspectorTab, selectedBlock, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onOpenFiles, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
   const activeTabIndex = tabs.indexOf(inspectorTab);
@@ -81,7 +82,7 @@ export function StudioInspector({ documentControls, inspectorTab, selectedBlock,
       </div>
       <div className="inspector-scroll" id={panelId} role="tabpanel" aria-labelledby={tabId(inspectorTab)} tabIndex={0}>
         {inspectorTab === "document" || inspectorTab === "studio" ? (
-          <DocumentInspector key={activeDocument.id} panel={inspectorTab} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} categories={categories} onCategorySelectionChange={onCategorySelectionChange} onAddCategory={onAddCategory} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
+          <DocumentInspector key={activeDocument.id} panel={inspectorTab} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} categories={categories} tagSuggestions={tagSuggestions} onCategorySelectionChange={onCategorySelectionChange} onAddCategory={onAddCategory} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
         ) : inspectorTab === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedDocumentField ? (
           <section className="document-field-inspector" aria-labelledby="document-field-inspector-title">
             <h2 id="document-field-inspector-title">Document {selectedDocumentField}</h2>
@@ -102,6 +103,7 @@ type DocumentInspectorProps = {
   documentControls?: ReactNode;
   document: StudioDocument;
   categories: StudioCategory[];
+  tagSuggestions: string[];
   onCategorySelectionChange: (categoryIds: string[]) => void;
   onAddCategory: (name: string, parentId?: string) => void;
   onOpenCoverMediaLibrary?: () => void;
@@ -123,7 +125,7 @@ type DocumentInspectorProps = {
   onSaveAsTemplate?: () => void;
 };
 
-function DocumentInspector({ panel, documentControls, document, resolvedDocument, categories, onCategorySelectionChange, onAddCategory, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate, pages, onOpenCoverMediaLibrary, onRemoveCoverImage, onChange, onPublish, onUnpublish, onDuplicate, onDelete, canDelete, canDuplicate, allowedStatuses = ["draft", "pending", "private", "scheduled", "published"], allowedPageTemplates = ["default", "wide", "landing"] }: DocumentInspectorProps) {
+function DocumentInspector({ panel, documentControls, document, resolvedDocument, categories, tagSuggestions, onCategorySelectionChange, onAddCategory, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate, pages, onOpenCoverMediaLibrary, onRemoveCoverImage, onChange, onPublish, onUnpublish, onDuplicate, onDelete, canDelete, canDuplicate, allowedStatuses = ["draft", "pending", "private", "scheduled", "published"], allowedPageTemplates = ["default", "wide", "landing"] }: DocumentInspectorProps) {
   const [statusOpen, setStatusOpen] = useState(false);
   const [passwordEditorOpen, setPasswordEditorOpen] = useState(false);
   const [passwordDraft, setPasswordDraft] = useState("");
@@ -313,7 +315,7 @@ function DocumentInspector({ panel, documentControls, document, resolvedDocument
               </form> : null}
             </> : null}
           </section>
-          <InspectorSection kind={document.kind} title="Tags"><label><span>Tags</span><input value={resolvedDocument.tags.join(", ")} onChange={(event) => { onFieldOverride?.("tags", false); onChange("tags", event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean)); }} placeholder="Optional tags" /></label></InspectorSection>
+          <PostTagsEditor tags={resolvedDocument.tags} suggestions={tagSuggestions} onChange={tags => onChange("tags", tags)} />
         </> : null}
         {canDelete ? <section className="document-operations"><h2>Document actions</h2><button type="button" onClick={onDelete} disabled={!canDelete}>Move {document.kind} to Bin</button></section> : null}
       </> : <>
@@ -337,6 +339,56 @@ function DocumentInspector({ panel, documentControls, document, resolvedDocument
 
 function InspectorSection({ kind, title, children }: { kind: StudioDocument["kind"]; title: string; children: ReactNode }) {
   return <section data-document-kind={kind}><h2>{title}</h2>{children}</section>;
+}
+
+function PostTagsEditor({ tags, suggestions, onChange }: { tags: string[]; suggestions: string[]; onChange: (tags: string[]) => void }) {
+  const [open, setOpen] = useState(true);
+  const [draft, setDraft] = useState("");
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const addTags = (value: string, clearDraft = true) => {
+    const additions = value.split(",").map(tag => tag.trim()).filter(Boolean);
+    if (!additions.length) {
+      if (clearDraft) setDraft("");
+      return;
+    }
+    const next = [...tags];
+    const seen = new Set(tags.map(tag => tag.toLocaleLowerCase("en-GB")));
+    for (const tag of additions) {
+      const key = tag.toLocaleLowerCase("en-GB");
+      if (!seen.has(key)) { next.push(tag); seen.add(key); }
+    }
+    if (next.length !== tags.length) onChange(next);
+    if (clearDraft) setDraft("");
+  };
+  const removeTag = (index: number) => {
+    onChange(tags.filter((_, tagIndex) => tagIndex !== index));
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing) return;
+    if (event.key === "Enter" || event.key === ",") {
+      event.preventDefault();
+      addTags(draft);
+    } else if (event.key === "Backspace" && !draft && tags.length) {
+      event.preventDefault();
+      removeTag(tags.length - 1);
+    }
+  };
+  return <section className="post-tags-section">
+    <h2><button type="button" className="post-taxonomy-heading" aria-expanded={open} onClick={() => setOpen(value => !value)}><span>Tags</span><StudioIcon name={open ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
+    {open ? <>
+      <label className="post-tags-label" htmlFor={inputId}>ADD TAG</label>
+      <div className="post-tags-input-area" onClick={() => inputRef.current?.focus()}>
+        {tags.map((tag, index) => <span className="post-tag-chip" key={`${tag.toLocaleLowerCase("en-GB")}-${index}`}>
+          <span>{tag}</span><button type="button" aria-label={`Remove ${tag} tag`} onClick={event => { event.stopPropagation(); removeTag(index); }}><StudioIcon name="close" size={16} /></button>
+        </span>)}
+        <input ref={inputRef} id={inputId} aria-label="Add a tag" autoComplete="off" value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={handleKeyDown} placeholder={tags.length ? "" : "Type a tag and press Enter"} />
+      </div>
+      <p className="post-tags-help">Separate with commas or the Enter key.</p>
+      {suggestions.length ? <div className="post-tags-suggestions"><h3>MOST USED</h3><div>{suggestions.map(tag => <button type="button" key={tag} aria-label={`Add tag: ${tag}`} onClick={() => addTags(tag, false)}>{tag}</button>)}</div></div> : null}
+    </> : null}
+  </section>;
 }
 
 const documentStatusLabel = (status: StudioDocumentStatus) => status.charAt(0).toUpperCase() + status.slice(1);
