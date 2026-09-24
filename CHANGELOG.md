@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Changed
+- Applied the Pane Library tab hover underline consistently to Studio
+  navigation, inspector and Design Canvas tabs.
 - Aligned block hover and rich-text menu icons with the shared ACM icon library,
   adding the missing reorder and text-formatting symbols there.
 - Replaced Gutenberg-derived Studio and table icon paths with original ACM

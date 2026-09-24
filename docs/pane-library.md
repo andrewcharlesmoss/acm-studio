@@ -47,7 +47,9 @@ This is an internal Studio module, not a published package.
   controlled active value. All panels remain mounted; inactive panels are
   hidden. Disabled tabs are skipped. Arrow keys wrap; Home/End choose the
   first/last enabled tab. `PaneTabs` accepts a custom label renderer for
-  product counts and other non-interactive decoration.
+  product counts and other non-interactive decoration. The shared tab styles
+  provide the same hover and visible-focus underline across product panes and
+  catalogue examples.
 
 The pane container stays mounted when collapsed. Hidden content is outside
 keyboard navigation; focus within a collapsing pane moves to its edge button.
