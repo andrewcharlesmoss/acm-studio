@@ -161,6 +161,9 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Made post excerpts optional; posts without one now use a short summary
+  generated from their opening content, with the title as a fallback when no
+  summary text can be extracted.
 - Kept WordPress-familiar page and post settings together in the main inspector
   tab and moved Studio-specific display and template controls to a separate
   Studio tab.

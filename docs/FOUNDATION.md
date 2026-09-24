@@ -65,8 +65,10 @@ cannot see it and exported content JSON does not contain the file bytes.
 ## Local publication boundary
 
 Studio autosaves editable documents separately from the browser's publication
-snapshot. Publishing validates the title, excerpt, address and content, then
-copies the post into that snapshot. Later edits remain private until **Update**
+snapshot. Publishing validates the title, address and content, then copies the
+post into that snapshot. The excerpt is optional: when it is blank, Studio
+generates a short summary from the post's opening content, using the title when
+the content has no extractable text. Later edits remain private until **Update**
 is selected. The local preview and writing routes read this snapshot on the same
 browser only.
 

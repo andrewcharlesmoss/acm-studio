@@ -1,5 +1,5 @@
 import { studioWriteOwnership } from "../studio/write-ownership";
-import type { Article } from "./model";
+import type { Article, ContentBlock } from "./model";
 import type { StudioDocument, StudioPasswordProtection } from "../studio/editor-model";
 import { readingTimeLabel } from "./reading-time";
 import { contentMediaIds } from "./media-references";
@@ -62,10 +62,35 @@ export function normalisePostSlug(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
+function postSummaryText(blocks: ContentBlock[]): string {
+  return blocks.flatMap((block) => {
+    switch (block.type) {
+      case "paragraph":
+      case "heading":
+      case "quote": return [block.text];
+      case "list": return block.items;
+      case "table": return block.rows.flat();
+      case "image": return block.caption ? [block.caption] : [];
+      case "embed": return [block.title];
+      case "section":
+      case "group":
+      case "component": return postSummaryText(block.children ?? []);
+      default: return [];
+    }
+  }).join(" ").replace(/\s+/g, " ").trim();
+}
+
+function generatedPostSummary(blocks: ContentBlock[]): string {
+  const text = postSummaryText(blocks);
+  if (text.length <= 160) return text;
+  const excerpt = text.slice(0, 160);
+  const wordBoundary = excerpt.lastIndexOf(" ");
+  return `${excerpt.slice(0, wordBoundary >= 120 ? wordBoundary : 160).trimEnd()}…`;
+}
+
 export function validatePostForPublication(document: StudioDocument, documents: StudioDocument[], reservedSlugs: string[]) {
   if (document.kind !== "post") return "Only posts can be published in this version.";
   if (!document.title.trim()) return "Add a post title before publishing.";
-  if (!document.excerpt.trim()) return "Add an excerpt before publishing.";
   const slug = normalisePostSlug(document.slug);
   if (!slug) return "Add a valid post address before publishing.";
   if (reservedSlugs.includes(slug)) return "That post address is already used by an existing article.";
@@ -96,7 +121,7 @@ export function toLocallyPublishedArticle(document: StudioDocument, templateSnap
     slug: normalisePostSlug(document.slug),
     title: document.title,
     subtitle: document.subtitle?.trim() || undefined,
-    summary: document.excerpt,
+    summary: document.excerpt.trim() || generatedPostSummary(document.blocks) || document.title.trim(),
     publishedAt: publishedAt.slice(0, 10),
     displayDate: new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(new Date(publishedAt)),
     readingTime: readingTimeLabel(document.blocks),
