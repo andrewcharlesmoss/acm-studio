@@ -53,7 +53,8 @@
 .pane-collapse[data-side="right"][data-collapsed="true"] { left: calc(-1 * var(--pane-control-width)); }
 .pane-collapse[data-side="left"][data-collapsed="false"] svg, .pane-collapse[data-side="right"][data-collapsed="true"] svg { transform: rotate(180deg); }
 .pane-collapse:hover { background: var(--pane-hover); color: var(--pane-text); }
-.pane-collapse[data-resizable="true"] { cursor: col-resize; touch-action: none; }
+.pane-collapse[data-resizable="true"] { cursor: pointer; touch-action: none; }
+.pane-collapse[data-resize-pressed="true"] { cursor: col-resize; }
 .pane-workspace :focus-visible { outline: 2px solid #555; outline-offset: -3px; }
 .pane-tabs { display: flex; padding: 0 8px; }
 .pane-tabs button { flex: 1; min-width: 0; background: transparent; color: var(--pane-muted); border: 0; border-bottom: 2px solid transparent; padding: 12px 4px; cursor: pointer; font: inherit; }

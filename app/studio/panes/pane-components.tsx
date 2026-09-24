@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import "./pane-components.css";
 
 export type PaneSide = "left" | "right";
@@ -27,7 +27,7 @@ export type PaneProps = {
   children: ReactNode;
 };
 
-export function PaneCollapseButton({ side, collapsed, label, controls, icon, onClick, buttonRef, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onLostPointerCapture, onKeyDown, resizable }: {
+export function PaneCollapseButton({ side, collapsed, label, controls, icon, onClick, buttonRef, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onLostPointerCapture, onKeyDown, resizable, resizePressed }: {
   side: PaneSide; collapsed: boolean; label: string; controls: string;
   icon: ReactNode; onClick: () => void; buttonRef?: Ref<HTMLButtonElement>;
   onPointerDown?: (event: PointerEvent<HTMLButtonElement>) => void;
@@ -37,10 +37,11 @@ export function PaneCollapseButton({ side, collapsed, label, controls, icon, onC
   onLostPointerCapture?: () => void;
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
   resizable?: boolean;
+  resizePressed?: boolean;
 }) {
   const action = `${collapsed ? "Show" : "Hide"} ${label}`;
   return <button ref={buttonRef} type="button" className="pane-collapse" data-side={side}
-    data-collapsed={collapsed} data-resizable={resizable && !collapsed} data-pane-region={`${side}.collapse`} aria-label={action}
+    data-collapsed={collapsed} data-resizable={resizable && !collapsed} data-resize-pressed={resizePressed} data-pane-region={`${side}.collapse`} aria-label={action}
     aria-description={resizable && !collapsed ? "Drag to resize; use Left and Right arrows to adjust width." : undefined}
     title={resizable && !collapsed ? `${action} · drag to resize` : action}
     aria-expanded={!collapsed} aria-controls={controls} onClick={onClick}
@@ -56,6 +57,7 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
   const scrollPosition = useRef(0);
   const focusWasInside = useRef(false);
   const resizeStart = useRef<{ x: number; width: number; dragged: boolean } | null>(null);
+  const [resizePressed, setResizePressed] = useState(false);
   const suppressCollapse = useRef(false);
   const resizeMin = Math.min(minWidth, maxWidth);
   const resizeMax = Math.max(minWidth, maxWidth);
@@ -64,6 +66,7 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
     suppressCollapse.current = false;
     if (event.button !== 0 || collapsed || !onWidthChange) return;
     resizeStart.current = { x: event.clientX, width, dragged: false };
+    setResizePressed(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
   function moveResize(event: PointerEvent<HTMLButtonElement>) {
@@ -77,6 +80,7 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
   function cancelResize() {
     if (resizeStart.current) suppressCollapse.current = false;
     resizeStart.current = null;
+    setResizePressed(false);
   }
   useLayoutEffect(() => {
     if (collapsed && (focusWasInside.current || container.current?.contains(document.activeElement))) {
@@ -104,8 +108,8 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
       {footer != null && <footer className="pane-footer" data-pane-region={`${side}.footer`}>{footer}</footer>}
     </aside>
     {collapsible ? <PaneCollapseButton buttonRef={toggle} side={side} collapsed={collapsed} label={label}
-      controls={id} icon={collapseIcon} onClick={changeCollapsed} resizable={Boolean(onWidthChange)}
-      onPointerDown={startResize} onPointerMove={moveResize} onPointerUp={() => { resizeStart.current = null; }}
+      controls={id} icon={collapseIcon} onClick={changeCollapsed} resizable={Boolean(onWidthChange)} resizePressed={resizePressed}
+      onPointerDown={startResize} onPointerMove={moveResize} onPointerUp={() => { resizeStart.current = null; setResizePressed(false); }}
       onPointerCancel={cancelResize} onLostPointerCapture={cancelResize}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") suppressCollapse.current = false;
