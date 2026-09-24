@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
-import type { ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphAppearance, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, TextAlignment } from "../content/model";
+import type { ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphAppearance, ParagraphBackgroundGradient, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, TextAlignment } from "../content/model";
+import { PARAGRAPH_BACKGROUND_GRADIENTS, paragraphBackgroundGradientCss } from "../content/paragraph-styles";
 import { formatDocumentDate } from "../content/document-metadata";
 import { readingTimeMinutes } from "../content/reading-time";
 import type { LayoutMode } from "../content/model";
@@ -467,13 +468,13 @@ function DocumentStylesInspector({ document }: { document: StudioDocument }) {
 }
 
 export function BlockInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {
-  const alignedBlock = block.type === "paragraph" || block.type === "heading" || block.type === "document-title" || block.type === "document-subtitle" || block.type === "cover-image" ? block : null;
+  const alignedBlock = block.type === "heading" || block.type === "document-title" || block.type === "document-subtitle" || block.type === "cover-image" ? block : null;
   const alignment = alignedBlock?.align ?? null;
   return (
     <div className="inspector-sections">
-      <InspectorAccordionSection title={<>{blockLabel(block.type)} block</>}><p className="setting-note">Changes apply to the selected block.</p></InspectorAccordionSection>
+      <InspectorAccordionSection title={<>{blockLabel(block.type)} block</>}><p className="setting-note">{block.type === "paragraph" ? "Start with the basic building block of all narrative." : "Changes apply to the selected block."}</p></InspectorAccordionSection>
       {alignedBlock ? <InspectorAccordionSection title={<>Text</>}><label><span>Alignment</span><select value={alignment ?? "left"} onChange={(event) => onChange({ ...alignedBlock, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label>{alignedBlock.type === "heading" ? <label><span>Level</span><select value={alignedBlock.level} onChange={(event) => onChange({ ...alignedBlock, level: Number(event.target.value) as HeadingLevel })}>{[1, 2, 3, 4, 5, 6].map((level) => <option value={level} key={level}>Heading {level}</option>)}</select></label> : null}</InspectorAccordionSection> : null}
-      {block.type === "paragraph" ? <ParagraphInspector block={block} onChange={onChange} /> : null}
+      {block.type === "paragraph" ? <ParagraphInspector key={block.id} block={block} onChange={onChange} /> : null}
       {block.type === "quote" ? <InspectorAccordionSection title={<>Quote</>}><label><span>Attribution</span><input value={block.attribution ?? ""} onChange={(event) => onChange({ ...block, attribution: event.target.value })} placeholder="Optional name" /></label></InspectorAccordionSection> : null}
       {block.type === "list" ? <InspectorAccordionSection title={<>List</>}><label><span>Style</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "ordered" | "unordered" })}><option value="unordered">Bullets</option><option value="ordered">Numbers</option></select></label><p className="setting-note">Edit each item directly in the canvas.</p></InspectorAccordionSection> : null}
       {block.type === "table" ? <InspectorAccordionSection title={<>Table</>}><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.hasHeader)} onChange={(event) => onChange({ ...block, hasHeader: event.target.checked })} /><span>Header row</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.hasFooter)} onChange={(event) => onChange({ ...block, hasFooter: event.target.checked })} /><span>Footer row</span></label><p className="setting-note">Select a cell, then use the table toolbar menu to add or remove rows and columns.</p></InspectorAccordionSection> : null}
@@ -517,21 +518,83 @@ function ComponentInspector({ block, onChange }: { block: Extract<ContentBlock, 
 
 function ParagraphInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "paragraph" }>; onChange: (block: ContentBlock) => void }) {
   const style = block.style ?? {};
+  const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");
   function updateStyle<K extends keyof ParagraphStyle>(field: K, value: ParagraphStyle[K] | undefined) {
     const nextStyle = { ...style };
     if (value === undefined || value === "") delete nextStyle[field];
     else nextStyle[field] = value;
     onChange({ ...block, style: Object.keys(nextStyle).length ? nextStyle : undefined });
   }
+  function updateBackground(backgroundColor: string | undefined, backgroundGradient: ParagraphBackgroundGradient | undefined) {
+    const nextStyle = { ...style };
+    if (backgroundColor) nextStyle.backgroundColor = backgroundColor;
+    else delete nextStyle.backgroundColor;
+    if (backgroundGradient) nextStyle.backgroundGradient = backgroundGradient;
+    else delete nextStyle.backgroundGradient;
+    onChange({ ...block, style: Object.keys(nextStyle).length ? nextStyle : undefined });
+  }
+  const fontSizes: { value: ParagraphFontSize; label: string; accessibleName: string }[] = [
+    { value: "small", label: "S", accessibleName: "Small" },
+    { value: "medium", label: "M", accessibleName: "Medium" },
+    { value: "large", label: "L", accessibleName: "Large" },
+    { value: "x-large", label: "XL", accessibleName: "Extra large" },
+    { value: "xx-large", label: "XXL", accessibleName: "Extra extra large" },
+  ];
   return <>
-    <InspectorAccordionSection className="inspector-panel" title={<>Typography</>}><label><span>Font size</span><select value={style.fontSize ?? ""} onChange={(event) => updateStyle("fontSize", (event.target.value || undefined) as ParagraphFontSize | undefined)}><option value="">Default</option><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option><option value="x-large">XL</option><option value="xx-large">XXL</option></select></label><label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option><option value="regular">Regular</option><option value="italic">Italic</option><option value="bold">Bold</option><option value="bold-italic">Bold italic</option></select></label><div className="inspector-two-column"><label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label><label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label></div></InspectorAccordionSection>
-    <InspectorAccordionSection className="inspector-panel" title={<>Colour</>}><ColourSetting label="Text" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /><ColourSetting label="Background" value={style.backgroundColor} onChange={(value) => updateStyle("backgroundColor", value)} /><ColourSetting label="Links" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} /></InspectorAccordionSection>
-    <InspectorAccordionSection className="inspector-panel" title={<>Dimensions</>}><label><span>Padding</span><input value={style.padding ?? ""} onChange={(event) => updateStyle("padding", event.target.value)} placeholder="0" /></label><label><span>Margin</span><input value={style.margin ?? ""} onChange={(event) => updateStyle("margin", event.target.value)} placeholder="0" /></label></InspectorAccordionSection>
-    <InspectorAccordionSection className="inspector-panel" title={<>Border</>}><label><span>Style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option></select></label><div className="inspector-two-column"><label><span>Width</span><input value={style.borderWidth ?? ""} onChange={(event) => updateStyle("borderWidth", event.target.value)} placeholder="1px" /></label><label><span>Radius</span><input value={style.borderRadius ?? ""} onChange={(event) => updateStyle("borderRadius", event.target.value)} placeholder="0" /></label></div><ColourSetting label="Colour" value={style.borderColor} onChange={(value) => updateStyle("borderColor", value)} /></InspectorAccordionSection>
+    <InspectorAccordionSection className="inspector-panel" title="Typography">
+      <ColourSetting label="Text colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} />
+      <fieldset className="paragraph-font-size-setting"><legend>Font size</legend><div role="group" aria-label="Font size" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateStyle("fontSize", style.fontSize === value ? undefined : value)}>{label}</button>)}</div></fieldset>
+      <label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option><option value="regular">Regular</option><option value="italic">Italic</option><option value="bold">Bold</option><option value="bold-italic">Bold italic</option></select></label>
+      <div className="inspector-two-column"><label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label><label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label></div>
+      <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} />
+    </InspectorAccordionSection>
+    <InspectorAccordionSection className="inspector-panel" title="Background">
+      <div className="paragraph-background-modes" role="group" aria-label="Background type"><button type="button" aria-pressed={backgroundMode === "colour"} className={backgroundMode === "colour" ? "is-active" : ""} onClick={() => { setBackgroundMode("colour"); if (style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }}>Colour</button><button type="button" aria-pressed={backgroundMode === "gradient"} className={backgroundMode === "gradient" ? "is-active" : ""} onClick={() => setBackgroundMode("gradient")}>Gradient</button></div>
+      {backgroundMode === "colour" ? <ColourSetting label="Background colour" value={style.backgroundColor} onChange={(value) => updateBackground(value, undefined)} /> : <div className="paragraph-gradient-options" role="group" aria-label="Background gradient">{(Object.entries(PARAGRAPH_BACKGROUND_GRADIENTS) as [ParagraphBackgroundGradient, string][]).map(([gradient]) => <button key={gradient} type="button" aria-label={`${gradient} gradient`} aria-pressed={style.backgroundGradient === gradient} className={style.backgroundGradient === gradient ? "is-active" : ""} style={{ backgroundImage: paragraphBackgroundGradientCss(gradient) }} onClick={() => updateBackground(undefined, gradient)} />)}</div>}
+      {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
+    </InspectorAccordionSection>
+    <InspectorAccordionSection className="inspector-panel" title="Dimensions">
+      <ParagraphLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding} min={0} max={100} onChange={(value) => updateStyle("padding", value)} />
+      <ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} />
+    </InspectorAccordionSection>
+    <InspectorAccordionSection className="inspector-panel" title="Border">
+      <ColourSetting label="Colour" value={style.borderColor} onChange={(value) => updateStyle("borderColor", value)} />
+      <label><span>Style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option></select></label>
+      <div className="inspector-two-column"><label><span>Width</span><input value={style.borderWidth ?? ""} onChange={(event) => updateStyle("borderWidth", event.target.value)} placeholder="1px" /></label><label><span>Radius</span><input value={style.borderRadius ?? ""} onChange={(event) => updateStyle("borderRadius", event.target.value)} placeholder="0" /></label></div>
+    </InspectorAccordionSection>
     <InspectorAccordionSection className="inspector-panel" title={<>Advanced</>}><label><span>HTML anchor</span><input value={style.anchor ?? ""} onChange={(event) => updateStyle("anchor", event.target.value)} placeholder="section-name" /></label><label><span>Additional CSS class(es)</span><input value={style.className ?? ""} onChange={(event) => updateStyle("className", event.target.value)} placeholder="custom-class" /></label></InspectorAccordionSection>
   </>;
 }
 
+function ParagraphLengthSetting({ label, value, min, max, onChange }: { label: string; value?: string; min: number; max: number; onChange: (value: string | undefined) => void }) {
+  const match = value?.match(/^(-?\d+(?:\.\d+)?)(px|rem|em|%|ch|vw|vh)?$/);
+  const number = match ? Number(match[1]) : 0;
+  const unit = match?.[2] ?? "px";
+  const [draft, setDraft] = useState<string | null>(null);
+  const displayedDraft = draft ?? (match ? match[1] : "");
+  const units = ["px", "rem", "em", "%", "ch", "vw", "vh"];
+  function setNumber(next: number) {
+    if (!Number.isFinite(next)) return;
+    const bounded = Math.max(min, Math.min(max, next));
+    setDraft(null);
+    onChange(bounded === 0 && !value ? undefined : `${bounded}${unit}`);
+  }
+  function commitDraft() {
+    if (draft === null) return;
+    if (draft.trim() === "") {
+      setDraft(null);
+      onChange(undefined);
+      return;
+    }
+    const parsed = Number(draft);
+    if (Number.isFinite(parsed)) setNumber(parsed);
+    else setDraft(null);
+  }
+  const rangeMin = Math.min(min, number);
+  const rangeMax = Math.max(max, number);
+  return <div className="paragraph-length-setting"><span>{label}</span><div className="paragraph-length-controls"><input aria-label={`${label} amount`} type="range" min={rangeMin} max={rangeMax} step="0.1" value={number} onChange={(event) => setNumber(Number(event.target.value))} /><input aria-label={`${label} value`} type="number" min={min} max={max} step="0.1" value={displayedDraft} placeholder="0" onChange={(event) => setDraft(event.target.value)} onBlur={commitDraft} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select aria-label={`${label} unit`} value={unit} onChange={(event) => { const nextUnit = event.target.value; if (match) onChange(`${number}${nextUnit}`); }} disabled={!match}>{units.map((option) => <option key={option} value={option}>{option}</option>)}</select><button type="button" className="paragraph-reset-button" onClick={() => { setDraft(null); onChange(undefined); }} disabled={!value}>Reset</button></div></div>;
+}
+
 function ColourSetting({ label, value, onChange }: { label: string; value?: string; onChange: (value: string | undefined) => void }) {
-  return <div className="inspector-colour-setting"><span>{label}</span><div><input aria-label={`${label} colour`} type="color" value={value ?? "#1e1e1e"} onChange={(event) => onChange(event.target.value)} /><button type="button" onClick={() => onChange(undefined)} disabled={!value}>Reset</button></div></div>;
+  return <div className="inspector-colour-setting"><span>{label}</span><div><label className="inspector-colour-control"><span aria-hidden="true" style={value ? { backgroundColor: value } : undefined} /> <input aria-label={label} type="color" value={value ?? "#1e1e1e"} onChange={(event) => onChange(event.target.value)} /></label><button type="button" onClick={() => onChange(undefined)} disabled={!value}>Reset</button></div></div>;
 }

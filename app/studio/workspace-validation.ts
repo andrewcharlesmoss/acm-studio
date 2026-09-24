@@ -30,6 +30,7 @@ const date = (value: unknown) => typeof value === "string" && Number.isFinite(Da
 const uniqueIds = (records: Record<string, unknown>[]) => records.every((item) => typeof item.id === "string" && item.id.length > 0)
   && new Set(records.map((item) => item.id)).size === records.length;
 const optionalParagraphLength = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:0|\d+(?:\.\d+)?(?:px|em|rem|%|ch|vw|vh)?)$/.test(value));
+const optionalSignedParagraphLength = (value: unknown) => value === undefined || (typeof value === "string" && /^-?(?:0|\d+(?:\.\d+)?(?:px|em|rem|%|ch|vw|vh)?)$/.test(value));
 const optionalParagraphColour = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^)]*\))$/i.test(value));
 const optionalParagraphAnchor = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-z][a-z0-9_-]*$/i.test(value));
 const optionalParagraphClasses = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-z0-9 _-]*$/i.test(value));
@@ -64,9 +65,10 @@ function validParagraphStyle(value: unknown) {
   return (value.fontSize === undefined || ["small", "medium", "large", "x-large", "xx-large"].includes(value.fontSize as string))
     && (value.appearance === undefined || ["regular", "italic", "bold", "bold-italic"].includes(value.appearance as string))
     && (value.borderStyle === undefined || ["none", "solid", "dashed"].includes(value.borderStyle as string))
-    && optionalParagraphLength(value.lineHeight) && optionalParagraphLength(value.letterSpacing)
+    && (value.backgroundGradient === undefined || ["sunrise", "ocean", "forest", "violet"].includes(value.backgroundGradient as string))
+    && optionalParagraphLength(value.lineHeight) && optionalSignedParagraphLength(value.letterSpacing)
     && optionalParagraphColour(value.textColor) && optionalParagraphColour(value.backgroundColor) && optionalParagraphColour(value.linkColor)
-    && optionalParagraphLength(value.padding) && optionalParagraphLength(value.margin) && optionalParagraphLength(value.borderWidth) && optionalParagraphLength(value.borderRadius)
+    && optionalParagraphLength(value.padding) && optionalSignedParagraphLength(value.margin) && optionalParagraphLength(value.borderWidth) && optionalParagraphLength(value.borderRadius)
     && optionalParagraphColour(value.borderColor) && optionalParagraphAnchor(value.anchor) && optionalParagraphClasses(value.className);
 }
 

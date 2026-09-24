@@ -17,6 +17,7 @@ export type Footnote = { id: string; text: string };
 export type ParagraphFontSize = "small" | "medium" | "large" | "x-large" | "xx-large";
 export type ParagraphAppearance = "regular" | "italic" | "bold" | "bold-italic";
 export type ParagraphBorderStyle = "none" | "solid" | "dashed";
+export type ParagraphBackgroundGradient = "sunrise" | "ocean" | "forest" | "violet";
 export type ParagraphStyle = {
   fontSize?: ParagraphFontSize;
   appearance?: ParagraphAppearance;
@@ -24,6 +25,7 @@ export type ParagraphStyle = {
   letterSpacing?: string;
   textColor?: string;
   backgroundColor?: string;
+  backgroundGradient?: ParagraphBackgroundGradient;
   linkColor?: string;
   padding?: string;
   margin?: string;

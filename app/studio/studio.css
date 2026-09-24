@@ -897,12 +897,36 @@
 .inspector-panel { gap: 12px; }
 .inspector-panel h2 { margin-bottom: 2px; }
 .inspector-two-column { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+.paragraph-font-size-setting { border: 0; display: grid; gap: 8px; margin: 0; min-width: 0; padding: 0; }
+.paragraph-font-size-setting legend, .paragraph-length-setting > span { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 620; padding: 0; }
+.paragraph-font-size-options { border: 1px solid #d1cfc7; border-radius: 7px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: hidden; }
+.paragraph-font-size-options button { background: white; border: 0; border-right: 1px solid #d1cfc7; color: var(--muted); cursor: pointer; font: inherit; min-height: 40px; }
+.paragraph-font-size-options button:last-child { border-right: 0; }
+.paragraph-font-size-options button.is-active { background: #e8e7e2; color: var(--ink); font-weight: 700; }
+.paragraph-font-size-options button:focus-visible, .paragraph-background-modes button:focus-visible, .paragraph-gradient-options button:focus-visible, .paragraph-reset-button:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -2px; position: relative; z-index: 1; }
+.paragraph-background-modes { border: 1px solid #d1cfc7; border-radius: 7px; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; }
+.paragraph-background-modes button { background: white; border: 0; color: var(--muted); cursor: pointer; font: inherit; min-height: 36px; }
+.paragraph-background-modes button + button { border-left: 1px solid #d1cfc7; }
+.paragraph-background-modes button.is-active { background: #e8e7e2; color: var(--ink); font-weight: 650; }
+.paragraph-gradient-options { display: grid; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.paragraph-gradient-options button { aspect-ratio: 1.6; background-color: white; border: 2px solid white; border-radius: 7px; box-shadow: 0 0 0 1px #d1cfc7; cursor: pointer; min-width: 0; }
+.paragraph-gradient-options button.is-active { box-shadow: 0 0 0 2px var(--accent); }
+.paragraph-length-setting { display: grid; gap: 7px; min-width: 0; }
+.paragraph-length-controls { align-items: center; display: grid; gap: 8px; grid-template-columns: minmax(60px, 1fr) 76px 68px auto; }
+.inspector-sections .paragraph-length-controls input[type="range"] { accent-color: var(--accent); background: transparent; border: 0; min-width: 0; padding: 0; }
+.inspector-sections .paragraph-length-controls input[type="number"], .inspector-sections .paragraph-length-controls select { min-width: 0; padding: 7px 6px; }
+.paragraph-reset-button { background: transparent; border: 0; color: var(--accent); cursor: pointer; font: inherit; padding: 5px; white-space: nowrap; }
+.paragraph-reset-button:disabled { color: var(--muted); cursor: default; opacity: .55; }
 .inspector-colour-setting { align-items: center; display: flex; justify-content: space-between; }
 .inspector-colour-setting > span { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 620; }
 .inspector-colour-setting > div { align-items: center; display: flex; gap: 7px; }
 .inspector-colour-setting input[type="color"] { appearance: none; background: transparent; border: 1px solid #d1cfc7; border-radius: 50%; cursor: pointer; height: 30px; overflow: hidden; padding: 0; width: 30px; }
 .inspector-colour-setting input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
 .inspector-colour-setting input[type="color"]::-webkit-color-swatch, .inspector-colour-setting input[type="color"]::-moz-color-swatch { border: 0; border-radius: 50%; }
+.inspector-colour-control { border: 0 !important; border-radius: 50%; cursor: pointer; display: block !important; flex: 0 0 30px; gap: 0 !important; height: 30px; overflow: hidden; padding: 0 !important; position: relative; width: 30px !important; }
+.inspector-colour-control > span { background: linear-gradient(135deg, transparent 47%, #b9b9b6 48%, #b9b9b6 52%, transparent 53%); border: 1px solid #d1cfc7; border-radius: 50%; inset: 0; position: absolute; }
+.inspector-colour-control input[type="color"] { appearance: none; background: transparent; border: 0; border-radius: 50%; cursor: pointer; height: 30px; inset: 0; opacity: 0; padding: 0; position: absolute; width: 30px; }
+.inspector-colour-control:focus-within { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
 .inspector-colour-setting button { background: transparent; border: 0; color: var(--accent); cursor: pointer; font-size: var(--studio-ui-size); padding: 4px; }
 .inspector-colour-setting button:disabled { color: var(--muted); cursor: default; opacity: .55; }
 .preview-rich-text a { color: var(--studio-paragraph-link-color, #2f6eb4); }

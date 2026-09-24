@@ -170,6 +170,10 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Reorganised paragraph block settings around Gutenberg's Typography,
+  Background, Dimensions and Border sections. Paragraph alignment remains in
+  the hover toolbar; the inspector now uses font-size presets, background
+  colour or gradient choices, and range-based spacing controls.
 - Made the Excerpt and Author sections collapsible and removed their repeated
   field labels.
 - Made post excerpts optional; posts without one now use a short summary
