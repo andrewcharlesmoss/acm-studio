@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+- Replaced Gutenberg-derived Studio and table icon paths with original ACM
+  artwork while preserving their names, meanings and control sizes. Removed the
+  Gutenberg icon attribution and licence files after the source paths were
+  removed.
+
 ### Added
 - Added Gutenberg-style paragraph rich-text options for strikethrough,
   subscript, superscript, inline code and keyboard input, including HTML

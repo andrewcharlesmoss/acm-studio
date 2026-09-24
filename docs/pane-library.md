@@ -46,8 +46,8 @@ collapse-control dimensions. Width is a per-pane prop. The control uses the
 existing Studio chevron SVG at 18px in a 28 × 48px neutral pill, centred on the
 inner edge. A collapsed control moves fully inside the workspace boundary.
 The module accepts its icon rather than importing a product-specific icon set.
-The catalogue supplies `StudioIcon`, whose provenance remains in
-`docs/third-party/gutenberg.md`; no new artwork is introduced.
+The catalogue supplies `StudioIcon` from the reusable ACM Studio icon
+collection; no third-party artwork is used.
 
 ## Source baseline and deliberate differences
 

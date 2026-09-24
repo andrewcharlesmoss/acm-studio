@@ -242,7 +242,7 @@ WordPress's [Template Editor](https://wordpress.org/documentation/article/templa
 and [Template Part block](https://wordpress.org/documentation/article/template-part-block/)
 were the behavioural references inspected on 19 September 2026: explicit
 template context, dynamic document slots and reusable parts. Studio keeps its
-own typed model and uses its established Gutenberg-provenance controls.
+own typed model and uses controls from the reusable ACM Studio icon collection.
 
 This feature does not migrate WordPress, apply designs to other project
 repositories, alter Mini Golf drafts, add archives/listings, synchronise sets
