@@ -208,6 +208,11 @@ export function StudioPrototype() {
     return true;
   }
 
+  function savePageDraft() {
+    if (!writable || activeDocument.kind !== "page") return;
+    updateActiveField("status", "draft");
+  }
+
   function addDocument(kind: StudioDocumentKind) {
     if (!confirmCodeEditorDiscard()) return;
     const defaultChoice = templateSession.store.sets.flatMap(set => set.templates.map(template => ({ set, template }))).find(choice => choice.template.kind === kind && choice.template.isDefault);
@@ -486,7 +491,10 @@ export function StudioPrototype() {
               <button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button>
             </>
           ) : (
-            <button className="button-primary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>
+            <>
+              <button className="button-primary" type="button" onClick={savePageDraft} disabled={!writable}>Save draft</button>
+              <button className="button-secondary" type="button" onClick={() => exportJson(activeDocument, `${activeDocument.slug}.json`)}>Export</button>
+            </>
           ) : null}
         </div>
       </header>
