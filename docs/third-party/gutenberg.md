@@ -29,12 +29,30 @@ The copied sources include `link.svg`, `link-off.svg`, `globe.svg`,
 `audio.svg`, `video.svg`, `info.svg`, `pencil.svg`, the alignment icons and
 the relevant directional arrows and chevrons.
 
-This central wrapper is the approved source for new Studio interaction icons.
+Existing Studio controls continue to use this wrapper for their recorded
+Gutenberg artwork. New icons use original ACM artwork as described below.
 The settings secret-visibility control also uses `seen.svg` from the same
 `1addb122219043a1ac1c38f817c71255ae16d6e3` revision, retrieved on 8 September 2026.
 The design page lock control uses the corresponding `lock.svg` geometry from
 that revision. Do not use Unicode glyphs or hand-drawn substitutes for those
 controls.
+
+## ACM Studio icon ownership direction
+
+Andrew's direction is for ACM Studio's icon artwork to be ACM-owned. New icons
+must be original ACM artwork in `app/studio/acm-studio-icons.tsx`, exposed
+through its reusable `AcmStudioIcon` API. Do not add further copied Gutenberg
+artwork to the product icon set. The rich-text More menu uses this original
+module for all ten menu items; those new glyphs do not copy the WordPress
+shapes and have no third-party source.
+
+The existing `app/studio/studio-icons.tsx` and `app/studio/table-icons.tsx`
+still contain Gutenberg artwork under GPL-2.0-or-later. They remain legacy
+assets until a separately scoped replacement pass completes. Keep their
+provenance and the upstream notice in `gutenberg-LICENSE.md`; before
+distribution, review the applicable source and licence obligations for the
+complete application. Replacing some icons does not clear the remaining
+Gutenberg-derived set.
 
 ## Visual reference
 

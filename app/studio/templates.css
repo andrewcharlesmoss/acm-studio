@@ -43,6 +43,7 @@
 .template-inspector input, .template-inspector select, .template-inspector textarea { width: 100%; min-width: 0; padding: 6px; font: inherit; }
 .template-inspector input[type=color] { height: 36px; }
 .template-inspector h2, .template-inspector h3 { font-size: var(--studio-ui-size); }
+.template-inspector .inspector-accordion-heading { min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; text-align: left; text-transform: uppercase; letter-spacing: .06em; }
 .template-link-item { padding-bottom: 12px; border-bottom: 1px solid #ddd; }
 .template-status { align-items: center; background: #fff8e6; border-bottom: 1px solid #e4d69e; color: #63592f; display: flex; flex-wrap: wrap; font-size: var(--studio-ui-size); gap: 8px 12px; justify-content: space-between; padding: 9px 16px; }
 .template-status > span { min-width: 0; overflow-wrap: anywhere; }

@@ -30,6 +30,8 @@ import { addDocumentToWorkspace } from "./studio-command-operations.mjs";
 import { copyTemplateData, createTemplateSet, templateId, type PageTemplate, type TemplateNode, type TemplatePart, type TemplateSet } from "./template-model";
 import { getLocallyPublishedArticle, restoreLocallyPublishedArticle, unpublishDocumentLocally } from "../content/local-publishing";
 import { StudioBin } from "./studio-bin";
+import { plainTextFromRuns, textToRuns, updateTextMark } from "../content/rich-text";
+import type { RichTextRun } from "../content/model";
 function exportJson(value: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -59,6 +61,7 @@ export function StudioPrototype() {
     return query.get("mode") === "templates" ? "templates" : "page";
   });
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [inlineImageTarget, setInlineImageTarget] = useState<{ blockId: string; selection: { start: number; end: number } } | null>(null);
   const [documentFieldSelection, setDocumentFieldSelection] = useState<{ documentId: string; field: "title" | "subtitle" } | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"document" | "studio" | "block" | "styles">("document");
   const [templateInspectorTab, setTemplateInspectorTab] = useState<"template" | "block" | "styles">("template");
@@ -607,6 +610,28 @@ export function StudioPrototype() {
             selectedDocumentField,
             onFocusDocumentField: (field) => { setSelectedBlockId(null); setDocumentFieldSelection(field ? { documentId: activeDocument.id, field } : null); setInspectorTab(field ? "block" : "document"); },
             onOpenCoverMediaLibrary: openCoverMediaLibrary,
+            onOpenInlineImage: (blockId, selection) => {
+              if (!confirmCodeEditorDiscard()) return;
+              setInlineImageTarget({ blockId, selection });
+              media.targetBlock(null);
+              setStudioSection("files");
+              setPreviewing(false);
+            },
+            onAddFootnote: (blockId, selection, text) => {
+              const id = `footnote-${crypto.randomUUID()}`;
+              blockCommands.updateBlock(blockId, block => {
+                if (block.type !== "paragraph" && block.type !== "heading" && block.type !== "quote") return block;
+                const runs: RichTextRun[] = block.runs?.length ? block.runs : textToRuns(block.text);
+                const nextRuns = updateTextMark(runs, selection.start, selection.end, { type: "footnote", id }, "set");
+                return { ...block, runs: nextRuns, text: plainTextFromRuns(nextRuns) };
+              });
+              updateActiveDocument(document => {
+                const existing = document.blocks.find(block => block.type === "footnotes");
+                if (existing?.type === "footnotes") return { ...document, blocks: document.blocks.map(block => block.id === existing.id ? { ...existing, notes: [...existing.notes, { id, text }] } : block) };
+                return { ...document, blocks: [...document.blocks, { id: `footnotes-${crypto.randomUUID()}`, type: "footnotes", notes: [{ id, text }] }] };
+              });
+              setSelectedBlockId(blockId);
+            },
             onRemoveCoverImage: media.removeCoverImage,
             onSelectBlock: (blockId) => { setDocumentFieldSelection(null); setSelectedBlockId(blockId); setInspectorTab("block"); },
             onClearBlockSelection: () => { setDocumentFieldSelection(null); setSelectedBlockId(null); setInspectorTab("document"); },
@@ -680,9 +705,26 @@ export function StudioPrototype() {
         /> : studioSection === "files" ? <MediaManager
           key={ownershipGeneration}
           writable={exclusiveWritable}
-          targetLabel={media.targetCover ? "Cover image" : media.targetBlockId ? "Image block" : "Media library"}
+          targetLabel={inlineImageTarget ? "Inline image" : media.targetCover ? "Cover image" : media.targetBlockId ? "Image block" : "Media library"}
           targetKind={media.targetCover ? "cover" : "block"}
-          onInsertImage={media.insertImage}
+          onInsertImage={(asset, _objectUrl, altText) => {
+            if (inlineImageTarget) {
+              const { blockId, selection } = inlineImageTarget;
+              const alt = altText?.trim() || asset.altText || asset.name.replace(/\.[^.]+$/, "");
+              blockCommands.updateBlock(blockId, block => {
+                if (block.type !== "paragraph" && block.type !== "heading" && block.type !== "quote") return block;
+                const runs: RichTextRun[] = block.runs?.length ? block.runs : textToRuns(block.text);
+                const nextRuns = updateTextMark(runs, selection.start, selection.end, { type: "inline-image", mediaId: asset.id, alt }, "set");
+                return { ...block, runs: nextRuns, text: plainTextFromRuns(nextRuns) };
+              });
+              setSelectedBlockId(blockId);
+              setInspectorTab("block");
+              setInlineImageTarget(null);
+              setStudioSection("content");
+              return;
+            }
+            media.insertImage(asset, undefined, altText);
+          }}
         /> : <BackupManager workspace={workspace} />}
         </>}
       </main>

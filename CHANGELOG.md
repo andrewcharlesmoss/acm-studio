@@ -6,8 +6,14 @@
 - Added Gutenberg-style paragraph rich-text options for strikethrough,
   subscript, superscript, inline code and keyboard input, including HTML
   round-tripping.
+- Added paragraph highlight, language, inline image, footnote and inline math
+  options, with safe MathML handling, LaTeX rendering and HTML round-tripping.
+  These More-menu icons are original ACM artwork in a reusable Studio module.
 - Added WordPress-style post tag chips with Enter or comma entry, removal
   controls and frequently used tag suggestions.
+- Made all Page, Post, Studio, Block, Styles and Template inspector sections
+  collapsible, with expanded-by-default controls and keyboard-accessible
+  disclosure buttons.
 - Added Scheduled status for pages and posts, with local post scheduling tied
   to the selected publish date and time. Added a post-only Sticky option that
   pins locally published posts to the top of the Writing archive.

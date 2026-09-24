@@ -6,13 +6,15 @@ import { ArticleMetaIcon } from "../components/article-meta-icon";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { highlightCode } from "../content/code-highlighting.mjs";
+import { safeMathMLMarkup } from "../content/mathml";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
+import { AcmStudioIcon, type AcmStudioIconName } from "./acm-studio-icons";
 import { StudioIcon, type StudioIconName } from "./studio-icons";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
 import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
 import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
-import { createBlock, type StudioDocument, type BlockLibraryItemType } from "./editor-model";
+import { createBlock, type StudioDocument, type InsertableBlockType } from "./editor-model";
 import type { StudioPresentation } from "./studio-presentation";
 import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBlock, parseHtmlToBlocks } from "./studio-html-editor";
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
@@ -101,6 +103,8 @@ export type StudioCanvasProps = {
   onCodeEditorDirtyChange?: (dirty: boolean) => void;
   onFocusDocumentField: (field?: "title" | "subtitle") => void;
   onOpenCoverMediaLibrary: () => void;
+  onOpenInlineImage?: (blockId: string, selection: TextSelection) => void;
+  onAddFootnote?: (blockId: string, selection: TextSelection, text: string) => void;
   onRemoveCoverImage: () => void;
   onSelectBlock: (blockId: string) => void;
   onClearBlockSelection: () => void;
@@ -113,12 +117,12 @@ export type StudioCanvasProps = {
   onSplitParagraph: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null;
   onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null;
   onSplitParagraphs: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null;
-  onInsertBlock: (type: BlockLibraryItemType) => ContentBlock;
+  onInsertBlock: (type: InsertableBlockType) => ContentBlock;
   onSetShowInserter: (show: boolean) => void;
   onSetInserterQuery: (query: string) => void;
 };
 
-export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onOpenInlineImage, onAddFootnote, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
   const [textSelections, setTextSelections] = useState<Record<string, TextSelection | null>>({});
@@ -140,6 +144,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const [transformMenuBlockId, setTransformMenuBlockId] = useState<string | null>(null);
   const [alignmentMenuBlockId, setAlignmentMenuBlockId] = useState<string | null>(null);
   const [richTextMenuBlockId, setRichTextMenuBlockId] = useState<string | null>(null);
+  const [richTextActionDialog, setRichTextActionDialog] = useState<{ blockId: string; selection: TextSelection; kind: "highlight" | "language" | "math" | "footnote"; text: string; foreground: string; background: string; language: string; direction: "ltr" | "rtl"; format: "latex" | "mathml"; alternativeText: string } | null>(null);
   const [tableMenuBlockId, setTableMenuBlockId] = useState<string | null>(null);
   const [blockMenuBlockId, setBlockMenuBlockId] = useState<string | null>(null);
   const viewportStyle = viewportWidth ? { width: viewportWidth, ...(viewportWidthCanOverflow ? {} : { maxWidth: "100%" }), ...(canvasZoom ? { zoom: canvasZoom / 100 } : {}) } : undefined;
@@ -369,9 +374,49 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
     return "mixed";
   }
 
-  function formatMarkButton(block: EditableTextBlock, mark: Extract<TextMark, string>, label = mark, buttonRef?: RefObject<HTMLButtonElement | null>) {
+  function formatMarkButton(block: EditableTextBlock, mark: Extract<TextMark, string>, label: string = mark, icon: AcmStudioIconName, buttonRef?: RefObject<HTMLButtonElement | null>) {
     const state = textMarkState(block, mark);
-    return <button ref={buttonRef} className={state === true ? "is-active" : state === "mixed" ? "is-mixed" : ""} type="button" role="menuitemcheckbox" onMouseDown={preserveTextSelection} onClick={() => { restoreRichTextMenuFocusBlockIdRef.current = block.id; formatSelectedText(block, mark); setRichTextMenuBlockId(null); }} aria-checked={state} aria-label={`${label} selected text`} title={label}>{label}</button>;
+    return <button ref={buttonRef} className={state === true ? "is-active" : state === "mixed" ? "is-mixed" : ""} type="button" role="menuitemcheckbox" onMouseDown={preserveTextSelection} onClick={() => { restoreRichTextMenuFocusBlockIdRef.current = block.id; formatSelectedText(block, mark); setRichTextMenuBlockId(null); }} aria-checked={state} aria-label={`${label} selected text`} title={label}><AcmStudioIcon name={icon} size={20} /><span>{label}</span></button>;
+  }
+
+  function openRichTextAction(block: EditableTextBlock, kind: NonNullable<typeof richTextActionDialog>["kind"]) {
+    const selection = currentTextSelection(block.id);
+    if (!selection || selection.start === selection.end) return;
+    setRichTextActionDialog({ blockId: block.id, selection, kind, text: "", foreground: "#1e1e1e", background: "#ffeb3b", language: "en", direction: "ltr", format: "latex", alternativeText: "" });
+  }
+
+  function applyRichTextAction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const action = richTextActionDialog;
+    if (!action) return;
+    const block = activeDocument.blocks.find(candidate => candidate.id === action.blockId);
+    if (!block || !isEditableTextBlock(block)) return;
+    if (action.kind === "footnote") {
+      if (action.text.trim()) onAddFootnote?.(block.id, action.selection, action.text.trim());
+    } else if (action.kind === "highlight") {
+      formatSelectedText(block, { type: "highlight", textColor: action.foreground, backgroundColor: action.background }, "set", action.selection);
+    } else if (action.kind === "language") {
+      const language = action.language.trim();
+      if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(language)) return;
+      formatSelectedText(block, { type: "language", language, direction: action.direction }, "set", action.selection);
+    } else {
+      if (action.format === "latex") {
+        if (!action.text.trim() || !action.alternativeText.trim()) return;
+        formatSelectedText(block, { type: "math", latex: action.text.trim(), alternativeText: action.alternativeText.trim() }, "set", action.selection);
+      } else {
+        if (!safeMathMLMarkup(action.text.trim()) || !action.alternativeText.trim()) return;
+        formatSelectedText(block, { type: "math", mathml: action.text.trim(), alternativeText: action.alternativeText.trim() }, "set", action.selection);
+      }
+    }
+    restoreRichTextMenuFocusBlockIdRef.current = block.id;
+    setRichTextActionDialog(null);
+    setRichTextMenuBlockId(null);
+  }
+
+  function closeRichTextActionDialog(blockId: string) {
+    restoreRichTextMenuFocusBlockIdRef.current = blockId;
+    setRichTextActionDialog(null);
+    setRichTextMenuBlockId(null);
   }
 
   function setTextAlignment(block: EditableTextBlock, align: TextAlignment) {
@@ -632,7 +677,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                             else event.currentTarget.closest(".canvas-block")?.querySelector<HTMLButtonElement>(".canvas-block-actions button:not(:disabled)")?.focus();
                             return;
                           }
-                          const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitemcheckbox"]'));
+                          const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]'));
                           const activeIndex = items.indexOf(event.target as HTMLButtonElement);
                           let nextIndex: number | null = null;
                           if (event.key === "ArrowDown") nextIndex = (activeIndex + 1) % items.length;
@@ -641,12 +686,27 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                           else if (event.key === "End") nextIndex = items.length - 1;
                           if (nextIndex !== null && items.length) { event.preventDefault(); items[nextIndex]?.focus(); }
                         }}>
-                          {formatMarkButton(block, "strikethrough", "Strikethrough", richTextMenuItemRef)}
-                          {formatMarkButton(block, "subscript", "Subscript")}
-                          {formatMarkButton(block, "superscript", "Superscript")}
-                          {formatMarkButton(block, "inline-code", "Inline code")}
-                          {formatMarkButton(block, "keyboard", "Keyboard input")}
-                        </div> : null}</div>
+                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "footnote")}><AcmStudioIcon name="footnote" size={20} /><span>Footnote</span></button>
+                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "highlight")}><AcmStudioIcon name="highlight" size={20} /><span>Highlight</span></button>
+                          {formatMarkButton(block, "inline-code", "Inline code", "inline-code")}
+                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => { const selection = currentTextSelection(block.id); if (selection) { restoreRichTextMenuFocusBlockIdRef.current = block.id; setRichTextMenuBlockId(null); onOpenInlineImage?.(block.id, selection); } }}><AcmStudioIcon name="inline-image" size={20} /><span>Inline image</span></button>
+                          {formatMarkButton(block, "keyboard", "Keyboard input", "keyboard")}
+                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "language")}><AcmStudioIcon name="language" size={20} /><span>Language</span></button>
+                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "math")}><AcmStudioIcon name="math" size={20} /><span>Math</span></button>
+                          {formatMarkButton(block, "strikethrough", "Strikethrough", "strikethrough", richTextMenuItemRef)}
+                          {formatMarkButton(block, "subscript", "Subscript", "subscript")}
+                          {formatMarkButton(block, "superscript", "Superscript", "superscript")}
+                        </div> : null}
+                        {richTextActionDialog?.blockId === block.id ? <form className="rich-text-action-dialog" role="dialog" aria-label={`${richTextActionDialog.kind} selected text`} onSubmit={applyRichTextAction} onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); closeRichTextActionDialog(block.id); } }}>
+                          <strong>{richTextActionDialog.kind === "highlight" ? "Highlight" : richTextActionDialog.kind === "language" ? "Language" : richTextActionDialog.kind === "math" ? "Inline math" : "Footnote"}</strong>
+                          <button className="rich-text-action-close" type="button" aria-label="Close" onClick={() => closeRichTextActionDialog(block.id)}><StudioIcon name="close" size={16} /></button>
+                          {richTextActionDialog.kind === "highlight" ? <div className="rich-text-highlight-colours"><label><span>Text colour</span><input aria-label="Highlight text colour" type="color" value={richTextActionDialog.foreground} onChange={event => setRichTextActionDialog({ ...richTextActionDialog, foreground: event.target.value })} /></label><label><span>Background colour</span><input aria-label="Highlight background colour" type="color" value={richTextActionDialog.background} onChange={event => setRichTextActionDialog({ ...richTextActionDialog, background: event.target.value })} /></label></div> : null}
+                          {richTextActionDialog.kind === "language" ? <><label><span>Language code</span><input autoFocus required pattern="[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*" value={richTextActionDialog.language} onChange={event => setRichTextActionDialog({ ...richTextActionDialog, language: event.target.value })} placeholder="en, es, fr" /></label><label><span>Text direction</span><select value={richTextActionDialog.direction} onChange={event => setRichTextActionDialog({ ...richTextActionDialog, direction: event.target.value as "ltr" | "rtl" })}><option value="ltr">Left to right</option><option value="rtl">Right to left</option></select></label></> : null}
+                          {richTextActionDialog.kind === "math" ? <><label><span>Input format</span><select value={richTextActionDialog.format} onChange={event => setRichTextActionDialog({ ...richTextActionDialog, format: event.target.value as "latex" | "mathml" })}><option value="latex">LaTeX</option><option value="mathml">MathML</option></select></label><label><span>{richTextActionDialog.format === "latex" ? "LaTeX expression" : "MathML expression"}</span><textarea autoFocus required rows={3} value={richTextActionDialog.text} onChange={event => setRichTextActionDialog({ ...richTextActionDialog, text: event.target.value })} placeholder={richTextActionDialog.format === "latex" ? "\\frac{a}{b}" : "<math><mfrac><mi>a</mi><mi>b</mi></mfrac></math>"} /></label><label><span>Accessible description</span><input required value={richTextActionDialog.alternativeText} onChange={event => setRichTextActionDialog({ ...richTextActionDialog, alternativeText: event.target.value })} placeholder="a divided by b" /></label></> : null}
+                          {richTextActionDialog.kind === "footnote" ? <label><span>Footnote text</span><textarea autoFocus required rows={3} value={richTextActionDialog.text} onChange={event => setRichTextActionDialog({ ...richTextActionDialog, text: event.target.value })} /></label> : null}
+                          <div><button type="button" onClick={() => closeRichTextActionDialog(block.id)}>Cancel</button><button type="submit">Apply</button></div>
+                        </form> : null}
+                      </div>
                       </div> : null}
                       <div className="canvas-block-actions">
                         <button type="button" onClick={(event) => { event.stopPropagation(); onDuplicateBlock(index); }} aria-label="Duplicate block" title="Duplicate block"><StudioIcon name="copy" /></button>
@@ -675,7 +735,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                         {htmlEditor.error ? <p className="html-editor-error" role="alert">{htmlEditor.error}</p> : null}
                         <div className="html-editor-actions"><button type="button" onClick={() => setHtmlEditor(null)}>Cancel</button><button className="html-editor-apply" type="submit">Apply</button></div>
                       </form> : null}
-                      {htmlEditor?.blockId === block.id ? null : presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField, onSplitParagraphs }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
+                      {htmlEditor?.blockId === block.id ? null : presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField, onSplitParagraphs }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaBlockUrls} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
                   </article>
                 </div>
               ))}
@@ -913,7 +973,7 @@ function TransformIcon({ transform }: { transform: BlockTransform }) {
   return <StudioIcon name={transform.icon} />;
 }
 
-function BlockTypeIcon({ type, headingLevel }: { type: BlockLibraryItemType; headingLevel?: HeadingLevel }) {
+function BlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"] | "template-content"; headingLevel?: HeadingLevel }) {
   if (type === "template-content") return <StudioIcon name="block" />;
   const icons: Partial<Record<ContentBlock["type"], StudioIconName>> = { button: "button", code: "code", divider: "separator", embed: "external", image: "image", list: "list", paragraph: "paragraph", quote: "quote", spacer: "separator" };
   if (type === "heading") return <span className="studio-heading-icon" aria-hidden="true">H{headingLevel ?? 2}</span>;
@@ -921,7 +981,7 @@ function BlockTypeIcon({ type, headingLevel }: { type: BlockLibraryItemType; hea
   return <StudioIcon name={icons[type] ?? "block"} />;
 }
 
-function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: BlockLibraryItemType) => void; onDismiss: () => void }) {
+function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: InsertableBlockType) => void; onDismiss: () => void }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const dismiss = useCallback(() => {
@@ -955,7 +1015,9 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
           {(["Text", "Media", "Design", "Other"] as const).map((group) => {
             const items = filteredBlocks.filter((item) => item.group === group);
             if (!items.length) return null;
-            return <div className="inserter-group" key={group}><h3>{group}</h3><div>{items.map((item) => <button type="button" key={item.type} onClick={() => onInsert(item.type)}><span><BlockTypeIcon type={item.type} /></span><strong>{item.label}</strong><small>{item.description}</small></button>)}</div></div>;
+            const insertableItems = items.filter((item) => item.type !== "template-content");
+            if (!insertableItems.length) return null;
+            return <div className="inserter-group" key={group}><h3>{group}</h3><div>{insertableItems.map((item) => <button type="button" key={item.type} onClick={() => onInsert(item.type)}><span><BlockTypeIcon type={item.type} /></span><strong>{item.label}</strong><small>{item.description}</small></button>)}</div></div>;
           })}
         </div>
       </section>
@@ -963,11 +1025,11 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
   );
 }
 
-export function BlockField({ block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, mediaUrl, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onChange }: { block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; templatePlaceholder?: boolean; selectedBlockId?: string | null; hoveredBlockId?: string | null; mediaUrl?: string; coverImageUrl?: string; onOpenCoverMediaLibrary?: () => void; onRemoveCoverImage?: () => void; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null) => void; onLinkActivate: (selection: TextSelection) => void; onSplitParagraph?: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null; onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null; onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null; onChange: (block: ContentBlock) => void }) {
+export function BlockField({ block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onChange }: { block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; templatePlaceholder?: boolean; selectedBlockId?: string | null; hoveredBlockId?: string | null; mediaUrl?: string; mediaUrls?: Record<string, string>; coverImageUrl?: string; onOpenCoverMediaLibrary?: () => void; onRemoveCoverImage?: () => void; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null) => void; onLinkActivate: (selection: TextSelection) => void; onSplitParagraph?: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null; onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null; onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null; onChange: (block: ContentBlock) => void }) {
   const documentContext: DocumentRenderContext = document ?? { kind: "page" };
-  if (block.type === "paragraph") return <RichTextEditor id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph ? (beforeRuns, afterRuns) => onSplitParagraph(block.id, beforeRuns, afterRuns) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
-  if (block.type === "heading") return <RichTextEditor className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
-  if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}`}><RichTextEditor className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
+  if (block.type === "paragraph") return <RichTextEditor mediaUrls={mediaUrls} id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph ? (beforeRuns, afterRuns) => onSplitParagraph(block.id, beforeRuns, afterRuns) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
+  if (block.type === "heading") return <RichTextEditor mediaUrls={mediaUrls} className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
+  if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}`}><RichTextEditor mediaUrls={mediaUrls} className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
   if (block.type === "list") return <ListField block={block} onChange={onChange} />;
   if (block.type === "table") return <TableField block={block} onCellFocus={onTableCellFocus} onChange={onChange} />;
   if (block.type === "code") return <CodeEditor value={block.code} language={block.language} onChange={(code) => onChange({ ...block, code })} />;
@@ -980,6 +1042,7 @@ export function BlockField({ block, rootBlocks = [block], document, templatePlac
   if (block.type === "embed") return <div className="embed-field"><span><StudioIcon name="external" /></span><div><strong>{block.title}</strong><small>{block.url || "Add a URL in Block settings"}</small></div></div>;
   if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`}>{block.label}</span></div>;
   if (block.type === "field") return <label className="content-field"><span>{block.label}</span>{block.control === "select" ? <select value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })}>{(block.options?.length ? block.options : [block.value]).map((option) => <option key={option}>{option}</option>)}</select> : <input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} />}</label>;
+  if (block.type === "footnotes") return <section className="footnotes-field" aria-label="Footnotes"><strong>Footnotes</strong><ol>{block.notes.map((note, index) => <li key={note.id}><textarea aria-label={`Footnote ${index + 1}`} rows={2} value={note.text} onChange={event => onChange({ ...block, notes: block.notes.map(item => item.id === note.id ? { ...item, text: event.target.value } : item) })} /></li>)}</ol></section>;
   if (block.type === "document-title") return documentFieldVisible(documentContext, "title") ? <h1 className={`metadata-block-editor document-dynamic-title${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}`}>{templatePlaceholder ? "Title" : document?.title || "Add a title in Document settings."}</h1> : null;
   if (block.type === "document-subtitle") return documentFieldVisible(documentContext, "subtitle") ? <p className={`metadata-block-editor document-dynamic-field template-subtitle${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}`}>{templatePlaceholder ? "Subtitle" : document?.subtitle || "Add a subtitle in Document settings."}</p> : null;
   if (block.type === "cover-image") {
@@ -1001,7 +1064,7 @@ export function BlockField({ block, rootBlocks = [block], document, templatePlac
   if (block.type === "reading-time") return <div className={`metadata-block-editor reading-time-block-editor${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`}>{block.presentation !== "plain" ? <span className="reading-time-badge">{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span> : <span>{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span>}</div>;
   if (block.type === "post-author") { const author = documentAuthor(documentContext); return <div className={`metadata-block-editor article-byline align-${block.align ?? "left"}`}>{author ? <>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></> : <span className="metadata-missing">Add an author in Document settings.</span>}</div>; }
   if (block.type === "post-date") { const date = formatDocumentDate(documentContext, block.format); return <div className={`metadata-block-editor article-byline-detail align-${block.align ?? "left"}`}>{date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={documentContext.publishAt ?? documentContext.publishedAt}>{date}</time></> : <span className="metadata-missing">Add a publication date in Document settings.</span>}</div>; }
-  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} rootBlocks={rootBlocks} document={document} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onChange({ ...block, children: [...block.children, createBlock("paragraph", `nested-paragraph-${crypto.randomUUID()}`)] })}><StudioIcon name="add" size={16} /> Add nested block</button></Group>; }
+  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} rootBlocks={rootBlocks} document={document} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onChange({ ...block, children: [...block.children, createBlock("paragraph", `nested-paragraph-${crypto.randomUUID()}`)] })}><StudioIcon name="add" size={16} /> Add nested block</button></Group>; }
   return <div className="divider-field"><span /></div>;
 }
 
@@ -1071,6 +1134,7 @@ export type RichTextEditorProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   as?: "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "span" | "dt" | "dd";
   text: string;
   runs?: RichTextRun[];
+  mediaUrls?: Record<string, string>;
   onChange: (text: string, runs: RichTextRun[]) => void;
   onSelectionChange: (selection: TextSelection | null) => void;
   onLinkActivate: (selection: TextSelection) => void;
@@ -1079,7 +1143,7 @@ export type RichTextEditorProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   onSplitParagraphs?: (paragraphs: RichTextRun[][]) => string[] | null;
 };
 
-export function RichTextEditor({ as: elementName = "div", text, runs, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onKeyDown: onKeyDownProp, className, ...props }: RichTextEditorProps) {
+export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls = {}, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onKeyDown: onKeyDownProp, className, ...props }: RichTextEditorProps) {
   const Tag = elementName as "div";
   const editorRef = useRef<HTMLDivElement>(null);
   const normalizationAttemptRef = useRef<string | null>(null);
@@ -1088,7 +1152,7 @@ export function RichTextEditor({ as: elementName = "div", text, runs, onChange, 
   useLayoutEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
-    const html = runsToEditorHtml(renderedRuns);
+    const html = runsToEditorHtml(renderedRuns, mediaUrls);
     if (editor.innerHTML === html) return;
     const selection = selectionWithinEditor(editor);
     editor.innerHTML = html;
@@ -1403,7 +1467,7 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function runsToEditorHtml(runs: RichTextRun[]) {
+function runsToEditorHtml(runs: RichTextRun[], mediaUrls: Record<string, string> = {}) {
   return runs.map((run) => {
     let html = escapeHtml(run.text).replace(/\n/g, "<br>");
     for (const mark of run.marks ?? []) {
@@ -1414,6 +1478,17 @@ function runsToEditorHtml(runs: RichTextRun[]) {
       else if (mark === "subscript") html = `<sub>${html}</sub>`;
       else if (mark === "superscript") html = `<sup>${html}</sup>`;
       else if (mark === "keyboard") html = `<kbd>${html}</kbd>`;
+      else if (typeof mark !== "string" && mark.type === "highlight") {
+        const style = [mark.textColor && `color:${escapeHtml(mark.textColor)}`, mark.backgroundColor && `background-color:${escapeHtml(mark.backgroundColor)}`].filter(Boolean).join(";");
+        html = `<mark${style ? ` style="${style}"` : ""}>${html}</mark>`;
+      } else if (typeof mark !== "string" && mark.type === "language") html = `<span lang="${escapeHtml(mark.language)}" dir="${mark.direction}">${html}</span>`;
+      else if (typeof mark !== "string" && mark.type === "math") html = `<span data-inline-math="true"${mark.latex ? ` data-math-latex="${escapeHtml(mark.latex)}"` : ""}${mark.mathml ? ` data-mathml="${escapeHtml(mark.mathml)}"` : ""} data-math-alt="${escapeHtml(mark.alternativeText)}">${html}</span>`;
+      else if (typeof mark !== "string" && mark.type === "inline-image") {
+        const source = mark.mediaId ? safeImageSource(mediaUrls[mark.mediaId] ?? "", { allowBlob: true }) : null;
+        const fallbackSource = source ?? safeImageSource(mark.src ?? "");
+        const image = fallbackSource ? `<img src="${escapeHtml(fallbackSource)}" alt="${escapeHtml(mark.alt)}"${mark.width ? ` width="${mark.width}"` : ""} />` : `<span>${escapeHtml(mark.alt)}</span>`;
+        html = `<span contenteditable="false" class="rich-text-inline-image" data-inline-image="true"${mark.mediaId ? ` data-media-id="${escapeHtml(mark.mediaId)}"` : ""}${mark.src ? ` data-image-src="${escapeHtml(mark.src)}"` : ""} data-inline-text="${escapeHtml(run.text)}" data-image-alt="${escapeHtml(mark.alt)}"${mark.width ? ` data-image-width="${mark.width}"` : ""}>${image}<span class="rich-text-inline-image-offset" aria-hidden="true">${escapeHtml(run.text)}</span></span>`;
+      } else if (typeof mark !== "string" && mark.type === "footnote") html = `<span data-footnote-ref="${escapeHtml(mark.id)}">${html}<sup data-footnote-marker="true">†</sup></span>`;
       else {
         const href = safeTextLink(mark.url);
         if (href) html = `<a href="${escapeHtml(href)}"${mark.opensInNewTab ? " target=\"_blank\" rel=\"noopener noreferrer\"" : ""}>${html}</a>`;
@@ -1497,6 +1572,16 @@ function editorToRuns(editor: HTMLElement) {
       runs.push({ text: "\n" });
       return;
     }
+    if (element.dataset.inlineImage === "true") {
+      const src = safeImageSource(element.dataset.imageSrc ?? "");
+      const mediaId = element.dataset.mediaId;
+      if (mediaId || src) runs.push({ text: element.dataset.inlineText ?? "", marks: [...inheritedMarks, { type: "inline-image", mediaId: mediaId || undefined, src: src ?? undefined, alt: element.dataset.imageAlt ?? "", width: Number(element.dataset.imageWidth) || undefined }] });
+      return;
+    }
+    if (element.tagName === "MATH") {
+      runs.push({ text: element.textContent ?? "", marks: [...inheritedMarks, { type: "math", mathml: element.outerHTML, alternativeText: element.getAttribute("aria-label") ?? element.textContent ?? "Mathematical expression" }] });
+      return;
+    }
     const marks = [...inheritedMarks];
     if (element.tagName === "STRONG" || element.tagName === "B") marks.push("bold");
     if (element.tagName === "EM" || element.tagName === "I") marks.push("italic");
@@ -1505,11 +1590,18 @@ function editorToRuns(editor: HTMLElement) {
     if (element.tagName === "SUB") marks.push("subscript");
     if (element.tagName === "SUP") marks.push("superscript");
     if (element.tagName === "KBD") marks.push("keyboard");
+    if (element.dataset.inlineMath === "true") marks.push({ type: "math", latex: element.dataset.mathLatex, mathml: element.dataset.mathml, alternativeText: element.dataset.mathAlt ?? element.textContent ?? "" });
+    if (element.dataset.footnoteRef) marks.push({ type: "footnote", id: element.dataset.footnoteRef });
+    if (element.tagName === "MARK") marks.push({ type: "highlight", textColor: element.style.color || undefined, backgroundColor: element.style.backgroundColor || undefined });
+    if (element.lang) marks.push({ type: "language", language: element.lang, direction: element.dir === "rtl" ? "rtl" : "ltr" });
     if (element.tagName === "A") {
       const href = safeTextLink(element.getAttribute("href") ?? "");
       if (href) marks.push({ type: "link", url: href, opensInNewTab: element.getAttribute("target") === "_blank" || undefined });
     }
-    element.childNodes.forEach((child) => visit(child, marks));
+    element.childNodes.forEach((child) => {
+      if (child instanceof HTMLElement && child.dataset.footnoteMarker === "true") return;
+      visit(child, marks);
+    });
     if (element.tagName === "DIV" || element.tagName === "P") runs.push({ text: "\n" });
   }
   editor.childNodes.forEach((node) => visit(node, []));

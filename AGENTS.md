@@ -32,10 +32,17 @@ Its upstream SVG provenance and licence are recorded in
 `docs/third-party/gutenberg.md`. Check that record before distributing these
 assets; do not redraw the icons or infer CSS sizes from Retina screenshots.
 
-Studio interaction controls use source-faithful Gutenberg SVGs through
-`app/studio/studio-icons.tsx`. Do not introduce Unicode glyphs or manually
-redrawn paths for new Studio controls; add the upstream source, revision and
-provenance to `docs/third-party/gutenberg.md` when extending the icon set.
+Existing Studio interaction controls include source-faithful Gutenberg SVGs in
+`app/studio/studio-icons.tsx`. Their provenance and licensing are recorded in
+`docs/third-party/gutenberg.md`.
+
+Andrew's product direction is for all ACM Studio icon artwork to become
+ACM-owned. New icon artwork must be original, live in the reusable
+`app/studio/acm-studio-icons.tsx` module and must not copy Gutenberg geometry.
+The existing Gutenberg-derived icons are legacy assets and remain subject to
+their recorded licence until a separately scoped replacement pass completes.
+Do not describe the whole icon set as ACM-owned or distribution-cleared before
+that migration and a release licence review are complete.
 
 The approved Ribbon Library at `/studio/ribbon` and its navigation entries use
 original ACM symbols from the sibling `@acm/icons` package. This scoped direction

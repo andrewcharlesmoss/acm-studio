@@ -122,6 +122,8 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<aside${attributes} data-embed-url="${escapeAttribute(block.url)}"><a href="${escapeAttribute(block.url)}">${escapeText(block.title)}</a></aside>`;
     case "divider":
       return `<hr${attributes} />`;
+    case "footnotes":
+      return `<section${attributes} class="article-footnotes"><ol>${block.notes.map(note => `<li id="footnote-${escapeAttribute(note.id)}"><span>${escapeText(note.text)}</span><a data-footnote-back="true" href="#footnote-ref-${escapeAttribute(note.id)}" aria-label="Return to footnote reference">↩</a></li>`).join("")}</ol></section>`;
     case "spacer":
       return `<div${attributes}${classAttribute("studio-spacer")} data-spacer-height="${block.height}" aria-hidden="true"></div>`;
     case "document-title":
@@ -165,6 +167,16 @@ function runsToHtml(runs: RichTextRun[] | undefined, text: string) {
       else if (mark === "subscript") html = `<sub>${html}</sub>`;
       else if (mark === "superscript") html = `<sup>${html}</sup>`;
       else if (mark === "keyboard") html = `<kbd>${html}</kbd>`;
+      else if (mark.type === "highlight") {
+        const style = [mark.textColor && `color:${escapeAttribute(mark.textColor)}`, mark.backgroundColor && `background-color:${escapeAttribute(mark.backgroundColor)}`].filter(Boolean).join(";");
+        html = `<mark${style ? ` style="${style}"` : ""}>${html}</mark>`;
+      }
+      else if (mark.type === "language") html = `<span lang="${escapeAttribute(mark.language)}" dir="${mark.direction}">${html}</span>`;
+      else if (mark.type === "math") html = `<span data-inline-math="true"${mark.latex ? ` data-math-latex="${escapeAttribute(mark.latex)}"` : ""}${mark.mathml ? ` data-mathml="${escapeAttribute(mark.mathml)}"` : ""} data-math-alt="${escapeAttribute(mark.alternativeText)}">${html}</span>`;
+      else if (mark.type === "inline-image") {
+        const src = safeImageSource(mark.src ?? "", { allowBlob: true }) ?? "";
+        html = `<img data-inline-image="true"${mark.mediaId ? ` data-media-id="${escapeAttribute(mark.mediaId)}"` : ""}${src ? ` src="${escapeAttribute(src)}"` : ""} data-inline-text="${escapeAttribute(run.text)}" alt="${escapeAttribute(mark.alt)}"${mark.width ? ` width="${mark.width}"` : ""} />`;
+      } else if (mark.type === "footnote") html = `<span data-footnote-ref="${escapeAttribute(mark.id)}">${html}<sup><a data-footnote-marker="true" href="#footnote-${escapeAttribute(mark.id)}">†</a></sup></span>`;
       else {
         const href = safeTextLink(mark.url);
         if (href) html = `<a href="${escapeAttribute(href)}"${mark.opensInNewTab ? " target=\"_blank\" rel=\"noopener noreferrer\"" : ""}>${html}</a>`;
@@ -273,6 +285,16 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
   const id = element.dataset.blockId || original.id;
   const textContent = element.textContent ?? "";
   const declaredType = element.dataset.blockType;
+  if (declaredType === "footnotes" || element.classList.contains("article-footnotes")) {
+    const notes = [...element.querySelectorAll<HTMLElement>("ol > li")].map(item => {
+      const back = item.querySelector("[data-footnote-back]");
+      back?.remove();
+      const rawId = item.id.replace(/^footnote-/, "");
+      return { id: rawId || crypto.randomUUID(), text: item.querySelector("span")?.textContent ?? item.textContent ?? "" };
+    });
+    if (!notes.length) return { error: "A footnotes block must contain at least one note." };
+    return { block: { id, type: "footnotes", notes } };
+  }
   if (declaredType === "reading-time") return { block: { id, type: "reading-time", prefix: element.dataset.metadataPrefix ?? (original.type === "reading-time" ? original.prefix : "Reading Time:"), presentation: element.dataset.metadataPresentation === "plain" ? "plain" : "badge", align: alignmentFromClass(element) ?? (original.type === "reading-time" ? original.align : undefined) } };
   if (declaredType === "post-author") return { block: { id, type: "post-author", prefix: element.dataset.metadataPrefix ?? (original.type === "post-author" ? original.prefix : "By"), avatar: element.dataset.metadataAvatar !== "false", align: alignmentFromClass(element) ?? (original.type === "post-author" ? original.align : undefined) } };
   if (declaredType === "post-date") return { block: { id, type: "post-date", format: ["long", "short", "iso"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined) } };
@@ -392,6 +414,29 @@ function parseRuns(element: HTMLElement): RichTextRun[] | undefined {
     if (child.tagName === "CITE") return;
     if (child.tagName === "BR") { runs.push({ text: "\n", marks: marks.length ? marks : undefined }); return; }
     const next = [...marks];
+    if (child.tagName === "IMG" && child.dataset.inlineImage === "true") {
+      const src = safeImageSource(child.getAttribute("src") ?? "");
+      const mediaId = child.dataset.mediaId;
+      if (src || mediaId) runs.push({ text: child.dataset.inlineText ?? child.getAttribute("alt") ?? "", marks: [...marks, { type: "inline-image", src: src ?? undefined, mediaId: mediaId || undefined, alt: child.getAttribute("alt") ?? "", width: (child as HTMLImageElement).width || undefined }] });
+      return;
+    }
+    if (child.tagName === "IMG") {
+      const src = safeImageSource(child.getAttribute("src") ?? "");
+      if (src) runs.push({ text: child.getAttribute("alt") ?? "", marks: [...marks, { type: "inline-image", src, alt: child.getAttribute("alt") ?? "", width: (child as HTMLImageElement).width || undefined }] });
+      return;
+    }
+    if (child.tagName === "MATH") {
+      runs.push({ text: child.textContent ?? "", marks: [...marks, { type: "math", mathml: child.outerHTML, alternativeText: child.getAttribute("aria-label") ?? child.textContent ?? "Mathematical expression" }] });
+      return;
+    }
+    if (child.dataset.inlineMath === "true") next.push({ type: "math", latex: child.dataset.mathLatex, mathml: child.dataset.mathml, alternativeText: child.dataset.mathAlt ?? child.textContent ?? "" });
+    if (child.dataset.footnoteRef) next.push({ type: "footnote", id: child.dataset.footnoteRef });
+    else if (child.tagName === "SUP") {
+      const href = child.querySelector<HTMLAnchorElement>("a[href^='#footnote-']")?.getAttribute("href");
+      if (href) next.push({ type: "footnote", id: href.slice("#footnote-".length) });
+    }
+    if (child.tagName === "MARK") next.push({ type: "highlight", textColor: child.style.color || undefined, backgroundColor: child.style.backgroundColor || undefined });
+    if (child.lang) next.push({ type: "language", language: child.lang, direction: child.dir === "rtl" ? "rtl" : "ltr" });
     if (["STRONG", "B"].includes(child.tagName)) next.push("bold");
     if (["EM", "I"].includes(child.tagName)) next.push("italic");
     if (["S", "STRIKE", "DEL"].includes(child.tagName)) next.push("strikethrough");
@@ -400,7 +445,10 @@ function parseRuns(element: HTMLElement): RichTextRun[] | undefined {
     if (child.tagName === "SUP") next.push("superscript");
     if (child.tagName === "KBD") next.push("keyboard");
     if (child.tagName === "A") { const href = safeTextLink(child.getAttribute("href") ?? ""); if (href) next.push({ type: "link", url: href, opensInNewTab: child.getAttribute("target") === "_blank" || undefined }); }
-    child.childNodes.forEach((nested) => visit(nested, next));
+    child.childNodes.forEach((nested) => {
+      if (nested instanceof HTMLElement && nested.dataset.footnoteMarker === "true") return;
+      visit(nested, next);
+    });
   }
   element.childNodes.forEach((node) => visit(node, []));
   return runs.length ? runs : undefined;

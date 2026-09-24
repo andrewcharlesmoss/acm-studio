@@ -5,8 +5,15 @@ export type DocumentDisplayField = "title" | "subtitle" | "coverImage" | "author
 export type DocumentDisplayMode = "show" | "hide";
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 export type InlineTextMark = "bold" | "italic" | "strikethrough" | "inline-code" | "subscript" | "superscript" | "keyboard";
-export type TextMark = InlineTextMark | { type: "link"; url: string; opensInNewTab?: boolean };
+export type TextMark = InlineTextMark
+  | { type: "link"; url: string; opensInNewTab?: boolean }
+  | { type: "highlight"; textColor?: string; backgroundColor?: string }
+  | { type: "language"; language: string; direction: "ltr" | "rtl" }
+  | { type: "math"; latex?: string; mathml?: string; alternativeText: string }
+  | { type: "inline-image"; mediaId?: string; src?: string; alt: string; width?: number }
+  | { type: "footnote"; id: string };
 export type RichTextRun = { text: string; marks?: TextMark[] };
+export type Footnote = { id: string; text: string };
 export type ParagraphFontSize = "small" | "medium" | "large" | "x-large" | "xx-large";
 export type ParagraphAppearance = "regular" | "italic" | "bold" | "bold-italic";
 export type ParagraphBorderStyle = "none" | "solid" | "dashed";
@@ -88,6 +95,7 @@ export type ContentBlock = (
   | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean }
   | { id: string; type: "embed"; url: string; title: string }
   | { id: string; type: "divider" }
+  | { id: string; type: "footnotes"; notes: Footnote[] }
   | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary" }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
   | { id: string; type: "spacer"; height: number }

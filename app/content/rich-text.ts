@@ -27,8 +27,13 @@ function marksEqual(first: TextMark[] = [], second: TextMark[] = []) {
   return first.every((mark, index) => {
     const other = second[index];
     if (typeof mark === "string" || typeof other === "string") return mark === other;
-    return mark.type === other.type && mark.url === other.url && mark.opensInNewTab === other.opensInNewTab;
+    return mark.type === other.type && JSON.stringify(mark) === JSON.stringify(other);
   });
+}
+
+function sameMarkType(first: TextMark, second: TextMark) {
+  if (typeof first === "string" || typeof second === "string") return first === second;
+  return first.type === second.type;
 }
 
 export function normaliseTextRuns(runs: RichTextRun[]): RichTextRun[] {
@@ -41,10 +46,7 @@ export function normaliseTextRuns(runs: RichTextRun[]): RichTextRun[] {
 }
 
 function hasMark(marks: TextMark[] | undefined, mark: TextMark) {
-  return (marks ?? []).some((candidate) => {
-    if (typeof candidate === "string" || typeof mark === "string") return candidate === mark;
-    return candidate.type === mark.type;
-  });
+  return (marks ?? []).some((candidate) => sameMarkType(candidate, mark));
 }
 
 export function linkAtTextRange(runs: RichTextRun[], start: number, end: number): Extract<TextMark, { type: "link" }> | null {
@@ -98,7 +100,7 @@ export function updateTextMark(runs: RichTextRun[], start: number, end: number, 
     cursor += run.text.length;
     if (runStart < end && cursor > start) selectedRuns.push(run);
   }
-  const removeMark = mode === "toggle" && typeof mark === "string" && selectedRuns.length > 0 && selectedRuns.every((run) => hasMark(run.marks, mark));
+  const removeMark = mode === "toggle" && selectedRuns.length > 0 && selectedRuns.every((run) => hasMark(run.marks, mark));
 
   const next: RichTextRun[] = [];
   cursor = 0;
@@ -115,13 +117,9 @@ export function updateTextMark(runs: RichTextRun[], start: number, end: number, 
       if (segmentStart === segmentEnd) continue;
       const selected = segmentStart >= start && segmentEnd <= end;
       let marks = [...(run.marks ?? [])];
-      if (selected && typeof mark === "string") {
-        marks = marks.filter((candidate) => candidate !== mark);
-        if (!removeMark) marks.push(mark);
-      }
-      if (selected && typeof mark !== "string") {
-        marks = marks.filter((candidate) => typeof candidate === "string" || candidate.type !== "link");
-        if (mode !== "remove") marks.push(mark);
+      if (selected) {
+        marks = marks.filter((candidate) => !sameMarkType(candidate, mark));
+        if (!removeMark && mode !== "remove") marks.push(mark);
       }
       next.push({ text: run.text.slice(segmentStart - runStart, segmentEnd - runStart), marks: marks.length ? marks : undefined });
     }

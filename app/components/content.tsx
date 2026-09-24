@@ -1,7 +1,9 @@
 import { Fragment, type ReactNode } from "react";
+import katex from "katex";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
 import { normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
+import { safeMathMLMarkup } from "../content/mathml";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
@@ -50,16 +52,25 @@ export function ArticleRow({ article, passwordProtected = false }: { article: Ar
 
 export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, document, readingTimeBlocks, showMissingMetadata = variant === "studio" }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean }) {
   const studio = variant === "studio";
+  const footnoteNumbers = new Map<string, number>();
+  let nextFootnoteNumber = 1;
+  function collectFootnoteNumbers(source: ContentBlock[]) {
+    for (const block of source) {
+      if (block.type === "footnotes") block.notes.forEach((note) => footnoteNumbers.set(note.id, nextFootnoteNumber++));
+      if ((block.type === "section" || block.type === "group" || block.type === "component") && block.children) collectFootnoteNumbers(block.children);
+    }
+  }
+  collectFootnoteNumbers(blocks);
   function renderBlock(block: ContentBlock) {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
-        if (block.type === "paragraph") return <p id={paragraphStyleAnchor(block.style)} className={`${studio ? "block-textarea paragraph-field preview-rich-text " : ""}align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} key={block.id}>{renderText(block.text, block.runs)}</p>;
+        if (block.type === "paragraph") return <p id={paragraphStyleAnchor(block.style)} className={`${studio ? "block-textarea paragraph-field preview-rich-text " : ""}align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} key={block.id}>{renderText(block.text, block.runs, mediaUrls, footnoteNumbers)}</p>;
         if (block.type === "heading") {
-          return renderHeading(block.level, `${studio ? `block-textarea heading-field is-h${block.level} preview-rich-text ` : ""}align-${block.align ?? "left"}`, block.id, renderText(block.text, block.runs));
+          return renderHeading(block.level, `${studio ? `block-textarea heading-field is-h${block.level} preview-rich-text ` : ""}align-${block.align ?? "left"}`, block.id, renderText(block.text, block.runs, mediaUrls, footnoteNumbers));
         }
         if (block.type === "quote") {
           return (
             <figure className={`${studio ? "quote-field" : "pull-quote"} align-${block.align ?? "left"}`} key={block.id}>
-              <blockquote className={studio ? "block-textarea preview-rich-text" : undefined}>{renderText(block.text, block.runs)}</blockquote>
+              <blockquote className={studio ? "block-textarea preview-rich-text" : undefined}>{renderText(block.text, block.runs, mediaUrls, footnoteNumbers)}</blockquote>
               {block.attribution ? <figcaption>— {block.attribution}</figcaption> : null}
             </figure>
           );
@@ -92,6 +103,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
             </figure>
           );
         }
+        if (block.type === "footnotes") return <section className="article-footnotes" key={block.id} aria-label="Footnotes"><ol>{block.notes.map((note) => <li key={note.id} id={`footnote-${note.id}`}><span>{note.text}</span> <a href={`#footnote-ref-${note.id}`} aria-label="Return to footnote reference">↩</a></li>)}</ol></section>;
         if (block.type === "embed" && studio) return <aside className="embed-field" key={block.id}><span aria-hidden="true"><StudioIcon name="external" /></span><div>{blockUrl ? <a href={blockUrl}>{block.title}</a> : <span>{block.title}</span>}<small>{blockUrl ?? (block.url ? "Enter a valid URL" : "Add a URL in Block settings")}</small></div></aside>;
         if (block.type === "embed") return (
           <aside className="embed-card" key={block.id}>
@@ -201,15 +213,15 @@ function renderHeading(level: HeadingLevel, className: string, key: string, cont
   return <h6 className={className} key={key}>{content}</h6>;
 }
 
-export function renderText(text: string, runs?: RichTextRun[]) {
+export function renderText(text: string, runs?: RichTextRun[], mediaUrls: Record<string, string> = {}, footnoteNumbers: Map<string, number> = new Map()) {
   return (runs?.length ? runs : textToRuns(text)).map((run, index) => {
     let content: ReactNode = run.text;
-    for (const mark of run.marks ?? []) content = renderMark(content, mark);
+    for (const mark of run.marks ?? []) content = renderMark(content, mark, mediaUrls, footnoteNumbers);
     return <Fragment key={`${index}-${run.text}`}>{content}</Fragment>;
   });
 }
 
-function renderMark(content: ReactNode, mark: TextMark): ReactNode {
+function renderMark(content: ReactNode, mark: TextMark, mediaUrls: Record<string, string>, footnoteNumbers: Map<string, number>): ReactNode {
   if (mark === "bold") return <strong>{content}</strong>;
   if (mark === "italic") return <em>{content}</em>;
   if (mark === "strikethrough") return <s>{content}</s>;
@@ -217,6 +229,21 @@ function renderMark(content: ReactNode, mark: TextMark): ReactNode {
   if (mark === "subscript") return <sub>{content}</sub>;
   if (mark === "superscript") return <sup>{content}</sup>;
   if (mark === "keyboard") return <kbd>{content}</kbd>;
+  if (typeof mark !== "string" && mark.type === "highlight") return <mark style={{ color: mark.textColor, backgroundColor: mark.backgroundColor }}>{content}</mark>;
+  if (typeof mark !== "string" && mark.type === "language") return <span lang={mark.language} dir={mark.direction}>{content}</span>;
+  if (typeof mark !== "string" && mark.type === "math") {
+    if (mark.latex) return <span className="inline-math" aria-label={mark.alternativeText} dangerouslySetInnerHTML={{ __html: katex.renderToString(mark.latex, { displayMode: false, throwOnError: false, strict: "warn", trust: false, output: "htmlAndMathml" }) }} />;
+    const mathml = mark.mathml ? safeMathMLMarkup(mark.mathml) : null;
+    return mathml ? <span className="inline-math" aria-label={mark.alternativeText} dangerouslySetInnerHTML={{ __html: mathml }} /> : <span className="inline-math-fallback" aria-label={mark.alternativeText}>{mark.alternativeText}</span>;
+  }
+  if (typeof mark !== "string" && mark.type === "inline-image") {
+    const src = safeImageSource(mark.mediaId ? mediaUrls[mark.mediaId] ?? "" : "", { allowBlob: true }) ?? safeImageSource(mark.src ?? "");
+    return src ? <img className="inline-rich-image" src={src} alt={mark.alt} width={mark.width} /> : <span className="inline-rich-image-fallback">{mark.alt}</span>;
+  }
+  if (typeof mark !== "string" && mark.type === "footnote") {
+    const number = footnoteNumbers.get(mark.id);
+    return <>{content}<sup><a id={`footnote-ref-${mark.id}`} href={`#footnote-${mark.id}`} aria-label={number ? `Footnote ${number}` : "Footnote"}>{number ?? "†"}</a></sup></>;
+  }
   const href = safeTextLink(mark.url);
   return href ? <a href={href} target={mark.opensInNewTab ? "_blank" : undefined} rel={mark.opensInNewTab ? "noopener noreferrer" : undefined}>{content}</a> : content;
 }

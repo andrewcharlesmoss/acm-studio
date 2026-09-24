@@ -1,4 +1,6 @@
 import type { ContentBlock } from "../content/model";
+import { safeMathMLMarkup } from "../content/mathml";
+import { safeImageSource } from "../content/rich-text";
 import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
 
 const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6], spacer: [4, 320] } as const;
@@ -69,9 +71,17 @@ function validParagraphStyle(value: unknown) {
 }
 
 function validRuns(value: unknown) {
+  const validMark = (mark: unknown) => ["bold", "italic", "strikethrough", "inline-code", "subscript", "superscript", "keyboard"].includes(mark as string)
+    || (isRecord(mark) && (
+      (mark.type === "link" && typeof mark.url === "string" && optionalBoolean(mark.opensInNewTab))
+      || (mark.type === "highlight" && optionalParagraphColour(mark.textColor) && optionalParagraphColour(mark.backgroundColor))
+      || (mark.type === "language" && typeof mark.language === "string" && /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(mark.language) && ["ltr", "rtl"].includes(mark.direction as string))
+      || (mark.type === "math" && optionalString(mark.latex) && optionalString(mark.mathml) && typeof mark.alternativeText === "string" && mark.alternativeText.length <= 500 && (Boolean(mark.latex) !== Boolean(mark.mathml)) && (mark.latex === undefined || mark.latex.length <= 12000) && (mark.mathml === undefined || Boolean(safeMathMLMarkup(mark.mathml))))
+      || (mark.type === "inline-image" && optionalString(mark.mediaId) && optionalString(mark.src) && Boolean(mark.mediaId || mark.src) && (mark.src === undefined || Boolean(safeImageSource(mark.src))) && typeof mark.alt === "string" && mark.alt.length <= 1000 && (mark.width === undefined || (typeof mark.width === "number" && Number.isInteger(mark.width) && mark.width >= 1 && mark.width <= 2400)))
+      || (mark.type === "footnote" && typeof mark.id === "string" && mark.id.length > 0 && mark.id.length <= 160)
+    ));
   return value === undefined || (Array.isArray(value) && value.every((run) => isRecord(run) && typeof run.text === "string"
-    && (run.marks === undefined || (Array.isArray(run.marks) && run.marks.every((mark: unknown) => ["bold", "italic", "strikethrough", "inline-code", "subscript", "superscript", "keyboard"].includes(mark as string)
-      || (isRecord(mark) && mark.type === "link" && typeof mark.url === "string" && optionalBoolean(mark.opensInNewTab)))))));
+    && (run.marks === undefined || (Array.isArray(run.marks) && run.marks.every(validMark)))));
 }
 
 const COMPONENT_NAMES = ["mini-golf-account", "mini-golf-setup", "mini-golf-scorecard", "mini-golf-leaderboard", "mini-golf-share"];
@@ -103,6 +113,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
       case "field": return ["text", "select"].includes(block.control as string) && typeof block.label === "string" && typeof block.value === "string"
         && (block.options === undefined || strings(block.options));
       case "divider": return true;
+      case "footnotes": return Array.isArray(block.notes) && block.notes.length <= 1000 && block.notes.every((note) => isRecord(note) && typeof note.id === "string" && note.id.length > 0 && note.id.length <= 160 && typeof note.text === "string" && note.text.length <= 10000);
       case "spacer": return typeof block.height === "number" && Number.isFinite(block.height) && block.height >= LAYOUT_VALUE_LIMITS.spacer[0] && block.height <= LAYOUT_VALUE_LIMITS.spacer[1];
       case "document-title":
       case "document-subtitle":
@@ -139,7 +150,21 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
 export function validContentBlocks(value: unknown): value is ContentBlock[] {
   if (!Array.isArray(value)) return false;
   const ids = new Set<string>();
-  return value.every((block) => isRecord(block) && validContentBlock(block, ids, 0));
+  if (!value.every((block) => isRecord(block) && validContentBlock(block, ids, 0))) return false;
+  const footnoteIds = new Set<string>();
+  function collectFootnoteIds(blocks: ContentBlock[]): boolean {
+    for (const block of blocks) {
+      if (block.type === "footnotes") {
+        for (const note of block.notes) {
+          if (footnoteIds.has(note.id)) return false;
+          footnoteIds.add(note.id);
+        }
+      }
+      if ((block.type === "section" || block.type === "group" || block.type === "component") && block.children && !collectFootnoteIds(block.children)) return false;
+    }
+    return true;
+  }
+  return collectFootnoteIds(value as ContentBlock[]);
 }
 
 /** Upgrade a v2 workspace without mutating the saved value in place. */

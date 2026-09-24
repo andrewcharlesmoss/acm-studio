@@ -63,7 +63,7 @@ export type StudioBinnedDocument = {
 };
 
 
-export type InsertableBlockType = Exclude<ContentBlock["type"], "component">;
+export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes">;
 export type BlockLibraryItemType = InsertableBlockType | "template-content";
 
 export const blockCatalogue: Array<{
