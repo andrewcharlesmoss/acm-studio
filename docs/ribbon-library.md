@@ -57,7 +57,7 @@ snapshot revision/hashes and review the rendered result together.
 
 The shared workspace AGENTS.md and STYLE_GUIDE.md are unversioned; this work used
 governance commit `029d90672e94d69ceb12db07450197d07ffa96d1`. The current icon contract
-is [ACM icon specification v0.5.6](../../acm-icons/SPECIFICATION.md).
+is [ACM icon specification v0.5.7](../../acm-icons/SPECIFICATION.md).
 
 ## Local setup and verification
 
