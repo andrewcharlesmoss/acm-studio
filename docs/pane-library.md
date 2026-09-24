@@ -19,7 +19,7 @@ product APIs, or read/write browser persistence. No real documents, designs or
 media are involved. Product data, commands, persistence and pane-specific
 interaction remain owned by their existing features.
 
-## Internal component contract — v0.2.0
+## Internal component contract — v0.3.0
 
 The compatibility contract covers the React props, slots, accessible behaviour
 and CSS tokens in `app/studio/panes/pane-components.tsx` and its scoped CSS.
@@ -34,6 +34,11 @@ This is an internal Studio module, not a published package.
   controlled by their owning overlay. Styling hooks (`trackClassName`,
   `className`, `bodyClassName` and `style`) let product panes retain their
   established layout while using the shared structure.
+  Optional controlled `onWidthChange`, `minWidth` and `maxWidth` enable edge
+  resizing. The collapse button also acts as the drag handle and accepts Left/Right arrows, with Shift
+  for larger steps and Home/End for limits. The owning workspace applies the
+  resulting width to its grid; the library specimens do this through
+  `PaneWorkspace`. Width changes remain local to the current session.
 - `PaneCollapseButton`: state-aware name, tooltip, expanded state and controls
   relationship. Pane supplies the stable ID and focus handling.
 - `PaneSection`: a labelled content group with a generated heading identity.
@@ -75,7 +80,7 @@ navigation links were added. File SHA-256 values are recorded in
 The examples simplify content and replace product commands with selection,
 sample fields or a local status message. Header/section spacing and scrolling
 are standardised. Every specimen has the same collapse contract. Live pane
-widths remain 290px, 320px, 300px, 224px and 260px respectively. Design Canvas
+widths start at 290px, 320px, 300px, 224px and 260px respectively. Design Canvas
 panes provide the visual model for controls and tabs; their edge controls now
 remain available at narrow widths. The canvas retains its existing
 minimum-width behaviour.
@@ -85,8 +90,8 @@ Skeletons use 290px left and 300px right panes. Narrow specimen viewports do not
 shrink, stack or automatically collapse panes. The centre contracts to 240px,
 then the preview scrolls horizontally. Its fixed 540px demonstration height is
 only a test surface, not a requirement on future product integrations. The
-catalogue shell reflows independently. No drag resizing, docking, floating,
-saved layouts or product migrations are included.
+catalogue shell reflows independently. Docking, floating, saved layouts and
+product migrations are not included.
 
 Typed definitions drive the specimen options and structure list. Inspection
 reads the first specimen's actual rendered dimensions and computed tokens;

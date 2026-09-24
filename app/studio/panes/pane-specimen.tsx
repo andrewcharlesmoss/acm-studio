@@ -12,6 +12,8 @@ export function PaneSpecimen({ definition, regions, layout, content, studio }: {
   const [left, setLeft] = useState(() => initialPaneDemo(definition.tabs[0]));
   const [right, setRight] = useState(() => initialPaneDemo(definition.tabs[0]));
   const [notice, setNotice] = useState("Changes stay in this example only.");
+  const [leftWidth, setLeftWidth] = useState(studio ? definition.width : 290);
+  const [rightWidth, setRightWidth] = useState(studio ? definition.width : 300);
   const instance = useId();
   const pane = (side: PaneSide) => {
     const state = side === "left" ? left : right;
@@ -41,7 +43,8 @@ export function PaneSpecimen({ definition, regions, layout, content, studio }: {
         {definition.id === "skeleton" && <label className="pl-field">Example Field<input value={state.value} onChange={(event) => patch({ value: event.target.value })} /></label>}
       </PaneSection>}
     </>;
-    return <Pane side={side} label={label} width={studio ? definition.width : side === "left" ? 290 : 300}
+    return <Pane side={side} label={label} width={side === "left" ? leftWidth : rightWidth}
+      onWidthChange={side === "left" ? setLeftWidth : setRightWidth} minWidth={220} maxWidth={480}
       collapsed={collapsed} onCollapsedChange={(next) => patch(side === "left" ? { leftCollapsed: next } : { rightCollapsed: next })}
       collapseIcon={<StudioIcon name="chevron-right" size={18} />}
       header={regions.header ? <><h2>{studio ? definition.label : "Header"}</h2><button type="button" className="pl-icon-button" aria-label={`Collapse ${label} from Header`} onClick={() => patch(side === "left" ? { leftCollapsed: true } : { rightCollapsed: true })}><StudioIcon name="close" size={20} /></button></> : undefined}
@@ -53,7 +56,7 @@ export function PaneSpecimen({ definition, regions, layout, content, studio }: {
   };
   return <div className={studio ? "pl-specimen pl-studio-specimen" : "pl-specimen"}>
     <PaneWorkspace left={layout !== "right" ? pane("left") : undefined} right={layout !== "left" ? pane("right") : undefined}>
-      <div className="pl-centre-card"><span className="pl-eyebrow">Centre workspace</span><h3>Room for your work</h3><p>The panes keep their width. This space adjusts around them.</p><p className="pl-muted">Use the edge buttons to collapse and reopen each pane.</p></div>
+      <div className="pl-centre-card"><span className="pl-eyebrow">Centre workspace</span><h3>Room for your work</h3><p>Drag the edge button or use its arrow keys to resize. The centre adjusts around it.</p><p className="pl-muted">Click the edge button to collapse or reopen its pane.</p></div>
       <p className="pl-demo-status" role="status">{notice}</p>
     </PaneWorkspace>
   </div>;

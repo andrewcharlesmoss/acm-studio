@@ -57,14 +57,15 @@ Article and block content may retain their content-specific typography.
 
 The Pane Library at `/studio/panes` documents the shared internal Pane
 components used by Studio Navigation, Block Library, Editor Inspector, Design
-Pages/Layers and Design Properties. The component contract is v0.2.0; see
+Pages/Layers and Design Properties. The component contract is v0.3.0; see
 `docs/pane-library.md`. Catalogue fixtures and demo state remain separate from
 product stores and write ownership. Product data, commands and pane-specific
 behaviour remain owned by their existing features. The catalogue shell is
-responsive and uses Inter. Its specimens deliberately retain fixed desktop
-pane widths with contained horizontal scrolling at narrow widths; collapse
-controls remain available. This scoped desktop-layout exception does not
-change product pane widths or responsive behaviour.
+responsive and uses Inter. Its specimens start at the documented desktop
+pane widths and permit temporary edge resizing, with contained horizontal
+scrolling at narrow widths; collapse controls remain available. Studio
+Navigation adopts the shared resizing contract. Other product panes retain
+their existing widths and responsive behaviour.
 
 Edit and Preview must share block presentation rules, including typography,
 colours, spacing and dimensions. Use the Studio variant of `BlockRenderer`

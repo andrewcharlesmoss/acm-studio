@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, type CSSProperties, type ReactElement, type ReactNode, type Ref } from "react";
+import { useId, useLayoutEffect, useRef, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import "./pane-components.css";
 
 export type PaneSide = "left" | "right";
@@ -8,6 +8,9 @@ export type PaneProps = {
   label: string;
   side: PaneSide;
   width: number;
+  onWidthChange?: (width: number) => void;
+  minWidth?: number;
+  maxWidth?: number;
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
   collapseIcon: ReactNode;
@@ -24,23 +27,57 @@ export type PaneProps = {
   children: ReactNode;
 };
 
-export function PaneCollapseButton({ side, collapsed, label, controls, icon, onClick, buttonRef }: {
+export function PaneCollapseButton({ side, collapsed, label, controls, icon, onClick, buttonRef, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onLostPointerCapture, onKeyDown, resizable }: {
   side: PaneSide; collapsed: boolean; label: string; controls: string;
   icon: ReactNode; onClick: () => void; buttonRef?: Ref<HTMLButtonElement>;
+  onPointerDown?: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerMove?: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerUp?: () => void;
+  onPointerCancel?: () => void;
+  onLostPointerCapture?: () => void;
+  onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
+  resizable?: boolean;
 }) {
   const action = `${collapsed ? "Show" : "Hide"} ${label}`;
   return <button ref={buttonRef} type="button" className="pane-collapse" data-side={side}
-    data-collapsed={collapsed} data-pane-region={`${side}.collapse`} aria-label={action}
-    title={action} aria-expanded={!collapsed} aria-controls={controls} onClick={onClick}>{icon}</button>;
+    data-collapsed={collapsed} data-resizable={resizable && !collapsed} data-pane-region={`${side}.collapse`} aria-label={action}
+    aria-description={resizable && !collapsed ? "Drag to resize; use Left and Right arrows to adjust width." : undefined}
+    title={resizable && !collapsed ? `${action} · drag to resize` : action}
+    aria-expanded={!collapsed} aria-controls={controls} onClick={onClick}
+    onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
+    onPointerCancel={onPointerCancel} onLostPointerCapture={onLostPointerCapture} onKeyDown={onKeyDown}>{icon}</button>;
 }
 
-export function Pane({ label, side, width, collapsed, onCollapsedChange, collapseIcon, collapsible = true, inert, trackClassName, className, bodyClassName, style, header, tabs, toolbar, footer, children }: PaneProps) {
+export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWidth = 480, collapsed, onCollapsedChange, collapseIcon, collapsible = true, inert, trackClassName, className, bodyClassName, style, header, tabs, toolbar, footer, children }: PaneProps) {
   const id = useId();
   const container = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const scrollPosition = useRef(0);
   const focusWasInside = useRef(false);
+  const resizeStart = useRef<{ x: number; width: number; dragged: boolean } | null>(null);
+  const suppressCollapse = useRef(false);
+  const resizeMin = Math.min(minWidth, maxWidth);
+  const resizeMax = Math.max(minWidth, maxWidth);
+  const clampWidth = (next: number) => Math.max(resizeMin, Math.min(resizeMax, Math.round(next)));
+  function startResize(event: PointerEvent<HTMLButtonElement>) {
+    suppressCollapse.current = false;
+    if (event.button !== 0 || collapsed || !onWidthChange) return;
+    resizeStart.current = { x: event.clientX, width, dragged: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function moveResize(event: PointerEvent<HTMLButtonElement>) {
+    if (!resizeStart.current) return;
+    const delta = (event.clientX - resizeStart.current.x) * (side === "left" ? 1 : -1);
+    if (Math.abs(delta) < 5 && !resizeStart.current.dragged) return;
+    resizeStart.current.dragged = true;
+    suppressCollapse.current = true;
+    onWidthChange?.(clampWidth(resizeStart.current.width + delta));
+  }
+  function cancelResize() {
+    if (resizeStart.current) suppressCollapse.current = false;
+    resizeStart.current = null;
+  }
   useLayoutEffect(() => {
     if (collapsed && (focusWasInside.current || container.current?.contains(document.activeElement))) {
       toggle.current?.focus();
@@ -49,6 +86,7 @@ export function Pane({ label, side, width, collapsed, onCollapsedChange, collaps
     if (!collapsed && body.current) body.current.scrollTop = scrollPosition.current;
   }, [collapsed]);
   function changeCollapsed() {
+    if (suppressCollapse.current) { suppressCollapse.current = false; return; }
     if (!collapsed && container.current?.contains(document.activeElement)) toggle.current?.focus();
     onCollapsedChange(!collapsed);
   }
@@ -66,7 +104,19 @@ export function Pane({ label, side, width, collapsed, onCollapsedChange, collaps
       {footer != null && <footer className="pane-footer" data-pane-region={`${side}.footer`}>{footer}</footer>}
     </aside>
     {collapsible ? <PaneCollapseButton buttonRef={toggle} side={side} collapsed={collapsed} label={label}
-      controls={id} icon={collapseIcon} onClick={changeCollapsed} /> : null}
+      controls={id} icon={collapseIcon} onClick={changeCollapsed} resizable={Boolean(onWidthChange)}
+      onPointerDown={startResize} onPointerMove={moveResize} onPointerUp={() => { resizeStart.current = null; }}
+      onPointerCancel={cancelResize} onLostPointerCapture={cancelResize}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") suppressCollapse.current = false;
+        if (!onWidthChange || collapsed) return;
+        const direction = side === "left" ? 1 : -1;
+        const step = event.shiftKey ? 20 : 10;
+        const next = event.key === "ArrowRight" ? width + step * direction : event.key === "ArrowLeft" ? width - step * direction
+          : event.key === "Home" ? resizeMin : event.key === "End" ? resizeMax : null;
+        if (next == null) return;
+        event.preventDefault(); onWidthChange(clampWidth(next));
+      }} /> : null}
   </div>;
 }
 
