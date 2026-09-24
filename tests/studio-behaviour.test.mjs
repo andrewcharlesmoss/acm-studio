@@ -368,6 +368,7 @@ test("text block hover controls use shared ACM icons", async () => {
   assert.match(transforms, /transformBlock/);
   assert.match(styles, /\.canvas-block-toolbar > div \{ align-items: center; display: flex; \}/);
   assert.match(styles, /\.canvas-block-toolbar button > svg \{ display: block; flex: 0 0 auto; \}/);
+  assert.match(styles, /\.canvas-format-actions \.alignment-button \{ flex: 0 0 38px; width: 38px; \}/);
 });
 
 test("auto-height fields avoid observing the element they resize", async () => {

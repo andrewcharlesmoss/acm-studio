@@ -660,6 +660,7 @@
 .studio-hover-icon.is-vertical { transform: rotate(90deg); }
 .alignment-control { position: relative; }
 .alignment-button { gap: 2px; }
+.canvas-format-actions .alignment-button { flex: 0 0 38px; width: 38px; }
 .alignment-button > svg:last-child { height: 14px; width: 14px; }
 .alignment-menu { background: white; border: 1px solid #cbc9c1; border-radius: 8px; box-shadow: 0 10px 22px rgba(27, 28, 29, .18); color: var(--ink); display: grid !important; gap: 2px; left: -4px; padding: 6px; position: absolute; top: calc(100% + 8px); width: 178px; z-index: 12; }
 .alignment-menu::before { background: white; border-left: 1px solid #cbc9c1; border-top: 1px solid #cbc9c1; content: ""; height: 9px; left: 17px; position: absolute; top: -5px; transform: rotate(45deg); width: 9px; }
