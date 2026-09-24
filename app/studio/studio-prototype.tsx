@@ -60,6 +60,10 @@ export function StudioPrototype() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [documentFieldSelection, setDocumentFieldSelection] = useState<{ documentId: string; field: "title" | "subtitle" } | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"document" | "studio" | "block" | "styles">("document");
+  const [templateInspectorTab, setTemplateInspectorTab] = useState<"template" | "block" | "styles">("template");
+  useEffect(() => {
+    setTemplateInspectorTab(inspectorTab === "block" || inspectorTab === "styles" ? inspectorTab : "template");
+  }, [inspectorTab]);
   const [showInserter, setShowInserter] = useState(false);
   const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
   const [inserterQuery, setInserterQuery] = useState("");
@@ -180,8 +184,11 @@ export function StudioPrototype() {
   }
   useStudioHistoryShortcuts(studioSection === "templates" ? templateSession.undo : undoStudio, studioSection === "templates" ? templateSession.redo : redoStudio, studioSection === "content" || studioSection === "templates");
 
-  function switchStudioMode(mode: "content" | "templates" | "bin") {
+  function switchStudioMode(mode: "content" | "templates" | "bin", contentTabOverride?: "document" | "studio" | "block" | "styles") {
     if (!confirmCodeEditorDiscard()) return;
+    if (mode === "content" && studioSection === "templates") {
+      setInspectorTab(contentTabOverride ?? (templateInspectorTab === "styles" ? "styles" : templateInspectorTab === "block" && (selectedBlockId || documentFieldSelection) ? "block" : "document"));
+    }
     setStudioSection(mode); setPreviewing(false); if (mode === "templates") setShowInserter(false);
     if (mode === "bin") {
       const currentPath = `${window.location.pathname}${window.location.search}`;
@@ -197,7 +204,7 @@ export function StudioPrototype() {
     setSelectedBlockId(null);
     if (inspectorTab === "block") setInspectorTab("document");
     setPreviewing(false);
-    switchStudioMode("content");
+    switchStudioMode("content", inspectorTab === "block" ? "document" : undefined);
     return true;
   }
 
@@ -487,7 +494,7 @@ export function StudioPrototype() {
       <div className="studio-notice" role="note"><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</div>
 
       <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" || studioSection === "bin" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`}>
-      {studioSection === "templates" ? <TemplateWorkspacePanel workspace={studioSession} templates={templateSession} selection={templateTarget} onSelectionChange={setTemplateTarget} libraryKind={libraryKind} onSelectLibraryKind={setLibraryKind} onSelectDocument={(documentId) => { const document = workspace.documents.find(item => item.id === documentId); if (document) selectDocument(document); }} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); window.history.replaceState({}, "", "/studio"); }} onExportContent={() => exportJson(workspace, "acm-studio-content.json")} /> : <>
+      {studioSection === "templates" ? <TemplateWorkspacePanel workspace={studioSession} templates={templateSession} selection={templateTarget} onSelectionChange={setTemplateTarget} libraryKind={libraryKind} onSelectLibraryKind={setLibraryKind} onSelectDocument={(documentId) => { const document = workspace.documents.find(item => item.id === documentId); if (document) selectDocument(document); }} inspectorTab={templateInspectorTab} onInspectorTabChange={tab => { setTemplateInspectorTab(tab); setInspectorTab(tab === "template" ? "document" : tab); }} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); window.history.replaceState({}, "", "/studio"); }} onExportContent={() => exportJson(workspace, "acm-studio-content.json")} /> : <>
         <aside className="studio-library">
           <div className="library-create">
             <button type="button" onClick={() => addDocument("post")}><StudioIcon name="add" size={16} /> New post</button>

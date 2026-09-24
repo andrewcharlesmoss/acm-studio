@@ -18,11 +18,14 @@ function LinkSettings({ title, links, onChange }: { title: string; links: SiteLi
   </div>)}<label>New Link Label<input value={label} onChange={event => setLabel(event.target.value)} placeholder={title === "Social and support" ? "LinkedIn or Buy Me a Coffee" : "About"} /></label><label>New Destination<input value={url} onChange={event => setUrl(event.target.value)} placeholder="https://… or /page" /></label><button type="button" disabled={!label.trim() || !url.trim()} onClick={() => { onChange([...links, { id: templateId(), label: label.trim(), url: url.trim() }]); }}>Add Link</button></section>;
 }
 
-export function TemplateInspector({ set, target, selectedBlock, writable, onChange, onBlockChange, onOpenMedia, onEditPart, users }: {
+export function TemplateInspector({ set, target, selectedBlock, writable, onChange, onBlockChange, onOpenMedia, onEditPart, users, tab: selectedTab, onTabChange }: {
   set: TemplateSet; target: PageTemplate | TemplatePart; selectedBlock: ContentBlock | null; writable: boolean;
   onChange: (set: TemplateSet) => void; onBlockChange: (block: ContentBlock) => void; onOpenMedia: (logo?: boolean) => void; onEditPart: (id: string) => void; users: string[];
+  tab?: "template" | "styles" | "block"; onTabChange?: (tab: "template" | "styles" | "block") => void;
 }) {
-  const [tab, setTab] = useState<"template" | "styles" | "block">("template");
+  const [localTab, setLocalTab] = useState<"template" | "styles" | "block">("template");
+  const tab = selectedTab ?? localTab;
+  function selectTab(nextTab: typeof tab) { setLocalTab(nextTab); onTabChange?.(nextTab); }
   const element = selectedBlock?.type === "group" ? selectedBlock.data?.templateElement : undefined;
   const partId = selectedBlock?.type === "group" ? selectedBlock.data?.templatePart : undefined;
   const templateTarget = target.kind === "page" || target.kind === "post" ? target : undefined;
@@ -30,7 +33,7 @@ export function TemplateInspector({ set, target, selectedBlock, writable, onChan
   const changeDefaults = (next: NonNullable<TemplateSet["defaults"]>) => onChange(templateTarget ? { ...set, templates: set.templates.map(template => template.id === templateTarget.id ? { ...template, defaults: next } : template) } : { ...set, defaults: next });
   const changeStyle = (key: keyof SiteStyles, value: string | number) => onChange({ ...set, styles: { ...set.styles, [key]: value } });
   return <aside className="studio-inspector template-inspector">
-    <div className="inspector-tabs" role="tablist" aria-label="Template settings">{(["template", "block", "styles"] as const).map(item => <button type="button" key={item} role="tab" aria-selected={tab === item} className={tab === item ? "is-active" : ""} onClick={() => setTab(item)}>{item === "template" ? "Template" : item === "block" ? "Block" : "Styles"}</button>)}</div>
+    <div className="inspector-tabs" role="tablist" aria-label="Template settings">{(["template", "block", "styles"] as const).map(item => <button type="button" key={item} role="tab" aria-selected={tab === item} className={tab === item ? "is-active" : ""} onClick={() => selectTab(item)}>{item === "template" ? "Template" : item === "block" ? "Block" : "Styles"}</button>)}</div>
     <div className="inspector-scroll"><fieldset disabled={!writable}>
       {tab === "block" ? selectedBlock ? element ? <><h2>{templateElementLabel(String(element))}</h2><p>Content is supplied by the preview document or site identity.</p><label>Alignment<select value={String(selectedBlock.type === "group" ? selectedBlock.data?.align ?? "left" : "left")} onChange={event => onBlockChange({ ...selectedBlock, data: { ...(selectedBlock.type === "group" ? selectedBlock.data : {}), align: event.target.value } } as ContentBlock)}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></> : partId ? <><h2>Shared part</h2><label>Part<select value={String(partId)} onChange={event => onBlockChange({ ...selectedBlock, data: { templatePart: event.target.value } } as ContentBlock)}>{set.parts.map(part => <option value={part.id} key={part.id}>{part.name}</option>)}</select></label><button type="button" onClick={() => onEditPart(String(partId))}>Edit {set.parts.find(part => part.id === partId)?.name}</button></> : <BlockInspector block={selectedBlock} onChange={onBlockChange} onOpenFiles={() => onOpenMedia()} canOpenFiles /> : <p>Select a block in the canvas or List View.</p> : tab === "styles" ? <>
         <h2>Shared styles</h2><p>Applies to every template in {set.name}. Explicit block styles take precedence.</p>

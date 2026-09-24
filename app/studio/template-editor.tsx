@@ -14,9 +14,10 @@ import { findBlockById } from "./studio-command-operations.mjs";
 import { changeTemplateZoom, TEMPLATE_ZOOM_DEFAULT, TEMPLATE_ZOOM_MAX, TEMPLATE_ZOOM_MIN, templateZoomShortcut } from "./template-zoom";
 import { StudioIcon } from "./studio-icons";
 
-export function TemplateEditor({ set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, undo, redo, canUndo, canRedo }: {
+export function TemplateEditor({ set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, inspectorTab, onInspectorTabChange, undo, redo, canUndo, canRedo }: {
   set: TemplateSet; target: PageTemplate | TemplatePart; documents: StudioDocument[]; mediaUrls: Record<string, string>; writable: boolean;
   onChange: (set: TemplateSet) => boolean; onEditPart: (id: string) => void; onOpenMedia: (blockId: string | null, logo?: boolean) => void;
+  inspectorTab?: "template" | "block" | "styles"; onInspectorTabChange?: (tab: "template" | "block" | "styles") => void;
   undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean;
 }) {
   const candidates = documents.filter(document => target.kind === "page" || target.kind === "post" ? document.kind === target.kind : true);
@@ -133,7 +134,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     {selectedBlock?.type === "group" && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart ? <span>New blocks will be inserted into the selected group.</span> : null}
   </div>;
   return <StudioEditor writable={writable} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
-    target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: <TemplateInspector set={set} target={target} selectedBlock={selectedBlock} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onOpenMedia={logo => onOpenMedia(selectedBlock?.id ?? null, logo)} onEditPart={onEditPart} users={users} /> }}
+    target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: <TemplateInspector set={set} target={target} selectedBlock={selectedBlock} tab={inspectorTab} onTabChange={onInspectorTabChange} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onOpenMedia={logo => onOpenMedia(selectedBlock?.id ?? null, logo)} onEditPart={onEditPart} users={users} /> }}
     canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: templateBlockCatalogue.filter(block => `${block.label} ${block.description}`.toLowerCase().includes(query.toLowerCase())), publishFeedback: null,
       presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => <TemplateSurface set={set} editing={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>, renderBlock: context => {
         if (!context.block) return null;
