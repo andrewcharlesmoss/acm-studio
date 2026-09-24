@@ -1,4 +1,4 @@
-export const paneContractVersion = "0.1.0";
+export const paneContractVersion = "0.2.0";
 export type PaneExampleId = "skeleton" | "navigation" | "blocks" | "inspector" | "design-navigation" | "design-properties";
 export type PaneDefinition = {
   id: PaneExampleId; label: string; side: "left" | "right"; width: number;

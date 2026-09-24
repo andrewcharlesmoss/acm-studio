@@ -10,6 +10,7 @@ import { LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS, SPACER_HEIGHT_PRESETS } fr
 import { CODE_LANGUAGE_OPTIONS, isKnownCodeLanguage } from "../content/code-highlighting.mjs";
 import type { StudioCategory, StudioDocument, StudioDocumentKind, StudioDocumentStatus } from "./editor-model";
 import { StudioIcon } from "./studio-icons";
+import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { documentDisplaySource, type FieldUsage } from "./document-fields";
 import { createPasswordProtection } from "../content/password-protection";
@@ -54,38 +55,19 @@ export type StudioInspectorProps = {
 export function StudioInspector({ documentControls, inspectorTab, selectedBlock, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onOpenFiles, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
-  const activeTabIndex = tabs.indexOf(inspectorTab);
-  function handleTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    const enabledTabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]:not(:disabled)'));
-    const currentTab = (event.target as HTMLElement).closest<HTMLButtonElement>('[role="tab"]');
-    const currentIndex = currentTab ? enabledTabs.indexOf(currentTab) : -1;
-    if (currentIndex < 0) return;
-    let nextIndex: number | undefined;
-    if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % enabledTabs.length;
-    if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + enabledTabs.length) % enabledTabs.length;
-    if (event.key === "Home") nextIndex = 0;
-    if (event.key === "End") nextIndex = enabledTabs.length - 1;
-    if (nextIndex === undefined) return;
-    event.preventDefault();
-    const nextTab = tabs.find((tab) => enabledTabs[nextIndex!].id === `${tabPrefix}-${tab}-tab`);
-    if (!nextTab) return;
-    onSelectTab(nextTab);
-    enabledTabs[nextIndex].focus();
-  }
-  const tabId = (tab: typeof tabs[number]) => `${tabPrefix}-${tab}-tab`;
-  const panelId = `${tabPrefix}-${inspectorTab}-panel`;
+  const [collapsed, setCollapsed] = useState(false);
   return (
-    <aside className="studio-inspector">
-      <div className="inspector-tabs" role="tablist" aria-label="Editor settings" tabIndex={-1} onKeyDown={handleTabKeyDown}>
-        <button id={tabId("document")} className={inspectorTab === "document" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "document"} aria-controls={inspectorTab === "document" ? panelId : undefined} tabIndex={activeTabIndex === 0 ? 0 : -1} onClick={() => onSelectTab("document")}>{activeDocument.kind === "page" ? "Page" : "Post"}</button>
-        <button id={tabId("studio")} className={inspectorTab === "studio" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "studio"} aria-controls={inspectorTab === "studio" ? panelId : undefined} tabIndex={activeTabIndex === 1 ? 0 : -1} onClick={() => onSelectTab("studio")}>Studio</button>
-        <button id={tabId("block")} className={inspectorTab === "block" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "block"} aria-controls={inspectorTab === "block" ? panelId : undefined} tabIndex={activeTabIndex === 2 ? 0 : -1} onClick={() => onSelectTab("block")} disabled={!selectedBlock && !selectedDocumentField}>Block</button>
-        <button id={tabId("styles")} className={inspectorTab === "styles" ? "is-active" : ""} type="button" role="tab" aria-selected={inspectorTab === "styles"} aria-controls={inspectorTab === "styles" ? panelId : undefined} tabIndex={activeTabIndex === 3 ? 0 : -1} onClick={() => onSelectTab("styles")}>Styles</button>
-      </div>
-      <div className="inspector-scroll" id={panelId} role="tabpanel" aria-labelledby={tabId(inspectorTab)} tabIndex={0}>
-        {inspectorTab === "document" || inspectorTab === "studio" ? (
-          <DocumentInspector key={activeDocument.id} panel={inspectorTab} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} categories={categories} tagSuggestions={tagSuggestions} onCategorySelectionChange={onCategorySelectionChange} onAddCategory={onAddCategory} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
-        ) : inspectorTab === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedDocumentField ? (
+    <Pane trackClassName="studio-inspector-track" className="studio-inspector" bodyClassName="inspector-scroll" label="Editor Inspector" side="right" width={300} collapsed={collapsed} onCollapsedChange={setCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
+      tabs={<PaneTabs id={tabPrefix} label="Editor settings" className="inspector-tabs" tabs={[
+        { id: "document", label: activeDocument.kind === "page" ? "Page" : "Post" },
+        { id: "studio", label: "Studio" },
+        { id: "block", label: "Block", disabled: !selectedBlock && !selectedDocumentField },
+        { id: "styles", label: "Styles" },
+      ]} active={inspectorTab} onChange={(tab) => onSelectTab(tab as StudioInspectorProps["inspectorTab"])} />}>
+      {tabs.map((panel) => <PaneTabPanel key={panel} id={tabPrefix} tab={panel} active={inspectorTab}>
+        {panel === "document" || panel === "studio" ? (
+          <DocumentInspector key={activeDocument.id} panel={panel} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} categories={categories} tagSuggestions={tagSuggestions} onCategorySelectionChange={onCategorySelectionChange} onAddCategory={onAddCategory} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
+        ) : panel === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedDocumentField ? (
           <InspectorAccordionSection className="document-field-inspector" title={`Document ${selectedDocumentField}`}>
             <p>This field is part of the document. Edit it on the canvas.</p>
           </InspectorAccordionSection>
@@ -94,8 +76,8 @@ export function StudioInspector({ documentControls, inspectorTab, selectedBlock,
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
-      </div>
-    </aside>
+      </PaneTabPanel>)}
+    </Pane>
   );
 }
 

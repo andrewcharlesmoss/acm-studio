@@ -6,18 +6,20 @@ Open `/studio/panes` from the dashboard or Studio's content/template tools.
 Overview presents the left/centre/right structure. Skeletons lets you remove
 optional regions and try single-sided layouts. Studio Examples contains
 navigation, Block Library, editor inspector, Design Pages/Layers and Design
-properties specimens. These are working structure examples, not loading
-placeholders or live product panes.
+properties specimens. Each live Studio pane uses the shared Pane structure
+and, where applicable, its shared tab components. Catalogue examples are
+structural demonstrations, not live product data or commands.
 
 All interactions are temporary React state. Reset Demo resets both specimens'
 fields, tabs, selection, collapse state and scrolling, and restores Normal
 content. Presentation controls (layout, optional regions, preview width,
 boundaries and the second specimen) remain as chosen. Reload restores everything.
-The examples never import product stores, claim write ownership, call product
-APIs, or read/write browser persistence. No real documents, designs or media
-are involved. Existing panes remain unchanged; adoption is a separate decision.
+Catalogue fixtures never import product stores, claim write ownership, call
+product APIs, or read/write browser persistence. No real documents, designs or
+media are involved. Product data, commands, persistence and pane-specific
+interaction remain owned by their existing features.
 
-## Internal component contract — v0.1.0
+## Internal component contract — v0.2.0
 
 The compatibility contract covers the React props, slots, accessible behaviour
 and CSS tokens in `app/studio/panes/pane-components.tsx` and its scoped CSS.
@@ -28,12 +30,18 @@ This is an internal Studio module, not a published package.
 - `Pane`: `label`, `side`, positive pixel `width`, controlled `collapsed` and
   `onCollapsedChange`, an accessible-decorative `collapseIcon` slot, body
   children, and optional `header`, `tabs`, `toolbar` and `footer` slots.
+  Optional `collapsible` and `inert` flags support panes whose visibility is
+  controlled by their owning overlay. Styling hooks (`trackClassName`,
+  `className`, `bodyClassName` and `style`) let product panes retain their
+  established layout while using the shared structure.
 - `PaneCollapseButton`: state-aware name, tooltip, expanded state and controls
   relationship. Pane supplies the stable ID and focus handling.
 - `PaneSection`: a labelled content group with a generated heading identity.
 - `PaneTabs` / `PaneTabPanel`: share an instance-unique prefix, tab IDs and
   controlled active value. All panels remain mounted; inactive panels are
-  hidden. Arrow keys wrap; Home/End choose the first/last tab.
+  hidden. Disabled tabs are skipped. Arrow keys wrap; Home/End choose the
+  first/last enabled tab. `PaneTabs` accepts a custom label renderer for
+  product counts and other non-interactive decoration.
 
 The pane container stays mounted when collapsed. Hidden content is outside
 keyboard navigation; focus within a collapsing pane moves to its edge button.
@@ -66,10 +74,11 @@ navigation links were added. File SHA-256 values are recorded in
 
 The examples simplify content and replace product commands with selection,
 sample fields or a local status message. Header/section spacing and scrolling
-are standardised. Every specimen has the same collapse contract, including
-pane types that do not currently have edge controls in the product. The
-existing Design Editor hides its edge controls at the smallest breakpoint;
-these specimens deliberately keep them available. This is not a product fix.
+are standardised. Every specimen has the same collapse contract. Live pane
+widths remain 290px, 320px, 300px, 224px and 260px respectively. Design Canvas
+panes provide the visual model for controls and tabs; their edge controls now
+remain available at narrow widths. The canvas retains its existing
+minimum-width behaviour.
 
 The shell uses Inter; Studio specimens use the Studio 13px system-font baseline.
 Skeletons use 290px left and 300px right panes. Narrow specimen viewports do not

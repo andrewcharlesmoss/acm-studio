@@ -23,8 +23,18 @@
   position: relative;
 }
 .pane-workspace *, .pane-workspace *::before, .pane-workspace *::after { box-sizing: border-box; }
-.pane-workspace [hidden] { display: none !important; }
-.pane-track { position: relative; min-height: 0; min-width: 0; }
+.pane-workspace [hidden], .pane [hidden], .pane[hidden] { display: none !important; }
+.pane-track {
+  --pane-surface: #f9f8f4;
+  --pane-border: #d2d0c8;
+  --pane-muted: #626262;
+  --pane-hover: #eceae3;
+  --pane-control-width: 28px;
+  --pane-control-height: 48px;
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+}
 .pane { background: var(--pane-surface); display: flex; flex-direction: column; height: 100%; width: var(--pane-width); min-height: 0; }
 .pane-track[data-side="left"] .pane { border-right: 1px solid var(--pane-border); }
 .pane-track[data-side="right"] .pane { border-left: 1px solid var(--pane-border); }

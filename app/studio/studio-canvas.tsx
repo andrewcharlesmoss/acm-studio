@@ -11,6 +11,7 @@ import { safeMathMLMarkup } from "../content/mathml";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
 import { StudioIcon, type StudioIconName } from "./studio-icons";
+import { Pane } from "./panes/pane-components";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
 import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
 import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
@@ -1021,12 +1022,11 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
   }, [dismiss]);
 
   return (
-    <div className="inserter-backdrop">
+    <div className="inserter-backdrop" onAnimationEnd={(event) => { if (closing && event.target instanceof HTMLElement && event.target.classList.contains("block-inserter") && event.animationName === "studio-inserter-exit") onCloseAnimationEnd(); }}>
       <button className="inserter-dismiss" type="button" onClick={dismiss} aria-label="Close block library" />
-      <section className="block-inserter" data-closing={closing || undefined} aria-labelledby="inserter-title" inert={closing} onAnimationEnd={(event) => { if (closing && event.target === event.currentTarget && event.animationName === "studio-inserter-exit") onCloseAnimationEnd(); }}>
-        <header><div><p className="eyebrow">Block library</p><h2 id="inserter-title">Choose a block</h2></div><button type="button" onClick={() => { dismiss(); onCloseAnimationEnd(); }} aria-label="Close block library"><StudioIcon name="close" /></button></header>
-        <input ref={searchInputRef} type="search" value={inserterQuery} onChange={(event) => onSetQuery(event.target.value)} placeholder="Search blocks" aria-label="Search blocks" />
-        <div className="inserter-results">
+      <Pane trackClassName="block-inserter-track" className={`block-inserter${closing ? " is-closing" : ""}`} bodyClassName="inserter-results" label="Block Library" side="left" width={320} collapsed={false} onCollapsedChange={() => undefined} collapseIcon={null} collapsible={false} inert={closing}
+        header={<div className="block-inserter-heading"><div><p className="eyebrow">Block library</p><h2 id="inserter-title">Choose a block</h2></div><button type="button" onClick={() => { dismiss(); onCloseAnimationEnd(); }} aria-label="Close block library"><StudioIcon name="close" /></button></div>}
+        toolbar={<input ref={searchInputRef} type="search" value={inserterQuery} onChange={(event) => onSetQuery(event.target.value)} placeholder="Search blocks" aria-label="Search blocks" />}>
           {(["Text", "Media", "Design", "Other"] as const).map((group) => {
             const items = filteredBlocks.filter((item) => item.group === group);
             if (!items.length) return null;
@@ -1034,8 +1034,7 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
             if (!insertableItems.length) return null;
             return <div className="inserter-group" key={group}><h3>{group}</h3><div>{insertableItems.map((item) => <button type="button" key={item.type} onClick={() => onInsert(item.type)}><span><BlockTypeIcon type={item.type} /></span><strong>{item.label}</strong><small>{item.description}</small></button>)}</div></div>;
           })}
-        </div>
-      </section>
+      </Pane>
     </div>
   );
 }

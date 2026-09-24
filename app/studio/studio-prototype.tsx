@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { BackupManager } from "./backup-manager";
 import { SiteNavigation } from "./site-navigation";
 import { MediaManager } from "./media-manager";
 import { StudioEditor, useStudioDocumentCounts } from "./studio-editor";
 import { StudioIcon } from "./studio-icons";
+import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { AcmIcon } from "@acm/icons/react";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
 import { findBlockById } from "./studio-command-operations.mjs";
@@ -60,6 +61,8 @@ export function StudioPrototype() {
     const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
     return query.get("mode") === "templates" ? "templates" : "page";
   });
+  const [libraryPaneCollapsed, setLibraryPaneCollapsed] = useState(false);
+  const libraryTabsId = useId();
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [inlineImageTarget, setInlineImageTarget] = useState<{ blockId: string; selection: { start: number; end: number } } | null>(null);
   const [documentFieldSelection, setDocumentFieldSelection] = useState<{ documentId: string; field: "title" | "subtitle" } | null>(null);
@@ -519,46 +522,45 @@ export function StudioPrototype() {
 
       <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" || studioSection === "bin" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`}>
       {studioSection === "templates" ? <TemplateWorkspacePanel workspace={studioSession} templates={templateSession} selection={templateTarget} onSelectionChange={setTemplateTarget} libraryKind={libraryKind} onSelectLibraryKind={setLibraryKind} onSelectDocument={(documentId) => { const document = workspace.documents.find(item => item.id === documentId); if (document) selectDocument(document); }} inspectorTab={templateInspectorTab} onInspectorTabChange={tab => { setTemplateInspectorTab(tab); setInspectorTab(tab === "template" ? "document" : tab); }} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); window.history.replaceState({}, "", "/studio"); }} onExportContent={() => exportJson(workspace, "acm-studio-content.json")} /> : <>
-        <aside className="studio-library">
-          <div className="library-create">
+        <Pane trackClassName="studio-library-track" className="studio-library" bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={290} collapsed={libraryPaneCollapsed} onCollapsedChange={setLibraryPaneCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
+          header={<><div className="library-create">
             <button type="button" onClick={() => addDocument("post")}><StudioIcon name="add" size={16} /> New post</button>
             <button type="button" onClick={() => addDocument("page")}><StudioIcon name="add" size={16} /> New page</button>
             <button type="button" onClick={addDocumentFromTemplate}>New from template</button>
-          </div>
-          <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
-          <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design canvas</strong><small>Create and annotate images</small></a>
-          <a className="library-tool-button" href="/studio/ribbon"><span><AcmIcon name="layout.columns" /></span><strong>Ribbon Library</strong><small>Explore controls and original SVG icons</small></a>
-          <a className="library-tool-button" href="/studio/panes"><span><StudioIcon name="archive" /></span><strong>Pane Library</strong><small>Explore pane structures and collapse controls</small></a>
-          <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); }}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
-          <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("bin"); setPreviewing(false); window.history.replaceState({}, "", "/studio?mode=bin"); }}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.bin.length + templateSession.store.bin.length} deleted items</small></button>
-          <div className="library-tabs" aria-label="Content type">
-            {(["page", "post"] as const).map((kind) => (
-              <button className={libraryKind === kind ? "is-active" : ""} type="button" key={kind} onClick={() => { setLibraryKind(kind); if (studioSection === "bin" || studioSection === "backup" || studioSection === "files") setStudioSection("content"); }}>
-                {kind === "page" ? "Pages" : "Posts"}<span>{workspace.documents.filter((item) => item.kind === kind).length}</span>
-              </button>
-            ))}
-            <button className={libraryKind === "templates" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "templates"} onClick={() => { setLibraryKind("templates"); if (studioSection === "bin" || studioSection === "backup" || studioSection === "files") setStudioSection("content"); }}>Templates<span>{templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0)}</span></button>
-          </div>
-          <div className="document-list">
-            {libraryKind === "templates" ? <>
-              {templateSession.store.sets.flatMap(set => [...set.templates, ...set.parts].map(entry => ({ set, entry }))).map(({ set, entry }) => (
-                <button className={`document-item template-target-item${templateTarget.setId === set.id && templateTarget.targetId === entry.id ? " is-active" : ""}`} type="button" key={`${set.id}/${entry.id}`} onClick={() => { if (!confirmCodeEditorDiscard()) return; setTemplateTarget({ setId: set.id, targetId: entry.id }); setStudioSection("templates"); setPreviewing(false); }}>
-                  <span className="document-kind-mark">{entry.kind === "post" ? "A" : entry.kind === "page" ? "P" : "H"}</span>
-                  <span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span>
-                  <i aria-hidden="true" />
+          </div><div className="library-tools">
+            <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
+            <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design canvas</strong><small>Create and annotate images</small></a>
+            <a className="library-tool-button" href="/studio/ribbon"><span><AcmIcon name="layout.columns" /></span><strong>Ribbon Library</strong><small>Explore controls and original SVG icons</small></a>
+            <a className="library-tool-button" href="/studio/panes"><span><StudioIcon name="archive" /></span><strong>Pane Library</strong><small>Explore pane structures and collapse controls</small></a>
+            <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); }}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
+            <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" onClick={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("bin"); setPreviewing(false); window.history.replaceState({}, "", "/studio?mode=bin"); }}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.bin.length + templateSession.store.bin.length} deleted items</small></button>
+          </div></>}
+          tabs={<div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
+            { id: "page", label: "Pages" }, { id: "post", label: "Posts" }, { id: "templates", label: "Templates" },
+          ]} active={libraryKind} onChange={(id) => { setLibraryKind(id as StudioDocumentKind | "templates"); if (studioSection === "bin" || studioSection === "backup" || studioSection === "files") setStudioSection("content"); }} renderLabel={(tab) => <><span className="library-tab-label">{tab.label}</span><span>{tab.id === "templates" ? templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0) : workspace.documents.filter((item) => item.kind === tab.id).length}</span></>} /></div>}
+          footer={<><SiteNavigation /><div className="library-footer"><button type="button" onClick={() => exportJson(workspace, "acm-studio-content.json")}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div></>}>
+          {(["page", "post", "templates"] as const).map((kind) => <PaneTabPanel key={kind} id={libraryTabsId} tab={kind} active={libraryKind}>
+            <div className="document-list">
+              {kind === "templates" ? <>
+                {templateSession.store.sets.flatMap(set => [...set.templates, ...set.parts].map(entry => ({ set, entry }))).map(({ set, entry }) => (
+                  <button className={`document-item template-target-item${templateTarget.setId === set.id && templateTarget.targetId === entry.id ? " is-active" : ""}`} type="button" key={`${set.id}/${entry.id}`} onClick={() => { if (!confirmCodeEditorDiscard()) return; setTemplateTarget({ setId: set.id, targetId: entry.id }); setStudioSection("templates"); setPreviewing(false); }}>
+                    <span className="document-kind-mark">{entry.kind === "post" ? "A" : entry.kind === "page" ? "P" : "H"}</span>
+                    <span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span>
+                    <i aria-hidden="true" />
+                  </button>
+                ))}
+                <button className="button-secondary" type="button" onClick={() => setStudioSection("templates")}>Open Template Editor</button>
+                {!templateSession.store.sets.some(set => set.templates.length || set.parts.length) ? <p className="document-list-empty">No templates yet.</p> : null}
+              </> : workspace.documents.filter((document) => document.kind === kind).map((document) => (
+                  <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} aria-haspopup="menu" aria-expanded={documentContextMenu?.id === document.id} onClick={() => selectDocument(document)} onContextMenu={(event) => { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; setDocumentContextMenu({ id: document.id, label: document.title, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); setDocumentContextMenu({ id: document.id, label: document.title, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
+                  <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span>
+                  <span><strong>{document.title}</strong><small>/{document.slug}</small></span>
+                  <i className={`document-status is-${document.status}`} aria-label={document.status} />
                 </button>
               ))}
-              <button className="button-secondary" type="button" onClick={() => setStudioSection("templates")}>Open Template Editor</button>
-              {!templateSession.store.sets.some(set => set.templates.length || set.parts.length) ? <p className="document-list-empty">No templates yet.</p> : null}
-            </> : workspace.documents.filter((document) => document.kind === libraryKind).map((document) => (
-                <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} aria-haspopup="menu" aria-expanded={documentContextMenu?.id === document.id} onClick={() => selectDocument(document)} onContextMenu={(event) => { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; setDocumentContextMenu({ id: document.id, label: document.title, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); setDocumentContextMenu({ id: document.id, label: document.title, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
-                <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span>
-                <span><strong>{document.title}</strong><small>/{document.slug}</small></span>
-                <i className={`document-status is-${document.status}`} aria-label={document.status} />
-              </button>
-            ))}
-            {libraryKind !== "templates" && !workspace.documents.some((document) => document.kind === libraryKind) ? <p className="document-list-empty">No {libraryKind === "page" ? "pages" : "posts"} yet.</p> : null}
-          </div>
+              {kind !== "templates" && !workspace.documents.some((document) => document.kind === kind) ? <p className="document-list-empty">No {kind === "page" ? "pages" : "posts"} yet.</p> : null}
+            </div>
+          </PaneTabPanel>)}
           {documentContextMenu ? (() => {
             const contextDocument = workspace.documents.find((item) => item.id === documentContextMenu.id);
             const contextAssignment = templateSession.store.assignments.find((item) => item.documentId === documentContextMenu.id);
@@ -571,9 +573,7 @@ export function StudioPrototype() {
             ] : [];
             return <StudioListContextMenu target={documentContextMenu} actions={actions} canDelete={canDelete} disabledReason={disabledReason} returnFocusRef={documentContextMenuTriggerRef} onDelete={() => requestDeleteDocument(documentContextMenu.id)} onClose={closeDocumentContextMenu} />;
           })() : null}
-          <SiteNavigation />
-          <div className="library-footer"><button type="button" onClick={() => exportJson(workspace, "acm-studio-content.json")}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>
-        </aside>
+        </Pane>
 
         {studioSection === "bin" ? <StudioBin workspace={studioSession} templates={templateSession} /> : studioSection === "content" && !hasContentDocuments ? <section className="studio-empty-workspace" aria-labelledby="studio-empty-title">
           <span className="studio-empty-icon" aria-hidden="true"><StudioIcon name="archive" size={24} /></span>
