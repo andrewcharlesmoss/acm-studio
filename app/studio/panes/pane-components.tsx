@@ -66,7 +66,6 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
     suppressCollapse.current = false;
     if (event.button !== 0 || collapsed || !onWidthChange) return;
     resizeStart.current = { x: event.clientX, width, dragged: false };
-    setResizePressed(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
   function moveResize(event: PointerEvent<HTMLButtonElement>) {
@@ -74,6 +73,7 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
     const delta = (event.clientX - resizeStart.current.x) * (side === "left" ? 1 : -1);
     if (Math.abs(delta) < 5 && !resizeStart.current.dragged) return;
     resizeStart.current.dragged = true;
+    setResizePressed(true);
     suppressCollapse.current = true;
     onWidthChange?.(clampWidth(resizeStart.current.width + delta));
   }
