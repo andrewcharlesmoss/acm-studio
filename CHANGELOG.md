@@ -39,9 +39,10 @@
   with three optical variants each. Product controls retain their existing icons.
 - Added a separate Pane Library with working left/right skeletons, persistent
   edge collapse controls, optional regions, structure/token inspection and five
-  isolated Studio examples. Existing product panes are unchanged.
+  isolated Studio examples.
 - Added pane resizing through the shared edge button in Pane Library examples,
-  Studio navigation and the Editor Inspector, with drag and keyboard controls.
+  Studio navigation, the Editor Inspector and both Design Canvas side panes,
+  with drag and keyboard controls.
 - Fixed cover images can now be stored in reusable templates. The template
   image controls choose or remove the managed fixed image without changing a
   document's own cover image. Template format v0.5.0 reads v0.1.0 through
@@ -52,7 +53,7 @@
   workspace error.
 - Moved the Pages, Posts and Templates tabs below the shared Studio tool menu
   in the left navigation.
-- Added Design canvas to the home dashboard's Working Tools alongside the
+- Added Design Canvas to the home dashboard's Working Tools alongside the
   other Studio authoring tools.
 - Unified the Document/Block/Styles inspector for pages, posts and templates.
   Added inspectable Template Default/Document Override states for Author,

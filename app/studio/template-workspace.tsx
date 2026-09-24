@@ -319,7 +319,7 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
           <button type="button" onClick={() => importRef.current?.click()}>Import</button>
         </div>
         <button className="library-tool-button" type="button" onClick={onOpenFiles}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
-        <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design canvas</strong><small>Create and annotate images</small></a>
+        <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design Canvas</strong><small>Create and annotate images</small></a>
         <a className="library-tool-button" href="/studio/ribbon"><span><AcmIcon name="layout.columns" /></span><strong>Ribbon Library</strong><small>Explore controls and original SVG icons</small></a>
         <a className="library-tool-button" href="/studio/panes"><span><StudioIcon name="archive" /></span><strong>Pane Library</strong><small>Explore pane structures and collapse controls</small></a>
         <button className="library-tool-button" type="button" onClick={onOpenBackup}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>

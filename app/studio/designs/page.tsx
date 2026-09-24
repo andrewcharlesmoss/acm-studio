@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { DesignEditor } from "../design-editor";
 
 export const metadata: Metadata = {
-  title: "Design canvas",
+  title: "Design Canvas",
   description: "Create and annotate images in ACM Studio.",
 };
 
