@@ -11,7 +11,7 @@
   .article-layout { grid-template-columns: 140px minmax(0, 1fr); }
   .studio-header { grid-template-columns: 210px minmax(120px, 1fr) auto; }
   .studio-state { display: none; }
-  .studio-workspace { --studio-library-width: 290px; --studio-inspector-width: 270px; grid-template-columns: var(--studio-library-width) minmax(120px, 1fr) var(--studio-inspector-width); }
+  .studio-workspace { --studio-library-width: 290px; --studio-inspector-width: 300px; grid-template-columns: var(--studio-library-width) minmax(120px, 1fr) var(--studio-inspector-width); }
   .studio-library.pane, .studio-inspector.pane { width: 100%; }
   .studio-breadcrumbs { font-size: var(--studio-ui-size); }
   .block-canvas, .document-preview { --studio-canvas-block-padding: 44px; --studio-canvas-inline-padding: 36px; }

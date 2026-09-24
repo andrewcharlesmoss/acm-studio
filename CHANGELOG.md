@@ -40,8 +40,8 @@
 - Added a separate Pane Library with working left/right skeletons, persistent
   edge collapse controls, optional regions, structure/token inspection and five
   isolated Studio examples. Existing product panes are unchanged.
-- Added pane resizing through the shared edge button in Pane Library examples
-  and Studio navigation, with drag and keyboard controls.
+- Added pane resizing through the shared edge button in Pane Library examples,
+  Studio navigation and the Editor Inspector, with drag and keyboard controls.
 - Fixed cover images can now be stored in reusable templates. The template
   image controls choose or remove the managed fixed image without changing a
   document's own cover image. Template format v0.5.0 reads v0.1.0 through

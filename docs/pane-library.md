@@ -38,7 +38,8 @@ This is an internal Studio module, not a published package.
   resizing. The collapse button also acts as the drag handle and accepts Left/Right arrows, with Shift
   for larger steps and Home/End for limits. The owning workspace applies the
   resulting width to its grid; the library specimens do this through
-  `PaneWorkspace`. Width changes remain local to the current session.
+  `PaneWorkspace`. Studio Navigation and Editor Inspector both use this
+  contract. Width changes remain local to the current session.
 - `PaneCollapseButton`: state-aware name, tooltip, expanded state and controls
   relationship. Pane supplies the stable ID and focus handling.
 - `PaneSection`: a labelled content group with a generated heading identity.

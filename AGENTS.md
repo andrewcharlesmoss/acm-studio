@@ -64,8 +64,8 @@ behaviour remain owned by their existing features. The catalogue shell is
 responsive and uses Inter. Its specimens start at the documented desktop
 pane widths and permit temporary edge resizing, with contained horizontal
 scrolling at narrow widths; collapse controls remain available. Studio
-Navigation adopts the shared resizing contract. Other product panes retain
-their existing widths and responsive behaviour.
+Navigation and Editor Inspector adopt the shared resizing contract. Other
+product panes retain their existing widths and responsive behaviour.
 
 Edit and Preview must share block presentation rules, including typography,
 colours, spacing and dimensions. Use the Studio variant of `BlockRenderer`

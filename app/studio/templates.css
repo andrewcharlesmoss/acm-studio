@@ -160,7 +160,7 @@
   .studio-desktop-only .studio-breadcrumbs strong { white-space: nowrap; }
   .studio-desktop-only .studio-state { display: flex; justify-content: flex-start; flex-wrap: nowrap; }
   .studio-desktop-only .studio-actions { display: flex; justify-content: flex-end; flex-wrap: nowrap; }
-  .studio-desktop-only .studio-workspace { display: grid; grid-template-columns: 290px minmax(540px, 1fr) 300px; height: calc(100dvh - 101px); overflow: hidden; }
+  .studio-desktop-only .studio-workspace { display: grid; grid-template-columns: var(--studio-library-width) minmax(540px, 1fr) var(--studio-inspector-width); min-width: calc(var(--studio-library-width) + 540px + var(--studio-inspector-width)); height: calc(100dvh - 101px); overflow: hidden; }
   .studio-desktop-only .studio-library, .studio-desktop-only .studio-inspector { display: flex; width: auto; max-height: none; }
   .studio-desktop-only .studio-library { border-right: 1px solid #d2d0c8; }
   .studio-desktop-only .studio-inspector { border-top: 0; }
