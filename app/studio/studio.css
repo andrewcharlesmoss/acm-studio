@@ -573,7 +573,7 @@
 .block-position { display: flow-root; position: relative; }
 /* Make room for the toolbar in the gap above the selected block. */
 .block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom: 38px; }
-.canvas-blocks:has(> .block-position:nth-child(1 of .block-position) .canvas-block.is-selected) { padding-top: 90px; }
+.canvas-blocks:has(> .block-position:nth-child(1 of .block-position) .canvas-block.is-selected) { padding-top: 64px; }
 .drop-indicator { background: var(--accent); border-radius: 999px; height: 3px; left: -14px; pointer-events: none; position: absolute; right: -14px; top: -2px; z-index: 5; }
 .block-position + .block-position .drop-indicator { top: 13px; }
 .drop-indicator.is-after { bottom: -2px; top: auto; }
