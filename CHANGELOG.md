@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- Added Gutenberg-style paragraph rich-text options for strikethrough,
+  subscript, superscript, inline code and keyboard input, including HTML
+  round-tripping.
 - Added WordPress-style post tag chips with Enter or comma entry, removal
   controls and frequently used tag suggestions.
 - Added Scheduled status for pages and posts, with local post scheduling tied

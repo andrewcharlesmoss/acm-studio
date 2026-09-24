@@ -70,7 +70,7 @@ function validParagraphStyle(value: unknown) {
 
 function validRuns(value: unknown) {
   return value === undefined || (Array.isArray(value) && value.every((run) => isRecord(run) && typeof run.text === "string"
-    && (run.marks === undefined || (Array.isArray(run.marks) && run.marks.every((mark: unknown) => mark === "bold" || mark === "italic"
+    && (run.marks === undefined || (Array.isArray(run.marks) && run.marks.every((mark: unknown) => ["bold", "italic", "strikethrough", "inline-code", "subscript", "superscript", "keyboard"].includes(mark as string)
       || (isRecord(mark) && mark.type === "link" && typeof mark.url === "string" && optionalBoolean(mark.opensInNewTab)))))));
 }
 

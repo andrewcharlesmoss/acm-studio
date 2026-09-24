@@ -126,6 +126,9 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const htmlInputRef = useRef<HTMLTextAreaElement>(null);
   const blockMenuItemRef = useRef<HTMLButtonElement>(null);
   const htmlEditorTriggerRef = useRef<HTMLButtonElement>(null);
+  const richTextMenuTriggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const richTextMenuItemRef = useRef<HTMLButtonElement>(null);
+  const restoreRichTextMenuFocusBlockIdRef = useRef<string | null>(null);
   const codeEditorToggleRef = useRef<HTMLButtonElement>(null);
   const codeEditorInputRef = useRef<HTMLTextAreaElement>(null);
   const listViewToggleRef = useRef<HTMLButtonElement>(null);
@@ -136,6 +139,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const [headingMenuBlockId, setHeadingMenuBlockId] = useState<string | null>(null);
   const [transformMenuBlockId, setTransformMenuBlockId] = useState<string | null>(null);
   const [alignmentMenuBlockId, setAlignmentMenuBlockId] = useState<string | null>(null);
+  const [richTextMenuBlockId, setRichTextMenuBlockId] = useState<string | null>(null);
   const [tableMenuBlockId, setTableMenuBlockId] = useState<string | null>(null);
   const [blockMenuBlockId, setBlockMenuBlockId] = useState<string | null>(null);
   const viewportStyle = viewportWidth ? { width: viewportWidth, ...(viewportWidthCanOverflow ? {} : { maxWidth: "100%" }), ...(canvasZoom ? { zoom: canvasZoom / 100 } : {}) } : undefined;
@@ -151,6 +155,15 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const displayedWordCount = wordCount + appenderWordCount;
   const displayedCharacterCount = characterCount + appenderValue.length + (hasAppenderDraft && activeDocument.blocks.length > 0 ? 1 : 0);
   const displayedBlockCount = activeDocument.blocks.length + (hasAppenderDraft ? 1 : 0);
+
+  useLayoutEffect(() => {
+    if (richTextMenuBlockId) richTextMenuItemRef.current?.focus();
+    else if (restoreRichTextMenuFocusBlockIdRef.current) {
+      const blockId = restoreRichTextMenuFocusBlockIdRef.current;
+      restoreRichTextMenuFocusBlockIdRef.current = null;
+      richTextMenuTriggerRefs.current[blockId]?.focus();
+    }
+  }, [richTextMenuBlockId]);
 
   function dragInsertionIndex(event: DragEvent<HTMLDivElement>, index: number) {
     const block = event.currentTarget.querySelector<HTMLElement>(".canvas-block");
@@ -338,7 +351,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
     return nextSelection;
   }
 
-  function textMarkState(block: EditableTextBlock, mark: "bold" | "italic"): boolean | "mixed" {
+  function textMarkState(block: EditableTextBlock, mark: Extract<TextMark, string>): boolean | "mixed" {
     const selection = textSelections[block.id] ?? textSelectionsRef.current[block.id];
     if (!selection || selection.start === selection.end) return false;
     const runs = block.runs?.length ? block.runs : textToRuns(block.text);
@@ -356,10 +369,9 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
     return "mixed";
   }
 
-  function formatMarkButton(block: EditableTextBlock, mark: "bold" | "italic") {
+  function formatMarkButton(block: EditableTextBlock, mark: Extract<TextMark, string>, label = mark, buttonRef?: RefObject<HTMLButtonElement | null>) {
     const state = textMarkState(block, mark);
-    const label = mark === "bold" ? "Bold selected text" : "Italicise selected text";
-    return <button className={state === true ? "is-active" : state === "mixed" ? "is-mixed" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, mark)} aria-pressed={state} aria-label={label} title={mark === "bold" ? "Bold" : "Italic"}><StudioIcon name={mark === "bold" ? "format-bold" : "format-italic"} /></button>;
+    return <button ref={buttonRef} className={state === true ? "is-active" : state === "mixed" ? "is-mixed" : ""} type="button" role="menuitemcheckbox" onMouseDown={preserveTextSelection} onClick={() => { restoreRichTextMenuFocusBlockIdRef.current = block.id; formatSelectedText(block, mark); setRichTextMenuBlockId(null); }} aria-checked={state} aria-label={`${label} selected text`} title={label}>{label}</button>;
   }
 
   function setTextAlignment(block: EditableTextBlock, align: TextAlignment) {
@@ -578,6 +590,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                     onPointerDown={(event) => {
                       onSelectBlock(block.id);
                       if (!(event.target instanceof Element) || !event.target.closest(".alignment-control")) setAlignmentMenuBlockId(null);
+                      if (!(event.target instanceof Element) || !event.target.closest(".rich-text-format-control")) setRichTextMenuBlockId(null);
                       if (!(event.target instanceof Element) || !event.target.closest(".transform-control")) setTransformMenuBlockId(null);
                       if (event.target instanceof Element && !event.target.closest(".link-editor-popover, .link-preview-popover, .block-options-menu, .html-editor-popover, .rich-text-editor a")) {
                         setLinkEditor(null);
@@ -607,9 +620,33 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                       </div> : null}</div> : null}
                       {isEditableTextBlock(block) ? <div className="canvas-format-actions" aria-label="Text formatting">
                         <div className="alignment-control"><button className={`alignment-button${alignmentMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => setAlignmentMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={alignmentMenuBlockId === block.id} aria-label="Text alignment" title="Text alignment"><AlignmentIcon align={block.align ?? "left"} /><StudioIcon name="chevron-down" size={16} /></button>{alignmentMenuBlockId === block.id ? <div className="alignment-menu" role="menu" aria-label="Text alignment">{(["left", "centre", "right"] as TextAlignment[]).map((align) => <button className={block.align === align || (!block.align && align === "left") ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={block.align === align || (!block.align && align === "left")} key={align} onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, align)}><AlignmentIcon align={align} /><span>Align text {align}</span></button>)}</div> : null}</div>
-                        {formatMarkButton(block, "bold")}
-                        {formatMarkButton(block, "italic")}
+                        <button className={textMarkState(block, "bold") === true ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-pressed={textMarkState(block, "bold")} aria-label="Bold selected text" title="Bold"><StudioIcon name="format-bold" /></button>
+                        <button className={textMarkState(block, "italic") === true ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "italic")} aria-pressed={textMarkState(block, "italic")} aria-label="Italicise selected text" title="Italic"><StudioIcon name="format-italic" /></button>
                         <button type="button" onMouseDown={(event) => { preserveTextSelection(event); openLinkEditor(block); }} aria-label="Add hyperlink to selected text" title="Add hyperlink"><StudioIcon name="link" /></button>
+                        <div className="rich-text-format-control"><button ref={element => { richTextMenuTriggerRefs.current[block.id] = element; }} type="button" onMouseDown={preserveTextSelection} onClick={() => setRichTextMenuBlockId(current => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={richTextMenuBlockId === block.id} aria-label="More text formatting" title="More text formatting"><StudioIcon name="more-vertical" /></button>{richTextMenuBlockId === block.id ? <div className="rich-text-format-menu" role="menu" aria-label="More text formatting" onKeyDown={event => {
+                          if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); restoreRichTextMenuFocusBlockIdRef.current = block.id; setRichTextMenuBlockId(null); return; }
+                          if (event.key === "Tab") {
+                            event.preventDefault();
+                            setRichTextMenuBlockId(null);
+                            if (event.shiftKey) richTextMenuTriggerRefs.current[block.id]?.focus();
+                            else event.currentTarget.closest(".canvas-block")?.querySelector<HTMLButtonElement>(".canvas-block-actions button:not(:disabled)")?.focus();
+                            return;
+                          }
+                          const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitemcheckbox"]'));
+                          const activeIndex = items.indexOf(event.target as HTMLButtonElement);
+                          let nextIndex: number | null = null;
+                          if (event.key === "ArrowDown") nextIndex = (activeIndex + 1) % items.length;
+                          else if (event.key === "ArrowUp") nextIndex = (activeIndex - 1 + items.length) % items.length;
+                          else if (event.key === "Home") nextIndex = 0;
+                          else if (event.key === "End") nextIndex = items.length - 1;
+                          if (nextIndex !== null && items.length) { event.preventDefault(); items[nextIndex]?.focus(); }
+                        }}>
+                          {formatMarkButton(block, "strikethrough", "Strikethrough", richTextMenuItemRef)}
+                          {formatMarkButton(block, "subscript", "Subscript")}
+                          {formatMarkButton(block, "superscript", "Superscript")}
+                          {formatMarkButton(block, "inline-code", "Inline code")}
+                          {formatMarkButton(block, "keyboard", "Keyboard input")}
+                        </div> : null}</div>
                       </div> : null}
                       <div className="canvas-block-actions">
                         <button type="button" onClick={(event) => { event.stopPropagation(); onDuplicateBlock(index); }} aria-label="Duplicate block" title="Duplicate block"><StudioIcon name="copy" /></button>
@@ -1372,6 +1409,11 @@ function runsToEditorHtml(runs: RichTextRun[]) {
     for (const mark of run.marks ?? []) {
       if (mark === "bold") html = `<strong>${html}</strong>`;
       else if (mark === "italic") html = `<em>${html}</em>`;
+      else if (mark === "strikethrough") html = `<s>${html}</s>`;
+      else if (mark === "inline-code") html = `<code>${html}</code>`;
+      else if (mark === "subscript") html = `<sub>${html}</sub>`;
+      else if (mark === "superscript") html = `<sup>${html}</sup>`;
+      else if (mark === "keyboard") html = `<kbd>${html}</kbd>`;
       else {
         const href = safeTextLink(mark.url);
         if (href) html = `<a href="${escapeHtml(href)}"${mark.opensInNewTab ? " target=\"_blank\" rel=\"noopener noreferrer\"" : ""}>${html}</a>`;
@@ -1458,6 +1500,11 @@ function editorToRuns(editor: HTMLElement) {
     const marks = [...inheritedMarks];
     if (element.tagName === "STRONG" || element.tagName === "B") marks.push("bold");
     if (element.tagName === "EM" || element.tagName === "I") marks.push("italic");
+    if (["S", "STRIKE", "DEL"].includes(element.tagName)) marks.push("strikethrough");
+    if (element.tagName === "CODE") marks.push("inline-code");
+    if (element.tagName === "SUB") marks.push("subscript");
+    if (element.tagName === "SUP") marks.push("superscript");
+    if (element.tagName === "KBD") marks.push("keyboard");
     if (element.tagName === "A") {
       const href = safeTextLink(element.getAttribute("href") ?? "");
       if (href) marks.push({ type: "link", url: href, opensInNewTab: element.getAttribute("target") === "_blank" || undefined });

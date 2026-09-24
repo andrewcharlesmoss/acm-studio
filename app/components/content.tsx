@@ -212,6 +212,11 @@ export function renderText(text: string, runs?: RichTextRun[]) {
 function renderMark(content: ReactNode, mark: TextMark): ReactNode {
   if (mark === "bold") return <strong>{content}</strong>;
   if (mark === "italic") return <em>{content}</em>;
+  if (mark === "strikethrough") return <s>{content}</s>;
+  if (mark === "inline-code") return <code>{content}</code>;
+  if (mark === "subscript") return <sub>{content}</sub>;
+  if (mark === "superscript") return <sup>{content}</sup>;
+  if (mark === "keyboard") return <kbd>{content}</kbd>;
   const href = safeTextLink(mark.url);
   return href ? <a href={href} target={mark.opensInNewTab ? "_blank" : undefined} rel={mark.opensInNewTab ? "noopener noreferrer" : undefined}>{content}</a> : content;
 }

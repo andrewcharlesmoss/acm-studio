@@ -160,6 +160,11 @@ function runsToHtml(runs: RichTextRun[] | undefined, text: string) {
     for (const mark of run.marks ?? []) {
       if (mark === "bold") html = `<strong>${html}</strong>`;
       else if (mark === "italic") html = `<em>${html}</em>`;
+      else if (mark === "strikethrough") html = `<s>${html}</s>`;
+      else if (mark === "inline-code") html = `<code>${html}</code>`;
+      else if (mark === "subscript") html = `<sub>${html}</sub>`;
+      else if (mark === "superscript") html = `<sup>${html}</sup>`;
+      else if (mark === "keyboard") html = `<kbd>${html}</kbd>`;
       else {
         const href = safeTextLink(mark.url);
         if (href) html = `<a href="${escapeAttribute(href)}"${mark.opensInNewTab ? " target=\"_blank\" rel=\"noopener noreferrer\"" : ""}>${html}</a>`;
@@ -389,6 +394,11 @@ function parseRuns(element: HTMLElement): RichTextRun[] | undefined {
     const next = [...marks];
     if (["STRONG", "B"].includes(child.tagName)) next.push("bold");
     if (["EM", "I"].includes(child.tagName)) next.push("italic");
+    if (["S", "STRIKE", "DEL"].includes(child.tagName)) next.push("strikethrough");
+    if (child.tagName === "CODE") next.push("inline-code");
+    if (child.tagName === "SUB") next.push("subscript");
+    if (child.tagName === "SUP") next.push("superscript");
+    if (child.tagName === "KBD") next.push("keyboard");
     if (child.tagName === "A") { const href = safeTextLink(child.getAttribute("href") ?? ""); if (href) next.push({ type: "link", url: href, opensInNewTab: child.getAttribute("target") === "_blank" || undefined }); }
     child.childNodes.forEach((nested) => visit(nested, next));
   }
