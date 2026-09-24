@@ -76,7 +76,7 @@
 .site-draft-library p { color: var(--muted); margin: 0; }
 .site-draft-back, .site-draft-visit { align-items: center; display: flex; gap: 8px; }
 .site-draft-visit { margin-top: auto; padding-top: 24px; }
-.site-draft-page { align-items: center; background: #e7edff; border: 0; border-radius: 6px; color: #284ab0; display: flex; justify-content: space-between; min-height: 44px; padding: 12px; text-align: left; }
+.site-draft-page { align-items: center; background: #e7e7e5; border: 0; border-radius: 6px; color: #1e1e1e; display: flex; justify-content: space-between; min-height: 44px; padding: 12px; text-align: left; }
 .site-draft-page span { font-size: var(--studio-ui-size); }
 .site-draft-page[aria-pressed="false"] { background: transparent; color: inherit; }
 .site-source-files { min-width: 0; }
@@ -93,7 +93,7 @@
 .source-tree button { align-items: center; background: transparent; border: 0; border-radius: 4px; display: flex; gap: 6px; min-height: 36px; padding: 6px; text-align: left; width: 100%; }
 .source-tree button svg { flex: 0 0 auto; }
 .source-tree button span { overflow-wrap: anywhere; }
-.source-tree button.is-active { background: #e7edff; color: #284ab0; }
+.source-tree button.is-active { background: #e7e7e5; color: #1e1e1e; }
 .source-file { background: #fff; min-width: 0; }
 .source-file header { align-items: center; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; overflow-wrap: anywhere; padding: 16px; }
 .source-file pre { font: 13px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0; overflow-wrap: anywhere; padding: 20px; tab-size: 2; white-space: pre-wrap; }
@@ -137,7 +137,7 @@
 .studio-site-navigation { padding: 16px; border-top: 1px solid var(--studio-border, #d8d8d3); }
 .studio-site-navigation h2 { margin: 0 0 10px; font: inherit; font-weight: 600; }
 .studio-site-navigation a { display: flex; flex-direction: column; gap: 4px; padding: 12px 8px; text-decoration: none; color: inherit; border-radius: 6px; }
-.studio-site-navigation a[aria-current="page"] { background: #e8edff; }
+.studio-site-navigation a[aria-current="page"] { background: #e7e7e5; }
 .studio-site-navigation a:focus-visible { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
 .studio-site-navigation span { color: #575c61; }
 .dashboard-site-pilot + .dashboard-site-pilot { margin-top: 16px; }
@@ -198,10 +198,10 @@
 .site-settings h2 { margin: 0 0 8px; font-size: 1rem; }
 .site-settings p { margin: 8px 0 16px; }
 .site-settings a, .site-settings dd, .site-settings code { overflow-wrap: anywhere; }
-.site-settings a { color: #3155cc; text-decoration: underline; text-underline-offset: 3px; }
+.site-settings a { color: #1e1e1e; text-decoration: underline; text-underline-offset: 3px; }
 .site-settings a:focus-visible { outline: 2px solid var(--focus-ring-colour); outline-offset: 4px; }
 .site-settings .site-settings-eyebrow { margin: 0; font-weight: 600; }
-.site-settings-notice { padding: 12px 16px; background: #eef1fb; border-radius: 8px; }
+.site-settings-notice { padding: 12px 16px; background: #f1f0eb; border-radius: 8px; }
 .site-settings-captured { color: #626267; }
 .site-settings > section { margin-top: 32px; }
 .site-settings-card { margin: 0; border: 1px solid #d8d8d3; border-radius: 12px; background: #fff; padding: 0 20px; }
@@ -226,7 +226,7 @@
   .site-settings-variables { padding: 8px; }
   .site-settings th, .site-settings td { padding: 10px 4px; overflow-wrap: anywhere; }
 }
-.site-settings-connect { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; background: #eef1fb; border-radius: 8px; }
+.site-settings-connect { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; background: #f1f0eb; border-radius: 8px; }
 .site-settings-connect p { margin: 0; }
 .site-settings button, .site-settings-dialog button { min-height: 36px; padding: 6px 12px; border: 1px solid #d8d8d3; border-radius: 6px; background: #fff; color: #1c1c1e; font: inherit; cursor: pointer; }
 .site-settings button:disabled, .site-settings-dialog button:disabled { opacity: .5; cursor: not-allowed; }
