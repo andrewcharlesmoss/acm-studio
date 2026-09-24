@@ -40,10 +40,12 @@ export function TemplateWorkspace() {
   return <TemplateWorkspacePanel workspace={workspace} templates={templates} standalone />;
 }
 
-export function TemplateWorkspacePanel({ workspace, templates, standalone = false, manageHistoryShortcuts = true, onBackToContent, onSelectContentKind, onOpenFiles, onOpenBackup, onExportContent }: {
+export function TemplateWorkspacePanel({ workspace, templates, standalone = false, selection, onSelectionChange, manageHistoryShortcuts = true, onBackToContent, onSelectContentKind, onOpenFiles, onOpenBackup, onExportContent }: {
   workspace: TemplateWorkspaceSession;
   templates: TemplateStoreSession;
   standalone?: boolean;
+  selection?: { setId: string | null; targetId: string | null };
+  onSelectionChange?: (selection: { setId: string | null; targetId: string | null }) => void;
   manageHistoryShortcuts?: boolean;
   onBackToContent?: () => void;
   onSelectContentKind?: (kind: "page" | "post") => void;
@@ -51,8 +53,14 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
   onOpenBackup?: () => void;
   onExportContent?: () => void;
 }) {
-  const [setId, setSetId] = useState<string | null>(null);
-  const [targetId, setTargetId] = useState<string | null>(null);
+  const [localSelection, setLocalSelection] = useState<{ setId: string | null; targetId: string | null }>({ setId: null, targetId: null });
+  const activeSelection = selection ?? localSelection;
+  const setId = activeSelection.setId;
+  const targetId = activeSelection.targetId;
+  function changeSelection(next: { setId: string | null; targetId: string | null }) {
+    if (selection) onSelectionChange?.(next);
+    else setLocalSelection(next);
+  }
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [mediaTarget, setMediaTarget] = useState<{ blockId: string | null; logo: boolean } | null>(null);
@@ -88,14 +96,13 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     const query = new URLSearchParams(window.location.search);
     const syncTargetFromLocation = () => {
       const nextQuery = new URLSearchParams(window.location.search);
-      setSetId(nextQuery.get("set"));
-      setTargetId(nextQuery.get("target"));
+      changeSelection({ setId: nextQuery.get("set"), targetId: nextQuery.get("target") });
       setMediaTarget(null);
     };
-    queueMicrotask(() => { setSetId(query.get("set")); setTargetId(query.get("target")); });
+    if (standalone) queueMicrotask(() => changeSelection({ setId: query.get("set"), targetId: query.get("target") }));
     window.addEventListener("popstate", syncTargetFromLocation);
     return () => window.removeEventListener("popstate", syncTargetFromLocation);
-  }, []);
+  }, [standalone, selection]);
   const dialogOpen = dialog !== null;
   useEffect(() => {
     if (!dialogOpen || !dialogRef.current) return;
@@ -114,25 +121,27 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     const first = templates.store.sets[0];
     const id = first.templates[0]?.id ?? null;
     queueMicrotask(() => {
-      setSetId(first.id); setTargetId(id);
-      const path = standalone ? "/studio/templates" : "/studio";
-      const query = new URLSearchParams(standalone ? "" : "mode=templates");
-      query.set("set", first.id); query.set("target", id ?? "");
-      window.history.replaceState({}, "", `${path}?${query.toString()}`);
+      changeSelection({ setId: first.id, targetId: id ?? null });
+      if (standalone) {
+        const query = new URLSearchParams();
+        query.set("set", first.id); query.set("target", id ?? "");
+        window.history.replaceState({}, "", `/studio/templates?${query.toString()}`);
+      }
     });
   }, [setId, standalone, templates.ready, templates.store.sets]);
   function closeDialog() { dialogRef.current?.close(); setDialog(null); dialogOpener?.focus(); }
   function askName(title: string, name: string, confirm: NameDialog["confirm"]) { setDialogOpener(document.activeElement as HTMLElement); setDialog({ title, name, confirm }); }
   function openSet(item: TemplateSet, id = item.templates[0]?.id) {
-    setSetId(item.id); setTargetId(id ?? null); setMediaTarget(null);
-    const path = standalone ? "/studio/templates" : "/studio";
-    const query = new URLSearchParams(standalone ? "" : "mode=templates");
-    query.set("set", item.id); query.set("target", id ?? "");
-    window.history.replaceState({}, "", `${path}?${query.toString()}`);
+    changeSelection({ setId: item.id, targetId: id ?? null }); setMediaTarget(null);
+    if (standalone) {
+      const query = new URLSearchParams();
+      query.set("set", item.id); query.set("target", id ?? "");
+      window.history.replaceState({}, "", `/studio/templates?${query.toString()}`);
+    }
   }
   function library() {
-    setSetId(null); setTargetId(null); setMediaTarget(null);
-    window.history.replaceState({}, "", standalone ? "/studio/templates" : "/studio?mode=templates");
+    changeSelection({ setId: null, targetId: null }); setMediaTarget(null);
+    if (standalone) window.history.replaceState({}, "", "/studio/templates");
   }
   function changeSet(next: TemplateSet) { return templates.commit(store => ({ ...store, sets: store.sets.map(item => item.id === next.id ? next : item) })); }
   function uniqueName(base: string) { let name = base; let suffix = 2; while (templates.store.sets.some(item => item.name === name)) name = `${base} ${suffix++}`; return name; }
@@ -183,7 +192,7 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
       const item = { id, name, kind, nodes: kind === "page" || kind === "post" ? [{ id: templateId(), type: "element" as const, element: "content" as const }] : [] };
       const next = kind === "page" || kind === "post" ? { ...set, templates: [...set.templates, item as PageTemplate] } : { ...set, parts: [...set.parts, item as TemplatePart] };
       const saved = templates.commit(store => ({ ...store, sets: store.sets.map(candidate => candidate.id === set.id ? next : candidate) }));
-      if (saved) setTargetId(id); return saved;
+      if (saved) changeSelection({ setId, targetId: id }); return saved;
     });
   }
   function renameTemplateEntry(setId: string, targetId: string) {

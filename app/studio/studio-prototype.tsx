@@ -42,7 +42,12 @@ export function StudioPrototype() {
   const studioSession = useStudioWorkspace();
   const [previewing, setPreviewing] = useState(false);
   const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup" | "bin">("content");
+  const [templateTarget, setTemplateTarget] = useState(() => {
+    const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
+    return { setId: query.get("set"), targetId: query.get("target") };
+  });
   const openTemplateTarget = (setId: string, targetId: string) => {
+    setTemplateTarget({ setId, targetId });
     setStudioSection("templates"); setPreviewing(false);
     window.history.pushState({}, "", `/studio?mode=templates&set=${encodeURIComponent(setId)}&target=${encodeURIComponent(targetId)}`);
   };
@@ -174,9 +179,10 @@ export function StudioPrototype() {
   function switchStudioMode(mode: "content" | "templates" | "bin") {
     if (!confirmCodeEditorDiscard()) return;
     setStudioSection(mode); setPreviewing(false); if (mode === "templates") setShowInserter(false);
-    const nextPath = mode === "templates" ? "/studio?mode=templates" : mode === "bin" ? "/studio?mode=bin" : "/studio";
-    const currentPath = `${window.location.pathname}${window.location.search}`;
-    if (currentPath !== nextPath) window.history.pushState({}, "", nextPath);
+    if (mode === "bin") {
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      if (currentPath !== "/studio?mode=bin") window.history.pushState({}, "", "/studio?mode=bin");
+    }
   }
   function selectDocument(document: StudioDocument) {
     if (!confirmCodeEditorDiscard()) return false;
@@ -476,7 +482,7 @@ export function StudioPrototype() {
       <div className="studio-notice" role="note"><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</div>
 
       <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" || studioSection === "bin" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`}>
-      {studioSection === "templates" ? <TemplateWorkspacePanel workspace={studioSession} templates={templateSession} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onSelectContentKind={(kind) => { setLibraryKind(kind); switchStudioMode("content"); }} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); window.history.replaceState({}, "", "/studio"); }} onExportContent={() => exportJson(workspace, "acm-studio-content.json")} /> : <>
+      {studioSection === "templates" ? <TemplateWorkspacePanel workspace={studioSession} templates={templateSession} selection={templateTarget} onSelectionChange={setTemplateTarget} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onSelectContentKind={(kind) => { setLibraryKind(kind); switchStudioMode("content"); }} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => { if (!confirmCodeEditorDiscard()) return; setStudioSection("backup"); setPreviewing(false); window.history.replaceState({}, "", "/studio"); }} onExportContent={() => exportJson(workspace, "acm-studio-content.json")} /> : <>
         <aside className="studio-library">
           <div className="library-create">
             <button type="button" onClick={() => addDocument("post")}><StudioIcon name="add" size={16} /> New post</button>
@@ -495,7 +501,7 @@ export function StudioPrototype() {
                 {kind === "page" ? "Pages" : "Posts"}<span>{workspace.documents.filter((item) => item.kind === kind).length}</span>
               </button>
             ))}
-            <button type="button" onClick={() => switchStudioMode("templates")}>Templates<span>{templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0)}</span></button>
+            <button className={studioSection === "templates" ? "is-active" : ""} type="button" aria-pressed={studioSection === "templates"} onClick={() => switchStudioMode("templates")}>Templates<span>{templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0)}</span></button>
           </div>
           <div className="document-list">
             {workspace.documents.filter((document) => document.kind === libraryKind).map((document) => (
