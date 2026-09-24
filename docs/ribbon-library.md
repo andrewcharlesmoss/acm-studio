@@ -4,7 +4,7 @@
 
 Open `/studio/ribbon` from Studio's tools or the main dashboard. The catalogue
 combines live shared-component specimens, isolated ACM Studio and ACM Account
-references, and 97 original ACM icons with 291 SVG variants. The inventory has
+references, and 106 original ACM icons with 318 SVG variants. The inventory has
 73 command/control entries, including conditional links, header controls,
 menu actions, text-only fields and state alternatives.
 
@@ -30,6 +30,10 @@ It is a command specimen, not a second drawing editor.
   a conditional command reveals its tab, scenario or menu first.
 - The independent sibling `acm-icons` owns editable masters, metadata, generated
   portable assets and the React adapter. Studio does not edit generated paths.
+- Studio's block hover toolbar, block transforms, alignment controls and rich-text
+  menus consume the shared ACM icon package. Their actions and accessible names
+  remain owned by Studio; the catalogue remains the review surface for the
+  reusable artwork.
 
 The catalogue shell uses the shared Inter typography baseline. Product specimens
 use observed Inter typography, 13px action labels, fixed 114px content panels,
@@ -53,7 +57,7 @@ snapshot revision/hashes and review the rendered result together.
 
 The shared workspace AGENTS.md and STYLE_GUIDE.md are unversioned; this work used
 governance commit `029d90672e94d69ceb12db07450197d07ffa96d1`. The current icon contract
-is [ACM icon specification v0.4.0](../../acm-icons/SPECIFICATION.md).
+is [ACM icon specification v0.5.0](../../acm-icons/SPECIFICATION.md).
 
 ## Local setup and verification
 

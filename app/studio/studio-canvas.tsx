@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type HTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
+import { AcmIcon, type IconName } from "@acm/icons/react";
 import { BlockRenderer } from "../components/content";
 import { ArticleMetaIcon } from "../components/article-meta-icon";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
@@ -9,7 +10,6 @@ import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeMathMLMarkup } from "../content/mathml";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
-import { AcmStudioIcon, type AcmStudioIconName } from "./acm-studio-icons";
 import { StudioIcon, type StudioIconName } from "./studio-icons";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
 import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
@@ -18,6 +18,10 @@ import { createBlock, type StudioDocument, type InsertableBlockType } from "./ed
 import type { StudioPresentation } from "./studio-presentation";
 import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBlock, parseHtmlToBlocks } from "./studio-html-editor";
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
+
+function StudioHoverIcon({ name, size = 24, vertical = false }: { name: IconName; size?: number; vertical?: boolean }) {
+  return <AcmIcon className={vertical ? "studio-hover-icon is-vertical" : "studio-hover-icon"} name={name} scale="Regular-M" size={size} />;
+}
 
 function blockLabel(type: ContentBlock["type"]) {
   if (type === "reading-time") return "Reading Time";
@@ -374,9 +378,9 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
     return "mixed";
   }
 
-  function formatMarkButton(block: EditableTextBlock, mark: Extract<TextMark, string>, label: string = mark, icon: AcmStudioIconName, buttonRef?: RefObject<HTMLButtonElement | null>) {
+  function formatMarkButton(block: EditableTextBlock, mark: Extract<TextMark, string>, label: string = mark, icon: IconName, buttonRef?: RefObject<HTMLButtonElement | null>) {
     const state = textMarkState(block, mark);
-    return <button ref={buttonRef} className={state === true ? "is-active" : state === "mixed" ? "is-mixed" : ""} type="button" role="menuitemcheckbox" onMouseDown={preserveTextSelection} onClick={() => { restoreRichTextMenuFocusBlockIdRef.current = block.id; formatSelectedText(block, mark); setRichTextMenuBlockId(null); }} aria-checked={state} aria-label={`${label} selected text`} title={label}><AcmStudioIcon name={icon} size={20} /><span>{label}</span></button>;
+    return <button ref={buttonRef} className={state === true ? "is-active" : state === "mixed" ? "is-mixed" : ""} type="button" role="menuitemcheckbox" onMouseDown={preserveTextSelection} onClick={() => { restoreRichTextMenuFocusBlockIdRef.current = block.id; formatSelectedText(block, mark); setRichTextMenuBlockId(null); }} aria-checked={state} aria-label={`${label} selected text`} title={label}><StudioHoverIcon name={icon} size={20} /><span>{label}</span></button>;
   }
 
   function openRichTextAction(block: EditableTextBlock, kind: NonNullable<typeof richTextActionDialog>["kind"]) {
@@ -650,10 +654,10 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                   >
                     <div className="canvas-block-toolbar">
                       <BlockTransformControl block={block} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} />
-                      <button className="drag-handle" type="button" draggable onClick={() => onSelectBlock(block.id)} onDragStart={(event) => { event.stopPropagation(); draggingIndexRef.current = index; onSetDragOverIndex(null); }} onDragEnd={() => { draggingIndexRef.current = null; onSetDragOverIndex(null); }} aria-label={`Drag to reorder ${blockLabel(block.type)} block`} title="Drag to reorder block"><StudioIcon name="drag-handle" /></button>
+                      <button className="drag-handle" type="button" draggable onClick={() => onSelectBlock(block.id)} onDragStart={(event) => { event.stopPropagation(); draggingIndexRef.current = index; onSetDragOverIndex(null); }} onDragEnd={() => { draggingIndexRef.current = null; onSetDragOverIndex(null); }} aria-label={`Drag to reorder ${blockLabel(block.type)} block`} title="Drag to reorder block"><StudioHoverIcon name="arrange.reorder" /></button>
                       <div className="block-move-controls" role="group" aria-label="Move block">
-                        <button className="move-block-up" type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, -1); }} disabled={index === 0} aria-label="Move block up" title="Move up"><StudioIcon name="chevron-down" /></button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, 1); }} disabled={index === activeDocument.blocks.length - 1} aria-label="Move block down" title="Move down"><StudioIcon name="chevron-down" /></button>
+                        <button className="move-block-up" type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, -1); }} disabled={index === 0} aria-label="Move block up" title="Move up"><StudioHoverIcon name="arrange.move-up" /></button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); onMoveBlock(index, 1); }} disabled={index === activeDocument.blocks.length - 1} aria-label="Move block down" title="Move down"><StudioHoverIcon name="arrange.move-down" /></button>
                       </div>
                       {block.type === "heading" ? <div className="heading-level-control"><button className="heading-level-button" type="button" onMouseDown={preserveTextSelection} onClick={() => setHeadingMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={headingMenuBlockId === block.id} aria-label={`Heading level ${block.level}`}><strong>H{block.level}</strong><StudioIcon name="chevron-down" size={18} /></button>{headingMenuBlockId === block.id ? <div className="heading-level-menu" role="menu" aria-label="Heading level">{[1, 2, 3, 4, 5, 6].map((level) => <button className={level === block.level ? "is-active" : ""} type="button" role="menuitem" key={level} onMouseDown={preserveTextSelection} onClick={() => { onUpdateBlock(block.id, () => ({ ...block, level: level as HeadingLevel })); setHeadingMenuBlockId(null); }}><strong>H{level}</strong><span>Heading {level}</span></button>)}</div> : null}</div> : block.type === "table" ? <div className="table-control"><button className={`table-control-button${tableMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => setTableMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={tableMenuBlockId === block.id} aria-label="Table options" title="Table options"><TableIcon /></button>{tableMenuBlockId === block.id ? <div className="table-menu" role="menu" aria-label="Table options">
                         <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => updateTable(block, "insert-row-before")}><TableActionIcon action="insert-row-before" /><span>Insert row before</span></button>
@@ -664,11 +668,11 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                         <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => updateTable(block, "delete-column")}><TableActionIcon action="delete-column" /><span>Delete column</span></button>
                       </div> : null}</div> : null}
                       {isEditableTextBlock(block) ? <div className="canvas-format-actions" aria-label="Text formatting">
-                        <div className="alignment-control"><button className={`alignment-button${alignmentMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => setAlignmentMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={alignmentMenuBlockId === block.id} aria-label="Text alignment" title="Text alignment"><AlignmentIcon align={block.align ?? "left"} /><StudioIcon name="chevron-down" size={16} /></button>{alignmentMenuBlockId === block.id ? <div className="alignment-menu" role="menu" aria-label="Text alignment">{(["left", "centre", "right"] as TextAlignment[]).map((align) => <button className={block.align === align || (!block.align && align === "left") ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={block.align === align || (!block.align && align === "left")} key={align} onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, align)}><AlignmentIcon align={align} /><span>Align text {align}</span></button>)}</div> : null}</div>
-                        <button className={textMarkState(block, "bold") === true ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-pressed={textMarkState(block, "bold")} aria-label="Bold selected text" title="Bold"><StudioIcon name="format-bold" /></button>
-                        <button className={textMarkState(block, "italic") === true ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "italic")} aria-pressed={textMarkState(block, "italic")} aria-label="Italicise selected text" title="Italic"><StudioIcon name="format-italic" /></button>
-                        <button type="button" onMouseDown={(event) => { preserveTextSelection(event); openLinkEditor(block); }} aria-label="Add hyperlink to selected text" title="Add hyperlink"><StudioIcon name="link" /></button>
-                        <div className="rich-text-format-control"><button ref={element => { richTextMenuTriggerRefs.current[block.id] = element; }} type="button" onMouseDown={preserveTextSelection} onClick={() => setRichTextMenuBlockId(current => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={richTextMenuBlockId === block.id} aria-label="More text formatting" title="More text formatting"><StudioIcon name="more-vertical" /></button>{richTextMenuBlockId === block.id ? <div className="rich-text-format-menu" role="menu" aria-label="More text formatting" onKeyDown={event => {
+                        <div className="alignment-control"><button className={`alignment-button${alignmentMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => setAlignmentMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={alignmentMenuBlockId === block.id} aria-label="Text alignment" title="Text alignment"><AlignmentIcon align={block.align ?? "left"} /><StudioHoverIcon name="navigation.disclosure" size={16} /></button>{alignmentMenuBlockId === block.id ? <div className="alignment-menu" role="menu" aria-label="Text alignment">{(["left", "centre", "right"] as TextAlignment[]).map((align) => <button className={block.align === align || (!block.align && align === "left") ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={block.align === align || (!block.align && align === "left")} key={align} onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, align)}><AlignmentIcon align={align} /><span>Align text {align}</span></button>)}</div> : null}</div>
+                        <button className={textMarkState(block, "bold") === true ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-pressed={textMarkState(block, "bold")} aria-label="Bold selected text" title="Bold"><StudioHoverIcon name="text.bold" /></button>
+                        <button className={textMarkState(block, "italic") === true ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "italic")} aria-pressed={textMarkState(block, "italic")} aria-label="Italicise selected text" title="Italic"><StudioHoverIcon name="text.italic" /></button>
+                        <button type="button" onMouseDown={(event) => { preserveTextSelection(event); openLinkEditor(block); }} aria-label="Add hyperlink to selected text" title="Add hyperlink"><StudioHoverIcon name="action.link" /></button>
+                        <div className="rich-text-format-control"><button ref={element => { richTextMenuTriggerRefs.current[block.id] = element; }} type="button" onMouseDown={preserveTextSelection} onClick={() => setRichTextMenuBlockId(current => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={richTextMenuBlockId === block.id} aria-label="More text formatting" title="More text formatting"><StudioHoverIcon name="action.more" vertical /></button>{richTextMenuBlockId === block.id ? <div className="rich-text-format-menu" role="menu" aria-label="More text formatting" onKeyDown={event => {
                           if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); restoreRichTextMenuFocusBlockIdRef.current = block.id; setRichTextMenuBlockId(null); return; }
                           if (event.key === "Tab") {
                             event.preventDefault();
@@ -686,16 +690,16 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                           else if (event.key === "End") nextIndex = items.length - 1;
                           if (nextIndex !== null && items.length) { event.preventDefault(); items[nextIndex]?.focus(); }
                         }}>
-                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "footnote")}><AcmStudioIcon name="footnote" size={20} /><span>Footnote</span></button>
-                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "highlight")}><AcmStudioIcon name="highlight" size={20} /><span>Highlight</span></button>
-                          {formatMarkButton(block, "inline-code", "Inline code", "inline-code")}
-                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => { const selection = currentTextSelection(block.id); if (selection) { restoreRichTextMenuFocusBlockIdRef.current = block.id; setRichTextMenuBlockId(null); onOpenInlineImage?.(block.id, selection); } }}><AcmStudioIcon name="inline-image" size={20} /><span>Inline image</span></button>
-                          {formatMarkButton(block, "keyboard", "Keyboard input", "keyboard")}
-                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "language")}><AcmStudioIcon name="language" size={20} /><span>Language</span></button>
-                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "math")}><AcmStudioIcon name="math" size={20} /><span>Math</span></button>
-                          {formatMarkButton(block, "strikethrough", "Strikethrough", "strikethrough", richTextMenuItemRef)}
-                          {formatMarkButton(block, "subscript", "Subscript", "subscript")}
-                          {formatMarkButton(block, "superscript", "Superscript", "superscript")}
+                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "footnote")}><StudioHoverIcon name="text.footnote" size={20} /><span>Footnote</span></button>
+                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "highlight")}><StudioHoverIcon name="insert.highlight" size={20} /><span>Highlight</span></button>
+                          {formatMarkButton(block, "inline-code", "Inline code", "text.code")}
+                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => { const selection = currentTextSelection(block.id); if (selection) { restoreRichTextMenuFocusBlockIdRef.current = block.id; setRichTextMenuBlockId(null); onOpenInlineImage?.(block.id, selection); } }}><StudioHoverIcon name="insert.image" size={20} /><span>Inline image</span></button>
+                          {formatMarkButton(block, "keyboard", "Keyboard input", "text.keyboard")}
+                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "language")}><StudioHoverIcon name="text.language" size={20} /><span>Language</span></button>
+                          <button type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openRichTextAction(block, "math")}><StudioHoverIcon name="text.math" size={20} /><span>Math</span></button>
+                          {formatMarkButton(block, "strikethrough", "Strikethrough", "text.strikethrough", richTextMenuItemRef)}
+                          {formatMarkButton(block, "subscript", "Subscript", "text.subscript")}
+                          {formatMarkButton(block, "superscript", "Superscript", "text.superscript")}
                         </div> : null}
                         {richTextActionDialog?.blockId === block.id ? <form className="rich-text-action-dialog" role="dialog" aria-label={`${richTextActionDialog.kind} selected text`} onSubmit={applyRichTextAction} onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); closeRichTextActionDialog(block.id); } }}>
                           <strong>{richTextActionDialog.kind === "highlight" ? "Highlight" : richTextActionDialog.kind === "language" ? "Language" : richTextActionDialog.kind === "math" ? "Inline math" : "Footnote"}</strong>
@@ -709,10 +713,10 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                       </div>
                       </div> : null}
                       <div className="canvas-block-actions">
-                        <button type="button" onClick={(event) => { event.stopPropagation(); onDuplicateBlock(index); }} aria-label="Duplicate block" title="Duplicate block"><StudioIcon name="copy" /></button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); onRemoveBlock(block.id); }} aria-label="Remove block" title="Remove block"><StudioIcon name="close" /></button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); onDuplicateBlock(index); }} aria-label="Duplicate block" title="Duplicate block"><StudioHoverIcon name="action.duplicate" /></button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); onRemoveBlock(block.id); }} aria-label="Remove block" title="Remove block"><StudioHoverIcon name="action.close" /></button>
                         <div className="block-options-control">
-                          <button ref={(element) => { if (element && blockMenuBlockId === block.id) htmlEditorTriggerRef.current = element; }} className={blockMenuBlockId === block.id ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={(event) => { event.stopPropagation(); htmlEditorTriggerRef.current = event.currentTarget; setBlockMenuBlockId((current) => current === block.id ? null : block.id); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); setBlockMenuBlockId(null); } }} aria-haspopup="menu" aria-expanded={blockMenuBlockId === block.id} aria-label="More block options" title="More options"><StudioIcon name="more-vertical" /></button>
+                          <button ref={(element) => { if (element && blockMenuBlockId === block.id) htmlEditorTriggerRef.current = element; }} className={blockMenuBlockId === block.id ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={(event) => { event.stopPropagation(); htmlEditorTriggerRef.current = event.currentTarget; setBlockMenuBlockId((current) => current === block.id ? null : block.id); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); setBlockMenuBlockId(null); } }} aria-haspopup="menu" aria-expanded={blockMenuBlockId === block.id} aria-label="More block options" title="More options"><StudioHoverIcon name="action.more" vertical /></button>
                           {blockMenuBlockId === block.id ? <div className="block-options-menu" role="menu" tabIndex={-1} aria-label="Block options" onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); setBlockMenuBlockId(null); } }}>
                             <button ref={blockMenuItemRef} type="button" role="menuitem" onMouseDown={preserveTextSelection} onClick={() => openHtmlEditor(block)} disabled={!allowHtmlEditing}>{allowHtmlEditing ? "Edit as HTML" : "HTML editing unavailable for templates"}</button>
                           </div> : null}
@@ -965,12 +969,13 @@ function LinkPreviewPopover({ editor, onEdit, onRemove }: { editor: LinkEditorSt
 function BlockTransformControl({ block, open, onOpenChange, onTransform }: { block: ContentBlock; open: boolean; onOpenChange: (open: boolean) => void; onTransform: (transform: BlockTransform) => void }) {
   const transforms = availableBlockTransforms(block);
   if (!transforms.length) return null;
-  return <div className="transform-control"><button className={open ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockLabel(block.type)} block`} title="Transform block"><BlockTypeIcon type={block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <div className="transform-menu" role="menu" aria-label="Transform block"><strong>Transform to</strong>{transforms.map((transform) => <button type="button" role="menuitem" key={transform.id} onMouseDown={preserveTextSelection} onClick={() => onTransform(transform)}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</div> : null}</div>;
+  return <div className="transform-control"><button className={open ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockLabel(block.type)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <div className="transform-menu" role="menu" aria-label="Transform block"><strong>Transform to</strong>{transforms.map((transform) => <button type="button" role="menuitem" key={transform.id} onMouseDown={preserveTextSelection} onClick={() => onTransform(transform)}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</div> : null}</div>;
 }
 
 function TransformIcon({ transform }: { transform: BlockTransform }) {
   if (transform.target === "heading" && transform.level) return <span className="studio-heading-icon" aria-hidden="true">H{transform.level}</span>;
-  return <StudioIcon name={transform.icon} />;
+  const icons: Record<BlockTransform["target"], IconName> = { heading: "text.heading", list: "text.list-bulleted", paragraph: "text.paragraph", quote: "text.quote" };
+  return <StudioHoverIcon name={icons[transform.target]} />;
 }
 
 function BlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"] | "template-content"; headingLevel?: HeadingLevel }) {
@@ -979,6 +984,16 @@ function BlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"] | "t
   if (type === "heading") return <span className="studio-heading-icon" aria-hidden="true">H{headingLevel ?? 2}</span>;
   if (type === "table") return <TableIcon />;
   return <StudioIcon name={icons[type] ?? "block"} />;
+}
+
+function HoverBlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"] | "template-content"; headingLevel?: HeadingLevel }) {
+  if (type === "paragraph") return <StudioHoverIcon name="text.paragraph" />;
+  if (type === "list") return <StudioHoverIcon name="text.list-bulleted" />;
+  if (type === "quote") return <StudioHoverIcon name="text.quote" />;
+  if (type === "code") return <StudioHoverIcon name="text.code" />;
+  if (type === "image") return <StudioHoverIcon name="insert.image" />;
+  if (type === "heading") return <span className="studio-heading-icon" aria-hidden="true">H{headingLevel ?? 2}</span>;
+  return <BlockTypeIcon type={type} headingLevel={headingLevel} />;
 }
 
 function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: InsertableBlockType) => void; onDismiss: () => void }) {
@@ -1612,7 +1627,8 @@ function editorToRuns(editor: HTMLElement) {
 }
 
 function AlignmentIcon({ align }: { align: TextAlignment }) {
-  return <StudioIcon name={align === "centre" ? "align-centre" : align === "right" ? "align-right" : "align-left"} />;
+  const icons: Record<TextAlignment, IconName> = { left: "text.align-left", centre: "text.align-centre", right: "text.align-right" };
+  return <StudioHoverIcon name={icons[align]} />;
 }
 
 // Native textareas include glyph overflow in their height. Apply the same

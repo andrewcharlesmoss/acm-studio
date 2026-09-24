@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Changed
+- Aligned block hover and rich-text menu icons with the shared ACM icon library,
+  adding the missing reorder and text-formatting symbols there.
 - Replaced Gutenberg-derived Studio and table icon paths with original ACM
   artwork while preserving their names, meanings and control sizes. Removed the
   Gutenberg icon attribution and licence files after the source paths were

@@ -246,20 +246,20 @@ test("document cover actions only render when handlers are available", async () 
   assert.match(source, /onRemoveCoverImage \? <button className="cover-action-button is-destructive"/);
 });
 
-test("block hover controls group the source-faithful move chevrons vertically", async () => {
+test("block hover controls use the shared ACM move chevrons vertically", async () => {
   const [canvas, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
   assert.match(canvas, /className="block-move-controls" role="group" aria-label="Move block"/);
-  assert.equal((canvas.match(/StudioIcon name="chevron-down"/g) ?? []).length >= 2, true);
+  assert.match(canvas, /StudioHoverIcon name="arrange\.move-up"/);
+  assert.match(canvas, /StudioHoverIcon name="arrange\.move-down"/);
   assert.match(styles, /\.block-move-controls \{[^}]*grid-template-rows: repeat\(2, 18px\)/);
   assert.match(styles, /\.canvas-block-toolbar \{[^}]*background: var\(--studio-toolbar-background\)/s);
   assert.match(styles, /\.canvas-block-toolbar \{[^}]*border: 1px solid var\(--studio-toolbar-border\)/s);
   assert.match(styles, /\.canvas-block-toolbar button \{[^}]*height: 30px[^}]*width: 30px/);
   assert.match(styles, /\.canvas-block-toolbar button:focus-visible \{[^}]*outline:/);
   assert.match(styles, /\.canvas-block-actions \{[^}]*align-items: center[^}]*display: flex/);
-  assert.match(styles, /\.move-block-up svg \{ transform: rotate\(180deg\); \}/);
   const order = [
     canvas.indexOf("<BlockTransformControl"),
     canvas.indexOf('className="drag-handle"'),
@@ -345,17 +345,29 @@ test("document settings keep WordPress-like fields separate from Studio-specific
   assert.match(styles, /\.inspector-tabs \{[^}]*grid-template-columns: repeat\(4, 1fr\)/);
 });
 
-test("text blocks expose the source-faithful Gutenberg transform control", async () => {
-  const [canvas, transforms, icons] = await Promise.all([
+test("text block hover controls use shared ACM icons", async () => {
+  const [canvas, transforms, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/block-transforms.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/studio/studio-icons.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
   assert.match(canvas, /aria-label=\{`Transform \$\{blockLabel\(block\.type\)\} block`\}/);
+  assert.match(canvas, /import \{ AcmIcon, type IconName \} from "@acm\/icons\/react"/);
+  assert.match(canvas, /StudioHoverIcon name="text\.paragraph"/);
+  assert.match(canvas, /StudioHoverIcon name="text\.bold"/);
+  assert.match(canvas, /StudioHoverIcon name="text\.italic"/);
+  assert.match(canvas, /StudioHoverIcon name="action\.link"/);
+  assert.match(canvas, /StudioHoverIcon name="text\.footnote"/);
+  assert.match(canvas, /formatMarkButton\(block, "keyboard", "Keyboard input", "text\.keyboard"\)/);
+  assert.match(canvas, /StudioHoverIcon name="text\.language"/);
+  assert.match(canvas, /StudioHoverIcon name="text\.math"/);
+  assert.match(canvas, /formatMarkButton\(block, "subscript", "Subscript", "text\.subscript"\)/);
+  assert.match(canvas, /formatMarkButton\(block, "superscript", "Superscript", "text\.superscript"\)/);
   assert.match(canvas, /Transform to/);
   assert.match(transforms, /availableBlockTransforms/);
   assert.match(transforms, /transformBlock/);
-  assert.match(icons, /Source revision: 1addb122219043a1ac1c38f817c71255ae16d6e3/);
+  assert.match(styles, /\.canvas-block-toolbar > div \{ align-items: center; display: flex; \}/);
+  assert.match(styles, /\.canvas-block-toolbar button > svg \{ display: block; flex: 0 0 auto; \}/);
 });
 
 test("auto-height fields avoid observing the element they resize", async () => {

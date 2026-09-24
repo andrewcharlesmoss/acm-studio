@@ -32,11 +32,14 @@ These dimensions are a visual reference; its artwork comes from the ACM icon
 collection. Keep the menu compact and do not infer CSS sizes from Retina
 screenshots.
 
-Studio interaction controls use original ACM artwork through the reusable
-`app/studio/acm-studio-icons.tsx` module. Keep SVG geometry in that module and
-preserve the `StudioIcon` and table-icon wrappers as compatibility APIs. Use
-familiar icon meanings while drawing distinct ACM shapes; do not trace or copy
-third-party paths.
+Studio interaction controls use original ACM artwork. The block hover toolbar,
+block transform menu, alignment menu and rich-text formatting menu consume
+product-neutral symbols from the sibling `@acm/icons` package, adding a symbol
+there when the reusable library has no suitable match. Use its React adapter
+and optical scales; do not redraw those symbols locally. Other Studio controls
+use the reusable `app/studio/acm-studio-icons.tsx` module. Preserve the
+`StudioIcon` and table-icon wrappers as compatibility APIs. Do not trace or
+copy third-party paths.
 
 The approved Ribbon Library at `/studio/ribbon` and its navigation entries use
 original ACM symbols from the sibling `@acm/icons` package. This scoped direction
