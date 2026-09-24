@@ -15,6 +15,7 @@ import type { MediaAsset } from "./media-store";
 import { studioWriteOwnership } from "./write-ownership";
 import { studioConflictDetails } from "./studio-sync-description";
 import { StudioListContextMenu, type StudioListContextMenuTarget } from "./studio-list-context-menu";
+import type { StudioDocumentKind } from "./editor-model";
 
 type NameDialog = { title: string; name: string; confirm: (name: string) => boolean | void };
 export type TemplateWorkspaceSession = ReturnType<typeof useStudioWorkspace>;
@@ -40,15 +41,17 @@ export function TemplateWorkspace() {
   return <TemplateWorkspacePanel workspace={workspace} templates={templates} standalone />;
 }
 
-export function TemplateWorkspacePanel({ workspace, templates, standalone = false, selection, onSelectionChange, manageHistoryShortcuts = true, onBackToContent, onSelectContentKind, onOpenFiles, onOpenBackup, onExportContent }: {
+export function TemplateWorkspacePanel({ workspace, templates, standalone = false, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, manageHistoryShortcuts = true, onBackToContent, onOpenFiles, onOpenBackup, onExportContent }: {
   workspace: TemplateWorkspaceSession;
   templates: TemplateStoreSession;
   standalone?: boolean;
   selection?: { setId: string | null; targetId: string | null };
   onSelectionChange?: (selection: { setId: string | null; targetId: string | null }) => void;
+  libraryKind?: StudioDocumentKind | "templates";
+  onSelectLibraryKind?: (kind: StudioDocumentKind | "templates") => void;
+  onSelectDocument?: (documentId: string) => void;
   manageHistoryShortcuts?: boolean;
   onBackToContent?: () => void;
-  onSelectContentKind?: (kind: "page" | "post") => void;
   onOpenFiles?: () => void;
   onOpenBackup?: () => void;
   onExportContent?: () => void;
@@ -320,9 +323,9 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
         <button className="library-tool-button" type="button" onClick={onOpenBackup}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
         <a className="library-tool-button" href="/studio?mode=bin"><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
         <div className="library-tabs" aria-label="Content type">
-          <button type="button" onClick={() => onSelectContentKind?.("page")}>Pages<span>{workspace.workspace.documents.filter(item => item.kind === "page").length}</span></button>
-          <button type="button" onClick={() => onSelectContentKind?.("post")}>Posts<span>{workspace.workspace.documents.filter(item => item.kind === "post").length}</span></button>
-          <button className="is-active" type="button" onClick={library}>Templates<span>{templateEntryCount}</span></button>
+          <button className={libraryKind === "page" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "page"} onClick={() => onSelectLibraryKind?.("page")}>Pages<span>{workspace.workspace.documents.filter(item => item.kind === "page").length}</span></button>
+          <button className={libraryKind === "post" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "post"} onClick={() => onSelectLibraryKind?.("post")}>Posts<span>{workspace.workspace.documents.filter(item => item.kind === "post").length}</span></button>
+          <button className={libraryKind === "templates" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "templates"} onClick={() => onSelectLibraryKind?.("templates")}>Templates<span>{templateEntryCount}</span></button>
         </div>
       </> : <>
         <a className="library-tool-button" href="/studio"><span><StudioIcon name="pencil" /></span><strong>Content</strong><small>Pages and posts</small></a>
@@ -330,12 +333,17 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
         <button className="library-tool-button is-active" type="button" onClick={library}><span><StudioIcon name="block" /></span><strong>Templates</strong><small>Shared presentation</small></button>
       </>}
       {onBackToContent ? <div className="document-list template-document-list">
+        {libraryKind === "templates" ? <>
         {templateEntries.map(({ set: item, entry }) => <button className={`document-item template-target-item${item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
           <span className="document-kind-mark">{entry.kind === "post" ? "A" : entry.kind === "page" ? "P" : "H"}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />
         </button>)}
         {templateContextMenu ? <StudioListContextMenu target={templateContextMenu} actions={templateContextMenuActions} canDelete={writable && Boolean(templateContextMenuEntry) && !templateContextMenuDeleteReason} returnFocusRef={templateContextMenuTriggerRef} onDelete={() => deleteTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId)} onClose={closeTemplateContextMenu} /> : null}
+        </> : workspace.workspace.documents.filter(document => document.kind === libraryKind).map(document => <button className={`document-item${document.id === workspace.workspace.activeDocumentId ? " is-active" : ""}`} type="button" key={document.id} onClick={() => onSelectDocument?.(document.id)}>
+          <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span><span><strong>{document.title}</strong><small>/{document.slug}</small></span><i className={`document-status is-${document.status}`} aria-label={document.status} />
+        </button>)}
+        {libraryKind !== "templates" && !workspace.workspace.documents.some(document => document.kind === libraryKind) ? <p className="document-list-empty">No {libraryKind === "page" ? "pages" : "posts"} yet.</p> : null}
       </div> : null}
-      {set ? <fieldset disabled={!writable}><legend>Add template</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div></fieldset> : null}
+      {set && libraryKind === "templates" ? <fieldset disabled={!writable}><legend>Add template</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div></fieldset> : null}
       {onBackToContent ? <><SiteNavigation /><div className="library-footer"><button type="button" onClick={onExportContent}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div></> : null}
     </aside>
     {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : "Template image"} targetKind="block" onInsertImage={insertMedia} /></section> : set && target ? <TemplateEditor key={target.id} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} writable={writable} onChange={changeSet} onEditPart={id => openSet(set, id)} onOpenMedia={(blockId, logo = false) => setMediaTarget({ blockId, logo })} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : standalone ? <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Site templates</h1><p>Create a consistent page and post design. Each set has its own shared parts, identity and styles.</p><div className="template-library-actions"><button className="button-primary" type="button" disabled={!writable} onClick={createSet}><StudioIcon name="add" />Create Template Set</button><button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button><div className="template-set-grid">{templates.store.sets.map(renderTemplateSetCard)}</div>{!templates.store.sets.length && templates.ready ? <p>No template sets yet. Create one to start with the neutral ACM design.</p> : null}</div>{templateSetContextMenu ? (() => { const item = templates.store.sets.find(candidate => candidate.id === templateSetContextMenu.setId); const blockedReason = item ? templateSetDeleteBlockReason(item.id) : "This template set is no longer available."; return <TemplateSetActionsMenu target={templateSetContextMenu} canDelete={Boolean(item && writable && !blockedReason)} disabledReason={!writable ? "Editing is unavailable in this tab." : blockedReason} onDelete={() => { if (item) deleteSetFromContextMenu(item); }} onClose={closeTemplateSetContextMenu} />; })() : null}</section> : <section className="template-library template-empty-state" style={{ gridColumn: "span 2" }}><h1>Select a template</h1><p>Choose a Page, Post or shared part from the Templates list.</p></section>}
