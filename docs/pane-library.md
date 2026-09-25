@@ -55,9 +55,10 @@ This is an internal Studio module, not a published package.
   matching the Ribbon Skeleton's 3px underline with 16px label insets. The
   optional `indicatorVariant="hover"` keeps that same selected underline and
   adds an identically sized underline to hovered or keyboard-focused tabs. Both
-  variants use the Ribbon-style rounded hover surface and retain the same
-  layout and focus behaviour. Space-constrained Studio Navigation uses a 4px
-  inset so all three labels and their count badges remain visible.
+  variants use the Ribbon-style rounded hover surface with matching vertical
+  depth and retain the same layout and focus behaviour. Space-constrained
+  Studio Navigation uses a 4px inset to keep all three tab labels and counts
+  visible.
 
 The pane container stays mounted when collapsed. Hidden content is outside
 keyboard navigation; focus within a collapsing pane moves to its edge button.
