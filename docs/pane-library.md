@@ -13,13 +13,14 @@ structural demonstrations, not live product data or commands.
 All interactions are temporary React state. Reset Demo resets both specimens'
 fields, tabs, selection, collapse state and scrolling, and restores Normal
 content. Presentation controls (layout, optional regions, preview width,
-boundaries and the second specimen) remain as chosen. Reload restores everything.
+tab indicator, boundaries and the second specimen) remain as chosen. Reload
+restores everything.
 Catalogue fixtures never import product stores, claim write ownership, call
 product APIs, or read/write browser persistence. No real documents, designs or
 media are involved. Product data, commands, persistence and pane-specific
 interaction remain owned by their existing features.
 
-## Internal component contract — v0.3.0
+## Internal component contract — v1.0.0
 
 The compatibility contract covers the React props, slots, accessible behaviour
 and CSS tokens in `app/studio/panes/pane-components.tsx` and its scoped CSS.
@@ -47,9 +48,12 @@ This is an internal Studio module, not a published package.
   controlled active value. All panels remain mounted; inactive panels are
   hidden. Disabled tabs are skipped. Arrow keys wrap; Home/End choose the
   first/last enabled tab. `PaneTabs` accepts a custom label renderer for
-  product counts and other non-interactive decoration. The shared tab styles
-  provide the same hover and visible-focus underline across product panes and
-  catalogue examples.
+  product counts and other non-interactive decoration. The default
+  `indicatorVariant="selected"` draws the underline only on the active tab,
+  matching the Ribbon Skeleton. The optional `indicatorVariant="hover"` keeps
+  that same selected underline and adds a subtle label-sized underline on
+  hover or keyboard focus. Both variants retain the same hover surface, layout
+  and focus behaviour.
 
 The pane container stays mounted when collapsed. Hidden content is outside
 keyboard navigation; focus within a collapsing pane moves to its edge button.

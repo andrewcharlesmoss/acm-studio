@@ -16,6 +16,7 @@ export function PaneCatalogue() {
   const [layout, setLayout] = useState<"both" | "left" | "right">("both");
   const [options, setOptions] = useState(defaultRegions);
   const [content, setContent] = useState<"normal" | "empty" | "long">("normal");
+  const [indicatorVariant, setIndicatorVariant] = useState<"selected" | "hover">("selected");
   const [width, setWidth] = useState("available");
   const [boundaries, setBoundaries] = useState(false);
   const [selected, setSelected] = useState("workspace");
@@ -53,7 +54,7 @@ export function PaneCatalogue() {
 
   function chooseSection(next: CatalogueSection) { setSection(next); setSelected("workspace"); }
   function reset() { setRevision((value) => value + 1); setContent("normal"); }
-  const specimen = <PaneSpecimen key={specimenKey} definition={definition} regions={regions} layout={actualLayout} content={content} studio={studio} />;
+  const specimen = <PaneSpecimen key={specimenKey} definition={definition} regions={regions} layout={actualLayout} content={content} studio={studio} indicatorVariant={indicatorVariant} />;
 
   return <main className="pl-catalogue">
     <header className="pl-header"><a href="/studio"><StudioIcon name="arrow-left" size={20} />ACM Studio</a><strong>Pane Library</strong><span className="pl-badge">Skeletons · v{paneContractVersion}</span></header>
@@ -71,6 +72,7 @@ export function PaneCatalogue() {
         <div className="pl-preview-tools">
           <label className="pl-check"><input type="checkbox" checked={boundaries} onChange={(event) => setBoundaries(event.target.checked)} />Show Boundaries</label>
           <label className="pl-field">Content<select value={content} onChange={(event) => setContent(event.target.value as typeof content)}><option value="normal">Normal</option><option value="empty">Empty</option><option value="long">Long</option></select></label>
+          {regions.tabs && <label className="pl-field">Tab Indicator<select value={indicatorVariant} onChange={(event) => setIndicatorVariant(event.target.value as typeof indicatorVariant)}><option value="selected">Selected Only</option><option value="hover">Selected + Hover</option></select></label>}
           <label className="pl-field">Preview Width<select value={width} onChange={(event) => setWidth(event.target.value)}><option value="available">Available Width</option><option value="1280">1280px</option><option value="768">768px</option><option value="390">390px</option></select></label>
           <button className="pl-button" type="button" onClick={reset}><StudioIcon name="undo" size={18} />Reset Demo</button>
         </div>
@@ -83,7 +85,7 @@ export function PaneCatalogue() {
         <label className="pl-check"><input type="checkbox" checked={second} onChange={(event) => setSecond(event.target.checked)} />Show Second Independent Specimen</label>
         {/* The second specimen needs the same keyboard scrolling entry point. */}
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-        {second && <div className="pl-preview-viewport pl-second" role="region" aria-label="Second Scrollable Pane Preview" tabIndex={0}><PaneSpecimen key={`second-${specimenKey}`} definition={definition} regions={regions} layout={actualLayout} content={content} studio={studio} /></div>}
+        {second && <div className="pl-preview-viewport pl-second" role="region" aria-label="Second Scrollable Pane Preview" tabIndex={0}><PaneSpecimen key={`second-${specimenKey}`} definition={definition} regions={regions} layout={actualLayout} content={content} studio={studio} indicatorVariant={indicatorVariant} /></div>}
         <details className="pl-source"><summary>Source reference · {snapshots.commit.slice(0, 7)}</summary><p>Captured {snapshots.capturedAt}. Structural examples with isolated sample state; live Studio panes use the same shared Pane components.</p>{studio && <p>{definition.sourceComponent} · {definition.width}px<br /><code>{definition.source}</code></p>}<p>Fixed headers, consistent spacing and always-available edge controls are shared structure; product data and actions remain feature-owned.</p><ul>{snapshots.files.map((file) => <li key={file.path}><code>{file.path}</code><br /><span className="pl-hash">SHA-256 {file.sha256}</span></li>)}</ul></details>
       </section>
       <aside className="pl-inspector" aria-label="Pane Structure Inspector"><p className="pl-eyebrow">Structure inspector</p><h2>{selection.label}</h2><p>{selection.description}</p><h3>Rendered Size</h3><p aria-live="polite">{metrics.dimensions}</p><h3>Computed Tokens</h3><p className="pl-muted">Read from the selected rendered region. Inspection applies to the first specimen.</p><dl>{Object.entries(metrics.tokens).map(([name, value]) => <div key={name}><dt>{name.replace("--pane-", "")}</dt><dd>{value || "Not set"}</dd></div>)}</dl></aside>

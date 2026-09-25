@@ -3,8 +3,9 @@
 ## Unreleased
 
 ### Changed
-- Applied the Pane Library tab hover underline consistently to Studio
-  navigation, inspector and Design Canvas tabs.
+- Made selected-only tab underlines the default across Studio panes, with an
+  optional hover underline variant in the Pane Library preview. Design Canvas
+  Ribbon tabs now follow the Ribbon Skeleton’s selected-tab indicator.
 - Aligned block hover and rich-text menu icons with the shared ACM icon library,
   adding the missing reorder and text-formatting symbols there.
 - Replaced Gutenberg-derived Studio and table icon paths with original ACM

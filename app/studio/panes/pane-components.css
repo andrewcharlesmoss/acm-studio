@@ -64,8 +64,8 @@
 .pane-tabs button:not(:disabled):is(:hover, :focus-visible) .pane-tab-label::before { background: var(--pane-hover, #eceae3); }
 .pane-tabs .pane-tab-label::after { position: absolute; right: -4px; bottom: 0; left: -4px; height: 2px; border-radius: 999px; background: transparent; content: ""; transition: left .12s ease, right .12s ease, background-color .12s ease; }
 .pane-tabs [aria-selected="true"] .pane-tab-label::after { background: #555; }
-.pane-tabs button:not(:disabled):is(:hover, :focus-visible) .pane-tab-label::after { right: -6px; left: -6px; background: #b8b6ae; }
-.pane-tabs button[aria-selected="true"]:not(:disabled):is(:hover, :focus-visible) .pane-tab-label::after { right: -7px; left: -7px; background: #3f3e3a; }
+.pane-tabs--hover-indicator button:not(:disabled):is(:hover, :focus-visible) .pane-tab-label::after { background: #b8b6ae; }
+.pane-tabs--hover-indicator button[aria-selected="true"]:not(:disabled):is(:hover, :focus-visible) .pane-tab-label::after { background: #3f3e3a; }
 @media (prefers-reduced-motion: reduce) { .pane-tabs .pane-tab-label::before, .pane-tabs .pane-tab-label::after { transition: none; } }
 .pane-section + .pane-section { border-top: 1px solid var(--pane-border); margin-top: var(--pane-space); padding-top: var(--pane-space); }
 .pane-section h3 { font: inherit; font-weight: 600; margin: 0 0 var(--pane-space); }

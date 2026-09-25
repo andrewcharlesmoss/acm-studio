@@ -2,12 +2,12 @@
 
 import { useId, useState } from "react";
 import { StudioIcon } from "../studio-icons";
-import { Pane, PaneSection, PaneTabs, PaneTabPanel, PaneWorkspace, type PaneSide } from "./pane-components";
+import { Pane, PaneSection, PaneTabs, PaneTabPanel, PaneWorkspace, type PaneSide, type PaneTabIndicatorVariant } from "./pane-components";
 import { demoRows, initialPaneDemo, updatePaneDemo, type PaneDefinition, type PaneDemo, type RegionOptions } from "./catalogue-model";
 
-export function PaneSpecimen({ definition, regions, layout, content, studio }: {
+export function PaneSpecimen({ definition, regions, layout, content, studio, indicatorVariant = "selected" }: {
   definition: PaneDefinition; regions: RegionOptions; layout: "both" | "left" | "right";
-  content: "normal" | "empty" | "long"; studio: boolean;
+  content: "normal" | "empty" | "long"; studio: boolean; indicatorVariant?: PaneTabIndicatorVariant;
 }) {
   const [left, setLeft] = useState(() => initialPaneDemo(definition.tabs[0]));
   const [right, setRight] = useState(() => initialPaneDemo(definition.tabs[0]));
@@ -48,7 +48,7 @@ export function PaneSpecimen({ definition, regions, layout, content, studio }: {
       collapsed={collapsed} onCollapsedChange={(next) => patch(side === "left" ? { leftCollapsed: next } : { rightCollapsed: next })}
       collapseIcon={<StudioIcon name="chevron-right" size={18} />}
       header={regions.header ? <><h2>{studio ? definition.label : "Header"}</h2><button type="button" className="pl-icon-button" aria-label={`Collapse ${label} from Header`} onClick={() => patch(side === "left" ? { leftCollapsed: true } : { rightCollapsed: true })}><StudioIcon name="close" size={20} /></button></> : undefined}
-      tabs={regions.tabs ? <PaneTabs id={tabsId} label={`${label} Tabs`} tabs={definition.tabs.map((name) => ({ id: name, label: name }))} active={state.tab} onChange={(tab) => patch({ tab })} /> : undefined}
+      tabs={regions.tabs ? <PaneTabs id={tabsId} label={`${label} Tabs`} tabs={definition.tabs.map((name) => ({ id: name, label: name }))} active={state.tab} onChange={(tab) => patch({ tab })} indicatorVariant={indicatorVariant} /> : undefined}
       toolbar={regions.toolbar ? <label className="pl-field">{studio ? "Search" : "Toolbar / Search"}<input type="search" value={state.query} placeholder="Find an item…" onChange={(event) => patch({ query: event.target.value })} /></label> : undefined}
       footer={regions.footer ? <button type="button" className="pl-button" onClick={() => setNotice(`${label}: example action selected. No product data was changed.`)}>{studio ? "Example Action" : "Footer Action"}</button> : undefined}>
       {regions.tabs ? definition.tabs.map((tab) => <PaneTabPanel key={tab} id={tabsId} tab={tab} active={state.tab}>{body}</PaneTabPanel>) : body}
