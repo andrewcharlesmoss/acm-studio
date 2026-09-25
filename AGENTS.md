@@ -52,6 +52,12 @@ tree, inspector and renderer. All catalogue demo handlers remain memory-only
 and independent of product stores or write ownership. See
 `docs/studio-ui-library.md`, `docs/ribbon-library.md` and `docs/pane-library.md`.
 
+The Studio UI Library defines the shared Ribbon and Pane tab indicator rule.
+`docs/studio-ui-library.md` is the canonical specification;
+`@acm/ribbon` supplies the reusable Ribbon implementation and Pane components
+follow the same geometry. Product consumers may theme indicator colours but
+should not replace this behaviour.
+
 Studio interface text uses Gutenberg's 13px system UI baseline through
 `--studio-ui-font` and `--studio-ui-size`. Do not introduce interface text
 smaller than that token: use hierarchy, weight, colour and spacing instead.

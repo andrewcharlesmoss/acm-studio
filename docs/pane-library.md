@@ -14,6 +14,11 @@ properties specimens. Each live Studio pane uses the shared Pane structure
 and, where applicable, its shared tab components. Catalogue examples are
 structural demonstrations, not live product data or commands.
 
+The Studio UI Library owns the shared tab indicator rule; see
+`docs/studio-ui-library.md`. Pane follows its label-width resting line and
+padded-edge hover and focus expansion. Product surfaces may theme the indicator
+colour but should keep this geometry and motion consistent.
+
 All interactions are temporary React state. Reset Demo resets both specimens'
 fields, tabs, selection, collapse state and scrolling, and restores Normal
 content. Presentation controls (layout, optional regions, preview width,
@@ -53,10 +58,12 @@ This is an internal Studio module, not a published package.
   hidden. Disabled tabs are skipped. Arrow keys wrap; Home/End choose the
   first/last enabled tab. `PaneTabs` accepts a custom label renderer for
   product counts and other non-interactive decoration. The default
-  `indicatorVariant="hover"` is the default: the active tab keeps its underline
+  `indicatorVariant="hover"` is the default. The active tab keeps its underline
   and hovered or keyboard-focused tabs receive a subtle underline in the ACM
-  neutral palette. Unconfigured Pane tab strips share the same default. It
-  does not add a background block. The optional
+  neutral palette. At rest, each line matches its label; hover and keyboard
+  focus extend it to the label's padded edge, then it retracts when the state
+  ends. Unconfigured Pane tab strips share the same default. It does not add a
+  background block. The optional
   `indicatorVariant="selected"` limits the underline to the active tab. Both
   variants retain the same layout and focus behaviour. Space-constrained
   Studio Navigation uses a 4px inset to keep all three tab labels and counts

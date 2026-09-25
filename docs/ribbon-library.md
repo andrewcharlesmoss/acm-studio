@@ -42,8 +42,10 @@ It is a command specimen, not a second drawing editor.
 The catalogue shell uses the shared Inter typography baseline. Product specimens
 use observed Inter typography, 13px action labels, fixed 114px content panels,
 Studio's 16px tabs and Account's 76px main controls. Ribbon tabs use the shared
-line-only hover and focus indicator; product colours and control styling remain
-consumer-owned.
+line-only indicator contract defined by the Studio UI Library: its resting line
+matches the label and expands to the tab's padded edge on hover or keyboard
+focus. `@acm/ribbon` implements that behaviour; consumers supply product colours
+through its tokens and do not replace its indicator geometry.
 
 ## Source snapshots
 

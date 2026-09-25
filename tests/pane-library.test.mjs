@@ -68,7 +68,9 @@ test("pane tabs default to line-only hover indicators", () => {
   assert.match(html, /class="pane-tabs"/);
   assert.match(selectedOnlyHtml, /class="pane-tabs pane-tabs--selected-only"/);
   assert.doesNotMatch(componentCss, /pane-tab-label::before/);
-  assert.match(componentCss, /\.pane-tabs \.pane-tab-label::after\s*\{[^}]*height:\s*3px;/);
+  assert.match(componentCss, /\.pane-tabs \.pane-tab-label::after\s*\{[^}]*right:\s*var\(--pane-tab-label-inset, 16px\);[^}]*left:\s*var\(--pane-tab-label-inset, 16px\);[^}]*height:\s*3px;/);
+  assert.match(componentCss, /\.pane-tabs button:not\(:disabled\):is\(:hover, :focus-visible\) \.pane-tab-label::after\s*\{\s*right:\s*0;\s*left:\s*0;/);
+  assert.match(componentCss, /transition:\s*left \.12s ease, right \.12s ease, background-color \.12s ease/);
   assert.match(componentCss, /\.pane-tabs \[aria-selected="true"\] \.pane-tab-label::after\s*\{\s*background:\s*#555;/);
   assert.match(componentCss, /\.pane-tabs button:not\(:disabled\):not\(\[aria-selected="true"\]\):is\(:hover, :focus-visible\) \.pane-tab-label::after\s*\{\s*background:\s*var\(--pane-tab-hover-indicator, #b8b6ae\);/);
   assert.match(componentCss, /\.pane-tabs--selected-only button:not\(:disabled\):not\(\[aria-selected="true"\]\):is\(:hover, :focus-visible\) \.pane-tab-label::after\s*\{\s*background:\s*transparent;/);

@@ -8,8 +8,8 @@
   centre canvas; former Ribbon and Pane URLs redirect to their new sections.
 
 ### Changed
-- Made line-only hover underlines the default across shared Pane and Ribbon
-  tabs, using ACM neutral colours and retaining a selected-only Pane variant.
+- Sized shared Pane and Ribbon tab underlines to their labels at rest, then
+  extended them to the padded edge on hover or keyboard focus.
 - Consolidated the Pane Library structure tree to one Pane entry, with an
   Inspect Side control for comparing the left and right edge controls.
 - Applied the Ribbon's neutral ink accent to native range sliders.

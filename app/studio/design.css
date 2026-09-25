@@ -66,7 +66,7 @@
 .design-pages.pane { background: #f7f7f7; border-right: 0; min-height: 0; padding: 0; }
 .design-pages > .pane-header { border-bottom: 0; flex: none; padding: 10px 12px; }
 .design-pages-heading { align-items: center; display: flex; justify-content: space-between; padding: 0 5px; }
-.design-pane-tabs { display: flex; gap: 2px; min-width: 0; }
+.design-pane-tabs { --pane-tab-label-inset: 8px; display: flex; gap: 2px; min-width: 0; }
 .design-pane-tabs button { --pane-tab-indicator-offset: 7px; position: relative; background: transparent; border: 0; border-radius: 3px 3px 0 0; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 400; padding: 6px 8px 7px; }
 .design-pane-tabs button:hover, .design-pane-tabs button:focus-visible, .design-pane-tabs button[aria-selected="true"] { background: transparent; color: var(--ink); }
 .design-pages-heading > div:last-child { display: flex; gap: 4px; }
