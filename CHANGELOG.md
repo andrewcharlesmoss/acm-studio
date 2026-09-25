@@ -12,6 +12,7 @@
   preserving selected-only and optional hover-indicator variants.
 - Increased the pane-tab hover surface depth to match Ribbon tabs.
 - Applied the Ribbon's neutral ink accent to native range sliders.
+- Made the range slider's filled track represent zero accurately at its minimum.
 - Aligned block hover and rich-text menu icons with the shared ACM icon library,
   adding the missing reorder and text-formatting symbols there.
 - Replaced Gutenberg-derived Studio and table icon paths with original ACM

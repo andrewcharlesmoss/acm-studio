@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, type Dispatch, type SetStateAction, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useId, useRef, type CSSProperties, type Dispatch, type SetStateAction, type KeyboardEvent, type MouseEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { Ribbon, RibbonPanel, RibbonGroup, RibbonControls, RibbonButton, RibbonToggleButton, RibbonField } from "@acm/ribbon";
 import type { ControlDefinition, ExampleDefinition } from "./catalogue-model";
@@ -26,10 +26,15 @@ function Control({ control, state, setState, rememberTrigger }: ControlProps) {
   </div>;
   if (["text", "number", "select", "range"].includes(control.kind)) {
     const value = state.values[control.id] as string | number;
+    const min = control.min ?? 0;
+    const max = control.max ?? 100;
+    const rangeProgress = control.kind === "range" && max > min
+      ? Math.max(0, Math.min(100, ((Number(value) - min) / (max - min)) * 100))
+      : 0;
     return <RibbonField data-region={control.id} className="rl-field">
       <span>{control.label}</span>
       {control.kind === "select" ? <select aria-label={control.label} value={value} disabled={Boolean(reason)} onChange={(event) => run(event.target.value)}>{control.options?.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select> :
-        <input aria-label={control.label} type={control.kind} value={value} min={control.min} max={control.max} step={control.step} maxLength={control.kind === "text" ? control.max ?? 100 : undefined} disabled={Boolean(reason)} onChange={(event) => run(control.kind === "number" || control.kind === "range" ? Number(event.target.value) : event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && control.id === "account.search-input") { event.preventDefault(); setState((current) => runDemoCommand(current, { ...control, id: "account.search", command: "account.search", kind: "button", label: "Search" })); } }} />}
+        <input aria-label={control.label} type={control.kind} value={value} min={control.min} max={control.max} step={control.step} maxLength={control.kind === "text" ? control.max ?? 100 : undefined} style={control.kind === "range" ? { "--rl-range-progress": `${rangeProgress}%` } as CSSProperties : undefined} disabled={Boolean(reason)} onChange={(event) => run(control.kind === "number" || control.kind === "range" ? Number(event.target.value) : event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && control.id === "account.search-input") { event.preventDefault(); setState((current) => runDemoCommand(current, { ...control, id: "account.search", command: "account.search", kind: "button", label: "Search" })); } }} />}
       {control.kind === "range" ? <output>{value}</output> : null}
     </RibbonField>;
   }
