@@ -53,12 +53,12 @@ This is an internal Studio module, not a published package.
   hidden. Disabled tabs are skipped. Arrow keys wrap; Home/End choose the
   first/last enabled tab. `PaneTabs` accepts a custom label renderer for
   product counts and other non-interactive decoration. The default
-  `indicatorVariant="selected"` draws the underline only on the active tab,
-  matching the Ribbon Skeleton's 3px underline with 16px label insets. The
-  optional `indicatorVariant="hover"` keeps that same selected underline and
-  adds an identically sized underline to hovered or keyboard-focused tabs. Both
-  variants use the Ribbon-style rounded hover surface with matching vertical
-  depth and retain the same layout and focus behaviour. Space-constrained
+  `indicatorVariant="hover"` is the default: the active tab keeps its underline
+  and hovered or keyboard-focused tabs receive a subtle underline in the ACM
+  neutral palette. Unconfigured Pane tab strips share the same default. It
+  does not add a background block. The optional
+  `indicatorVariant="selected"` limits the underline to the active tab. Both
+  variants retain the same layout and focus behaviour. Space-constrained
   Studio Navigation uses a 4px inset to keep all three tab labels and counts
   visible.
 

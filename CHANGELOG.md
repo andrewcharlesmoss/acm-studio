@@ -8,17 +8,10 @@
   centre canvas; former Ribbon and Pane URLs redirect to their new sections.
 
 ### Changed
-- Made selected-only tab underlines the default across Studio panes, with an
-  optional hover underline variant in the Pane Library preview. Design Canvas
-  Ribbon tabs now follow the Ribbon Skeleton’s selected-tab indicator.
+- Made line-only hover underlines the default across shared Pane and Ribbon
+  tabs, using ACM neutral colours and retaining a selected-only Pane variant.
 - Consolidated the Pane Library structure tree to one Pane entry, with an
   Inspect Side control for comparing the left and right edge controls.
-- Matched pane-tab underlines and hover surfaces to the Ribbon tab treatment,
-  preserving selected-only and optional hover-indicator variants.
-- Kept pane-tab hover surfaces within their tab bounds, with the active
-  underline visible above the fill.
-- Extended pane-tab hover fill to the tab baseline to match Ribbon tabs.
-- Increased the pane-tab hover surface depth to match Ribbon tabs.
 - Applied the Ribbon's neutral ink accent to native range sliders.
 - Made the range slider's filled track represent zero accurately at its minimum.
 - Aligned block hover and rich-text menu icons with the shared ACM icon library,

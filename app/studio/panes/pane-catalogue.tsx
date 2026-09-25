@@ -16,7 +16,7 @@ export function PaneCatalogue() {
   const [layout, setLayout] = useState<"both" | "left" | "right">("both");
   const [options, setOptions] = useState(defaultRegions);
   const [content, setContent] = useState<"normal" | "empty" | "long">("normal");
-  const [indicatorVariant, setIndicatorVariant] = useState<"selected" | "hover">("selected");
+  const [indicatorVariant, setIndicatorVariant] = useState<"selected" | "hover">("hover");
   const [inspectedSide, setInspectedSide] = useState<"left" | "right">("left");
   const [width, setWidth] = useState("available");
   const [boundaries, setBoundaries] = useState(false);

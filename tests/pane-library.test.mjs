@@ -61,13 +61,17 @@ test("multiple component instances have unique IDs and resolvable ARIA targets",
   assert.match(html, /role="tabpanel"[^>]+hidden=""/);
 });
 
-test("pane tab hover surfaces reach the tab bottom while retaining the active underline", () => {
+test("pane tabs default to line-only hover indicators", () => {
   const componentCss = readFileSync(resolve(base, "pane-components.css"), "utf8");
-  const catalogueCss = readFileSync(resolve(base, "pane-library.css"), "utf8");
-  assert.match(componentCss, /\.pane-tabs \.pane-tab-label::before\s*\{[^}]*top:\s*-12px;[^}]*bottom:\s*0;/);
+  const html = renderToStaticMarkup(h(PaneTabs, { id: "default", label: "Default tabs", tabs: [{ id: "one", label: "One" }, { id: "two", label: "Two" }], active: "one", onChange() {} }));
+  const selectedOnlyHtml = renderToStaticMarkup(h(PaneTabs, { id: "selected-only", label: "Selected only tabs", tabs: [{ id: "one", label: "One" }], active: "one", onChange() {}, indicatorVariant: "selected" }));
+  assert.match(html, /class="pane-tabs"/);
+  assert.match(selectedOnlyHtml, /class="pane-tabs pane-tabs--selected-only"/);
+  assert.doesNotMatch(componentCss, /pane-tab-label::before/);
   assert.match(componentCss, /\.pane-tabs \.pane-tab-label::after\s*\{[^}]*height:\s*3px;/);
   assert.match(componentCss, /\.pane-tabs \[aria-selected="true"\] \.pane-tab-label::after\s*\{\s*background:\s*#555;/);
-  assert.match(catalogueCss, /\.pl-specimen \.pane-tabs \.pane-tab-label::before\s*\{\s*top:\s*-6px;\s*\}/);
+  assert.match(componentCss, /\.pane-tabs button:not\(:disabled\):not\(\[aria-selected="true"\]\):is\(:hover, :focus-visible\) \.pane-tab-label::after\s*\{\s*background:\s*var\(--pane-tab-hover-indicator, #b8b6ae\);/);
+  assert.match(componentCss, /\.pane-tabs--selected-only button:not\(:disabled\):not\(\[aria-selected="true"\]\):is\(:hover, :focus-visible\) \.pane-tab-label::after\s*\{\s*background:\s*transparent;/);
 });
 
 test("five actual Studio examples preserve widths and match their structure inventory", () => {

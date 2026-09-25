@@ -41,8 +41,9 @@ It is a command specimen, not a second drawing editor.
 
 The catalogue shell uses the shared Inter typography baseline. Product specimens
 use observed Inter typography, 13px action labels, fixed 114px content panels,
-Studio's 16px tabs and Account's 76px main controls. These styles are scoped to
-the catalogue; the existing product Ribbons and their icons are unchanged.
+Studio's 16px tabs and Account's 76px main controls. Ribbon tabs use the shared
+line-only hover and focus indicator; product colours and control styling remain
+consumer-owned.
 
 ## Source snapshots
 

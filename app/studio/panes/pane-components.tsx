@@ -149,14 +149,14 @@ export function paneTabTarget(prefix: string, tab: string, kind: "tab" | "panel"
   return `${prefix}-${kind}-${tab}`;
 }
 
-export function PaneTabs({ id, label, tabs, active, onChange, renderLabel, className, indicatorVariant = "selected" }: {
+export function PaneTabs({ id, label, tabs, active, onChange, renderLabel, className, indicatorVariant = "hover" }: {
   id: string; label: string; tabs: readonly PaneTab[]; active: string; onChange: (id: string) => void;
   renderLabel?: (tab: PaneTab) => ReactNode;
   className?: string;
   indicatorVariant?: PaneTabIndicatorVariant;
 }) {
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
-  return <div className={`pane-tabs${indicatorVariant === "hover" ? " pane-tabs--hover-indicator" : ""}${className ? ` ${className}` : ""}`} role="tablist" aria-label={label}>{tabs.map((tab, index) =>
+  return <div className={`pane-tabs${indicatorVariant === "selected" ? " pane-tabs--selected-only" : ""}${className ? ` ${className}` : ""}`} role="tablist" aria-label={label}>{tabs.map((tab, index) =>
     <button key={tab.id} ref={(element) => { buttons.current[index] = element; }} type="button" role="tab"
       id={paneTabTarget(id, tab.id, "tab")} aria-controls={paneTabTarget(id, tab.id, "panel")}
       aria-selected={active === tab.id} tabIndex={active === tab.id && !tab.disabled ? 0 : -1} disabled={tab.disabled}

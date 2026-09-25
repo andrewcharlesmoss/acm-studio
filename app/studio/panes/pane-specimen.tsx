@@ -5,7 +5,7 @@ import { StudioIcon } from "../studio-icons";
 import { Pane, PaneSection, PaneTabs, PaneTabPanel, PaneWorkspace, type PaneSide, type PaneTabIndicatorVariant } from "./pane-components";
 import { demoRows, initialPaneDemo, updatePaneDemo, type PaneDefinition, type PaneDemo, type RegionOptions } from "./catalogue-model";
 
-export function PaneSpecimen({ definition, regions, layout, content, studio, indicatorVariant = "selected" }: {
+export function PaneSpecimen({ definition, regions, layout, content, studio, indicatorVariant = "hover" }: {
   definition: PaneDefinition; regions: RegionOptions; layout: "both" | "left" | "right";
   content: "normal" | "empty" | "long"; studio: boolean; indicatorVariant?: PaneTabIndicatorVariant;
 }) {
