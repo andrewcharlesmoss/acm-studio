@@ -61,10 +61,12 @@ test("multiple component instances have unique IDs and resolvable ARIA targets",
   assert.match(html, /role="tabpanel"[^>]+hidden=""/);
 });
 
-test("pane tab hover surfaces stay inside the tab and clear of the underline", () => {
+test("pane tab hover surfaces reach the tab bottom while retaining the active underline", () => {
   const componentCss = readFileSync(resolve(base, "pane-components.css"), "utf8");
   const catalogueCss = readFileSync(resolve(base, "pane-library.css"), "utf8");
-  assert.match(componentCss, /\.pane-tabs \.pane-tab-label::before\s*\{[^}]*top:\s*-12px;[^}]*bottom:\s*3px;/);
+  assert.match(componentCss, /\.pane-tabs \.pane-tab-label::before\s*\{[^}]*top:\s*-12px;[^}]*bottom:\s*0;/);
+  assert.match(componentCss, /\.pane-tabs \.pane-tab-label::after\s*\{[^}]*height:\s*3px;/);
+  assert.match(componentCss, /\.pane-tabs \[aria-selected="true"\] \.pane-tab-label::after\s*\{\s*background:\s*#555;/);
   assert.match(catalogueCss, /\.pl-specimen \.pane-tabs \.pane-tab-label::before\s*\{\s*top:\s*-6px;\s*\}/);
 });
 

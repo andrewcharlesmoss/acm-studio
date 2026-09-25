@@ -60,7 +60,7 @@
 .pane-tabs button { display: flex; align-items: center; justify-content: center; flex: 1; min-width: 0; position: relative; background: transparent; color: var(--pane-muted); border: 0; padding: 12px 4px 14px; cursor: pointer; font: inherit; }
 .pane-tabs [aria-selected="true"] { color: var(--pane-text); font-weight: 600; }
 .pane-tabs .pane-tab-label { display: inline-flex; align-items: center; isolation: isolate; position: relative; width: max-content; max-width: 100%; gap: 7px; white-space: nowrap; padding: 0 var(--pane-tab-label-inset, 16px) var(--pane-tab-indicator-offset, 14px); margin-bottom: calc(-1 * var(--pane-tab-indicator-offset, 14px)); }
-.pane-tabs .pane-tab-label::before { position: absolute; top: -12px; right: 0; bottom: 3px; left: 0; z-index: -1; border-radius: 4px; background: transparent; content: ""; transition: background-color .12s ease; }
+.pane-tabs .pane-tab-label::before { position: absolute; top: -12px; right: 0; bottom: 0; left: 0; z-index: -1; border-radius: 4px; background: transparent; content: ""; transition: background-color .12s ease; }
 .pane-tabs button:not(:disabled):is(:hover, :focus-visible) .pane-tab-label::before { background: var(--pane-hover, #eceae3); }
 .pane-tabs .pane-tab-label::after { position: absolute; right: 0; bottom: 0; left: 0; height: 3px; background: transparent; content: ""; transition: background-color .12s ease; }
 .pane-tabs [aria-selected="true"] .pane-tab-label::after { background: #555; }
