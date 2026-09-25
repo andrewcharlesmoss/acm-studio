@@ -64,7 +64,7 @@
 .pl-specimen .pane-workspace { --pane-surface: #f7f7f7; --pane-body-surface: #f7f7f7; --pane-border: #d8d8d8; --pane-muted: #616161; --pane-hover: #eceae3; }
 .pl-specimen .pane-track { --pane-border: #d8d8d8; }
 .pl-specimen .pane-tabs { display: flex; gap: 2px; padding: 0 5px; }
-.pl-specimen .pane-tabs button { position: relative; background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 3px 3px 0 0; color: var(--pane-muted); cursor: pointer; flex: 1 1 0; font: inherit; font-size: 13px; font-weight: 400; min-width: 0; padding: 6px 8px 5px; }
+.pl-specimen .pane-tabs button { position: relative; background: transparent; border: 0; border-radius: 3px 3px 0 0; color: var(--pane-muted); cursor: pointer; flex: 1 1 0; font: inherit; font-size: 13px; font-weight: 400; min-width: 0; padding: 6px 8px 7px; }
 .pl-specimen .pane-tabs button:hover, .pl-specimen .pane-tabs button:focus-visible, .pl-specimen .pane-tabs button[aria-selected="true"] { background: transparent; color: var(--pane-text); }
 .pl-specimen .pane-header h2, .pl-specimen .pane-section h3 { font-size: inherit; margin: 0; }
 .pl-specimen .pane-section h3 { margin-bottom: 12px; }

@@ -39,7 +39,7 @@
 .pane-track[data-side="left"] .pane { border-right: 1px solid var(--pane-border); }
 .pane-track[data-side="right"] .pane { border-left: 1px solid var(--pane-border); }
 .pane-header, .pane-toolbar, .pane-footer { flex: none; padding: var(--pane-space); }
-.pane-header, .pane-toolbar, .pane-tabs-region { border-bottom: 1px solid var(--pane-border); }
+.pane-header, .pane-toolbar { border-bottom: 1px solid var(--pane-border); }
 .pane-header { display: flex; align-items: center; justify-content: space-between; gap: var(--pane-space); }
 .pane-header h2 { font: inherit; font-weight: 600; margin: 0; }
 .pane-tabs-region { flex: none; }
@@ -57,7 +57,7 @@
 .pane-collapse[data-resize-pressed="true"] { cursor: col-resize; }
 .pane-workspace :focus-visible { outline: 2px solid #555; outline-offset: -3px; }
 .pane-tabs { display: flex; padding: 0 8px; }
-.pane-tabs button { flex: 1; min-width: 0; position: relative; background: transparent; color: var(--pane-muted); border: 0; border-bottom: 2px solid transparent; padding: 12px 4px; cursor: pointer; font: inherit; }
+.pane-tabs button { flex: 1; min-width: 0; position: relative; background: transparent; color: var(--pane-muted); border: 0; padding: 12px 4px 14px; cursor: pointer; font: inherit; }
 .pane-tabs [aria-selected="true"] { color: var(--pane-text); font-weight: 600; }
 .pane-tabs button::after { position: absolute; right: 8px; bottom: -1px; left: 8px; height: 2px; border-radius: 999px; background: transparent; content: ""; transition: left .12s ease, right .12s ease, background-color .12s ease; }
 .pane-tabs button[aria-selected="true"]::after { background: #555; }
