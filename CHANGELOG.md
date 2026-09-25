@@ -15,6 +15,8 @@
   Inspect Side control for comparing the left and right edge controls.
 - Matched pane-tab underlines and hover surfaces to the Ribbon tab treatment,
   preserving selected-only and optional hover-indicator variants.
+- Kept pane-tab hover surfaces within their tab bounds and clear of the active
+  underline.
 - Increased the pane-tab hover surface depth to match Ribbon tabs.
 - Applied the Ribbon's neutral ink accent to native range sliders.
 - Made the range slider's filled track represent zero accurately at its minimum.

@@ -61,6 +61,13 @@ test("multiple component instances have unique IDs and resolvable ARIA targets",
   assert.match(html, /role="tabpanel"[^>]+hidden=""/);
 });
 
+test("pane tab hover surfaces stay inside the tab and clear of the underline", () => {
+  const componentCss = readFileSync(resolve(base, "pane-components.css"), "utf8");
+  const catalogueCss = readFileSync(resolve(base, "pane-library.css"), "utf8");
+  assert.match(componentCss, /\.pane-tabs \.pane-tab-label::before\s*\{[^}]*top:\s*-12px;[^}]*bottom:\s*3px;/);
+  assert.match(catalogueCss, /\.pl-specimen \.pane-tabs \.pane-tab-label::before\s*\{\s*top:\s*-6px;\s*\}/);
+});
+
 test("five actual Studio examples preserve widths and match their structure inventory", () => {
   assert.deepEqual(paneExamples.map((example) => example.width), [290, 320, 300, 224, 260]);
   for (const definition of [skeletonDefinition, ...paneExamples]) {
