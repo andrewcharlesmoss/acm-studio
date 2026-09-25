@@ -8,6 +8,9 @@
   centre canvas; former Ribbon and Pane URLs redirect to their new sections.
 
 ### Changed
+- Added a Workspace catalogue control to compare Selected only and Subtle
+  hover underline variants across the Ribbon and both Pane specimens; Subtle
+  hover remains the shared default.
 - Matched the Pane catalogue specimen surface to the Ribbon specimen surface.
 - Sized shared Pane and Ribbon tab underlines to their labels at rest, then
   kept unselected hover lines at label width and widened the selected line on

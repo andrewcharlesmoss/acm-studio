@@ -43,6 +43,12 @@ background block. `@acm/ribbon` implements the Ribbon behaviour, and Studio Pane
 tabs follow the same geometry and motion. Product consumers may
 theme indicator colours but should not replace the shared sizing or transition.
 
+The Workspace specimen offers two comparison states: Selected only keeps the
+underline on the active tab, while Subtle hover also shows a muted underline on
+the hovered or keyboard-focused tab and slightly expands the active underline
+on pointer hover. This control changes catalogue specimens only; the shared
+default remains Subtle hover.
+
 ## Verification
 
 From the ACM Studio repository root:

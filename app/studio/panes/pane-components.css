@@ -65,6 +65,7 @@
 .pane-tabs button[aria-selected="true"]:not(:disabled):hover .pane-tab-label::after { right: 6px; left: 6px; }
 .pane-tabs button:not(:disabled):not([aria-selected="true"]):is(:hover, :focus-visible) .pane-tab-label::after { background: var(--pane-tab-hover-indicator, #b8b6ae); }
 .pane-tabs--selected-only button:not(:disabled):not([aria-selected="true"]):is(:hover, :focus-visible) .pane-tab-label::after { background: transparent; }
+.pane-tabs--selected-only button[aria-selected="true"]:not(:disabled):hover .pane-tab-label::after { right: var(--pane-tab-label-inset, 16px); left: var(--pane-tab-label-inset, 16px); }
 @media (prefers-reduced-motion: reduce) { .pane-tabs .pane-tab-label::after { transition: none; } }
 .pane-section + .pane-section { border-top: 1px solid var(--pane-border); margin-top: var(--pane-space); padding-top: var(--pane-space); }
 .pane-section h3 { font: inherit; font-weight: 600; margin: 0 0 var(--pane-space); }

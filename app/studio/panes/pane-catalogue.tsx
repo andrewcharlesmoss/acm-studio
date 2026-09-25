@@ -82,7 +82,7 @@ export function PaneCatalogue() {
             setSelected((current) => current === "workspace" || current === "centre" ? current : current.includes(".") ? `${next}${current.slice(current.indexOf("."))}` : next);
           }}><option value="left">Left Pane</option><option value="right">Right Pane</option></select></label>}
           <label className="pl-field">Content<select value={content} onChange={(event) => setContent(event.target.value as typeof content)}><option value="normal">Normal</option><option value="empty">Empty</option><option value="long">Long</option></select></label>
-          {regions.tabs && <label className="pl-field">Tab Indicator<select value={indicatorVariant} onChange={(event) => setIndicatorVariant(event.target.value as typeof indicatorVariant)}><option value="selected">Selected Only</option><option value="hover">Selected + Hover</option></select></label>}
+          {regions.tabs && <label className="pl-field">Tab Indicator<select value={indicatorVariant} onChange={(event) => setIndicatorVariant(event.target.value as typeof indicatorVariant)}><option value="selected">Selected only</option><option value="hover">Subtle hover</option></select></label>}
           <label className="pl-field">Preview Width<select value={width} onChange={(event) => setWidth(event.target.value)}><option value="available">Available Width</option><option value="1280">1280px</option><option value="768">768px</option><option value="390">390px</option></select></label>
           <button className="pl-button" type="button" onClick={reset}><StudioIcon name="undo" size={18} />Reset Demo</button>
         </div>

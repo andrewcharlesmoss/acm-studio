@@ -15,9 +15,15 @@
 .ui-workspace-tools p { color: var(--rl-muted); font-size: .875rem; }
 .ui-workspace-actions { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
 .ui-workspace-actions button { display: inline-flex; align-items: center; gap: .4rem; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .7rem; background: #fff; color: inherit; }
+.ui-tab-indicator-options { display: flex; align-items: center; gap: .25rem; }
+.ui-tab-indicator-options > span { color: var(--rl-muted); font-size: .875rem; margin-right: .2rem; }
+.ui-workspace-actions .ui-tab-indicator-options button { min-height: 38px; }
+.ui-workspace-actions .ui-tab-indicator-options button[aria-pressed="true"] { background: var(--rl-selection); border-color: #bdbdb8; font-weight: 600; }
 .ui-workspace-frame { margin: 0 2rem; max-width: calc(100% - 4rem); overflow: auto; border: 1px solid #d8d8d8; border-radius: 9px; background: #fff; }
 .ui-workspace-stage { min-width: 960px; width: 100%; }
 .ui-workspace-stage .rl-preview .acm-ribbon { border-bottom: 1px solid #d8d8d8; }
+.ui-workspace-stage[data-tab-indicator-variant="selected"] .acm-ribbon-tabs > button:not(:disabled):not(.is-active):is(:hover, :focus-visible)::after { background: transparent; }
+.ui-workspace-stage[data-tab-indicator-variant="selected"] .acm-ribbon-tabs > button.is-active:not(:disabled):hover::after { left: var(--acm-ribbon-tab-inline-padding); right: var(--acm-ribbon-tab-inline-padding); }
 .ui-workspace-stage .pl-catalogue { min-height: 0; padding: 0; background: transparent; color: inherit; font: inherit; }
 .ui-workspace-stage .pl-specimen { margin: 0; }
 .ui-workspace-stage .pane-workspace { border: 0; border-radius: 0; }
