@@ -39,9 +39,11 @@ It is a command specimen, not a second drawing editor.
   remain owned by Studio; the shared UI Library's Icons section is the review
   surface for the reusable artwork.
 
-The catalogue shell uses the shared Inter typography baseline. Product specimens
-use observed Inter typography, 13px action labels, fixed 114px content panels,
-Studio's 16px tabs and Account's 76px main controls. Ribbon tabs use the shared
+The catalogue shell and shared Ribbon use the Inter typography baseline. Every
+Ribbon uses 16px regular tabs with a 24px line height and 13px regular group and
+control labels with a 19.5px line height. Product specimens retain their
+appropriate control sizes, including Account's 76px main controls, inside the
+fixed 114px content panel. Ribbon tabs use the shared
 line-only indicator contract defined by the Studio UI Library: its resting line
 matches the label. Hovering an unselected tab keeps its neutral grey line at
 label width; hovering the selected tab expands its active line while retaining

@@ -1,6 +1,6 @@
 .rl-shell { --rl-ink:#1C1C1E; --rl-muted:#62666B; --rl-line:#DADDE1; --rl-paper:#FFFFFF; --rl-soft:#F4F4F2; --rl-accent:#1E1E1E; --rl-selection:#E7E7E5; color:var(--rl-ink); background:var(--rl-soft); min-height:100vh; font-family:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif; font-size:1rem; line-height:1.5; }
 .rl-shell * { box-sizing:border-box; }
-.rl-shell button,.rl-shell input,.rl-shell select { font:inherit; }
+.rl-shell button:not(.acm-ribbon-button),.rl-shell input,.rl-shell select { font:inherit; }
 .rl-shell button { cursor:pointer; }
 .rl-shell button:disabled { cursor:default; }
 .rl-shell :focus-visible { outline:2px solid var(--focus-ring-colour); outline-offset:3px; }
@@ -61,14 +61,12 @@
 .rl-preview { position:relative; min-width:0; }
 .rl-preview-viewport>div { position:relative; }
 .rl-inspection-box { position:absolute; z-index:5; box-sizing:border-box; border:2px solid #555; pointer-events:none; }
-.rl-preview .acm-ribbon { --acm-ribbon-panel-height:114px; --acm-ribbon-border:#D8D8D8; --acm-ribbon-surface:#F7F7F7; --acm-ribbon-hover:#E7E7E7; --acm-ribbon-text:#3F3F3F; --acm-ribbon-muted:#626262; --acm-ribbon-accent:#646B74; font-family:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif; font-size:.8125rem; border:0; }
-.rl-preview .acm-ribbon-tabs>button,.rl-preview .acm-ribbon-group-label { font-weight:600; }
+.rl-preview .acm-ribbon { --acm-ribbon-panel-height:114px; --acm-ribbon-border:#D8D8D8; --acm-ribbon-surface:#F7F7F7; --acm-ribbon-hover:#E7E7E7; --acm-ribbon-text:#3F3F3F; --acm-ribbon-muted:#626262; --acm-ribbon-accent:#646B74; border:0; }
 .rl-preview .acm-ribbon-content>.acm-ribbon-panel { overflow:visible; min-width:max-content; }
 .rl-preview .acm-ribbon-content>.acm-ribbon-panel[hidden] { display:none; }
 .rl-preview .acm-ribbon-controls { display:flex; align-items:center; gap:7px; }
 .rl-preview .acm-ribbon-field { min-width:100px; max-width:220px; }
-.rl-preview .acm-ribbon-button { line-height:1.2; max-width:130px; font-size:.8125rem; }
-.rl-product-studio .acm-ribbon { font-size:1rem; }
+.rl-preview .acm-ribbon-button { max-width:130px; }
 .rl-preview .acm-ribbon-button span { white-space:normal; }
 .rl-preview .acm-ribbon-button-compact { min-width:40px; }
 .rl-product-account .acm-ribbon-controls>.acm-ribbon-button:not(.acm-ribbon-button-compact),.rl-product-account .rl-split>.acm-ribbon-button:not(.acm-ribbon-button-compact) { min-height:76px; min-width:82px; }

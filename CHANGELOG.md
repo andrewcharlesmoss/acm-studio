@@ -8,6 +8,7 @@
   centre canvas; former Ribbon and Pane URLs redirect to their new sections.
 
 ### Changed
+- Updated the Ribbon specimen to display the shared 16px regular tabs and 13px regular group/control labels without Studio-specific typography overrides.
 - Added a Workspace catalogue control to compare Selected only and Subtle
   hover underline variants across the Ribbon and both Pane specimens; Subtle
   hover remains the shared default.
