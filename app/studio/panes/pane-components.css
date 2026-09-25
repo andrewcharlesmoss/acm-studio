@@ -58,7 +58,7 @@
 .pane-workspace :focus-visible { outline: 2px solid #555; outline-offset: -3px; }
 .pane-tabs { display: flex; padding: 0 8px; }
 .pane-tabs button { flex: 1; min-width: 0; position: relative; background: transparent; color: var(--pane-muted); border: 0; border-bottom: 2px solid transparent; padding: 12px 4px; cursor: pointer; font: inherit; }
-.pane-tabs [aria-selected="true"] { color: var(--pane-text); border-bottom-color: var(--pane-text); font-weight: 600; }
+.pane-tabs [aria-selected="true"] { color: var(--pane-text); font-weight: 600; }
 .pane-tabs button::after { position: absolute; right: 8px; bottom: -1px; left: 8px; height: 2px; border-radius: 999px; background: transparent; content: ""; transition: left .12s ease, right .12s ease, background-color .12s ease; }
 .pane-tabs button[aria-selected="true"]::after { background: #555; }
 .pane-tabs button:not(:disabled):is(:hover, :focus-visible)::after { right: 4px; left: 4px; background: #b8b6ae; }
