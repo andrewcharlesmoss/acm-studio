@@ -43,11 +43,12 @@ The catalogue shell uses the shared Inter typography baseline. Product specimens
 use observed Inter typography, 13px action labels, fixed 114px content panels,
 Studio's 16px tabs and Account's 76px main controls. Ribbon tabs use the shared
 line-only indicator contract defined by the Studio UI Library: its resting line
-matches the label and expands to the tab's padded edge on pointer hover. It
-retracts when the pointer leaves; keyboard focus keeps the label-width line and
-uses the visible focus outline. `@acm/ribbon` implements that behaviour;
-consumers supply product colours through its tokens and do not replace its
-indicator geometry.
+matches the label. Hovering an unselected tab keeps its neutral grey line at
+label width; hovering the selected tab expands its active line while retaining
+a small inset from the tab edge, and it retracts when the pointer leaves.
+Keyboard focus keeps the label-width line and uses the visible focus outline. `@acm/ribbon` implements
+that behaviour; consumers supply product colours through its tokens and do not
+replace its indicator geometry.
 
 ## Source snapshots
 
