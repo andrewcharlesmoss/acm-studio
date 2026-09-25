@@ -56,8 +56,8 @@ This is an internal Studio module, not a published package.
   optional `indicatorVariant="hover"` keeps that same selected underline and
   adds an identically sized underline to hovered or keyboard-focused tabs. Both
   variants use the Ribbon-style rounded hover surface and retain the same
-  layout and focus behaviour. Space-constrained Studio Navigation uses an 8px
-  inset so all three tabs and their count badges remain visible.
+  layout and focus behaviour. Space-constrained Studio Navigation uses a 4px
+  inset so all three labels and their count badges remain visible.
 
 The pane container stays mounted when collapsed. Hidden content is outside
 keyboard navigation; focus within a collapsing pane moves to its edge button.
