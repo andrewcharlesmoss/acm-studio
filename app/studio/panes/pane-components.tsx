@@ -171,7 +171,7 @@ export function PaneTabs({ id, label, tabs, active, onChange, renderLabel, class
           default: return;
         }
         event.preventDefault(); onChange(enabledTabs[next].id); buttons.current[tabs.indexOf(enabledTabs[next])]?.focus();
-      }}>{renderLabel ? renderLabel(tab) : tab.label}</button>)}</div>;
+      }}><span className="pane-tab-label">{renderLabel ? renderLabel(tab) : tab.label}</span></button>)}</div>;
 }
 
 export function PaneTabPanel({ id, tab, active, className, children }: { id: string; tab: string; active: string; className?: string; children: ReactNode }) {
