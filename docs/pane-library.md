@@ -3,7 +3,9 @@
 ## Purpose and boundaries
 
 Open `/studio/panes` from the dashboard or Studio's content/template tools.
-Overview presents the left/centre/right structure. Skeletons lets you remove
+Overview presents one pane structure beside the centre workspace. When both
+panes are shown, Inspect Side switches the structure inspector between left
+and right without duplicating its regions. Skeletons lets you remove
 optional regions and try single-sided layouts. Studio Examples contains
 navigation, Block Library, editor inspector, Design Pages/Layers and Design
 properties specimens. Each live Studio pane uses the shared Pane structure
@@ -84,9 +86,12 @@ navigation links were added. File SHA-256 values are recorded in
 | Design Pages/Layers | DesignEditor / design-pages | 224px |
 | Design Properties | DesignEditor / design-inspector | 260px |
 
-The examples simplify content and replace product commands with selection,
-sample fields or a local status message. Header/section spacing and scrolling
-are standardised. Every specimen has the same collapse contract. Live pane
+The structure list presents the shared pane regions once. Inspect Side changes
+which rendered side supplies measurements; the specimens still have
+independent content, width and collapse state. The examples simplify content
+and replace product commands with selection, sample fields or a local status
+message. Header/section spacing and scrolling are standardised. Every specimen
+has the same collapse contract. Live pane
 widths start at 290px, 320px, 300px, 224px and 260px respectively. Design Canvas
 panes provide the visual model for controls and tabs; their edge controls now
 remain available at narrow widths. The canvas retains its existing

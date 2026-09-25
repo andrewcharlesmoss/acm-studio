@@ -6,6 +6,8 @@
 - Made selected-only tab underlines the default across Studio panes, with an
   optional hover underline variant in the Pane Library preview. Design Canvas
   Ribbon tabs now follow the Ribbon Skeleton’s selected-tab indicator.
+- Consolidated the Pane Library structure tree to one Pane entry, with an
+  Inspect Side control for comparing the left and right edge controls.
 - Aligned block hover and rich-text menu icons with the shared ACM icon library,
   adding the missing reorder and text-formatting symbols there.
 - Replaced Gutenberg-derived Studio and table icon paths with original ACM

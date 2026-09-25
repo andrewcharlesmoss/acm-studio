@@ -17,17 +17,22 @@ export const paneTokens = ["--pane-surface", "--pane-body-surface", "--pane-bord
 export type RegionOptions = { header: boolean; tabs: boolean; toolbar: boolean; footer: boolean };
 export const defaultRegions: RegionOptions = { header: true, tabs: true, toolbar: true, footer: true };
 export type StructureRegion = { id: string; label: string; description: string };
-export function paneStructure(sides: readonly ("left" | "right")[], options: RegionOptions): StructureRegion[] {
-  return [{ id: "workspace", label: "Workspace", description: "Fixed pane tracks surround a flexible centre." },
-    ...sides.flatMap((side) => [
-      { id: side, label: `${side === "left" ? "Left" : "Right"} Pane`, description: "The stable, labelled pane container; hidden when collapsed." },
-      ...(options.header ? [{ id: `${side}.header`, label: "Header", description: "A fixed title and optional local actions." }] : []),
-      ...(options.tabs ? [{ id: `${side}.tabs`, label: "Tabs", description: "Keyboard-operable tabs select a body panel." }] : []),
-      ...(options.toolbar ? [{ id: `${side}.toolbar`, label: "Toolbar / Search", description: "Controls remain above the scrolling content." }] : []),
-      { id: `${side}.body`, label: "Scrolling Body", description: "Independent scrolling preserves the surrounding structure." },
-      ...(options.footer ? [{ id: `${side}.footer`, label: "Footer Actions", description: "Optional actions remain below the scrolling body." }] : []),
-      { id: `${side}.collapse`, label: "Collapse / Reopen", description: "The edge control remains reachable when the pane is closed." },
-    ]), { id: "centre", label: "Centre Workspace", description: "Uses the remaining width; overflows within the specimen when necessary." }];
+export function paneStructure(sides: readonly ("left" | "right")[], options: RegionOptions, inspectedSide = sides[0]): StructureRegion[] {
+  if (!inspectedSide || !sides.includes(inspectedSide)) return [
+    { id: "workspace", label: "Workspace", description: "A flexible centre workspace." },
+    { id: "centre", label: "Centre Workspace", description: "Uses the remaining width; overflows within the specimen when necessary." },
+  ];
+  return [
+    { id: "workspace", label: "Workspace", description: "Fixed pane tracks surround a flexible centre." },
+    { id: inspectedSide, label: "Pane", description: "One shared pane structure. Its side changes the edge where the collapse and resize control sits." },
+    ...(options.header ? [{ id: `${inspectedSide}.header`, label: "Header", description: "A fixed title and optional local actions." }] : []),
+    ...(options.tabs ? [{ id: `${inspectedSide}.tabs`, label: "Tabs", description: "Keyboard-operable tabs select a body panel." }] : []),
+    ...(options.toolbar ? [{ id: `${inspectedSide}.toolbar`, label: "Toolbar / Search", description: "Controls remain above the scrolling content." }] : []),
+    { id: `${inspectedSide}.body`, label: "Scrolling Body", description: "Independent scrolling preserves the surrounding structure." },
+    ...(options.footer ? [{ id: `${inspectedSide}.footer`, label: "Footer Actions", description: "Optional actions remain below the scrolling body." }] : []),
+    { id: `${inspectedSide}.collapse`, label: "Collapse / Reopen", description: "The same edge control collapses and resizes the pane; its position and arrow direction adapt to the selected side." },
+    { id: "centre", label: "Centre Workspace", description: "Uses the remaining width; overflows within the specimen when necessary." },
+  ];
 }
 export type PaneDemo = { leftCollapsed: boolean; rightCollapsed: boolean; query: string; selected: string; value: string; tab: string };
 export function initialPaneDemo(tab = "First"): PaneDemo {
