@@ -52,10 +52,12 @@ This is an internal Studio module, not a published package.
   first/last enabled tab. `PaneTabs` accepts a custom label renderer for
   product counts and other non-interactive decoration. The default
   `indicatorVariant="selected"` draws the underline only on the active tab,
-  matching the Ribbon Skeleton. The optional `indicatorVariant="hover"` keeps
-  that same selected underline and adds a subtle label-sized underline on
-  hover or keyboard focus. Both variants retain the same hover surface, layout
-  and focus behaviour.
+  matching the Ribbon Skeleton's 3px underline with 16px label insets. The
+  optional `indicatorVariant="hover"` keeps that same selected underline and
+  adds an identically sized underline to hovered or keyboard-focused tabs. Both
+  variants use the Ribbon-style rounded hover surface and retain the same
+  layout and focus behaviour. Space-constrained Studio Navigation uses an 8px
+  inset so all three tabs and their count badges remain visible.
 
 The pane container stays mounted when collapsed. Hidden content is outside
 keyboard navigation; focus within a collapsing pane moves to its edge button.

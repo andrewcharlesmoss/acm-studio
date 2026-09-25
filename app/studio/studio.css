@@ -399,7 +399,7 @@
 .studio-library-track { grid-column: 1; min-width: 0; }
 .studio-library .library-tools { padding: 8px; }
 .studio-library .library-tabs { border-bottom: 0; border-top: 1px solid #d8d6ce; display: block; padding: 0 6px; }
-.studio-library .library-tabs .pane-tabs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr); padding: 0; }
+.studio-library .library-tabs .pane-tabs { --pane-tab-label-inset: 8px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr); padding: 0; }
 .studio-library .library-tabs .pane-tabs button { --pane-tab-indicator-offset: 12px; align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font-size: var(--studio-ui-size); font-weight: 620; justify-content: center; min-width: 0; padding: 12px 3px 12px; }
 .studio-library .library-tabs .pane-tabs button[aria-selected="true"] { color: var(--ink); }
 .studio-library .library-tabs .pane-tabs .pane-tab-label > span:not(.library-tab-label) { align-items: center; background: #e3e1da; border-radius: 999px; display: inline-flex; flex: none; font-size: var(--studio-ui-size); height: 18px; justify-content: center; min-width: 18px; padding: 0 5px; }
