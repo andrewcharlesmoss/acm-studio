@@ -8,6 +8,7 @@
   centre canvas; former Ribbon and Pane URLs redirect to their new sections.
 
 ### Changed
+- Matched the Pane catalogue specimen surface to the Ribbon specimen surface.
 - Sized shared Pane and Ribbon tab underlines to their labels at rest, then
   kept unselected hover lines at label width and widened the selected line on
   pointer hover while retaining an edge inset. Keyboard focus keeps label-width
