@@ -41,31 +41,32 @@ use the reusable `app/studio/acm-studio-icons.tsx` module. Preserve the
 `StudioIcon` and table-icon wrappers as compatibility APIs. Do not trace or
 copy third-party paths.
 
-The approved Ribbon Library at `/studio/ribbon` and its navigation entries use
-original ACM symbols from the sibling `@acm/icons` package. This scoped direction
-supersedes the Gutenberg icon rule for this catalogue only; existing product
-icons and their provenance remain unchanged. The catalogue uses the shared
-Inter baseline; product specimens preserve observed typography and dimensions.
-Its typed definitions drive the tree, inspector and renderer. Demo handlers
-must remain memory-only and independent of product stores or write ownership.
-See `docs/ribbon-library.md` for source snapshots, verification and inventory.
+The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes and Icons.
+Workspace composes the shared Ribbon and Pane specimens; Ribbon details live at
+`/studio/ui/ribbon`, Pane details at `/studio/ui/panes`, and the broadly shared
+icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and
+`/studio/panes` routes redirect to their new sections. ACM symbols come from the
+sibling `@acm/icons` package; this catalogue organisation does not replace
+existing product icons or change their provenance. Ribbon definitions drive its
+tree, inspector and renderer. All catalogue demo handlers remain memory-only
+and independent of product stores or write ownership. See
+`docs/studio-ui-library.md`, `docs/ribbon-library.md` and `docs/pane-library.md`.
 
 Studio interface text uses Gutenberg's 13px system UI baseline through
 `--studio-ui-font` and `--studio-ui-size`. Do not introduce interface text
 smaller than that token: use hierarchy, weight, colour and spacing instead.
 Article and block content may retain their content-specific typography.
 
-The Pane Library at `/studio/panes` documents the shared internal Pane
+The Pane section of the Studio UI Library documents the shared internal Pane
 components used by Studio Navigation, Block Library, Editor Inspector, Design
-Pages/Layers and Design Properties. The component contract is v0.3.0; see
+Pages/Layers and Design Properties. Its component contract is v1.0.0; see
 `docs/pane-library.md`. Catalogue fixtures and demo state remain separate from
 product stores and write ownership. Product data, commands and pane-specific
-behaviour remain owned by their existing features. The catalogue shell is
-responsive and uses Inter. Its specimens start at the documented desktop
-pane widths and permit temporary edge resizing, with contained horizontal
-scrolling at narrow widths; collapse controls remain available. Studio
-Navigation and Editor Inspector adopt the shared resizing contract. Other
-product panes retain their existing widths and responsive behaviour.
+behaviour remain owned by their existing features. Pane specimens permit
+temporary edge resizing, with contained horizontal scrolling at narrow widths;
+collapse controls remain available. Studio Navigation and Editor Inspector
+adopt the shared resizing contract. Other product panes retain their existing
+widths and responsive behaviour.
 
 Edit and Preview must share block presentation rules, including typography,
 colours, spacing and dimensions. Use the Studio variant of `BlockRenderer`

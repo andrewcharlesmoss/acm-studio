@@ -2,7 +2,9 @@
 
 ## Purpose and boundaries
 
-Open `/studio/panes` from the dashboard or Studio's content/template tools.
+Open Panes from the Studio UI Library at `/studio/ui/panes`. The former
+`/studio/panes` address redirects here. Workspace combines a Ribbon with both
+pane specimens so their shared alignment can be reviewed in one frame.
 Overview presents one pane structure beside the centre workspace. When both
 panes are shown, Inspect Side switches the structure inspector between left
 and right without duplicating its regions. Skeletons lets you remove
@@ -165,7 +167,8 @@ a scoped local commit. No push or deployment is authorised by this increment.
   Narrow widths retain the 290/300px skeleton panes with contained preview
   overflow and working edge controls; the document itself does not overflow.
   The dashboard/content links open the new route, the template link is visible
-  with the correct destination, and the Ribbon Library remains accessible.
+  with the correct destination, and the combined Studio UI Library remains
+  accessible.
 - True 200% browser zoom was not verified: the available in-app browser
   controls provide viewport sizing, not a browser zoom setting. Width checks
   are not presented as zoom evidence.

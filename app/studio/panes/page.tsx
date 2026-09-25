@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { PaneCatalogue } from "./pane-catalogue";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Pane Library", description: "Explore reusable pane skeletons and isolated ACM Studio examples." };
+export const metadata: Metadata = { title: "Panes · Studio UI Library", description: "Explore reusable ACM Studio pane structures and examples." };
 
-export default function PaneLibraryPage() { return <PaneCatalogue />; }
+export default function PaneLibraryPage() { redirect("/studio/ui/panes"); }

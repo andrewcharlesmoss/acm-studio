@@ -18,13 +18,15 @@ contracts.
   undo/redo and responsive previews. JSON packages include managed images;
   full backups include templates and assignments. See [Template editing](docs/templates.md).
 
-- **Ribbon Library** at `/studio/ribbon`: inspect shared components, try isolated
-  ACM Studio and ACM Account examples, and browse original three-scale SVG icons.
-  See [Ribbon Library](docs/ribbon-library.md) for setup and verification, and
-  [the command inventory](docs/ribbon-command-inventory.md) for complete coverage.
-- **Pane Library** at `/studio/panes`: explore working left/right pane skeletons,
-  collapse controls and isolated Studio examples. See [Pane Library](docs/pane-library.md)
-  for the v0.1.0 component contract, source references and verification.
+- **Studio UI Library** at `/studio/ui`: compare the Ribbon and both panes around
+  one workspace. **Ribbon** at `/studio/ui/ribbon` documents shared components
+  and isolated ACM Studio/ACM Account examples; **Panes** at `/studio/ui/panes`
+  covers the shared v1.0.0 component contract, skeletons, resizing and Studio
+  examples; **Icons** at `/studio/ui/icons` browses the original shared symbols
+  at three scales. `/studio/ribbon` and `/studio/panes` redirect to their sections.
+  See [Studio UI Library](docs/studio-ui-library.md), [Ribbon details](docs/ribbon-library.md),
+  [the command inventory](docs/ribbon-command-inventory.md) and
+  [Pane details](docs/pane-library.md).
 
 - First site pilot: open Mini Golf Scorecard from the control centre and edit
   its inherited home page with the same Gutenberg-style block editor used by

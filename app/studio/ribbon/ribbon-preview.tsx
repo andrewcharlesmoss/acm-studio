@@ -85,7 +85,10 @@ function Fixture({ example, state, setState }: { example: ExampleDefinition; sta
   </div>;
 }
 
-export function RibbonPreview({ example, tab, setTab, state, setState }: { example: ExampleDefinition; tab: string; setTab: (tab: string) => void; state: DemoState; setState: StateSetter }) {
+export function RibbonPreview({ example, tab, setTab, state, setState, showScenarios = true, showFixture = true, showStatus = true }: {
+  example: ExampleDefinition; tab: string; setTab: (tab: string) => void; state: DemoState; setState: StateSetter;
+  showScenarios?: boolean; showFixture?: boolean; showStatus?: boolean;
+}) {
   const trigger = useRef<HTMLButtonElement | null>(null);
   const popup = useRef<HTMLDivElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
@@ -128,7 +131,7 @@ export function RibbonPreview({ example, tab, setTab, state, setState }: { examp
       {state.menu === "highlight" ? highlightDefinition?.children?.filter((control) => ["row", "column", "both"].some((mode) => control.id.endsWith("." + mode))).map((control) => <button key={control.id} data-region={control.id} type="button" role="menuitemradio" aria-checked={state.highlight === control.id.split(".").at(-1)} onClick={() => { setState((current) => runDemoCommand(current, control)); closeMenu(); }}><AcmIcon name={control.icon!} size={24} /><span>{control.label}</span>{state.highlight === control.id.split(".").at(-1) && <AcmIcon name="state.selected" size={16} />}</button>) :
         fixtureColumns.map((column) => <label key={column}><input type="checkbox" checked={state.columns.includes(column)} disabled={state.columns.length === 1 && state.columns.includes(column)} onChange={(event) => setState((current) => setAccountColumns(current, event.target.checked ? fixtureColumns.filter((name) => name === column || current.columns.includes(name)) : current.columns.filter((name) => name !== column)))} />{column[0].toUpperCase() + column.slice(1)}</label>)}
     </div> : null}
-    <div className="rl-scenario-bar" aria-label="Demonstration Scenarios">
+    {showScenarios && <div className="rl-scenario-bar" aria-label="Demonstration Scenarios">
       {example.id !== "skeleton" && <>
         <label><input type="checkbox" checked={example.id === "account" ? hasAccountSelection(state) : state.selected} onChange={(event) => setState((current) => setDemoSelection(current, event.target.checked, example.id === "account"))} />Selection</label>
         <label><input type="checkbox" checked={state.locked} onChange={(event) => setState((current) => ({ ...current, locked: event.target.checked, editing: false }))} />Locked</label>
@@ -136,8 +139,8 @@ export function RibbonPreview({ example, tab, setTab, state, setState }: { examp
           <><label><input type="checkbox" checked={state.loading} onChange={(event) => setState((current) => ({ ...current, loading: event.target.checked }))} />Loading</label><label><input type="checkbox" checked={state.empty} onChange={(event) => setState((current) => ({ ...current, empty: event.target.checked, selected: false }))} />Empty Results</label></>}
       </>}
       <button type="button" onClick={() => { setState(initialDemo(example)); setTab(example.initialTab); }}><AcmIcon name="action.reset" size={18} />Reset Demo</button>
-    </div>
-    <Fixture example={example} state={state} setState={setState} />
-    <p className="rl-demo-status" role="status">{state.message}</p>
+    </div>}
+    {showFixture && <Fixture example={example} state={state} setState={setState} />}
+    {showStatus && <p className="rl-demo-status" role="status">{state.message}</p>}
   </div>;
 }

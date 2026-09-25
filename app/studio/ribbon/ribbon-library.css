@@ -137,7 +137,7 @@
 .rl-properties { margin:1.3rem 0; font-size:.875rem; }
 .rl-properties dt { color:var(--rl-muted); margin-top:.8rem; }
 .rl-properties dd { margin:.15rem 0 0; overflow-wrap:anywhere; }
-.rl-icon-link { display:flex; align-items:center; gap:12px; width:100%; background:#FFF; border:1px solid var(--rl-line); border-radius:6px; padding:12px; text-align:left; font-size:.8125rem!important; }
+.rl-icon-link { display:flex; align-items:center; gap:12px; width:100%; background:#FFF; border:1px solid var(--rl-line); border-radius:6px; padding:12px; color:inherit; text-align:left; text-decoration:none; font-size:.8125rem!important; }
 .rl-icon-link small { display:block; font-size:.8125rem; margin-top:4px; }
 .rl-tokens { font-size:.8125rem; }
 .rl-tokens>div { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px solid #E7E9EC; }

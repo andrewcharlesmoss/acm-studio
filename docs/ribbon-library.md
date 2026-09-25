@@ -2,9 +2,10 @@
 
 ## Purpose and boundaries
 
-Open `/studio/ribbon` from Studio's tools or the main dashboard. The catalogue
-combines live shared-component specimens, isolated ACM Studio and ACM Account
-references, and 106 original ACM icons with 318 SVG variants. The inventory has
+Open Ribbon from the Studio UI Library at `/studio/ui/ribbon`. The shared
+library shell also provides the combined Workspace, Pane specimens and the
+top-level Icons catalogue. The Ribbon catalogue combines live shared-component
+specimens and isolated ACM Studio and ACM Account references. Its inventory has
 73 command/control entries, including conditional links, header controls,
 menu actions, text-only fields and state alternatives.
 
@@ -28,15 +29,15 @@ It is a command specimen, not a second drawing editor.
 - Simple range fields remain native inputs, with catalogue-scoped ACM track
   and thumb styling. Their filled track follows the value so the minimum is
   visibly empty.
-- `ribbon-catalogue.tsx` owns inspection and section navigation. The inspector
+- `ribbon-catalogue.tsx` owns Ribbon section navigation and inspection. The inspector
   reads dimensions and CSS tokens from its selected rendered element. Choosing
   a conditional command reveals its tab, scenario or menu first.
 - The independent sibling `acm-icons` owns editable masters, metadata, generated
   portable assets and the React adapter. Studio does not edit generated paths.
 - Studio's block hover toolbar, block transforms, alignment controls and rich-text
   menus consume the shared ACM icon package. Their actions and accessible names
-  remain owned by Studio; the catalogue remains the review surface for the
-  reusable artwork.
+  remain owned by Studio; the shared UI Library's Icons section is the review
+  surface for the reusable artwork.
 
 The catalogue shell uses the shared Inter typography baseline. Product specimens
 use observed Inter typography, 13px action labels, fixed 114px content panels,
@@ -107,8 +108,8 @@ against frozen fixtures with throwing network/storage/DOM-access spies.
 
 The golden reference set has been visually reviewed at 16/24/32px on light and
 dark surfaces. Small table-cell and row symbols remain a particular optical
-review point. The current full library is available for continued review in
-Icons; adoption by working product Ribbons remains a subsequent decision.
+review point. The full icon library is available in the Studio UI Library's
+Icons section; adoption by working product Ribbons remains a separate concern.
 
 Required browser checks include real hover/focus, tabs and hidden panels,
 selection and icon state, menus with Escape/close focus restoration, sliders,
@@ -276,8 +277,8 @@ product controls.
 
 ACM Icons v0.3.0 adds 16 shared symbols and 48 optical variants, bringing the
 library to 85 symbols and 255 standalone SVGs. These symbols belong to the
-reusable ACM icon library; the Ribbon Library remains their current review
-surface. The catalogue UI remains v0.1.0.
+reusable ACM icon library; at the time of this batch, the Ribbon Library was
+their current review surface. The catalogue UI remains v0.1.0.
 
 The batch contains Bold, Italic, Underline, Strikethrough, Align Text Left,
 Align Text Centre, Align Text Right, Justify Text, Link, Unlink, Bulleted List,
@@ -367,7 +368,7 @@ ACM Icons v0.4.0 adds 12 symbols and 36 optical variants, bringing the shared
 library to 97 symbols and 291 standalone SVGs. The additions are Add, Remove,
 Settings, More Actions, Menu, Filter, Sort Ascending, Sort Descending,
 Information, Help, Warning and Error. They are reusable interface symbols;
-the Ribbon Library is their current review surface and retains UI v0.1.0.
+the Ribbon Library was their review surface at the time and retained UI v0.1.0.
 
 The eight-tooth Settings gear has an open counter and independently tuned
 optical tooth widths and depths. More Actions has three separated filled dots.

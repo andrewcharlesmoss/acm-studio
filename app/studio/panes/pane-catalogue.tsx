@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { StudioIcon } from "../studio-icons";
-import { defaultRegions, paneContractVersion, paneExamples, paneStructure, paneTokens, skeletonDefinition, type RegionOptions } from "./catalogue-model";
+import { defaultRegions, paneExamples, paneStructure, paneTokens, skeletonDefinition, type RegionOptions } from "./catalogue-model";
 import { PaneSpecimen } from "./pane-specimen";
 import snapshots from "./source-snapshots.json";
 import "./pane-library.css";
@@ -62,15 +62,14 @@ export function PaneCatalogue() {
   function reset() { setRevision((value) => value + 1); setContent("normal"); }
   const specimen = <PaneSpecimen key={specimenKey} definition={definition} regions={regions} layout={actualLayout} content={content} studio={studio} indicatorVariant={indicatorVariant} />;
 
-  return <main className="pl-catalogue">
-    <header className="pl-header"><a href="/studio"><StudioIcon name="arrow-left" size={20} />ACM Studio</a><strong>Pane Library</strong><span className="pl-badge">Skeletons · v{paneContractVersion}</span></header>
+  return <section className="ui-pane-page" aria-label="Pane Catalogue">
+    <div className="pl-catalogue">
     <div className="pl-intro"><p className="pl-eyebrow">Foundations / Panes</p><h1>A consistent frame for your tools.</h1><p>Explore the panes you use, their structure and their collapse controls.</p></div>
     <nav className="pl-sections" aria-label="Pane Library Sections">{sections.map((name) => <button type="button" key={name} aria-current={section === name ? "page" : undefined} onClick={() => chooseSection(name)}>{name}</button>)}</nav>
     <div className="pl-catalogue-layout">
       <aside className="pl-navigation" aria-label="Pane Examples and Structure">
         {studio && <label className="pl-field">Studio Example<select value={exampleId} onChange={(event) => { setExampleId(event.target.value as typeof exampleId); setSelected("workspace"); }}>{paneExamples.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}
         <h2>Structure</h2><ul className="pl-structure">{structure.map((item) => <li key={item.id} className={item.id.includes(".") ? "pl-structure-child" : ""}><button type="button" aria-pressed={selection.id === item.id} onClick={() => setSelected(item.id)}>{item.label}</button></li>)}</ul>
-        <a className="pl-related" href="/studio/ribbon">Open Ribbon Library<StudioIcon name="arrow-right" size={18} /></a>
       </aside>
       <section className="pl-main" aria-label="Pane Specimens">
         <div className="pl-specimen-heading"><p className="pl-eyebrow">{studio ? "Studio example" : "Working skeleton"}</p><h2>{studio ? definition.label : "One pane structure. Either edge."}</h2><p>{studio ? definition.description : "Both sides use the same pane structure. Only the collapse and resize control changes edge and direction."}</p></div>
@@ -101,5 +100,6 @@ export function PaneCatalogue() {
       </section>
       <aside className="pl-inspector" aria-label="Pane Structure Inspector"><p className="pl-eyebrow">Structure inspector</p><h2>{selection.id === activeInspectedSide ? `${selection.label} · ${activeInspectedSide === "left" ? "Left" : "Right"}` : selection.label}</h2><p>{selection.description}</p><h3>Rendered Size</h3><p aria-live="polite">{metrics.dimensions}</p><h3>Computed Tokens</h3><p className="pl-muted">Read from the selected rendered region. Inspection applies to the selected pane side.</p><dl>{Object.entries(metrics.tokens).map(([name, value]) => <div key={name}><dt>{name.replace("--pane-", "")}</dt><dd>{value || "Not set"}</dd></div>)}</dl></aside>
     </div>
-  </main>;
+    </div>
+  </section>;
 }

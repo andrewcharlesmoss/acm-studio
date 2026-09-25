@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+- Added a Studio UI Library with Workspace, Ribbon, Panes and shared Icons
+  sections. Workspace shows the Ribbon and both resizable panes around one
+  centre canvas; former Ribbon and Pane URLs redirect to their new sections.
+
 ### Changed
 - Made selected-only tab underlines the default across Studio panes, with an
   optional hover underline variant in the Pane Library preview. Design Canvas
