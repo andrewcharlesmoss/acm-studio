@@ -60,9 +60,10 @@ This is an internal Studio module, not a published package.
   product counts and other non-interactive decoration. The default
   `indicatorVariant="hover"` is the default. The active tab keeps its underline
   and hovered or keyboard-focused tabs receive a subtle underline in the ACM
-  neutral palette. At rest, each line matches its label; hover and keyboard
-  focus extend it to the label's padded edge, then it retracts when the state
-  ends. Unconfigured Pane tab strips share the same default. It does not add a
+  neutral palette. At rest, each line matches its label; pointer hover extends
+  it to the label's padded edge, then it retracts when the pointer leaves.
+  Keyboard focus keeps the label-width line and uses the visible focus outline.
+  Unconfigured Pane tab strips share the same default. It does not add a
   background block. The optional
   `indicatorVariant="selected"` limits the underline to the active tab. Both
   variants retain the same layout and focus behaviour. Space-constrained

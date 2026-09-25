@@ -9,7 +9,8 @@
 
 ### Changed
 - Sized shared Pane and Ribbon tab underlines to their labels at rest, then
-  extended them to the padded edge on hover or keyboard focus.
+  extended them to the padded edge on pointer hover. Keyboard focus keeps the
+  label-width underline and visible focus outline.
 - Consolidated the Pane Library structure tree to one Pane entry, with an
   Inspect Side control for comparing the left and right edge controls.
 - Applied the Ribbon's neutral ink accent to native range sliders.

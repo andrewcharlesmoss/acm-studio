@@ -34,11 +34,12 @@ it is not an exhaustive inventory of use throughout ACM products.
 ## Shared tab indicator
 
 The Studio UI Library owns the common Ribbon and Pane underline rule. At rest,
-the line matches the label. Hover or keyboard focus expands it to the padded tab
-edge, and leaving that state retracts it. The underline remains line-only, with
-no hover background block. `@acm/ribbon` implements the Ribbon behaviour and
-Studio Pane tabs follow the same geometry and motion. Product consumers may
-theme indicator colours but should not replace the shared sizing or transition.
+the line matches the label. Pointer hover expands it to the padded tab edge, and
+leaving the tab retracts it. Keyboard focus keeps the label-width underline and
+uses the visible focus outline. The underline remains line-only, with no hover
+background block. `@acm/ribbon` implements the Ribbon behaviour and Studio Pane
+tabs follow the same geometry and motion. Product consumers may theme indicator
+colours but should not replace the shared sizing or transition.
 
 ## Verification
 
