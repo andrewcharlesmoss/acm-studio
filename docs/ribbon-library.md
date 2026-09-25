@@ -46,8 +46,9 @@ line-only indicator contract defined by the Studio UI Library: its resting line
 matches the label. Hovering an unselected tab keeps its neutral grey line at
 label width; hovering the selected tab expands its active line while retaining
 a small inset from the tab edge, and it retracts when the pointer leaves.
-Keyboard focus keeps the label-width line and uses the visible focus outline. `@acm/ribbon` implements
-that behaviour; consumers supply product colours through its tokens and do not
+Keyboard focus keeps the label-width line and uses the visible focus outline;
+the focused tab does not reveal a second button border. `@acm/ribbon`
+implements that behaviour; consumers supply product colours through its tokens and do not
 replace its indicator geometry.
 
 ## Source snapshots

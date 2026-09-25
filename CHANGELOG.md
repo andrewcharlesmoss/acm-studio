@@ -11,7 +11,8 @@
 - Sized shared Pane and Ribbon tab underlines to their labels at rest, then
   kept unselected hover lines at label width and widened the selected line on
   pointer hover while retaining an edge inset. Keyboard focus keeps label-width
-  underlines and the visible focus outline.
+  underlines and the visible focus outline; focused Ribbon tabs do not show a
+  second button border.
 - Removed the redundant full-width Ribbon divider beneath the tab strip.
 - Consolidated the Pane Library structure tree to one Pane entry, with an
   Inspect Side control for comparing the left and right edge controls.
