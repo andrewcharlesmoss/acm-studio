@@ -3,8 +3,10 @@
 ## Unreleased
 
 ### Added
+- Added a Default keyboard appearance and Reset to Default control, preserving
+  the selected key, platform, artwork mode and export size.
 - Added custom keyboard symbol, border and fill colours, transparent fills and
-  Outline, Light and Dark presets shared by previews and SVG/PNG downloads.
+  Default, Outline and Dark presets shared by previews and SVG/PNG downloads.
 - Added a separate UK Keyboard preview collection with eight sample keys,
   Mac/Windows filters, keycap and symbol views, and font-free SVG/transparent
   PNG downloads with selectable colour and size.

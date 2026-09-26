@@ -120,8 +120,13 @@ controls and download interaction. Existing 119 interface icons stay in their
 own collection. No keyboard shortcuts or product controls are changed.
 
 Choose Mac, Windows or both; switch between keycaps and bare symbols; compare
-light/dark specimens. Choose Outline, Light or Dark presets, or custom symbol,
-border and fill colours. The Dark preset also selects a dark preview surface.
+light/dark specimens. New previews start with Default: off-black symbols and
+borders on an off-white keycap. The space outside the keycap stays transparent.
+Choose Outline or Dark, or edit a colour to enter the automatically detected
+Custom state. Use Reset to Default to restore the palette and light preview
+surface without changing the selected key, platform, artwork mode or export
+size. Switching keys retains your palette. The Dark preset also selects a
+dark preview surface.
 The border initially follows the symbol; unlink it for an independent colour.
 Transparent Fill leaves the inside clear; solid fill colours only the keycap.
 The outside remains transparent. Download SVG or PNG with these settings,

@@ -57,6 +57,9 @@ icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and
 sibling `@acm/icons` package. A UK Keyboard sample collection lives at
 `/studio/ui/icons?collection=keyboard`. Shared keycap assets are owned by
 `@acm/icons/keyboard`. The sample awaits review before the full UK inventory.
+The Studio preview's default appearance and Reset to Default behaviour are
+defined in `docs/studio-ui-library.md`; keep them separate from the shared
+keyboard renderer's transparent backwards-compatible defaults.
 This catalogue organisation does not replace
 existing product icons or change their provenance. Ribbon definitions drive its
 tree, inspector and renderer. All catalogue demo handlers remain memory-only
