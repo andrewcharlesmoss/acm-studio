@@ -128,7 +128,7 @@ Function assignments and optional keys vary by model, OS and manufacturer;
 this is a catalogue of common key types rather than a model-exact physical
 layout.
 
-The sibling `@acm/icons` v0.10.5 package owns the glyph masters, shared square,
+The sibling `@acm/icons` v0.10.6 package owns the glyph masters, shared square,
 wide, tall, Backspace, Spacebar, numeric-zero and left/right Shift keycap frames, platform
 metadata and SVG composer. Backspace is 84 × 48 units, Spacebar is 240 × 48,
 left Shift is 84 × 48, right Shift is 96 × 48 and numeric zero is 96 × 48. The package contains 269
@@ -160,8 +160,11 @@ the symbols; bare-symbol exports show the marks alone. Mac function-row artwork
 uses larger pictograms in a common band above the F numbers. Brightness Down
 and Up use small and large suns without additional minus/plus marks;
 Touch ID and Power have separate symbols, AltGr has its own legend, and the
-Context Menu key uses a menu symbol. Copilot uses the MIT-licensed monochrome
-brand SVG from Lobe Icons, with one preserved ribbon shape at all three scales.
+Context Menu key uses a menu symbol. The F6 Focus key uses a broad, clearly
+legible crescent. The selected-key inspector includes the icon's catalogue
+provenance and any full licence notice supplied by `@acm/icons`. Copilot uses
+the MIT-licensed monochrome brand SVG from Lobe Icons, with one preserved
+ribbon shape at all three scales.
 Its pinned source and licence live in `acm-icons/sources/copilot/`; SVG downloads
 retain the licence notice. This is an explicitly authorised exception to the
 original ACM artwork rule. The Spacebar

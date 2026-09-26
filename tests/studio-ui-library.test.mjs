@@ -48,6 +48,18 @@ test("shared Icons section keeps ACM artwork and describes usage as catalogue ex
   assert.match(icons, /No Ribbon catalogue examples use this symbol/);
 });
 
+test("keyboard inspector exposes each selected key's artwork provenance and available licence notice", () => {
+  const keyboard = read("app/studio/ui/keyboard-catalogue.tsx");
+  assert.match(keyboard, /import \{ iconMetadata \} from "@acm\/icons"/);
+  assert.match(keyboard, /const artwork = iconMetadata\[asset\.key\.icon\]/);
+  assert.match(keyboard, /<summary>Artwork provenance and licensing<\/summary>/);
+  assert.match(keyboard, /\{artwork\.provenance\}/);
+  assert.match(keyboard, /acm-icons\/masters\/\{asset\.key\.icon\}\.svg/);
+  assert.match(keyboard, /artwork\.licenceNotice &&/);
+  assert.match(keyboard, /<summary>Full licence notice<\/summary>/);
+  assert.match(keyboard, /<pre>\{artwork\.licenceNotice\}<\/pre>/);
+});
+
 test("Studio tool navigation points to one combined library entry", () => {
   for (const file of ["app/studio/studio-dashboard.tsx", "app/studio/studio-prototype.tsx", "app/studio/template-workspace.tsx"]) {
     const source = read(file);

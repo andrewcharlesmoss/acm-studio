@@ -29,6 +29,11 @@
 .kb-inspector { padding: 1.25rem; border: 1px solid var(--rl-line); border-radius: 9px; background: #fff; }
 .kb-inspector h2 { font-size: 1.3rem; margin: .4rem 0 1rem; }
 .kb-inspector > p { line-height: 1.55; }
+.kb-artwork-info { margin: .75rem 0 1rem; border-top: 1px solid var(--rl-line); border-bottom: 1px solid var(--rl-line); padding: .65rem 0; font-size: 13px; }
+.kb-artwork-info summary { cursor: pointer; font-weight: 600; }
+.kb-artwork-info p { line-height: 1.5; overflow-wrap: anywhere; }
+.kb-artwork-info code { overflow-wrap: anywhere; }
+.kb-artwork-info pre { max-height: 12rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.45; }
 .kb-large { display: flex; align-items: center; justify-content: center; min-height: 184px; padding: 1rem; border: 1px solid var(--rl-line); border-radius: 7px; background: #f4f4f2; }
 .kb-large svg { max-width: 100%; max-height: 152px; height: auto; }
 .kb-export-settings { display: grid; gap: .7rem; margin-top: 1rem; }

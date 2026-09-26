@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Added keyboard artwork provenance and available licence notices to the
+  selected-key inspector.
 - Refined the UK keyboard collection to 154 key identities across 144 active
   keyboard symbols, with Inter-metric lettering, Mac-specific UK legends, keycap
   and symbol artwork, and optional Copilot and Mac function-row keys.
@@ -198,6 +200,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Refined the Mac F6 Focus key's crescent and exposed key artwork provenance
+  and supplied licence notices in the keyboard inspector.
 - Refined keyboard punctuation and long legends with consistent Inter metrics,
   deliberate multiline layouts, larger aligned Mac modifier captions, distinct
   AltGr/Touch ID/Power symbols, a recognisable Context Menu key and clearer

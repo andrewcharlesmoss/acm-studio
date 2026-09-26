@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useReducer, useState } from "react";
+import { iconMetadata } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { keyboardKeys, keyboardAsset, createKeyboardSvg, type KeyboardKeyGroup, type KeyboardKeyId, type KeyboardMode, type KeyboardPlatform } from "@acm/icons/keyboard";
 import { AcmKeycap } from "@acm/icons/keyboard/react";
@@ -69,6 +70,7 @@ export function KeyboardCatalogue() {
   const visibleKeys = keys.filter((key) => (group === "all" || key.group === group) && `${key.label} ${key.id} ${key.note} ${key.aliases?.join(" ") ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()));
   const current = visibleKeys.find((key) => key.id === selected) ?? visibleKeys[0] ?? keys.find((key) => key.id === selected) ?? keys[0];
   const asset = keyboardAsset(current.id, { mode });
+  const artwork = iconMetadata[asset.key.icon];
   const width = Math.round(height * asset.width / asset.height);
   const { colour, borderColour, matchBorder, fillColour, transparent, dark } = appearance;
   const resolvedAppearance = { colour, borderColour: matchBorder ? colour : borderColour, fillColour: transparent ? "none" : fillColour };
@@ -123,6 +125,15 @@ export function KeyboardCatalogue() {
         <p className="rl-eyebrow">SELECTED ASSET</p><h2>{current.label}</h2>
         <div className={"kb-large" + (dark ? " kb-dark" : "")} style={{ color: colour }}><AcmKeycap name={current.id} mode={mode} {...resolvedAppearance} height={128} /></div>
         <p>{current.note}</p>
+        <details className="kb-artwork-info">
+          <summary>Artwork provenance and licensing</summary>
+          <p>{artwork.provenance}</p>
+          <code>acm-icons/masters/{asset.key.icon}.svg</code>
+          {artwork.licenceNotice && <details>
+            <summary>Full licence notice</summary>
+            <pre>{artwork.licenceNotice}</pre>
+          </details>}
+        </details>
         <div className="kb-export-settings">
           <label>Export Height<select value={height} onChange={(event) => dispatch({ type: "set-height", value: Number(event.target.value) })}>{[64, 128, 256, 512].map((size) => <option value={size} key={size}>{size}px</option>)}</select></label>
           <div className="kb-preset-row">
