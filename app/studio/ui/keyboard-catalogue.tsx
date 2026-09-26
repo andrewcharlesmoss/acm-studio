@@ -66,7 +66,7 @@ export function KeyboardCatalogue() {
   const { selected, platform, mode, height, appearance, resetRevision, status } = state;
   const keys = keyboardKeys.filter((key) => platform === "all" || key.platforms.includes(platform));
   const groups = [...new Set(keys.map((key) => key.group))];
-  const visibleKeys = keys.filter((key) => (group === "all" || key.group === group) && `${key.label} ${key.id} ${key.note}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const visibleKeys = keys.filter((key) => (group === "all" || key.group === group) && `${key.label} ${key.id} ${key.note} ${key.aliases?.join(" ") ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()));
   const current = visibleKeys.find((key) => key.id === selected) ?? visibleKeys[0] ?? keys.find((key) => key.id === selected) ?? keys[0];
   const asset = keyboardAsset(current.id, { mode });
   const width = Math.round(height * asset.width / asset.height);
@@ -115,7 +115,7 @@ export function KeyboardCatalogue() {
     <div className="kb-workspace">
       <div className={"kb-grid" + (dark ? " kb-dark" : "")} aria-label="Keyboard Assets">
         {visibleKeys.length ? visibleKeys.map((key) => <button type="button" className="kb-card" key={key.id} aria-pressed={current.id === key.id} onClick={() => dispatch({ type: "select-key", value: key.id })}>
-          <span className="kb-card-art"><AcmKeycap name={key.id} mode={mode} {...resolvedAppearance} height={mode === "keycap" && (key.shape === "iso" || key.shape === "tall" || key.group === "Mac function row") ? 96 : 80} /></span>
+          <span className="kb-card-art"><AcmKeycap name={key.id} mode={mode} {...resolvedAppearance} height={mode === "keycap" && (key.shape === "iso" || key.shape === "tall") ? 112 : 96} /></span>
           <strong>{key.label}</strong><span>{key.platforms.length === 2 ? "Mac + Windows" : key.platforms[0] === "mac" ? "Mac" : "Windows"}</span>
         </button>) : <p className="kb-empty">No keys match this search.</p>}
       </div>

@@ -108,20 +108,26 @@ written to browser storage.
 ## UK keyboard collection
 
 The Icons section groups interface icons and the complete common UK ISO Keyboard
-collection at `/studio/ui/icons?collection=keyboard`. It presents 150 key
-identities across 135 keyboard symbols: letters, number-row and punctuation
+collection at `/studio/ui/icons?collection=keyboard`. It presents 154 key
+identities across 144 active keyboard symbols: letters, platform-specific
+number-row and punctuation
 legends, modifiers, editing/navigation keys, function keys, numeric keypad,
 Mac-specific legends and optional Windows hardware keys. The Mac British/Irish
 section/plus-minus key and grave/tilde key are distinct from the Windows UK
-not/broken-bar top-left key. The collection includes Mac F1–F12 action legends,
+not/broken-bar top-left key. Mac number 2 has @ and a small € marking; Mac 3
+has £ and a small # marking; the Mac apostrophe key has a double-quote Shift
+legend. Windows variants retain their UK legends. The collection includes Mac F1–F12 action legends,
 separate F1–F19 keys, and a Copilot mark based on Andrew's supplied reference.
 Function assignments and optional keys vary by model, OS and manufacturer;
 this is a catalogue of common key types rather than a model-exact physical
 layout.
 
-The sibling `@acm/icons` v0.9.0 package owns the glyph masters, shared square,
-wide, tall and UK ISO keycap frames, platform metadata and SVG composer. It
-contains 257 symbols overall, including the 119 existing interface icons.
+The sibling `@acm/icons` v0.10.0 package owns the glyph masters, shared square,
+wide, tall, Backspace, Spacebar and left/right Shift keycap frames, platform
+metadata and SVG composer. Backspace is 84 × 48 units, Spacebar is 240 × 48,
+left Shift is 84 × 48 and right Shift is 96 × 48. The package contains 269
+symbols overall, including the 119 existing interface icons. Older renderer
+defaults remain compatible; the new Studio artwork is additive.
 Studio owns the preview controls and download interaction. No keyboard
 shortcuts or product controls are changed.
 
@@ -138,12 +144,19 @@ Transparent Fill leaves the inside clear; solid fill colours only the keycap.
 The outside remains transparent. Download SVG or PNG with these settings,
 with heights of 64, 128, 256 or 512px. The width follows the selected key's
 proportions. Unlike the interface-icon inspector's 3× PNG exports, Keyboard
-exports use the displayed dimensions exactly. A, 3/£, key labels and Mac
-modifier symbols use licensed Inter v4.1-derived path geometry. Mac function-row
-action pictograms use original ACM vector geometry, enlarged above their
-separate outlined F-key legends; Forward Delete uses its symbol alone. Imported
-SVGs do not require fonts. Shared keys show primary/Shift legends; alternate
-layers and every physical key width are outside this set.
+exports use the displayed dimensions exactly. Inter-derived text uses common
+font-metric scales and baselines, natural punctuation sizes, fixed stacked
+legend positions and intentional two-line names. Secondary marks on Mac number
+2/3 and apostrophe keys follow the supplied keyboard reference. Left/right Mac
+Command, Option and Control variants align their symbols to match their key
+positions. Mac function-row artwork uses a common action-above-F-number layout;
+Touch ID and Power have separate symbols, AltGr has its own legend, and the
+Context Menu key uses a menu symbol. Copilot retains internal negative space at
+all three optical sizes. SVGs do not require fonts. Shared keys show
+primary/Shift legends; alternate layers and every physical key width are outside
+this set.
 
-Export bounds and outer padding remain unchanged. Inter sources and licensing
-belong to ACM Icons; Studio neither embeds nor loads the font for key artwork.
+Square, wide, tall and ISO keycap dimensions and transparent outer padding remain
+unchanged. Backspace, Spacebar and Shift use the new proportions documented
+above. Inter sources and licensing belong to ACM Icons; Studio neither embeds
+nor loads the font for key artwork.

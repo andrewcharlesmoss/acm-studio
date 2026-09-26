@@ -28,7 +28,7 @@
 .kb-inspector h2 { font-size: 1.3rem; margin: .4rem 0 1rem; }
 .kb-inspector > p { line-height: 1.55; }
 .kb-large { display: flex; align-items: center; justify-content: center; min-height: 184px; padding: 1rem; border: 1px solid var(--rl-line); border-radius: 7px; background: #f4f4f2; }
-.kb-large svg { max-width: 100%; }
+.kb-large svg { max-width: 100%; max-height: 152px; height: auto; }
 .kb-export-settings { display: grid; gap: .7rem; margin-top: 1rem; }
 .kb-export-settings label { justify-content: space-between; flex-wrap: wrap; }
 .kb-dimensions, .kb-export-note, .kb-footnote, .kb-status { color: var(--rl-muted); }

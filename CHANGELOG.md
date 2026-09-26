@@ -3,8 +3,8 @@
 ## Unreleased
 
 ### Added
-- Expanded the UK keyboard collection to 150 key identities across 135
-  keyboard symbols, with searchable sections, UK Mac/Windows variants, keycap
+- Refined the UK keyboard collection to 154 key identities across 144 active
+  keyboard symbols, with Inter-metric lettering, Mac-specific UK legends, keycap
   and symbol artwork, and optional Copilot and Mac function-row keys.
 - Added a Default keyboard appearance and Reset to Default control, preserving
   the selected key, platform, artwork mode and export size.
@@ -198,10 +198,14 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
-- Enlarged keyboard preview thumbnails and improved Mac function-key legibility,
-  with F-number labels separated from action pictograms.
-- Keyboard A, 3/£ and Ctrl now use Inter-derived vector lettering; export
-  dimensions and outer spacing remain unchanged.
+- Refined keyboard punctuation and long legends with consistent Inter metrics,
+  deliberate multiline layouts, larger aligned Mac modifier captions, distinct
+  AltGr/Touch ID/Power symbols, a recognisable Context Menu key and clearer
+  Copilot geometry. Added Mac UK number-row variants and standardised all twelve
+  Mac function keys; transparent outer padding is unchanged.
+- Added proportional Backspace, Spacebar and left/right Shift keycaps and
+  updated the keyboard catalogue search and wide-key previews. Square, wide,
+  tall and ISO frame dimensions are unchanged.
 - Updated the shared icon catalogue to ACM Icons v0.5.9, giving Snapping Off
   a clearer slash and horseshoe contour at all three optical sizes.
 - Updated the shared icon catalogue to ACM Icons v0.5.8, with clearer Hide,
