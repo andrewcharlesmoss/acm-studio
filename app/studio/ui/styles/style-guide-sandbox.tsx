@@ -105,13 +105,11 @@ export function StyleGuideSandbox() {
   const [hoveredSourcePath, setHoveredSourcePath] = useState<string | null>(null);
   const [focusedSourcePath, setFocusedSourcePath] = useState<string | null>(null);
   const [pinnedSourcePath, setPinnedSourcePath] = useState<string | null>(null);
-  const [previewScrollRequest, setPreviewScrollRequest] = useState(0);
   const [guideQuery, setGuideQuery] = useState("");
   const [guideView, setGuideView] = useState<GuideView>("formatted");
   const [guideMatchIndex, setGuideMatchIndex] = useState(0);
   const [guideJumpLine, setGuideJumpLine] = useState<number | null>(null);
   const guideSourceRef = useRef<HTMLDivElement>(null);
-  const previewFrameRef = useRef<HTMLDivElement>(null);
   const hasSourceInteraction = useRef(false);
   const guideScrollSyncSuspended = useRef(false);
   const variables = useMemo(() => universalStylePresetToCssVariables(preset, viewport) as CSSProperties, [preset, viewport]);
@@ -132,18 +130,6 @@ export function StyleGuideSandbox() {
     const propertyPath = `${buttonPathParts[0]}.${buttonPathParts[1]}.${property}`;
     return { path: propertyPath, current: displayStyleValue(pathValue(preset, propertyPath), viewport), baseline: displayStyleValue(pathValue(UNIVERSAL_STYLE_PRESET, propertyPath), viewport) };
   }) : [];
-
-  useEffect(() => {
-    if (!pinnedSourcePath) return;
-    const frame = previewFrameRef.current;
-    if (!frame) return;
-    const previewTarget = selectedPreviewPath
-      ? Array.from(frame.querySelectorAll<HTMLElement>("[data-style-path]")).find(element => element.dataset.stylePath === selectedPreviewPath)
-      : frame.querySelector<HTMLElement>(".sg-preview[data-source-selected='true']");
-    if (!previewTarget) return;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    previewTarget.scrollIntoView({ block: "center", inline: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
-  }, [pinnedSourcePath, selectedPreviewPath, previewScrollRequest]);
 
   useEffect(() => {
     if (!hasSourceInteraction.current) return;
@@ -198,7 +184,6 @@ export function StyleGuideSandbox() {
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
       setPinnedSourcePath(path);
-      setPreviewScrollRequest(request => request + 1);
       setGuideJumpLine(null);
     }
   }
@@ -221,7 +206,6 @@ export function StyleGuideSandbox() {
     setHoveredSourcePath(null);
     setFocusedSourcePath(null);
     setPinnedSourcePath(selectedPath);
-    setPreviewScrollRequest(request => request + 1);
     setGuideJumpLine(null);
   }
 
@@ -357,7 +341,7 @@ export function StyleGuideSandbox() {
         <section className="sg-preview-panel" aria-label="Live style preview">
           <div className="sg-preview-heading"><div><p className="rl-eyebrow">LIVE PREVIEW</p><h2>Style specimens</h2></div><span>{viewportRoles.find(item => item.id === viewport)?.label} preview</span></div>
           {/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- This labelled preview region needs focus so keyboard users can scroll contained overflow. */}
-          <div ref={previewFrameRef} className="sg-preview-frame" role="region" tabIndex={0} aria-label="Scrollable style specimen preview" data-viewport={viewport}>
+          <div className="sg-preview-frame" role="region" tabIndex={0} aria-label="Scrollable style specimen preview" data-viewport={viewport}>
             <div className="sg-preview acm-universal-style-preset" style={variables} data-source-selected={pinnedSourcePath?.startsWith("layout.") ? "true" : undefined}>
               <header className="sg-site-identity"><div className="sg-site-icon" aria-hidden="true">AM</div><div><strong>ACM Studio</strong><span data-style-path="typography.metadata.size" data-source-selected={selectedPreviewPath === "typography.metadata.size" ? "true" : undefined}>Universal style specimen</span></div><nav className="acm-navigation" data-style-path="typography.navigation.size" data-source-selected={selectedPreviewPath === "typography.navigation.size" ? "true" : undefined} aria-label="Example site navigation"><a href="#specimens">Home</a><a href="#colours">About</a><a href="#buttons">Contact</a></nav></header>
               <section id="buttons" className="sg-example-section sg-button-specimens"><h2>Buttons</h2><div>
