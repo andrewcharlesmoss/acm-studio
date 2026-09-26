@@ -120,7 +120,8 @@ number-row and punctuation
 legends, modifiers, editing/navigation keys, function keys, numeric keypad,
 Mac-specific legends and optional Windows hardware keys. The Mac British/Irish
 section/plus-minus key and grave/tilde key are distinct from the Windows UK
-not/broken-bar top-left key. Mac number 2 has @ and a small € marking; Mac 3
+grave/shifted-not/AltGr-broken-bar top-left key. Mac number 2 has @ and a small
+€ marking; Mac 3
 has £ and a small # marking; the Mac apostrophe key has a double-quote Shift
 legend. Windows variants retain their UK legends. The collection includes Mac F1–F12 action legends,
 separate F1–F19 keys, and a Copilot mark based on Andrew's supplied reference.
@@ -128,7 +129,7 @@ Function assignments and optional keys vary by model, OS and manufacturer;
 this is a catalogue of common key types rather than a model-exact physical
 layout.
 
-The sibling `@acm/icons` v0.10.7 package owns the glyph masters, shared square,
+The sibling `@acm/icons` v0.10.8 package owns the glyph masters, shared square,
 wide, tall, Backspace, Spacebar, numeric-zero and left/right Shift keycap frames, platform
 metadata and SVG composer. Backspace is 84 × 48 units, Spacebar is 240 × 48,
 left Shift is 84 × 48, right Shift is 96 × 48 and numeric zero is 96 × 48. The package contains 269
@@ -151,8 +152,10 @@ The outside remains transparent. Download SVG or PNG with these settings,
 with heights of 64, 128, 256 or 512px. The width follows the selected key's
 proportions. Unlike the interface-icon inspector's 3× PNG exports, Keyboard
 exports use the displayed dimensions exactly. Inter-derived text uses common
-font-metric scales and baselines, natural punctuation sizes, fixed stacked
-legend positions and intentional two-line names. Secondary marks on Mac number
+font-metric scales, natural punctuation sizes, painted-bound upper/lower optical
+bands and intentional two-line names. Generated stacked legends retain at least
+two viewBox units of painted separation at every optical scale. Secondary marks
+on Mac number
 2/3 and apostrophe keys follow the supplied keyboard reference. Left/right Mac
 Command, Option and Control variants align their symbols to match their key
 positions. Their wide keycaps show larger Inter-outline word captions beneath
@@ -172,8 +175,8 @@ keycap is blank and spans more catalogue columns so its long frame remains
 visible; numeric zero also spans two columns. Bare-symbol mode retains the
 Space legend. Windows-only physical keys
 do not appear in the Mac filter. SVGs do not require fonts. Shared keys show
-primary/Shift legends; alternate layers and every physical key width are outside
-this set.
+primary/Shift legends and selected physically printed UK third markings;
+complete alternate layers and every physical key width are outside this set.
 
 Square, wide, tall and ISO keycap dimensions and transparent outer padding remain
 unchanged. Backspace, Spacebar and Shift use the new proportions documented

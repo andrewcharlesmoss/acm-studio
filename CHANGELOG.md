@@ -200,6 +200,9 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Rebalanced stacked UK number-row and punctuation legends into measured upper
+  and lower optical bands, corrected the Mac quote/apostrophe order, and added
+  the missing grave and AltGr broken-bar markings to the Windows top-left key.
 - Corrected the A key's cap height to match adjacent Inter-derived letter keys.
 - Refined the Mac F6 Focus key's crescent and exposed key artwork provenance
   and supplied licence notices in the keyboard inspector.
