@@ -19,12 +19,25 @@ test("Studio UI Library exposes its canonical sections and keeps section routes 
 
 test("Workspace composes the real Ribbon and Pane specimens with both sides open by default", () => {
   const workspace = read("app/studio/ui/workspace-catalogue.tsx");
+  assert.match(workspace, /<ApplicationSectionNavigation initialActiveId="accounts" preventNavigation \/>/);
   assert.match(workspace, /<RibbonPreview[^>]+showScenarios=\{false\} showFixture=\{false\} showStatus=\{false\}/);
   assert.match(workspace, /<PaneSpecimen[^>]+layout="both"/);
-  assert.match(workspace, /role="region" aria-label="Scrollable combined Ribbon and Pane workspace"/);
+  assert.match(workspace, /role="region" aria-label="Scrollable combined application navigation, Ribbon and Pane workspace"/);
   const preview = read("app/studio/ribbon/ribbon-preview.tsx");
   assert.match(preview, /showScenarios = true, showFixture = true, showStatus = true/);
   assert.match(preview, /\{showFixture && <Fixture/);
+});
+
+test("Application Section Navigation is generic, route-ready and exposed in Workspace", () => {
+  const navigation = read("app/studio/ui/application-section-navigation.tsx");
+  assert.match(navigation, /export type ApplicationSectionItem/);
+  assert.match(navigation, /aria-label="Application sections"/);
+  assert.match(navigation, /activeId\?: string/);
+  assert.match(navigation, /onActiveIdChange\?: \(id: string\) => void/);
+  assert.match(navigation, /if \(preventNavigation\)/);
+  assert.doesNotMatch(navigation, /onClick=\{\(event\) => \{ event\.preventDefault\(\);/);
+  assert.match(navigation, /item\.href \?\? `#\$\{item\.id\}`/);
+  assert.match(navigation, /applicationSectionExample/);
 });
 
 test("shared Icons section keeps ACM artwork and describes usage as catalogue examples", () => {

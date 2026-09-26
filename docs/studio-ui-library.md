@@ -3,8 +3,10 @@
 ## Purpose and organisation
 
 Open `/studio/ui` from the Studio dashboard or its content and template tools.
-The library has five sections:
+The library has six sections:
 
+- **Navigation** — the reusable top-level Application Section Navigation
+  component, with an isolated interactive example.
 - **Workspace** — application section navigation, a combined live Ribbon and
   two resizable panes around a centre workspace, assembled from the shared
   components and temporary fixtures.
@@ -18,10 +20,10 @@ The library has five sections:
   sandbox with a live specimen. Sandbox edits remain in component state and do
   not alter templates, products or the shared baseline.
 
-The Ribbon section is `/studio/ui/ribbon`, Panes is `/studio/ui/panes`, Icons
-is `/studio/ui/icons`, and Styles is `/studio/ui/styles`. `/studio/ribbon` and
-`/studio/panes` remain compatible redirects. Studio navigation links to the
-combined library.
+Navigation is `/studio/ui/navigation`, the Ribbon section is
+`/studio/ui/ribbon`, Panes is `/studio/ui/panes`, Icons is `/studio/ui/icons`,
+and Styles is `/studio/ui/styles`. `/studio/ribbon` and `/studio/panes` remain
+compatible redirects. Studio navigation links to the combined library.
 
 ## Ownership boundaries
 
@@ -35,6 +37,8 @@ components and includes the generic Application Section Navigation specimen;
 it does not copy either implementation or use product stores. Application
 section navigation owns the visual relationship between top-level product
 sections; consumers supply the labels, routes, permissions and active section.
+The Navigation section demonstrates that shared component directly; Workspace
+shows how it composes with the Ribbon and panes.
 
 All fixtures and interactions remain temporary component state. The library
 does not call product APIs, use write ownership or read/write browser storage.
@@ -85,7 +89,8 @@ npm run styles:source:check
 git diff --check
 ```
 
-In a browser, inspect all five sections, the legacy redirects, Ribbon and Pane
+In a browser, inspect all six sections, the legacy redirects, section-navigation
+selection, Ribbon and Pane
 specimen interactions, icon search/selection/provenance, and the combined
 Workspace with both panes expanded, resized and collapsed. Check keyboard
 navigation and focus, desktop/tablet/mobile widths, and verify narrow preview
