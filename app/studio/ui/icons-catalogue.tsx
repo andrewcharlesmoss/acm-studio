@@ -37,7 +37,7 @@ export function IconsCatalogue({ initialIcon, collection = "icons" }: { initialI
       <div className="ui-page-intro">
         <p className="rl-eyebrow">Shared ACM Foundation</p>
         <h1 id="ui-icons-title">Symbols for websites, videos and more.</h1>
-        <p>Browse original ACM artwork and download vector or transparent image assets.</p>
+        <p>Browse ACM artwork and sourced brand marks, and download SVG or PNG assets.</p>
       </div>
       <nav className="ui-symbol-collections" aria-label="Symbol Collections">
         <a href="/studio/ui/icons" aria-current={collection === "icons" ? "page" : undefined}><AcmIcon name="insert.shapes" size={20} />Interface Icons</a>

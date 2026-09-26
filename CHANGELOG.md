@@ -410,6 +410,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Replaced the inaccurate Copilot key drawing with a sourced, MIT-licensed
+  monochrome brand mark, retaining its licence in SVG downloads.
 - Enlarged small keyboard legends and Mac Forward Delete, redrew the Copilot
   mark from the supplied reference, widened numeric keypad zero, and kept the
   Spacebar legible in the catalogue. Mac filtering now hides Windows-only keys.

@@ -39,7 +39,10 @@ there when the reusable library has no suitable match. Use its React adapter
 and optical scales; do not redraw those symbols locally. Other Studio controls
 use the reusable `app/studio/acm-studio-icons.tsx` module. Preserve the
 `StudioIcon` and table-icon wrappers as compatibility APIs. Do not trace or
-copy third-party paths.
+copy third-party paths. Andrew explicitly authorised the Copilot keyboard mark
+as a sourced brand exception on 26 September 2026. Its MIT-licensed Lobe Icons
+SVG, provenance and licence are owned by `acm-icons/sources/copilot/`; preserve
+the shared geometry and licence notices when previewing or exporting it.
 
 The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes, Icons and
 Styles. Its Styles section is a preview sandbox for the executable `@acm/styles`

@@ -33,6 +33,14 @@ test("SVG download builder rejects invalid sizes and unknown icons", () => {
   assert.throws(() => createIconSvg("action.undo", "Regular-M", 513), /valid ACM icon/);
 });
 
+test("sourced Copilot SVG downloads retain the MIT copyright and permission notice", () => {
+  const svg = createIconSvg("keyboard.copilot", "Regular-S", 16);
+  assert.match(svg, /<metadata>MIT License/);
+  assert.match(svg, /Copyright \(c\) 2023 LobeHub/);
+  assert.match(svg, /Permission is hereby granted/);
+  assert.doesNotMatch(createIconSvg("action.undo", "Regular-M", 24), /<metadata>/);
+});
+
 test("PNG exports preserve rectangular keycaps and existing three-times icon dimensions", async (t) => {
   const { createSvgPng, createIconPng } = await import("../app/studio/ui/icon-download.mjs");
   const originals = new Map(["Image", "document"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
