@@ -186,6 +186,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Updated the shared icon catalogue to ACM Icons v0.5.9, giving Snapping Off
+  a clearer slash and horseshoe contour at all three optical sizes.
 - Updated the shared icon catalogue to ACM Icons v0.5.8, with clearer Hide,
   layer-order, Snapping, Selection Outline, Settings and Footnote symbols.
 - Updated the Ribbon specimen to display the shared 16px regular tabs and 13px regular group/control labels without Studio-specific typography overrides.
