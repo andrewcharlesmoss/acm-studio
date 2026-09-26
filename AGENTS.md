@@ -95,6 +95,11 @@ collapse controls remain available. Studio Navigation and Editor Inspector
 adopt the shared resizing contract. Other product panes retain their existing
 widths and responsive behaviour.
 
+The main content editor, template editor and Mini Golf editor remain
+three-pane desktop workspaces at narrow viewport widths. They keep a minimum
+workspace width and scroll horizontally until a dedicated mobile arrangement is
+designed; do not reflow their editing panes as a responsive fix.
+
 Edit and Preview must share block presentation rules, including typography,
 colours, spacing and dimensions. Use the Studio variant of `BlockRenderer`
 for editor previews, not the public article's prose theme. Keep selection

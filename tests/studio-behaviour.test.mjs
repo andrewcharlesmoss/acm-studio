@@ -563,6 +563,15 @@ test("both editors share history shortcuts without replacing save or Escape hand
   assert.match(hook, /removeEventListener\("keydown", handleKeyDown\)/);
 });
 
+test("template inspector keeps controls compact and checkbox sizing independent", () => {
+  const templateStyles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  assert.match(templateStyles, /\.template-inspector \.inspector-scroll button:not\(\.inspector-accordion-heading\)/);
+  assert.match(templateStyles, /\.template-inspector \.checkbox-setting input\[type="checkbox"\] \{[^}]*height: 18px;[^}]*width: 18px;/);
+  assert.match(templateStyles, /\.template-inspector > \.inspector-scroll > \.inspector-accordion-section \{[^}]*border-bottom: 1px solid #dddbd4; padding: 12px 16px;/);
+  assert.match(templateStyles, /\.template-inspector \.inspector-accordion-heading \{ min-height: 40px;/);
+  assert.match(templateStyles, /\.template-inspector label \{ display: grid; gap: 5px; margin: 4px 0;/);
+});
+
 test("content navigation presents Templates as a sibling authoring mode", () => {
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
@@ -598,7 +607,7 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateStyles, /\.template-workspace \.studio-library \{ padding: 0; overflow-y: auto; gap: 0; \}/);
   assert.match(templateStyles, /\.template-workspace \.studio-library fieldset \{ border: 0; padding: 12px; margin: 0; \}/);
   assert.match(templateStyles, /\.template-workspace \.studio-library \.template-document-list \{[^}]*padding: 10px;/);
-  assert.match(templateStyles, /\.template-inspector \.inspector-scroll button/);
+  assert.match(templateStyles, /\.template-inspector \.inspector-scroll button:not\(\.inspector-accordion-heading\)/);
   assert.doesNotMatch(templateStyles, /\.template-inspector button \{/);
   assert.match(templateStyles, /\.template-status-actions button \{ background: #fff; border: 1px solid #c8c6be; border-radius: 7px;/);
 });
