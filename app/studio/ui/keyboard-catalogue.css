@@ -9,6 +9,8 @@
 .kb-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem; padding: 1rem; border: 1px solid var(--rl-line); border-radius: 9px; background: #fff; margin-bottom: 1rem; }
 .kb-toolbar label, .kb-export-settings label { display: flex; align-items: center; gap: .65rem; }
 .kb-catalogue select { min-height: 38px; padding: .4rem .65rem; max-width: 100%; border: 1px solid var(--rl-line); border-radius: 6px; color: var(--rl-ink); background: #fff; font: inherit; }
+.kb-search { display: grid !important; gap: .35rem !important; }
+.kb-search input { width: min(18rem, 100%); min-height: 38px; padding: .4rem .65rem; border: 1px solid var(--rl-line); border-radius: 6px; color: var(--rl-ink); background: #fff; font: inherit; }
 .kb-toolbar fieldset { display: flex; flex-wrap: wrap; gap: .85rem; border: 0; padding: 0; margin: 0; }
 .kb-toolbar legend { float: left; margin-right: .85rem; }
 .kb-toolbar input { accent-color: var(--rl-ink); }
@@ -17,7 +19,9 @@
 .kb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: .75rem; padding: 1rem; border: 1px solid var(--rl-line); border-radius: 9px; background: #efefed; }
 .kb-card { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 1rem; gap: .3rem; background: #fff; color: #1C1C1E; border: 1px solid #d9d9d6; border-radius: 8px; text-align: left; font: inherit; cursor: pointer; }
 .kb-card[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: 2px; }
+.kb-empty { grid-column: 1 / -1; margin: 0; padding: 1.5rem; color: var(--rl-muted); }
 .kb-card-art { min-height: 112px; display: flex; align-items: center; justify-content: center; width: 100%; margin-bottom: .6rem; }
+.kb-card-art svg { max-width: 100%; height: auto; }
 .kb-card strong { font-size: 1rem; font-weight: 600; }
 .kb-card > span:last-child { color: #636366; }
 .kb-inspector { padding: 1.25rem; border: 1px solid var(--rl-line); border-radius: 9px; background: #fff; }

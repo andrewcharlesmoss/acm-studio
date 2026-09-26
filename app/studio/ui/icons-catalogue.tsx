@@ -41,7 +41,7 @@ export function IconsCatalogue({ initialIcon, collection = "icons" }: { initialI
       </div>
       <nav className="ui-symbol-collections" aria-label="Symbol Collections">
         <a href="/studio/ui/icons" aria-current={collection === "icons" ? "page" : undefined}><AcmIcon name="insert.shapes" size={20} />Interface Icons</a>
-        <a href="/studio/ui/icons?collection=keyboard" aria-current={collection === "keyboard" ? "page" : undefined}><AcmIcon name="text.keyboard" size={20} />Keyboard <span>UK Preview</span></a>
+        <a href="/studio/ui/icons?collection=keyboard" aria-current={collection === "keyboard" ? "page" : undefined}><AcmIcon name="text.keyboard" size={20} />Keyboard <span>UK Set</span></a>
       </nav>
       {collection === "keyboard" ? <KeyboardCatalogue /> : <div className="rl-layout">
         <aside className="rl-sidebar" aria-label="Icon Filters">
@@ -79,7 +79,7 @@ export function IconsCatalogue({ initialIcon, collection = "icons" }: { initialI
           <h3>Ribbon catalogue examples</h3>
           <ul className="rl-usage">{ribbonExamples.map((control) => <li key={control.id}><small>{control.product === "skeleton" ? "Component Specimen" : control.product === "studio" ? "ACM Studio" : "ACM Account"}</small>{control.label}{icon !== control.icon ? " (state variant)" : ""}</li>)}</ul>
           {!ribbonExamples.length && <p>No Ribbon catalogue examples use this symbol.</p>}
-          <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>acm-icons/masters/{icon}.svg</code><p>Three editable scale groups. ACM icon specification v0.8.0.</p></details>
+          <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>acm-icons/masters/{icon}.svg</code><p>Three editable scale groups. ACM icon specification v0.9.0.</p></details>
         </aside>
       </div>}
     </section>

@@ -105,19 +105,25 @@ scrolling. Check hover, focus and pinned guide references, exact source lines,
 search navigation and responsive panel selection; verify that edits are not
 written to browser storage.
 
-## UK keyboard preview
+## UK keyboard collection
 
-The Icons section now groups interface icons and a separate Keyboard collection
-at `/studio/ui/icons?collection=keyboard`. Its first eight UK keys are A, 3/£,
-Shift, ISO Return/Enter, Mac Command and Option, and Windows Ctrl and Windows.
-This is a bounded style sample; the full inventory waits for Andrew's review.
-The full UK Windows set must include the Copilot key as both a bare symbol and
-a complete keycap, using Andrew's supplied keyboard reference for its marking.
+The Icons section groups interface icons and the complete common UK ISO Keyboard
+collection at `/studio/ui/icons?collection=keyboard`. It presents 150 key
+identities across 135 keyboard symbols: letters, number-row and punctuation
+legends, modifiers, editing/navigation keys, function keys, numeric keypad,
+Mac-specific legends and optional Windows hardware keys. The Mac British/Irish
+section/plus-minus key and grave/tilde key are distinct from the Windows UK
+not/broken-bar top-left key. The collection includes Mac F1–F12 action legends,
+separate F1–F19 keys, and a Copilot mark based on Andrew's supplied reference.
+Function assignments and optional keys vary by model, OS and manufacturer;
+this is a catalogue of common key types rather than a model-exact physical
+layout.
 
-The sibling `@acm/icons` v0.8.0 package owns the glyph masters, shared
-keycap frames, platform metadata and SVG composer. Studio owns the preview
-controls and download interaction. Existing 119 interface icons stay in their
-own collection. No keyboard shortcuts or product controls are changed.
+The sibling `@acm/icons` v0.9.0 package owns the glyph masters, shared square,
+wide, tall and UK ISO keycap frames, platform metadata and SVG composer. It
+contains 257 symbols overall, including the 119 existing interface icons.
+Studio owns the preview controls and download interaction. No keyboard
+shortcuts or product controls are changed.
 
 Choose Mac, Windows or both; switch between keycaps and bare symbols; compare
 light/dark specimens. New previews start with Default: off-black symbols and
@@ -132,10 +138,12 @@ Transparent Fill leaves the inside clear; solid fill colours only the keycap.
 The outside remains transparent. Download SVG or PNG with these settings,
 with heights of 64, 128, 256 or 512px. The width follows the selected key's
 proportions. Unlike the interface-icon inspector's 3× PNG exports, Keyboard
-exports use the displayed dimensions exactly. A, 3/£ and Ctrl lettering uses
-licensed Inter-derived path geometry,
-so imported SVGs do not require fonts. Shared keys show primary/Shift legends;
-this preview does not cover alternate layers or every physical key width.
+exports use the displayed dimensions exactly. A, 3/£, key labels and Mac
+modifier symbols use licensed Inter v4.1-derived path geometry. Mac function-row
+action pictograms use original ACM vector geometry, enlarged above their
+separate outlined F-key legends; Forward Delete uses its symbol alone. Imported
+SVGs do not require fonts. Shared keys show primary/Shift legends; alternate
+layers and every physical key width are outside this set.
 
 Export bounds and outer padding remain unchanged. Inter sources and licensing
 belong to ACM Icons; Studio neither embeds nor loads the font for key artwork.

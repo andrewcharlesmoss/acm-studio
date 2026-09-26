@@ -2,7 +2,7 @@
 
 import { useId, useReducer, useState } from "react";
 import { AcmIcon } from "@acm/icons/react";
-import { keyboardKeys, keyboardAsset, createKeyboardSvg, type KeyboardKeyId, type KeyboardMode, type KeyboardPlatform } from "@acm/icons/keyboard";
+import { keyboardKeys, keyboardAsset, createKeyboardSvg, type KeyboardKeyGroup, type KeyboardKeyId, type KeyboardMode, type KeyboardPlatform } from "@acm/icons/keyboard";
 import { AcmKeycap } from "@acm/icons/keyboard/react";
 import { createSvgPng, downloadIconFile } from "./icon-download.mjs";
 import { createKeyboardCatalogueState, getKeyboardAppearancePresetName, getKeyboardColourControlKey, keyboardCatalogueReducer } from "./keyboard-appearance.mjs";
@@ -57,13 +57,17 @@ function ColourControl({ label, value, onChange, disabled = false }: { label: st
 }
 
 export function KeyboardCatalogue() {
+  const [query, setQuery] = useState("");
+  const [group, setGroup] = useState<KeyboardKeyGroup | "all">("all");
   const [state, dispatch] = useReducer(
     (currentState: KeyboardCatalogueState, action: KeyboardCatalogueAction) => keyboardCatalogueReducer(currentState, action) as KeyboardCatalogueState,
     createKeyboardCatalogueState() as KeyboardCatalogueState,
   );
   const { selected, platform, mode, height, appearance, resetRevision, status } = state;
   const keys = keyboardKeys.filter((key) => platform === "all" || key.platforms.includes(platform));
-  const current = keys.find((key) => key.id === selected) ?? keys[0];
+  const groups = [...new Set(keys.map((key) => key.group))];
+  const visibleKeys = keys.filter((key) => (group === "all" || key.group === group) && `${key.label} ${key.id} ${key.note}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const current = visibleKeys.find((key) => key.id === selected) ?? visibleKeys[0] ?? keys.find((key) => key.id === selected) ?? keys[0];
   const asset = keyboardAsset(current.id, { mode });
   const width = Math.round(height * asset.width / asset.height);
   const { colour, borderColour, matchBorder, fillColour, transparent, dark } = appearance;
@@ -94,20 +98,26 @@ export function KeyboardCatalogue() {
     }
   }
 
-  return <section className="kb-catalogue" aria-label="UK Keyboard Preview">
-    <div className="kb-intro"><div><p className="rl-eyebrow">KEYBOARD COLLECTION</p><h2>Eight keys to set the direction.</h2></div><p>UK Mac and Windows · first sample<br />Review the style before the full keyboard set.</p></div>
+  return <section className="kb-catalogue" aria-label="UK Keyboard Collection">
+    <div className="kb-intro"><div><p className="rl-eyebrow">KEYBOARD COLLECTION</p><h2>UK Mac and Windows keys.</h2></div><p>Common UK ISO legends, full-size key families and platform-specific keys.</p></div>
     <div className="kb-toolbar">
-      <label>Platform<select value={platform} onChange={(event) => dispatch({ type: "set-platform", value: event.target.value as KeyboardPlatform | "all" })}><option value="all">Mac and Windows</option><option value="mac">Mac</option><option value="windows">Windows</option></select></label>
+      <label>Platform<select value={platform} onChange={(event) => {
+        const value = event.target.value as KeyboardPlatform | "all";
+        if (group !== "all" && !keyboardKeys.some((key) => key.group === group && (value === "all" || key.platforms.includes(value)))) setGroup("all");
+        dispatch({ type: "set-platform", value });
+      }}><option value="all">Mac and Windows</option><option value="mac">Mac</option><option value="windows">Windows</option></select></label>
       <fieldset><legend>Artwork</legend><label><input type="radio" name="key-artwork" value="keycap" checked={mode === "keycap"} onChange={() => dispatch({ type: "set-mode", value: "keycap" })} />Keycaps</label><label><input type="radio" name="key-artwork" value="symbol" checked={mode === "symbol"} onChange={() => dispatch({ type: "set-mode", value: "symbol" })} />Symbols</label></fieldset>
       <label className="kb-dark-toggle"><input type="checkbox" checked={dark} onChange={(event) => updateAppearance({ dark: event.target.checked })} />Dark Specimens</label>
-      <span className="kb-count">{keys.length} sample keys</span>
+      <label>Section<select value={group} onChange={(event) => setGroup(event.target.value as KeyboardKeyGroup | "all")}><option value="all">All sections</option>{groups.map((item) => <option value={item} key={item}>{item}</option>)}</select></label>
+      <label className="kb-search">Find a key<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or legend" /></label>
+      <span className="kb-count">{visibleKeys.length} of {keys.length} keys</span>
     </div>
     <div className="kb-workspace">
       <div className={"kb-grid" + (dark ? " kb-dark" : "")} aria-label="Keyboard Assets">
-        {keys.map((key) => <button type="button" className="kb-card" key={key.id} aria-pressed={current.id === key.id} onClick={() => dispatch({ type: "select-key", value: key.id })}>
-          <span className="kb-card-art"><AcmKeycap name={key.id} mode={mode} {...resolvedAppearance} height={key.shape === "iso" && mode === "keycap" ? 96 : 64} /></span>
+        {visibleKeys.length ? visibleKeys.map((key) => <button type="button" className="kb-card" key={key.id} aria-pressed={current.id === key.id} onClick={() => dispatch({ type: "select-key", value: key.id })}>
+          <span className="kb-card-art"><AcmKeycap name={key.id} mode={mode} {...resolvedAppearance} height={mode === "keycap" && (key.shape === "iso" || key.shape === "tall" || key.group === "Mac function row") ? 96 : 80} /></span>
           <strong>{key.label}</strong><span>{key.platforms.length === 2 ? "Mac + Windows" : key.platforms[0] === "mac" ? "Mac" : "Windows"}</span>
-        </button>)}
+        </button>) : <p className="kb-empty">No keys match this search.</p>}
       </div>
       <aside className="kb-inspector" aria-label="Keyboard Asset Inspector">
         <p className="rl-eyebrow">SELECTED ASSET</p><h2>{current.label}</h2>
@@ -133,6 +143,6 @@ export function KeyboardCatalogue() {
         <p className="kb-export-note">Lettering uses Inter outlines. SVG and PNG downloads preserve these colours and need no installed fonts.</p>
       </aside>
     </div>
-    <p className="kb-footnote">This is a style preview, not the complete key inventory. Shared keys use the same artwork; platform-specific modifiers stay distinct. Keycap proportions are illustrative.</p>
+    <p className="kb-footnote">This collection covers the common full-size UK ISO key set. Laptop layouts, manufacturer-specific legends and optional hardware vary. Mac function-row symbols are representative; F1–F12 remain available as separate keys. Keycap proportions are illustrative.</p>
   </section>;
 }

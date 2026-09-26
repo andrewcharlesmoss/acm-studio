@@ -54,9 +54,10 @@ Workspace composes the shared Ribbon and Pane specimens; Ribbon details live at
 `/studio/ui/ribbon`, Pane details at `/studio/ui/panes`, and the broadly shared
 icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and
 `/studio/panes` routes redirect to their new sections. ACM symbols come from the
-sibling `@acm/icons` package. A UK Keyboard sample collection lives at
+sibling `@acm/icons` package. The UK Keyboard collection lives at
 `/studio/ui/icons?collection=keyboard`. Shared keycap assets are owned by
-`@acm/icons/keyboard`. The sample awaits review before the full UK inventory.
+`@acm/icons/keyboard`. The collection covers the common UK ISO Mac and Windows
+key families; layouts and hardware-dependent legends remain model-specific.
 The Studio preview's default appearance and Reset to Default behaviour are
 defined in `docs/studio-ui-library.md`; keep them separate from the shared
 keyboard renderer's transparent backwards-compatible defaults.

@@ -3,13 +3,15 @@
 ## Unreleased
 
 ### Added
+- Expanded the UK keyboard collection to 150 key identities across 135
+  keyboard symbols, with searchable sections, UK Mac/Windows variants, keycap
+  and symbol artwork, and optional Copilot and Mac function-row keys.
 - Added a Default keyboard appearance and Reset to Default control, preserving
   the selected key, platform, artwork mode and export size.
 - Added custom keyboard symbol, border and fill colours, transparent fills and
   Default, Outline and Dark presets shared by previews and SVG/PNG downloads.
-- Added a separate UK Keyboard preview collection with eight sample keys,
-  Mac/Windows filters, keycap and symbol views, and font-free SVG/transparent
-  PNG downloads with selectable colour and size.
+- Added a separate UK Keyboard collection with Mac/Windows filters, keycap and
+  symbol views, and SVG/PNG downloads with selectable colour and size.
 - Added 13 shared file, media and table-action icons to the Icons catalogue,
   with SVG and PNG downloads at all three optical sizes. The catalogue now
   uses the private ACM Icons v0.6.0 contract with 119 symbols.
@@ -196,6 +198,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Enlarged keyboard preview thumbnails and improved Mac function-key legibility,
+  with F-number labels separated from action pictograms.
 - Keyboard A, 3/£ and Ctrl now use Inter-derived vector lettering; export
   dimensions and outer spacing remain unchanged.
 - Updated the shared icon catalogue to ACM Icons v0.5.9, giving Snapping Off
