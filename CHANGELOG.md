@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- Added 13 shared file, media and table-action icons to the Icons catalogue,
+  with SVG and PNG downloads at all three optical sizes. The catalogue now
+  uses the private ACM Icons v0.6.0 contract with 119 symbols.
 - Added a Studio UI Library Styles section at `/studio/ui/styles` with a
   live, responsive preview sandbox for the versioned `@acm/styles` preset.
   New template sets use independent preset defaults; existing sets and

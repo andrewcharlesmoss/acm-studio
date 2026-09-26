@@ -74,7 +74,7 @@ export function IconsCatalogue({ initialIcon }: { initialIcon?: string }) {
           <h3>Ribbon catalogue examples</h3>
           <ul className="rl-usage">{ribbonExamples.map((control) => <li key={control.id}><small>{control.product === "skeleton" ? "Component Specimen" : control.product === "studio" ? "ACM Studio" : "ACM Account"}</small>{control.label}{icon !== control.icon ? " (state variant)" : ""}</li>)}</ul>
           {!ribbonExamples.length && <p>No Ribbon catalogue examples use this symbol.</p>}
-          <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>acm-icons/masters/{icon}.svg</code><p>Three editable scale groups. ACM icon specification v0.5.9.</p></details>
+          <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>acm-icons/masters/{icon}.svg</code><p>Three editable scale groups. ACM icon specification v0.6.0.</p></details>
         </aside>
       </div>
     </section>
