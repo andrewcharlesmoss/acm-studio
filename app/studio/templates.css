@@ -58,11 +58,11 @@
 /* Output breakpoints: 780px changes the header to a wrapped tablet layout;
    620px stacks and centres the header/footer. The editor previews these at
    1200px (desktop), 768px (tablet) and 390px (mobile). */
-.template-surface { color: var(--template-text); background: var(--template-background); font: var(--template-font-size)/1.6 var(--template-font); container-type: inline-size; max-width: var(--template-content-width); min-width: 0; overflow-wrap: anywhere; margin-inline: auto; padding: var(--template-spacing); border-radius: var(--template-radius); }
+.template-surface { color: var(--acm-color-text-primary, var(--template-text)); background: var(--acm-color-surface, var(--template-background)); font-family: var(--acm-type-body-family, var(--template-font)); font-size: var(--acm-type-body-size, var(--template-font-size)); font-style: var(--acm-type-body-style, normal); font-weight: var(--acm-type-body-weight, 400); line-height: var(--acm-type-body-line-height, 1.6); letter-spacing: var(--acm-type-body-letter-spacing, 0); text-transform: var(--acm-type-body-transform, none); container-type: inline-size; max-width: var(--acm-layout-content-width, var(--template-content-width)); min-width: 0; overflow-wrap: anywhere; margin-inline: auto; padding: var(--acm-layout-spacing, var(--template-spacing)); border-radius: var(--acm-layout-radius, var(--template-radius)); }
 .template-surface .template-node + .template-node { margin-top: var(--template-spacing); }
 .template-editing .template-content > .canvas-blocks { padding-top: 0; }
 .template-editing .template-content > .canvas-blocks > .canvas-appender:only-child { margin-top: 0; }
-.template-surface a { color: var(--template-accent); text-decoration-thickness: 0.08em; text-underline-offset: 0.16em; }
+.template-surface a { color: var(--acm-color-accent, var(--template-accent)); text-decoration-thickness: 0.08em; text-underline-offset: 0.16em; }
 .template-surface a:focus-visible, .template-surface button:focus-visible, .template-surface input:focus-visible { outline: 3px solid #5c5e5c; outline-offset: 3px; }
 .template-surface input.template-title-input:focus, .template-surface input.template-subtitle-input:focus { border-color: #8f8f8f; box-shadow: none; outline: none; }
 .template-surface .template-group { display: flex; flex-direction: column; gap: var(--template-spacing); }
@@ -88,16 +88,25 @@
 .template-editing .template-node:has(> .template-node-selectable > .template-footer), .template-editing .template-footer { margin-top: 0; }
 .template-footer .template-copyright { margin: 0; text-align: center; font-size: 1.0625rem; }
 .template-footer .template-social { justify-content: flex-end; }
-.template-surface h1, .template-title-input { font: 600 2.5em/1.15 var(--template-font); color: inherit; margin: 0; }
+.template-surface :is(h1, h2, h3, h4, h5, h6) { color: inherit; }
+.template-surface h1, .template-title-input { font: var(--acm-type-h1-style, normal) var(--acm-type-h1-weight, 600) var(--acm-type-h1-size, 2.5em)/var(--acm-type-h1-line-height, 1.15) var(--acm-type-h1-family, var(--template-font)); letter-spacing: var(--acm-type-h1-letter-spacing, 0); text-transform: var(--acm-type-h1-transform, none); color: inherit; margin: 0; }
+.template-surface h2 { font: var(--acm-type-h2-style, normal) var(--acm-type-h2-weight, 700) var(--acm-type-h2-size, 1.5em)/var(--acm-type-h2-line-height, 1.6) var(--acm-type-h2-family, var(--template-font)); letter-spacing: var(--acm-type-h2-letter-spacing, 0); text-transform: var(--acm-type-h2-transform, none); }
+.template-surface h3 { font: var(--acm-type-h3-style, normal) var(--acm-type-h3-weight, 700) var(--acm-type-h3-size, 1.17em)/var(--acm-type-h3-line-height, 1.6) var(--acm-type-h3-family, var(--template-font)); letter-spacing: var(--acm-type-h3-letter-spacing, 0); text-transform: var(--acm-type-h3-transform, none); }
+.template-surface h4 { font: var(--acm-type-h4-style, normal) var(--acm-type-h4-weight, 700) var(--acm-type-h4-size, 1em)/var(--acm-type-h4-line-height, 1.6) var(--acm-type-h4-family, var(--template-font)); letter-spacing: var(--acm-type-h4-letter-spacing, 0); text-transform: var(--acm-type-h4-transform, none); }
+.template-surface h5 { font: var(--acm-type-h5-style, normal) var(--acm-type-h5-weight, 700) var(--acm-type-h5-size, .83em)/var(--acm-type-h5-line-height, 1.6) var(--acm-type-h5-family, var(--template-font)); letter-spacing: var(--acm-type-h5-letter-spacing, 0); text-transform: var(--acm-type-h5-transform, none); }
+.template-surface h6 { font: var(--acm-type-h6-style, normal) var(--acm-type-h6-weight, 700) var(--acm-type-h6-size, .67em)/var(--acm-type-h6-line-height, 1.6) var(--acm-type-h6-family, var(--template-font)); letter-spacing: var(--acm-type-h6-letter-spacing, 0); text-transform: var(--acm-type-h6-transform, none); }
 .template-surface p { margin-block: 0.5em; }
 .template-surface .template-title-input, .template-surface .template-subtitle-input { width: 100%; border: 1px solid transparent; background: transparent; }
-.template-subtitle, .template-subtitle-input { font: 1.15em/1.45 var(--template-font); max-width: 42em; }
+.template-subtitle, .template-subtitle-input { font-family: var(--acm-type-metadata-family, var(--template-font)); font-size: var(--acm-type-metadata-size, 1.15em); font-style: var(--acm-type-metadata-style, normal); font-weight: var(--acm-type-metadata-weight, 400); line-height: var(--acm-type-metadata-line-height, 1.45); letter-spacing: var(--acm-type-metadata-letter-spacing, 0); text-transform: var(--acm-type-metadata-transform, none); max-width: 42em; }
 .template-dynamic-placeholder { color: #7b8088; }
 .template-cover img { width: 100%; height: auto; border-radius: var(--template-radius); }
 .template-cover-placeholder { aspect-ratio: 16 / 9; background: linear-gradient(135deg, var(--template-accent), var(--template-background)); border-radius: var(--template-radius); }
-.template-surface .studio-block-preview, .template-surface .block-textarea, .template-surface .rich-text-editor { color: inherit; font-family: var(--template-font); }
-.template-surface .studio-block-preview p, .template-surface .paragraph-field { font-size: var(--template-font-size); }
-.template-surface .content-button { border-radius: var(--template-radius); }
+.template-surface .studio-block-preview, .template-surface .block-textarea, .template-surface .rich-text-editor { color: inherit; font-family: var(--acm-type-body-family, var(--template-font)); }
+.template-surface .studio-block-preview p, .template-surface .paragraph-field { font-size: var(--acm-type-body-size, var(--template-font-size)); line-height: var(--acm-type-body-line-height, 1.6); }
+.template-surface .content-button { border: var(--acm-button-base-border-width, var(--acm-layout-border-width, var(--template-border-width))) solid var(--acm-button-base-border, var(--template-accent)); border-radius: var(--acm-layout-radius, var(--template-radius)); background: var(--acm-button-base-background, var(--template-accent)); color: var(--acm-button-base-foreground, #fff); font-family: var(--acm-type-button-family, var(--template-font)); font-size: var(--acm-type-button-size, 1rem); font-style: var(--acm-type-button-style, normal); font-weight: var(--acm-type-button-weight, 600); line-height: var(--acm-type-button-line-height, 1.4); letter-spacing: var(--acm-type-button-letter-spacing, 0); text-transform: var(--acm-type-button-transform, none); }
+.template-surface .content-button:hover { background: var(--acm-button-base-hover-background, var(--template-accent)); color: var(--acm-button-base-hover-foreground, #fff); }
+.template-surface .content-button.is-secondary { border-width: var(--acm-button-secondary-border-width, var(--acm-layout-border-width, var(--template-border-width))); border-color: var(--acm-button-secondary-border); background: var(--acm-button-secondary-background); color: var(--acm-button-secondary-foreground); }
+.template-surface .content-button.is-secondary:hover { background: var(--acm-button-secondary-hover-background); color: var(--acm-button-secondary-hover-foreground); }
 .template-part { display: block; min-width: 0; }
 .template-part-content { min-width: 0; }
 .template-edit-part { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 6px 10px; border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); white-space: nowrap; position: absolute; right: calc(100% + 12px); top: 0; z-index: 4; }

@@ -1,6 +1,7 @@
 import { sites } from "@openai/sites-vite-plugin";
 import vinext from "vinext";
 import { defineConfig } from "vite";
+import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
 import { codexHistoryBridge } from "./scripts/codex-history-bridge.mjs";
 import { siteSettingsBridge } from "./scripts/site-settings-bridge.mjs";
@@ -9,6 +10,7 @@ const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
 
 const { d1, r2 } = hostingConfig;
+const sharedStylesRoot = fileURLToPath(new URL("../acm-styles/src/", import.meta.url));
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
@@ -51,7 +53,7 @@ export default defineConfig(async () => {
     server: {
       ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
       // Local settings snapshots must never be served through Vite's file route.
-      fs: { deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/work/**"] },
+      fs: { allow: [process.cwd(), sharedStylesRoot], deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/work/**"] },
     },
     plugins: [
       codexHistoryBridge(),

@@ -5,15 +5,16 @@ import { resolve } from "node:path";
 
 const read = (path) => readFileSync(resolve(path), "utf8");
 
-test("Studio UI Library exposes four canonical sections and keeps section routes distinct", () => {
+test("Studio UI Library exposes its canonical sections and keeps section routes distinct", () => {
   const shell = read("app/studio/ui/studio-ui-library.tsx");
-  for (const [section, href] of [["workspace", "/studio/ui"], ["ribbon", "/studio/ui/ribbon"], ["panes", "/studio/ui/panes"], ["icons", "/studio/ui/icons"]]) {
+  for (const [section, href] of [["workspace", "/studio/ui"], ["ribbon", "/studio/ui/ribbon"], ["panes", "/studio/ui/panes"], ["icons", "/studio/ui/icons"], ["styles", "/studio/ui/styles"]]) {
     assert.match(shell, new RegExp(`id: "${section}"`));
     assert.ok(shell.includes(`href: "${href}"`), href);
   }
   assert.match(shell, /aria-current=\{section === item\.id \? "page" : undefined\}/);
   assert.match(read("app/studio/ribbon/page.tsx"), /redirect\("\/studio\/ui\/ribbon"\)/);
   assert.match(read("app/studio/panes/page.tsx"), /redirect\("\/studio\/ui\/panes"\)/);
+  assert.match(read("app/studio/ui/styles/page.tsx"), /StyleGuideSandbox/);
 });
 
 test("Workspace composes the real Ribbon and Pane specimens with both sides open by default", () => {

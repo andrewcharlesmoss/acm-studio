@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "katex/dist/katex.min.css";
 import "./globals.css";
+import "@acm/styles/styles.css";
 import "./studio/studio.css";
 import "./studio/media.css";
 import "./studio/backup.css";

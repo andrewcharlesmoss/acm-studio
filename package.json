@@ -18,6 +18,7 @@
   "dependencies": {
     "@acm/icons": "file:../acm-icons",
     "@acm/ribbon": "file:../acm-ribbon",
+    "@acm/styles": "file:../acm-styles",
     "highlight.js": "^11.11.1",
     "katex": "^0.18.9",
     "onnxruntime-web": "1.30.0",

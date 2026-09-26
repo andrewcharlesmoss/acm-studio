@@ -7,10 +7,12 @@ import test from "node:test";
 import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import * as universalStyles from "@acm/styles";
 
 const require = createRequire(import.meta.url);
 const plain = value => JSON.parse(JSON.stringify(value));
 function environment(overrides = {}) {
+  overrides = { "@acm/styles": universalStyles, ...overrides };
   const cache = new Map(); const records = new Map();
   const library = { assets: [], folders: [] };
   let failKey = null; let failures = 0;
@@ -27,6 +29,7 @@ function environment(overrides = {}) {
     const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
     vm.runInNewContext(compiled, { exports, crypto: webcrypto, window, Blob, FileReader, Event, Date, Error, AggregateError, setTimeout, clearTimeout, queueMicrotask, console, require: name => {
       if (name in overrides) return overrides[name];
+      if (name.endsWith(".css")) return {};
       if (name.endsWith("media-store")) return { listMediaLibrary: async () => ({ assets: [...library.assets], folders: [...library.folders] }), replaceMediaLibrary: async (assets, folders) => { library.assets = [...assets]; library.folders = [...folders]; } };
       if (name.endsWith("design-store")) return { loadDesigns: () => [] };
       if (name.startsWith(".")) {
@@ -107,8 +110,57 @@ test("legacy template stores migrate to inheritance-aware format without losing 
   const env = environment(); const model = env.load("studio/template-model.ts"); const editor = env.load("studio/editor-model.ts"); const set = model.createTemplateSet();
   delete set.defaults;
   const migrated = model.validateTemplateStore({ version: "0.1.0", sets: [set], assignments: [] });
-  assert.equal(migrated.version, "0.4.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
+  assert.equal(migrated.version, "0.6.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
   assert.deepEqual(plain(editor.createDocumentFromTemplate("post").blocks), []);
+});
+
+test("template schemas v0.1.0 through v0.5.0 migrate styles without changing the legacy appearance", () => {
+  const env = environment(); const m = env.load("studio/template-model.ts");
+  const oldStyles = { background: "#F5F4EF", text: "#171A1D", accent: "#3158C9", border: "#D5D3CB", font: "inter", fontSize: 18, spacing: 30, contentWidth: 1200, radius: 10, borderWidth: 2 };
+  const versions = ["0.1.0", "0.2.0", "0.3.0", "0.4.0", "0.5.0"];
+  const firstDefault = m.createTemplateSet(); const secondDefault = m.createTemplateSet();
+  firstDefault.styles.palette.accent = "#000000";
+  assert.equal(secondDefault.styles.palette.accent, "#0088FF");
+  for (const version of versions) {
+    const set = m.createTemplateSet(); set.styles = structuredClone(oldStyles);
+    const store = m.validateTemplateStore({ version, sets: [set], assignments: [] });
+    const migrated = store.sets[0].styles;
+    assert.equal(store.version, "0.6.0");
+    assert.equal(migrated.palette.surface, oldStyles.background);
+    assert.equal(migrated.palette.textPrimary, oldStyles.text);
+    assert.equal(migrated.palette.accent, oldStyles.accent);
+    assert.deepEqual(plain(migrated.typography.body.size.desktop), { value: 1.125, unit: "rem" });
+    assert.deepEqual(plain(migrated.typography.body.lineHeight.desktop), { value: 1.6, unit: "number" });
+    assert.deepEqual(plain(migrated.typography.navigation.size.desktop), { value: 1.125, unit: "rem" });
+    assert.deepEqual(plain(migrated.typography.navigation.lineHeight.desktop), { value: 1.6, unit: "number" });
+    assert.deepEqual(plain(migrated.typography.h1.size.desktop), { value: 2.5, unit: "em" });
+    assert.equal(migrated.typography.h1.weight, 600);
+    assert.equal(migrated.typography.button.size.desktop.value, 13);
+    assert.equal(migrated.buttons.base.borderWidth, 0);
+    assert.deepEqual(plain(migrated.layout), { spacing: 30, contentWidth: 1200, radius: 10, borderWidth: 2 });
+    const legacySnapshot = m.validateTemplateSnapshot({ version, set, templateId: set.templates[0].id });
+    assert.equal(legacySnapshot.version, version);
+    assert.equal(legacySnapshot.set.styles.typography.body.size.desktop.value, 1.125);
+  }
+});
+
+test("legacy styles migrate in template Bin entries and imports normalise package version", () => {
+  const env = environment(); const m = env.load("studio/template-model.ts"); const p = env.load("studio/template-package.ts");
+  const oldStyles = { background: "#FFFFFF", text: "#1C1C1E", accent: "#3158C9", border: "#D1D1D6", font: "serif", fontSize: 20, spacing: 22, contentWidth: 1000, radius: 8, borderWidth: 1 };
+  const set = m.createTemplateSet(); set.styles = structuredClone(oldStyles);
+  const binnedSet = m.createTemplateSet("Binned"); binnedSet.styles = structuredClone(oldStyles);
+  const entry = set.templates[0];
+  const store = m.validateTemplateStore({ version: "0.5.0", sets: [set], assignments: [], bin: [
+    { id: "bin-set", deletedAt: "2026-09-25T12:00:00Z", kind: "set", set: binnedSet },
+    { id: "bin-template", deletedAt: "2026-09-25T12:00:00Z", kind: "template", setId: set.id, setName: set.name, entry, setSnapshot: set },
+  ] });
+  assert.equal(store.bin[0].set.styles.typography.body.family, "georgia");
+  assert.equal(store.bin[1].setSnapshot.styles.typography.body.size.desktop.value, 1.25);
+  const imported = packageFixture(env); imported.version = "0.5.0"; imported.set.styles = structuredClone(oldStyles);
+  const normalised = p.validateTemplatePackage(imported);
+  assert.equal(normalised.version, "0.6.0");
+  assert.equal(normalised.set.styles.palette.surface, oldStyles.background);
+  assert.equal(normalised.set.styles.typography.body.family, "georgia");
 });
 
 test("fixed template cover images validate, survive projection and retain their media reference", () => {
@@ -178,9 +230,9 @@ test("two assigned documents share a design while a duplicated set and published
   const store = { version: m.TEMPLATE_VERSION, sets: [set, copy], assignments: documents.map(d => ({ documentId: d.id, kind: d.kind, setId: set.id, templateId: set.templates.find(t => t.kind === d.kind).id })) };
   m.validateTemplateStore(store, documents);
   const snapshot = m.resolveTemplate(store, documents[0]);
-  set.identity.name = "Updated Brand"; set.styles.spacing = 40;
+  set.identity.name = "Updated Brand"; set.styles.layout.spacing = 40;
   assert.equal(m.resolveTemplate(store, documents[0]).set.identity.name, "Updated Brand");
-  assert.equal(m.resolveTemplate(store, documents[1]).set.styles.spacing, 40);
+  assert.equal(m.resolveTemplate(store, documents[1]).set.styles.layout.spacing, 40);
   assert.equal(snapshot.set.identity.name, "Your Site"); assert.equal(copy.identity.name, "Your Site");
   assert.notEqual(copy.parts[0].id, set.parts[0].id);
   assert.equal(copy.templates[0].nodes[0].partId, copy.parts[0].id);
@@ -260,10 +312,14 @@ test("local publication captures nested body/template media and does not consult
 test("renderer shares structure/styles and dynamic content, preserves ordinary overrides, and escapes links/text", () => {
   const env = environment(); const m = env.load("studio/template-model.ts"); const renderer = env.load("studio/template-renderer.tsx");
   const set = m.createTemplateSet(); const doc = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0]);
+  set.styles.typography.body.size.tablet = { value: 20, unit: "px" };
+  assert.equal(Object.keys(renderer.templateStyleProperties(set.styles)).some(name => name.startsWith("--acm-type-")), false, "responsive typography stays in the media-aware preset stylesheet");
   set.identity.name = "<script>unsafe</script>";
   set.parts[0].nodes.push({ id: m.templateId(), type: "paragraph", text: "Shared note", style: { textColor: "#ff0000" } });
   const snapshot = { version: m.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
   const html = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc }));
+  assert.match(html, /@media \(max-width: 1024px\)/);
+  assert.match(html, /--acm-type-body-size:20px/);
   assert.match(html, /template-header/); assert.match(html, /template-footer/); assert.match(html, /--template-font-size:1.0625rem/); assert.match(html, /color:#ff0000/); assert.match(html, /Shared note/); assert.match(html, /&lt;script&gt;/); assert.doesNotMatch(html, /<script>/);
   assert.match(html, /I make focused products/); assert.doesNotMatch(html, /Edit Header|template-node-select/);
   const edit = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc, editingDocument: true, onDocumentChange() {}, content: createElement("textarea", { "aria-label": "Canonical body" }) }));
@@ -398,12 +454,12 @@ test("template shell keeps configurable brand semantics and documented responsiv
   const snapshot = { version: m.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
   const html = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document }));
   assert.match(html, /template-brand-mark[^>]*>NS</); assert.match(html, /template-brand-name[^>]*>North Star Studio</);
-  assert.match(html, /<nav aria-label="Site navigation" class="template-navigation">/);
+  assert.match(html, /<nav aria-label="Site navigation" class="template-navigation acm-navigation">/);
   assert.match(html, /<nav class="template-social" aria-label="Social and support links">/);
   assert.match(html, /target="_blank" rel="noopener noreferrer"/);
   const css = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   assert.match(css, /Output breakpoints: 780px/); assert.match(css, /@container \(max-width: 780px\)/); assert.match(css, /@container \(max-width: 620px\)/);
-  assert.match(css, /\.template-subtitle, \.template-subtitle-input \{ font: 1\.15em\/1\.45 var\(--template-font\); max-width: 42em;/);
+  assert.match(css, /\.template-subtitle, \.template-subtitle-input \{ font-family: var\(--acm-type-metadata-family, var\(--template-font\)\); font-size: var\(--acm-type-metadata-size, 1\.15em\);/);
   assert.match(css, /\.template-footer \.template-social \{ justify-content: flex-end; \}/); assert.match(css, /\.template-footer \.template-social \{ justify-content: center; \}/);
 });
 
@@ -414,7 +470,7 @@ test("template narrow layout restores navigation, settings and save context rath
   for (const panel of ["studio-library", "studio-inspector"]) assert.match(narrow, new RegExp(`\\.template-workspace \\.${panel} \\{ display: flex;`));
   for (const context of ["studio-breadcrumbs", "studio-state", "studio-actions"]) assert.match(narrow, new RegExp(`\\.template-shell \\.${context} \\{ display: flex;`));
   assert.match(narrow, /\.template-toolbar select \{ min-width: 0; max-width: 100%;/);
-  assert.match(readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8"), /studio-shell template-shell/);
+  assert.match(readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8"), /studio-shell studio-desktop-only template-shell/);
 });
 
 test("template and publication image references prevent deletion until removed", async () => {

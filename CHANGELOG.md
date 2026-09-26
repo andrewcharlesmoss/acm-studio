@@ -3,34 +3,15 @@
 ## Unreleased
 
 ### Added
+- Added a Studio UI Library Styles section at `/studio/ui/styles` with a
+  live, responsive preview sandbox for the versioned `@acm/styles` preset.
+  New template sets use independent preset defaults; existing sets and
+  published snapshots retain their previous appearance.
+
 - Added a Studio UI Library with Workspace, Ribbon, Panes and shared Icons
   sections. Workspace shows the Ribbon and both resizable panes around one
   centre canvas; former Ribbon and Pane URLs redirect to their new sections.
 
-### Changed
-- Updated the Ribbon specimen to display the shared 16px regular tabs and 13px regular group/control labels without Studio-specific typography overrides.
-- Added a Workspace catalogue control to compare Selected only and Subtle
-  hover underline variants across the Ribbon and both Pane specimens; Subtle
-  hover remains the shared default.
-- Matched the Pane catalogue specimen surface to the Ribbon specimen surface.
-- Sized shared Pane and Ribbon tab underlines to their labels at rest, then
-  kept unselected hover lines at label width and widened the selected line on
-  pointer hover while retaining an edge inset. Keyboard focus keeps label-width
-  underlines and the visible focus outline; focused Ribbon tabs do not show a
-  second button border.
-- Removed the redundant full-width Ribbon divider beneath the tab strip.
-- Consolidated the Pane Library structure tree to one Pane entry, with an
-  Inspect Side control for comparing the left and right edge controls.
-- Applied the Ribbon's neutral ink accent to native range sliders.
-- Made the range slider's filled track represent zero accurately at its minimum.
-- Aligned block hover and rich-text menu icons with the shared ACM icon library,
-  adding the missing reorder and text-formatting symbols there.
-- Replaced Gutenberg-derived Studio and table icon paths with original ACM
-  artwork while preserving their names, meanings and control sizes. Removed the
-  Gutenberg icon attribution and licence files after the source paths were
-  removed.
-
-### Added
 - Added Gutenberg-style paragraph rich-text options for strikethrough,
   subscript, superscript, inline code and keyboard input, including HTML
   round-tripping.
@@ -201,6 +182,28 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Updated the Ribbon specimen to display the shared 16px regular tabs and 13px regular group/control labels without Studio-specific typography overrides.
+- Added a Workspace catalogue control to compare Selected only and Subtle
+  hover underline variants across the Ribbon and both Pane specimens; Subtle
+  hover remains the shared default.
+- Matched the Pane catalogue specimen surface to the Ribbon specimen surface.
+- Sized shared Pane and Ribbon tab underlines to their labels at rest, then
+  kept unselected hover lines at label width and widened the selected line on
+  pointer hover while retaining an edge inset. Keyboard focus keeps label-width
+  underlines and the visible focus outline; focused Ribbon tabs do not show a
+  second button border.
+- Removed the redundant full-width Ribbon divider beneath the tab strip.
+- Consolidated the Pane Library structure tree to one Pane entry, with an
+  Inspect Side control for comparing the left and right edge controls.
+- Applied the Ribbon's neutral ink accent to native range sliders.
+- Made the range slider's filled track represent zero accurately at its minimum.
+- Aligned block hover and rich-text menu icons with the shared ACM icon library,
+  adding the missing reorder and text-formatting symbols there.
+- Replaced Gutenberg-derived Studio and table icon paths with original ACM
+  artwork while preserving their names, meanings and control sizes. Removed the
+  Gutenberg icon attribution and licence files after the source paths were
+  removed.
+
 - Reorganised paragraph block settings around Gutenberg's Typography,
   Background, Dimensions and Border sections. Paragraph alignment remains in
   the hover toolbar; the inspector now uses font-size presets, background

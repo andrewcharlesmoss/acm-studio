@@ -8,6 +8,7 @@ import type { ContentBlock } from "../content/model";
 import type { StudioDocument } from "./editor-model";
 import type { SiteStyles, TemplateNode, TemplatePart, TemplateSet, TemplateSnapshot } from "./template-model";
 import { StudioIcon } from "./studio-icons";
+import { universalStylePresetToCss, universalStylePresetToCssVariables } from "@acm/styles";
 
 function hasDocumentMetadataBlocks(blocks: StudioDocument["blocks"]): boolean {
   return blocks.some(block => ["reading-time", "post-author", "post-date"].includes(block.type)
@@ -43,11 +44,32 @@ export function templateDocumentBodyBlocks(document: StudioDocument, set: Templa
 }
 
 export function templateStyleProperties(styles: SiteStyles): CSSProperties {
-  return { "--template-background": styles.background, "--template-text": styles.text, "--template-accent": styles.accent, "--template-border": styles.border, "--template-font": styles.font === "inter" ? 'Inter, "Helvetica Neue", Helvetica, Arial, sans-serif' : "Georgia, serif", "--template-font-size": `${styles.fontSize / 16}rem`, "--template-spacing": `${styles.spacing}px`, "--template-content-width": `${styles.contentWidth}px`, "--template-radius": `${styles.radius}px`, "--template-border-width": `${styles.borderWidth}px` } as CSSProperties;
+  const variables = universalStylePresetToCssVariables(styles);
+  const fixedVariables = Object.fromEntries(Object.entries(variables).filter(([name]) => !name.startsWith("--acm-type-")));
+  return {
+    ...fixedVariables,
+    "--template-background": styles.palette.surface,
+    "--template-text": styles.palette.textPrimary,
+    "--template-accent": styles.palette.accent,
+    "--template-border": styles.palette.border,
+    "--template-font": variables["--acm-type-body-family"],
+    "--template-font-size": variables["--acm-type-body-size"],
+    "--template-spacing": variables["--acm-layout-spacing"],
+    "--template-content-width": variables["--acm-layout-content-width"],
+    "--template-radius": variables["--acm-layout-radius"],
+    "--template-border-width": variables["--acm-layout-border-width"],
+  } as CSSProperties;
 }
 
 export function TemplateSurface({ set, children, editing = false }: { set: TemplateSet; children: ReactNode; editing?: boolean }) {
-  return <div className="template-surface" style={templateStyleProperties(set.styles)} onClickCapture={event => { if (editing && event.target instanceof Element && event.target.closest("a")) event.preventDefault(); }}>{children}</div>;
+  const styleKey = `acm-template-style-${stylePresetKey(set.styles)}`;
+  return <><style>{universalStylePresetToCss(set.styles, `.${styleKey}`)}</style><div className={`template-surface acm-universal-style-preset ${styleKey}`} style={templateStyleProperties(set.styles)} onClickCapture={event => { if (editing && event.target instanceof Element && event.target.closest("a")) event.preventDefault(); }}>{children}</div></>;
+}
+
+function stylePresetKey(styles: SiteStyles): string {
+  let hash = 2166136261;
+  for (const character of JSON.stringify(styles)) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
+  return hash.toString(36);
 }
 
 /** Shared by composed references and the standalone shared-part editor. */
@@ -141,7 +163,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const src = logo?.mediaId ? safeImageSource(mediaUrls[logo.mediaId] ?? "", { allowBlob: true }) : safeImageSource(logo?.src ?? "");
           element = <a className="template-brand" href={safeTextLink(set.identity.homeUrl) ?? undefined}>{src ? <TemplateImage src={src} alt={logo?.alt ?? ""} /> : <span className="template-brand-mark" aria-hidden="true">{brandInitials(set.identity.name)}</span>}<span className="template-brand-name">{set.identity.name}</span></a>; break;
         }
-        case "navigation": element = <nav aria-label="Site navigation" className="template-navigation">{set.navigation.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined}>{link.label}</a>)}</nav>; break;
+        case "navigation": element = <nav aria-label="Site navigation" className="template-navigation acm-navigation">{set.navigation.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined}>{link.label}</a>)}</nav>; break;
         case "copyright": element = <p className="template-copyright">{set.identity.copyright}</p>; break;
         case "social-links": element = <nav className="template-social" aria-label="Social and support links">{set.socialLinks.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined} target="_blank" rel="noopener noreferrer">{link.label}</a>)}</nav>; break;
       }

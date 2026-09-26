@@ -23,7 +23,9 @@ contracts.
   and isolated ACM Studio/ACM Account examples; **Panes** at `/studio/ui/panes`
   covers the shared v1.0.0 component contract, skeletons, resizing and Studio
   examples; **Icons** at `/studio/ui/icons` browses the original shared symbols
-  at three scales. `/studio/ribbon` and `/studio/panes` redirect to their sections.
+  at three scales; **Styles** at `/studio/ui/styles` explores the universal
+  `@acm/styles` preset in a non-persistent preview sandbox. `/studio/ribbon` and
+  `/studio/panes` redirect to their sections.
   See [Studio UI Library](docs/studio-ui-library.md), [Ribbon details](docs/ribbon-library.md),
   [the command inventory](docs/ribbon-command-inventory.md) and
   [Pane details](docs/pane-library.md).

@@ -41,7 +41,9 @@ use the reusable `app/studio/acm-studio-icons.tsx` module. Preserve the
 `StudioIcon` and table-icon wrappers as compatibility APIs. Do not trace or
 copy third-party paths.
 
-The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes and Icons.
+The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes, Icons and
+Styles. Its Styles section is a preview sandbox for the executable `@acm/styles`
+baseline; its controls do not publish or change the shared preset.
 Workspace composes the shared Ribbon and Pane specimens; Ribbon details live at
 `/studio/ui/ribbon`, Pane details at `/studio/ui/panes`, and the broadly shared
 icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and
@@ -109,8 +111,8 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.5.0 and read versions
-v0.1.0 through v0.4.0. Published local posts retain an immutable design snapshot
+Template packages and stored template contracts use v0.6.0 and read versions
+v0.1.0 through v0.5.0. Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.

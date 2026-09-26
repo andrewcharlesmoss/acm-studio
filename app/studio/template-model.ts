@@ -3,9 +3,12 @@ import { validLayoutOptions } from "../content/layout";
 import type { StudioDocument, StudioDocumentKind } from "./editor-model";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { isRecord, validContentBlocks, validatePublicationSnapshot } from "./workspace-validation";
+import { createUniversalStylePreset, validateUniversalStylePreset } from "@acm/styles";
+import type { UniversalStylePreset } from "@acm/styles";
 
 export const LEGACY_TEMPLATE_VERSION = "0.1.0" as const;
-export const TEMPLATE_VERSION = "0.5.0" as const;
+export const TEMPLATE_VERSION = "0.6.0" as const;
+export const LEGACY_TEMPLATE_VERSION_5 = "0.5.0" as const;
 export const LEGACY_TEMPLATE_VERSION_4 = "0.4.0" as const;
 export const LEGACY_TEMPLATE_VERSION_2 = "0.2.0" as const;
 export const LEGACY_TEMPLATE_VERSION_3 = "0.3.0" as const;
@@ -23,7 +26,8 @@ export type TemplateNode = Exclude<ContentBlock, { type: "group" | "section" | "
   | { id: string; type: "part"; partId: string };
 export type PageTemplate = { id: string; name: string; kind: StudioDocumentKind; nodes: TemplateNode[]; defaults?: TemplateDefaults; displayDefaults?: Partial<Record<DocumentDisplayField, DocumentDisplayMode>>; isDefault?: boolean };
 export type TemplatePart = { id: string; name: string; kind: "header" | "footer"; nodes: TemplateNode[] };
-export type SiteStyles = { background: string; text: string; accent: string; border: string; font: "inter" | "serif"; fontSize: number; spacing: number; contentWidth: number; radius: number; borderWidth: number };
+export type SiteStyles = UniversalStylePreset;
+export type LegacySiteStyles = { background: string; text: string; accent: string; border: string; font: "inter" | "serif"; fontSize: number; spacing: number; contentWidth: number; radius: number; borderWidth: number };
 export type SiteLink = { id: string; label: string; url: string };
 export type TemplateDefaults = { author?: string; category?: string; tags?: string[]; parentPageId?: string };
 export type TemplateSet = {
@@ -33,8 +37,9 @@ export type TemplateSet = {
 };
 export type TemplateAssignment = { documentId: string; setId: string; templateId: string; kind: StudioDocumentKind };
 export type StudioBinnedTemplate = { id: string; deletedAt: string; kind: "template"; setId: string; setName: string; entry: PageTemplate | TemplatePart; setSnapshot: TemplateSet } | { id: string; deletedAt: string; kind: "set"; set: TemplateSet };
-export type TemplateStore = { version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION_3; sets: TemplateSet[]; assignments: TemplateAssignment[]; bin: StudioBinnedTemplate[]; defaultTemplateIds?: { page?: string; post?: string } };
-export type TemplateSnapshot = { version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION_3; set: TemplateSet; templateId: string };
+export type TemplateSchemaVersion = typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_5 | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION_3 | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION;
+export type TemplateStore = { version: TemplateSchemaVersion; sets: TemplateSet[]; assignments: TemplateAssignment[]; bin: StudioBinnedTemplate[]; defaultTemplateIds?: { page?: string; post?: string } };
+export type TemplateSnapshot = { version: TemplateSchemaVersion; set: TemplateSet; templateId: string };
 export const emptyTemplateStore = (): TemplateStore => ({ version: TEMPLATE_VERSION, sets: [], assignments: [], bin: [], defaultTemplateIds: {} });
 export const templateId = () => `t-${crypto.randomUUID()}`;
 export const templateElementLabel = (value: string) => value.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
@@ -55,7 +60,7 @@ export function createTemplateSet(name = "ACM Neutral"): TemplateSet {
   ] };
   return { id: templateId(), name, defaults: {}, parts: [header, footer], templates: (["page", "post"] as const).map(kind => ({ id: templateId(), name: kind === "page" ? "Page" : "Post", kind, isDefault: true, nodes: [
     { id: templateId(), type: "part", partId: header.id }, element("document-title"), element("subtitle"), ...(kind === "post" ? [element("cover-image"), postMetadata] : []), element("content"), { id: templateId(), type: "part", partId: footer.id },
-  ] })), identity: { name: "Your Site", homeUrl: "/", copyright: "© Your Site" }, navigation: [], socialLinks: [], styles: { background: "#FFFFFF", text: "#1C1C1E", accent: "#1C1C1E", border: "#D1D1D6", font: "inter", fontSize: 17, spacing: 24, contentWidth: 1040, radius: 8, borderWidth: 1 } };
+  ] })), identity: { name: "Your Site", homeUrl: "/", copyright: "© Your Site" }, navigation: [], socialLinks: [], styles: createUniversalStylePreset() };
 }
 
 const safeId = (value: unknown): value is string => typeof value === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,159}$/.test(value) && !["__proto__", "prototype", "constructor"].includes(value);
@@ -64,16 +69,63 @@ function validTemplateImage(value: unknown): value is TemplateImage { return isR
 function invalid(message: string): never { throw new Error(message); }
 function claimId(value: unknown, ids: Set<string>) { if (!safeId(value) || ids.has(value)) invalid("Template identifiers must be safe and unique."); ids.add(value as string); }
 
+
+export function migrateLegacySiteStyles(value: unknown): SiteStyles {
+  const keys = ["background", "text", "accent", "border", "font", "fontSize", "spacing", "contentWidth", "radius", "borderWidth"];
+  if (!isRecord(value) || Object.keys(value).some(key => !keys.includes(key))) invalid("Legacy template styles are invalid.");
+  const styles = value as unknown as LegacySiteStyles;
+  if (![styles.background, styles.text, styles.accent, styles.border].every(colour => typeof colour === "string" && /^#[0-9a-f]{6}$/i.test(colour))
+    || !["inter", "serif"].includes(styles.font)) invalid("Use valid legacy template colours and typography.");
+  for (const [key, min, max] of [["fontSize", 13, 40], ["spacing", 0, 120], ["contentWidth", 320, 1800], ["radius", 0, 80], ["borderWidth", 0, 12]] as const) {
+    if (typeof styles[key] !== "number" || !Number.isFinite(styles[key]) || styles[key] < min || styles[key] > max) invalid("Invalid " + key + " in legacy template styles.");
+  }
+  const preset = createUniversalStylePreset();
+  preset.palette.surface = styles.background;
+  preset.palette.surfaceRaised = styles.background;
+  preset.palette.textPrimary = styles.text;
+  preset.palette.accent = styles.accent;
+  preset.palette.border = styles.border;
+  const family = styles.font === "inter" ? "inter" : "georgia";
+  const bodySize = { value: styles.fontSize / 16, unit: "rem" as const };
+  preset.typography.body.family = family;
+  preset.typography.body.size.desktop = bodySize;
+  preset.typography.body.lineHeight.desktop = { value: 1.6, unit: "number" };
+  preset.typography.navigation.family = family;
+  preset.typography.navigation.size.desktop = { ...bodySize };
+  preset.typography.navigation.weight = 400;
+  preset.typography.navigation.lineHeight.desktop = { value: 1.6, unit: "number" };
+  preset.typography.metadata.family = family;
+  preset.typography.metadata.size.desktop = { value: 1.15, unit: "em" };
+  preset.typography.metadata.lineHeight.desktop = { value: 1.45, unit: "number" };
+  preset.typography.h1.family = family;
+  preset.typography.h1.weight = 600;
+  preset.typography.h1.size.desktop = { value: 2.5, unit: "em" };
+  preset.typography.h1.lineHeight.desktop = { value: 1.15, unit: "number" };
+  for (const [key, size] of [["h2", 1.5], ["h3", 1.17], ["h4", 1], ["h5", 0.83], ["h6", 0.67]] as const) {
+    preset.typography[key].family = family;
+    preset.typography[key].size.desktop = { value: size, unit: "em" };
+    preset.typography[key].lineHeight.desktop = { value: 1.6, unit: "number" };
+  }
+  preset.typography.button.family = "system-sans";
+  preset.typography.button.weight = 650;
+  preset.typography.button.size.desktop = { value: 13, unit: "px" };
+  preset.typography.button.lineHeight.desktop = { value: 1.55, unit: "number" };
+  preset.buttons.base = { background: "#171A1D", foreground: "#FFFFFF", border: "#171A1D", borderWidth: 0, hoverBackground: "#171A1D", hoverForeground: "#FFFFFF" };
+  preset.buttons.secondary = { background: "#E7E6E0", foreground: "#171A1D", border: "#E7E6E0", borderWidth: 0, hoverBackground: "#E7E6E0", hoverForeground: "#171A1D" };
+  preset.buttons.outline.borderWidth = 0;
+  preset.layout.spacing = styles.spacing;
+  preset.layout.contentWidth = styles.contentWidth;
+  preset.layout.radius = styles.radius;
+  preset.layout.borderWidth = styles.borderWidth;
+  return validateUniversalStylePreset(preset);
+}
+
 export function validateTemplateSet(value: unknown): TemplateSet {
   if (!isRecord(value) || !safeId(value.id) || !text(value.name, 160) || !value.name.trim() || !Array.isArray(value.templates) || value.templates.length > 100 || !Array.isArray(value.parts) || value.parts.length > 100) invalid("The template set is invalid.");
-  const set = value as unknown as TemplateSet;
+  const source = value as unknown as TemplateSet;
+  const set = { ...source, styles: isRecord(source.styles) && Object.hasOwn(source.styles, "version") ? validateUniversalStylePreset(source.styles) : migrateLegacySiteStyles(source.styles) };
   if (set.defaults !== undefined && !validTemplateDefaults(set.defaults)) invalid("Template defaults are invalid.");
   const ids = new Set<string>([set.id]);
-  const styles = set.styles;
-  if (!isRecord(styles) || ![styles.background, styles.text, styles.accent, styles.border].every(v => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v)) || !["inter", "serif"].includes(styles.font)) invalid("Use valid template colours and typography.");
-  for (const [key, min, max] of [["fontSize", 13, 40], ["spacing", 0, 120], ["contentWidth", 320, 1800], ["radius", 0, 80], ["borderWidth", 0, 12]] as const) {
-    if (typeof styles[key] !== "number" || !Number.isFinite(styles[key]) || styles[key] < min || styles[key] > max) invalid(`Invalid ${key} in template styles.`);
-  }
   if (!isRecord(set.identity) || !text(set.identity.name, 160) || !text(set.identity.copyright) || !text(set.identity.homeUrl) || !safeTextLink(set.identity.homeUrl)) invalid("Site identity needs a safe home address.");
   if (set.identity.logo) {
     const logo = set.identity.logo;
@@ -140,9 +192,9 @@ function validDisplayDefaults(value: unknown): value is Partial<Record<DocumentD
 }
 
 export function validateTemplateStore(value: unknown, documents?: Pick<StudioDocument, "id" | "kind">[]): TemplateStore {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000 || (value.bin !== undefined && (!Array.isArray(value.bin) || value.bin.length > 10000))) invalid("Unsupported or invalid saved template data. Original data has been retained.");
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000 || (value.bin !== undefined && (!Array.isArray(value.bin) || value.bin.length > 10000))) invalid("Unsupported or invalid saved template data. Original data has been retained.");
   if (value.defaultTemplateIds !== undefined && (!isRecord(value.defaultTemplateIds) || (value.defaultTemplateIds.page !== undefined && !safeId(value.defaultTemplateIds.page)) || (value.defaultTemplateIds.post !== undefined && !safeId(value.defaultTemplateIds.post)))) invalid("The default template selection is invalid.");
-  const store = { ...(value as unknown as TemplateStore), version: TEMPLATE_VERSION, bin: value.bin ?? [], sets: (value.sets as unknown[]).map(item => {
+  const store = { ...(value as unknown as TemplateStore), version: TEMPLATE_VERSION, bin: ((value.bin ?? []) as unknown[]).map(item => { if (!isRecord(item)) return item; if (item.kind === "set") return { ...item, set: validateTemplateSet(item.set) }; if (item.kind === "template") return { ...item, setSnapshot: validateTemplateSet(item.setSnapshot) }; return item; }), sets: (value.sets as unknown[]).map(item => {
     if (!isRecord(item)) return item;
     const set = validateTemplateSet({ ...item, defaults: item.defaults ?? {} });
     const templates = set.templates.map(template => ({ ...template, isDefault: template.isDefault ?? (!set.templates.some(candidate => candidate.kind === template.kind && candidate.isDefault) && template.id === set.templates.find(candidate => candidate.kind === template.kind)?.id) }));
@@ -173,8 +225,8 @@ export function validateTemplateStore(value: unknown, documents?: Pick<StudioDoc
 }
 
 export function validateTemplateSnapshot(value: unknown): TemplateSnapshot {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
-  const snapshot = { ...(value as unknown as TemplateSnapshot), version: TEMPLATE_VERSION };
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
+  const snapshot = value as unknown as TemplateSnapshot;
   const set = validateTemplateSet(snapshot.set);
   if (!set.templates.some(t => t.id === snapshot.templateId && ["page", "post"].includes(t.kind))) invalid("Invalid published template.");
   return { ...snapshot, set };
@@ -248,7 +300,7 @@ export function templateNodesFromBlocks(blocks: ContentBlock[], sourceNodes: Tem
       } : {}) };
     }
     if (block.type === "group" && typeof block.data?.templatePart === "string") return { id: block.id, type: "part", partId: block.data.templatePart };
-    if (block.type === "group" && typeof block.data?.templateElement === "string") return { id: block.id, type: "element", element: block.data.templateElement as TemplateElement, align: block.data.align as "left" | "centre" | "right" };
+    if (block.type === "group" && typeof block.data?.templateElement === "string") return { id: block.id, type: "element", element: block.data.templateElement as Exclude<TemplateElement, "cover-image">, align: block.data.align as "left" | "centre" | "right" };
     if (block.type === "group" || block.type === "section") return { id: block.id, type: block.type, layout: block.layout, ...(block.type === "section" && block.role ? { role: block.role } : {}), ...pickLayoutOptions(block), children: templateNodesFromBlocks(block.children, sourceNodes) };
     if (block.type === "component") return invalid("Product components are not template blocks.");
     return block;
