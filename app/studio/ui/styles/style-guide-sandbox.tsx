@@ -85,6 +85,15 @@ function displayStyleValue(value: unknown, viewport: StyleViewport): string {
   return value === undefined ? "Documented guidance" : JSON.stringify(value);
 }
 
+function previewPathForStylePath(path: string | null): string | null {
+  if (!path) return null;
+  const segments = path.split(".");
+  if (segments[0] === "typography" && segments.length >= 2) return `typography.${segments[1]}.size`;
+  if (segments[0] === "buttons" && segments.length >= 2) return `buttons.${segments[1]}.background`;
+  if (segments[0] === "layout") return null;
+  return path;
+}
+
 export function StyleGuideSandbox() {
   const [preset, setPreset] = useState(() => createUniversalStylePreset());
   const [viewport, setViewport] = useState<StyleViewport>("desktop");
@@ -96,17 +105,23 @@ export function StyleGuideSandbox() {
   const [hoveredSourcePath, setHoveredSourcePath] = useState<string | null>(null);
   const [focusedSourcePath, setFocusedSourcePath] = useState<string | null>(null);
   const [pinnedSourcePath, setPinnedSourcePath] = useState<string | null>(null);
+  const [previewScrollRequest, setPreviewScrollRequest] = useState(0);
   const [guideQuery, setGuideQuery] = useState("");
   const [guideView, setGuideView] = useState<GuideView>("formatted");
   const [guideMatchIndex, setGuideMatchIndex] = useState(0);
   const [guideJumpLine, setGuideJumpLine] = useState<number | null>(null);
   const guideSourceRef = useRef<HTMLDivElement>(null);
+  const previewFrameRef = useRef<HTMLDivElement>(null);
   const hasSourceInteraction = useRef(false);
   const guideScrollSyncSuspended = useRef(false);
   const variables = useMemo(() => universalStylePresetToCssVariables(preset, viewport) as CSSProperties, [preset, viewport]);
   const guideLines = useMemo(() => styleGuideSource.document.split("\n"), []);
   const guideMatches = useMemo(() => guideQuery.trim() ? guideLines.flatMap((line, index) => line.toLowerCase().includes(guideQuery.toLowerCase()) ? [index + 1] : []) : [], [guideLines, guideQuery]);
   const styleMappings = styleGuideSource.mappings as Record<string, GuideSourceMapping>;
+  const guidePathByLine = Object.fromEntries(Object.entries(styleMappings)
+    .filter(([path, mapping]) => path === mapping.rowPath)
+    .map(([path, mapping]) => [mapping.line, path])) as Record<number, string>;
+  const selectedPreviewPath = previewPathForStylePath(pinnedSourcePath);
   const activeSourcePath = pinnedSourcePath ?? hoveredSourcePath ?? focusedSourcePath ?? `typography.${role}.size`;
   const activeSource = styleMappings[activeSourcePath] ?? styleMappings["typography.body.size"];
   const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @acm/styles token" : displayStyleValue(pathValue(UNIVERSAL_STYLE_PRESET, activeSourcePath), viewport);
@@ -117,6 +132,18 @@ export function StyleGuideSandbox() {
     const propertyPath = `${buttonPathParts[0]}.${buttonPathParts[1]}.${property}`;
     return { path: propertyPath, current: displayStyleValue(pathValue(preset, propertyPath), viewport), baseline: displayStyleValue(pathValue(UNIVERSAL_STYLE_PRESET, propertyPath), viewport) };
   }) : [];
+
+  useEffect(() => {
+    if (!pinnedSourcePath) return;
+    const frame = previewFrameRef.current;
+    if (!frame) return;
+    const previewTarget = selectedPreviewPath
+      ? Array.from(frame.querySelectorAll<HTMLElement>("[data-style-path]")).find(element => element.dataset.stylePath === selectedPreviewPath)
+      : frame.querySelector<HTMLElement>(".sg-preview[data-source-selected='true']");
+    if (!previewTarget) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    previewTarget.scrollIntoView({ block: "center", inline: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [pinnedSourcePath, selectedPreviewPath, previewScrollRequest]);
 
   useEffect(() => {
     if (!hasSourceInteraction.current) return;
@@ -171,8 +198,31 @@ export function StyleGuideSandbox() {
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
       setPinnedSourcePath(path);
+      setPreviewScrollRequest(request => request + 1);
       setGuideJumpLine(null);
     }
+  }
+
+  function selectGuideSource(path: string) {
+    const parts = path.split(".");
+    let selectedPath = path;
+    if (parts[0] === "typography" && parts.length === 2) {
+      setPanel("typography");
+      setRole(parts[1] as TypographyRole);
+      selectedPath = `${path}.size`;
+    } else if (parts[0] === "buttons" && parts.length === 2) {
+      setPanel("buttons");
+      setButtonRole(parts[1] as ButtonRole);
+      selectedPath = `${path}.background`;
+    } else if (parts[0] === "palette") setPanel("palette");
+    else if (parts[0] === "layout") setPanel("layout");
+    if (!styleMappings[selectedPath]) return;
+    hasSourceInteraction.current = true;
+    setHoveredSourcePath(null);
+    setFocusedSourcePath(null);
+    setPinnedSourcePath(selectedPath);
+    setPreviewScrollRequest(request => request + 1);
+    setGuideJumpLine(null);
   }
 
   function updateTypography(update: (current: UniversalStylePreset["typography"][TypographyRole]) => UniversalStylePreset["typography"][TypographyRole]) {
@@ -307,16 +357,16 @@ export function StyleGuideSandbox() {
         <section className="sg-preview-panel" aria-label="Live style preview">
           <div className="sg-preview-heading"><div><p className="rl-eyebrow">LIVE PREVIEW</p><h2>Style specimens</h2></div><span>{viewportRoles.find(item => item.id === viewport)?.label} preview</span></div>
           {/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- This labelled preview region needs focus so keyboard users can scroll contained overflow. */}
-          <div className="sg-preview-frame" role="region" tabIndex={0} aria-label="Scrollable style specimen preview" data-viewport={viewport}>
-            <div className="sg-preview acm-universal-style-preset" style={variables}>
-              <header className="sg-site-identity"><div className="sg-site-icon" aria-hidden="true">AM</div><div><strong>ACM Studio</strong><span>Universal style specimen</span></div><nav className="acm-navigation" aria-label="Example site navigation"><a href="#specimens">Home</a><a href="#colours">About</a><a href="#buttons">Contact</a></nav></header>
+          <div ref={previewFrameRef} className="sg-preview-frame" role="region" tabIndex={0} aria-label="Scrollable style specimen preview" data-viewport={viewport}>
+            <div className="sg-preview acm-universal-style-preset" style={variables} data-source-selected={pinnedSourcePath?.startsWith("layout.") ? "true" : undefined}>
+              <header className="sg-site-identity"><div className="sg-site-icon" aria-hidden="true">AM</div><div><strong>ACM Studio</strong><span data-style-path="typography.metadata.size" data-source-selected={selectedPreviewPath === "typography.metadata.size" ? "true" : undefined}>Universal style specimen</span></div><nav className="acm-navigation" data-style-path="typography.navigation.size" data-source-selected={selectedPreviewPath === "typography.navigation.size" ? "true" : undefined} aria-label="Example site navigation"><a href="#specimens">Home</a><a href="#colours">About</a><a href="#buttons">Contact</a></nav></header>
               <section id="buttons" className="sg-example-section sg-button-specimens"><h2>Buttons</h2><div>
-                <button data-style-path="buttons.base.background" type="button" className="acm-button">Base button</button>
-                <button data-style-path="buttons.secondary.background" type="button" className="acm-button acm-button-secondary">Secondary button</button>
-                <button data-style-path="buttons.outline.background" type="button" className="acm-button acm-button-outline">Outline button</button>
+                <button data-style-path="buttons.base.background" data-source-selected={selectedPreviewPath === "buttons.base.background" ? "true" : undefined} type="button" className="acm-button"><span data-style-path="typography.button.size" data-source-selected={selectedPreviewPath === "typography.button.size" ? "true" : undefined}>Base button</span></button>
+                <button data-style-path="buttons.secondary.background" data-source-selected={selectedPreviewPath === "buttons.secondary.background" ? "true" : undefined} type="button" className="acm-button acm-button-secondary">Secondary button</button>
+                <button data-style-path="buttons.outline.background" data-source-selected={selectedPreviewPath === "buttons.outline.background" ? "true" : undefined} type="button" className="acm-button acm-button-outline">Outline button</button>
               </div></section>
-              <section id="colours" className="sg-example-section"><h2>Semantic colours</h2><div className="sg-palette-grid">{paletteRoles.map(([key, label]) => <button data-style-path={`palette.${key}`} type="button" aria-label={`Inspect ${label} colour source, ${preset.palette[key]}`} className="sg-swatch" key={key}><span style={{ background: `var(--acm-color-${key.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)})` }} /><strong>{label}</strong><code>{preset.palette[key]}</code></button>)}</div></section>
-              <section id="specimens" className="sg-example-section sg-type-specimens"><h2>Typography</h2><div className="sg-type-samples"><h1 tabIndex={0} data-style-path="typography.h1.size">H1 heading specimen</h1><h2 tabIndex={0} data-style-path="typography.h2.size">H2 heading specimen</h2><h3 tabIndex={0} data-style-path="typography.h3.size">H3 heading specimen</h3><h4 tabIndex={0} data-style-path="typography.h4.size">H4 heading specimen</h4><h5 tabIndex={0} data-style-path="typography.h5.size">H5 heading specimen</h5><h6 tabIndex={0} data-style-path="typography.h6.size">H6 heading specimen</h6><p tabIndex={0} data-style-path="typography.body.size">This is body text, shown at the selected scale and line height. Clear typography creates a comfortable reading rhythm across pages and interface surfaces.</p><p>Supporting text can include a <a data-style-path="specimen.link" href="#buttons">text link</a> that stays recognisable and accessible.</p><div className="sg-list-specimens"><div><h3>Unordered list</h3><ul tabIndex={0} data-style-path="specimen.unordered-list"><li>First list item</li><li>Second list item</li><li>Third list item</li></ul></div><div><h3>Ordered list</h3><ol tabIndex={0} data-style-path="specimen.ordered-list"><li>First step</li><li>Second step</li><li>Third step</li></ol></div></div><blockquote tabIndex={0} data-style-path="specimen.quote"><p>Good typography is invisible. Bad typography is everywhere.</p><cite>Anonymous</cite></blockquote></div></section>
+              <section id="colours" className="sg-example-section"><h2>Semantic colours</h2><div className="sg-palette-grid">{paletteRoles.map(([key, label]) => <button data-style-path={`palette.${key}`} data-source-selected={selectedPreviewPath === `palette.${key}` ? "true" : undefined} type="button" aria-label={`Inspect ${label} colour source, ${preset.palette[key]}`} className="sg-swatch" key={key}><span style={{ background: `var(--acm-color-${key.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)})` }} /><strong>{label}</strong><code>{preset.palette[key]}</code></button>)}</div></section>
+              <section id="specimens" className="sg-example-section sg-type-specimens"><h2>Typography</h2><div className="sg-type-samples"><h1 tabIndex={0} data-style-path="typography.h1.size" data-source-selected={selectedPreviewPath === "typography.h1.size" ? "true" : undefined}>H1 heading specimen</h1><h2 tabIndex={0} data-style-path="typography.h2.size" data-source-selected={selectedPreviewPath === "typography.h2.size" ? "true" : undefined}>H2 heading specimen</h2><h3 tabIndex={0} data-style-path="typography.h3.size" data-source-selected={selectedPreviewPath === "typography.h3.size" ? "true" : undefined}>H3 heading specimen</h3><h4 tabIndex={0} data-style-path="typography.h4.size" data-source-selected={selectedPreviewPath === "typography.h4.size" ? "true" : undefined}>H4 heading specimen</h4><h5 tabIndex={0} data-style-path="typography.h5.size" data-source-selected={selectedPreviewPath === "typography.h5.size" ? "true" : undefined}>H5 heading specimen</h5><h6 tabIndex={0} data-style-path="typography.h6.size" data-source-selected={selectedPreviewPath === "typography.h6.size" ? "true" : undefined}>H6 heading specimen</h6><p tabIndex={0} data-style-path="typography.body.size" data-source-selected={selectedPreviewPath === "typography.body.size" ? "true" : undefined}>This is body text, shown at the selected scale and line height. Clear typography creates a comfortable reading rhythm across pages and interface surfaces.</p><p>Supporting text can include a <a data-style-path="specimen.link" data-source-selected={selectedPreviewPath === "specimen.link" ? "true" : undefined} href="#buttons">text link</a> that stays recognisable and accessible.</p><div className="sg-list-specimens"><div><h3>Unordered list</h3><ul tabIndex={0} data-style-path="specimen.unordered-list" data-source-selected={selectedPreviewPath === "specimen.unordered-list" ? "true" : undefined}><li>First list item</li><li>Second list item</li><li>Third list item</li></ul></div><div><h3>Ordered list</h3><ol tabIndex={0} data-style-path="specimen.ordered-list" data-source-selected={selectedPreviewPath === "specimen.ordered-list" ? "true" : undefined}><li>First step</li><li>Second step</li><li>Third step</li></ol></div></div><blockquote tabIndex={0} data-style-path="specimen.quote" data-source-selected={selectedPreviewPath === "specimen.quote" ? "true" : undefined}><p>Good typography is invisible. Bad typography is everywhere.</p><cite>Anonymous</cite></blockquote></div></section>
             </div>
           </div>
         </section>
@@ -336,6 +386,8 @@ export function StyleGuideSandbox() {
           matchIndex={guideMatchIndex}
           activeLine={activeGuideLine}
           pinned={pinnedSourcePath !== null}
+          guidePathByLine={guidePathByLine}
+          onSelectSource={selectGuideSource}
           guideScrollSyncSuspendedRef={guideScrollSyncSuspended}
           onQueryChange={value => { setGuideQuery(value); setGuideMatchIndex(0); setGuideJumpLine(null); }}
           onMatchChange={direction => {
@@ -401,6 +453,8 @@ type GuideSourcePanelProps = {
   matchIndex: number;
   activeLine: number;
   pinned: boolean;
+  guidePathByLine: Record<number, string>;
+  onSelectSource: (path: string) => void;
   guideScrollSyncSuspendedRef: { current: boolean };
   onQueryChange: (value: string) => void;
   onMatchChange: (direction: number) => void;
@@ -409,7 +463,7 @@ type GuideSourcePanelProps = {
 
 const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(function GuideSourcePanel({
   activePath, mapping, currentValue, baselineValue, relatedButtonValues, lines, view, onViewChange, sourceRevision, query, matchCount,
-  matchIndex, activeLine, pinned, guideScrollSyncSuspendedRef, onQueryChange, onMatchChange, onClearPin,
+  matchIndex, activeLine, pinned, guidePathByLine, onSelectSource, guideScrollSyncSuspendedRef, onQueryChange, onMatchChange, onClearPin,
 }, ref) {
   const formattedGuideRef = useRef<HTMLDivElement>(null);
   const markdownGuideRef = useRef<HTMLDivElement>(null);
@@ -432,6 +486,16 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
     if (Math.abs(target.scrollTop - nextTop) > 3) target.scrollTop = nextTop;
   }
 
+  function sourcePathFromTarget(target: EventTarget | null): string | null {
+    return target instanceof Element ? target.closest<HTMLElement>("[data-guide-style-path]")?.dataset.guideStylePath ?? null : null;
+  }
+
+  function selectSourceFromPointer(event: MouseEvent<HTMLDivElement>) {
+    if (event.target instanceof Element && event.target.closest("a, button, input, select, textarea")) return;
+    const path = sourcePathFromTarget(event.target);
+    if (path) onSelectSource(path);
+  }
+
   return <aside className="sg-guide-panel" aria-label="Written Style Guide" ref={ref}>
     <div className="sg-guide-heading">
       <div><p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Written Style Guide</h2></div>
@@ -445,7 +509,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
         <div><dt>Guide location</dt><dd>Line {mapping.line}</dd></div>
       </dl>
       {relatedButtonValues.length ? <details className="sg-related-values"><summary>All {buttonPathPartsLabel(activePath)} button properties</summary><dl>{relatedButtonValues.map(item => <div key={item.path}><dt>{item.path.split(".").at(-1)}</dt><dd>{item.current}<span>Baseline {item.baseline}</span></dd></div>)}</dl></details> : null}
-      <p className="sg-source-help">Hover or focus a style to inspect its rule. Click or tap to keep the source selected.</p>
+      <p className="sg-source-help">Hover or focus a preview item to inspect its rule. Click a mapped guide line, or focus its selection button and press Enter or Space, to select the matching preview item.</p>
       <blockquote><code>{mapping.excerpt}</code></blockquote>
       {activePath.startsWith("specimen.") ? <p className="sg-source-note">This is written guidance for the example. It is not a token in the executable preset.</p> : null}
     </section>
@@ -464,6 +528,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
       onTouchStartCapture={resumeScrollSync}
       onPointerDownCapture={resumeScrollSync}
       onKeyDownCapture={resumeScrollSync}
+      onClickCapture={selectSourceFromPointer}
     >
       <FormattedGuideDocument
         ref={formattedGuideRef}
@@ -472,6 +537,8 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
         activeLine={activeLine}
         active={view === "formatted"}
         onScroll={syncGuideScroll}
+        guidePathByLine={guidePathByLine}
+        onSelectSource={onSelectSource}
       />
       <div
         ref={markdownGuideRef}
@@ -487,7 +554,8 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
             const lineNumber = index + 1;
             const matchAt = query ? line.toLowerCase().indexOf(query.toLowerCase()) : -1;
             const content = matchAt < 0 ? line || " " : <>{line.slice(0, matchAt)}<mark>{line.slice(matchAt, matchAt + query.length)}</mark>{line.slice(matchAt + query.length)}</>;
-            return <li id={`sg-guide-markdown-line-${lineNumber}`} key={lineNumber} aria-current={lineNumber === activeLine ? "location" : undefined} className={lineNumber === activeLine ? "is-current-source" : ""}><span className="sg-guide-line-number" aria-hidden="true">{lineNumber}</span><span>{content}</span></li>;
+            const guideStylePath = guidePathByLine[lineNumber];
+            return <li id={`sg-guide-markdown-line-${lineNumber}`} key={lineNumber} data-guide-style-path={guideStylePath} aria-current={lineNumber === activeLine ? "location" : undefined} className={lineNumber === activeLine ? "is-current-source" : ""}><span className="sg-guide-line-number" aria-hidden="true">{lineNumber}</span><span>{content}</span>{guideStylePath ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${guideStylePath} in the preview`} onClick={() => onSelectSource(guideStylePath)} /> : null}</li>;
           })}
         </ol>
       </div>
@@ -589,7 +657,9 @@ const FormattedGuideDocument = forwardRef<HTMLDivElement, {
   activeLine: number;
   active: boolean;
   onScroll: (event: UIEvent<HTMLDivElement>) => void;
-}>(function FormattedGuideDocument({ lines, query, activeLine, active, onScroll }, ref) {
+  guidePathByLine: Record<number, string>;
+  onSelectSource: (path: string) => void;
+}>(function FormattedGuideDocument({ lines, query, activeLine, active, onScroll, guidePathByLine, onSelectSource }, ref) {
   const blocks = useMemo(() => parseFormattedBlocks(lines), [lines]);
   const current = (start: number, end = start) => activeLine >= start && activeLine <= end;
   return <div
@@ -611,22 +681,23 @@ const FormattedGuideDocument = forwardRef<HTMLDivElement, {
         const marker = <span className="sg-formatted-line" aria-label={`Source line ${block.line}`}>Line {block.line}</span>;
         if (block.type === "heading") {
           const Heading = `h${block.level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
-          return <div id={`sg-guide-formatted-line-${block.line}`} key={index} className={`sg-formatted-block${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>{marker} <Heading>{renderGuideInline(block.text, query)}</Heading></div>;
+          const path = guidePathByLine[block.line];
+          return <div id={`sg-guide-formatted-line-${block.line}`} key={index} data-guide-style-path={path} className={`sg-formatted-block${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>{marker} <Heading>{renderGuideInline(block.text, query)}</Heading>{path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</div>;
         }
         if (block.type === "paragraph" || block.type === "quote") {
           const Content = block.type === "quote" ? "blockquote" : "p";
-          return <div key={index} className="sg-formatted-block">{marker}<Content>{block.lines.map(item => <span id={`sg-guide-formatted-line-${item.line}`} key={item.line} data-guide-line={item.line} aria-current={activeLine === item.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === item.line ? " is-current-source" : ""}`}>{renderGuideInline(item.text, query)} </span>)}</Content></div>;
+          return <div key={index} className="sg-formatted-block">{marker}<Content>{block.lines.map(item => { const path = guidePathByLine[item.line]; return <span id={`sg-guide-formatted-line-${item.line}`} key={item.line} data-guide-line={item.line} data-guide-style-path={path} aria-current={activeLine === item.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === item.line ? " is-current-source" : ""}`}>{renderGuideInline(item.text, query)}{path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null} </span>; })}</Content></div>;
         }
         if (block.type === "list") {
           const List = block.ordered ? "ol" : "ul";
-          return <div key={index} className="sg-formatted-block">{marker}<List>{block.items.map(item => <li id={`sg-guide-formatted-line-${item.line}`} key={item.line} aria-current={activeLine === item.line ? "location" : undefined} className={activeLine === item.line ? "is-current-source" : undefined}>{renderGuideInline(item.text, query)}{item.continuations.map(continuation => <span id={`sg-guide-formatted-line-${continuation.line}`} key={continuation.line} aria-current={activeLine === continuation.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === continuation.line ? " is-current-source" : ""}`}> {renderGuideInline(continuation.text, query)}</span>)}</li>)}</List></div>;
+          return <div key={index} className="sg-formatted-block">{marker}<List>{block.items.map(item => { const path = guidePathByLine[item.line]; return <li id={`sg-guide-formatted-line-${item.line}`} key={item.line} data-guide-style-path={path} aria-current={activeLine === item.line ? "location" : undefined} className={activeLine === item.line ? "is-current-source" : undefined}>{renderGuideInline(item.text, query)}{path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}{item.continuations.map(continuation => { const continuationPath = guidePathByLine[continuation.line]; return <span id={`sg-guide-formatted-line-${continuation.line}`} key={continuation.line} data-guide-style-path={continuationPath} aria-current={activeLine === continuation.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === continuation.line ? " is-current-source" : ""}`}> {renderGuideInline(continuation.text, query)}{continuationPath ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${continuationPath} in the preview`} onClick={() => onSelectSource(continuationPath)} /> : null}</span>; })}</li>; })}</List></div>;
         }
         if (block.type === "rule") return <div id={`sg-guide-formatted-line-${block.line}`} key={index} className={`sg-formatted-block sg-formatted-rule${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined} />;
         const currentTableRow = block.rows.some(row => row.line === activeLine);
         const highlightTable = isCurrent && !currentTableRow;
-        return <div id={`sg-guide-formatted-line-${block.line}`} key={index} className={`sg-formatted-block sg-formatted-table${highlightTable ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>
+        return <div id={`sg-guide-formatted-line-${block.line}`} key={index} data-guide-style-path={guidePathByLine[block.line]} tabIndex={guidePathByLine[block.line] ? 0 : undefined} aria-label={guidePathByLine[block.line] ? `Select ${guidePathByLine[block.line]} in the preview` : undefined} className={`sg-formatted-block sg-formatted-table${highlightTable ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>
           <span className="sg-formatted-line" aria-label={`Table source line ${block.line}`}>Line {block.line}</span>
-          <table><thead><tr>{block.headings.map((heading, cell) => <th key={cell}>{renderGuideInline(heading, query)}</th>)}</tr></thead><tbody>{block.rows.map(row => <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} aria-current={activeLine === row.line ? "location" : undefined} className={activeLine === row.line ? "is-current-row" : undefined}>{row.cells.map((cell, cellIndex) => <td key={cellIndex}>{renderGuideInline(cell, query)}</td>)}</tr>)}</tbody></table>
+          <table><thead><tr>{block.headings.map((heading, cell) => <th key={cell}>{renderGuideInline(heading, query)}</th>)}</tr></thead><tbody>{block.rows.map(row => { const path = guidePathByLine[row.line]; return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} data-guide-style-path={path} aria-current={activeLine === row.line ? "location" : undefined} className={activeLine === row.line ? "is-current-row" : undefined}>{row.cells.map((cell, cellIndex) => <td key={cellIndex}>{renderGuideInline(cell, query)}{cellIndex === 0 && path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</td>)}</tr>; })}</tbody></table>
           <span className="sg-formatted-line-range">Lines {block.line}–{block.endLine}</span>
           <span id={`sg-guide-formatted-line-${block.line + 1}`} className="sg-guide-hidden-anchor" aria-hidden="true" />
         </div>;
