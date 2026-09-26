@@ -114,7 +114,7 @@ export function KeyboardCatalogue() {
     </div>
     <div className="kb-workspace">
       <div className={"kb-grid" + (dark ? " kb-dark" : "")} aria-label="Keyboard Assets">
-        {visibleKeys.length ? visibleKeys.map((key) => <button type="button" className="kb-card" key={key.id} aria-pressed={current.id === key.id} onClick={() => dispatch({ type: "select-key", value: key.id })}>
+        {visibleKeys.length ? visibleKeys.map((key) => <button type="button" className={"kb-card" + (key.shape === "spacebar" ? " kb-card--spacebar" : key.shape === "keypad-zero" ? " kb-card--keypad-zero" : "")} key={key.id} aria-pressed={current.id === key.id} onClick={() => dispatch({ type: "select-key", value: key.id })}>
           <span className="kb-card-art"><AcmKeycap name={key.id} mode={mode} {...resolvedAppearance} height={mode === "keycap" && (key.shape === "iso" || key.shape === "tall") ? 112 : 96} /></span>
           <strong>{key.label}</strong><span>{key.platforms.length === 2 ? "Mac + Windows" : key.platforms[0] === "mac" ? "Mac" : "Windows"}</span>
         </button>) : <p className="kb-empty">No keys match this search.</p>}

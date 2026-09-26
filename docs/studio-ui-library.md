@@ -122,10 +122,10 @@ Function assignments and optional keys vary by model, OS and manufacturer;
 this is a catalogue of common key types rather than a model-exact physical
 layout.
 
-The sibling `@acm/icons` v0.10.3 package owns the glyph masters, shared square,
-wide, tall, Backspace, Spacebar and left/right Shift keycap frames, platform
+The sibling `@acm/icons` v0.10.4 package owns the glyph masters, shared square,
+wide, tall, Backspace, Spacebar, numeric-zero and left/right Shift keycap frames, platform
 metadata and SVG composer. Backspace is 84 × 48 units, Spacebar is 240 × 48,
-left Shift is 84 × 48 and right Shift is 96 × 48. The package contains 269
+left Shift is 84 × 48, right Shift is 96 × 48 and numeric zero is 96 × 48. The package contains 269
 symbols overall, including the 119 existing interface icons. Older renderer
 defaults remain compatible; the new Studio artwork is additive.
 Studio owns the preview controls and download interaction. No keyboard
@@ -154,8 +154,12 @@ the symbols; bare-symbol exports show the marks alone. Mac function-row artwork
 uses larger pictograms in a common band above the F numbers. Brightness Down
 and Up use small and large suns without additional minus/plus marks;
 Touch ID and Power have separate symbols, AltGr has its own legend, and the
-Context Menu key uses a menu symbol. Copilot retains internal negative space at
-all three optical sizes. SVGs do not require fonts. Shared keys show
+Context Menu key uses a menu symbol. Copilot uses two original filled, interlocking
+tiles with internal negative space at all three optical sizes. The Spacebar
+keycap is blank and spans more catalogue columns so its long frame remains
+visible; numeric zero also spans two columns. Bare-symbol mode retains the
+Space legend. Windows-only physical keys
+do not appear in the Mac filter. SVGs do not require fonts. Shared keys show
 primary/Shift legends; alternate layers and every physical key width are outside
 this set.
 

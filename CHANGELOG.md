@@ -410,6 +410,9 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Enlarged small keyboard legends and Mac Forward Delete, redrew the Copilot
+  mark from the supplied reference, widened numeric keypad zero, and kept the
+  Spacebar legible in the catalogue. Mac filtering now hides Windows-only keys.
 - The Mac Fn/Globe key now keeps a visible gap between the globe and its lettering
   in the keyboard catalogue and downloaded artwork.
 - Improved the Mac F1–F12 keyboard previews and exports with larger, aligned

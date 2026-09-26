@@ -16,8 +16,10 @@
 .kb-toolbar input { accent-color: var(--rl-ink); }
 .kb-count { color: var(--rl-muted); margin-left: auto; }
 .kb-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 1.5rem; align-items: start; }
-.kb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: .75rem; padding: 1rem; border: 1px solid var(--rl-line); border-radius: 9px; background: #efefed; }
+.kb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: .75rem; padding: 1rem; border: 1px solid var(--rl-line); border-radius: 9px; background: #efefed; }
 .kb-card { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 1rem; gap: .3rem; background: #fff; color: #1C1C1E; border: 1px solid #d9d9d6; border-radius: 8px; text-align: left; font: inherit; cursor: pointer; }
+.kb-card--keypad-zero { grid-column: span 2; }
+.kb-card--spacebar { grid-column: span 3; }
 .kb-card[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: 2px; }
 .kb-empty { grid-column: 1 / -1; margin: 0; padding: 1.5rem; color: var(--rl-muted); }
 .kb-card-art { min-height: 112px; display: flex; align-items: center; justify-content: center; width: 100%; margin-bottom: .6rem; }
@@ -42,8 +44,8 @@
 .kb-dark .kb-card > span:last-child { color: #aeaeb2; }
 .kb-catalogue :is(button, input, select):focus-visible, .ui-symbol-collections a:focus-visible { outline: 2px solid #0088ff; outline-offset: 4px; }
 @media (max-width: 1050px) { .kb-workspace { grid-template-columns: 1fr; } .kb-inspector { display: block; } .kb-large { min-height: 184px; } }
-@media (max-width: 720px) { .ui-symbol-collections { padding-inline: 1rem; } .kb-catalogue { padding: .5rem 1rem 1.5rem; } .kb-toolbar { gap: 1rem; } .kb-toolbar > label:first-child { flex-wrap: wrap; } .kb-count { margin-left: 0; } .kb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .65rem; gap: .65rem; } .kb-card { padding: .7rem; } .kb-card-art { min-height: 100px; } }
-@media (max-width: 340px) { .kb-grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .ui-symbol-collections { padding-inline: 1rem; } .kb-catalogue { padding: .5rem 1rem 1.5rem; } .kb-toolbar { gap: 1rem; } .kb-toolbar > label:first-child { flex-wrap: wrap; } .kb-count { margin-left: 0; } .kb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .65rem; gap: .65rem; } .kb-card { padding: .7rem; } .kb-card--spacebar { grid-column: span 2; } .kb-card-art { min-height: 100px; } }
+@media (max-width: 340px) { .kb-grid { grid-template-columns: 1fr; } .kb-card--keypad-zero, .kb-card--spacebar { grid-column: span 1; } }
 
 .kb-colour-control { display: grid; grid-template-columns: 1fr; gap: .4rem; }
 .kb-colour-inputs { display: flex; align-items: center; gap: .5rem; }
