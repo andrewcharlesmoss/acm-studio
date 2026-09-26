@@ -102,6 +102,7 @@ export function StyleGuideSandbox() {
   const [guideJumpLine, setGuideJumpLine] = useState<number | null>(null);
   const guideSourceRef = useRef<HTMLDivElement>(null);
   const hasSourceInteraction = useRef(false);
+  const guideScrollSyncSuspended = useRef(false);
   const variables = useMemo(() => universalStylePresetToCssVariables(preset, viewport) as CSSProperties, [preset, viewport]);
   const guideLines = useMemo(() => styleGuideSource.document.split("\n"), []);
   const guideMatches = useMemo(() => guideQuery.trim() ? guideLines.flatMap((line, index) => line.toLowerCase().includes(guideQuery.toLowerCase()) ? [index + 1] : []) : [], [guideLines, guideQuery]);
@@ -120,6 +121,12 @@ export function StyleGuideSandbox() {
   useEffect(() => {
     if (!hasSourceInteraction.current) return;
     const guides = guideSourceRef.current?.querySelectorAll<HTMLElement>(".sg-guide-document");
+    if (!guides?.length) return;
+    guideScrollSyncSuspended.current = true;
+    const activeGuide = Array.from(guides).find(guide => !guide.classList.contains("is-inactive"));
+    const resumeSync = () => { guideScrollSyncSuspended.current = false; };
+    activeGuide?.addEventListener("scrollend", resumeSync, { once: true });
+    const syncTimeout = window.setTimeout(resumeSync, 800);
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     guides?.forEach(guide => {
       const viewPrefix = guide.classList.contains("sg-guide-markdown") ? "sg-guide-markdown" : "sg-guide-formatted";
@@ -130,7 +137,12 @@ export function StyleGuideSandbox() {
       const top = guide.scrollTop + lineRect.top - guideRect.top - (guide.clientHeight - lineRect.height) / 2;
       guide.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
     });
-  }, [activeGuideLine, guideView]);
+    return () => {
+      window.clearTimeout(syncTimeout);
+      activeGuide?.removeEventListener("scrollend", resumeSync);
+      guideScrollSyncSuspended.current = false;
+    };
+  }, [activeGuideLine]);
 
   function sourcePathFromTarget(target: EventTarget | null): string | null {
     return target instanceof Element ? target.closest<HTMLElement>("[data-style-path]")?.dataset.stylePath ?? null : null;
@@ -324,6 +336,7 @@ export function StyleGuideSandbox() {
           matchIndex={guideMatchIndex}
           activeLine={activeGuideLine}
           pinned={pinnedSourcePath !== null}
+          guideScrollSyncSuspendedRef={guideScrollSyncSuspended}
           onQueryChange={value => { setGuideQuery(value); setGuideMatchIndex(0); setGuideJumpLine(null); }}
           onMatchChange={direction => {
             if (!guideMatches.length) return;
@@ -388,6 +401,7 @@ type GuideSourcePanelProps = {
   matchIndex: number;
   activeLine: number;
   pinned: boolean;
+  guideScrollSyncSuspendedRef: { current: boolean };
   onQueryChange: (value: string) => void;
   onMatchChange: (direction: number) => void;
   onClearPin: () => void;
@@ -395,15 +409,19 @@ type GuideSourcePanelProps = {
 
 const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(function GuideSourcePanel({
   activePath, mapping, currentValue, baselineValue, relatedButtonValues, lines, view, onViewChange, sourceRevision, query, matchCount,
-  matchIndex, activeLine, pinned, onQueryChange, onMatchChange, onClearPin,
+  matchIndex, activeLine, pinned, guideScrollSyncSuspendedRef, onQueryChange, onMatchChange, onClearPin,
 }, ref) {
   const formattedGuideRef = useRef<HTMLDivElement>(null);
   const markdownGuideRef = useRef<HTMLDivElement>(null);
 
+  function resumeScrollSync() {
+    guideScrollSyncSuspendedRef.current = false;
+  }
+
   function syncGuideScroll(event: UIEvent<HTMLDivElement>) {
     const source = event.currentTarget;
     const sourceIsActive = source.classList.contains("sg-guide-markdown") ? view === "markdown" : view === "formatted";
-    if (!sourceIsActive) return;
+    if (!sourceIsActive || guideScrollSyncSuspendedRef.current) return;
 
     const target = source.classList.contains("sg-guide-markdown") ? formattedGuideRef.current : markdownGuideRef.current;
     if (!target) return;
@@ -440,7 +458,13 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
       <button type="button" aria-pressed={view === "formatted"} onClick={() => onViewChange("formatted")}>Formatted</button>
       <button type="button" aria-pressed={view === "markdown"} onClick={() => onViewChange("markdown")}>Markdown source</button>
     </div>
-    <div className="sg-guide-views">
+    <div
+      className="sg-guide-views"
+      onWheelCapture={resumeScrollSync}
+      onTouchStartCapture={resumeScrollSync}
+      onPointerDownCapture={resumeScrollSync}
+      onKeyDownCapture={resumeScrollSync}
+    >
       <FormattedGuideDocument
         ref={formattedGuideRef}
         lines={lines}
