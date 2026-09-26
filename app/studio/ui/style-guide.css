@@ -82,6 +82,9 @@
 .sg-type-samples > p { margin-block: .75em; }
 .sg-type-samples a { color: var(--acm-color-accent); text-decoration: underline; text-underline-offset: .16em; }
 .sg-list-specimens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.sg-list-specimens ul, .sg-list-specimens ol { margin-block: .5em .85em; padding-inline-start: 1.5em; }
+.sg-list-specimens ul { list-style-type: disc; }
+.sg-list-specimens ol { list-style-type: decimal; }
 .sg-list-specimens h3 { font-family: var(--acm-type-h4-family); font-size: var(--acm-type-h4-size); }
 .sg-preview blockquote { margin: 1.25rem 0; padding: .5rem 1rem; border-left: 3px solid var(--acm-color-accent); color: var(--acm-color-text-secondary); }
 .sg-preview blockquote p { margin: .25rem 0 .5rem; font-style: italic; }
@@ -128,6 +131,8 @@
 .sg-guide-formatted h3 { font-size: 1.1rem; }
 .sg-guide-formatted p, .sg-guide-formatted blockquote { margin: .25rem 0 .75rem; }
 .sg-guide-formatted ul, .sg-guide-formatted ol { margin: .15rem 0 .85rem; padding-left: 1.5rem; }
+.sg-guide-formatted ul { list-style-type: disc; }
+.sg-guide-formatted ol { list-style-type: decimal; }
 .sg-guide-formatted li { margin-block: .15rem; }
 .sg-formatted-block { min-width: 0; border-radius: 4px; scroll-margin-block: 2rem; }
 .sg-formatted-block.is-current-source, .sg-guide-formatted .is-current-source { background: #fff5c9; }
