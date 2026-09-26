@@ -24,3 +24,26 @@ test("SVG download builder rejects invalid sizes and unknown icons", () => {
   assert.throws(() => createIconSvg("action.undo", "Regular-M", 0), /valid ACM icon/);
   assert.throws(() => createIconSvg("action.undo", "Regular-M", 513), /valid ACM icon/);
 });
+
+test("PNG exports preserve rectangular keycaps and existing three-times icon dimensions", async (t) => {
+  const { createSvgPng, createIconPng } = await import("../app/studio/ui/icon-download.mjs");
+  const originals = new Map(["Image", "document"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  const sizes = [];
+  let revoked = 0;
+  t.after(() => { for (const [key, descriptor] of originals) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; } });
+  t.mock.method(URL, "createObjectURL", () => "blob:local-sample");
+  t.mock.method(URL, "revokeObjectURL", () => { revoked++; });
+  Object.defineProperty(globalThis, "Image", { configurable: true, value: class { async decode() {} } });
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { createElement: () => {
+    const canvas = { width: 0, height: 0, getContext: () => ({ drawImage: (_image, _x, _y, width, height) => sizes.push([width, height]) }), toBlob: (callback) => callback(new Blob(["png"], { type: "image/png" })) };
+    return canvas;
+  } } });
+  await createSvgPng("<svg />", 192, 128);
+  await createSvgPng("<svg />", 107, 128);
+  await createIconPng("<svg />", 16);
+  assert.deepEqual(sizes, [[192, 128], [107, 128], [48, 48]]);
+  assert.equal(revoked, 3);
+  await assert.rejects(createSvgPng("<svg />", 0, 128));
+  await assert.rejects(createSvgPng("<svg />", 128, 1537));
+  await assert.rejects(createSvgPng("<svg />", 128.5, 128));
+});

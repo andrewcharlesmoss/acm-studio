@@ -54,7 +54,10 @@ Workspace composes the shared Ribbon and Pane specimens; Ribbon details live at
 `/studio/ui/ribbon`, Pane details at `/studio/ui/panes`, and the broadly shared
 icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and
 `/studio/panes` routes redirect to their new sections. ACM symbols come from the
-sibling `@acm/icons` package; this catalogue organisation does not replace
+sibling `@acm/icons` package. A UK Keyboard sample collection lives at
+`/studio/ui/icons?collection=keyboard`. Shared keycap assets are owned by
+`@acm/icons/keyboard`. The sample awaits review before the full UK inventory.
+This catalogue organisation does not replace
 existing product icons or change their provenance. Ribbon definitions drive its
 tree, inspector and renderer. All catalogue demo handlers remain memory-only
 and independent of product stores or write ownership. See

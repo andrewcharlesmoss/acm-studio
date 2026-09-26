@@ -7,14 +7,15 @@ import { AcmStudioIcon } from "../acm-studio-icons";
 import { commandInventory } from "../ribbon/catalogue-model";
 import { StudioUiLibrary } from "./studio-ui-library";
 import { createIconPng, createIconSvg, downloadIconFile } from "./icon-download.mjs";
+import { KeyboardCatalogue } from "./keyboard-catalogue";
 
-export function IconsCatalogue({ initialIcon }: { initialIcon?: string }) {
+export function IconsCatalogue({ initialIcon, collection = "icons" }: { initialIcon?: string; collection?: "icons" | "keyboard" }) {
   const [iconQuery, setIconQuery] = useState("");
   const [golden, setGolden] = useState(false);
   const [dark, setDark] = useState(false);
   const [icon, setIcon] = useState<IconName>(() => iconNames.includes(initialIcon as IconName) ? initialIcon as IconName : "action.undo");
   const [exportStatus, setExportStatus] = useState("");
-  const filteredIcons = iconNames.filter((name) => (!golden || iconMetadata[name].golden) && (name + " " + iconMetadata[name].label + " " + iconMetadata[name].keywords.join(" ")).toLowerCase().includes(iconQuery.toLowerCase()));
+  const filteredIcons = iconNames.filter((name) => !name.startsWith("keyboard.") && (!golden || iconMetadata[name].golden) && (name + " " + iconMetadata[name].label + " " + iconMetadata[name].keywords.join(" ")).toLowerCase().includes(iconQuery.toLowerCase()));
   const ribbonExamples = commandInventory.filter((control) => control.icon === icon || control.iconVariants?.includes(icon));
 
   async function downloadIcon(scale: typeof iconScales[number], size: number, format: "svg" | "png") {
@@ -35,10 +36,14 @@ export function IconsCatalogue({ initialIcon }: { initialIcon?: string }) {
     <section className="ui-icons-page" aria-labelledby="ui-icons-title">
       <div className="ui-page-intro">
         <p className="rl-eyebrow">Shared ACM Foundation</p>
-        <h1 id="ui-icons-title">Icons for the whole interface.</h1>
-        <p>Original ACM symbols, available to Ribbon, panes and other interface features.</p>
+        <h1 id="ui-icons-title">Symbols for websites, videos and more.</h1>
+        <p>Browse original ACM artwork and download vector or transparent image assets.</p>
       </div>
-      <div className="rl-layout">
+      <nav className="ui-symbol-collections" aria-label="Symbol Collections">
+        <a href="/studio/ui/icons" aria-current={collection === "icons" ? "page" : undefined}><AcmIcon name="insert.shapes" size={20} />Interface Icons</a>
+        <a href="/studio/ui/icons?collection=keyboard" aria-current={collection === "keyboard" ? "page" : undefined}><AcmIcon name="text.keyboard" size={20} />Keyboard <span>UK Preview</span></a>
+      </nav>
+      {collection === "keyboard" ? <KeyboardCatalogue /> : <div className="rl-layout">
         <aside className="rl-sidebar" aria-label="Icon Filters">
           <h2>Symbols</h2>
           <label className="rl-search"><AcmIcon name="action.search" size={18} /><input aria-label="Search Icons" placeholder="Search icons…" value={iconQuery} onChange={(event) => setIconQuery(event.target.value)} /></label>
@@ -74,9 +79,9 @@ export function IconsCatalogue({ initialIcon }: { initialIcon?: string }) {
           <h3>Ribbon catalogue examples</h3>
           <ul className="rl-usage">{ribbonExamples.map((control) => <li key={control.id}><small>{control.product === "skeleton" ? "Component Specimen" : control.product === "studio" ? "ACM Studio" : "ACM Account"}</small>{control.label}{icon !== control.icon ? " (state variant)" : ""}</li>)}</ul>
           {!ribbonExamples.length && <p>No Ribbon catalogue examples use this symbol.</p>}
-          <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>acm-icons/masters/{icon}.svg</code><p>Three editable scale groups. ACM icon specification v0.6.0.</p></details>
+          <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>acm-icons/masters/{icon}.svg</code><p>Three editable scale groups. ACM icon specification v0.7.0.</p></details>
         </aside>
-      </div>
+      </div>}
     </section>
   </StudioUiLibrary>;
 }

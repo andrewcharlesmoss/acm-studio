@@ -1,0 +1,42 @@
+.ui-symbol-collections { display: flex; flex-wrap: wrap; gap: .5rem; padding: 0 2rem 1rem; }
+.ui-symbol-collections a { display: inline-flex; align-items: center; gap: .5rem; min-height: 42px; padding: .5rem .8rem; border: 1px solid var(--rl-line); border-radius: 7px; background: white; color: var(--rl-ink); text-decoration: none; }
+.ui-symbol-collections a[aria-current="page"] { background: var(--rl-selection); border-color: var(--rl-ink); font-weight: 600; }
+.ui-symbol-collections a span { font-size: var(--studio-ui-size, 13px); color: var(--rl-muted); font-weight: 400; }
+.kb-catalogue { padding: .75rem 2rem 2rem; font-size: var(--studio-ui-size, 13px); }
+.kb-intro { display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+.kb-intro h2 { margin: .4rem 0 0; font-size: 1.5rem; letter-spacing: -.035em; }
+.kb-intro > p { color: var(--rl-muted); margin: 0; line-height: 1.6; }
+.kb-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem; padding: 1rem; border: 1px solid var(--rl-line); border-radius: 9px; background: #fff; margin-bottom: 1rem; }
+.kb-toolbar label, .kb-export-settings label { display: flex; align-items: center; gap: .65rem; }
+.kb-catalogue select { min-height: 38px; padding: .4rem .65rem; max-width: 100%; border: 1px solid var(--rl-line); border-radius: 6px; color: var(--rl-ink); background: #fff; font: inherit; }
+.kb-toolbar fieldset { display: flex; flex-wrap: wrap; gap: .85rem; border: 0; padding: 0; margin: 0; }
+.kb-toolbar legend { float: left; margin-right: .85rem; }
+.kb-toolbar input { accent-color: var(--rl-ink); }
+.kb-count { color: var(--rl-muted); margin-left: auto; }
+.kb-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 1.5rem; align-items: start; }
+.kb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: .75rem; padding: 1rem; border: 1px solid var(--rl-line); border-radius: 9px; background: #efefed; }
+.kb-card { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 1rem; gap: .3rem; background: #fff; color: #1C1C1E; border: 1px solid #d9d9d6; border-radius: 8px; text-align: left; font: inherit; cursor: pointer; }
+.kb-card[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: 2px; }
+.kb-card-art { min-height: 112px; display: flex; align-items: center; justify-content: center; width: 100%; margin-bottom: .6rem; }
+.kb-card strong { font-size: 1rem; font-weight: 600; }
+.kb-card > span:last-child { color: #636366; }
+.kb-inspector { padding: 1.25rem; border: 1px solid var(--rl-line); border-radius: 9px; background: #fff; }
+.kb-inspector h2 { font-size: 1.3rem; margin: .4rem 0 1rem; }
+.kb-inspector > p { line-height: 1.55; }
+.kb-large { display: flex; align-items: center; justify-content: center; min-height: 184px; padding: 1rem; border: 1px solid var(--rl-line); border-radius: 7px; background: #f4f4f2; }
+.kb-large svg { max-width: 100%; }
+.kb-export-settings { display: grid; gap: .7rem; margin-top: 1rem; }
+.kb-export-settings label { justify-content: space-between; flex-wrap: wrap; }
+.kb-dimensions, .kb-export-note, .kb-footnote, .kb-status { color: var(--rl-muted); }
+.kb-downloads { display: flex; gap: .5rem; flex-wrap: wrap; }
+.kb-downloads button { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; min-height: 42px; flex: 1; padding: .6rem; border: 1px solid var(--rl-line); border-radius: 6px; background: white; color: var(--rl-ink); font: inherit; cursor: pointer; white-space: nowrap; }
+.kb-downloads button:hover, .ui-symbol-collections a:hover { background: var(--rl-selection); }
+.kb-status { min-height: 1.5em; }
+.kb-footnote { max-width: 75ch; line-height: 1.6; margin-top: 1.25rem; }
+.kb-dark { background: #161618; }
+.kb-dark .kb-card { background: #242426; border-color: #48484a; color: #f2f2f7; }
+.kb-dark .kb-card > span:last-child { color: #aeaeb2; }
+.kb-catalogue :is(button, input, select):focus-visible, .ui-symbol-collections a:focus-visible { outline: 2px solid #0088ff; outline-offset: 4px; }
+@media (max-width: 1050px) { .kb-workspace { grid-template-columns: 1fr; } .kb-inspector { display: block; } .kb-large { min-height: 184px; } }
+@media (max-width: 720px) { .ui-symbol-collections { padding-inline: 1rem; } .kb-catalogue { padding: .5rem 1rem 1.5rem; } .kb-toolbar { gap: 1rem; } .kb-toolbar > label:first-child { flex-wrap: wrap; } .kb-count { margin-left: 0; } .kb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .65rem; gap: .65rem; } .kb-card { padding: .7rem; } .kb-card-art { min-height: 100px; } }
+@media (max-width: 340px) { .kb-grid { grid-template-columns: 1fr; } }

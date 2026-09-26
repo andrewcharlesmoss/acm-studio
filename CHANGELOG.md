@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- Added a separate UK Keyboard preview collection with eight sample keys,
+  Mac/Windows filters, keycap and symbol views, and font-free SVG/transparent
+  PNG downloads with selectable colour and size.
 - Added 13 shared file, media and table-action icons to the Icons catalogue,
   with SVG and PNG downloads at all three optical sizes. The catalogue now
   uses the private ACM Icons v0.6.0 contract with 119 symbols.

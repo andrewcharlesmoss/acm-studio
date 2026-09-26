@@ -54,7 +54,18 @@ export async function createIconPng(svg, size) {
   if (!Number.isInteger(size) || size < 1 || size > 512) {
     throw new Error("Choose a valid PNG pixel size.");
   }
+  return createSvgPng(svg, size * 3, size * 3);
+}
 
+/** Rasterise an application-generated SVG while preserving rectangular dimensions.
+ * @param {string} svg
+ * @param {number} width
+ * @param {number} height
+ */
+export async function createSvgPng(svg, width, height) {
+  if (![width, height].every((value) => Number.isInteger(value) && value >= 1 && value <= 1536)) {
+    throw new Error("Choose valid PNG dimensions up to 1536 pixels.");
+  }
   const sourceUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const image = new Image();
@@ -62,8 +73,8 @@ export async function createIconPng(svg, size) {
     await image.decode();
 
     const canvas = document.createElement("canvas");
-    canvas.width = size * 3;
-    canvas.height = size * 3;
+    canvas.width = width;
+    canvas.height = height;
     try {
       const context = canvas.getContext("2d");
       if (!context) throw new Error("The PNG image could not be prepared.");

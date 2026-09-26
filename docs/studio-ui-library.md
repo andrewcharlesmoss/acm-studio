@@ -104,3 +104,25 @@ responsive values, property/section/global resets, and contained mobile preview
 scrolling. Check hover, focus and pinned guide references, exact source lines,
 search navigation and responsive panel selection; verify that edits are not
 written to browser storage.
+
+## UK keyboard preview
+
+The Icons section now groups interface icons and a separate Keyboard collection
+at `/studio/ui/icons?collection=keyboard`. Its first eight UK keys are A, 3/£,
+Shift, ISO Return/Enter, Mac Command and Option, and Windows Ctrl and Windows.
+This is a bounded style sample; the full inventory waits for Andrew's review.
+The full UK Windows set must include the Copilot key as both a bare symbol and
+a complete keycap, using Andrew's supplied keyboard reference for its marking.
+
+The sibling `@acm/icons` v0.7.0 package owns the original glyph masters, shared
+keycap frames, platform metadata and SVG composer. Studio owns the preview
+controls and download interaction. Existing 119 interface icons stay in their
+own collection. No keyboard shortcuts or product controls are changed.
+
+Choose Mac, Windows or both; switch between keycaps and bare symbols; compare
+light/dark specimens. Download transparent SVG or PNG in dark or light artwork,
+with heights of 64, 128, 256 or 512px. The width follows the selected key's
+proportions. Unlike the interface-icon inspector's 3× PNG exports, Keyboard
+exports use the displayed dimensions exactly. All lettering is path geometry,
+so imported SVGs do not require fonts. Shared keys show primary/Shift legends;
+this preview does not cover alternate layers or every physical key width.
