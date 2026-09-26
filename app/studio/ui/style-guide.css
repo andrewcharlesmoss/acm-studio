@@ -73,6 +73,7 @@
 .sg-preview .acm-button-outline:hover { background: var(--acm-button-outline-hover-background); color: var(--acm-button-outline-hover-foreground); }
 .sg-palette-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .6rem; }
 .acm-universal-style-preset .sg-swatch { min-width: 0; min-height: 0; border: var(--acm-layout-border-width) solid var(--acm-color-border); border-radius: var(--acm-layout-radius); overflow: hidden; display: grid; padding: 0; background: var(--acm-color-surface); color: var(--acm-color-text-primary); text-align: left; cursor: pointer; }
+.acm-universal-style-preset .sg-swatch:is(:hover, :focus-visible) { border-color: var(--acm-color-accent); background: var(--acm-color-surface); color: var(--acm-color-text-primary); }
 .sg-swatch > span { display: block; min-height: 54px; border-bottom: 1px solid var(--acm-color-border); }
 .sg-swatch strong, .sg-swatch code { padding: .3rem .45rem; overflow-wrap: anywhere; }
 .sg-swatch strong { font-size: .85rem; }

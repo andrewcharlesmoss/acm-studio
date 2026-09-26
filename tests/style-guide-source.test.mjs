@@ -65,6 +65,11 @@ test("the source viewer remains read-only and does not use browser storage", () 
   assert.match(resetAll, /hasSourceInteraction\.current = false/);
 });
 
+test("colour swatches preserve readable text on hover and keyboard focus", () => {
+  const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
+  assert.match(styles, /\.acm-universal-style-preset \.sg-swatch:is\(:hover, :focus-visible\)\s*\{[^}]*background:\s*var\(--acm-color-surface\)[^}]*color:\s*var\(--acm-color-text-primary\)/);
+});
+
 function collectPaths(value, prefix) {
   return Object.entries(value).flatMap(([key, nested]) => {
     const current = `${prefix}.${key}`;
