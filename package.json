@@ -11,7 +11,9 @@
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
     "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "test": "npm run build && node --experimental-strip-types --test tests/*.test.mjs",
+    "test": "npm run build && npm run styles:source:check && node --experimental-strip-types --test tests/*.test.mjs",
+    "styles:source": "node scripts/generate-style-guide-source.mjs",
+    "styles:source:check": "node scripts/generate-style-guide-source.mjs --check",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit --incremental false --pretty false"
   },

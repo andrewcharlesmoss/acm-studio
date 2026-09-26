@@ -7,6 +7,10 @@
   live, responsive preview sandbox for the versioned `@acm/styles` preset.
   New template sets use independent preset defaults; existing sets and
   published snapshots retain their previous appearance.
+- Added the full written workspace Style Guide beside the Styles specimens,
+  with searchable, line-numbered source, preset-property mappings and a
+  revision record. Hovering, focusing or selecting a specimen reveals its
+  source passage and compares the sandbox value with the universal baseline.
 
 - Added a Studio UI Library with Workspace, Ribbon, Panes and shared Icons
   sections. Workspace shows the Ribbon and both resizable panes around one

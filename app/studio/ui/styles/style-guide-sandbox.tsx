@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import {
   createUniversalStylePreset,
@@ -18,6 +18,7 @@ import {
 } from "@acm/styles";
 import type { CSSProperties } from "react";
 import { StudioUiLibrary } from "../studio-ui-library";
+import styleGuideSource from "./style-guide-source.json";
 import "../style-guide.css";
 
 type Panel = "palette" | "typography" | "buttons" | "layout";
@@ -25,6 +26,8 @@ type TypographyRole = keyof UniversalStylePreset["typography"];
 type MetricName = "size" | "lineHeight" | "letterSpacing";
 type Metric = FontSizeValue | LineHeightValue | LetterSpacingValue;
 type ButtonRole = keyof UniversalStylePreset["buttons"];
+type MobilePanel = "settings" | "preview" | "guide";
+type GuideSourceMapping = { line: number; excerpt: string; heading: string; rowPath: string };
 
 const fontFamilies: { id: FontFamily; name: string }[] = [
   { id: "inter", name: "Inter" },
@@ -63,6 +66,23 @@ const viewportRoles: { id: StyleViewport; label: string }[] = [
 function baselineTypography(role: TypographyRole) { return UNIVERSAL_STYLE_PRESET.typography[role]; }
 function copyPreset<T>(value: T): T { return structuredClone(value); }
 function formatNumber(value: number) { return Number(value.toFixed(3)); }
+function pathValue(source: unknown, path: string): unknown {
+  return path.split(".").reduce<unknown>((current, segment) => current && typeof current === "object" ? (current as Record<string, unknown>)[segment] : undefined, source);
+}
+function displayStyleValue(value: unknown, viewport: StyleViewport): string {
+  if (value && typeof value === "object" && "desktop" in value) {
+    const responsive = value as ResponsiveValue<Metric>;
+    const resolved = resolveUniversalStyleValue(responsive, viewport);
+    const metric = resolved.value;
+    const unit = metric.unit === "number" ? "" : metric.unit;
+    return `${metric.value}${unit}${resolved.inherited ? ` (inherited from ${resolved.inheritedFrom})` : ""}`;
+  }
+  if (value === "inter") return "Inter";
+  if (value === "system-sans") return "System Sans";
+  if (value === "georgia") return "Georgia";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  return value === undefined ? "Documented guidance" : JSON.stringify(value);
+}
 
 export function StyleGuideSandbox() {
   const [preset, setPreset] = useState(() => createUniversalStylePreset());
@@ -71,7 +91,67 @@ export function StyleGuideSandbox() {
   const [role, setRole] = useState<TypographyRole>("body");
   const [fontQuery, setFontQuery] = useState("");
   const [buttonRole, setButtonRole] = useState<ButtonRole>("base");
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("settings");
+  const [hoveredSourcePath, setHoveredSourcePath] = useState<string | null>(null);
+  const [focusedSourcePath, setFocusedSourcePath] = useState<string | null>(null);
+  const [pinnedSourcePath, setPinnedSourcePath] = useState<string | null>(null);
+  const [guideQuery, setGuideQuery] = useState("");
+  const [guideMatchIndex, setGuideMatchIndex] = useState(0);
+  const [guideJumpLine, setGuideJumpLine] = useState<number | null>(null);
+  const guideSourceRef = useRef<HTMLDivElement>(null);
+  const hasSourceInteraction = useRef(false);
   const variables = useMemo(() => universalStylePresetToCssVariables(preset, viewport) as CSSProperties, [preset, viewport]);
+  const guideLines = useMemo(() => styleGuideSource.document.split("\n"), []);
+  const guideMatches = useMemo(() => guideQuery.trim() ? guideLines.flatMap((line, index) => line.toLowerCase().includes(guideQuery.toLowerCase()) ? [index + 1] : []) : [], [guideLines, guideQuery]);
+  const styleMappings = styleGuideSource.mappings as Record<string, GuideSourceMapping>;
+  const activeSourcePath = pinnedSourcePath ?? hoveredSourcePath ?? focusedSourcePath ?? `typography.${role}.size`;
+  const activeSource = styleMappings[activeSourcePath] ?? styleMappings["typography.body.size"];
+  const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @acm/styles token" : displayStyleValue(pathValue(UNIVERSAL_STYLE_PRESET, activeSourcePath), viewport);
+  const activeValue = activeSourcePath.startsWith("specimen.") ? "Documented specimen guidance" : displayStyleValue(pathValue(preset, activeSourcePath), viewport);
+  const activeGuideLine = guideJumpLine ?? activeSource?.line ?? 1;
+  const buttonPathParts = activeSourcePath.split(".");
+  const relatedButtonValues = activeSourcePath.startsWith("buttons.") ? (["background", "foreground", "border", "borderWidth", "hoverBackground", "hoverForeground"] as const).map(property => {
+    const propertyPath = `${buttonPathParts[0]}.${buttonPathParts[1]}.${property}`;
+    return { path: propertyPath, current: displayStyleValue(pathValue(preset, propertyPath), viewport), baseline: displayStyleValue(pathValue(UNIVERSAL_STYLE_PRESET, propertyPath), viewport) };
+  }) : [];
+
+  useEffect(() => {
+    if (!hasSourceInteraction.current) return;
+    const line = guideSourceRef.current?.querySelector<HTMLElement>(`#sg-guide-line-${activeGuideLine}`);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    line?.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [activeGuideLine]);
+
+  function sourcePathFromTarget(target: EventTarget | null): string | null {
+    return target instanceof Element ? target.closest<HTMLElement>("[data-style-path]")?.dataset.stylePath ?? null : null;
+  }
+
+  function handleSourcePointer(event: PointerEvent<HTMLDivElement>) {
+    const path = sourcePathFromTarget(event.target);
+    if (path && styleMappings[path]) {
+      hasSourceInteraction.current = true;
+      setHoveredSourcePath(path);
+      setGuideJumpLine(null);
+    }
+  }
+
+  function handleSourceFocus(event: FocusEvent<HTMLDivElement>) {
+    const path = sourcePathFromTarget(event.target);
+    if (path && styleMappings[path]) {
+      hasSourceInteraction.current = true;
+      setFocusedSourcePath(path);
+      setGuideJumpLine(null);
+    }
+  }
+
+  function pinSource(event: MouseEvent<HTMLDivElement>) {
+    const path = sourcePathFromTarget(event.target);
+    if (path && styleMappings[path]) {
+      hasSourceInteraction.current = true;
+      setPinnedSourcePath(path);
+      setGuideJumpLine(null);
+    }
+  }
 
   function updateTypography(update: (current: UniversalStylePreset["typography"][TypographyRole]) => UniversalStylePreset["typography"][TypographyRole]) {
     setPreset(current => {
@@ -138,7 +218,7 @@ export function StyleGuideSandbox() {
       <header className="ui-page-intro sg-intro">
         <p className="rl-eyebrow">Universal ACM Foundation</p>
         <h1 id="sg-page-title">Style Guide</h1>
-        <p>Explore the shared visual rules and see how they affect interface specimens.</p>
+        <p>Compare the universal rules, their source in the written guide and a live specimen.</p>
       </header>
       <div className="sg-toolbar">
         <div className="sg-viewports" role="group" aria-label="Preview size">
@@ -149,7 +229,18 @@ export function StyleGuideSandbox() {
           <button type="button" className="sg-reset-all" onClick={resetAll}><AcmIcon name="action.reset" size={17} />Reset All</button>
         </div>
       </div>
-      <div className="sg-workbench">
+      <div
+        className="sg-workbench"
+        data-mobile-panel={mobilePanel}
+        onPointerOverCapture={handleSourcePointer}
+        onPointerLeave={() => setHoveredSourcePath(null)}
+        onFocusCapture={handleSourceFocus}
+        onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusedSourcePath(null); }}
+        onClickCapture={pinSource}
+      >
+        <nav className="sg-workbench-switcher" aria-label="Style guide workspace panels" role="group">
+          {([ ["settings", "Settings"], ["preview", "Preview"], ["guide", "Written guide"] ] as [MobilePanel, string][]).map(([id, label]) => <button type="button" key={id} aria-pressed={mobilePanel === id} onClick={() => setMobilePanel(id)}>{label}</button>)}
+        </nav>
         <aside className="sg-settings" aria-label="Style settings">
           <h2>Settings</h2>
           <nav className="sg-setting-navigation" aria-label="Style categories">
@@ -157,7 +248,7 @@ export function StyleGuideSandbox() {
           </nav>
           <div className="sg-setting-content">
             <div className="sg-setting-heading"><div><p className="rl-eyebrow">ACM UNIVERSAL STYLE</p><h3>{panel === "palette" ? "Colours" : panel === "typography" ? "Typography" : panel === "buttons" ? "Buttons" : "Layout"}</h3></div><button type="button" className="sg-reset-section" onClick={resetSection}>Reset section</button></div>
-            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting"><span>{label}</span><input type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} /><code>{preset.palette[key]}</code><button type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, UNIVERSAL_STYLE_PRESET.palette[key])}>Reset</button></div>)}</div> : null}
+            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting"><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} /><code>{preset.palette[key]}</code><button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, UNIVERSAL_STYLE_PRESET.palette[key])}>Reset</button></div>)}</div> : null}
             {panel === "typography" ? <>
               <div className="sg-role-list" role="group" aria-label="Typography role">
                 {typographyRoles.map(item => <button type="button" key={item.id} aria-pressed={role === item.id} onClick={() => setRole(item.id)}>{item.label}</button>)}
@@ -176,10 +267,10 @@ export function StyleGuideSandbox() {
               />
             </> : null}
             {panel === "buttons" ? <>
-              <div className="sg-role-list" role="group" aria-label="Button variant">{buttonRoles.map(item => <button type="button" key={item.id} aria-pressed={buttonRole === item.id} onClick={() => setButtonRole(item.id)}>{item.label}</button>)}</div>
-              <div className="sg-button-settings">{([ ["background", "Background"], ["foreground", "Text"], ["border", "Border"], ["hoverBackground", "Hover background"], ["hoverForeground", "Hover text"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, UNIVERSAL_STYLE_PRESET.buttons[buttonRole][key])} />)}<label className="sg-button-border-width">Border width (px)<input type="number" min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /></label></div>
+              <div className="sg-role-list" role="group" aria-label="Button variant">{buttonRoles.map(item => <button data-style-path={`buttons.${item.id}.background`} type="button" key={item.id} aria-pressed={buttonRole === item.id} onClick={() => setButtonRole(item.id)}>{item.label}</button>)}</div>
+              <div className="sg-button-settings">{([ ["background", "Background"], ["foreground", "Text"], ["border", "Border"], ["hoverBackground", "Hover background"], ["hoverForeground", "Hover text"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} stylePath={`buttons.${buttonRole}.${key}`} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, UNIVERSAL_STYLE_PRESET.buttons[buttonRole][key])} />)}<label className="sg-button-border-width">Border width (px)<input data-style-path={`buttons.${buttonRole}.borderWidth`} type="number" min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /></label></div>
             </> : null}
-            {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><label htmlFor={`sg-layout-${key}`}>{label}</label><div><input id={`sg-layout-${key}`} type="number" min={min} max={max} step={1} value={preset.layout[key]} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } })); }} /><span>px</span><button type="button" aria-label={`Reset ${label}`} onClick={() => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: UNIVERSAL_STYLE_PRESET.layout[key] } }))}>Reset</button></div></div>)}</div> : null}
+            {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><label htmlFor={`sg-layout-${key}`}>{label}</label><div><input data-style-path={`layout.${key}`} id={`sg-layout-${key}`} type="number" min={min} max={max} step={1} value={preset.layout[key]} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } })); }} /><span>px</span><button data-style-path={`layout.${key}`} type="button" aria-label={`Reset ${label}`} onClick={() => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: UNIVERSAL_STYLE_PRESET.layout[key] } }))}>Reset</button></div></div>)}</div> : null}
           </div>
         </aside>
         <section className="sg-preview-panel" aria-label="Live style preview">
@@ -189,22 +280,46 @@ export function StyleGuideSandbox() {
             <div className="sg-preview acm-universal-style-preset" style={variables}>
               <header className="sg-site-identity"><div className="sg-site-icon" aria-hidden="true">AM</div><div><strong>ACM Studio</strong><span>Universal style specimen</span></div><nav className="acm-navigation" aria-label="Example site navigation"><a href="#specimens">Home</a><a href="#colours">About</a><a href="#buttons">Contact</a></nav></header>
               <section id="buttons" className="sg-example-section sg-button-specimens"><h2>Buttons</h2><div>
-                <button type="button" className="acm-button">Base button</button>
-                <button type="button" className="acm-button acm-button-secondary">Secondary button</button>
-                <button type="button" className="acm-button acm-button-outline">Outline button</button>
+                <button data-style-path="buttons.base.background" type="button" className="acm-button">Base button</button>
+                <button data-style-path="buttons.secondary.background" type="button" className="acm-button acm-button-secondary">Secondary button</button>
+                <button data-style-path="buttons.outline.background" type="button" className="acm-button acm-button-outline">Outline button</button>
               </div></section>
-              <section id="colours" className="sg-example-section"><h2>Semantic colours</h2><div className="sg-palette-grid">{paletteRoles.map(([key, label]) => <div className="sg-swatch" key={key}><span style={{ background: `var(--acm-color-${key.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)})` }} /><strong>{label}</strong><code>{preset.palette[key]}</code></div>)}</div></section>
-              <section id="specimens" className="sg-example-section sg-type-specimens"><h2>Typography</h2><div className="sg-type-samples"><h1>H1 heading specimen</h1><h2>H2 heading specimen</h2><h3>H3 heading specimen</h3><h4>H4 heading specimen</h4><h5>H5 heading specimen</h5><h6>H6 heading specimen</h6><p>This is body text, shown at the selected scale and line height. Clear typography creates a comfortable reading rhythm across pages and interface surfaces.</p><p>Supporting text can include a <a href="#buttons">text link</a> that stays recognisable and accessible.</p><div className="sg-list-specimens"><div><h3>Unordered list</h3><ul><li>First list item</li><li>Second list item</li><li>Third list item</li></ul></div><div><h3>Ordered list</h3><ol><li>First step</li><li>Second step</li><li>Third step</li></ol></div></div><blockquote><p>Good typography is invisible. Bad typography is everywhere.</p><cite>Anonymous</cite></blockquote></div></section>
+              <section id="colours" className="sg-example-section"><h2>Semantic colours</h2><div className="sg-palette-grid">{paletteRoles.map(([key, label]) => <button data-style-path={`palette.${key}`} type="button" aria-label={`Inspect ${label} colour source, ${preset.palette[key]}`} className="sg-swatch" key={key}><span style={{ background: `var(--acm-color-${key.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)})` }} /><strong>{label}</strong><code>{preset.palette[key]}</code></button>)}</div></section>
+              <section id="specimens" className="sg-example-section sg-type-specimens"><h2>Typography</h2><div className="sg-type-samples"><h1 tabIndex={0} data-style-path="typography.h1.size">H1 heading specimen</h1><h2 tabIndex={0} data-style-path="typography.h2.size">H2 heading specimen</h2><h3 tabIndex={0} data-style-path="typography.h3.size">H3 heading specimen</h3><h4 tabIndex={0} data-style-path="typography.h4.size">H4 heading specimen</h4><h5 tabIndex={0} data-style-path="typography.h5.size">H5 heading specimen</h5><h6 tabIndex={0} data-style-path="typography.h6.size">H6 heading specimen</h6><p tabIndex={0} data-style-path="typography.body.size">This is body text, shown at the selected scale and line height. Clear typography creates a comfortable reading rhythm across pages and interface surfaces.</p><p>Supporting text can include a <a data-style-path="specimen.link" href="#buttons">text link</a> that stays recognisable and accessible.</p><div className="sg-list-specimens"><div><h3>Unordered list</h3><ul tabIndex={0} data-style-path="specimen.unordered-list"><li>First list item</li><li>Second list item</li><li>Third list item</li></ul></div><div><h3>Ordered list</h3><ol tabIndex={0} data-style-path="specimen.ordered-list"><li>First step</li><li>Second step</li><li>Third step</li></ol></div></div><blockquote tabIndex={0} data-style-path="specimen.quote"><p>Good typography is invisible. Bad typography is everywhere.</p><cite>Anonymous</cite></blockquote></div></section>
             </div>
           </div>
         </section>
+        <GuideSourcePanel
+          ref={guideSourceRef}
+          activePath={activeSourcePath}
+          mapping={activeSource}
+          currentValue={activeValue}
+          baselineValue={activeBaseline}
+          relatedButtonValues={relatedButtonValues}
+          lines={guideLines}
+          sourceRevision={styleGuideSource.sourceRevision}
+          query={guideQuery}
+          matchCount={guideMatches.length}
+          matchIndex={guideMatchIndex}
+          activeLine={activeGuideLine}
+          pinned={pinnedSourcePath !== null}
+          onQueryChange={value => { setGuideQuery(value); setGuideMatchIndex(0); setGuideJumpLine(null); }}
+          onMatchChange={direction => {
+            if (!guideMatches.length) return;
+            hasSourceInteraction.current = true;
+            const nextIndex = (guideMatchIndex + direction + guideMatches.length) % guideMatches.length;
+            setGuideMatchIndex(nextIndex);
+            setGuideJumpLine(guideMatches[nextIndex]);
+          }}
+          onClearPin={() => setPinnedSourcePath(null)}
+        />
       </div>
     </section>
   </StudioUiLibrary>;
 }
 
-function ColourControl({ label, value, onChange, onReset }: { label: string; value: string; onChange: (value: string) => void; onReset: () => void }) {
-  return <div className="sg-colour-setting"><span>{label}</span><input type="color" aria-label={label} value={value} onChange={event => onChange(event.target.value)} /><code>{value}</code><button type="button" aria-label={`Reset ${label} colour`} onClick={onReset}>Reset</button></div>;
+function ColourControl({ stylePath, label, value, onChange, onReset }: { stylePath: string; label: string; value: string; onChange: (value: string) => void; onReset: () => void }) {
+  return <div className="sg-colour-setting"><span>{label}</span><input data-style-path={stylePath} type="color" aria-label={label} value={value} onChange={event => onChange(event.target.value)} /><code>{value}</code><button data-style-path={stylePath} type="button" aria-label={`Reset ${label} colour`} onClick={onReset}>Reset</button></div>;
 }
 
 function TypographyControls({ role, viewport, value, search, matchingFamilies, onSearch, onChange, onMetricChange, onResetProperty, onResetMetric }: {
@@ -222,17 +337,80 @@ function TypographyControls({ role, viewport, value, search, matchingFamilies, o
     <div className="sg-editor-tabs" role="group" aria-label={`${roleName} settings`}>
       {([ ["font", "Font"], ["style", "Style"], ["size", "Size"] ] as const).map(([id, label]) => <button type="button" key={id} aria-pressed={tab === id} className={tab === id ? "is-active" : ""} onClick={() => setTab(id)}>{label}</button>)}
     </div>
-    {tab === "font" ? <section className="sg-editor-panel"><label>Search fonts<input type="search" value={search} placeholder="Search curated fonts" onChange={event => onSearch(event.target.value)} /></label><div className="sg-font-picker" role="group" aria-label="Curated font family">{matchingFamilies.map(font => <button type="button" key={font.id} aria-pressed={value.family === font.id} onClick={() => onChange(current => ({ ...current, family: font.id }))}>{font.name}</button>)}{!matchingFamilies.length ? <p>No curated fonts match.</p> : null}</div><button type="button" className="sg-inline-reset" onClick={() => onResetProperty("family")}>Reset font family</button><p>Inter upright and italic are bundled; System Sans and Georgia use local system fonts.</p></section> : null}
-    {tab === "style" ? <section className="sg-editor-panel"><label>Weight<select value={value.weight} onChange={event => onChange(current => ({ ...current, weight: Number(event.target.value) }))}>{Array.from({ length: 9 }, (_, index) => (index + 1) * 100).map(weight => <option value={weight} key={weight}>{weight}{weight === 400 ? " · Regular" : weight === 700 ? " · Bold" : ""}</option>)}</select></label><button type="button" className="sg-italic-toggle" aria-pressed={value.style === "italic"} onClick={() => onChange(current => ({ ...current, style: current.style === "italic" ? "normal" : "italic" }))}>Italic</button><label>Text transform<select value={value.transform} onChange={event => onChange(current => ({ ...current, transform: event.target.value as typeof current.transform }))}><option value="none">None</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalize</option></select></label><button type="button" className="sg-inline-reset" onClick={() => { onResetProperty("weight"); onResetProperty("style"); onResetProperty("transform"); }}>Reset style</button></section> : null}
+    {tab === "font" ? <section className="sg-editor-panel"><label>Search fonts<input data-style-path={`typography.${role}.family`} type="search" value={search} placeholder="Search curated fonts" onChange={event => onSearch(event.target.value)} /></label><div className="sg-font-picker" role="group" aria-label="Curated font family">{matchingFamilies.map(font => <button data-style-path={`typography.${role}.family`} type="button" key={font.id} aria-pressed={value.family === font.id} onClick={() => onChange(current => ({ ...current, family: font.id }))}>{font.name}</button>)}{!matchingFamilies.length ? <p>No curated fonts match.</p> : null}</div><button data-style-path={`typography.${role}.family`} type="button" className="sg-inline-reset" onClick={() => onResetProperty("family")}>Reset font family</button><p>Inter upright and italic are bundled; System Sans and Georgia use local system fonts.</p></section> : null}
+    {tab === "style" ? <section className="sg-editor-panel"><label>Weight<select data-style-path={`typography.${role}.weight`} value={value.weight} onChange={event => onChange(current => ({ ...current, weight: Number(event.target.value) }))}>{Array.from({ length: 9 }, (_, index) => (index + 1) * 100).map(weight => <option value={weight} key={weight}>{weight}{weight === 400 ? " · Regular" : weight === 700 ? " · Bold" : ""}</option>)}</select></label><button data-style-path={`typography.${role}.style`} type="button" className="sg-italic-toggle" aria-pressed={value.style === "italic"} onClick={() => onChange(current => ({ ...current, style: current.style === "italic" ? "normal" : "italic" }))}>Italic</button><label>Text transform<select data-style-path={`typography.${role}.transform`} value={value.transform} onChange={event => onChange(current => ({ ...current, transform: event.target.value as typeof current.transform }))}><option value="none">None</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalize</option></select></label><button data-style-path={`typography.${role}.weight`} type="button" className="sg-inline-reset" onClick={() => { onResetProperty("weight"); onResetProperty("style"); onResetProperty("transform"); }}>Reset style</button></section> : null}
     {tab === "size" ? <section className="sg-editor-panel sg-metric-panel">{metricDetails.map(detail => {
       const item = resolved(detail.id);
       const unitOptions = detail.units;
       const [min, max] = metricBounds(detail.id, item.value.unit);
       return <div className="sg-metric-control" key={detail.id}>
-        <div className="sg-metric-title"><strong>{detail.label}</strong><button type="button" aria-label={`Reset ${roleName} ${detail.label.toLowerCase()}`} onClick={() => onResetMetric(detail.id)}>Reset</button></div>
-        <div className="sg-metric-inputs"><input aria-label={`${roleName} ${detail.label} value for ${viewport}`} type="number" min={min} max={max} step={detail.step} value={item.value.value} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) onMetricChange(detail.id, current => ({ ...current, value: formatNumber(number) }) as Metric); }} /><select aria-label={`${roleName} ${detail.label} unit`} value={item.value.unit} onChange={event => onMetricChange(detail.id, current => { const oldUnit = current.unit; const nextUnit = event.target.value; const relativeUnits = detail.id !== "lineHeight"; const factor = relativeUnits && oldUnit !== nextUnit ? oldUnit === "px" ? 1 / 16 : nextUnit === "px" ? 16 : 1 : 1; return { ...current, value: formatNumber(current.value * factor), unit: nextUnit } as Metric; })}>{unitOptions.map(unit => <option value={unit} key={unit}>{unit === "number" ? "unitless" : unit}</option>)}</select></div>
+        <div className="sg-metric-title"><strong>{detail.label}</strong><button data-style-path={`typography.${role}.${detail.id}`} type="button" aria-label={`Reset ${roleName} ${detail.label.toLowerCase()}`} onClick={() => onResetMetric(detail.id)}>Reset</button></div>
+        <div className="sg-metric-inputs"><input data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} value for ${viewport}`} type="number" min={min} max={max} step={detail.step} value={item.value.value} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) onMetricChange(detail.id, current => ({ ...current, value: formatNumber(number) }) as Metric); }} /><select data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} unit`} value={item.value.unit} onChange={event => onMetricChange(detail.id, current => { const oldUnit = current.unit; const nextUnit = event.target.value; const relativeUnits = detail.id !== "lineHeight"; const factor = relativeUnits && oldUnit !== nextUnit ? oldUnit === "px" ? 1 / 16 : nextUnit === "px" ? 16 : 1 : 1; return { ...current, value: formatNumber(current.value * factor), unit: nextUnit } as Metric; })}>{unitOptions.map(unit => <option value={unit} key={unit}>{unit === "number" ? "unitless" : unit}</option>)}</select></div>
         <p className="sg-inheritance">{item.inherited ? `Inherited from ${item.inheritedFrom}` : `Set for ${viewport}`}</p>
       </div>;
     })}</section> : null}
   </div>;
+}
+
+type GuideSourcePanelProps = {
+  activePath: string;
+  mapping: GuideSourceMapping;
+  currentValue: string;
+  baselineValue: string;
+  relatedButtonValues: { path: string; current: string; baseline: string }[];
+  lines: string[];
+  sourceRevision: string;
+  query: string;
+  matchCount: number;
+  matchIndex: number;
+  activeLine: number;
+  pinned: boolean;
+  onQueryChange: (value: string) => void;
+  onMatchChange: (direction: number) => void;
+  onClearPin: () => void;
+};
+
+const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(function GuideSourcePanel({
+  activePath, mapping, currentValue, baselineValue, relatedButtonValues, lines, sourceRevision, query, matchCount,
+  matchIndex, activeLine, pinned, onQueryChange, onMatchChange, onClearPin,
+}, ref) {
+  return <aside className="sg-guide-panel" aria-label="Written Style Guide" ref={ref}>
+    <div className="sg-guide-heading">
+      <div><p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Written Style Guide</h2></div>
+      <span title={sourceRevision}>Revision {sourceRevision.slice(0, 7)}</span>
+    </div>
+    <section className="sg-source-detail" aria-label="Selected style source">
+      <div className="sg-source-detail-heading"><div><p className="rl-eyebrow">{mapping.heading}</p><h3>{activePath}</h3></div>{pinned ? <button type="button" onClick={onClearPin}>Clear selection</button> : <span>Hover or focus a style</span>}</div>
+      <dl>
+        <div><dt>Universal baseline</dt><dd>{baselineValue}</dd></div>
+        <div><dt>Preview value</dt><dd>{currentValue}</dd></div>
+        <div><dt>Guide location</dt><dd>Line {mapping.line}</dd></div>
+      </dl>
+      {relatedButtonValues.length ? <details className="sg-related-values"><summary>All {buttonPathPartsLabel(activePath)} button properties</summary><dl>{relatedButtonValues.map(item => <div key={item.path}><dt>{item.path.split(".").at(-1)}</dt><dd>{item.current}<span>Baseline {item.baseline}</span></dd></div>)}</dl></details> : null}
+      <p className="sg-source-help">Hover or focus a style to inspect its rule. Click or tap to keep the source selected.</p>
+      <blockquote><code>{mapping.excerpt}</code></blockquote>
+      {activePath.startsWith("specimen.") ? <p className="sg-source-note">This is written guidance for the example. It is not a token in the executable preset.</p> : null}
+    </section>
+    <div className="sg-guide-search">
+      <label htmlFor="sg-guide-search-input">Search the full guide</label>
+      <input id="sg-guide-search-input" type="search" value={query} placeholder="Search guide text" onChange={event => onQueryChange(event.target.value)} />
+      <div><span aria-live="polite">{matchCount ? `${matchIndex + 1} of ${matchCount} matches` : query ? "No matches" : `${lines.length} lines`}</span><div><button type="button" disabled={!matchCount} aria-label="Previous matching guide line" onClick={() => onMatchChange(-1)}>Previous</button><button type="button" disabled={!matchCount} aria-label="Next matching guide line" onClick={() => onMatchChange(1)}>Next</button></div></div>
+    </div>
+    <div className="sg-guide-document" role="region" tabIndex={0} aria-label="Full Style Guide with line numbers">
+      <ol>
+        {lines.map((line, index) => {
+          const lineNumber = index + 1;
+          const matchAt = query ? line.toLowerCase().indexOf(query.toLowerCase()) : -1;
+          const content = matchAt < 0 ? line || " " : <>{line.slice(0, matchAt)}<mark>{line.slice(matchAt, matchAt + query.length)}</mark>{line.slice(matchAt + query.length)}</>;
+          return <li id={`sg-guide-line-${lineNumber}`} key={lineNumber} aria-current={lineNumber === activeLine ? "location" : undefined} className={lineNumber === activeLine ? "is-current-source" : ""}><span className="sg-guide-line-number" aria-hidden="true">{lineNumber}</span><span>{content}</span></li>;
+        })}
+      </ol>
+    </div>
+    <p className="sg-guide-footer">{styleGuideSource.sourcePath} · SHA-256 {styleGuideSource.sourceDigest.slice(0, 12)}</p>
+  </aside>;
+});
+
+function buttonPathPartsLabel(path: string) {
+  const role = path.split(".")[1];
+  return role ? role[0].toUpperCase() + role.slice(1) : "Related";
 }

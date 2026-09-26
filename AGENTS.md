@@ -43,7 +43,13 @@ copy third-party paths.
 
 The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes, Icons and
 Styles. Its Styles section is a preview sandbox for the executable `@acm/styles`
-baseline; its controls do not publish or change the shared preset.
+baseline beside a bundled, read-only copy of the canonical governance Style
+Guide. Each mapped property shows its guide line and excerpt; the generated
+source index records the committed guide revision and content digest. After
+committing a governance guide change, refresh the bundle with
+`npm run styles:source` and verify it with `npm run styles:source:check` from
+the ACM Studio root. Sandbox controls remain component state and do not publish
+or change the shared preset.
 Workspace composes the shared Ribbon and Pane specimens; Ribbon details live at
 `/studio/ui/ribbon`, Pane details at `/studio/ui/panes`, and the broadly shared
 icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and

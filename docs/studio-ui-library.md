@@ -41,10 +41,17 @@ does not call product APIs, use write ownership or read/write browser storage.
 Ribbon icon usage in the inspector means examples in the Ribbon catalogue only;
 it is not an exhaustive inventory of use throughout ACM products.
 
-Styles previews the `@acm/styles` v0.1.0 preset. Its responsive typography,
-semantic colour, button and layout controls change only the current React state.
-Reset All restores the package default; the page does not publish a global
-baseline or save project settings.
+Styles previews the `@acm/styles` v0.1.0 preset beside the full written
+workspace Style Guide. Hovering or focusing a specimen or setting shows its
+baseline, current sandbox value, guide excerpt and exact line; clicking or
+tapping pins the source selection. The guide view records its source commit and
+content digest. Its generated line index is bundled with Studio, so the hosted
+page does not read another repository at runtime. After committing a guide
+change, run `npm run styles:source` from the ACM Studio root to refresh that
+bundle; `npm run styles:source:check` verifies it without writing files.
+Responsive typography, semantic colour, button and layout controls change only
+the current React state. Reset All restores the package default; the page does
+not publish a global baseline or save project settings.
 
 ## Shared tab indicator
 
@@ -74,6 +81,7 @@ npx tsc --project tsconfig.ribbon.json --noEmit --pretty false
 npx tsc --project tsconfig.panes.json --noEmit --pretty false
 npm run build
 npm run lint
+npm run styles:source:check
 git diff --check
 ```
 
@@ -84,4 +92,6 @@ navigation and focus, desktop/tablet/mobile widths, and verify narrow preview
 overflow stays inside the Workspace frame while the page itself remains usable.
 For Styles, check palette, typography, button and layout controls, inherited
 responsive values, property/section/global resets, and contained mobile preview
-scrolling; verify that edits are not written to browser storage.
+scrolling. Check hover, focus and pinned guide references, exact source lines,
+search navigation and responsive panel selection; verify that edits are not
+written to browser storage.
