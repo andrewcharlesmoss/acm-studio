@@ -1337,6 +1337,13 @@ test("template targets appear as separate library entries", () => {
   assert.doesNotMatch(workspace, /className="template-target-list"/);
 });
 
+test("content type tabs stay horizontal in the template sidebar, including narrow viewports", () => {
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  const templates = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  assert.match(css, /\.studio-library \.library-tabs \{[^}]*display: grid;[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+  assert.match(templates, /\.template-workspace \.studio-library \{ display: flex; flex-direction: column; width: auto;[^}]*border-bottom: 1px solid/);
+});
+
 test("successful publication feedback dismisses itself", () => {
   const publishing = readFileSync(new URL("../app/studio/use-studio-publishing.ts", import.meta.url), "utf8");
   assert.match(publishing, /useEffect, useState/);

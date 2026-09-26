@@ -400,7 +400,7 @@
 .studio-library .library-tools { padding: 8px 0; }
 .studio-library .library-tools > .library-tool-button { box-sizing: border-box; width: 100%; }
 .studio-library .library-tools > .library-tool-button:first-child { border-bottom: 0; }
-.studio-library .library-tabs { border-bottom: 0; border-top: 1px solid #d8d6ce; display: block; padding: 0 6px; }
+.studio-library .library-tabs { border-bottom: 0; border-top: 1px solid #d8d6ce; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0 6px; }
 .studio-library .library-tabs .pane-tabs { --pane-tab-label-inset: 4px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr); padding: 0; }
 .studio-library .library-tabs .pane-tabs button { --pane-tab-indicator-offset: 12px; align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font-size: var(--studio-ui-size); font-weight: 620; justify-content: center; min-width: 0; padding: 12px 3px 12px; }
 .studio-library .library-tabs .pane-tabs button[aria-selected="true"] { color: var(--ink); }
