@@ -122,7 +122,7 @@ Function assignments and optional keys vary by model, OS and manufacturer;
 this is a catalogue of common key types rather than a model-exact physical
 layout.
 
-The sibling `@acm/icons` v0.10.1 package owns the glyph masters, shared square,
+The sibling `@acm/icons` v0.10.2 package owns the glyph masters, shared square,
 wide, tall, Backspace, Spacebar and left/right Shift keycap frames, platform
 metadata and SVG composer. Backspace is 84 × 48 units, Spacebar is 240 × 48,
 left Shift is 84 × 48 and right Shift is 96 × 48. The package contains 269
@@ -151,7 +151,8 @@ legend positions and intentional two-line names. Secondary marks on Mac number
 Command, Option and Control variants align their symbols to match their key
 positions. Their wide keycaps show larger Inter-outline word captions beneath
 the symbols; bare-symbol exports show the marks alone. Mac function-row artwork
-uses a common action-above-F-number layout;
+uses larger pictograms in a common band above the F numbers. Brightness Down
+and Up use small and large suns without additional minus/plus marks;
 Touch ID and Power have separate symbols, AltGr has its own legend, and the
 Context Menu key uses a menu symbol. Copilot retains internal negative space at
 all three optical sizes. SVGs do not require fonts. Shared keys show

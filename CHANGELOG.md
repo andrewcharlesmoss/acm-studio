@@ -410,6 +410,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Improved the Mac F1–F12 keyboard previews and exports with larger, aligned
+  action pictograms and clearer Brightness Down/Up symbols.
 - Enlarged the tiny Command, Option and Control captions in Mac keycap previews
   and SVG/PNG exports while keeping standalone symbols clear of captions.
 - Updated active Bold and Italic controls to use WordPress-style dark pressed styling.
