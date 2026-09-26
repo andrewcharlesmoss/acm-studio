@@ -50,6 +50,19 @@ test("the source viewer remains read-only and does not use browser storage", () 
   assert.match(component, /onFocusCapture/);
   assert.match(component, /onPointerOverCapture/);
   assert.match(component, /onClickCapture/);
+  const resetAllStart = component.indexOf("function resetAll()");
+  const resetAllEnd = component.indexOf("function setPaletteColour", resetAllStart);
+  assert.notEqual(resetAllStart, -1, "Reset All handler exists");
+  assert.notEqual(resetAllEnd, -1, "Reset All handler has a bounded body");
+  const resetAll = component.slice(resetAllStart, resetAllEnd);
+  assert.match(resetAll, /setMobilePanel\("settings"\)/);
+  assert.match(resetAll, /setHoveredSourcePath\(null\)/);
+  assert.match(resetAll, /setFocusedSourcePath\(null\)/);
+  assert.match(resetAll, /setPinnedSourcePath\(null\)/);
+  assert.match(resetAll, /setGuideQuery\(""\)/);
+  assert.match(resetAll, /setGuideMatchIndex\(0\)/);
+  assert.match(resetAll, /setGuideJumpLine\(null\)/);
+  assert.match(resetAll, /hasSourceInteraction\.current = false/);
 });
 
 function collectPaths(value, prefix) {

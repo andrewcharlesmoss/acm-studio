@@ -200,6 +200,14 @@ export function StyleGuideSandbox() {
     setRole("body");
     setButtonRole("base");
     setFontQuery("");
+    setMobilePanel("settings");
+    setHoveredSourcePath(null);
+    setFocusedSourcePath(null);
+    setPinnedSourcePath(null);
+    setGuideQuery("");
+    setGuideMatchIndex(0);
+    setGuideJumpLine(null);
+    hasSourceInteraction.current = false;
   }
 
   function setPaletteColour(key: keyof UniversalStylePreset["palette"], value: string) {
