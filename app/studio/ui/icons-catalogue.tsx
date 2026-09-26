@@ -3,16 +3,33 @@
 import { useState } from "react";
 import { iconNames, iconMetadata, iconScales, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
+import { AcmStudioIcon } from "../acm-studio-icons";
 import { commandInventory } from "../ribbon/catalogue-model";
 import { StudioUiLibrary } from "./studio-ui-library";
+import { createIconPng, createIconSvg, downloadIconFile } from "./icon-download.mjs";
 
 export function IconsCatalogue({ initialIcon }: { initialIcon?: string }) {
   const [iconQuery, setIconQuery] = useState("");
   const [golden, setGolden] = useState(false);
   const [dark, setDark] = useState(false);
   const [icon, setIcon] = useState<IconName>(() => iconNames.includes(initialIcon as IconName) ? initialIcon as IconName : "action.undo");
+  const [exportStatus, setExportStatus] = useState("");
   const filteredIcons = iconNames.filter((name) => (!golden || iconMetadata[name].golden) && (name + " " + iconMetadata[name].label + " " + iconMetadata[name].keywords.join(" ")).toLowerCase().includes(iconQuery.toLowerCase()));
   const ribbonExamples = commandInventory.filter((control) => control.icon === icon || control.iconVariants?.includes(icon));
+
+  async function downloadIcon(scale: typeof iconScales[number], size: number, format: "svg" | "png") {
+    try {
+      const svg = createIconSvg(icon, scale, size);
+      const blob = format === "svg"
+        ? new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
+        : await createIconPng(svg, size);
+      const filename = `${icon}-${size}px${format === "png" ? "-3x" : ""}.${format}`;
+      downloadIconFile(blob, filename);
+      setExportStatus(`${iconMetadata[icon].label} ${size}px ${format.toUpperCase()} download started.`);
+    } catch {
+      setExportStatus(`Could not prepare the ${format.toUpperCase()} download. Try again.`);
+    }
+  }
 
   return <StudioUiLibrary section="icons">
     <section className="ui-icons-page" aria-labelledby="ui-icons-title">
@@ -41,7 +58,19 @@ export function IconsCatalogue({ initialIcon }: { initialIcon?: string }) {
         <aside className="rl-inspector" aria-label="Icon Inspector">
           <p className="rl-eyebrow">SYMBOL INSPECTOR</p><h2>{iconMetadata[icon].label}</h2><code>{icon}</code>
           <div className="rl-enlarged"><AcmIcon name={icon} size={144} /></div><p>{iconMetadata[icon].description}</p>
-          <div className="rl-scale-samples">{iconScales.map((scale, index) => <div key={scale}><AcmIcon name={icon} scale={scale} size={[16, 24, 32][index]} /><span>{scale}<small>{[16, 24, 32][index]}px</small></span></div>)}</div>
+          <div className="rl-scale-samples">{iconScales.map((scale, index) => {
+            const size = [16, 24, 32][index];
+            return <div key={scale}>
+              <AcmIcon name={icon} scale={scale} size={size} />
+              <span className="ui-icon-scale-label">{scale}<small>{size}px</small></span>
+              <span className="ui-icon-download-actions">
+                <button type="button" className="ui-icon-download" aria-label={`Download ${size}px SVG`} title={`Download ${size}px SVG`} onClick={() => void downloadIcon(scale, size, "svg")}><AcmStudioIcon name="download" size={14} /><span>SVG</span></button>
+                <button type="button" className="ui-icon-download" aria-label={`Download ${size}px PNG at 3×`} title={`Download transparent PNG at ${size * 3}×${size * 3}px`} onClick={() => void downloadIcon(scale, size, "png")}><AcmStudioIcon name="download" size={14} /><span>PNG</span></button>
+              </span>
+            </div>;
+          })}</div>
+          <p className="ui-icon-download-note">PNG files have a transparent background and export at 3× the selected size.</p>
+          <p className="ui-icon-download-status" role="status" aria-live="polite">{exportStatus}</p>
           <h3>Ribbon catalogue examples</h3>
           <ul className="rl-usage">{ribbonExamples.map((control) => <li key={control.id}><small>{control.product === "skeleton" ? "Component Specimen" : control.product === "studio" ? "ACM Studio" : "ACM Account"}</small>{control.label}{icon !== control.icon ? " (state variant)" : ""}</li>)}</ul>
           {!ribbonExamples.length && <p>No Ribbon catalogue examples use this symbol.</p>}
