@@ -40,3 +40,12 @@
 @media (max-width: 1050px) { .kb-workspace { grid-template-columns: 1fr; } .kb-inspector { display: block; } .kb-large { min-height: 184px; } }
 @media (max-width: 720px) { .ui-symbol-collections { padding-inline: 1rem; } .kb-catalogue { padding: .5rem 1rem 1.5rem; } .kb-toolbar { gap: 1rem; } .kb-toolbar > label:first-child { flex-wrap: wrap; } .kb-count { margin-left: 0; } .kb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .65rem; gap: .65rem; } .kb-card { padding: .7rem; } .kb-card-art { min-height: 100px; } }
 @media (max-width: 340px) { .kb-grid { grid-template-columns: 1fr; } }
+
+.kb-colour-control { display: grid; grid-template-columns: 1fr; gap: .4rem; }
+.kb-colour-inputs { display: flex; align-items: center; gap: .5rem; }
+.kb-colour-inputs input[type="color"] { width: 42px; height: 38px; padding: 3px; border: 1px solid var(--rl-line); border-radius: 6px; background: #fff; cursor: pointer; }
+.kb-colour-inputs input[type="text"] { min-width: 0; width: 100%; min-height: 38px; padding: .4rem .65rem; font: inherit; border: 1px solid var(--rl-line); border-radius: 6px; color: var(--rl-ink); background: #fff; }
+.kb-colour-inputs input:disabled { opacity: .55; cursor: default; }
+.kb-colour-control small { font-size: var(--studio-ui-size, 13px); color: var(--rl-muted); }
+.kb-colour-inputs input[aria-invalid="true"] { border-color: #E9152D; }
+.kb-export-settings .kb-option { justify-content: flex-start; }

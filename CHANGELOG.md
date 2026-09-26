@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Added custom keyboard symbol, border and fill colours, transparent fills and
+  Outline, Light and Dark presets shared by previews and SVG/PNG downloads.
 - Added a separate UK Keyboard preview collection with eight sample keys,
   Mac/Windows filters, keycap and symbol views, and font-free SVG/transparent
   PNG downloads with selectable colour and size.
@@ -192,6 +194,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Keyboard A, 3/£ and Ctrl now use Inter-derived vector lettering; export
+  dimensions and outer spacing remain unchanged.
 - Updated the shared icon catalogue to ACM Icons v0.5.9, giving Snapping Off
   a clearer slash and horseshoe contour at all three optical sizes.
 - Updated the shared icon catalogue to ACM Icons v0.5.8, with clearer Hide,
