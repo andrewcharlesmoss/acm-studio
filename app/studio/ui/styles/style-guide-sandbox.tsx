@@ -130,7 +130,7 @@ export function StyleGuideSandbox() {
       const top = guide.scrollTop + lineRect.top - guideRect.top - (guide.clientHeight - lineRect.height) / 2;
       guide.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
     });
-  }, [activeGuideLine]);
+  }, [activeGuideLine, guideView]);
 
   function sourcePathFromTarget(target: EventTarget | null): string | null {
     return target instanceof Element ? target.closest<HTMLElement>("[data-style-path]")?.dataset.stylePath ?? null : null;
