@@ -3,7 +3,7 @@
 ## Purpose and organisation
 
 Open `/studio/ui` from the Studio dashboard or its content and template tools.
-The library has six sections:
+The library has seven sections:
 
 - **Navigation** — the reusable top-level Application Section Navigation
   component, with an isolated interactive example.
@@ -14,6 +14,8 @@ The library has six sections:
   product examples.
 - **Panes** — shared Pane structure, optional regions, resize/collapse behaviour
   and isolated Studio examples.
+- **Panels** — the shared card surface and header slots, demonstrated with
+  temporary sample data from `@acm/panel`.
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
   specimens at 16, 24 and 32px.
 - **Styles** — the executable universal style preset, editable in a local preview
@@ -21,8 +23,9 @@ The library has six sections:
   not alter templates, products or the shared baseline.
 
 Navigation is `/studio/ui/navigation`, the Ribbon section is
-`/studio/ui/ribbon`, Panes is `/studio/ui/panes`, Icons is `/studio/ui/icons`,
-and Styles is `/studio/ui/styles`. `/studio/ribbon` and `/studio/panes` remain
+`/studio/ui/ribbon`, Panes is `/studio/ui/panes`, Panels is
+`/studio/ui/panels`, Icons is `/studio/ui/icons`, and Styles is
+`/studio/ui/styles`. `/studio/ribbon` and `/studio/panes` remain
 compatible redirects. Studio navigation links to the combined library.
 
 ## Ownership boundaries
@@ -32,7 +35,10 @@ sibling `@acm/icons` package owns original symbol artwork and metadata; the
 sibling `@acm/styles` package owns the executable universal style values and
 CSS custom-property exports. The governance Style Guide remains authoritative
 for policy. The Ribbon and Pane implementations remain in their existing
-modules and retain their own contracts. Workspace composes the shared
+modules and retain their own contracts. The Panels section consumes the
+product-neutral `@acm/panel` package. Its card owns the surface and slots;
+consumers own position, width, resizing, visibility, data and actions.
+Workspace composes the shared
 components and includes the generic Application Section Navigation specimen;
 it does not copy either implementation or use product stores. Application
 section navigation owns the visual relationship between top-level product

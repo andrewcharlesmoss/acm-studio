@@ -22,11 +22,13 @@ contracts.
   one workspace. **Ribbon** at `/studio/ui/ribbon` documents shared components
   and isolated ACM Studio/ACM Account examples; **Panes** at `/studio/ui/panes`
   covers the shared v1.0.0 component contract, skeletons, resizing and Studio
-  examples; **Icons** at `/studio/ui/icons` browses the original shared symbols
+  examples; **Panels** at `/studio/ui/panels` demonstrates the shared card panel;
+  **Icons** at `/studio/ui/icons` browses the original shared symbols
   at three scales; **Styles** at `/studio/ui/styles` explores the universal
   `@acm/styles` preset in a non-persistent preview sandbox. `/studio/ribbon` and
   `/studio/panes` redirect to their sections.
-  See [Studio UI Library](docs/studio-ui-library.md), [Ribbon details](docs/ribbon-library.md),
+  See [Studio UI Library](docs/studio-ui-library.md), [Panel details](docs/panel-library.md),
+  [Ribbon details](docs/ribbon-library.md),
   [the command inventory](docs/ribbon-command-inventory.md) and
   [Pane details](docs/pane-library.md).
 

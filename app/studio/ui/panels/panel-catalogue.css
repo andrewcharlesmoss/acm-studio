@@ -1,0 +1,26 @@
+.ui-panels-page { display: grid; gap: 24px; }
+.ui-panels-specimen { display: grid; gap: 14px; }
+.ui-panels-specimen > h2 { margin: 0; font-size: 1.125rem; }
+.ui-panels-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 420px); align-items: start; gap: 16px; min-height: 620px; padding: 16px; border: 1px solid #d7d7d4; border-radius: 14px; background: #f2f2f0; }
+.ui-panels-workspace-content { min-width: 0; min-height: 220px; padding: 20px; border: 1px solid #dededb; border-radius: 12px; background: #fff; }
+.ui-panels-workspace-content h3 { margin: 0; color: #1c1c1e; font-size: 1.5rem; font-weight: 600; }
+.ui-panels-workspace-content p:last-of-type { max-width: 48ch; color: #626262; line-height: 1.5; }
+.ui-panels-eyebrow { margin: 0 0 8px; color: #626262; font-size: .8125rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.ui-panels-close { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 9px; background: transparent; color: #626262; cursor: pointer; }
+.ui-panels-close svg { width: 20px; height: 20px; }
+.ui-panels-close:hover { background: #f2f2f2; color: #1c1c1e; }
+.ui-panels-close:focus-visible, .ui-panels-show:focus-visible, .ui-panels-actions button:focus-visible { outline: 2px solid #555; outline-offset: 2px; }
+.ui-panels-fields { display: grid; margin: 0; }
+.ui-panels-fields > div { display: grid; grid-template-columns: minmax(92px, 1fr) minmax(0, 1.25fr); align-items: center; gap: 12px; min-height: 48px; padding: 10px 0; border-bottom: 1px solid var(--acm-panel-border, #d1d1d6); }
+.ui-panels-fields dt { color: #636366; font-size: .875rem; font-weight: 600; }
+.ui-panels-fields dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: #1c1c1e; font-size: .9375rem; }
+.ui-panels-fields dd span { display: inline-block; padding: 3px 9px; border-radius: 999px; background: #e4f4e9; color: #28633c; }
+.ui-panels-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ui-panels-actions button, .ui-panels-show { min-height: 40px; padding: 0 12px; border: 1px solid #d1d1d6; border-radius: 8px; background: #fff; color: #1c1c1e; font: inherit; cursor: pointer; }
+.ui-panels-actions button:hover, .ui-panels-show:hover { background: #f2f2f7; }
+.ui-panels-contract { margin: 0; color: #636366; font-size: .875rem; line-height: 1.5; }
+@media (max-width: 760px) {
+  .ui-panels-workspace { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+}
+
+.ui-panels-notice { margin: 10px 0 0; color: var(--muted); font-size: var(--type-secondary); }

@@ -44,8 +44,8 @@ as a sourced brand exception on 26 September 2026. Its MIT-licensed Lobe Icons
 SVG, provenance and licence are owned by `acm-icons/sources/copilot/`; preserve
 the shared geometry and licence notices when previewing or exporting it.
 
-The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes, Icons and
-Styles. Its Styles section is a preview sandbox for the executable `@acm/styles`
+The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes, Panels,
+Icons and Styles. Its Styles section is a preview sandbox for the executable `@acm/styles`
 baseline beside a bundled, read-only copy of the canonical governance Style
 Guide. Each mapped property shows its guide line and excerpt; the generated
 source index records the committed guide revision and content digest. After
@@ -64,6 +64,9 @@ key families; layouts and hardware-dependent legends remain model-specific.
 The Studio preview's default appearance and Reset to Default behaviour are
 defined in `docs/studio-ui-library.md`; keep them separate from the shared
 keyboard renderer's transparent backwards-compatible defaults.
+The Panels section at `/studio/ui/panels` demonstrates the shared `@acm/panel`
+card component. Product consumers own placement, width, resizing, visibility,
+content and actions. Keep account data and behaviour in ACM Account.
 This catalogue organisation does not replace
 existing product icons or change their provenance. Ribbon definitions drive its
 tree, inspector and renderer. All catalogue demo handlers remain memory-only
