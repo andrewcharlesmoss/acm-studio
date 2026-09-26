@@ -200,6 +200,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Corrected the A key's cap height to match adjacent Inter-derived letter keys.
 - Refined the Mac F6 Focus key's crescent and exposed key artwork provenance
   and supplied licence notices in the keyboard inspector.
 - Refined keyboard punctuation and long legends with consistent Inter metrics,

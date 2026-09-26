@@ -128,7 +128,7 @@ Function assignments and optional keys vary by model, OS and manufacturer;
 this is a catalogue of common key types rather than a model-exact physical
 layout.
 
-The sibling `@acm/icons` v0.10.6 package owns the glyph masters, shared square,
+The sibling `@acm/icons` v0.10.7 package owns the glyph masters, shared square,
 wide, tall, Backspace, Spacebar, numeric-zero and left/right Shift keycap frames, platform
 metadata and SVG composer. Backspace is 84 × 48 units, Spacebar is 240 × 48,
 left Shift is 84 × 48, right Shift is 96 × 48 and numeric zero is 96 × 48. The package contains 269
