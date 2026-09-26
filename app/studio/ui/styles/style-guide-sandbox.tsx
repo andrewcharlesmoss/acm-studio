@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type UIEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import {
   createUniversalStylePreset,
@@ -119,10 +119,18 @@ export function StyleGuideSandbox() {
 
   useEffect(() => {
     if (!hasSourceInteraction.current) return;
-    const line = guideSourceRef.current?.querySelector<HTMLElement>(`#sg-guide-line-${activeGuideLine}`);
+    const guides = guideSourceRef.current?.querySelectorAll<HTMLElement>(".sg-guide-document");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    line?.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
-  }, [activeGuideLine, guideView]);
+    guides?.forEach(guide => {
+      const viewPrefix = guide.classList.contains("sg-guide-markdown") ? "sg-guide-markdown" : "sg-guide-formatted";
+      const line = guide.querySelector<HTMLElement>(`#${viewPrefix}-line-${activeGuideLine}`);
+      if (!line) return;
+      const guideRect = guide.getBoundingClientRect();
+      const lineRect = line.getBoundingClientRect();
+      const top = guide.scrollTop + lineRect.top - guideRect.top - (guide.clientHeight - lineRect.height) / 2;
+      guide.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
+    });
+  }, [activeGuideLine]);
 
   function sourcePathFromTarget(target: EventTarget | null): string | null {
     return target instanceof Element ? target.closest<HTMLElement>("[data-style-path]")?.dataset.stylePath ?? null : null;
@@ -389,6 +397,23 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
   activePath, mapping, currentValue, baselineValue, relatedButtonValues, lines, view, onViewChange, sourceRevision, query, matchCount,
   matchIndex, activeLine, pinned, onQueryChange, onMatchChange, onClearPin,
 }, ref) {
+  const formattedGuideRef = useRef<HTMLDivElement>(null);
+  const markdownGuideRef = useRef<HTMLDivElement>(null);
+
+  function syncGuideScroll(event: UIEvent<HTMLDivElement>) {
+    const source = event.currentTarget;
+    const sourceIsActive = source.classList.contains("sg-guide-markdown") ? view === "markdown" : view === "formatted";
+    if (!sourceIsActive) return;
+
+    const target = source.classList.contains("sg-guide-markdown") ? formattedGuideRef.current : markdownGuideRef.current;
+    if (!target) return;
+    const sourceRange = source.scrollHeight - source.clientHeight;
+    const targetRange = target.scrollHeight - target.clientHeight;
+    if (sourceRange <= 0 || targetRange <= 0) return;
+    const nextTop = (source.scrollTop / sourceRange) * targetRange;
+    if (Math.abs(target.scrollTop - nextTop) > 3) target.scrollTop = nextTop;
+  }
+
   return <aside className="sg-guide-panel" aria-label="Written Style Guide" ref={ref}>
     <div className="sg-guide-heading">
       <div><p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Written Style Guide</h2></div>
@@ -415,16 +440,34 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
       <button type="button" aria-pressed={view === "formatted"} onClick={() => onViewChange("formatted")}>Formatted</button>
       <button type="button" aria-pressed={view === "markdown"} onClick={() => onViewChange("markdown")}>Markdown source</button>
     </div>
-    {view === "formatted" ? <FormattedGuideDocument lines={lines} query={query} activeLine={activeLine} /> : <div className="sg-guide-document sg-guide-markdown" role="region" tabIndex={0} aria-label="Full Style Guide Markdown source with line numbers">
-      <ol>
-        {lines.map((line, index) => {
-          const lineNumber = index + 1;
-          const matchAt = query ? line.toLowerCase().indexOf(query.toLowerCase()) : -1;
-          const content = matchAt < 0 ? line || " " : <>{line.slice(0, matchAt)}<mark>{line.slice(matchAt, matchAt + query.length)}</mark>{line.slice(matchAt + query.length)}</>;
-          return <li id={`sg-guide-line-${lineNumber}`} key={lineNumber} aria-current={lineNumber === activeLine ? "location" : undefined} className={lineNumber === activeLine ? "is-current-source" : ""}><span className="sg-guide-line-number" aria-hidden="true">{lineNumber}</span><span>{content}</span></li>;
-        })}
-      </ol>
-    </div>}
+    <div className="sg-guide-views">
+      <FormattedGuideDocument
+        ref={formattedGuideRef}
+        lines={lines}
+        query={query}
+        activeLine={activeLine}
+        active={view === "formatted"}
+        onScroll={syncGuideScroll}
+      />
+      <div
+        ref={markdownGuideRef}
+        className={`sg-guide-document sg-guide-markdown${view === "markdown" ? "" : " is-inactive"}`}
+        role="region"
+        tabIndex={view === "markdown" ? 0 : -1}
+        aria-hidden={view !== "markdown"}
+        aria-label="Full Style Guide Markdown source with line numbers"
+        onScroll={syncGuideScroll}
+      >
+        <ol>
+          {lines.map((line, index) => {
+            const lineNumber = index + 1;
+            const matchAt = query ? line.toLowerCase().indexOf(query.toLowerCase()) : -1;
+            const content = matchAt < 0 ? line || " " : <>{line.slice(0, matchAt)}<mark>{line.slice(matchAt, matchAt + query.length)}</mark>{line.slice(matchAt + query.length)}</>;
+            return <li id={`sg-guide-markdown-line-${lineNumber}`} key={lineNumber} aria-current={lineNumber === activeLine ? "location" : undefined} className={lineNumber === activeLine ? "is-current-source" : ""}><span className="sg-guide-line-number" aria-hidden="true">{lineNumber}</span><span>{content}</span></li>;
+          })}
+        </ol>
+      </div>
+    </div>
     <p className="sg-guide-footer">{styleGuideSource.sourcePath} · SHA-256 {styleGuideSource.sourceDigest.slice(0, 12)}</p>
   </aside>;
 });
@@ -516,10 +559,24 @@ function renderGuideText(text: string, query: string): React.ReactNode {
   return at < 0 ? text : <>{text.slice(0, at)}<mark>{text.slice(at, at + query.length)}</mark>{text.slice(at + query.length)}</>;
 }
 
-function FormattedGuideDocument({ lines, query, activeLine }: { lines: string[]; query: string; activeLine: number }) {
+const FormattedGuideDocument = forwardRef<HTMLDivElement, {
+  lines: string[];
+  query: string;
+  activeLine: number;
+  active: boolean;
+  onScroll: (event: UIEvent<HTMLDivElement>) => void;
+}>(function FormattedGuideDocument({ lines, query, activeLine, active, onScroll }, ref) {
   const blocks = useMemo(() => parseFormattedBlocks(lines), [lines]);
   const current = (start: number, end = start) => activeLine >= start && activeLine <= end;
-  return <div className="sg-guide-document sg-guide-formatted" role="region" tabIndex={0} aria-label="Formatted Style Guide">
+  return <div
+    ref={ref}
+    className={`sg-guide-document sg-guide-formatted${active ? "" : " is-inactive"}`}
+    role="region"
+    tabIndex={active ? 0 : -1}
+    aria-hidden={!active}
+    aria-label="Formatted Style Guide"
+    onScroll={onScroll}
+  >
     <article>
       {blocks.map((block, index) => {
         const isCurrent = block.type === "paragraph" || block.type === "quote"
@@ -530,29 +587,29 @@ function FormattedGuideDocument({ lines, query, activeLine }: { lines: string[];
         const marker = <span className="sg-formatted-line" aria-label={`Source line ${block.line}`}>Line {block.line}</span>;
         if (block.type === "heading") {
           const Heading = `h${block.level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
-          return <div id={`sg-guide-line-${block.line}`} key={index} className={`sg-formatted-block${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>{marker} <Heading>{renderGuideInline(block.text, query)}</Heading></div>;
+          return <div id={`sg-guide-formatted-line-${block.line}`} key={index} className={`sg-formatted-block${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>{marker} <Heading>{renderGuideInline(block.text, query)}</Heading></div>;
         }
         if (block.type === "paragraph" || block.type === "quote") {
           const Content = block.type === "quote" ? "blockquote" : "p";
-          return <div key={index} className="sg-formatted-block">{marker}<Content>{block.lines.map(item => <span id={`sg-guide-line-${item.line}`} key={item.line} data-guide-line={item.line} aria-current={activeLine === item.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === item.line ? " is-current-source" : ""}`}>{renderGuideInline(item.text, query)} </span>)}</Content></div>;
+          return <div key={index} className="sg-formatted-block">{marker}<Content>{block.lines.map(item => <span id={`sg-guide-formatted-line-${item.line}`} key={item.line} data-guide-line={item.line} aria-current={activeLine === item.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === item.line ? " is-current-source" : ""}`}>{renderGuideInline(item.text, query)} </span>)}</Content></div>;
         }
         if (block.type === "list") {
           const List = block.ordered ? "ol" : "ul";
-          return <div key={index} className="sg-formatted-block">{marker}<List>{block.items.map(item => <li id={`sg-guide-line-${item.line}`} key={item.line} aria-current={activeLine === item.line ? "location" : undefined} className={activeLine === item.line ? "is-current-source" : undefined}>{renderGuideInline(item.text, query)}{item.continuations.map(continuation => <span id={`sg-guide-line-${continuation.line}`} key={continuation.line} aria-current={activeLine === continuation.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === continuation.line ? " is-current-source" : ""}`}> {renderGuideInline(continuation.text, query)}</span>)}</li>)}</List></div>;
+          return <div key={index} className="sg-formatted-block">{marker}<List>{block.items.map(item => <li id={`sg-guide-formatted-line-${item.line}`} key={item.line} aria-current={activeLine === item.line ? "location" : undefined} className={activeLine === item.line ? "is-current-source" : undefined}>{renderGuideInline(item.text, query)}{item.continuations.map(continuation => <span id={`sg-guide-formatted-line-${continuation.line}`} key={continuation.line} aria-current={activeLine === continuation.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === continuation.line ? " is-current-source" : ""}`}> {renderGuideInline(continuation.text, query)}</span>)}</li>)}</List></div>;
         }
-        if (block.type === "rule") return <div id={`sg-guide-line-${block.line}`} key={index} className={`sg-formatted-block sg-formatted-rule${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined} />;
+        if (block.type === "rule") return <div id={`sg-guide-formatted-line-${block.line}`} key={index} className={`sg-formatted-block sg-formatted-rule${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined} />;
         const currentTableRow = block.rows.some(row => row.line === activeLine);
         const highlightTable = isCurrent && !currentTableRow;
-        return <div id={`sg-guide-line-${block.line}`} key={index} className={`sg-formatted-block sg-formatted-table${highlightTable ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>
+        return <div id={`sg-guide-formatted-line-${block.line}`} key={index} className={`sg-formatted-block sg-formatted-table${highlightTable ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>
           <span className="sg-formatted-line" aria-label={`Table source line ${block.line}`}>Line {block.line}</span>
-          <table><thead><tr>{block.headings.map((heading, cell) => <th key={cell}>{renderGuideInline(heading, query)}</th>)}</tr></thead><tbody>{block.rows.map(row => <tr id={`sg-guide-line-${row.line}`} key={row.line} aria-current={activeLine === row.line ? "location" : undefined} className={activeLine === row.line ? "is-current-row" : undefined}>{row.cells.map((cell, cellIndex) => <td key={cellIndex}>{renderGuideInline(cell, query)}</td>)}</tr>)}</tbody></table>
+          <table><thead><tr>{block.headings.map((heading, cell) => <th key={cell}>{renderGuideInline(heading, query)}</th>)}</tr></thead><tbody>{block.rows.map(row => <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} aria-current={activeLine === row.line ? "location" : undefined} className={activeLine === row.line ? "is-current-row" : undefined}>{row.cells.map((cell, cellIndex) => <td key={cellIndex}>{renderGuideInline(cell, query)}</td>)}</tr>)}</tbody></table>
           <span className="sg-formatted-line-range">Lines {block.line}–{block.endLine}</span>
-          <span id={`sg-guide-line-${block.line + 1}`} className="sg-guide-hidden-anchor" aria-hidden="true" />
+          <span id={`sg-guide-formatted-line-${block.line + 1}`} className="sg-guide-hidden-anchor" aria-hidden="true" />
         </div>;
       })}
     </article>
   </div>;
-}
+});
 
 function buttonPathPartsLabel(path: string) {
   const role = path.split(".")[1];
