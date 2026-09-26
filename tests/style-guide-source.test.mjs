@@ -65,6 +65,29 @@ test("the source viewer remains read-only and does not use browser storage", () 
   assert.match(resetAll, /hasSourceInteraction\.current = false/);
 });
 
+test("the written guide defaults to formatted Markdown with an accessible source toggle", () => {
+  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
+  assert.match(component, /useState<GuideView>\("formatted"\)/);
+  assert.match(component, /aria-label="Written guide format"/);
+  assert.match(component, />Formatted<\/button>/);
+  assert.match(component, />Markdown source<\/button>/);
+  assert.match(component, /<FormattedGuideDocument lines=\{lines\} query=\{query\} activeLine=\{activeLine\}/);
+  assert.match(component, /aria-label="Full Style Guide Markdown source with line numbers"/);
+  assert.match(component, /sg-guide-line-\$\{row\.line\}/);
+  assert.match(component, /<table><thead>/);
+  assert.match(component, /<List>\{block\.items\.map/);
+  assert.match(component, /\}, \[activeGuideLine, guideView\]\);/);
+  assert.match(component, /block\.lines\.some\(item => item\.line === activeLine\)/);
+  assert.match(component, /item\.continuations\.some\(continuation => continuation\.line === activeLine\)/);
+  assert.match(component, /aria-current=\{activeLine === row\.line \? "location" : undefined\}/);
+  assert.match(styles, /\.sg-guide-view-switch button\[aria-pressed="true"\]/);
+  assert.match(styles, /\.sg-formatted-table th, \.sg-formatted-table td/);
+  assert.match(component, /className="sg-guide-document sg-guide-markdown"/);
+  assert.match(styles, /\.sg-guide-markdown ol \{/);
+  assert.doesNotMatch(styles, /\.sg-guide-document ol \{/);
+});
+
 test("colour swatches preserve readable text on hover and keyboard focus", () => {
   const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
   assert.match(styles, /\.acm-universal-style-preset \.sg-swatch:is\(:hover, :focus-visible\)\s*\{[^}]*background:\s*var\(--acm-color-surface\)[^}]*color:\s*var\(--acm-color-text-primary\)/);

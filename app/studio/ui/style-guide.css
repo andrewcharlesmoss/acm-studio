@@ -111,12 +111,37 @@
 .sg-guide-search > div { display: flex; align-items: center; justify-content: space-between; gap: .5rem; color: var(--rl-muted); font-size: .8125rem; }
 .sg-guide-search > div > div { display: flex; gap: .3rem; }
 .sg-guide-search button:disabled { cursor: not-allowed; opacity: .5; }
+.sg-guide-view-switch { display: flex; flex-wrap: wrap; gap: .35rem; }
+.sg-guide-view-switch button { min-height: 40px; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .7rem; background: #fff; color: var(--rl-ink); font: inherit; cursor: pointer; }
+.sg-guide-view-switch button[aria-pressed="true"] { border-color: var(--rl-ink); background: #eeede9; font-weight: 600; }
 .sg-guide-document { min-height: 330px; max-height: 55vh; min-width: 0; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--rl-line); border-radius: 6px; background: #f8f8f7; }
-.sg-guide-document ol { margin: 0; padding: .4rem 0; list-style: none; counter-reset: source-line; }
-.sg-guide-document li { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: .4rem; min-width: 0; padding: .08rem .45rem .08rem 0; font: .8125rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sg-guide-markdown ol { margin: 0; padding: .4rem 0; list-style: none; counter-reset: source-line; }
+.sg-guide-markdown li { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: .4rem; min-width: 0; padding: .08rem .45rem .08rem 0; font: .8125rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sg-guide-line-number { color: #737373; text-align: right; user-select: none; }
-.sg-guide-document li.is-current-source { background: #fff1b8; color: #1c1c1e; }
-.sg-guide-document mark { background: #cde7ff; color: inherit; }
+.sg-guide-markdown li.is-current-source { background: #fff1b8; color: #1c1c1e; }
+.sg-guide-markdown mark { background: #cde7ff; color: inherit; }
+.sg-guide-formatted { background: #fff; }
+.sg-guide-formatted article { display: grid; gap: .2rem; padding: 1rem; color: var(--rl-ink); font: 400 .9375rem/1.55 var(--studio-ui-font, Inter, "Helvetica Neue", Helvetica, Arial, sans-serif); }
+.sg-guide-formatted h1, .sg-guide-formatted h2, .sg-guide-formatted h3, .sg-guide-formatted h4, .sg-guide-formatted h5, .sg-guide-formatted h6 { margin: .45rem 0; color: var(--rl-ink); font: 600 1.05em/1.3 var(--studio-ui-font, Inter, "Helvetica Neue", Helvetica, Arial, sans-serif); }
+.sg-guide-formatted h1 { font-size: 1.45rem; }
+.sg-guide-formatted h2 { font-size: 1.25rem; }
+.sg-guide-formatted h3 { font-size: 1.1rem; }
+.sg-guide-formatted p, .sg-guide-formatted blockquote { margin: .25rem 0 .75rem; }
+.sg-guide-formatted ul, .sg-guide-formatted ol { margin: .15rem 0 .85rem; padding-left: 1.5rem; }
+.sg-guide-formatted li { margin-block: .15rem; }
+.sg-formatted-block { min-width: 0; border-radius: 4px; scroll-margin-block: 2rem; }
+.sg-formatted-block.is-current-source, .sg-guide-formatted .is-current-source { background: #fff5c9; }
+.sg-formatted-source-line.is-current-source { border-radius: 2px; box-decoration-break: clone; }
+.sg-formatted-line, .sg-formatted-line-range { display: inline-block; margin: .1rem .4rem .2rem 0; color: #686b70; font: 400 .8125rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.sg-formatted-block > blockquote { border-left: 3px solid var(--rl-accent); padding: .4rem .75rem; color: var(--rl-muted); }
+.sg-formatted-block code { border-radius: 3px; padding: .08rem .25rem; background: #f0f1f2; font: .9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+.sg-formatted-block a { color: var(--rl-accent); text-decoration: underline; text-underline-offset: .15em; }
+.sg-formatted-table { overflow-x: auto; }
+.sg-formatted-table table { width: 100%; margin: .25rem 0; border-collapse: collapse; font-size: .875rem; }
+.sg-formatted-table th, .sg-formatted-table td { min-width: 6rem; border: 1px solid var(--rl-line); padding: .45rem .55rem; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.sg-formatted-table th { background: #f3f3f1; font-weight: 600; }
+.sg-formatted-table tr.is-current-row { background: #fff1b8; }
+.sg-guide-hidden-anchor { display: block; width: 1px; height: 1px; overflow: hidden; }
 .sg-guide-footer { margin: 0; color: var(--rl-muted); font-size: .8125rem; overflow-wrap: anywhere; }
 @media (max-width: 1050px) {
   .sg-workbench { grid-template-columns: minmax(0, 1fr); }
