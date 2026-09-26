@@ -410,6 +410,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Enlarged the tiny Command, Option and Control captions in Mac keycap previews
+  and SVG/PNG exports while keeping standalone symbols clear of captions.
 - Updated active Bold and Italic controls to use WordPress-style dark pressed styling.
 - Bold and Italic toolbar buttons now reflect whether selected text is marked,
   including an accessible mixed state for selections with varied formatting.
