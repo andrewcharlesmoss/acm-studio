@@ -410,6 +410,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- The Mac Fn/Globe key now keeps a visible gap between the globe and its lettering
+  in the keyboard catalogue and downloaded artwork.
 - Improved the Mac F1–F12 keyboard previews and exports with larger, aligned
   action pictograms and clearer Brightness Down/Up symbols.
 - Enlarged the tiny Command, Option and Control captions in Mac keycap previews
