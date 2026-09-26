@@ -82,6 +82,7 @@
 .template-brand-mark { display: inline-grid; flex: 0 0 40px; width: 40px; height: 40px; place-items: center; border-radius: 11px; background: var(--template-text); color: var(--template-background); font-size: 0.9em; font-weight: 750; letter-spacing: 0.03em; }
 .template-brand img { width: 40px; height: 40px; object-fit: contain; border-radius: min(11px, var(--template-radius)); }
 .template-navigation, .template-social { display: flex; gap: 8px 16px; align-items: center; flex-wrap: wrap; }
+.template-surface .acm-navigation { font-family: var(--acm-type-navigation-family, inherit); font-style: var(--acm-type-navigation-style, normal); font-size: var(--acm-type-navigation-size, 1rem); font-weight: var(--acm-type-navigation-weight, 500); line-height: var(--acm-type-navigation-line-height, 1.4); letter-spacing: var(--acm-type-navigation-letter-spacing, 0); text-transform: var(--acm-type-navigation-transform, none); }
 .template-navigation a, .template-social a { display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0.25rem 0.125rem; }
 .template-header .template-navigation { justify-content: flex-end; }
 .template-footer { margin-top: var(--template-spacing); padding-top: var(--template-spacing); border-top: var(--template-border-width) solid var(--template-border); }

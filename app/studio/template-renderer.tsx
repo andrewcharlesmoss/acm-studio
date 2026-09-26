@@ -61,9 +61,9 @@ export function templateStyleProperties(styles: SiteStyles): CSSProperties {
   } as CSSProperties;
 }
 
-export function TemplateSurface({ set, children, editing = false }: { set: TemplateSet; children: ReactNode; editing?: boolean }) {
+export function TemplateSurface({ set, children, editing = false, editorCanvas = false }: { set: TemplateSet; children: ReactNode; editing?: boolean; editorCanvas?: boolean }) {
   const styleKey = `acm-template-style-${stylePresetKey(set.styles)}`;
-  return <><style>{universalStylePresetToCss(set.styles, `.${styleKey}`)}</style><div className={`template-surface acm-universal-style-preset ${styleKey}`} style={templateStyleProperties(set.styles)} onClickCapture={event => { if (editing && event.target instanceof Element && event.target.closest("a")) event.preventDefault(); }}>{children}</div></>;
+  return <><style>{universalStylePresetToCss(set.styles, `.${styleKey}`)}</style><div className={`template-surface${editorCanvas ? "" : " acm-universal-style-preset"} ${styleKey}`} style={templateStyleProperties(set.styles)} onClickCapture={event => { if (editing && event.target instanceof Element && event.target.closest("a")) event.preventDefault(); }}>{children}</div></>;
 }
 
 function stylePresetKey(styles: SiteStyles): string {
@@ -176,8 +176,8 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
   return <>{nodes.map(node => <div className="template-node" key={node.id}>{render(node, new Set(), 0)}</div>)}</>;
 }
 
-export function TemplateDocument({ snapshot, ...context }: Omit<TemplateRenderContext, "set"> & { snapshot: TemplateSnapshot }) {
+export function TemplateDocument({ snapshot, editorCanvas = false, ...context }: Omit<TemplateRenderContext, "set"> & { snapshot: TemplateSnapshot; editorCanvas?: boolean }) {
   const template = snapshot.set.templates.find(item => item.id === snapshot.templateId);
   if (!template) return <p role="alert">This template is unavailable.</p>;
-  return <TemplateSurface set={snapshot.set} editing={context.editingDocument}><TemplateNodes {...context} set={snapshot.set} nodes={template.nodes} /></TemplateSurface>;
+  return <TemplateSurface set={snapshot.set} editing={context.editingDocument} editorCanvas={editorCanvas}><TemplateNodes {...context} set={snapshot.set} nodes={template.nodes} /></TemplateSurface>;
 }

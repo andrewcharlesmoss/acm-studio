@@ -318,11 +318,14 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   set.parts[0].nodes.push({ id: m.templateId(), type: "paragraph", text: "Shared note", style: { textColor: "#ff0000" } });
   const snapshot = { version: m.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
   const html = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc }));
+  assert.match(html, /class="template-surface acm-universal-style-preset acm-template-style-/);
   assert.match(html, /@media \(max-width: 1024px\)/);
   assert.match(html, /--acm-type-body-size:20px/);
   assert.match(html, /template-header/); assert.match(html, /template-footer/); assert.match(html, /--template-font-size:1.0625rem/); assert.match(html, /color:#ff0000/); assert.match(html, /Shared note/); assert.match(html, /&lt;script&gt;/); assert.doesNotMatch(html, /<script>/);
   assert.match(html, /I make focused products/); assert.doesNotMatch(html, /Edit Header|template-node-select/);
-  const edit = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc, editingDocument: true, onDocumentChange() {}, content: createElement("textarea", { "aria-label": "Canonical body" }) }));
+  const edit = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc, editorCanvas: true, editingDocument: true, onDocumentChange() {}, content: createElement("textarea", { "aria-label": "Canonical body" }) }));
+  assert.match(edit, /class="template-surface acm-template-style-/);
+  assert.doesNotMatch(edit, /class="template-surface acm-universal-style-preset/);
   assert.match(edit, /Canonical body/); assert.match(edit, /Document title/);
   const post = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents.find(document => document.kind === "post"));
   post.subtitle = "A supporting summary";
@@ -459,6 +462,7 @@ test("template shell keeps configurable brand semantics and documented responsiv
   assert.match(html, /target="_blank" rel="noopener noreferrer"/);
   const css = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   assert.match(css, /Output breakpoints: 780px/); assert.match(css, /@container \(max-width: 780px\)/); assert.match(css, /@container \(max-width: 620px\)/);
+  assert.match(css, /\.template-surface \.acm-navigation \{ font-family: var\(--acm-type-navigation-family, inherit\); font-style: var\(--acm-type-navigation-style, normal\); font-size: var\(--acm-type-navigation-size, 1rem\);/);
   assert.match(css, /\.template-subtitle, \.template-subtitle-input \{ font-family: var\(--acm-type-metadata-family, var\(--template-font\)\); font-size: var\(--acm-type-metadata-size, 1\.15em\);/);
   assert.match(css, /\.template-footer \.template-social \{ justify-content: flex-end; \}/); assert.match(css, /\.template-footer \.template-social \{ justify-content: center; \}/);
 });
