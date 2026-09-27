@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added Gutenberg-style text orientation to Paragraph and Heading block settings, with vertical text in Edit and Preview.
 - Added List item text formatting and link editing through the shared canvas toolbar.
 - Added Gutenberg's ordered-list numbering styles for numbers, letters and Roman numerals, preserving the choice in previews and HTML.
 - Preserved inline formatting and links in List items across editing, previews and HTML export while retaining existing plain-text drafts.

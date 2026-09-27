@@ -25,6 +25,7 @@ export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "ar
 export type ParagraphTextTransform = "none" | "uppercase" | "lowercase" | "capitalize";
 export type ParagraphTextDecoration = "none" | "underline" | "line-through";
 export type ParagraphShadow = "none" | "soft" | "strong";
+export type ParagraphOrientation = "horizontal-tb" | "vertical-rl";
 export type SpacerUnit = "px" | "em" | "rem" | "vw" | "vh";
 export function listNumber(block: { items: ListItem[]; start?: number; reversed?: boolean }, index: number): number {
   const first = block.start ?? (block.reversed ? block.items.length : 1);
@@ -66,6 +67,7 @@ export type ParagraphStyle = {
   textColumns?: number;
   dropCap?: boolean;
   fitText?: boolean;
+  orientation?: ParagraphOrientation;
   textColor?: string;
   backgroundColor?: string;
   backgroundGradient?: ParagraphBackgroundGradient;

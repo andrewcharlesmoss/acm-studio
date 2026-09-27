@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphAppearance, ParagraphBackgroundGradient, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, SpacerUnit, TextAlignment } from "../content/model";
-import { PARAGRAPH_BACKGROUND_GRADIENTS, paragraphBackgroundGradientCss } from "../content/paragraph-styles";
+import { PARAGRAPH_BACKGROUND_GRADIENTS, fitTextEnabled, paragraphBackgroundGradientCss } from "../content/paragraph-styles";
 import { formatDocumentDate } from "../content/document-metadata";
 import { readingTimeMinutes } from "../content/reading-time";
 import type { LayoutMode } from "../content/model";
@@ -639,6 +639,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     { id: "decoration", label: "Decoration" }, { id: "letter-case", label: "Letter case" },
     ...(block.type === "paragraph" ? [{ id: "drop-cap", label: "Drop cap" }] : []),
     ...(block.type === "paragraph" || block.type === "heading" ? [{ id: "fit-text", label: "Fit text" }] : []),
+    ...(block.type === "paragraph" || block.type === "heading" ? [{ id: "orientation", label: "Orientation" }] : []),
     { id: "family", label: "Font family" },
   ];
   const dimensionOptions: InspectorToolOption[] = [{ id: "padding", label: "Padding" }, { id: "margin", label: "Margin" }];
@@ -651,7 +652,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
   const typographyVisible = new Set([...typographyUserVisible, ...[
     style.textColor && "colour", style.fontSize && "size", style.appearance && "appearance", style.fontFamily && "family",
     style.lineHeight && "line-height", style.letterSpacing && "letter-spacing", style.textIndent && "line-indent",
-    style.textColumns && "columns", style.textDecoration && "decoration", style.textTransform && "letter-case", style.dropCap && "drop-cap", style.fitText && "fit-text",
+    style.textColumns && "columns", style.textDecoration && "decoration", style.textTransform && "letter-case", style.dropCap && "drop-cap", style.fitText && "fit-text", style.orientation && "orientation",
   ].filter((value): value is string => Boolean(value))]);
   const dimensionsVisible = new Set([...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin"].filter((value): value is string => Boolean(value))]);
   const borderVisible = new Set([...borderUserVisible, ...[
@@ -662,7 +663,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     colour: ["textColor"], family: ["fontFamily"], size: ["fontSize"], appearance: ["appearance"],
     "line-height": ["lineHeight"], "letter-spacing": ["letterSpacing"], "line-indent": ["textIndent"], columns: ["textColumns"], decoration: ["textDecoration"],
     "letter-case": ["textTransform"], padding: ["padding"], margin: ["margin"],
-    "drop-cap": ["dropCap"], "fit-text": ["fitText"],
+    "drop-cap": ["dropCap"], "fit-text": ["fitText"], orientation: ["orientation"],
     border: ["borderColor", "borderStyle", "borderWidth"], radius: ["borderRadius"], shadow: ["shadow"],
     "link-colour": ["linkColor"],
   };
@@ -711,7 +712,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
   return <>
     <InspectorToolsSection title="Typography" options={typographyOptions} visible={typographyVisible} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
       {typographyVisible.has("colour") ? <ColourSetting label="Text colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /> : null}
-      {typographyVisible.has("size") ? <fieldset className="paragraph-font-size-setting" disabled={Boolean(style.fitText)}><legend>Font size</legend><div role="group" aria-label="Font size" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateStyle("fontSize", style.fontSize === value ? undefined : value)}>{label}</button>)}</div></fieldset> : null}
+      {typographyVisible.has("size") ? <fieldset className="paragraph-font-size-setting" disabled={fitTextEnabled(style)}><legend>Font size</legend><div role="group" aria-label="Font size" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateStyle("fontSize", style.fontSize === value ? undefined : value)}>{label}</button>)}</div></fieldset> : null}
       {typographyVisible.has("appearance") ? <label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option><option value="regular">Regular</option><option value="italic">Italic</option><option value="bold">Bold</option><option value="bold-italic">Bold italic</option></select></label> : null}
       {typographyVisible.has("line-height") ? <label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label> : null}
       {typographyVisible.has("letter-spacing") ? <label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label> : null}
@@ -720,7 +721,8 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
       {typographyVisible.has("decoration") ? <label><span>Decoration</span><select value={style.textDecoration ?? ""} onChange={(event) => updateStyle("textDecoration", (event.target.value || undefined) as ParagraphStyle["textDecoration"])}><option value="">Default</option><option value="none">None</option><option value="underline">Underline</option><option value="line-through">Strikethrough</option></select></label> : null}
       {typographyVisible.has("letter-case") ? <label><span>Letter case</span><select value={style.textTransform ?? ""} onChange={(event) => updateStyle("textTransform", (event.target.value || undefined) as ParagraphStyle["textTransform"])}><option value="">Default</option><option value="none">Normal</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalise</option></select></label> : null}
       {typographyVisible.has("drop-cap") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.dropCap)} onChange={event => updateStyle("dropCap", event.target.checked || undefined)} /><span>Drop cap</span></label> : null}
-      {typographyVisible.has("fit-text") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.fitText)} onChange={event => updateFitText(event.target.checked)} /><span>Fit text</span></label> : null}
+      {typographyVisible.has("fit-text") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.fitText)} onChange={event => updateFitText(event.target.checked)} /><span>Fit text{style.fitText && style.orientation === "vertical-rl" ? " (paused for vertical text)" : ""}</span></label> : null}
+      {typographyVisible.has("orientation") ? <label><span>Orientation</span><select value={style.orientation ?? ""} onChange={event => updateStyle("orientation", (event.target.value || undefined) as ParagraphStyle["orientation"])}><option value="">Default</option><option value="horizontal-tb">Horizontal</option><option value="vertical-rl">Vertical</option></select></label> : null}
       {typographyVisible.has("family") ? <label><span>Font family</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
     </InspectorToolsSection>
     <InspectorAccordionSection className="inspector-panel" title="Background">

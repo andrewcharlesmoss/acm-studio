@@ -257,6 +257,21 @@ test("Heading Fit text reaches Studio and public renderers without exposing meas
   }
 });
 
+test("vertical Paragraph and Heading orientation render in both previews without horizontal Fit text", () => {
+  const blocks = [
+    { id: "vertical-p", type: "paragraph", text: "Vertical paragraph", style: { orientation: "vertical-rl", fitText: true } },
+    { id: "vertical-h", type: "heading", level: 2, text: "Vertical heading", visualStyle: { orientation: "vertical-rl", fitText: true } },
+  ];
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
+    assert.match(html, /writing-mode:vertical-rl/);
+    assert.match(html, /text-orientation:mixed/);
+    assert.doesNotMatch(html, /has-fit-text/);
+    assert.match(html, /Vertical paragraph/);
+    assert.match(html, /Vertical heading/);
+  }
+});
+
 test("Plain quotes keep their text alignment in Studio and public previews", () => {
   const block = { id: "quote", type: "quote", text: "A considered thought", attribution: "Author", align: "centre", quoteStyle: "plain" };
   for (const variant of ["studio", "article"]) {

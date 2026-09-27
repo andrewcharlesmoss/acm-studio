@@ -4,7 +4,7 @@ import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
 import { listItemText, listMarker, normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { safeMathMLMarkup } from "../content/mathml";
-import { buttonVisualCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
+import { buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { spacerDimensions } from "../content/spacer";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
 import { columnsLayoutStyle } from "../content/columns";
@@ -77,14 +77,14 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           const className = `${studio ? "block-textarea paragraph-field preview-rich-text " : ""}align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`;
           const style = paragraphStyleToCss(block.style) as React.CSSProperties;
           const children = renderText(block.text, block.runs, mediaUrls, footnoteNumbers);
-          return block.style?.fitText
+          return fitTextEnabled(block.style)
             ? <FitTextParagraph id={paragraphStyleAnchor(block.style)} className={className} style={style} key={block.id}>{children}</FitTextParagraph>
             : <p id={paragraphStyleAnchor(block.style)} className={className} style={style} key={block.id}>{children}</p>;
         }
         if (block.type === "heading") {
-          const className = `${studio ? `block-textarea heading-field is-h${block.level} preview-rich-text ` : ""}align-${block.align ?? "left"}${block.visualStyle?.fitText ? " has-fit-text" : ""}`;
+          const className = `${studio ? `block-textarea heading-field is-h${block.level} preview-rich-text ` : ""}align-${block.align ?? "left"}${fitTextEnabled(block.visualStyle) ? " has-fit-text" : ""}`;
           const content = renderText(block.text, block.runs, mediaUrls, footnoteNumbers);
-          return block.visualStyle?.fitText
+          return fitTextEnabled(block.visualStyle)
             ? <FitTextHeading level={block.level} className={className} styleSignature={JSON.stringify(block.visualStyle ?? {})} key={block.id}>{content}</FitTextHeading>
             : renderHeading(block.level, className, block.id, content);
         }

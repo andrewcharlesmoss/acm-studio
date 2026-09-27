@@ -26,8 +26,8 @@ import remains future work, not a capability supplied by this inspector review.
 
 | Studio block | WordPress reference | Studio inspector support | Remaining difference |
 | --- | --- | --- | --- |
-| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; optional Typography, Dimensions, Border and Elements controls with per-section Reset all; background, line indent, text columns, drop cap, fit text and advanced fields. | WordPress theme presets and custom CSS editor are not yet supported. |
-| Heading | [Heading](https://wordpress.org/documentation/article/heading-block/) | Level, alignment, Fit text and shared visual settings. | Gutenberg's text shadow and writing mode, theme presets, block-wide/full alignment, and some toolbar details remain unsupported. |
+| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; optional Typography, Dimensions, Border and Elements controls with per-section Reset all; background, line indent, text columns, drop cap, fit text, orientation and advanced fields. | Custom font sizes, the full theme-dependent Appearance choices, WordPress theme presets and its custom CSS editor are not yet supported. |
+| Heading | [Heading](https://wordpress.org/documentation/article/heading-block/) | Level, alignment, Fit text, orientation and shared visual settings. | Gutenberg's text shadow, theme presets, block-wide/full alignment, and some toolbar details remain unsupported. |
 | Quote | [Quote](https://wordpress.org/documentation/article/quote-block/) | Attribution, text alignment, Default or Plain style, and shared visual settings. | Gutenberg's separate block alignment (including wide/full), background images and multi-paragraph quote editing are not modelled. |
 | List | [List](https://wordpress.org/documentation/article/list-block/) | Bullets or numbers; ordered styles for numbers, letters and Roman numerals; start value, reverse order, inline-formatted item content, item-scoped text formatting and links for top-level Lists, and shared visual settings. Existing plain-string items remain readable. | Nested List Item blocks and indentation are not yet supported. The block HTML editor rejects nested lists instead of flattening them. List items do not yet have per-item inspector settings. Footnotes and inline images are unavailable from the List formatting menu because their insertion handlers currently target whole text blocks. Formatting controls for Lists placed inside container blocks remain unavailable. |
 | Table | [Table](https://wordpress.org/documentation/article/table-block/) | Fixed or adaptive cell widths, header/footer, caption, Default or Stripes style, and shared visual settings. | Cells remain plain text; WordPress cell-level rich text and links are not yet supported. |
@@ -65,4 +65,6 @@ updates its size when the text, font or width changes. It fits short text on one
 line and bounds the size between 13px and 120px; longer text wraps at the
 minimum size instead of overflowing. It temporarily takes
 precedence over a chosen font size and text-column count; those settings remain
-stored and reappear when Fit text is turned off.
+stored and reappear when Fit text is turned off. Vertical orientation temporarily
+suspends the horizontal Fit text measurement while keeping its setting; returning
+to horizontal orientation restores it.
