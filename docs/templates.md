@@ -27,6 +27,12 @@ belong to the focused template workspace and leave text, code and form editing
 to the browser. The Template inspector owns identity, navigation and
 social/support links; Styles applies to the whole set. Ordinary paragraph style
 overrides take precedence over the set's tokens.
+The Copyright setting supports `{copyright}` (©), `{year}` (the current year)
+and `{site-title}` (the Site Name). Values resolve when a template is rendered;
+unknown brace-wrapped text remains unchanged. New template sets use all three
+placeholders in the default footer copyright line. Published template snapshots
+keep their saved design and copyright string, while these explicit dynamic
+values resolve at render time so the year stays current.
 Templated bodies and ordinary template blocks display dividers in every
 preview and publication surface. Standalone Header/Footer targets use the same
 semantic region and responsive styling as their composed references.

@@ -53,6 +53,7 @@ function environment(overrides = {}) {
 test("neutral templates validate and their editor projection round-trips without lost content", () => {
   const env = environment(); const m = env.load("studio/template-model.ts");
   const set = m.createTemplateSet(); m.validateTemplateSet(set);
+  assert.equal(set.identity.copyright, "{copyright} {year} {site-title}");
   const post = set.templates.find(item => item.kind === "post");
   assert.deepEqual(plain(post.nodes.filter(node => node.type !== "part").map(node => node.type)), ["element", "element", "element", "group", "element"]);
   const metadata = post.nodes.find(node => node.type === "group");
@@ -67,6 +68,14 @@ test("neutral templates validate and their editor projection round-trips without
   assert.throws(() => m.validateTemplateSet(set), /metadata/);
   // Even unvalidated projection input must not preserve reserved group metadata.
   assert.equal(m.templateEditorBlocks(set.parts[0].nodes)[0].data, undefined);
+});
+
+test("template copyright placeholders resolve repeatedly and preserve unknown tokens", () => {
+  const env = environment(); const { resolveTemplateCopyright } = env.load("studio/template-placeholders.ts");
+  const date = new Date("2032-06-15T12:00:00Z");
+  assert.equal(resolveTemplateCopyright("{copyright} {year} {site-title}", "Example Site", date), "© 2032 Example Site");
+  assert.equal(resolveTemplateCopyright("© {year} — {year} {unknown}", "Example Site", date), "© 2032 — 2032 {unknown}");
+  assert.equal(resolveTemplateCopyright("{site-title}", "<Site>", date), "<Site>");
 });
 
 test("page and post templates may temporarily omit their Content slot but reject duplicates", () => {
@@ -315,6 +324,7 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   set.styles.typography.body.size.tablet = { value: 20, unit: "px" };
   assert.equal(Object.keys(renderer.templateStyleProperties(set.styles)).some(name => name.startsWith("--acm-type-")), false, "responsive typography stays in the media-aware preset stylesheet");
   set.identity.name = "<script>unsafe</script>";
+  set.identity.copyright = "{copyright} {year} {site-title}";
   set.parts[0].nodes.push({ id: m.templateId(), type: "paragraph", text: "Shared note", style: { textColor: "#ff0000" } });
   const snapshot = { version: m.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
   const html = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc }));
@@ -323,6 +333,7 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   assert.match(html, /--acm-type-body-size:20px/);
   assert.match(html, /template-header/); assert.match(html, /template-footer/); assert.match(html, /--template-font-size:1.0625rem/); assert.match(html, /color:#ff0000/); assert.match(html, /Shared note/); assert.match(html, /&lt;script&gt;/); assert.doesNotMatch(html, /<script>/);
   assert.match(html, /I make focused products/); assert.doesNotMatch(html, /Edit Header|template-node-select/);
+  assert.match(html, new RegExp(`© ${new Date().getFullYear()} &lt;script&gt;unsafe&lt;\\/script&gt;`));
   const edit = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc, editorCanvas: true, editingDocument: true, onDocumentChange() {}, content: createElement("textarea", { "aria-label": "Canonical body" }) }));
   assert.match(edit, /class="template-surface acm-template-style-/);
   assert.doesNotMatch(edit, /class="template-surface acm-universal-style-preset/);

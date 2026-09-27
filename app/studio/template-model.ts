@@ -60,7 +60,7 @@ export function createTemplateSet(name = "ACM Neutral"): TemplateSet {
   ] };
   return { id: templateId(), name, defaults: {}, parts: [header, footer], templates: (["page", "post"] as const).map(kind => ({ id: templateId(), name: kind === "page" ? "Page" : "Post", kind, isDefault: true, nodes: [
     { id: templateId(), type: "part", partId: header.id }, element("document-title"), element("subtitle"), ...(kind === "post" ? [element("cover-image"), postMetadata] : []), element("content"), { id: templateId(), type: "part", partId: footer.id },
-  ] })), identity: { name: "Your Site", homeUrl: "/", copyright: "© Your Site" }, navigation: [], socialLinks: [], styles: createUniversalStylePreset() };
+  ] })), identity: { name: "Your Site", homeUrl: "/", copyright: "{copyright} {year} {site-title}" }, navigation: [], socialLinks: [], styles: createUniversalStylePreset() };
 }
 
 const safeId = (value: unknown): value is string => typeof value === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,159}$/.test(value) && !["__proto__", "prototype", "constructor"].includes(value);

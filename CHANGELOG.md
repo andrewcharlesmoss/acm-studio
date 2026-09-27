@@ -582,3 +582,4 @@
   outline with the table's single outer border.
 - Stabilised auto-height measurements so the editor no longer observes the
   element it is resizing, preventing the browser's ResizeObserver loop error.
+- Added `{copyright}`, `{year}` and `{site-title}` placeholders to template copyright text, with a current-year default for new template sets.

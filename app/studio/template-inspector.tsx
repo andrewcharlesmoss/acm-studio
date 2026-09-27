@@ -4,6 +4,7 @@ import type { ContentBlock } from "../content/model";
 import { BlockInspector } from "./studio-inspectors";
 import { InspectorAccordionSection, InspectorContentDisabledProvider } from "./inspector-accordion";
 import { templateId, templateElementLabel, type TemplateSet, type PageTemplate, type TemplatePart, type SiteLink, type SiteStyles } from "./template-model";
+import { templateCopyrightPlaceholders } from "./template-placeholders";
 
 export function TemplateTextSetting({ label, value, onCommit, placeholder }: { label: string; value: string; onCommit: (value: string) => void; placeholder?: string }) {
   return <label>{label}<input key={value} defaultValue={value} placeholder={placeholder} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
@@ -61,6 +62,7 @@ export function TemplateInspector({ set, target, selectedBlock, writable, onChan
         <InspectorAccordionSection contentDisabled={!writable} title="Site identity"><TemplateTextSetting label="Site Name" value={set.identity.name} onCommit={name => onChange({ ...set, identity: { ...set.identity, name } })} />
         <TemplateTextSetting label="Home Address" value={set.identity.homeUrl} onCommit={homeUrl => onChange({ ...set, identity: { ...set.identity, homeUrl } })} />
         <TemplateTextSetting label="Copyright" value={set.identity.copyright} onCommit={copyright => onChange({ ...set, identity: { ...set.identity, copyright } })} />
+        <p className="setting-note">Placeholders: {templateCopyrightPlaceholders.map(item => item.token).join(", ")}. They update when the template is rendered.</p>
         <button type="button" onClick={() => onOpenMedia(true)}>Choose Logo</button>{set.identity.logo ? <><TemplateTextSetting label="Logo Alternative Text" value={set.identity.logo.alt} onCommit={alt => onChange({ ...set, identity: { ...set.identity, logo: { ...set.identity.logo!, alt } } })} /><button type="button" onClick={() => onChange({ ...set, identity: { ...set.identity, logo: undefined } })}>Remove Logo</button></> : null}
         </InspectorAccordionSection>
         <LinkSettings title="Navigation" links={set.navigation} onChange={navigation => onChange({ ...set, navigation })} disabled={!writable} />

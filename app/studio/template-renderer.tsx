@@ -8,6 +8,7 @@ import type { ContentBlock } from "../content/model";
 import type { StudioDocument } from "./editor-model";
 import type { SiteStyles, TemplateNode, TemplatePart, TemplateSet, TemplateSnapshot } from "./template-model";
 import { StudioIcon } from "./studio-icons";
+import { resolveTemplateCopyright } from "./template-placeholders";
 import { universalStylePresetToCss, universalStylePresetToCssVariables } from "@acm/styles";
 
 function hasDocumentMetadataBlocks(blocks: StudioDocument["blocks"]): boolean {
@@ -164,7 +165,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           element = <a className="template-brand" href={safeTextLink(set.identity.homeUrl) ?? undefined}>{src ? <TemplateImage src={src} alt={logo?.alt ?? ""} /> : <span className="template-brand-mark" aria-hidden="true">{brandInitials(set.identity.name)}</span>}<span className="template-brand-name">{set.identity.name}</span></a>; break;
         }
         case "navigation": element = <nav aria-label="Site navigation" className="template-navigation acm-navigation">{set.navigation.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined}>{link.label}</a>)}</nav>; break;
-        case "copyright": element = <p className="template-copyright">{set.identity.copyright}</p>; break;
+        case "copyright": element = <p className="template-copyright">{resolveTemplateCopyright(set.identity.copyright, set.identity.name)}</p>; break;
         case "social-links": element = <nav className="template-social" aria-label="Social and support links">{set.socialLinks.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined} target="_blank" rel="noopener noreferrer">{link.label}</a>)}</nav>; break;
       }
       const field = node.element === "document-title" ? "title" : node.element === "subtitle" ? "subtitle" : null;
