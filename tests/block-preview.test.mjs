@@ -123,14 +123,30 @@ test("image display settings and decorative text reach both renderers", () => {
 test("Spacer dimensions and Embed spacing render in both views and survive HTML export", () => {
   const blocks = [
     { id: "space", type: "spacer", height: 2, heightUnit: "em", width: 8, widthUnit: "rem", visualStyle: { margin: "12px", anchor: "section-gap", className: "custom-gap" } },
-    { id: "resource", type: "embed", url: "https://example.com/resource", title: "Resource", visualStyle: { margin: "20px", anchor: "reference-card" } },
+    { id: "resource", type: "embed", url: "https://example.com/resource", title: "Resource", caption: "A useful <resource>", visualStyle: { margin: "20px", anchor: "reference-card" } },
   ];
   for (const variant of ["studio", "article"]) {
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
     assert.match(html, /id="section-gap" class="content-spacer custom-gap" style="height:2em;width:8rem;margin:12px"/);
     assert.match(html, /id="reference-card" class="block-visual-style" style="margin:20px"/);
+    assert.match(html, /<p class="embed-caption">A useful &lt;resource&gt;<\/p>/);
   }
   assert.match(blockToHtml(blocks[0]), /data-spacer-height="2" data-spacer-height-unit="em" data-spacer-width="8" data-spacer-width-unit="rem"/);
+  assert.match(blockToHtml(blocks[1]), /<a href="https:\/\/example.com\/resource">Resource<\/a><p class="embed-caption">A useful &lt;resource&gt;<\/p>/);
+});
+
+test("Embed captions contribute to generated publication summaries", () => {
+  const article = toLocallyPublishedArticle({
+    id: "embed-caption-post", kind: "post", title: "Embedded resource", subtitle: "", slug: "embedded-resource", excerpt: "",
+    status: "draft", updatedAt: "2026-09-27T00:00:00.000Z",
+    blocks: [{ id: "resource", type: "embed", url: "https://example.com/resource", title: "Resource", caption: "The caption explains the link" }],
+  });
+  assert.equal(article.summary, "Resource The caption explains the link");
+});
+
+test("Embed captions count towards reading time", async () => {
+  const { readingTimeMinutes } = await import(await compileModule(new URL("../app/content/reading-time.ts", import.meta.url)));
+  assert.equal(readingTimeMinutes([{ id: "resource", type: "embed", url: "https://example.com", title: "Resource", caption: Array(220).fill("word").join(" ") }]), 2);
 });
 
 test("table settings keep caption, striping and automatic cell widths in preview and HTML", () => {

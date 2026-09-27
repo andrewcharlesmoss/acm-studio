@@ -763,6 +763,7 @@ button, input, textarea, select { font: inherit; }
 .article-image figcaption { color: var(--muted); font-size: 12px; margin-top: 8px; }
 .embed-card { border: 1px solid var(--line); border-radius: 14px; display: grid; font-size: 14px; gap: 6px; padding: 20px; }
 .embed-card span { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.embed-caption { color: var(--muted); font-size: inherit; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
 
 .article-end {
   align-items: end;

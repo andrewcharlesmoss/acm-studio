@@ -71,7 +71,7 @@ function postSummaryText(blocks: ContentBlock[]): string {
       case "list": return block.items;
       case "table": return block.rows.flat();
       case "image": return block.caption ? [block.caption] : [];
-      case "embed": return [block.title];
+      case "embed": return [block.title, block.caption ?? ""];
       case "section":
       case "group":
       case "component": return postSummaryText(block.children ?? []);

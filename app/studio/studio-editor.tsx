@@ -43,7 +43,7 @@ export function documentText(block: ContentBlock): string {
   if (block.type === "code") return block.code;
   if (block.type === "button") return block.label;
   if (block.type === "field") return `${block.label} ${block.value}`;
-  if (block.type === "embed") return block.title;
+  if (block.type === "embed") return `${block.title} ${block.caption ?? ""}`.trim();
   if (block.type === "image") return block.caption ?? "";
   if (block.type === "table") return block.rows.flat().join(" ");
   if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column") return block.children.map(documentText).join(" ");

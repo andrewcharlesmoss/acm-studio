@@ -121,11 +121,12 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           );
         }
         if (block.type === "footnotes") return <section className="article-footnotes" key={block.id} aria-label="Footnotes"><ol>{block.notes.map((note) => <li key={note.id} id={`footnote-${note.id}`}><span>{note.text}</span> <a href={`#footnote-ref-${note.id}`} aria-label="Return to footnote reference">↩</a></li>)}</ol></section>;
-        if (block.type === "embed" && studio) return <aside className="embed-field" key={block.id}><span aria-hidden="true"><StudioIcon name="external" /></span><div>{blockUrl ? <a href={blockUrl}>{block.title}</a> : <span>{block.title}</span>}<small>{blockUrl ?? (block.url ? "Enter a valid URL" : "Add a URL in Block settings")}</small></div></aside>;
+        if (block.type === "embed" && studio) return <aside className="embed-field" key={block.id}><span aria-hidden="true"><StudioIcon name="external" /></span><div>{blockUrl ? <a href={blockUrl}>{block.title}</a> : <span>{block.title}</span>}<small>{blockUrl ?? (block.url ? "Enter a valid URL" : "Add a URL in Block settings")}</small>{block.caption ? <p className="embed-caption">{block.caption}</p> : null}</div></aside>;
         if (block.type === "embed") return (
           <aside className="embed-card" key={block.id}>
             <span>External resource</span>
             {blockUrl ? <a href={blockUrl}>{block.title} ↗</a> : <span>{block.title}</span>}
+            {block.caption ? <p className="embed-caption">{block.caption}</p> : null}
           </aside>
         );
         if (block.type === "button") return (

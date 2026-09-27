@@ -16,7 +16,7 @@ function readingTimeText(blocks: ContentBlock[]): string {
       case "table": return block.rows.flat().join(" ");
       case "code": return block.code;
       case "button": return block.label;
-      case "embed": return block.title;
+      case "embed": return `${block.title} ${block.caption ?? ""}`;
       case "image": return block.caption ?? "";
       case "divider": return "";
       case "reading-time":

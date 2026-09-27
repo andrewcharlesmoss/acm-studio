@@ -113,7 +113,7 @@ export type ContentBlock = (
   | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; columnWidths?: number[]; rowHeights?: number[] }
   | { id: string; type: "code"; language?: string; code: string }
   | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean; decorative?: boolean; title?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain"; displayWidth?: number; focalX?: number; focalY?: number; linkUrl?: string; opensInNewTab?: boolean }
-  | { id: string; type: "embed"; url: string; title: string }
+  | { id: string; type: "embed"; url: string; title: string; caption?: string }
   | { id: string; type: "divider"; style?: "default" | "wide" | "dots" }
   | { id: string; type: "footnotes"; notes: Footnote[] }
   | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary"; opensInNewTab?: boolean }

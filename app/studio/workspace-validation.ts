@@ -129,7 +129,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.scale === undefined || ["cover", "contain"].includes(block.scale as string))
         && (block.displayWidth === undefined || (typeof block.displayWidth === "number" && Number.isInteger(block.displayWidth) && block.displayWidth >= 32 && block.displayWidth <= 2400))
         && [block.focalX, block.focalY].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100));
-      case "embed": return typeof block.url === "string" && typeof block.title === "string";
+      case "embed": return typeof block.url === "string" && typeof block.title === "string" && (block.caption === undefined || typeof block.caption === "string");
       case "button": return typeof block.label === "string" && typeof block.url === "string" && ["primary", "secondary"].includes(block.style as string) && optionalBoolean(block.opensInNewTab);
       case "field": return ["text", "select"].includes(block.control as string) && typeof block.label === "string" && typeof block.value === "string"
         && (block.options === undefined || strings(block.options));

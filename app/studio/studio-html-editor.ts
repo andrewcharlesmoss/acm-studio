@@ -121,7 +121,7 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<figure${attributes}${classAttribute(block.wide ? "is-wide" : undefined)}>${link ? `<a href="${escapeAttribute(link)}"${block.opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${image}</a>` : image}${block.caption ? `<figcaption>${escapeText(block.caption)}</figcaption>` : ""}</figure>`;
     }
     case "embed":
-      return `<aside${attributes} data-embed-url="${escapeAttribute(block.url)}"><a href="${escapeAttribute(block.url)}">${escapeText(block.title)}</a></aside>`;
+      return `<aside${attributes} data-embed-url="${escapeAttribute(block.url)}"><a href="${escapeAttribute(block.url)}">${escapeText(block.title)}</a>${block.caption ? `<p class="embed-caption">${escapeText(block.caption)}</p>` : ""}</aside>`;
     case "divider":
       return `<hr${attributes}${classAttribute(block.style && block.style !== "default" ? `is-${block.style}` : undefined)} />`;
     case "footnotes":
@@ -341,7 +341,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       return { block: next };
     }
     case "aside":
-      return { block: { id, type: "embed", url: safeTextLink(element.getAttribute("data-embed-url") ?? element.querySelector("a")?.getAttribute("href") ?? "") || "", title: element.textContent ?? "" } };
+      return { block: { id, type: "embed", url: safeTextLink(element.getAttribute("data-embed-url") ?? element.querySelector("a")?.getAttribute("href") ?? "") || "", title: element.querySelector("a")?.textContent ?? element.firstChild?.textContent ?? "", caption: element.querySelector(".embed-caption")?.textContent || undefined } };
     case "hr": return { block: { id, type: "divider", style: element.classList.contains("is-dots") ? "dots" : element.classList.contains("is-wide") ? "wide" : "default" } };
     case "label": {
       const control = element.querySelector("select") ? "select" : "text";
