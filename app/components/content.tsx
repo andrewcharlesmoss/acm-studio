@@ -12,6 +12,7 @@ import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDat
 import { readingTimeLabel } from "../content/reading-time";
 import { imageDisplayStyle } from "../content/image-style";
 import { ArticleMetaIcon } from "./article-meta-icon";
+import { FitTextParagraph } from "./fit-text-paragraph";
 import { StudioIcon } from "../studio/studio-icons";
 
 export function StatusPill({ status }: { status: Project["status"] }) {
@@ -72,7 +73,14 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
   }
   function renderBlockContent(block: ContentBlock) {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
-        if (block.type === "paragraph") return <p id={paragraphStyleAnchor(block.style)} className={`${studio ? "block-textarea paragraph-field preview-rich-text " : ""}align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} key={block.id}>{renderText(block.text, block.runs, mediaUrls, footnoteNumbers)}</p>;
+        if (block.type === "paragraph") {
+          const className = `${studio ? "block-textarea paragraph-field preview-rich-text " : ""}align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`;
+          const style = paragraphStyleToCss(block.style) as React.CSSProperties;
+          const children = renderText(block.text, block.runs, mediaUrls, footnoteNumbers);
+          return block.style?.fitText
+            ? <FitTextParagraph id={paragraphStyleAnchor(block.style)} className={className} style={style} key={block.id}>{children}</FitTextParagraph>
+            : <p id={paragraphStyleAnchor(block.style)} className={className} style={style} key={block.id}>{children}</p>;
+        }
         if (block.type === "heading") {
           return renderHeading(block.level, `${studio ? `block-textarea heading-field is-h${block.level} preview-rich-text ` : ""}align-${block.align ?? "left"}`, block.id, renderText(block.text, block.runs, mediaUrls, footnoteNumbers));
         }

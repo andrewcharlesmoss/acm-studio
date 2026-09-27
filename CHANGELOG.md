@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added Paragraph Fit text, measured in Edit, Preview and published rendering.
 - Added Gutenberg-style optional appearance menus and per-section resets to
   shared block settings, with paragraph line indent, text columns and drop cap.
 - Added Quote text alignment and a Plain style to the block inspector.

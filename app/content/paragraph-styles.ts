@@ -30,13 +30,13 @@ export function paragraphStyleToCss(style?: ParagraphStyle): Record<string, stri
   if (!style) return {};
   const css: Record<string, string> = {};
   if (style.fontFamily) css.fontFamily = fontFamilies[style.fontFamily];
-  if (style.fontSize) css.fontSize = fontSizes[style.fontSize];
+  if (style.fontSize && !style.fitText) css.fontSize = fontSizes[style.fontSize];
   if (style.appearance === "italic" || style.appearance === "bold-italic") css.fontStyle = "italic";
   if (style.appearance === "bold" || style.appearance === "bold-italic") css.fontWeight = "700";
   if (style.lineHeight) css.lineHeight = style.lineHeight;
   if (style.letterSpacing) css.letterSpacing = style.letterSpacing;
   if (style.textIndent) css.textIndent = style.textIndent;
-  if (style.textColumns) { css.columnCount = String(style.textColumns); css.columnGap = "1.5em"; }
+  if (style.textColumns && !style.fitText) { css.columnCount = String(style.textColumns); css.columnGap = "1.5em"; }
   if (style.textTransform) css.textTransform = style.textTransform;
   if (style.textDecoration) css.textDecoration = style.textDecoration;
   if (style.textColor) css.color = style.textColor;
@@ -62,7 +62,7 @@ export function buttonVisualCss(style?: ParagraphStyle): Record<string, string> 
 }
 
 export function paragraphStyleClassName(style?: ParagraphStyle) {
-  return [style?.dropCap && "has-drop-cap", style?.className?.trim().replace(/[^a-zA-Z0-9_-]+/g, " ").trim()].filter(Boolean).join(" ");
+  return [style?.dropCap && "has-drop-cap", style?.fitText && "has-fit-text", style?.className?.trim().replace(/[^a-zA-Z0-9_-]+/g, " ").trim()].filter(Boolean).join(" ");
 }
 
 export function visualStyleClassName(style: ParagraphStyle) {

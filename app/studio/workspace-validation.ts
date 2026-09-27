@@ -76,6 +76,7 @@ export function validParagraphStyle(value: unknown) {
     && optionalSignedParagraphLength(value.textIndent)
     && (value.textColumns === undefined || (Number.isInteger(value.textColumns) && (value.textColumns as number) >= 1 && (value.textColumns as number) <= 4))
     && (value.dropCap === undefined || typeof value.dropCap === "boolean")
+    && (value.fitText === undefined || typeof value.fitText === "boolean")
     && optionalParagraphColour(value.textColor) && optionalParagraphColour(value.backgroundColor) && optionalParagraphColour(value.linkColor)
     && optionalParagraphLength(value.padding) && optionalSignedParagraphLength(value.margin) && optionalParagraphLength(value.borderWidth) && optionalParagraphLength(value.borderRadius)
     && optionalParagraphColour(value.borderColor) && optionalParagraphAnchor(value.anchor) && optionalParagraphClasses(value.className);

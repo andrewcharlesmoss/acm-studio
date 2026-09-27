@@ -38,6 +38,7 @@ export type ParagraphStyle = {
   textIndent?: string;
   textColumns?: number;
   dropCap?: boolean;
+  fitText?: boolean;
   textColor?: string;
   backgroundColor?: string;
   backgroundGradient?: ParagraphBackgroundGradient;

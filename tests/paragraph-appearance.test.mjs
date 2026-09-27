@@ -13,4 +13,6 @@ test("paragraph typography settings render as CSS without changing the text", ()
   assert.equal(paragraphStyleClassName(style), "has-drop-cap");
   assert.equal(paragraphStyleClassName({ ...style, className: "custom-paragraph" }), "has-drop-cap custom-paragraph");
   assert.deepEqual(paragraphStyleToCss(), {});
+  assert.equal(paragraphStyleClassName({ fitText: true }), "has-fit-text");
+  assert.equal(paragraphStyleToCss({ fitText: true, fontSize: "xx-large" }).fontSize, undefined);
 });
