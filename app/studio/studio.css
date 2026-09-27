@@ -916,7 +916,7 @@
 .inspector-tabs { --pane-tab-label-inset: 6px; border-bottom: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); min-height: 50px; padding: 0 12px; }
 .inspector-tabs button { background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: var(--studio-ui-size); font-weight: 620; }
 .inspector-tabs button[aria-selected="true"] { color: var(--ink); }
-.inspector-tabs button[aria-selected="true"]:not(:disabled):hover .pane-tab-label::after { left: 0; right: 0; }
+.pane-tabs.inspector-tabs button[aria-selected="true"]:not(:disabled):hover .pane-tab-label::after { left: 4px; right: 4px; }
 .inspector-tabs button:disabled { cursor: default; opacity: .4; }
 .studio-inspector > .pane-tabs-region { flex: none; }
 .inspector-scroll { min-height: 0; overflow: auto; }
