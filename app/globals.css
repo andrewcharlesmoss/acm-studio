@@ -740,6 +740,7 @@ button, input, textarea, select { font: inherit; }
 .block-visual-style.has-custom-font-family :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-family: inherit; }
 .block-visual-style.has-custom-appearance :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-style: inherit; font-weight: inherit; }
 .block-visual-style.has-custom-text-colour :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { color: inherit; }
+.has-drop-cap:is(p, .paragraph-field)::first-letter { float: left; font-size: 3.4em; font-weight: 600; line-height: .82; margin: .04em .12em 0 0; }
 .content-divider { border: 0; border-top: 1px solid var(--line); display: block; margin: 0; }
 .content-divider.is-wide { border-top-width: 3px; }
 .content-divider.is-dots { background: radial-gradient(circle, currentColor 2px, transparent 2.5px) left center / 12px 6px repeat-x; border: 0; height: 6px; margin-inline: auto; width: 36px; }

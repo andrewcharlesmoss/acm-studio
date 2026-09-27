@@ -26,7 +26,7 @@ import remains future work, not a capability supplied by this inspector review.
 
 | Studio block | WordPress reference | Studio inspector support | Remaining difference |
 | --- | --- | --- | --- |
-| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; typography, colours, background, dimensions, border, shadow and advanced fields. | WordPress theme presets and custom CSS editor are not imported. |
+| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; optional Typography, Dimensions, Border and Elements controls with per-section Reset all; background, line indent, text columns, drop cap and advanced fields. | Fit text, WordPress theme presets and custom CSS editor are not yet supported. |
 | Heading | [Heading](https://wordpress.org/documentation/article/heading-block/) | Level, alignment and shared visual settings. | Transform and rich-text toolbar details remain Studio-specific. |
 | Quote | [Quote](https://wordpress.org/documentation/article/quote-block/) | Attribution, text alignment, Default or Plain style, and shared visual settings. | Gutenberg's separate block alignment (including wide/full), background images and multi-paragraph quote editing are not modelled. |
 | List | [List](https://wordpress.org/documentation/article/list-block/) | Bullets or numbers, start value, reverse order and shared visual settings. | Items remain strings rather than individually styled nested List Item blocks; indentation and rich-text item formatting are not yet supported. |
@@ -53,3 +53,10 @@ font stack: Inter, Helvetica Neue, Helvetica and Arial. Existing document
 records and template snapshots keep their previous appearance unless a block
 setting is changed. A WordPress feature in the final column is a compatibility
 gap, not an available control.
+
+The inspector follows Gutenberg's section order and optional-control menu
+pattern for the shared appearance settings. A checked menu item shows its
+control. Removing it clears that setting from the block; Reset all clears the
+section's visible settings together. Studio keeps its own neutral colour
+palette. Paragraph line indent and text columns use CSS properties, and drop
+cap uses the first-letter treatment in both editing and rendered output.

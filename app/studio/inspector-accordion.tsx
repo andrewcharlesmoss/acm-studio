@@ -3,6 +3,10 @@ import { StudioIcon } from "./studio-icons";
 
 const InspectorContentDisabledContext = createContext(false);
 
+export function useInspectorContentDisabled() {
+  return useContext(InspectorContentDisabledContext);
+}
+
 export function InspectorContentDisabledProvider({ disabled, children }: { disabled: boolean; children: ReactNode }) {
   return <InspectorContentDisabledContext.Provider value={disabled}>{children}</InspectorContentDisabledContext.Provider>;
 }

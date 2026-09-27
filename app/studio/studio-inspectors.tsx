@@ -12,6 +12,7 @@ import type { StudioCategory, StudioDocument, StudioDocumentKind, StudioDocument
 import { StudioIcon } from "./studio-icons";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { InspectorAccordionSection } from "./inspector-accordion";
+import { InspectorToolsSection, type InspectorToolOption } from "./inspector-tools-section";
 import { documentDisplaySource, type FieldUsage } from "./document-fields";
 import { createPasswordProtection } from "../content/password-protection";
 import { COLUMN_LAYOUT_PRESETS, setColumnCount, setColumnsLayout, setColumnWidth } from "../content/columns";
@@ -629,12 +630,61 @@ function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { t
 function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange: (block: ContentBlock) => void }) {
   const style = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
   const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");
+  const activeBackgroundMode = style.backgroundGradient ? "gradient" : backgroundMode;
+  const typographyOptions: InspectorToolOption[] = [
+    { id: "colour", label: "Colour" }, { id: "size", label: "Size" },
+    { id: "appearance", label: "Appearance" },
+    { id: "line-height", label: "Line height" }, { id: "letter-spacing", label: "Letter spacing" },
+    ...(block.type === "paragraph" ? [{ id: "line-indent", label: "Line indent" }, { id: "columns", label: "Columns" }] : []),
+    { id: "decoration", label: "Decoration" }, { id: "letter-case", label: "Letter case" },
+    ...(block.type === "paragraph" ? [{ id: "drop-cap", label: "Drop cap" }] : []),
+    { id: "family", label: "Font family" },
+  ];
+  const dimensionOptions: InspectorToolOption[] = [{ id: "padding", label: "Padding" }, { id: "margin", label: "Margin" }];
+  const borderOptions: InspectorToolOption[] = [{ id: "border", label: "Border" }, { id: "radius", label: "Radius" }, { id: "shadow", label: "Shadow" }];
+  const elementOptions: InspectorToolOption[] = block.type === "button" ? [] : [{ id: "link-colour", label: "Link colour" }];
+  const [typographyUserVisible, setTypographyVisible] = useState(() => new Set(["colour", "size", "appearance"]));
+  const [dimensionsUserVisible, setDimensionsVisible] = useState(() => new Set<string>());
+  const [borderUserVisible, setBorderVisible] = useState(() => new Set<string>());
+  const [elementsUserVisible, setElementsVisible] = useState(() => new Set<string>());
+  const typographyVisible = new Set([...typographyUserVisible, ...[
+    style.textColor && "colour", style.fontSize && "size", style.appearance && "appearance", style.fontFamily && "family",
+    style.lineHeight && "line-height", style.letterSpacing && "letter-spacing", style.textIndent && "line-indent",
+    style.textColumns && "columns", style.textDecoration && "decoration", style.textTransform && "letter-case", style.dropCap && "drop-cap",
+  ].filter((value): value is string => Boolean(value))]);
+  const dimensionsVisible = new Set([...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin"].filter((value): value is string => Boolean(value))]);
+  const borderVisible = new Set([...borderUserVisible, ...[
+    (style.borderStyle || style.borderColor || style.borderWidth) && "border", style.borderRadius && "radius", style.shadow && "shadow",
+  ].filter((value): value is string => Boolean(value))]);
+  const elementsVisible = new Set([...elementsUserVisible, ...[style.linkColor && "link-colour"].filter((value): value is string => Boolean(value))]);
+  const toolFields: Record<string, (keyof ParagraphStyle)[]> = {
+    colour: ["textColor"], family: ["fontFamily"], size: ["fontSize"], appearance: ["appearance"],
+    "line-height": ["lineHeight"], "letter-spacing": ["letterSpacing"], "line-indent": ["textIndent"], columns: ["textColumns"], decoration: ["textDecoration"],
+    "letter-case": ["textTransform"], padding: ["padding"], margin: ["margin"],
+    "drop-cap": ["dropCap"],
+    border: ["borderColor", "borderStyle", "borderWidth"], radius: ["borderRadius"], shadow: ["shadow"],
+    "link-colour": ["linkColor"],
+  };
+  function writeStyle(nextStyle: ParagraphStyle) {
+    const updatedStyle = Object.keys(nextStyle).length ? nextStyle : undefined;
+    onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
+  }
+  function clearTools(ids: Iterable<string>) {
+    const nextStyle = { ...style };
+    for (const id of ids) for (const field of toolFields[id] ?? []) delete nextStyle[field];
+    writeStyle(nextStyle);
+  }
+  function toggleTool(id: string, visible: Set<string>, setVisible: (value: Set<string>) => void) {
+    const next = new Set(visible);
+    if (next.has(id)) { next.delete(id); clearTools([id]); }
+    else next.add(id);
+    setVisible(next);
+  }
   function updateStyle<K extends keyof ParagraphStyle>(field: K, value: ParagraphStyle[K] | undefined) {
     const nextStyle = { ...style };
     if (value === undefined || value === "") delete nextStyle[field];
     else nextStyle[field] = value;
-    const updatedStyle = Object.keys(nextStyle).length ? nextStyle : undefined;
-    onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
+    writeStyle(nextStyle);
   }
   function updateBackground(backgroundColor: string | undefined, backgroundGradient: ParagraphBackgroundGradient | undefined) {
     const nextStyle = { ...style };
@@ -642,8 +692,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     else delete nextStyle.backgroundColor;
     if (backgroundGradient) nextStyle.backgroundGradient = backgroundGradient;
     else delete nextStyle.backgroundGradient;
-    const updatedStyle = Object.keys(nextStyle).length ? nextStyle : undefined;
-    onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
+    writeStyle(nextStyle);
   }
   const fontSizes: { value: ParagraphFontSize; label: string; accessibleName: string }[] = [
     { value: "small", label: "S", accessibleName: "Small" },
@@ -653,30 +702,36 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     { value: "xx-large", label: "XXL", accessibleName: "Extra extra large" },
   ];
   return <>
-    <InspectorAccordionSection className="inspector-panel" title="Typography">
-      <ColourSetting label="Text colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} />
-      <label><span>Font family</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label>
-      <fieldset className="paragraph-font-size-setting"><legend>Font size</legend><div role="group" aria-label="Font size" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateStyle("fontSize", style.fontSize === value ? undefined : value)}>{label}</button>)}</div></fieldset>
-      <label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option><option value="regular">Regular</option><option value="italic">Italic</option><option value="bold">Bold</option><option value="bold-italic">Bold italic</option></select></label>
-      <div className="inspector-two-column"><label><span>Letter case</span><select value={style.textTransform ?? ""} onChange={(event) => updateStyle("textTransform", (event.target.value || undefined) as ParagraphStyle["textTransform"])}><option value="">Default</option><option value="none">Normal</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalise</option></select></label><label><span>Decoration</span><select value={style.textDecoration ?? ""} onChange={(event) => updateStyle("textDecoration", (event.target.value || undefined) as ParagraphStyle["textDecoration"])}><option value="">Default</option><option value="none">None</option><option value="underline">Underline</option><option value="line-through">Strikethrough</option></select></label></div>
-      <div className="inspector-two-column"><label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label><label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label></div>
-      {block.type !== "button" ? <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} /> : null}
-    </InspectorAccordionSection>
+    <InspectorToolsSection title="Typography" options={typographyOptions} visible={typographyVisible} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
+      {typographyVisible.has("colour") ? <ColourSetting label="Text colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /> : null}
+      {typographyVisible.has("size") ? <fieldset className="paragraph-font-size-setting"><legend>Font size</legend><div role="group" aria-label="Font size" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateStyle("fontSize", style.fontSize === value ? undefined : value)}>{label}</button>)}</div></fieldset> : null}
+      {typographyVisible.has("appearance") ? <label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option><option value="regular">Regular</option><option value="italic">Italic</option><option value="bold">Bold</option><option value="bold-italic">Bold italic</option></select></label> : null}
+      {typographyVisible.has("line-height") ? <label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label> : null}
+      {typographyVisible.has("letter-spacing") ? <label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label> : null}
+      {typographyVisible.has("line-indent") ? <ParagraphLengthSetting key={`${block.id}-indent`} label="Line indent" value={style.textIndent} min={-100} max={200} onChange={(value) => updateStyle("textIndent", value)} /> : null}
+      {typographyVisible.has("columns") ? <label><span>Columns</span><select value={style.textColumns ?? ""} onChange={(event) => updateStyle("textColumns", event.target.value ? Number(event.target.value) : undefined)}><option value="">Default</option>{[1, 2, 3, 4].map(count => <option key={count} value={count}>{count}</option>)}</select></label> : null}
+      {typographyVisible.has("decoration") ? <label><span>Decoration</span><select value={style.textDecoration ?? ""} onChange={(event) => updateStyle("textDecoration", (event.target.value || undefined) as ParagraphStyle["textDecoration"])}><option value="">Default</option><option value="none">None</option><option value="underline">Underline</option><option value="line-through">Strikethrough</option></select></label> : null}
+      {typographyVisible.has("letter-case") ? <label><span>Letter case</span><select value={style.textTransform ?? ""} onChange={(event) => updateStyle("textTransform", (event.target.value || undefined) as ParagraphStyle["textTransform"])}><option value="">Default</option><option value="none">Normal</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalise</option></select></label> : null}
+      {typographyVisible.has("drop-cap") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.dropCap)} onChange={event => updateStyle("dropCap", event.target.checked || undefined)} /><span>Drop cap</span></label> : null}
+      {typographyVisible.has("family") ? <label><span>Font family</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
+    </InspectorToolsSection>
     <InspectorAccordionSection className="inspector-panel" title="Background">
-      <div className="paragraph-background-modes" role="group" aria-label="Background type"><button type="button" aria-pressed={backgroundMode === "colour"} className={backgroundMode === "colour" ? "is-active" : ""} onClick={() => { setBackgroundMode("colour"); if (style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }}>Colour</button><button type="button" aria-pressed={backgroundMode === "gradient"} className={backgroundMode === "gradient" ? "is-active" : ""} onClick={() => setBackgroundMode("gradient")}>Gradient</button></div>
-      {backgroundMode === "colour" ? <ColourSetting label="Background colour" value={style.backgroundColor} onChange={(value) => updateBackground(value, undefined)} /> : <div className="paragraph-gradient-options" role="group" aria-label="Background gradient">{(Object.entries(PARAGRAPH_BACKGROUND_GRADIENTS) as [ParagraphBackgroundGradient, string][]).map(([gradient]) => <button key={gradient} type="button" aria-label={`${gradient} gradient`} aria-pressed={style.backgroundGradient === gradient} className={style.backgroundGradient === gradient ? "is-active" : ""} style={{ backgroundImage: paragraphBackgroundGradientCss(gradient) }} onClick={() => updateBackground(undefined, gradient)} />)}</div>}
+      <div className="paragraph-background-modes" role="group" aria-label="Background type"><button type="button" aria-pressed={activeBackgroundMode === "colour"} className={activeBackgroundMode === "colour" ? "is-active" : ""} onClick={() => { setBackgroundMode("colour"); if (style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }}>Colour</button><button type="button" aria-pressed={activeBackgroundMode === "gradient"} className={activeBackgroundMode === "gradient" ? "is-active" : ""} onClick={() => setBackgroundMode("gradient")}>Gradient</button></div>
+      {activeBackgroundMode === "colour" ? <ColourSetting label="Background colour" value={style.backgroundColor} onChange={(value) => updateBackground(value, undefined)} /> : <div className="paragraph-gradient-options" role="group" aria-label="Background gradient">{(Object.entries(PARAGRAPH_BACKGROUND_GRADIENTS) as [ParagraphBackgroundGradient, string][]).map(([gradient]) => <button key={gradient} type="button" aria-label={`${gradient} gradient`} aria-pressed={style.backgroundGradient === gradient} className={style.backgroundGradient === gradient ? "is-active" : ""} style={{ backgroundImage: paragraphBackgroundGradientCss(gradient) }} onClick={() => updateBackground(undefined, gradient)} />)}</div>}
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </InspectorAccordionSection>
-    <InspectorAccordionSection className="inspector-panel" title="Dimensions">
-      <ParagraphLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding} min={0} max={100} onChange={(value) => updateStyle("padding", value)} />
-      <ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} />
-    </InspectorAccordionSection>
-    <InspectorAccordionSection className="inspector-panel" title="Border">
-      <ColourSetting label="Colour" value={style.borderColor} onChange={(value) => updateStyle("borderColor", value)} />
-      <label><span>Style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option></select></label>
-      <div className="inspector-two-column"><label><span>Width</span><input value={style.borderWidth ?? ""} onChange={(event) => updateStyle("borderWidth", event.target.value)} placeholder="1px" /></label><label><span>Radius</span><input value={style.borderRadius ?? ""} onChange={(event) => updateStyle("borderRadius", event.target.value)} placeholder="0" /></label></div>
-      <label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label>
-    </InspectorAccordionSection>
+    <InspectorToolsSection title="Dimensions" options={dimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
+      {dimensionsVisible.has("padding") ? <ParagraphLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding} min={0} max={100} onChange={(value) => updateStyle("padding", value)} /> : null}
+      {dimensionsVisible.has("margin") ? <ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
+    </InspectorToolsSection>
+    <InspectorToolsSection title="Border" options={borderOptions} visible={borderVisible} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools(borderVisible); setBorderVisible(new Set()); }}>
+      {borderVisible.has("border") ? <><ColourSetting label="Colour" value={style.borderColor} onChange={(value) => updateStyle("borderColor", value)} /><label><span>Style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option></select></label><label><span>Width</span><input value={style.borderWidth ?? ""} onChange={(event) => updateStyle("borderWidth", event.target.value)} placeholder="1px" /></label></> : null}
+      {borderVisible.has("radius") ? <label><span>Radius</span><input value={style.borderRadius ?? ""} onChange={(event) => updateStyle("borderRadius", event.target.value)} placeholder="0" /></label> : null}
+      {borderVisible.has("shadow") ? <label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
+    </InspectorToolsSection>
+    {elementOptions.length ? <InspectorToolsSection title="Elements" options={elementOptions} visible={elementsVisible} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
+      {elementsVisible.has("link-colour") ? <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} /> : null}
+    </InspectorToolsSection> : null}
     <InspectorAccordionSection className="inspector-panel" title={<>Advanced</>}><label><span>HTML anchor</span><input value={style.anchor ?? ""} onChange={(event) => updateStyle("anchor", event.target.value)} placeholder="section-name" /></label><label><span>Additional CSS class(es)</span><input value={style.className ?? ""} onChange={(event) => updateStyle("className", event.target.value)} placeholder="custom-class" /></label></InspectorAccordionSection>
   </>;
 }

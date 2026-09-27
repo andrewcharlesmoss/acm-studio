@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Added Gutenberg-style optional appearance menus and per-section resets to
+  shared block settings, with paragraph line indent, text columns and drop cap.
 - Added Quote text alignment and a Plain style to the block inspector.
 - Added Spacer width and unit controls, plus spacing and advanced settings for
   Spacer and Embed blocks.

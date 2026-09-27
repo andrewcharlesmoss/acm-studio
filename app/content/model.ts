@@ -35,6 +35,9 @@ export type ParagraphStyle = {
   textDecoration?: ParagraphTextDecoration;
   lineHeight?: string;
   letterSpacing?: string;
+  textIndent?: string;
+  textColumns?: number;
+  dropCap?: boolean;
   textColor?: string;
   backgroundColor?: string;
   backgroundGradient?: ParagraphBackgroundGradient;
