@@ -808,7 +808,7 @@
 .list-field-editor, .list-field-preview { display: grid; gap: 5px; list-style: none; padding: 0; }
 .list-field-row { align-items: start; display: grid; gap: 6px; grid-template-columns: 24px minmax(0, 1fr); }
 .list-field-marker { color: var(--ink); font-size: 16px; line-height: 1.55; padding-right: 3px; text-align: right; }
-.list-field-row textarea, .list-item-text { background: transparent; border: 0; color: var(--ink); display: block; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; min-height: 28px; outline: 0; overflow: hidden; overflow-wrap: anywhere; padding: 0; resize: none; white-space: pre-wrap; width: 100%; }
+.list-field-row textarea, .list-item-editor, .list-item-text { background: transparent; border: 0; color: var(--ink); display: block; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; min-height: 28px; outline: 0; overflow: hidden; overflow-wrap: anywhere; padding: 0; resize: none; white-space: pre-wrap; width: 100%; }
 /* The table frame owns its only outer edge, including the selected state.
    Clip the cells here, leaving the block toolbar outside the clipped area. */
 .canvas-block.is-table, .studio-block-preview > .content-block.is-table { border: 0; }

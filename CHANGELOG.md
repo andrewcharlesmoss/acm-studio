@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Preserved inline formatting and links in List items across editing, previews and HTML export while retaining existing plain-text drafts.
 - Added Heading Fit text using the existing measured typography control.
 - Added captions to Embed blocks across Edit, Preview and HTML editing.
 - Added Paragraph Fit text, measured in Edit, Preview and published rendering.

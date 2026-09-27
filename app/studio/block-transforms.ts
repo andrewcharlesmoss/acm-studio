@@ -1,11 +1,11 @@
-import type { ContentBlock, HeadingLevel, TextAlignment } from "../content/model";
+import { listItemText, type ContentBlock, type HeadingLevel, type TextAlignment } from "../content/model";
 import type { StudioIconName } from "./studio-icons";
 
 export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote"; level?: HeadingLevel };
 
 function textFromBlock(block: ContentBlock) {
   if (block.type === "paragraph" || block.type === "heading" || block.type === "quote") return block.text;
-  if (block.type === "list") return block.items.join("\n");
+  if (block.type === "list") return block.items.map(listItemText).join("\n");
   if (block.type === "code") return block.code;
   if (block.type === "button") return block.label;
   return "";
@@ -27,9 +27,10 @@ export function availableBlockTransforms(block: ContentBlock): BlockTransform[] 
 
 export function transformBlock(block: ContentBlock, transform: BlockTransform): ContentBlock {
   const text = textFromBlock(block);
+  const listRuns = block.type === "list" && block.items.length === 1 && typeof block.items[0] !== "string" ? block.items[0].runs : undefined;
   const align: TextAlignment | undefined = "align" in block ? block.align : undefined;
-  if (transform.target === "heading") return { id: block.id, siteRole: block.siteRole, type: "heading", level: transform.level ?? 2, text, align };
+  if (transform.target === "heading") return { id: block.id, siteRole: block.siteRole, type: "heading", level: transform.level ?? 2, text, runs: listRuns, align };
   if (transform.target === "list") return { id: block.id, siteRole: block.siteRole, type: "list", style: "unordered", items: text.split(/\n+/).filter(Boolean).length ? text.split(/\n+/).filter(Boolean) : [""] };
-  if (transform.target === "quote") return { id: block.id, siteRole: block.siteRole, type: "quote", text, align };
-  return { id: block.id, siteRole: block.siteRole, type: "paragraph", text, align };
+  if (transform.target === "quote") return { id: block.id, siteRole: block.siteRole, type: "quote", text, runs: listRuns, align };
+  return { id: block.id, siteRole: block.siteRole, type: "paragraph", text, runs: listRuns, align };
 }

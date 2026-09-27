@@ -82,7 +82,7 @@ function migrateLegacyBlocks(blocks: ContentBlock[]) {
     if (heading && (heading.type === "heading" || heading.type === "paragraph")) data.heading = heading.text;
     if (paragraph?.type === "paragraph") data.details = paragraph.text;
     if (table?.type === "table") data.rows = table.rows.flat();
-    if (list?.type === "list") data.items = list.items;
+    if (list?.type === "list") data.items = list.items.map((item) => typeof item === "string" ? item : item.text);
     const children = sectionName === "scorecard"
       ? [
           heading ? { ...heading, id: `${sectionName}-heading` } : undefined,

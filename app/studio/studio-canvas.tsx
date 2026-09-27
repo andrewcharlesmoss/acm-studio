@@ -18,7 +18,7 @@ import { StudioIcon } from "./studio-icons";
 import { Pane } from "./panes/pane-components";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
 import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
-import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, listNumber, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
+import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, listItemText, listNumber, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type ListItem, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
 import type { StudioDocument, InsertableBlockType } from "./editor-model";
 import type { StudioPresentation } from "./studio-presentation";
 import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBlock, parseHtmlToBlocks } from "./studio-html-editor";
@@ -1061,7 +1061,7 @@ function BlockFieldContent({ block, rootBlocks = [block], document, templatePlac
   if (block.type === "paragraph") return <RichTextEditor mediaUrls={mediaUrls} id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} fitText={block.style?.fitText} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph ? (beforeRuns, afterRuns) => onSplitParagraph(block.id, beforeRuns, afterRuns) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
   if (block.type === "heading") return <RichTextEditor mediaUrls={mediaUrls} className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}${block.visualStyle?.fitText ? " has-fit-text" : ""}`} fitText={block.visualStyle?.fitText} fitTextSignature={JSON.stringify(block.visualStyle ?? {})} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
   if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}${block.quoteStyle === "plain" ? " is-style-plain" : ""}`}><RichTextEditor mediaUrls={mediaUrls} className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
-  if (block.type === "list") return <ListField block={block} onChange={onChange} />;
+  if (block.type === "list") return <ListField block={block} mediaUrls={mediaUrls} onChange={onChange} />;
   if (block.type === "table") return <TableField block={block} onCellFocus={onTableCellFocus} onChange={onChange} />;
   if (block.type === "code") return <CodeEditor value={block.code} language={block.language} onChange={(code) => onChange({ ...block, code })} />;
   // User-supplied URLs cannot be known to Next's image optimiser in this local editor.
@@ -1195,7 +1195,7 @@ export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls 
     const selection = selectionWithinEditor(editor);
     editor.innerHTML = html;
     if (selection) restoreEditorSelection(editor, selection);
-  }, [renderedRuns]);
+  }, [renderedRuns, mediaUrls]);
 
   function readSelection() {
     const editor = editorRef.current;
@@ -1696,18 +1696,17 @@ function AutoResizeTextarea({ value, ...props }: TextareaHTMLAttributes<HTMLText
   return <textarea {...props} ref={textareaRef} rows={1} value={value} />;
 }
 
-function ListField({ block, onChange }: { block: Extract<ContentBlock, { type: "list" }>; onChange: (block: ContentBlock) => void }) {
+function ListField({ block, mediaUrls, onChange }: { block: Extract<ContentBlock, { type: "list" }>; mediaUrls: Record<string, string>; onChange: (block: ContentBlock) => void }) {
   const items = block.items.length ? block.items : [""];
   const listRef = useRef<HTMLDivElement>(null);
-  function updateItem(index: number, value: string) {
+  function updateItem(index: number, value: string, runs: RichTextRun[]) {
     const nextItems = [...items];
-    nextItems[index] = value;
+    nextItems[index] = runs.some((run) => run.marks?.length) ? { text: value, runs } : value;
     onChange({ ...block, items: nextItems });
   }
   function focusItem(index: number) {
     requestAnimationFrame(() => {
-      const kind = block.style === "ordered" ? "Numbered" : "Bulleted";
-      listRef.current?.querySelector<HTMLTextAreaElement>(`textarea[aria-label="${kind} list item ${index + 1}"]`)?.focus();
+      listRef.current?.querySelector<HTMLElement>(`[data-list-item-index="${index}"]`)?.focus();
     });
   }
   function removeItem(index: number, focusIndex?: number) {
@@ -1715,18 +1714,19 @@ function ListField({ block, onChange }: { block: Extract<ContentBlock, { type: "
     onChange({ ...block, items: nextItems.length ? nextItems : [""] });
     if (focusIndex !== undefined) focusItem(Math.min(Math.max(focusIndex, 0), Math.max(nextItems.length - 1, 0)));
   }
-  function insertItem(index: number) {
-    const nextItems = [...items];
-    nextItems.splice(index + 1, 0, "");
-    onChange({ ...block, items: nextItems });
-    focusItem(index + 1);
-  }
   return (
     <div ref={listRef} className={`list-field-editor is-${block.style}`}>
       {items.map((item, index) => (
         <div className="list-field-row" key={`${block.id}-item-${index}`}>
           <span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${listNumber(block, index)}.` : "•"}</span>
-          <AutoResizeTextarea value={item} onChange={(event) => updateItem(index, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); insertItem(index); } else if (event.key === "Backspace" && !event.shiftKey && item.length === 0 && items.length > 1) { event.preventDefault(); removeItem(index, index - 1); } }} aria-label={`${block.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}`} placeholder="List item" />
+          <RichTextEditor className="list-item-editor" data-list-item-index={index} text={listItemText(item)} runs={typeof item === "string" ? undefined : item.runs} mediaUrls={mediaUrls} onChange={(text, runs) => updateItem(index, text, runs)} onSelectionChange={() => {}} onLinkActivate={() => {}} onSplitParagraph={(beforeRuns, afterRuns) => {
+            const nextItems: ListItem[] = [...items];
+            nextItems[index] = beforeRuns.some((run) => run.marks?.length) ? { text: plainTextFromRuns(beforeRuns), runs: beforeRuns } : plainTextFromRuns(beforeRuns);
+            nextItems.splice(index + 1, 0, afterRuns.some((run) => run.marks?.length) ? { text: plainTextFromRuns(afterRuns), runs: afterRuns } : plainTextFromRuns(afterRuns));
+            onChange({ ...block, items: nextItems });
+            focusItem(index + 1);
+            return null;
+          }} onKeyDown={(event) => { if (event.key === "Backspace" && !event.shiftKey && listItemText(item).length === 0 && items.length > 1) { event.preventDefault(); removeItem(index, index - 1); } }} aria-label={`${block.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}`} data-placeholder="List item" />
         </div>
       ))}
     </div>

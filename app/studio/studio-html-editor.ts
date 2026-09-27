@@ -1,4 +1,4 @@
-import type { ContentBlock, LayoutOptions, RichTextRun, SiteSectionRole, TextMark } from "../content/model";
+import { listItemText, type ContentBlock, type LayoutOptions, type RichTextRun, type SiteSectionRole, type TextMark } from "../content/model";
 import { hasLayoutOptions } from "../content/layout";
 import { plainTextFromRuns, safeImageSource, safeTextLink } from "../content/rich-text";
 import { validContentBlocks } from "./workspace-validation";
@@ -99,7 +99,7 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<blockquote${attributes}${classAttribute([block.align ? `align-${block.align}` : "", block.quoteStyle === "plain" ? "is-style-plain" : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}${block.attribution ? `<cite>${escapeText(block.attribution)}</cite>` : ""}</blockquote>`;
     case "list": {
       const tag = block.style === "ordered" ? "ol" : "ul";
-      return `<${tag}${attributes}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}>${block.items.map((item) => `<li>${escapeText(item)}</li>`).join("")}</${tag}>`;
+      return `<${tag}${attributes}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}>${block.items.map((item) => `<li>${typeof item === "string" ? escapeText(item) : runsToHtml(item.runs, listItemText(item))}</li>`).join("")}</${tag}>`;
     }
     case "table": {
       const rows = block.rows.length ? block.rows : [[""]];
@@ -319,8 +319,15 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       { const runs = parseRuns(element); return { block: { id, type: "heading", level: Number(element.tagName.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6, text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element) } }; }
     case "blockquote":
       { const runs = parseRuns(element); return { block: { id, type: "quote", text: runs ? plainTextFromRuns(runs) : textContent.replace(element.querySelector("cite")?.textContent ?? "", "").trim(), runs, attribution: element.querySelector("cite")?.textContent || undefined, align: alignmentFromClass(element), quoteStyle: element.classList.contains("is-style-plain") ? "plain" : undefined } }; }
-    case "ul": case "ol":
-      return { block: { id, type: "list", style: element.tagName.toLowerCase() === "ol" ? "ordered" : "unordered", items: [...element.children].filter((child) => child.tagName.toLowerCase() === "li").map((child) => child.textContent ?? ""), start: element.tagName.toLowerCase() === "ol" && element.hasAttribute("start") ? (Number(element.getAttribute("start")) || undefined) : undefined, reversed: element.tagName.toLowerCase() === "ol" && element.hasAttribute("reversed") || undefined } };
+    case "ul": case "ol": {
+      if ([...element.querySelectorAll("ul, ol")].length) return { error: "Nested lists are not yet supported by this editor." };
+      const items = [...element.children].filter((child) => child.tagName.toLowerCase() === "li").map((child) => {
+        const runs = parseRuns(child as HTMLElement);
+        const text = runs ? plainTextFromRuns(runs) : child.textContent ?? "";
+        return runs?.some((run) => run.marks?.length) ? { text, runs } : text;
+      });
+      return { block: { id, type: "list", style: element.tagName.toLowerCase() === "ol" ? "ordered" : "unordered", items, start: element.tagName.toLowerCase() === "ol" && element.hasAttribute("start") ? (Number(element.getAttribute("start")) || undefined) : undefined, reversed: element.tagName.toLowerCase() === "ol" && element.hasAttribute("reversed") || undefined } };
+    }
     case "table":
       return parseTable(element, id, original);
     case "pre":

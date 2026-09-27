@@ -1,6 +1,6 @@
 "use client";
 
-import type { ContentBlock } from "../content/model";
+import { listItemText, type ContentBlock } from "../content/model";
 import { StudioCanvas, type StudioCanvasProps } from "./studio-canvas";
 import { StudioInspector, type StudioInspectorProps } from "./studio-inspectors";
 import type { StudioDocument } from "./editor-model";
@@ -39,7 +39,7 @@ export function StudioEditor({ target, writable = true, onUndo, onRedo, canUndo 
 
 export function documentText(block: ContentBlock): string {
   if (block.type === "paragraph" || block.type === "heading" || block.type === "quote") return block.text;
-  if (block.type === "list") return block.items.join(" ");
+  if (block.type === "list") return block.items.map(listItemText).join(" ");
   if (block.type === "code") return block.code;
   if (block.type === "button") return block.label;
   if (block.type === "field") return `${block.label} ${block.value}`;

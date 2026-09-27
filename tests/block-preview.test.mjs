@@ -192,6 +192,21 @@ test("Studio preview preserves block order, semantic content and raw whitespace 
   assert.deepEqual(blocks, before);
 });
 
+test("formatted list items preserve inline links and marks in previews and HTML", () => {
+  const block = { id: "links", type: "list", style: "unordered", items: [
+    "Plain item",
+    { text: "Bold link", runs: [{ text: "Bold ", marks: ["bold"] }, { text: "link", marks: [{ type: "link", url: "https://example.com" }] }] },
+  ] };
+  const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
+  const publicView = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block] }));
+  for (const html of [studio, publicView, blockToHtml(block)]) {
+    assert.match(html, /Plain item/);
+    assert.match(html, /<strong>Bold <\/strong>/);
+    assert.match(html, /<a href="https:\/\/example\.com">link<\/a>/);
+    assert.doesNotMatch(html, /\[object Object\]/);
+  }
+});
+
 test("the public article renderer remains independent of the Studio presentation", () => {
   const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [
     { id: "heading", type: "heading", level: 2, text: "Heading" },

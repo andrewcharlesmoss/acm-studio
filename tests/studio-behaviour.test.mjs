@@ -1315,11 +1315,11 @@ test("shared editor toolbar owns history controls and docks a dismissible List V
   assert.match(css, /@container \(max-width: 680px\) \{\s*\.studio-list-view \{[^}]*position: absolute; top: 0/);
 });
 
-test("list items continue from Return without a permanent Add item control", () => {
+test("list items split their rich text on Return without a permanent Add item control", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
-  assert.match(listField, /event\.key === "Enter" && !event\.shiftKey/);
-  assert.match(listField, /nextItems\.splice\(index \+ 1, 0, ""\)/);
+  assert.match(listField, /onSplitParagraph=\{\(beforeRuns, afterRuns\) =>/);
+  assert.match(listField, /nextItems\.splice\(index \+ 1, 0, afterRuns/);
   assert.match(listField, /requestAnimationFrame\(\(\) =>/);
   assert.doesNotMatch(listField, /Add item/);
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
@@ -1329,7 +1329,7 @@ test("list items continue from Return without a permanent Add item control", () 
 test("Backspace removes an empty list item and keeps text editing intact", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
-  assert.match(listField, /event\.key === "Backspace" && !event\.shiftKey && item\.length === 0 && items\.length > 1/);
+  assert.match(listField, /event\.key === "Backspace" && !event\.shiftKey && listItemText\(item\)\.length === 0 && items\.length > 1/);
   assert.match(listField, /event\.preventDefault\(\); removeItem\(index, index - 1\)/);
   assert.match(listField, /focusItem\(Math\.min\(Math\.max\(focusIndex, 0\)/);
   assert.doesNotMatch(listField, /list-item-remove/);

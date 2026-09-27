@@ -109,7 +109,8 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
       case "heading": return typeof block.text === "string" && validRuns(block.runs) && [1, 2, 3, 4, 5, 6].includes(block.level as number);
       case "quote": return typeof block.text === "string" && validRuns(block.runs) && optionalString(block.attribution)
         && (block.quoteStyle === undefined || ["default", "plain"].includes(block.quoteStyle as string));
-      case "list": return ["ordered", "unordered"].includes(block.style as string) && strings(block.items)
+      case "list": return ["ordered", "unordered"].includes(block.style as string) && Array.isArray(block.items)
+        && block.items.every((item) => typeof item === "string" || (isRecord(item) && typeof item.text === "string" && validRuns(item.runs)))
         && (block.start === undefined || (typeof block.start === "number" && Number.isInteger(block.start) && block.start >= 1 && block.start <= 100000))
         && optionalBoolean(block.reversed);
       case "table": {
