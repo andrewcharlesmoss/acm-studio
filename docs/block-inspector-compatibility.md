@@ -6,6 +6,24 @@ below covers every Studio block type available in the editor on 27 September
 media services. Studio stores portable typed blocks and provides local previews;
 these settings do not turn its data into WordPress block markup.
 
+## Compatibility approach
+
+Inspect [Gutenberg's block source](https://github.com/WordPress/gutenberg/tree/trunk/packages/block-library/src),
+documentation and tests to understand each block's content structure, saved
+attributes, controls and rendering behaviour. Preserve the meaning and editable
+structure of content that a future WordPress importer maps into Studio. An
+inspector control is useful only when Studio can store, preview and export its
+effect reliably; copying every control would not by itself make an import
+faithful.
+
+Studio owns its typed content model and editing interface. Match Gutenberg's
+familiar behaviour where it helps, but allow a better Studio interaction when
+the underlying content remains representable. Record intentional differences
+and unsupported attributes here. Before claiming import compatibility, test
+realistic WordPress block fixtures, including nested content and unsupported
+blocks, and verify that no source content is silently discarded. WordPress blog
+import remains future work, not a capability supplied by this inspector review.
+
 | Studio block | WordPress reference | Studio inspector support | Remaining difference |
 | --- | --- | --- | --- |
 | Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; typography, colours, background, dimensions, border, shadow and advanced fields. | WordPress theme presets and custom CSS editor are not imported. |
