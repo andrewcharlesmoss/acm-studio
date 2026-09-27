@@ -5,5 +5,6 @@ export const metadata: Metadata = { title: "Icons and Symbols · Studio UI Libra
 
 export default async function StudioUiIconsPage({ searchParams }: { searchParams: Promise<{ icon?: string | string[]; collection?: string | string[] }> }) {
   const params = await searchParams;
-  return <IconsCatalogue initialIcon={Array.isArray(params.icon) ? params.icon[0] : params.icon} collection={params.collection === "keyboard" ? "keyboard" : "icons"} />;
+  const collection = params.collection === "keyboard" ? "keyboard" : params.collection === "blocks" ? "blocks" : "icons";
+  return <IconsCatalogue initialIcon={Array.isArray(params.icon) ? params.icon[0] : params.icon} collection={collection} />;
 }

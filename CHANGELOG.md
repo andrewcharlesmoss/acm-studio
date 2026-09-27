@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- Added the Block Library icon collection, aligned tiles with shared ACM symbols,
+  added Studio symbols where the catalogue lacked suitable matches, and included
+  template Content with shared icons at their optical scales. Heading tiles use
+  a generic marker instead of showing the default H2 level.
 - Added keyboard artwork provenance and available licence notices to the
   selected-key inspector.
 - Refined the UK keyboard collection to 154 key identities across 144 active

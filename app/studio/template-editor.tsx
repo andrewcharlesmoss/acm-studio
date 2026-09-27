@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ContentBlock, RichTextRun } from "../content/model";
 import { BlockRenderer } from "../components/content";
-import { blockCatalogue, createBlock, createWorkspacePreviewDocument, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
+import { blockCatalogue, createBlock, createWorkspacePreviewDocument, templateContentBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
 import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
@@ -42,7 +42,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   const blocks = templateEditorBlocks(target.nodes);
   // Metadata blocks are ordinary dynamic blocks and can be placed in a
   // template. Their values come from the preview document at render time.
-  const templateBlockCatalogue = target.kind === "page" || target.kind === "post" ? [...blockCatalogue, { type: "template-content" as const, label: "Content", description: "Show the body supplied by each document.", group: "Other" as const, icon: "block" as const }] : blockCatalogue;
+  const templateBlockCatalogue = target.kind === "page" || target.kind === "post" ? [...blockCatalogue, templateContentBlock] : blockCatalogue;
   const selectedBlock = selected ? findBlockById(blocks, selected) : null;
   const editingProjection = { ...resolvedSample, blocks };
   const nodesRef = useRef(target.nodes);

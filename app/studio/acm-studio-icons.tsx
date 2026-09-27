@@ -13,7 +13,7 @@ export type AcmStudioIconName =
   | "file" | "fit" | "folder" | "format-bold" | "format-italic" | "globe"
   | "heading" | "image" | "info" | "link" | "link-off" | "list" | "lock"
   | "lock-open" | "more-vertical" | "paragraph" | "pencil" | "quote" | "redo"
-  | "rotate" | "seen" | "seen-off" | "separator" | "trash" | "undo" | "video"
+  | "rotate" | "seen" | "seen-off" | "separator" | "spacer" | "clock" | "calendar" | "heading-marker" | "trash" | "undo" | "video"
   | "visibility" | "visibility-off" | "zoom-in" | "zoom-out"
   | "footnote" | "highlight" | "inline-code" | "inline-image" | "keyboard"
   | "language" | "math" | "strikethrough" | "subscript" | "superscript"
@@ -74,6 +74,10 @@ export function AcmStudioIcon({ name, size = 24, ...props }: AcmStudioIconProps)
     case "seen-off":
     case "visibility-off": return <svg {...shared} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7"><path d="M3 12s3.3-5 9-5 9 5 9 5-3.3 5-9 5-9-5-9-5Z" /><circle cx="12" cy="12" r="2.5" /><path d="M4 4 20 20" /></svg>;
     case "separator": return <svg {...line}><path d="M4 12h16M4 9v6m16-6v6" /></svg>;
+    case "spacer": return <svg {...line}><path d="M12 3v18M8.5 6.5 12 3l3.5 3.5M8.5 17.5 12 21l3.5-3.5" /></svg>;
+    case "clock": return <svg {...line}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg>;
+    case "calendar": return <svg {...line}><rect x="3.5" y="5" width="17" height="15.5" rx="2" /><path d="M7.5 3v4M16.5 3v4M3.5 9h17M8 13h.01M12 13h.01M16 13h.01M8 16.5h.01M12 16.5h.01" /></svg>;
+    case "heading-marker": return <svg {...shared} fill="currentColor"><path d="M6 3.5h12v17l-6-4.5-6 4.5z" /></svg>;
     case "trash": return <svg {...line}><path d="M4 7h16M9 7V4.5h6V7m3 0-.8 13H6.8L6 7m3.5 4v5m5-5v5" /></svg>;
     case "undo": return <svg {...line}><path d="M5 10h9a5 5 0 0 1 0 10h-2m-7-10 4-4m-4 4 4 4" /></svg>;
     case "video": return <svg {...line}><rect x="3" y="5" width="13" height="14" rx="2" /><path d="m16 10 5-3v10l-5-3zM8 9l4 3-4 3z" /></svg>;

@@ -1,5 +1,4 @@
 import type { ContentBlock, DocumentDisplayField, DocumentDisplayMode } from "../content/model";
-import type { StudioIconName } from "./studio-icons";
 import type { LocallyPublishedArticle } from "../content/local-publishing";
 import type { TemplateAssignment } from "./template-model";
 
@@ -71,29 +70,35 @@ export const blockCatalogue: Array<{
   label: string;
   description: string;
   group: "Text" | "Media" | "Design" | "Other";
-  icon: StudioIconName;
 }> = [
-  { type: "group", label: "Group", description: "Combine blocks into a stack, row or columns.", group: "Design", icon: "block" },
-  { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Design", icon: "block" },
-  { type: "paragraph", label: "Paragraph", description: "Start with ordinary text.", group: "Text", icon: "paragraph" },
-  { type: "heading", label: "Heading", description: "Introduce a new section.", group: "Text", icon: "heading" },
-  { type: "list", label: "List", description: "Create an ordered or bullet list.", group: "Text", icon: "list" },
-  { type: "quote", label: "Quote", description: "Emphasise a quotation.", group: "Text", icon: "quote" },
-  { type: "table", label: "Table", description: "Create structured content in rows and columns.", group: "Text", icon: "block" },
-  { type: "code", label: "Code", description: "Display code or a formula.", group: "Text", icon: "code" },
-  { type: "image", label: "Image", description: "Add an image by URL for now.", group: "Media", icon: "image" },
-  { type: "embed", label: "Embed", description: "Link to an external resource.", group: "Media", icon: "external" },
-  { type: "button", label: "Button", description: "Add a call to action.", group: "Design", icon: "button" },
-  { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Design", icon: "block" },
-  { type: "divider", label: "Divider", description: "Separate two sections.", group: "Design", icon: "separator" },
-  { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design", icon: "separator" },
-  { type: "document-title", label: "Document Title", description: "Display the current page or post title.", group: "Other", icon: "heading" },
-  { type: "document-subtitle", label: "Document Subtitle", description: "Display the current page or post subtitle.", group: "Other", icon: "paragraph" },
-  { type: "cover-image", label: "Cover Image", description: "Display the document cover image.", group: "Other", icon: "image" },
-  { type: "reading-time", label: "Reading Time", description: "Show the calculated reading time for this document.", group: "Other", icon: "block" },
-  { type: "post-author", label: "Post Author", description: "Show the document author when one is set.", group: "Other", icon: "block" },
-  { type: "post-date", label: "Post Date", description: "Show the document publication date.", group: "Other", icon: "block" },
+  { type: "group", label: "Group", description: "Combine blocks into a stack, row or columns.", group: "Design" },
+  { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Design" },
+  { type: "paragraph", label: "Paragraph", description: "Start with ordinary text.", group: "Text" },
+  { type: "heading", label: "Heading", description: "Introduce a new section.", group: "Text" },
+  { type: "list", label: "List", description: "Create an ordered or bullet list.", group: "Text" },
+  { type: "quote", label: "Quote", description: "Emphasise a quotation.", group: "Text" },
+  { type: "table", label: "Table", description: "Create structured content in rows and columns.", group: "Text" },
+  { type: "code", label: "Code", description: "Display code or a formula.", group: "Text" },
+  { type: "image", label: "Image", description: "Add an image by URL for now.", group: "Media" },
+  { type: "embed", label: "Embed", description: "Link to an external resource.", group: "Media" },
+  { type: "button", label: "Button", description: "Add a call to action.", group: "Design" },
+  { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Design" },
+  { type: "divider", label: "Divider", description: "Separate two sections.", group: "Design" },
+  { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design" },
+  { type: "document-title", label: "Document Title", description: "Display the current page or post title.", group: "Other" },
+  { type: "document-subtitle", label: "Document Subtitle", description: "Display the current page or post subtitle.", group: "Other" },
+  { type: "cover-image", label: "Cover Image", description: "Display the document cover image.", group: "Other" },
+  { type: "reading-time", label: "Reading Time", description: "Show the calculated reading time for this document.", group: "Other" },
+  { type: "post-author", label: "Post Author", description: "Show the document author when one is set.", group: "Other" },
+  { type: "post-date", label: "Post Date", description: "Show the document publication date.", group: "Other" },
 ];
+
+export const templateContentBlock = {
+  type: "template-content" as const,
+  label: "Content",
+  description: "Show the body supplied by each document.",
+  group: "Other" as const,
+};
 
 const fixedDate = "2026-08-20T00:00:00.000Z";
 

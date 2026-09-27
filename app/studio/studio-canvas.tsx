@@ -10,7 +10,8 @@ import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeMathMLMarkup } from "../content/mathml";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
-import { StudioIcon, type StudioIconName } from "./studio-icons";
+import { BlockLibraryIcon } from "./block-library-icons";
+import { StudioIcon } from "./studio-icons";
 import { Pane } from "./panes/pane-components";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
 import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
@@ -898,7 +899,7 @@ function StudioListView({ blocks, selectedBlockId, onSelectBlock, onHoverBlock, 
       <div className={`studio-list-item${selectedBlockId === block.id ? " is-selected" : ""}`} onPointerEnter={() => onHoverBlock(block.id)} onPointerLeave={() => onHoverBlock(null)}>
         {children.length ? <button className={`studio-list-disclosure${expanded ? " is-expanded" : ""}`} type="button" aria-label={`${expanded ? "Collapse" : "Expand"} ${blockOutlineLabel(block)}`} aria-expanded={expanded} onClick={() => toggleExpanded(block.id)}><StudioIcon name="chevron-right" size={16} /></button> : <span className="studio-list-disclosure-spacer" aria-hidden="true" />}
         <button className="studio-list-select" type="button" aria-current={selectedBlockId === block.id ? "true" : undefined} onClick={() => onSelectBlock(block.id)}>
-          <span className="studio-list-icon" aria-hidden="true"><BlockTypeIcon type={block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></span>
+          <span className="studio-list-icon" aria-hidden="true"><BlockTypeIcon type={block.type} /></span>
           <span>{blockOutlineLabel(block)}</span>
         </button>
         {selectedBlockId === block.id ? <div className="studio-list-actions">
@@ -979,12 +980,9 @@ function TransformIcon({ transform }: { transform: BlockTransform }) {
   return <StudioHoverIcon name={icons[transform.target]} />;
 }
 
-function BlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"] | "template-content"; headingLevel?: HeadingLevel }) {
-  if (type === "template-content") return <StudioIcon name="block" />;
-  const icons: Partial<Record<ContentBlock["type"], StudioIconName>> = { button: "button", code: "code", divider: "separator", embed: "external", image: "image", list: "list", paragraph: "paragraph", quote: "quote", spacer: "separator" };
-  if (type === "heading") return <span className="studio-heading-icon" aria-hidden="true">H{headingLevel ?? 2}</span>;
-  if (type === "table") return <TableIcon />;
-  return <StudioIcon name={icons[type] ?? "block"} />;
+function BlockTypeIcon({ type }: { type: ContentBlock["type"] | "template-content" }) {
+  const blockType = type === "component" || type === "footnotes" ? "template-content" : type;
+  return <BlockLibraryIcon type={blockType} />;
 }
 
 function HoverBlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"] | "template-content"; headingLevel?: HeadingLevel }) {
@@ -994,7 +992,7 @@ function HoverBlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"]
   if (type === "code") return <StudioHoverIcon name="text.code" />;
   if (type === "image") return <StudioHoverIcon name="insert.image" />;
   if (type === "heading") return <span className="studio-heading-icon" aria-hidden="true">H{headingLevel ?? 2}</span>;
-  return <BlockTypeIcon type={type} headingLevel={headingLevel} />;
+  return <BlockTypeIcon type={type} />;
 }
 
 function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: InsertableBlockType) => void; onDismiss: () => void }) {
@@ -1030,7 +1028,7 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
           {(["Text", "Media", "Design", "Other"] as const).map((group) => {
             const items = filteredBlocks.filter((item) => item.group === group);
             if (!items.length) return null;
-            const insertableItems = items.filter((item) => item.type !== "template-content");
+            const insertableItems = items.filter((item): item is (typeof filteredBlocks)[number] & { type: InsertableBlockType } => item.type !== "template-content");
             if (!insertableItems.length) return null;
             return <div className="inserter-group" key={group}><h3>{group}</h3><div>{insertableItems.map((item) => <button type="button" key={item.type} onClick={() => onInsert(item.type)}><span><BlockTypeIcon type={item.type} /></span><strong>{item.label}</strong><small>{item.description}</small></button>)}</div></div>;
           })}

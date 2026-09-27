@@ -17,25 +17,32 @@ The library has seven sections:
 - **Panels** — the shared card surface and header slots, demonstrated with
   temporary sample data from `@acm/panel`.
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
-  specimens at 16, 24 and 32px.
+  specimens at 16, 24 and 32px, with a Block Library collection that shows the
+  exact symbols used by each insertable block and the template Content tile.
 - **Styles** — the executable universal style preset, editable in a local preview
   sandbox with a live specimen. Sandbox edits remain in component state and do
   not alter templates, products or the shared baseline.
 
 Navigation is `/studio/ui/navigation`, the Ribbon section is
 `/studio/ui/ribbon`, Panes is `/studio/ui/panes`, Panels is
-`/studio/ui/panels`, Icons is `/studio/ui/icons`, and Styles is
+`/studio/ui/panels`, Icons is `/studio/ui/icons`, the Block Library icon
+collection is `/studio/ui/icons?collection=blocks`, and Styles is
 `/studio/ui/styles`. `/studio/ribbon` and `/studio/panes` remain
 compatible redirects. Studio navigation links to the combined library.
 
 ## Ownership boundaries
 
 The library groups reference views without combining package ownership. The
-sibling `@acm/icons` package owns original symbol artwork and metadata; the
-sibling `@acm/styles` package owns the executable universal style values and
-CSS custom-property exports. The governance Style Guide remains authoritative
-for policy. The Ribbon and Pane implementations remain in their existing
-modules and retain their own contracts. The Panels section consumes the
+sibling `@acm/icons` package owns original shared symbol artwork and metadata;
+ACM Studio owns its Studio-specific symbols. The Block Library collection
+identifies which source supplies each tile symbol and previews both sets at
+16, 24 and 32px. Shared symbols use their Regular-S, Regular-M and Regular-L
+optical artwork. The Heading tile uses a generic Studio heading marker; the
+selected heading level stays in the block's level control. The sibling
+`@acm/styles` package owns the executable universal
+style values and CSS custom-property exports. The governance Style Guide remains
+authoritative for policy. The Ribbon and Pane implementations remain in their
+existing modules and retain their own contracts. The Panels section consumes the
 product-neutral `@acm/panel` package. Its card owns the surface and slots;
 consumers own position, width, resizing, visibility, data and actions.
 Workspace composes the shared

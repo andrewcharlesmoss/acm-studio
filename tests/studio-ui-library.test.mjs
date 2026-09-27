@@ -48,6 +48,30 @@ test("shared Icons section keeps ACM artwork and describes usage as catalogue ex
   assert.match(icons, /No Ribbon catalogue examples use this symbol/);
 });
 
+test("Block Library catalogue previews the exact shared and Studio symbols used by each tile", () => {
+  const icons = read("app/studio/ui/icons-catalogue.tsx");
+  const blockSymbols = read("app/studio/block-library-icons.tsx");
+  const canvas = read("app/studio/studio-canvas.tsx");
+  const templateEditor = read("app/studio/template-editor.tsx");
+  assert.match(icons, /collection=blocks/);
+  assert.match(icons, /blockLibraryCatalogue = \[\.\.\.blockCatalogue, templateContentBlock\]/);
+  assert.match(icons, /BlockLibraryIconSample type=\{item\.type\} scale=\{scale\}/);
+  assert.match(icons, /Regular-S · 16px/);
+  assert.match(icons, /Regular-M · 24px/);
+  assert.match(icons, /Regular-L · 32px/);
+  assert.match(templateEditor, /\.\.\.blockCatalogue, templateContentBlock/);
+  assert.match(blockSymbols, /group: \{ source: "ACM Icons", symbol: "arrange\.group" \}/);
+  for (const symbol of ["text.paragraph", "text.heading", "text.list-bulleted", "text.quote", "table.cell", "text.code", "insert.image", "document.cover", "account.record"]) {
+    assert.ok(blockSymbols.includes(`symbol: "${symbol}"`), symbol);
+  }
+  assert.match(blockSymbols, /heading: \{ source: "ACM Studio", symbol: "heading-marker" \}/);
+  assert.doesNotMatch(blockSymbols, /heading-level/);
+  for (const symbol of ["button", "separator", "spacer", "clock", "calendar"]) {
+    assert.ok(blockSymbols.includes(`symbol: "${symbol}"`), symbol);
+  }
+  assert.match(canvas, /<BlockLibraryIcon type=\{blockType\}/);
+});
+
 test("keyboard inspector exposes each selected key's artwork provenance and available licence notice", () => {
   const keyboard = read("app/studio/ui/keyboard-catalogue.tsx");
   assert.match(keyboard, /import \{ iconMetadata \} from "@acm\/icons"/);
