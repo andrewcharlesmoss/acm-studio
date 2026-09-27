@@ -13,6 +13,8 @@ import { StudioIcon } from "./studio-icons";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { InspectorToolsSection, type InspectorToolOption } from "./inspector-tools-section";
+import { BoxLengthSetting } from "./box-length-setting";
+import { BorderColourControl } from "./border-colour-control";
 import { documentDisplaySource, type FieldUsage } from "./document-fields";
 import { createPasswordProtection } from "../content/password-protection";
 import { COLUMN_LAYOUT_PRESETS, setColumnCount, setColumnsLayout, setColumnWidth } from "../content/columns";
@@ -646,7 +648,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     ...(block.type === "paragraph" || block.type === "heading" ? [{ id: "fit-text", label: "Fit text" }] : []),
   ];
   const dimensionOptions: InspectorToolOption[] = [{ id: "padding", label: "Padding" }, { id: "margin", label: "Margin" }];
-  const borderOptions: InspectorToolOption[] = [{ id: "border", label: "Border" }, { id: "radius", label: "Radius" }, { id: "shadow", label: "Shadow" }];
+  const borderOptions: InspectorToolOption[] = [{ id: "border", label: "Border" }, { id: "radius", label: "Radius" }];
   const elementOptions: InspectorToolOption[] = block.type === "button" ? [] : [{ id: "link-colour", label: "Link colour" }];
   const [typographyUserVisible, setTypographyVisible] = useState(() => new Set(["colour", "size", "appearance"]));
   const [dimensionsUserVisible, setDimensionsVisible] = useState(() => new Set<string>());
@@ -659,7 +661,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
   ].filter((value): value is string => Boolean(value))]);
   const dimensionsVisible = new Set([...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin"].filter((value): value is string => Boolean(value))]);
   const borderVisible = new Set([...borderUserVisible, ...[
-    (style.borderStyle || style.borderColor || style.borderWidth) && "border", style.borderRadius && "radius", style.shadow && "shadow",
+    (style.borderStyle || style.borderColor || style.borderWidth) && "border", style.borderRadius && "radius",
   ].filter((value): value is string => Boolean(value))]);
   const elementsVisible = new Set([...elementsUserVisible, ...[style.linkColor && "link-colour"].filter((value): value is string => Boolean(value))]);
   const toolFields: Record<string, (keyof ParagraphStyle)[]> = {
@@ -716,6 +718,22 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     else delete nextStyle.backgroundGradient;
     writeStyle(nextStyle);
   }
+  function updateBorderWidth(value: string | undefined) {
+    const nextStyle = { ...style };
+    if (value) {
+      nextStyle.borderWidth = value;
+      if (!nextStyle.borderStyle || nextStyle.borderStyle === "none") nextStyle.borderStyle = "solid";
+    } else delete nextStyle.borderWidth;
+    writeStyle(nextStyle);
+  }
+  function updateBorderColour(value: string | undefined) {
+    const nextStyle = { ...style };
+    if (value) {
+      nextStyle.borderColor = value;
+      if (!nextStyle.borderStyle || nextStyle.borderStyle === "none") nextStyle.borderStyle = "solid";
+    } else delete nextStyle.borderColor;
+    writeStyle(nextStyle);
+  }
   const fontSizes: { value: ParagraphFontSize; label: string; accessibleName: string }[] = [
     { value: "small", label: "S", accessibleName: "Small" },
     { value: "medium", label: "M", accessibleName: "Medium" },
@@ -750,13 +768,12 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </InspectorAccordionSection>
     <InspectorToolsSection title="Dimensions" options={dimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
-      {dimensionsVisible.has("padding") ? <ParagraphLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding} min={0} max={100} onChange={(value) => updateStyle("padding", value)} /> : null}
-      {dimensionsVisible.has("margin") ? <ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
+      {dimensionsVisible.has("padding") ? <BoxLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding} layout="axes" min={0} max={100} onChange={(value) => updateStyle("padding", value)} /> : null}
+      {dimensionsVisible.has("margin") ? <BoxLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} layout="axes" min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
     </InspectorToolsSection>
-    <InspectorToolsSection title="Border" options={borderOptions} visible={borderVisible} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools(borderVisible); setBorderVisible(new Set()); }}>
-      {borderVisible.has("border") ? <><ColourSetting label="Colour" value={style.borderColor} onChange={(value) => updateStyle("borderColor", value)} /><label><span>Style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option></select></label><label><span>Width</span><input value={style.borderWidth ?? ""} onChange={(event) => updateStyle("borderWidth", event.target.value)} placeholder="1px" /></label></> : null}
-      {borderVisible.has("radius") ? <label><span>Radius</span><input value={style.borderRadius ?? ""} onChange={(event) => updateStyle("borderRadius", event.target.value)} placeholder="0" /></label> : null}
-      {borderVisible.has("shadow") ? <label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
+    <InspectorToolsSection title="Border" options={borderOptions} visible={borderVisible} canReset={Boolean(borderVisible.size || style.shadow)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools([...borderVisible, "shadow"]); setBorderVisible(new Set()); }}>
+      {borderVisible.has("border") ? <div className="box-border-setting"><div className="box-border-appearance"><BorderColourControl value={style.borderColor} onChange={updateBorderColour} /><label><span>Border style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label></div><BoxLengthSetting key={`${block.id}-border-width`} label="Width" value={style.borderWidth ?? (style.borderStyle && style.borderStyle !== "none" ? "1px" : undefined)} canReset={Boolean(style.borderWidth)} layout="all" allowPercent={false} min={0} max={20} onChange={updateBorderWidth} /></div> : null}
+      {borderVisible.has("radius") ? <BoxLengthSetting key={`${block.id}-radius`} label="Radius" value={style.borderRadius} layout="all" corners min={0} max={100} onChange={value => updateStyle("borderRadius", value)} /> : null}
     </InspectorToolsSection>
     {elementOptions.length ? <InspectorToolsSection title="Elements" options={elementOptions} visible={elementsVisible} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
       {elementsVisible.has("link-colour") ? <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} /> : null}

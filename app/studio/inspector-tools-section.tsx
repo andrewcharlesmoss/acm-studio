@@ -7,22 +7,24 @@ import { useInspectorContentDisabled } from "./inspector-accordion";
 
 export type InspectorToolOption = { id: string; label: string };
 
-export function InspectorToolsSection({ title, options, visible, onToggle, onReset, children }: {
+export function InspectorToolsSection({ title, options, visible, canReset, onToggle, onReset, children }: {
   title: string;
   options: readonly InspectorToolOption[];
   visible: ReadonlySet<string>;
+  canReset?: boolean;
   onToggle: (id: string) => void;
   onReset: () => void;
   children: ReactNode;
 }) {
   const disabled = useInspectorContentDisabled();
-  return <InspectorToolsSectionContent key={String(disabled)} title={title} options={options} visible={visible} onToggle={onToggle} onReset={onReset} disabled={disabled}>{children}</InspectorToolsSectionContent>;
+  return <InspectorToolsSectionContent key={String(disabled)} title={title} options={options} visible={visible} canReset={canReset ?? (visible.size > 0)} onToggle={onToggle} onReset={onReset} disabled={disabled}>{children}</InspectorToolsSectionContent>;
 }
 
-function InspectorToolsSectionContent({ title, options, visible, onToggle, onReset, disabled, children }: {
+function InspectorToolsSectionContent({ title, options, visible, canReset, onToggle, onReset, disabled, children }: {
   title: string;
   options: readonly InspectorToolOption[];
   visible: ReadonlySet<string>;
+  canReset: boolean;
   onToggle: (id: string) => void;
   onReset: () => void;
   disabled: boolean;
@@ -93,7 +95,7 @@ function InspectorToolsSectionContent({ title, options, visible, onToggle, onRes
       {menuOpen && !disabled ? createPortal(<div ref={menuRef} id={menuId} className="inspector-tools-menu" role="group" aria-label={`${title} controls`} style={menuPosition}>
         <div className="inspector-tools-menu-heading"><span className="inspector-tools-menu-title">{title}</span><button type="button" className="inspector-tools-menu-close" aria-label={`Close ${title} options`} onClick={() => { setMenuOpen(false); triggerRef.current?.focus(); }}><StudioIcon name="close" size={16} /></button></div>
         <div className="inspector-tools-menu-options">{options.map(option => <button key={option.id} type="button" aria-pressed={visible.has(option.id)} onClick={() => onToggle(option.id)}>{option.label}{visible.has(option.id) ? <StudioIcon name="check" size={16} /> : null}</button>)}</div>
-        <button type="button" className="inspector-tools-reset" disabled={!visible.size} onClick={() => { onReset(); setMenuOpen(false); triggerRef.current?.focus(); }}>Reset all</button>
+        <button type="button" className="inspector-tools-reset" disabled={!canReset} onClick={() => { onReset(); setMenuOpen(false); triggerRef.current?.focus(); }}>Reset all</button>
       </div>, document.body) : null}
     </div>
     {visible.size ? disabled ? <fieldset className="inspector-tools-content" disabled>{children}</fieldset> : <div className="inspector-tools-content">{children}</div> : null}

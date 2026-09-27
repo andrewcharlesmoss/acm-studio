@@ -1,4 +1,5 @@
 import type { ContentBlock } from "../content/model";
+import { validBoxLengths } from "../content/box-lengths";
 import { safeMathMLMarkup } from "../content/mathml";
 import { safeImageSource } from "../content/rich-text";
 import { validSpacerSize } from "../content/spacer";
@@ -71,7 +72,7 @@ export function validParagraphStyle(value: unknown) {
     && (value.appearance === undefined || ["thin", "extra-light", "light", "regular", "medium", "semi-bold", "bold", "extra-bold", "black", "thin-italic", "extra-light-italic", "light-italic", "italic", "medium-italic", "semi-bold-italic", "bold-italic", "extra-bold-italic", "black-italic"].includes(value.appearance as string))
     && (value.textTransform === undefined || ["none", "uppercase", "lowercase", "capitalize"].includes(value.textTransform as string))
     && (value.textDecoration === undefined || ["none", "underline", "line-through"].includes(value.textDecoration as string))
-    && (value.borderStyle === undefined || ["none", "solid", "dashed"].includes(value.borderStyle as string))
+    && (value.borderStyle === undefined || ["none", "solid", "dashed", "dotted"].includes(value.borderStyle as string))
     && (value.shadow === undefined || ["none", "soft", "strong"].includes(value.shadow as string))
     && (value.backgroundGradient === undefined || ["sunrise", "ocean", "forest", "violet"].includes(value.backgroundGradient as string))
     && optionalParagraphLength(value.lineHeight) && optionalSignedParagraphLength(value.letterSpacing)
@@ -81,7 +82,7 @@ export function validParagraphStyle(value: unknown) {
     && (value.fitText === undefined || typeof value.fitText === "boolean")
     && (value.orientation === undefined || ["horizontal-tb", "vertical-rl"].includes(value.orientation as string))
     && optionalParagraphColour(value.textColor) && optionalParagraphColour(value.backgroundColor) && optionalParagraphColour(value.linkColor)
-    && optionalParagraphLength(value.padding) && optionalSignedParagraphLength(value.margin) && optionalParagraphLength(value.borderWidth) && optionalParagraphLength(value.borderRadius)
+    && validBoxLengths(value.padding) && validBoxLengths(value.margin, true) && validBoxLengths(value.borderWidth) && validBoxLengths(value.borderRadius)
     && optionalParagraphColour(value.borderColor) && optionalParagraphAnchor(value.anchor) && optionalParagraphClasses(value.className);
 }
 

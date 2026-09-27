@@ -13,7 +13,7 @@ export type AcmStudioIconName =
   | "file" | "fit" | "folder" | "format-bold" | "format-italic" | "globe"
   | "heading" | "image" | "info" | "link" | "link-off" | "list" | "lock"
   | "lock-open" | "more-vertical" | "paragraph" | "pencil" | "quote" | "redo"
-  | "rotate" | "seen" | "seen-off" | "separator" | "spacer" | "clock" | "calendar" | "heading-marker" | "trash" | "undo" | "video"
+  | "rotate" | "seen" | "seen-off" | "separator" | "sliders" | "spacer" | "clock" | "calendar" | "heading-marker" | "trash" | "undo" | "video"
   | "visibility" | "visibility-off" | "zoom-in" | "zoom-out"
   | "footnote" | "highlight" | "inline-code" | "inline-image" | "keyboard"
   | "language" | "math" | "strikethrough" | "subscript" | "superscript"
@@ -60,6 +60,7 @@ export function AcmStudioIcon({ name, size = 24, ...props }: AcmStudioIconProps)
     case "info": return <svg {...line}><circle cx="12" cy="12" r="9" /><path d="M12 11v5m0-8h.01" /></svg>;
     case "link": return <svg {...line}><path d="M9.5 8H7a4 4 0 0 0 0 8h3m4-8h3a4 4 0 0 1 0 8h-3M8.5 12h7" /><path d="M8 10.5v3m8-3v3" /></svg>;
     case "link-off": return <svg {...line}><path d="M9.5 8H7a4 4 0 0 0 0 8h3m4-8h3a4 4 0 0 1 0 8h-3M8.5 12h7M6 5l12 14" /></svg>;
+    case "sliders": return <svg {...line}><path d="M4 7h16M4 17h16" /><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none" /><circle cx="15" cy="17" r="2" fill="currentColor" stroke="none" /></svg>;
     case "list": return <svg {...line}><circle cx="4.5" cy="6" r=".8" /><circle cx="4.5" cy="12" r=".8" /><circle cx="4.5" cy="18" r=".8" /><path d="M8 6h12M8 12h9M8 18h12" /></svg>;
     case "lock": return <svg {...line}><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3" /></svg>;
     case "lock-open": return <svg {...line}><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 7-2.7m-3 9.7v3" /></svg>;

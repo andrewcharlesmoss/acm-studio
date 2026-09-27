@@ -26,7 +26,7 @@ import remains future work, not a capability supplied by this inspector review.
 
 | Studio block | WordPress reference | Studio inspector support | Remaining difference |
 | --- | --- | --- | --- |
-| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; optional Typography, Dimensions, Border and Elements controls with per-section Reset all; preset and custom font sizes in px/em/rem, nine Appearance weights with italic variants, background, line indent, text columns, drop cap, fit text, orientation and advanced fields. | WordPress theme-defined font size and Appearance presets, and its custom CSS editor are not yet supported. |
+| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; optional Typography, Dimensions, Border and Elements controls with per-section Reset all; preset and custom font sizes in px/em/rem, nine Appearance weights with italic variants, linked axes or separate sides for padding and margin, linked or separate border widths and corner radii, background, line indent, text columns, drop cap, fit text, orientation and advanced fields. | WordPress theme-defined font size and Appearance presets, richer palette and border-style pickers, and its custom CSS editor are not yet supported. |
 | Heading | [Heading](https://wordpress.org/documentation/article/heading-block/) | Level, alignment, Fit text, orientation and shared visual settings. | Gutenberg's text shadow, theme presets, block-wide/full alignment, and some toolbar details remain unsupported. |
 | Quote | [Quote](https://wordpress.org/documentation/article/quote-block/) | Attribution, text alignment, Default or Plain style, and shared visual settings. | Gutenberg's separate block alignment (including wide/full), background images and multi-paragraph quote editing are not modelled. |
 | List | [List](https://wordpress.org/documentation/article/list-block/) | Bullets or numbers; ordered styles for numbers, letters and Roman numerals; start value, reverse order, inline-formatted item content, item-scoped text formatting and links for top-level Lists, and shared visual settings. Existing plain-string items remain readable. | Nested List Item blocks and indentation are not yet supported. The block HTML editor rejects nested lists instead of flattening them. List items do not yet have per-item inspector settings. Footnotes and inline images are unavailable from the List formatting menu because their insertion handlers currently target whole text blocks. Formatting controls for Lists placed inside container blocks remain unavailable. |
@@ -46,7 +46,7 @@ import remains future work, not a capability supplied by this inspector review.
 | Section | Studio-specific semantic Group | Layout and shared visual settings. | Section role and source metadata are Studio-owned. |
 | Cover Image | Studio-specific dynamic field | Alignment. | It displays document cover metadata, rather than behaving as Gutenberg's content-bearing Cover block. |
 | Field, Component | Studio-specific | Content or component controls. | No exact Gutenberg core counterpart. |
-| Footnotes | [Footnotes](https://wordpress.org/documentation/article/footnotes-block/) | Notes are edited on the canvas; typography, colours, background, dimensions, border, shadow and advanced fields use the shared inspector. | Studio stores notes in one block rather than Gutenberg's inline-reference structure. |
+| Footnotes | [Footnotes](https://wordpress.org/documentation/article/footnotes-block/) | Notes are edited on the canvas; typography, colours, background, dimensions, border and advanced fields use the shared inspector. Older saved shadow styles still render and can be cleared with Border Reset all. | Studio stores notes in one block rather than Gutenberg's inline-reference structure. |
 
 The shared appearance controls are deliberately limited to the project's
 font stack: Inter, Helvetica Neue, Helvetica and Arial. The Appearance menu
@@ -63,6 +63,13 @@ Studio may expose a supported option such as Font family or Orientation even
 when it does not appear in a particular WordPress site's menu. The inspector's
 options menus appear beside the pane at desktop widths, and their Reset all
 footer remains visible while long option lists scroll.
+
+Dimensions and Border retain CSS shorthand strings in the current block style
+contract. This preserves existing single-value drafts while allowing two-axis
+spacing and four side or corner values. The pane follows Gutenberg's grouped
+controls and uses Studio's neutral slider and focus colours. The Border menu
+offers Border and Radius; legacy saved shadows still render and are removed by
+that section's Reset all command, but are no longer offered as a new option.
 
 The inspector follows Gutenberg's section order and optional-control menu
 pattern for the shared appearance settings. A checked menu item shows its

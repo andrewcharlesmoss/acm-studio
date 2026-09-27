@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added Gutenberg-style axis and side controls for block padding and margins, plus linked or separate border widths and corner radii, using Studio's neutral control colours.
 - Added custom px/em/rem font sizes and Gutenberg's full weight and italic Appearance choices to shared block Typography settings.
 - Moved inspector option menus beside the settings pane and kept Reset all visible beneath scrollable options.
 - Added Gutenberg-style text orientation to Paragraph and Heading block settings, with vertical text in Edit and Preview.

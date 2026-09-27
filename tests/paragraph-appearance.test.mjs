@@ -37,3 +37,12 @@ test("custom font sizes and the full Appearance range reach CSS without changing
   assert.equal(paragraphStyleToCss({ fontSizeCustom: "32px", fitText: true }).fontSize, undefined);
   assert.match(visualStyleClassName({ fontSizeCustom: "32px" }), /has-custom-font-size/);
 });
+
+test("axis spacing and separate border sides reach CSS as authored", () => {
+  const css = paragraphStyleToCss({ padding: "12px 24px", margin: "-1rem 2rem 0 4px", borderStyle: "dotted", borderWidth: "1px 2px 3px 4px", borderRadius: "4px 8px 12px 16px" });
+  assert.equal(css.padding, "12px 24px");
+  assert.equal(css.margin, "-1rem 2rem 0 4px");
+  assert.equal(css.borderStyle, "dotted");
+  assert.equal(css.borderWidth, "1px 2px 3px 4px");
+  assert.equal(css.borderRadius, "4px 8px 12px 16px");
+});

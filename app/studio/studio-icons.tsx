@@ -11,7 +11,7 @@ export type StudioIconName = Extract<AcmStudioIconName,
   | "file" | "fit" | "folder" | "format-bold" | "format-italic" | "globe"
   | "heading" | "image" | "info" | "link" | "link-off" | "list" | "lock"
   | "lock-open" | "more-vertical" | "paragraph" | "pencil" | "quote" | "redo"
-  | "rotate" | "seen" | "seen-off" | "separator" | "spacer" | "clock" | "calendar" | "heading-marker" | "trash" | "undo" | "video"
+  | "rotate" | "seen" | "seen-off" | "separator" | "sliders" | "spacer" | "clock" | "calendar" | "heading-marker" | "trash" | "undo" | "video"
   | "visibility" | "visibility-off" | "zoom-in" | "zoom-out">;
 
 type StudioIconProps = Omit<SVGProps<SVGSVGElement>, "children"> & { name: StudioIconName; size?: number };

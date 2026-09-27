@@ -272,6 +272,15 @@ test("custom font sizes and expanded Appearance values validate for saved text b
   assert.equal(validContentBlocks([{ ...heading, visualStyle: { appearance: "unknown" } }]), false);
 });
 
+test("box spacing and border shorthands validate without accepting arbitrary CSS", () => {
+  const { validContentBlocks } = loadModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
+  const paragraph = { id: "box", type: "paragraph", text: "Box", style: { padding: "12px 24px", margin: "-1rem 2rem 0 4px", borderStyle: "dotted", borderWidth: "1px 2px 3px 4px", borderRadius: "4px 8px 12px 16px" } };
+  assert.equal(validContentBlocks([paragraph]), true);
+  assert.equal(validContentBlocks([{ ...paragraph, style: { padding: "1px 2px 3px 4px 5px" } }]), false);
+  assert.equal(validContentBlocks([{ ...paragraph, style: { borderWidth: "-1px" } }]), false);
+  assert.equal(validContentBlocks([{ ...paragraph, style: { margin: "1px; color: red" } }]), false);
+});
+
 test("Mini Golf embeds all source Inter subsets without registering a global Inter family", () => {
   const css = readFileSync(new URL("../app/studio/site-draft.css", import.meta.url), "utf8");
   const faces = [...css.matchAll(/@font-face\s*\{([^}]+)\}/g)];
