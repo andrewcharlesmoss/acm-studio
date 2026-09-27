@@ -557,7 +557,7 @@ export function StudioPrototype() {
                   <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} aria-haspopup="menu" aria-expanded={documentContextMenu?.id === document.id} onClick={() => selectDocument(document)} onContextMenu={(event) => { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; setDocumentContextMenu({ id: document.id, label: document.title, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); setDocumentContextMenu({ id: document.id, label: document.title, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
                   <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span>
                   <span><strong>{document.title}</strong><small>/{document.slug}</small></span>
-                  <i className={`document-status is-${document.status}`} aria-label={document.status} />
+                  <span className={`document-status is-${document.status}`}>{document.status.charAt(0).toUpperCase() + document.status.slice(1)}</span>
                 </button>
               ))}
               {kind !== "templates" && !workspace.documents.some((document) => document.kind === kind) ? <p className="document-list-empty">No {kind === "page" ? "pages" : "posts"} yet.</p> : null}

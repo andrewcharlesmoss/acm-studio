@@ -1353,6 +1353,15 @@ test("content type tabs stay horizontal in the template sidebar, including narro
   assert.match(templates, /\.template-workspace \.studio-library \{ display: flex; flex-direction: column; width: auto;[^}]*border-bottom: 1px solid/);
 });
 
+test("main editor tabs use the full library width and show document status labels", () => {
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  assert.match(css, /\.studio-library \.library-tabs \.pane-tabs \{[^}]*grid-column: 1 \/ -1;/);
+  assert.match(css, /\.document-item \{[^}]*grid-template-columns: 28px minmax\(0, 1fr\) auto;/);
+  assert.match(css, /\.document-item \.document-status \{[^}]*border-radius: 999px;[^}]*width: fit-content;/);
+  assert.match(prototype, /<span className=\{`document-status is-\$\{document\.status\}`\}>\{document\.status\.charAt\(0\)\.toUpperCase\(\) \+ document\.status\.slice\(1\)\}<\/span>/);
+});
+
 test("successful publication feedback dismisses itself", () => {
   const publishing = readFileSync(new URL("../app/studio/use-studio-publishing.ts", import.meta.url), "utf8");
   assert.match(publishing, /useEffect, useState/);
