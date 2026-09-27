@@ -447,6 +447,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Kept the narrow Editor Inspector tab underline centred beneath its label, including on hover.
 - Replaced the inaccurate Copilot key drawing with a sourced, MIT-licensed
   monochrome brand mark, retaining its licence in SVG downloads.
 - Enlarged small keyboard legends and Mac Forward Delete, redrew the Copilot
