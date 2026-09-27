@@ -15,6 +15,7 @@ export type TextMark = InlineTextMark
 export type RichTextRun = { text: string; marks?: TextMark[] };
 export type ListItem = string | { text: string; runs?: RichTextRun[] };
 export function listItemText(item: ListItem): string { return typeof item === "string" ? item : item.text; }
+export type OrderedListMarker = "1" | "A" | "a" | "I" | "i";
 export type Footnote = { id: string; text: string };
 export type ParagraphFontSize = "small" | "medium" | "large" | "x-large" | "xx-large";
 export type ParagraphAppearance = "regular" | "italic" | "bold" | "bold-italic";
@@ -28,6 +29,30 @@ export type SpacerUnit = "px" | "em" | "rem" | "vw" | "vh";
 export function listNumber(block: { items: ListItem[]; start?: number; reversed?: boolean }, index: number): number {
   const first = block.start ?? (block.reversed ? block.items.length : 1);
   return first + (block.reversed ? -index : index);
+}
+export function listMarker(block: { items: ListItem[]; start?: number; reversed?: boolean; marker?: OrderedListMarker }, index: number): string {
+  const number = listNumber(block, index);
+  if (number < 1) return `${number}.`;
+  if (block.marker === "A" || block.marker === "a") {
+    let remainder = number;
+    let letters = "";
+    while (remainder > 0) {
+      remainder -= 1;
+      letters = String.fromCharCode(65 + remainder % 26) + letters;
+      remainder = Math.floor(remainder / 26);
+    }
+    return `${block.marker === "a" ? letters.toLowerCase() : letters}.`;
+  }
+  if (block.marker === "I" || block.marker === "i") {
+    if (number > 3999) return `${number}.`;
+    let remainder = number;
+    let roman = "";
+    for (const [value, symbol] of [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]] as const) {
+      while (remainder >= value) { roman += symbol; remainder -= value; }
+    }
+    return `${block.marker === "i" ? roman.toLowerCase() : roman}.`;
+  }
+  return `${number}.`;
 }
 export type ParagraphStyle = {
   fontFamily?: ParagraphFontFamily;
@@ -111,7 +136,7 @@ export type ContentBlock = (
   | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; style?: ParagraphStyle }
   | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment }
   | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; attribution?: string; align?: TextAlignment; quoteStyle?: "default" | "plain" }
-  | { id: string; type: "list"; style: "ordered" | "unordered"; items: ListItem[]; start?: number; reversed?: boolean }
+  | { id: string; type: "list"; style: "ordered" | "unordered"; items: ListItem[]; marker?: OrderedListMarker; start?: number; reversed?: boolean }
   | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; columnWidths?: number[]; rowHeights?: number[] }
   | { id: string; type: "code"; language?: string; code: string }
   | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean; decorative?: boolean; title?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain"; displayWidth?: number; focalX?: number; focalY?: number; linkUrl?: string; opensInNewTab?: boolean }

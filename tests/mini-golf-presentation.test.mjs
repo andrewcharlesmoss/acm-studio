@@ -241,6 +241,27 @@ test("HTML editing reads Quote style and alignment and rejects unsupported style
   assert.equal(validContentBlocks([{ ...parsed.block, quoteStyle: "unsupported" }]), false);
 });
 
+test("HTML editing retains ordered list marker styles and validates persisted values", () => {
+  const { __parseElement } = loadModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url));
+  const { validContentBlocks } = loadModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
+  const original = { id: "list", type: "list", style: "ordered", items: ["First"] };
+  const element = (marker) => ({
+    tagName: "OL", dataset: { blockId: "list" }, textContent: "First",
+    classList: { contains: () => false },
+    getAttribute: (name) => name === "type" ? marker : null,
+    hasAttribute: (name) => name === "type",
+    querySelectorAll: () => [],
+    children: [{ tagName: "LI", textContent: "First", childNodes: [{ nodeType: 3, textContent: "First" }] }],
+  });
+  for (const marker of ["1", "A", "a", "I", "i"]) {
+    const parsed = __parseElement(element(marker), original);
+    assert.equal(parsed.block.marker, marker);
+    assert.equal(validContentBlocks([parsed.block]), true);
+  }
+  assert.match(__parseElement(element("invalid"), original).error, /not supported/);
+  assert.equal(validContentBlocks([{ ...original, marker: "invalid" }]), false);
+});
+
 test("Mini Golf embeds all source Inter subsets without registering a global Inter family", () => {
   const css = readFileSync(new URL("../app/studio/site-draft.css", import.meta.url), "utf8");
   const faces = [...css.matchAll(/@font-face\s*\{([^}]+)\}/g)];

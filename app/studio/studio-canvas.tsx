@@ -18,7 +18,7 @@ import { StudioIcon } from "./studio-icons";
 import { Pane } from "./panes/pane-components";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
 import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
-import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, listItemText, listNumber, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type ListItem, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
+import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, listItemText, listMarker, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type ListItem, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
 import type { StudioDocument, InsertableBlockType } from "./editor-model";
 import type { StudioPresentation } from "./studio-presentation";
 import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBlock, parseHtmlToBlocks } from "./studio-html-editor";
@@ -1718,7 +1718,7 @@ function ListField({ block, mediaUrls, onChange }: { block: Extract<ContentBlock
     <div ref={listRef} className={`list-field-editor is-${block.style}`}>
       {items.map((item, index) => (
         <div className="list-field-row" key={`${block.id}-item-${index}`}>
-          <span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${listNumber(block, index)}.` : "•"}</span>
+          <span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? listMarker(block, index) : "•"}</span>
           <RichTextEditor className="list-item-editor" data-list-item-index={index} text={listItemText(item)} runs={typeof item === "string" ? undefined : item.runs} mediaUrls={mediaUrls} onChange={(text, runs) => updateItem(index, text, runs)} onSelectionChange={() => {}} onLinkActivate={() => {}} onSplitParagraph={(beforeRuns, afterRuns) => {
             const nextItems: ListItem[] = [...items];
             nextItems[index] = beforeRuns.some((run) => run.marks?.length) ? { text: plainTextFromRuns(beforeRuns), runs: beforeRuns } : plainTextFromRuns(beforeRuns);

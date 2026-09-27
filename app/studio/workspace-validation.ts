@@ -111,6 +111,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.quoteStyle === undefined || ["default", "plain"].includes(block.quoteStyle as string));
       case "list": return ["ordered", "unordered"].includes(block.style as string) && Array.isArray(block.items)
         && block.items.every((item) => typeof item === "string" || (isRecord(item) && typeof item.text === "string" && validRuns(item.runs)))
+        && (block.marker === undefined || ["1", "A", "a", "I", "i"].includes(block.marker as string))
         && (block.start === undefined || (typeof block.start === "number" && Number.isInteger(block.start) && block.start >= 1 && block.start <= 100000))
         && optionalBoolean(block.reversed);
       case "table": {

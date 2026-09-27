@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import katex from "katex";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
-import { listItemText, listNumber, normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
+import { listItemText, listMarker, normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { safeMathMLMarkup } from "../content/mathml";
 import { buttonVisualCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { spacerDimensions } from "../content/spacer";
@@ -100,11 +100,11 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           const items = block.items.map((item, index) => {
             const content = typeof item === "string" ? item : renderText(listItemText(item), item.runs, mediaUrls, footnoteNumbers);
             return studio
-              ? <li className="list-field-row" key={index}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${listNumber(block, index)}.` : "•"}</span><span className="list-item-text">{content}</span></li>
+              ? <li className="list-field-row" key={index}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? listMarker(block, index) : "•"}</span><span className="list-item-text">{content}</span></li>
               : <li key={index}>{content}</li>;
           });
           return block.style === "ordered"
-            ? <ol className={studio ? "list-field-preview" : undefined} start={block.start} reversed={block.reversed || undefined} key={block.id}>{items}</ol>
+            ? <ol className={studio ? "list-field-preview" : undefined} type={block.marker} start={block.start} reversed={block.reversed || undefined} key={block.id}>{items}</ol>
             : <ul className={studio ? "list-field-preview" : undefined} key={block.id}>{items}</ul>;
         }
         if (block.type === "table") return <ContentTable block={block} key={block.id} />;

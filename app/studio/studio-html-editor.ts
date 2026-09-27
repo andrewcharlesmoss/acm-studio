@@ -99,7 +99,7 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<blockquote${attributes}${classAttribute([block.align ? `align-${block.align}` : "", block.quoteStyle === "plain" ? "is-style-plain" : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}${block.attribution ? `<cite>${escapeText(block.attribution)}</cite>` : ""}</blockquote>`;
     case "list": {
       const tag = block.style === "ordered" ? "ol" : "ul";
-      return `<${tag}${attributes}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}>${block.items.map((item) => `<li>${typeof item === "string" ? escapeText(item) : runsToHtml(item.runs, listItemText(item))}</li>`).join("")}</${tag}>`;
+      return `<${tag}${attributes}${block.style === "ordered" && block.marker && block.marker !== "1" ? ` type="${block.marker}"` : ""}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}>${block.items.map((item) => `<li>${typeof item === "string" ? escapeText(item) : runsToHtml(item.runs, listItemText(item))}</li>`).join("")}</${tag}>`;
     }
     case "table": {
       const rows = block.rows.length ? block.rows : [[""]];
@@ -326,7 +326,10 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
         const text = runs ? plainTextFromRuns(runs) : child.textContent ?? "";
         return runs?.some((run) => run.marks?.length) ? { text, runs } : text;
       });
-      return { block: { id, type: "list", style: element.tagName.toLowerCase() === "ol" ? "ordered" : "unordered", items, start: element.tagName.toLowerCase() === "ol" && element.hasAttribute("start") ? (Number(element.getAttribute("start")) || undefined) : undefined, reversed: element.tagName.toLowerCase() === "ol" && element.hasAttribute("reversed") || undefined } };
+      const ordered = element.tagName.toLowerCase() === "ol";
+      const marker = element.getAttribute("type");
+      if (ordered && marker && !["1", "A", "a", "I", "i"].includes(marker)) return { error: "This ordered-list style is not supported." };
+      return { block: { id, type: "list", style: ordered ? "ordered" : "unordered", items, marker: ordered && marker && ["1", "A", "a", "I", "i"].includes(marker) ? marker as "1" | "A" | "a" | "I" | "i" : undefined, start: ordered && element.hasAttribute("start") ? (Number(element.getAttribute("start")) || undefined) : undefined, reversed: ordered && element.hasAttribute("reversed") || undefined } };
     }
     case "table":
       return parseTable(element, id, original);

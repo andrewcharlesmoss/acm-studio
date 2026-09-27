@@ -34,6 +34,22 @@ const { BlockRenderer } = await import(await compileModule(new URL("../app/compo
 const { safeImageSource } = await import(await compileModule(new URL("../app/content/rich-text.ts", import.meta.url)));
 const { parseLocallyPublishedArticles, restoreLegacyPublicationCover, toLocallyPublishedArticle, validatePostForPublication } = await import(await compileModule(new URL("../app/content/local-publishing.ts", import.meta.url)));
 const { blockToHtml, formatHtml } = await import(await compileModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url)));
+const { listMarker } = await import(await compileModule(new URL("../app/content/model.ts", import.meta.url)));
+
+test("ordered lists retain Gutenberg numbering styles through preview and HTML", () => {
+  const block = { id: "letters", type: "list", style: "ordered", marker: "A", start: 27, items: ["First", "Second"] };
+  assert.equal(listMarker(block, 0), "AA.");
+  assert.equal(listMarker(block, 1), "AB.");
+  const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
+  const publicView = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block] }));
+  assert.match(studio, /<ol[^>]*type="A"[^>]*start="27"/);
+  assert.match(studio, /AA\.<\/span>/);
+  assert.match(publicView, /<ol[^>]*type="A"[^>]*start="27"/);
+  assert.match(blockToHtml(block), /<ol[^>]*type="A"[^>]*start="27"/);
+  assert.equal(listMarker({ ...block, marker: "a", reversed: true, start: 28 }, 1), "aa.");
+  assert.equal(listMarker({ ...block, marker: "I", start: 4 }, 0), "IV.");
+  assert.equal(listMarker({ ...block, marker: "i", start: 9 }, 0), "ix.");
+});
 
 test("document HTML formatting keeps meaningful inline and preformatted whitespace", () => {
   const formatted = formatHtml("<p><strong>one</strong> <em>two</em></p><pre><code>one  two\n  three</code></pre><pre>   </pre>");
