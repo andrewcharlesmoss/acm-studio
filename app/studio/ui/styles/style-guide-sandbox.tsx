@@ -32,8 +32,10 @@ type GuideView = "formatted" | "markdown";
 
 const fontFamilies: { id: FontFamily; name: string }[] = [
   { id: "inter", name: "Inter" },
-  { id: "system-sans", name: "System Sans" },
-  { id: "georgia", name: "Georgia" },
+  { id: "helvetica-neue", name: "Helvetica Neue" },
+  { id: "helvetica", name: "Helvetica" },
+  { id: "arial", name: "Arial" },
+  { id: "sans-serif", name: "sans-serif" },
 ];
 const typographyRoles: { id: TypographyRole; label: string }[] = [
   { id: "body", label: "Body" }, { id: "h1", label: "H1" }, { id: "h2", label: "H2" },
@@ -79,6 +81,10 @@ function displayStyleValue(value: unknown, viewport: StyleViewport): string {
     return `${metric.value}${unit}${resolved.inherited ? ` (inherited from ${resolved.inheritedFrom})` : ""}`;
   }
   if (value === "inter") return "Inter";
+  if (value === "helvetica-neue") return "Helvetica Neue";
+  if (value === "helvetica") return "Helvetica";
+  if (value === "arial") return "Arial";
+  if (value === "sans-serif") return "sans-serif";
   if (value === "system-sans") return "System Sans";
   if (value === "georgia") return "Georgia";
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
@@ -407,7 +413,7 @@ function TypographyControls({ role, viewport, value, search, matchingFamilies, o
     <div className="sg-editor-tabs" role="group" aria-label={`${roleName} settings`}>
       {([ ["font", "Font"], ["style", "Style"], ["size", "Size"] ] as const).map(([id, label]) => <button type="button" key={id} aria-pressed={tab === id} className={tab === id ? "is-active" : ""} onClick={() => setTab(id)}>{label}</button>)}
     </div>
-    {tab === "font" ? <section className="sg-editor-panel"><label>Search fonts<input data-style-path={`typography.${role}.family`} type="search" value={search} placeholder="Search curated fonts" onChange={event => onSearch(event.target.value)} /></label><div className="sg-font-picker" role="group" aria-label="Curated font family">{matchingFamilies.map(font => <button data-style-path={`typography.${role}.family`} type="button" key={font.id} aria-pressed={value.family === font.id} onClick={() => onChange(current => ({ ...current, family: font.id }))}>{font.name}</button>)}{!matchingFamilies.length ? <p>No curated fonts match.</p> : null}</div><button data-style-path={`typography.${role}.family`} type="button" className="sg-inline-reset" onClick={() => onResetProperty("family")}>Reset font family</button><p>Inter upright and italic are bundled; System Sans and Georgia use local system fonts.</p></section> : null}
+    {tab === "font" ? <section className="sg-editor-panel"><label>Search fonts<input data-style-path={`typography.${role}.family`} type="search" value={search} placeholder="Search font stack" onChange={event => onSearch(event.target.value)} /></label><div className="sg-font-picker" role="group" aria-label="Font stack family">{matchingFamilies.map(font => <button data-style-path={`typography.${role}.family`} type="button" key={font.id} aria-pressed={value.family === font.id} onClick={() => onChange(current => ({ ...current, family: font.id }))}>{font.name}</button>)}{!matchingFamilies.length ? <p>No font stack families match.</p> : null}</div><button data-style-path={`typography.${role}.family`} type="button" className="sg-inline-reset" onClick={() => onResetProperty("family")}>Reset font family</button><p>Inter upright and italic are bundled. Fallback fonts are supplied by your system.</p></section> : null}
     {tab === "style" ? <section className="sg-editor-panel"><label>Weight<select data-style-path={`typography.${role}.weight`} value={value.weight} onChange={event => onChange(current => ({ ...current, weight: Number(event.target.value) }))}>{Array.from({ length: 9 }, (_, index) => (index + 1) * 100).map(weight => <option value={weight} key={weight}>{weight}{weight === 400 ? " · Regular" : weight === 700 ? " · Bold" : ""}</option>)}</select></label><button data-style-path={`typography.${role}.style`} type="button" className="sg-italic-toggle" aria-pressed={value.style === "italic"} onClick={() => onChange(current => ({ ...current, style: current.style === "italic" ? "normal" : "italic" }))}>Italic</button><label>Text transform<select data-style-path={`typography.${role}.transform`} value={value.transform} onChange={event => onChange(current => ({ ...current, transform: event.target.value as typeof current.transform }))}><option value="none">None</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalize</option></select></label><button data-style-path={`typography.${role}.weight`} type="button" className="sg-inline-reset" onClick={() => { onResetProperty("weight"); onResetProperty("style"); onResetProperty("transform"); }}>Reset style</button></section> : null}
     {tab === "size" ? <section className="sg-editor-panel sg-metric-panel">{metricDetails.map(detail => {
       const item = resolved(detail.id);

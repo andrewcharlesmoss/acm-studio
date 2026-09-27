@@ -200,6 +200,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- The Styles font picker now offers Inter and only the fallback families in
+  the shared font stack, while retaining older preset values for compatibility.
 - Rebalanced stacked UK number-row and punctuation legends into measured upper
   and lower optical bands, corrected the Mac quote/apostrophe order, and added
   the missing grave and AltGr broken-bar markings to the Windows top-left key.

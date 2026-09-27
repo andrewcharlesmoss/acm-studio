@@ -55,7 +55,7 @@ The Icons inspector downloads the selected original symbol as SVG at its chosen
 16, 24 or 32px optical size. PNG downloads use the same optical geometry at
 three times the selected pixel dimensions and retain a transparent background.
 
-Styles previews the `@acm/styles` v0.1.0 preset beside the full written
+Styles previews the `@acm/styles` v0.2.0 preset beside the full written
 workspace Style Guide. Hovering or focusing a specimen or setting shows its
 baseline, current sandbox value, guide excerpt and exact line; clicking or
 tapping pins the source selection. The guide view records its source commit and
@@ -66,6 +66,10 @@ bundle; `npm run styles:source:check` verifies it without writing files.
 Responsive typography, semantic colour, button and layout controls change only
 the current React state. Reset All restores the package default; the page does
 not publish a global baseline or save project settings.
+The font picker offers Inter and the individual fallback families from the
+shared stack: Helvetica Neue, Helvetica, Arial and generic sans-serif. Older
+System Sans and Georgia preset values remain valid for compatibility but are
+not offered by the picker.
 
 ## Shared tab indicator
 
