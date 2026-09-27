@@ -15,6 +15,7 @@ async function compileModule(url) {
   let { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX },
   });
+  outputText = outputText.replace(/import ["'][^"']+\.css["'];?/g, "");
   for (const match of [...outputText.matchAll(/from "([^"]+)"/g)]) {
     const specifier = match[1];
     let resolved;
@@ -49,6 +50,20 @@ test("ordered lists retain Gutenberg numbering styles through preview and HTML",
   assert.equal(listMarker({ ...block, marker: "a", reversed: true, start: 28 }, 1), "aa.");
   assert.equal(listMarker({ ...block, marker: "I", start: 4 }, 0), "IV.");
   assert.equal(listMarker({ ...block, marker: "i", start: 9 }, 0), "ix.");
+});
+
+test("List items expose the rich-text toolbar and item-scoped editors", async () => {
+  const { StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const html = renderToStaticMarkup(createElement(StudioCanvas, {
+    activeDocument: { id: "list-document", kind: "post", status: "draft", title: "List", blocks: [{ id: "items", type: "list", style: "unordered", items: ["First", "Second"] }] },
+    previewing: false, wordCount: 2, characterCount: 11, linkTargets: [], mediaBlockUrls: {}, selectedBlockId: "items",
+  }));
+  assert.match(html, /aria-label="Bold selected text"/);
+  assert.match(html, /aria-label="Italicise selected text"/);
+  assert.match(html, /aria-label="Add hyperlink to selected text"/);
+  assert.match(html, /data-studio-block-id="items" data-list-item-index="0"/);
+  assert.match(html, /data-studio-block-id="items" data-list-item-index="1"/);
+  assert.doesNotMatch(html, /aria-label="Text alignment"/);
 });
 
 test("document HTML formatting keeps meaningful inline and preformatted whitespace", () => {
