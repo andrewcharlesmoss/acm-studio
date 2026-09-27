@@ -201,20 +201,67 @@ test("HTML editing preserves paragraph alignment and table dimension contracts",
   const { blocksToHtml, __parseElement, __parseTable } = loadModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url));
   const paragraph = { id: "p", type: "paragraph", text: "Aligned", align: "centre" };
   assert.match(blocksToHtml([paragraph]), /class="align-centre"/);
-  const parsedParagraph = __parseElement({ tagName: "P", dataset: { blockId: "p" }, className: "align-centre", textContent: "Aligned", querySelector: () => null, childNodes: [{ nodeType: 3, textContent: "Aligned" }] }, paragraph);
+  const parsedParagraph = __parseElement({ tagName: "P", dataset: { blockId: "p" }, className: "align-centre", classList: { contains: () => false }, textContent: "Aligned", querySelector: () => null, childNodes: [{ nodeType: 3, textContent: "Aligned" }] }, paragraph);
   assert.equal(parsedParagraph.block.align, "centre");
-  const removedAlignment = __parseElement({ tagName: "P", dataset: { blockId: "p", alignExplicit: "true" }, className: "", textContent: "Aligned", querySelector: () => null, childNodes: [{ nodeType: 3, textContent: "Aligned" }] }, paragraph);
+  const removedAlignment = __parseElement({ tagName: "P", dataset: { blockId: "p", alignExplicit: "true" }, className: "", classList: { contains: () => false }, textContent: "Aligned", querySelector: () => null, childNodes: [{ nodeType: 3, textContent: "Aligned" }] }, paragraph);
   assert.equal(removedAlignment.block.align, undefined);
   assert.match(blocksToHtml([paragraph]), /data-align-explicit="true"/);
   const original = { ...table, columnWidths: [10, 20, 25, 30, 15], rowHeights: [120, 70, 50] };
   const html = blocksToHtml([original]);
   assert.match(html, /data-column-widths="10,20,25,30,15"/);
   assert.match(html, /data-row-heights="120,70,50"/);
-  const fakeTable = (attributes = {}) => ({ getAttribute: (name) => attributes[name] ?? null, querySelector: (name) => name === "tbody" ? { querySelectorAll: () => original.rows.map((row) => ({ children: row.map((textContent) => ({ textContent })) })) } : null });
+  const fakeTable = (attributes = {}) => ({ dataset: {}, classList: { contains: () => false }, getAttribute: (name) => attributes[name] ?? null, querySelector: (name) => name === "tbody" ? { querySelectorAll: () => original.rows.map((row) => ({ children: row.map((textContent) => ({ textContent })) })) } : null });
   const parsed = __parseTable(fakeTable(), "table", original);
   assert.deepEqual(Array.from(parsed.block.columnWidths), original.columnWidths);
   assert.deepEqual(Array.from(parsed.block.rowHeights), original.rowHeights);
   assert.match(__parseTable(fakeTable({ "data-column-widths": "0,-1" }), "table", original).error, /positive numbers/);
+});
+
+test("HTML editing round-trips supported Gutenberg block widths and explicit None", () => {
+  const { blocksToHtml, __parseElement } = loadModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url));
+  const { validContentBlocks } = loadModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
+  const original = { id: "p", type: "paragraph", text: "Wide paragraph", blockAlign: "wide" };
+  assert.match(blocksToHtml([original]), /data-block-align-explicit="true" class="alignwide"/);
+  const element = (className, explicit = false) => ({
+    tagName: "P",
+    dataset: { blockId: "p", ...(explicit ? { blockAlignExplicit: "true" } : {}) },
+    className,
+    classList: { contains: () => false },
+    textContent: "Wide paragraph",
+    querySelector: () => null,
+    childNodes: [{ nodeType: 3, textContent: "Wide paragraph" }],
+  });
+  assert.equal(__parseElement(element("alignfull"), original).block.blockAlign, "full");
+  assert.equal(__parseElement(element("", true), original).block.blockAlign, undefined);
+  assert.equal(validContentBlocks([original]), true);
+  assert.equal(validContentBlocks([{ ...original, blockAlign: "left" }]), false);
+  assert.equal(validContentBlocks([{ id: "code", type: "code", code: "x", blockAlign: "full" }]), false);
+});
+
+test("HTML editing round-trips floated block alignment and migrates legacy wide Images", () => {
+  const { blocksToHtml, __parseElement } = loadModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url));
+  const { validContentBlocks } = loadModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
+  const textNode = { nodeType: 3, textContent: "Quote" };
+  const quoteElement = {
+    tagName: "BLOCKQUOTE", dataset: { blockId: "quote" }, className: "alignright", textContent: "Quote",
+    classList: { contains: () => false }, querySelector: () => null, childNodes: [textNode],
+  };
+  const quote = __parseElement(quoteElement, { id: "quote", type: "quote", text: "Quote" }).block;
+  assert.equal(quote.blockAlign, "right");
+  assert.match(blocksToHtml([quote]), /alignright/);
+
+  const legacyImage = { id: "image", type: "image", src: "https://example.com/image.jpg", alt: "Image", wide: true };
+  assert.match(blocksToHtml([legacyImage]), /alignwide/);
+  const imageElement = {
+    tagName: "FIGURE", dataset: { blockId: "image", blockAlignExplicit: "true" }, className: "", classList: { contains: () => false },
+    querySelector: (selector) => selector === "img" ? ({ dataset: {}, getAttribute: (name) => name === "src" ? legacyImage.src : name === "alt" ? legacyImage.alt : null, closest: () => null }) : null,
+  };
+  const image = __parseElement(imageElement, legacyImage).block;
+  assert.equal(image.blockAlign, undefined);
+  assert.equal(image.wide, false);
+
+  assert.equal(validContentBlocks([{ id: "divider", type: "divider", blockAlign: "center" }]), true);
+  assert.equal(validContentBlocks([{ id: "divider", type: "divider", blockAlign: "left" }]), false);
 });
 
 test("HTML editing reads Spacer dimensions and rejects unsupported units", () => {
@@ -246,7 +293,7 @@ test("HTML editing retains ordered list marker styles and validates persisted va
   const { validContentBlocks } = loadModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
   const original = { id: "list", type: "list", style: "ordered", items: ["First"] };
   const element = (marker) => ({
-    tagName: "OL", dataset: { blockId: "list" }, textContent: "First",
+    tagName: "OL", dataset: { blockId: "list" }, className: "", textContent: "First",
     classList: { contains: () => false },
     getAttribute: (name) => name === "type" ? marker : null,
     hasAttribute: (name) => name === "type",
@@ -269,6 +316,8 @@ test("custom font sizes and expanded Appearance values validate for saved text b
   assert.equal(validContentBlocks([paragraph, heading]), true);
   assert.equal(validContentBlocks([{ ...paragraph, style: { fontSizeCustom: "9999px" } }]), false);
   assert.equal(validContentBlocks([{ ...paragraph, style: { fontSizeCustom: "url(evil)" } }]), false);
+  assert.equal(validContentBlocks([{ ...paragraph, style: { fontSizeCustom: "4vw" } }]), true);
+  assert.equal(validContentBlocks([{ ...paragraph, style: { fontSizeCustom: "3vh" } }]), true);
   assert.equal(validContentBlocks([{ ...heading, visualStyle: { appearance: "unknown" } }]), false);
 });
 

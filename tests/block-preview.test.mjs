@@ -36,6 +36,18 @@ const { safeImageSource } = await import(await compileModule(new URL("../app/con
 const { parseLocallyPublishedArticles, restoreLegacyPublicationCover, toLocallyPublishedArticle, validatePostForPublication } = await import(await compileModule(new URL("../app/content/local-publishing.ts", import.meta.url)));
 const { blockToHtml, formatHtml } = await import(await compileModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url)));
 const { listMarker } = await import(await compileModule(new URL("../app/content/model.ts", import.meta.url)));
+const { validContentBlocks } = await import(await compileModule(new URL("../app/studio/workspace-validation.ts", import.meta.url)));
+const { normaliseCustomFontSize, validCustomFontSize } = await import(await compileModule(new URL("../app/content/font-size.ts", import.meta.url)));
+
+test("custom font sizes use the same limits in the inspector and workspace validator", () => {
+  assert.equal(normaliseCustomFontSize(500, "px"), "400px");
+  assert.equal(normaliseCustomFontSize(26, "vw"), "25vw");
+  assert.equal(normaliseCustomFontSize(0, "px"), undefined);
+  assert.equal(validCustomFontSize("400px"), true);
+  assert.equal(validCustomFontSize("401px"), false);
+  assert.equal(validCustomFontSize("25vh"), true);
+  assert.equal(validCustomFontSize("26vh"), false);
+});
 
 test("ordered lists retain Gutenberg numbering styles through preview and HTML", () => {
   const block = { id: "letters", type: "list", style: "ordered", marker: "A", start: 27, items: ["First", "Second"] };
@@ -50,6 +62,41 @@ test("ordered lists retain Gutenberg numbering styles through preview and HTML",
   assert.equal(listMarker({ ...block, marker: "a", reversed: true, start: 28 }, 1), "aa.");
   assert.equal(listMarker({ ...block, marker: "I", start: 4 }, 0), "IV.");
   assert.equal(listMarker({ ...block, marker: "i", start: 9 }, 0), "ix.");
+});
+
+test("Gutenberg block-width alignment reaches HTML, Studio preview and public rendering", () => {
+  const blocks = [
+    { id: "paragraph-width", type: "paragraph", text: "Paragraph", blockAlign: "wide" },
+    { id: "heading-width", type: "heading", level: 2, text: "Heading", blockAlign: "full" },
+    { id: "list-width", type: "list", style: "unordered", items: ["Item"], blockAlign: "wide" },
+    { id: "code-width", type: "code", code: "const wide = true;", blockAlign: "wide" },
+    { id: "quote-align", type: "quote", text: "Quote", blockAlign: "left" },
+    { id: "table-align", type: "table", rows: [["Cell"]], blockAlign: "center" },
+    { id: "image-align", type: "image", src: "https://example.com/image.jpg", alt: "Image", blockAlign: "right" },
+    { id: "embed-align", type: "embed", url: "https://example.com", title: "Example", blockAlign: "wide" },
+    { id: "divider-align", type: "divider", blockAlign: "full" },
+    { id: "group-width", type: "group", layout: "stack", children: [], blockAlign: "full" },
+    { id: "columns-width", type: "columns", children: [], blockAlign: "wide" },
+    { id: "title-width", type: "document-title", blockAlign: "full" },
+  ];
+  const context = { kind: "post", title: "Document title" };
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant, document: context }));
+    assert.match(html, /alignwide/);
+    assert.match(html, /alignfull/);
+    assert.match(html, /alignleft/);
+    assert.match(html, /aligncenter/);
+    assert.match(html, /alignright/);
+    if (variant === "studio") {
+      assert.match(html, /content-block is-paragraph has-block-align-wide/);
+      assert.match(html, /content-block is-heading has-block-align-full/);
+    }
+  }
+  for (const block of blocks) {
+    const html = blockToHtml(block);
+    assert.match(html, /data-block-align-explicit="true"/);
+    assert.match(html, new RegExp(`align${block.blockAlign}`));
+  }
 });
 
 test("List items expose the rich-text toolbar and item-scoped editors", async () => {
@@ -118,7 +165,7 @@ test("ordered list settings, divider styles and button target reach the rendered
   const blocks = [
     { id: "countdown", type: "list", style: "ordered", items: ["First", "Second"], start: 4, reversed: true },
     { id: "break", type: "divider", style: "dots", visualStyle: { textColor: "#123456", margin: "12px" } },
-    { id: "action", type: "button", label: "Visit", url: "https://example.com", style: "primary", opensInNewTab: true },
+    { id: "action", type: "button", label: "Visit", url: "https://example.com", style: "primary", opensInNewTab: true, align: "right", width: 75, title: "Visit Example", rel: "nofollow" },
   ];
   const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "article" }));
   const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio" }));
@@ -126,10 +173,12 @@ test("ordered list settings, divider styles and button target reach the rendered
   assert.match(studio, /4\.<\/span>/);
   assert.match(studio, /3\.<\/span>/);
   assert.match(article, /content-divider is-dots/);
-  assert.match(article, /target="_blank" rel="noopener noreferrer"/);
+  assert.match(article, /button-block align-right has-width-75/);
+  assert.match(article, /title="Visit Example" target="_blank" rel="nofollow noopener noreferrer"/);
   assert.match(blockToHtml(blocks[0]), /<ol[^>]*start="4" reversed>/);
   assert.match(blockToHtml(blocks[1]), /class="is-dots"/);
-  assert.match(blockToHtml(blocks[2]), /target="_blank" rel="noopener noreferrer"/);
+  assert.match(blockToHtml(blocks[2]), /data-button-width="75" class="button-block align-right has-width-75"/);
+  assert.match(blockToHtml(blocks[2]), /title="Visit Example" target="_blank" rel="nofollow noopener noreferrer"/);
 });
 
 test("image display settings and decorative text reach both renderers", () => {
@@ -149,6 +198,25 @@ test("image display settings and decorative text reach both renderers", () => {
   const linkedHtml = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [linked], variant: "article" }));
   assert.match(linkedHtml, /<a href="https:\/\/example.com" target="_blank" rel="noopener noreferrer"><img/);
   assert.match(blockToHtml(linked), /target="_blank" rel="noopener noreferrer"/);
+});
+
+test("Image height, rounded style and link destinations reach preview and HTML", () => {
+  const base = { id: "image-options", type: "image", src: "https://example.com/photo.jpg", alt: "Mountain", displayWidth: 400, displayHeight: 240, imageStyle: "rounded" };
+  const rounded = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [base], variant: "studio" }));
+  assert.match(rounded, /width:400px;height:240px;object-fit:cover;object-position:50% 50%;border-radius:9999px/);
+  assert.match(blockToHtml(base), /data-display-height="240"/);
+  assert.match(blockToHtml(base), /data-image-style="rounded"/);
+
+  const media = { ...base, linkDestination: "media", opensInNewTab: true };
+  const mediaPreview = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [media], variant: "article" }));
+  assert.match(mediaPreview, /<a href="https:\/\/example.com\/photo.jpg" target="_blank" rel="noopener noreferrer"><img/);
+  assert.match(blockToHtml(media), /data-link-destination="media"/);
+
+  const lightbox = { ...base, linkDestination: "lightbox" };
+  const lightboxPreview = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [lightbox], variant: "article" }));
+  assert.match(lightboxPreview, /aria-label="Enlarge image: Mountain"/);
+  assert.match(lightboxPreview, /<dialog[^>]+aria-label="Mountain"/);
+  assert.match(blockToHtml(lightbox), /data-link-destination="lightbox"/);
 });
 
 test("Spacer dimensions and Embed spacing render in both views and survive HTML export", () => {
@@ -191,6 +259,39 @@ test("table settings keep caption, striping and automatic cell widths in preview
   assert.match(source, /data-fixed-width="false"/);
   assert.match(source, /class="studio-table is-striped"/);
   assert.match(source, /<caption>Results<\/caption>/);
+});
+
+test("Table column content alignment renders, serialises and validates by column", () => {
+  const block = { id: "aligned-table", type: "table", rows: [["Name", "Value"], ["One", "1"]], hasHeader: true, columnAlignments: ["left", "right"] };
+  const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
+  assert.match(rendered, /<th scope="col" style="text-align:right"/);
+  assert.match(rendered, /<td style="text-align:right"/);
+  assert.match(blockToHtml(block), /data-column-alignments="left,right"/);
+  assert.match(blockToHtml(block), /class="has-text-align-right" data-align="right"/);
+  assert.equal(validContentBlocks([block]), true);
+  assert.equal(validContentBlocks([{ ...block, columnAlignments: ["left"] }]), false);
+  assert.equal(validContentBlocks([{ ...block, columnAlignments: ["left", "justify"] }]), false);
+});
+
+test("dynamic Gutenberg fields and Group semantics retain their compatibility settings", () => {
+  const blocks = [
+    { id: "title", type: "document-title", level: 3, isLink: true, linkTarget: "_blank", rel: "nofollow", blockAlign: "wide" },
+    { id: "date", type: "post-date", format: "iso", isLink: true, showIcon: false },
+    { id: "cover", type: "cover-image", isLink: true, linkTarget: "_blank", blockAlign: "full", aspectRatio: "wide", scale: "contain", displayWidth: 640, displayHeight: 360 },
+    { id: "landmark", type: "group", layout: "stack", tagName: "nav", ariaLabel: "Related pages", children: [{ id: "item", type: "paragraph", text: "Item" }] },
+  ];
+  const document = { kind: "post", slug: "example", title: "Example", publishAt: "2026-09-27T09:00:00.000Z", coverImage: { src: "https://example.com/cover.jpg", alt: "Cover" } };
+  const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio", document }));
+  assert.match(rendered, /<h3 class=""><a href="\/writing\/example" target="_blank" rel="nofollow noopener noreferrer">Example<\/a><\/h3>/);
+  assert.match(rendered, /<a href="\/writing\/example"><time/);
+  assert.match(rendered, /document-dynamic-cover[^>]*alignfull/);
+  assert.match(rendered, /width:640px;height:360px;aspect-ratio:16 \/ 9;object-fit:contain/);
+  assert.match(rendered, /<nav[^>]*aria-label="Related pages"/);
+  for (const block of blocks) assert.equal(validContentBlocks([block]), true);
+  assert.match(blockToHtml(blocks[0]), /data-metadata-link="true" data-link-target="_blank" data-link-rel="nofollow"/);
+  assert.match(blockToHtml(blocks[1]), /data-metadata-link="true"/);
+  assert.match(blockToHtml(blocks[2]), /data-aspect-ratio="wide"[^>]*data-display-width="640"/);
+  assert.match(blockToHtml(blocks[3]), /^<nav[^>]*aria-label="Related pages"/);
 });
 
 test("Studio preview preserves block order, semantic content and raw whitespace without editable controls", () => {
@@ -445,7 +546,7 @@ test("reading time rounds body words consistently across editor and publication"
     assert.equal(readingTimeMinutes(blocks), minutes);
     const label = `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
     assert.equal(readingTimeLabel(blocks), label);
-    const document = { kind: "post", status: "draft", title: "Test", slug: "test", author: "Andrew Moss", updatedAt: "2026-09-08T12:00:00Z", blocks };
+    const document = { kind: "post", status: "draft", title: "Test", slug: "test", excerpt: "", author: "Andrew Moss", updatedAt: "2026-09-08T12:00:00Z", blocks };
     const html = renderToStaticMarkup(createElement(StudioCanvas, { activeDocument: document, previewing: false, wordCount: words, characterCount: 0, linkTargets: [], mediaBlockUrls: {} }));
     assert.ok(html.includes(`Reading Time: ${label}`));
     assert.doesNotMatch(html, /Calculated from ordinary content/);
@@ -489,7 +590,7 @@ test("Studio byline follows the selected publication date and never invents a dr
 test("Studio modes share heading slots, expose the current mode and omit editing metadata from preview", async () => {
   const { BlockField, StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
   const dynamicProps = { onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {}, onChange() {} };
-  assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "title", type: "document-title" }, document: { title: "Example title" } })), /<h1[^>]*>Example title<\/h1>/);
+  assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "title", type: "document-title" }, document: { title: "Example title" } })), /<h2[^>]*>Example title<\/h2>/);
   assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "subtitle", type: "document-subtitle" }, document: { subtitle: "A supporting summary" } })), /<p[^>]*template-subtitle[^>]*>A supporting summary<\/p>/);
   assert.doesNotMatch(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "hidden-subtitle", type: "document-subtitle" }, document: { subtitle: "A supporting summary", displayOverrides: { subtitle: "hide" } } })), /A supporting summary|template-subtitle/);
   for (const kind of ["page", "post"]) {

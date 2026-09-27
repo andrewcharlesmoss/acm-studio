@@ -1,7 +1,9 @@
 import type { ContentBlock } from "../content/model";
+import { blockAlignmentOptions, contentBlockAlignment } from "../content/block-alignment";
 import { validBoxLengths } from "../content/box-lengths";
 import { safeMathMLMarkup } from "../content/mathml";
 import { safeImageSource } from "../content/rich-text";
+import { validCustomFontSize } from "../content/font-size";
 import { validSpacerSize } from "../content/spacer";
 import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
 
@@ -32,7 +34,7 @@ const date = (value: unknown) => typeof value === "string" && Number.isFinite(Da
 const uniqueIds = (records: Record<string, unknown>[]) => records.every((item) => typeof item.id === "string" && item.id.length > 0)
   && new Set(records.map((item) => item.id)).size === records.length;
 const optionalParagraphLength = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:0|\d+(?:\.\d+)?(?:px|em|rem|%|ch|vw|vh)?)$/.test(value));
-const optionalCustomFontSize = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:\d+(?:\.\d+)?)(?:px|em|rem)$/.test(value) && Number.parseFloat(value) > 0 && Number.parseFloat(value) <= (value.endsWith("px") ? 400 : 25));
+const optionalCustomFontSize = validCustomFontSize;
 const optionalSignedParagraphLength = (value: unknown) => value === undefined || (typeof value === "string" && /^-?(?:0|\d+(?:\.\d+)?(?:px|em|rem|%|ch|vw|vh)?)$/.test(value));
 const optionalParagraphColour = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^)]*\))$/i.test(value));
 const optionalParagraphAnchor = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-z][a-z0-9_-]*$/i.test(value));
@@ -106,6 +108,8 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
   if (typeof block.id !== "string" || block.id.length === 0 || ids.has(block.id) || depth > 8) return false;
   if (block.siteRole !== undefined && !["logo", "title", "eyebrow", "status", "progress", "table-size", "auto-resize", "new-game", "holes", "players", "reset-scores", "export-excel", "export-image", "export-html", "metric-average", "metric-deviation", "metric-holes", "player-name", "score-value", "score-label", "metric-label", "metric-value", "footer-name", "copyright", "social-icon", "social-action"].includes(block.siteRole as string)) return false;
   if (!validParagraphStyle(block.visualStyle)) return false;
+  const blockAlignment = contentBlockAlignment(block);
+  if (blockAlignment !== undefined && !blockAlignmentOptions(block.type).includes(blockAlignment)) return false;
   ids.add(block.id);
     if (block.align !== undefined && !["left", "centre", "right"].includes(block.align as string)) return false;
     switch (block.type) {
@@ -126,29 +130,41 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         return columns > 0 && block.rows.every((row) => row.length === columns)
           && optionalBoolean(block.hasHeader) && optionalBoolean(block.hasFooter) && optionalBoolean(block.fixedWidth)
           && (block.tableStyle === undefined || ["default", "stripes"].includes(block.tableStyle as string)) && optionalString(block.caption)
-          && dimensions(block.columnWidths, columns) && dimensions(block.rowHeights, block.rows.length);
+          && dimensions(block.columnWidths, columns) && dimensions(block.rowHeights, block.rows.length)
+          && (block.columnAlignments === undefined || (Array.isArray(block.columnAlignments) && block.columnAlignments.length === columns && block.columnAlignments.every((alignment) => ["left", "centre", "right"].includes(alignment as string))));
       }
       case "code": return typeof block.code === "string" && optionalString(block.language);
       case "image": return typeof block.src === "string" && typeof block.alt === "string" && optionalString(block.mediaId)
         && optionalString(block.caption) && optionalBoolean(block.wide) && optionalBoolean(block.decorative) && optionalString(block.title) && optionalString(block.linkUrl) && optionalBoolean(block.opensInNewTab)
+        && (block.linkDestination === undefined || ["none", "custom", "media", "lightbox"].includes(block.linkDestination as string))
+        && (block.imageStyle === undefined || ["default", "rounded"].includes(block.imageStyle as string))
         && (block.aspectRatio === undefined || ["original", "square", "portrait", "landscape", "wide"].includes(block.aspectRatio as string))
         && (block.scale === undefined || ["cover", "contain"].includes(block.scale as string))
-        && (block.displayWidth === undefined || (typeof block.displayWidth === "number" && Number.isInteger(block.displayWidth) && block.displayWidth >= 32 && block.displayWidth <= 2400))
+        && [block.displayWidth, block.displayHeight].every((value) => value === undefined || (typeof value === "number" && Number.isInteger(value) && value >= 32 && value <= 2400))
         && [block.focalX, block.focalY].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100));
       case "embed": return typeof block.url === "string" && typeof block.title === "string" && (block.caption === undefined || typeof block.caption === "string");
-      case "button": return typeof block.label === "string" && typeof block.url === "string" && ["primary", "secondary"].includes(block.style as string) && optionalBoolean(block.opensInNewTab);
+      case "button": return typeof block.label === "string" && typeof block.url === "string" && ["primary", "secondary"].includes(block.style as string) && optionalBoolean(block.opensInNewTab)
+        && optionalString(block.title) && optionalString(block.rel)
+        && (block.width === undefined || [25, 50, 75, 100].includes(block.width as number));
       case "field": return ["text", "select"].includes(block.control as string) && typeof block.label === "string" && typeof block.value === "string"
         && (block.options === undefined || strings(block.options));
       case "divider": return block.style === undefined || ["default", "wide", "dots"].includes(block.style as string);
       case "footnotes": return Array.isArray(block.notes) && block.notes.length <= 1000 && block.notes.every((note) => isRecord(note) && typeof note.id === "string" && note.id.length > 0 && note.id.length <= 160 && typeof note.text === "string" && note.text.length <= 10000);
       case "spacer": return validSpacerSize(block.height, block.heightUnit, true) && validSpacerSize(block.width, block.widthUnit);
-      case "document-title":
+      case "document-title": return (block.level === undefined || [1, 2, 3, 4, 5, 6].includes(block.level as number))
+        && optionalBoolean(block.isLink) && (block.linkTarget === undefined || ["_self", "_blank"].includes(block.linkTarget as string)) && optionalString(block.rel);
       case "document-subtitle":
-      case "cover-image": return true;
+        return true;
+      case "cover-image": return optionalBoolean(block.isLink)
+        && (block.linkTarget === undefined || ["_self", "_blank"].includes(block.linkTarget as string)) && optionalString(block.rel)
+        && (block.aspectRatio === undefined || ["original", "square", "portrait", "landscape", "wide"].includes(block.aspectRatio as string))
+        && (block.scale === undefined || ["cover", "contain"].includes(block.scale as string))
+        && [block.displayWidth, block.displayHeight].every((value) => value === undefined || (typeof value === "number" && Number.isInteger(value) && value >= 32 && value <= 2400))
+        && [block.focalX, block.focalY].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100));
       case "reading-time": return optionalString(block.prefix)
         && (block.presentation === undefined || ["badge", "plain"].includes(block.presentation as string));
       case "post-author": return optionalString(block.prefix) && optionalBoolean(block.avatar);
-      case "post-date": return (block.format === undefined || ["long", "short", "iso"].includes(block.format as string)) && optionalBoolean(block.showIcon);
+      case "post-date": return (block.format === undefined || ["long", "short", "iso"].includes(block.format as string)) && optionalBoolean(block.showIcon) && optionalBoolean(block.isLink);
       case "section":
         return ["stack", "row", "columns"].includes(block.layout as string)
           && validLayoutOptions(block)
@@ -159,6 +175,8 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
           && Array.isArray(block.children) && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1));
       case "group": return ["stack", "row", "columns"].includes(block.layout as string)
         && validLayoutOptions(block)
+        && (block.tagName === undefined || ["div", "main", "section", "article", "aside", "header", "footer", "nav"].includes(block.tagName as string))
+        && optionalString(block.ariaLabel)
         && (block.data === undefined || (isRecord(block.data) && Object.values(block.data).every((item) => typeof item === "string" || typeof item === "number" || typeof item === "boolean" || strings(item))))
         && (block.source === undefined || (isRecord(block.source) && typeof block.source.module === "string" && typeof block.source.exportName === "string" && typeof block.source.revision === "string"))
         && Array.isArray(block.children) && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1));

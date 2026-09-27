@@ -88,7 +88,7 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, onTog
     };
   }, [menuOpen, disabled]);
 
-  return <section ref={rootRef} className="inspector-panel inspector-tools-section">
+  return <section ref={rootRef} className={`inspector-panel inspector-tools-section${visible.size ? "" : " is-compact"}`}>
     <div className="inspector-tools-heading">
       <h2>{title}</h2>
       <button ref={triggerRef} type="button" className="inspector-tools-trigger" aria-label={`${title} options`} aria-expanded={menuOpen && !disabled} aria-controls={menuId} disabled={disabled} onClick={() => { if (!menuOpen) document.dispatchEvent(new CustomEvent("studio-inspector-tools-open", { detail: menuId })); setMenuOpen(open => !open); }}><StudioIcon name={visible.size ? "more-vertical" : "add"} size={18} /></button>

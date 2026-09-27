@@ -1,6 +1,7 @@
 export type ProjectStatus = "Active" | "Exploring" | "Available" | "Prototype";
 
 export type TextAlignment = "left" | "centre" | "right";
+export type BlockAlignment = "left" | "center" | "right" | "wide" | "full";
 export type DocumentDisplayField = "title" | "subtitle" | "coverImage" | "author" | "publicationDate" | "readingTime";
 export type DocumentDisplayMode = "show" | "hide";
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
@@ -124,6 +125,7 @@ export type ColumnBlock = { id: string; type: "column"; width?: number; vertical
 
 export type DocumentRenderContext = {
   kind: "page" | "post";
+  slug?: string;
   title?: string;
   subtitle?: string;
   coverImage?: { src: string; alt: string } | null;
@@ -135,30 +137,31 @@ export type DocumentRenderContext = {
 
 export type ReadingTimePresentation = "badge" | "plain";
 export type PostDateFormat = "long" | "short" | "iso";
+export type ButtonWidth = 25 | 50 | 75 | 100;
 
 export type ContentBlock = (
-  | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; style?: ParagraphStyle }
-  | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment }
-  | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; attribution?: string; align?: TextAlignment; quoteStyle?: "default" | "plain" }
-  | { id: string; type: "list"; style: "ordered" | "unordered"; items: ListItem[]; marker?: OrderedListMarker; start?: number; reversed?: boolean }
-  | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; columnWidths?: number[]; rowHeights?: number[] }
-  | { id: string; type: "code"; language?: string; code: string }
-  | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean; decorative?: boolean; title?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain"; displayWidth?: number; focalX?: number; focalY?: number; linkUrl?: string; opensInNewTab?: boolean }
-  | { id: string; type: "embed"; url: string; title: string; caption?: string }
-  | { id: string; type: "divider"; style?: "default" | "wide" | "dots" }
+  | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment; style?: ParagraphStyle }
+  | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment }
+  | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; attribution?: string; align?: TextAlignment; blockAlign?: BlockAlignment; quoteStyle?: "default" | "plain" }
+  | { id: string; type: "list"; style: "ordered" | "unordered"; items: ListItem[]; marker?: OrderedListMarker; start?: number; reversed?: boolean; blockAlign?: BlockAlignment }
+  | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; columnWidths?: number[]; rowHeights?: number[]; columnAlignments?: TextAlignment[]; blockAlign?: BlockAlignment }
+  | { id: string; type: "code"; language?: string; code: string; blockAlign?: BlockAlignment }
+  | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean; blockAlign?: BlockAlignment; decorative?: boolean; title?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number; linkUrl?: string; linkDestination?: "none" | "custom" | "media" | "lightbox"; opensInNewTab?: boolean; imageStyle?: "default" | "rounded" }
+  | { id: string; type: "embed"; url: string; title: string; caption?: string; blockAlign?: BlockAlignment }
+  | { id: string; type: "divider"; style?: "default" | "wide" | "dots"; blockAlign?: BlockAlignment }
   | { id: string; type: "footnotes"; notes: Footnote[] }
-  | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary"; opensInNewTab?: boolean }
+  | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary"; opensInNewTab?: boolean; align?: TextAlignment; width?: ButtonWidth; title?: string; rel?: string }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
   | { id: string; type: "spacer"; height: number; heightUnit?: SpacerUnit; width?: number; widthUnit?: SpacerUnit }
-  | { id: string; type: "document-title"; align?: TextAlignment }
+  | { id: string; type: "document-title"; align?: TextAlignment; blockAlign?: BlockAlignment; level?: HeadingLevel; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string }
   | { id: string; type: "document-subtitle"; align?: TextAlignment }
-  | { id: string; type: "cover-image"; align?: TextAlignment }
+  | { id: string; type: "cover-image"; align?: TextAlignment; blockAlign?: BlockAlignment; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number }
   | { id: string; type: "reading-time"; prefix?: string; presentation?: ReadingTimePresentation; align?: TextAlignment }
   | { id: string; type: "post-author"; prefix?: string; avatar?: boolean; align?: TextAlignment }
-  | { id: string; type: "post-date"; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment }
+  | { id: string; type: "post-date"; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment; isLink?: boolean }
   | ({ id: string; type: "section"; role?: SiteSectionRole; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
-  | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
-  | ({ id: string; type: "columns"; children: ColumnBlock[]; style?: ParagraphStyle } & Omit<LayoutOptions, "columns" | "horizontalAlign">)
+  | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource; blockAlign?: BlockAlignment; tagName?: "div" | "main" | "section" | "article" | "aside" | "header" | "footer" | "nav"; ariaLabel?: string } & LayoutOptions)
+  | ({ id: string; type: "columns"; children: ColumnBlock[]; style?: ParagraphStyle; blockAlign?: BlockAlignment } & Omit<LayoutOptions, "columns" | "horizontalAlign">)
   | ColumnBlock
   | { id: string; type: "component"; component: SiteComponentName; data?: SiteComponentData; source?: SiteComponentSource; children?: ContentBlock[] }) & { siteRole?: SiteContentRole; visualStyle?: ParagraphStyle };
 

@@ -1,17 +1,21 @@
 import type { IconName, IconScale } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import type { BlockLibraryItemType } from "./editor-model";
+import type { ContentBlock } from "../content/model";
 import { AcmStudioIcon } from "./acm-studio-icons";
 import { StudioIcon, type StudioIconName } from "./studio-icons";
 
 type SharedSymbol = { source: "ACM Icons"; symbol: IconName };
 type StudioSymbol = { source: "ACM Studio"; symbol: StudioIconName };
 type BlockSymbol = SharedSymbol | StudioSymbol;
+type BlockIconType = ContentBlock["type"] | "template-content";
 
-const blockSymbols: Record<BlockLibraryItemType, BlockSymbol> = {
+const blockSymbols: Record<BlockIconType, BlockSymbol> = {
   "template-content": { source: "ACM Studio", symbol: "block" },
   group: { source: "ACM Icons", symbol: "arrange.group" },
   columns: { source: "ACM Icons", symbol: "layout.columns" },
+  column: { source: "ACM Icons", symbol: "layout.columns" },
+  component: { source: "ACM Studio", symbol: "block" },
   section: { source: "ACM Studio", symbol: "block" },
   paragraph: { source: "ACM Icons", symbol: "text.paragraph" },
   heading: { source: "ACM Studio", symbol: "heading-marker" },
@@ -19,6 +23,7 @@ const blockSymbols: Record<BlockLibraryItemType, BlockSymbol> = {
   quote: { source: "ACM Icons", symbol: "text.quote" },
   table: { source: "ACM Icons", symbol: "table.cell" },
   code: { source: "ACM Icons", symbol: "text.code" },
+  footnotes: { source: "ACM Icons", symbol: "text.footnote" },
   image: { source: "ACM Icons", symbol: "insert.image" },
   embed: { source: "ACM Icons", symbol: "action.link" },
   button: { source: "ACM Studio", symbol: "button" },
@@ -37,7 +42,7 @@ export function blockLibrarySymbol(type: BlockLibraryItemType): BlockSymbol {
   return blockSymbols[type];
 }
 
-export function BlockLibraryIcon({ type }: { type: BlockLibraryItemType }) {
+export function BlockLibraryIcon({ type }: { type: BlockIconType }) {
   const entry = blockSymbols[type];
   if (entry.source === "ACM Icons") return <AcmIcon name={entry.symbol} scale="Regular-M" size={24} />;
   return <StudioIcon name={entry.symbol} />;

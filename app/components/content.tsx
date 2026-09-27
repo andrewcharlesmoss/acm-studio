@@ -7,10 +7,12 @@ import { safeMathMLMarkup } from "../content/mathml";
 import { buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { spacerDimensions } from "../content/spacer";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
+import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { columnsLayoutStyle } from "../content/columns";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { imageDisplayStyle } from "../content/image-style";
+import { ImageLightbox } from "./image-lightbox";
 import { ArticleMetaIcon } from "./article-meta-icon";
 import { FitTextHeading, FitTextParagraph } from "./fit-text-paragraph";
 import { StudioIcon } from "../studio/studio-icons";
@@ -74,7 +76,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
   function renderBlockContent(block: ContentBlock) {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
         if (block.type === "paragraph") {
-          const className = `${studio ? "block-textarea paragraph-field preview-rich-text " : ""}align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`;
+          const className = `${studio ? "block-textarea paragraph-field preview-rich-text " : ""}align-${block.align ?? "left"}${block.blockAlign ? ` align${block.blockAlign}` : ""}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`;
           const style = paragraphStyleToCss(block.style) as React.CSSProperties;
           const children = renderText(block.text, block.runs, mediaUrls, footnoteNumbers);
           return fitTextEnabled(block.style)
@@ -82,7 +84,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
             : <p id={paragraphStyleAnchor(block.style)} className={className} style={style} key={block.id}>{children}</p>;
         }
         if (block.type === "heading") {
-          const className = `${studio ? `block-textarea heading-field is-h${block.level} preview-rich-text ` : ""}align-${block.align ?? "left"}${fitTextEnabled(block.visualStyle) ? " has-fit-text" : ""}`;
+          const className = `${studio ? `block-textarea heading-field is-h${block.level} preview-rich-text ` : ""}align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${fitTextEnabled(block.visualStyle) ? " has-fit-text" : ""}`;
           const content = renderText(block.text, block.runs, mediaUrls, footnoteNumbers);
           return fitTextEnabled(block.visualStyle)
             ? <FitTextHeading level={block.level} className={className} styleSignature={JSON.stringify(block.visualStyle ?? {})} key={block.id}>{content}</FitTextHeading>
@@ -90,7 +92,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         }
         if (block.type === "quote") {
           return (
-            <figure className={`${studio ? "quote-field" : "pull-quote"} align-${block.align ?? "left"}${block.quoteStyle === "plain" ? " is-style-plain" : ""}`} key={block.id}>
+            <figure className={`${studio ? "quote-field" : "pull-quote"} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${block.quoteStyle === "plain" ? " is-style-plain" : ""}`} key={block.id}>
               <blockquote className={studio ? "block-textarea preview-rich-text" : undefined}>{renderText(block.text, block.runs, mediaUrls, footnoteNumbers)}</blockquote>
               {block.attribution ? <figcaption>— {block.attribution}</figcaption> : null}
             </figure>
@@ -104,47 +106,53 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
               : <li key={index}>{content}</li>;
           });
           return block.style === "ordered"
-            ? <ol className={studio ? "list-field-preview" : undefined} type={block.marker} start={block.start} reversed={block.reversed || undefined} key={block.id}>{items}</ol>
-            : <ul className={studio ? "list-field-preview" : undefined} key={block.id}>{items}</ul>;
+            ? <ol className={[studio ? "list-field-preview" : "", blockAlignmentClass(block)].filter(Boolean).join(" ") || undefined} type={block.marker} start={block.start} reversed={block.reversed || undefined} key={block.id}>{items}</ol>
+            : <ul className={[studio ? "list-field-preview" : "", blockAlignmentClass(block)].filter(Boolean).join(" ") || undefined} key={block.id}>{items}</ul>;
         }
         if (block.type === "table") return <ContentTable block={block} key={block.id} />;
         if (block.type === "code") {
           const highlighted = highlightCode(block.code, block.language);
-          return <pre className={studio ? "studio-code-preview" : undefined} key={block.id} data-language={highlighted.language}><code dangerouslySetInnerHTML={{ __html: highlighted.html }} /></pre>;
+          return <pre className={[studio ? "studio-code-preview" : "", blockAlignmentClass(block)].filter(Boolean).join(" ") || undefined} key={block.id} data-language={highlighted.language}><code dangerouslySetInnerHTML={{ __html: highlighted.html }} /></pre>;
         }
         if (block.type === "image") {
           const imageSource = block.mediaId
             ? safeImageSource(mediaUrls[block.mediaId] ?? "", { allowBlob: true })
             : safeImageSource(block.src);
-          const imageLink = block.linkUrl ? safeTextLink(block.linkUrl) : null;
+          const linkDestination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
+          const imageLink = linkDestination === "media" ? imageSource : linkDestination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
           // Sample and local editor content use externally supplied image URLs only.
           // eslint-disable-next-line @next/next/no-img-element
           const image = imageSource ? <img src={imageSource} alt={block.decorative ? "" : block.alt} title={block.title} style={imageDisplayStyle(block)} /> : null;
           return (
-            <figure key={block.id} className={`${studio ? "image-field" : "article-image"}${block.wide ? " is-wide" : ""}`}>
-              {image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined}>{image}</a> : image) : studio ? <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div> : <div className="image-placeholder" role="img" aria-label={block.alt || "Image placeholder"}>Image</div>}
+            <figure key={block.id} className={`${studio ? "image-field" : "article-image"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
+              {image ? (linkDestination === "lightbox" && imageSource ? <ImageLightbox src={imageSource} alt={block.alt} style={imageDisplayStyle(block)} /> : imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined}>{image}</a> : image) : studio ? <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div> : <div className="image-placeholder" role="img" aria-label={block.alt || "Image placeholder"}>Image</div>}
               {block.caption ? <figcaption>{block.caption}</figcaption> : null}
             </figure>
           );
         }
         if (block.type === "footnotes") return <section className="article-footnotes" key={block.id} aria-label="Footnotes"><ol>{block.notes.map((note) => <li key={note.id} id={`footnote-${note.id}`}><span>{note.text}</span> <a href={`#footnote-ref-${note.id}`} aria-label="Return to footnote reference">↩</a></li>)}</ol></section>;
-        if (block.type === "embed" && studio) return <aside className="embed-field" key={block.id}><span aria-hidden="true"><StudioIcon name="external" /></span><div>{blockUrl ? <a href={blockUrl}>{block.title}</a> : <span>{block.title}</span>}<small>{blockUrl ?? (block.url ? "Enter a valid URL" : "Add a URL in Block settings")}</small>{block.caption ? <p className="embed-caption">{block.caption}</p> : null}</div></aside>;
+        if (block.type === "embed" && studio) return <aside className={`embed-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><span aria-hidden="true"><StudioIcon name="external" /></span><div>{blockUrl ? <a href={blockUrl}>{block.title}</a> : <span>{block.title}</span>}<small>{blockUrl ?? (block.url ? "Enter a valid URL" : "Add a URL in Block settings")}</small>{block.caption ? <p className="embed-caption">{block.caption}</p> : null}</div></aside>;
         if (block.type === "embed") return (
-          <aside className="embed-card" key={block.id}>
+          <aside className={`embed-card${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>
             <span>External resource</span>
             {blockUrl ? <a href={blockUrl}>{block.title} ↗</a> : <span>{block.title}</span>}
             {block.caption ? <p className="embed-caption">{block.caption}</p> : null}
           </aside>
         );
         if (block.type === "button") return (
-          <p className={studio ? "button-field" : "button-block"} key={block.id}>
-            {blockUrl ? <a className={`content-button is-${block.style}`} style={buttonVisualCss(block.visualStyle)} href={blockUrl} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined}>{block.label}</a> : <span className={`content-button is-${block.style}`} style={buttonVisualCss(block.visualStyle)}>{block.label}</span>}
+          <p className={`${studio ? "button-field" : "button-block"} align-${block.align ?? "centre"}${block.width ? ` has-width-${block.width}` : ""}`} key={block.id}>
+            {/* Link relationships are normalised from typed settings above. */}
+            {/* eslint-disable-next-line react/jsx-no-target-blank */}
+            {blockUrl ? <a className={`content-button is-${block.style}`} style={buttonVisualCss(block.visualStyle)} href={blockUrl} title={block.title} target={block.opensInNewTab ? "_blank" : undefined} rel={[block.rel, block.opensInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{block.label}</a> : <span className={`content-button is-${block.style}`} style={buttonVisualCss(block.visualStyle)}>{block.label}</span>}
           </p>
         );
         if (block.type === "field") return <label className="content-field" key={block.id}><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled><option>{block.value}</option></select> : <input value={block.value} readOnly />}</label>;
         if (block.type === "document-title") {
           if (!document || !documentFieldVisible(document, "title")) return null;
-          return <div className={`document-dynamic-field align-${block.align ?? "left"}`} key={block.id}>{document.title ? <h1>{document.title}</h1> : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
+          const href = document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          // eslint-disable-next-line react/jsx-no-target-blank
+          const title = block.isLink && href ? <a href={href} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={[block.rel, block.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{document.title}</a> : document.title;
+          return <div className={`document-dynamic-field align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{document.title ? renderHeading(block.level ?? 2, "", block.id, title) : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
         }
         if (block.type === "document-subtitle") {
           if (!document || !documentFieldVisible(document, "subtitle")) return null;
@@ -153,7 +161,10 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "cover-image") {
           if (!document || !documentFieldVisible(document, "coverImage") || !document.coverImage) return null;
           const source = safeImageSource(document.coverImage.src);
-          return <figure className={`document-dynamic-cover align-${block.align ?? "left"}`} key={block.id}>{source ? <img src={source} alt={document.coverImage.alt} /> : <div className="image-placeholder" role="img" aria-label={document.coverImage.alt || "Cover image placeholder"}>Cover image</div>}</figure>;
+          const href = document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          const image = source ? <img src={source} alt={document.coverImage.alt} style={imageDisplayStyle(block)} /> : <div className="image-placeholder" role="img" aria-label={document.coverImage.alt || "Cover image placeholder"}>Cover image</div>;
+          // eslint-disable-next-line react/jsx-no-target-blank
+          return <figure className={`document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{block.isLink && href ? <a href={href} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={[block.rel, block.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image}</figure>;
         }
         if (block.type === "reading-time") {
           if (!documentFieldVisible(document, "readingTime")) return null;
@@ -168,22 +179,27 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "post-date") {
           if (!documentFieldVisible(document, "publicationDate")) return null;
           const date = document ? formatDocumentDate(document, block.format) : null;
-          return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}>{date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={document ? document.publishAt ?? document.publishedAt : undefined}>{date}</time></> : <span className="metadata-missing">Add a publication date in Document settings.</span>}</div> : null;
+          const href = document?.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          const value = date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={document ? document.publishAt ?? document.publishedAt : undefined}>{date}</time></> : <span className="metadata-missing">Add a publication date in Document settings.</span>;
+          return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}>{block.isLink && href ? <a href={href}>{value}</a> : value}</div> : null;
         }
         if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child)}</div>)}</section>;
-        if (block.type === "group") return <div className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((child) => renderBlock(child))}</div>;
-        if (block.type === "columns") return <div id={paragraphStyleAnchor(block.style)} className={`content-columns${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...columnsLayoutStyle(block), ...paragraphStyleToCss(block.style) }} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((column) => renderBlock(column))}</div>;
+        if (block.type === "group") {
+          const GroupElement = block.tagName ?? "div";
+          return <GroupElement className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} aria-label={block.ariaLabel || undefined} key={block.id}>{block.children.map((child) => renderBlock(child))}</GroupElement>;
+        }
+        if (block.type === "columns") return <div id={paragraphStyleAnchor(block.style)} className={`content-columns${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={{ ...columnsLayoutStyle(block), ...paragraphStyleToCss(block.style) }} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((column) => renderBlock(column))}</div>;
         if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`content-column${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }} key={block.id}>{block.children.map((child) => renderBlock(child))}</div>;
         if (block.type === "spacer") return <div id={paragraphStyleAnchor(block.visualStyle)} className={`content-spacer${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block), margin: block.visualStyle?.margin }} aria-hidden="true" key={block.id} />;
         if (block.type === "component") return null;
-        return studio ? <div className="divider-field" key={block.id}><hr className={`content-divider is-${block.style ?? "default"}`} /></div> : <hr className={`content-divider is-${block.style ?? "default"}`} key={block.id} />;
+        return studio ? <div className={`divider-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><hr className={`content-divider is-${block.style ?? "default"}`} /></div> : <hr className={`content-divider is-${block.style ?? "default"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id} />;
   }
   return (
     <div className={studio ? "studio-block-preview" : "prose"}>
       {blocks.map((block) => {
         if (hideDividers && block.type === "divider") return null;
         return studio
-          ? <div className={`content-block is-${block.type}`} key={block.id} data-preview-block-id={block.id}>{renderBlock(block)}</div>
+          ? <div className={`content-block is-${block.type}${contentBlockAlignment(block) ? ` has-block-align-${contentBlockAlignment(block)}` : ""}`} key={block.id} data-preview-block-id={block.id}>{renderBlock(block)}</div>
           : renderBlock(block);
       })}
     </div>
@@ -207,7 +223,7 @@ function ContentTable({ block }: { block: Extract<ContentBlock, { type: "table" 
     return (
       <tr key={rowIndex} style={{ height: rowHeights[rowIndex] }}>
         {row.map((cell, cellIndex) => (
-          <Cell key={cellIndex} scope={header ? "col" : undefined}>
+          <Cell key={cellIndex} scope={header ? "col" : undefined} style={block.columnAlignments?.[cellIndex] && block.columnAlignments[cellIndex] !== "left" ? { textAlign: block.columnAlignments[cellIndex] === "centre" ? "center" : block.columnAlignments[cellIndex] } : undefined}>
             {/* Scroll containers need keyboard focus without pretending to be editable controls. */}
             {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
             <div className="content-table-cell" tabIndex={cell ? 0 : undefined}>
@@ -220,7 +236,7 @@ function ContentTable({ block }: { block: Extract<ContentBlock, { type: "table" 
   }
 
   return (
-    <div className={`content-table-frame${block.tableStyle === "stripes" ? " is-striped" : ""}`}>
+    <div className={`content-table-frame${block.tableStyle === "stripes" ? " is-striped" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
       <table className={`content-table${block.fixedWidth === false ? " is-auto-layout" : ""}`}>
         {block.caption ? <caption>{block.caption}</caption> : null}
         {block.fixedWidth !== false ? <colgroup>{columnWidths.map((width, index) => <col key={`column-${index}`} style={{ width: `${width}%` }} />)}</colgroup> : null}

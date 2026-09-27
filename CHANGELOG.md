@@ -3,9 +3,20 @@
 ## Unreleased
 
 ### Added
+- Added Gutenberg-compatible Table column-content alignment, Post Title level
+  and link settings, Post Date linking, Featured Image sizing/link controls and
+  Group semantic element and ARIA label settings, all with typed validation,
+  rendering and HTML round-tripping.
+- Updated the shared block-width catalogue symbols so their central width bars
+  use the filled Gutenberg treatment while retaining original ACM artwork.
+- Matched Gutenberg's custom font-size control with an integrated unit picker,
+  theme-coloured range slider and px/em/rem/vw/vh units.
 - Dragged Block Library items now insert at the canvas drop position while keeping the library open for further additions.
+- Added Gutenberg-ordered block alignment menus to every analogous core block that declares alignment support, including Left/Centre/Right floating layouts, Wide/Full widths, typed validation, HTML round-tripping and migration from the Image block's legacy Wide display setting.
+- Added Image block height, Default/Rounded styles and custom, image-file and lightbox link destinations across editing, previews and HTML round-trip.
+- Added Gutenberg-compatible Button width, text alignment, title and link-relation controls, with Fill and Outline labels in the block pane.
 - Added Gutenberg-style axis and side controls for block padding and margins, plus linked or separate border widths and corner radii, using Studio's neutral control colours.
-- Added custom px/em/rem font sizes and Gutenberg's full weight and italic Appearance choices to shared block Typography settings.
+- Added custom font sizes and Gutenberg's full weight and italic Appearance choices to shared block Typography settings.
 - Moved inspector option menus beside the settings pane and kept Reset all visible beneath scrollable options.
 - Added Gutenberg-style text orientation to Paragraph and Heading block settings, with vertical text in Edit and Preview.
 - Added List item text formatting and link editing through the shared canvas toolbar.
@@ -27,6 +38,7 @@
   blocks, responsive widths, WordPress-ordered layout presets and template/HTML
   support. Workspace schema v8 and template schema v0.7.0 read their supported
   earlier versions.
+- Added the Panels section at /studio/ui/panels, backed by the shared @acm/panel card component.
 - Added the Block Library icon collection, aligned tiles with shared ACM symbols,
   added Studio symbols where the catalogue lacked suitable matches, and included
   template Content with shared icons at their optical scales. Heading tiles use

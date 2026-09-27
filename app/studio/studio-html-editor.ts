@@ -1,4 +1,5 @@
 import { listItemText, type ContentBlock, type LayoutOptions, type RichTextRun, type SiteSectionRole, type TextMark } from "../content/model";
+import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { hasLayoutOptions } from "../content/layout";
 import { plainTextFromRuns, safeImageSource, safeTextLink } from "../content/rich-text";
 import { validContentBlocks } from "./workspace-validation";
@@ -92,64 +93,67 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
   if (block.siteRole) attributes += ` data-site-role="${escapeAttribute(block.siteRole)}"`;
   switch (block.type) {
     case "paragraph":
-      return `<p${attributes} data-align-explicit="true"${classAttribute([block.style?.className, block.align ? `align-${block.align}` : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}</p>`;
+      return `<p${attributes} data-align-explicit="true" data-block-align-explicit="true"${classAttribute([block.style?.className, block.align ? `align-${block.align}` : "", block.blockAlign ? `align${block.blockAlign}` : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}</p>`;
     case "heading":
-      return `<h${block.level}${attributes}${classAttribute(block.align ? `align-${block.align}` : undefined)}>${runsToHtml(block.runs, block.text)}</h${block.level}>`;
+      return `<h${block.level}${attributes} data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}</h${block.level}>`;
     case "quote":
-      return `<blockquote${attributes}${classAttribute([block.align ? `align-${block.align}` : "", block.quoteStyle === "plain" ? "is-style-plain" : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}${block.attribution ? `<cite>${escapeText(block.attribution)}</cite>` : ""}</blockquote>`;
+      return `<blockquote${attributes} data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block), block.quoteStyle === "plain" ? "is-style-plain" : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}${block.attribution ? `<cite>${escapeText(block.attribution)}</cite>` : ""}</blockquote>`;
     case "list": {
       const tag = block.style === "ordered" ? "ol" : "ul";
-      return `<${tag}${attributes}${block.style === "ordered" && block.marker && block.marker !== "1" ? ` type="${block.marker}"` : ""}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}>${block.items.map((item) => `<li>${typeof item === "string" ? escapeText(item) : runsToHtml(item.runs, listItemText(item))}</li>`).join("")}</${tag}>`;
+      return `<${tag}${attributes} data-block-align-explicit="true"${block.style === "ordered" && block.marker && block.marker !== "1" ? ` type="${block.marker}"` : ""}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}${classAttribute(blockAlignmentClass(block))}>${block.items.map((item) => `<li>${typeof item === "string" ? escapeText(item) : runsToHtml(item.runs, listItemText(item))}</li>`).join("")}</${tag}>`;
     }
     case "table": {
       const rows = block.rows.length ? block.rows : [[""]];
       const headerRows = block.hasHeader ? 1 : 0;
       const footerRows = block.hasFooter ? 1 : 0;
       const bodyEnd = Math.max(headerRows, rows.length - footerRows);
-      const renderRow = (row: string[], cellTag: "th" | "td") => `<tr>${row.map((cell) => `<${cellTag}>${escapeText(cell)}</${cellTag}>`).join("")}</tr>`;
+      const renderRow = (row: string[], cellTag: "th" | "td") => `<tr>${row.map((cell, index) => { const alignment = block.columnAlignments?.[index]; const htmlAlignment = alignment === "centre" ? "center" : alignment; return `<${cellTag}${htmlAlignment && htmlAlignment !== "left" ? ` class="has-text-align-${htmlAlignment}" data-align="${htmlAlignment}"` : ""}>${escapeText(cell)}</${cellTag}>`; }).join("")}</tr>`;
       const head = headerRows ? `<thead>${renderRow(rows[0], "th")}</thead>` : "";
       const body = rows.slice(headerRows, bodyEnd).map((row) => renderRow(row, "td")).join("");
       const foot = footerRows ? `<tfoot>${renderRow(rows[rows.length - 1], "td")}</tfoot>` : "";
-      return `<table${attributes}${block.fixedWidth === false ? ' data-fixed-width="false"' : ""}${block.columnWidths ? ` data-column-widths="${block.columnWidths.join(",")}"` : ""}${block.rowHeights ? ` data-row-heights="${block.rowHeights.join(",")}"` : ""}${classAttribute(`studio-table${block.tableStyle === "stripes" ? " is-striped" : ""}`)}>${block.caption ? `<caption>${escapeText(block.caption)}</caption>` : ""}${head}<tbody>${body}</tbody>${foot}</table>`;
+      return `<table${attributes} data-block-align-explicit="true"${block.fixedWidth === false ? ' data-fixed-width="false"' : ""}${block.columnWidths ? ` data-column-widths="${block.columnWidths.join(",")}"` : ""}${block.rowHeights ? ` data-row-heights="${block.rowHeights.join(",")}"` : ""}${block.columnAlignments ? ` data-column-alignments="${block.columnAlignments.join(",")}"` : ""}${classAttribute([`studio-table${block.tableStyle === "stripes" ? " is-striped" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.caption ? `<caption>${escapeText(block.caption)}</caption>` : ""}${head}<tbody>${body}</tbody>${foot}</table>`;
     }
     case "code":
-      return `<pre${attributes}><code${classAttribute(block.language ? `language-${block.language}` : undefined)}>${escapeText(block.code)}</code></pre>`;
+      return `<pre${attributes} data-block-align-explicit="true"${classAttribute(blockAlignmentClass(block))}><code${classAttribute(block.language ? `language-${block.language}` : undefined)}>${escapeText(block.code)}</code></pre>`;
     case "image": {
       const safeSource = safeImageSource(block.src) ?? "";
-      const image = `<img src="${escapeAttribute(safeSource)}" alt="${escapeAttribute(block.decorative ? "" : block.alt)}"${block.decorative ? ' data-decorative="true"' : ""}${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.aspectRatio && block.aspectRatio !== "original" ? ` data-aspect-ratio="${block.aspectRatio}"` : ""}${block.scale ? ` data-scale="${block.scale}"` : ""}${block.displayWidth ? ` data-display-width="${block.displayWidth}"` : ""}${block.focalX !== undefined ? ` data-focal-x="${block.focalX}"` : ""}${block.focalY !== undefined ? ` data-focal-y="${block.focalY}"` : ""} />`;
-      const link = block.linkUrl ? safeTextLink(block.linkUrl) : null;
-      return `<figure${attributes}${classAttribute(block.wide ? "is-wide" : undefined)}>${link ? `<a href="${escapeAttribute(link)}"${block.opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${image}</a>` : image}${block.caption ? `<figcaption>${escapeText(block.caption)}</figcaption>` : ""}</figure>`;
+      const image = `<img src="${escapeAttribute(safeSource)}" alt="${escapeAttribute(block.decorative ? "" : block.alt)}"${block.decorative ? ' data-decorative="true"' : ""}${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.aspectRatio && block.aspectRatio !== "original" ? ` data-aspect-ratio="${block.aspectRatio}"` : ""}${block.scale ? ` data-scale="${block.scale}"` : ""}${block.displayWidth ? ` data-display-width="${block.displayWidth}"` : ""}${block.displayHeight ? ` data-display-height="${block.displayHeight}"` : ""}${block.focalX !== undefined ? ` data-focal-x="${block.focalX}"` : ""}${block.focalY !== undefined ? ` data-focal-y="${block.focalY}"` : ""} />`;
+      const destination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
+      const link = destination === "media" ? safeSource : destination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
+      return `<figure${attributes} data-block-align-explicit="true"${classAttribute(blockAlignmentClass(block))}${destination !== "none" ? ` data-link-destination="${destination}"` : ""}${block.imageStyle === "rounded" ? ' data-image-style="rounded"' : ""}>${link ? `<a href="${escapeAttribute(link)}"${block.opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${image}</a>` : image}${block.caption ? `<figcaption>${escapeText(block.caption)}</figcaption>` : ""}</figure>`;
     }
     case "embed":
-      return `<aside${attributes} data-embed-url="${escapeAttribute(block.url)}"><a href="${escapeAttribute(block.url)}">${escapeText(block.title)}</a>${block.caption ? `<p class="embed-caption">${escapeText(block.caption)}</p>` : ""}</aside>`;
+      return `<aside${attributes} data-block-align-explicit="true" data-embed-url="${escapeAttribute(block.url)}"${classAttribute(blockAlignmentClass(block))}><a href="${escapeAttribute(block.url)}">${escapeText(block.title)}</a>${block.caption ? `<p class="embed-caption">${escapeText(block.caption)}</p>` : ""}</aside>`;
     case "divider":
-      return `<hr${attributes}${classAttribute(block.style && block.style !== "default" ? `is-${block.style}` : undefined)} />`;
+      return `<hr${attributes} data-block-align-explicit="true"${classAttribute([block.style && block.style !== "default" ? `is-${block.style}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))} />`;
     case "footnotes":
       return `<section${attributes} class="article-footnotes"><ol>${block.notes.map(note => `<li id="footnote-${escapeAttribute(note.id)}"><span>${escapeText(note.text)}</span><a data-footnote-back="true" href="#footnote-ref-${escapeAttribute(note.id)}" aria-label="Return to footnote reference">↩</a></li>`).join("")}</ol></section>`;
     case "spacer":
       return `<div${attributes}${classAttribute("studio-spacer")} data-spacer-height="${block.height}"${block.heightUnit ? ` data-spacer-height-unit="${block.heightUnit}"` : ""}${block.width === undefined ? "" : ` data-spacer-width="${block.width}"`}${block.widthUnit ? ` data-spacer-width-unit="${block.widthUnit}"` : ""} aria-hidden="true"></div>`;
     case "document-title":
-      return `<h1${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)}></h1>`;
+      return `<h${block.level ?? 2}${attributes} data-block-align-explicit="true" data-metadata-link="${Boolean(block.isLink)}" data-link-target="${escapeAttribute(block.linkTarget ?? "_self")}"${block.rel ? ` data-link-rel="${escapeAttribute(block.rel)}"` : ""}${classAttribute([`metadata-block align-${block.align ?? "left"}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}></h${block.level ?? 2}>`;
     case "document-subtitle":
       return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)}></p>`;
     case "cover-image":
-      return `<figure${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)}></figure>`;
+      return `<figure${attributes} data-block-align-explicit="true" data-metadata-link="${Boolean(block.isLink)}" data-link-target="${escapeAttribute(block.linkTarget ?? "_self")}"${block.rel ? ` data-link-rel="${escapeAttribute(block.rel)}"` : ""}${block.aspectRatio && block.aspectRatio !== "original" ? ` data-aspect-ratio="${block.aspectRatio}"` : ""}${block.scale ? ` data-scale="${block.scale}"` : ""}${block.displayWidth ? ` data-display-width="${block.displayWidth}"` : ""}${block.displayHeight ? ` data-display-height="${block.displayHeight}"` : ""}${block.focalX !== undefined ? ` data-focal-x="${block.focalX}"` : ""}${block.focalY !== undefined ? ` data-focal-y="${block.focalY}"` : ""}${classAttribute([`metadata-block align-${block.align ?? "left"}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}></figure>`;
     case "reading-time":
       return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "Reading Time:")}" data-metadata-presentation="${escapeAttribute(block.presentation ?? "badge")}"></p>`;
     case "post-author":
       return `<div${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "By")}" data-metadata-avatar="${block.avatar !== false}"></div>`;
     case "post-date":
-      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-metadata-icon="${block.showIcon !== false}"></p>`;
+      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-metadata-icon="${block.showIcon !== false}" data-metadata-link="${Boolean(block.isLink)}"></p>`;
     case "button":
-      return `<p${attributes}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}"${block.opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${escapeText(block.label)}</a></p>`;
+      return `<p${attributes} data-button-width="${block.width ?? ""}"${classAttribute([`button-block align-${block.align ?? "centre"}`, block.width ? `has-width-${block.width}` : ""].filter(Boolean).join(" "))}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}"${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.opensInNewTab ? ' target="_blank"' : ""}${block.rel || block.opensInNewTab ? ` rel="${escapeAttribute([block.rel, block.opensInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" "))}"` : ""}>${escapeText(block.label)}</a></p>`;
     case "field":
       return `<label${attributes}><span>${escapeText(block.label)}</span>${block.control === "select" ? `<select>${(block.options?.length ? block.options : [block.value]).map((option) => `<option${option === block.value ? " selected" : ""}>${escapeText(option)}</option>`).join("")}</select>` : `<input value="${escapeAttribute(block.value)}" />`}</label>`;
     case "section":
       return `<section${attributes} data-section-role="${escapeAttribute(block.role ?? "")}"${layoutHtmlAttributes(block)}${classAttribute(`studio-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`)}>${serialiseChildren(block.children)}</section>`;
-    case "group":
-      return `<div${attributes}${layoutHtmlAttributes(block)}${classAttribute(`studio-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`)}>${serialiseChildren(block.children)}</div>`;
+    case "group": {
+      const tag = block.tagName ?? "div";
+      return `<${tag}${attributes} data-block-align-explicit="true"${block.ariaLabel ? ` aria-label="${escapeAttribute(block.ariaLabel)}"` : ""}${layoutHtmlAttributes(block)}${classAttribute([`studio-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${serialiseChildren(block.children)}</${tag}>`;
+    }
     case "columns":
-      return `<div${attributes}${layoutHtmlAttributes(block)} data-column-layout="true"${classAttribute(`studio-columns${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${block.children.map(column => `<div data-block-type="column" data-block-id="${escapeAttribute(column.id)}" data-column-width="${column.width ?? 100 / block.children.length}"${column.verticalAlign ? ` data-column-vertical-align="${column.verticalAlign}"` : ""}${classAttribute(`studio-column${column.style?.className ? ` ${escapeAttribute(column.style.className)}` : ""}`)}>${serialiseChildren(column.children)}</div>`).join("")}</div>`;
+      return `<div${attributes} data-block-align-explicit="true"${layoutHtmlAttributes(block)} data-column-layout="true"${classAttribute([`studio-columns${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.children.map(column => `<div data-block-type="column" data-block-id="${escapeAttribute(column.id)}" data-column-width="${column.width ?? 100 / block.children.length}"${column.verticalAlign ? ` data-column-vertical-align="${column.verticalAlign}"` : ""}${classAttribute(`studio-column${column.style?.className ? ` ${escapeAttribute(column.style.className)}` : ""}`)}>${serialiseChildren(column.children)}</div>`).join("")}</div>`;
     case "column":
       return `<div${attributes} data-column-width="${block.width ?? 100}"${block.verticalAlign ? ` data-column-vertical-align="${block.verticalAlign}"` : ""}${classAttribute(`studio-column${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${serialiseChildren(block.children)}</div>`;
     case "component":
@@ -304,21 +308,31 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
   }
   if (declaredType === "reading-time") return { block: { id, type: "reading-time", prefix: element.dataset.metadataPrefix ?? (original.type === "reading-time" ? original.prefix : "Reading Time:"), presentation: element.dataset.metadataPresentation === "plain" ? "plain" : "badge", align: alignmentFromClass(element) ?? (original.type === "reading-time" ? original.align : undefined) } };
   if (declaredType === "post-author") return { block: { id, type: "post-author", prefix: element.dataset.metadataPrefix ?? (original.type === "post-author" ? original.prefix : "By"), avatar: element.dataset.metadataAvatar !== "false", align: alignmentFromClass(element) ?? (original.type === "post-author" ? original.align : undefined) } };
-  if (declaredType === "post-date") return { block: { id, type: "post-date", format: ["long", "short", "iso"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined) } };
-  if (declaredType === "document-title") return { block: { id, type: "document-title", align: alignmentFromClass(element) ?? (original.type === "document-title" ? original.align : undefined) } };
+  if (declaredType === "post-date") return { block: { id, type: "post-date", format: ["long", "short", "iso"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined), isLink: element.dataset.metadataLink === "true" } };
+  if (declaredType === "document-title") {
+    const level = Number(element.tagName.slice(1));
+    return { block: { id, type: "document-title", align: alignmentFromClass(element) ?? (original.type === "document-title" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original), level: [1, 2, 3, 4, 5, 6].includes(level) ? level as 1 | 2 | 3 | 4 | 5 | 6 : original.type === "document-title" ? original.level : 2, isLink: element.dataset.metadataLink === "true", linkTarget: element.dataset.linkTarget === "_blank" ? "_blank" : "_self", rel: element.dataset.linkRel || undefined } };
+  }
   if (declaredType === "document-subtitle") return { block: { id, type: "document-subtitle", align: alignmentFromClass(element) ?? (original.type === "document-subtitle" ? original.align : undefined) } };
-  if (declaredType === "cover-image") return { block: { id, type: "cover-image", align: alignmentFromClass(element) ?? (original.type === "cover-image" ? original.align : undefined) } };
+  if (declaredType === "cover-image") {
+    const number = (name: string) => { const value = element.getAttribute(name); return value === null || value === "" ? undefined : Number(value); };
+    const aspectRatio = element.dataset.aspectRatio;
+    return { block: { id, type: "cover-image", align: alignmentFromClass(element) ?? (original.type === "cover-image" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original), isLink: element.dataset.metadataLink === "true", linkTarget: element.dataset.linkTarget === "_blank" ? "_blank" : "_self", rel: element.dataset.linkRel || undefined, aspectRatio: aspectRatio && ["original", "square", "portrait", "landscape", "wide"].includes(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "cover-image" }>["aspectRatio"] : undefined, scale: element.dataset.scale === "contain" ? "contain" : element.dataset.scale === "cover" ? "cover" : undefined, displayWidth: number("data-display-width"), displayHeight: number("data-display-height"), focalX: number("data-focal-x"), focalY: number("data-focal-y") } };
+  }
   switch (element.tagName.toLowerCase()) {
     case "p": {
       const link = element.querySelector("a");
-      if (link?.classList.contains("content-button")) return { block: { id, type: "button", label: link.textContent ?? "", url: safeTextLink(link.getAttribute("href") ?? "") || "#", style: link.classList.contains("is-secondary") ? "secondary" : "primary", opensInNewTab: link.getAttribute("target") === "_blank" || undefined } };
+      if (link?.classList.contains("content-button")) {
+        const width = Number(element.dataset.buttonWidth);
+        return { block: { id, type: "button", label: link.textContent ?? "", url: safeTextLink(link.getAttribute("href") ?? "") || "#", style: link.classList.contains("is-secondary") ? "secondary" : "primary", opensInNewTab: link.getAttribute("target") === "_blank" || undefined, align: alignmentFromClass(element), width: [25, 50, 75, 100].includes(width) ? width as 25 | 50 | 75 | 100 : undefined, title: link.getAttribute("title") || undefined, rel: link.getAttribute("rel")?.replace(/(?:^|\s)(?:noopener|noreferrer)(?=\s|$)/g, " ").trim() || undefined } };
+      }
       const runs = parseRuns(element);
-      return { block: { ...preserveParagraphStyle(original, id), type: "paragraph", text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element) ?? (element.dataset.alignExplicit === "true" ? undefined : original.type === "paragraph" ? original.align : undefined) } };
+      return { block: { ...preserveParagraphStyle(original, id), type: "paragraph", text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element) ?? (element.dataset.alignExplicit === "true" ? undefined : original.type === "paragraph" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original) } };
     }
     case "h1": case "h2": case "h3": case "h4": case "h5": case "h6":
-      { const runs = parseRuns(element); return { block: { id, type: "heading", level: Number(element.tagName.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6, text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element) } }; }
+      { const runs = parseRuns(element); return { block: { id, type: "heading", level: Number(element.tagName.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6, text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element), blockAlign: parsedBlockAlignment(element, original) } }; }
     case "blockquote":
-      { const runs = parseRuns(element); return { block: { id, type: "quote", text: runs ? plainTextFromRuns(runs) : textContent.replace(element.querySelector("cite")?.textContent ?? "", "").trim(), runs, attribution: element.querySelector("cite")?.textContent || undefined, align: alignmentFromClass(element), quoteStyle: element.classList.contains("is-style-plain") ? "plain" : undefined } }; }
+      { const runs = parseRuns(element); return { block: { id, type: "quote", text: runs ? plainTextFromRuns(runs) : textContent.replace(element.querySelector("cite")?.textContent ?? "", "").trim(), runs, attribution: element.querySelector("cite")?.textContent || undefined, align: alignmentFromClass(element), blockAlign: parsedBlockAlignment(element, original), quoteStyle: element.classList.contains("is-style-plain") ? "plain" : undefined } }; }
     case "ul": case "ol": {
       if ([...element.querySelectorAll("ul, ol")].length) return { error: "Nested lists are not yet supported by this editor." };
       const items = [...element.children].filter((child) => child.tagName.toLowerCase() === "li").map((child) => {
@@ -329,12 +343,12 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       const ordered = element.tagName.toLowerCase() === "ol";
       const marker = element.getAttribute("type");
       if (ordered && marker && !["1", "A", "a", "I", "i"].includes(marker)) return { error: "This ordered-list style is not supported." };
-      return { block: { id, type: "list", style: ordered ? "ordered" : "unordered", items, marker: ordered && marker && ["1", "A", "a", "I", "i"].includes(marker) ? marker as "1" | "A" | "a" | "I" | "i" : undefined, start: ordered && element.hasAttribute("start") ? (Number(element.getAttribute("start")) || undefined) : undefined, reversed: ordered && element.hasAttribute("reversed") || undefined } };
+      return { block: { id, type: "list", style: ordered ? "ordered" : "unordered", items, marker: ordered && marker && ["1", "A", "a", "I", "i"].includes(marker) ? marker as "1" | "A" | "a" | "I" | "i" : undefined, start: ordered && element.hasAttribute("start") ? (Number(element.getAttribute("start")) || undefined) : undefined, reversed: ordered && element.hasAttribute("reversed") || undefined, blockAlign: parsedBlockAlignment(element, original) } };
     }
     case "table":
       return parseTable(element, id, original);
     case "pre":
-      return { block: { id, type: "code", language: element.querySelector("code")?.className.match(/language-([^\s]+)/)?.[1], code: element.querySelector("code")?.textContent ?? element.textContent ?? "" } };
+      return { block: { id, type: "code", language: element.querySelector("code")?.className.match(/language-([^\s]+)/)?.[1], code: element.querySelector("code")?.textContent ?? element.textContent ?? "", blockAlign: parsedBlockAlignment(element, original) } };
     case "figure": {
       const image = element.querySelector("img");
       if (!image) return { error: "Image blocks must contain an img element." };
@@ -343,29 +357,33 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       if (!src && !(original.type === "image" && original.mediaId && rawSrc === "")) return { error: "Image blocks must use a safe image URL." };
       const aspectRatio = image.dataset.aspectRatio;
       const scale = image.dataset.scale;
+      const destination = element.dataset.linkDestination;
       const numberAttribute = (name: string) => { const value = image.getAttribute(name); return value === null || value === "" ? undefined : Number(value); };
       const link = image.closest("a");
-      const next: Extract<ContentBlock, { type: "image" }> = { ...(original.type === "image" ? original : {}), id, type: "image", src: src ?? "", alt: image.dataset.decorative === "true" && original.type === "image" ? original.alt : image.getAttribute("alt") ?? "", decorative: image.dataset.decorative === "true", title: image.getAttribute("title") || undefined, aspectRatio: aspectRatio && ["original", "square", "portrait", "landscape", "wide"].includes(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "image" }>["aspectRatio"] : undefined, scale: scale === "cover" || scale === "contain" ? scale : undefined, displayWidth: numberAttribute("data-display-width"), focalX: numberAttribute("data-focal-x"), focalY: numberAttribute("data-focal-y"), linkUrl: link ? safeTextLink(link.getAttribute("href") ?? "") || undefined : undefined, opensInNewTab: link?.getAttribute("target") === "_blank" || undefined, caption: element.querySelector("figcaption")?.textContent || undefined, wide: element.classList.contains("is-wide") };
+      const linkDestination = destination && ["none", "custom", "media", "lightbox"].includes(destination) ? destination as Extract<ContentBlock, { type: "image" }>["linkDestination"] : link ? "custom" : undefined;
+      const parsedAlignment = parsedBlockAlignment(element, original) ?? (element.classList.contains("is-wide") ? "wide" : undefined);
+      const next: Extract<ContentBlock, { type: "image" }> = { ...(original.type === "image" ? original : {}), id, type: "image", src: src ?? "", alt: image.dataset.decorative === "true" && original.type === "image" ? original.alt : image.getAttribute("alt") ?? "", decorative: image.dataset.decorative === "true", title: image.getAttribute("title") || undefined, aspectRatio: aspectRatio && ["original", "square", "portrait", "landscape", "wide"].includes(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "image" }>["aspectRatio"] : undefined, scale: scale === "cover" || scale === "contain" ? scale : undefined, displayWidth: numberAttribute("data-display-width"), displayHeight: numberAttribute("data-display-height"), focalX: numberAttribute("data-focal-x"), focalY: numberAttribute("data-focal-y"), linkDestination, linkUrl: linkDestination === "custom" && link ? safeTextLink(link.getAttribute("href") ?? "") || undefined : undefined, opensInNewTab: link?.getAttribute("target") === "_blank" || undefined, imageStyle: element.dataset.imageStyle === "rounded" ? "rounded" : undefined, caption: element.querySelector("figcaption")?.textContent || undefined, blockAlign: parsedAlignment, wide: false };
       const originalSrc = original.type === "image" ? safeImageSource(original.src) ?? "" : "";
       if (original.type === "image" && (src ?? "") !== originalSrc) delete next.mediaId;
       return { block: next };
     }
-    case "aside":
-      return { block: { id, type: "embed", url: safeTextLink(element.getAttribute("data-embed-url") ?? element.querySelector("a")?.getAttribute("href") ?? "") || "", title: element.querySelector("a")?.textContent ?? element.firstChild?.textContent ?? "", caption: element.querySelector(".embed-caption")?.textContent || undefined } };
-    case "hr": return { block: { id, type: "divider", style: element.classList.contains("is-dots") ? "dots" : element.classList.contains("is-wide") ? "wide" : "default" } };
+    case "hr": return { block: { id, type: "divider", style: element.classList.contains("is-dots") ? "dots" : element.classList.contains("is-wide") ? "wide" : "default", blockAlign: parsedBlockAlignment(element, original) } };
     case "label": {
       const control = element.querySelector("select") ? "select" : "text";
       const input = element.querySelector("input") as HTMLInputElement | null;
       const select = element.querySelector("select");
       return { block: { id, type: "field", control, label: element.querySelector("span")?.textContent ?? "", value: select?.value ?? input?.value ?? "", options: select ? [...select.options].map((option) => option.textContent ?? "") : undefined } };
     }
-    case "section": case "div": {
+    case "section": case "div": case "main": case "article": case "aside": case "header": case "footer": case "nav": {
+      if (element.tagName.toLowerCase() === "aside" && declaredType !== "group" && !element.classList.contains("studio-group")) {
+        return { block: { id, type: "embed", url: safeTextLink(element.getAttribute("data-embed-url") ?? element.querySelector("a")?.getAttribute("href") ?? "") || "", title: element.querySelector("a")?.textContent ?? element.firstChild?.textContent ?? "", caption: element.querySelector(".embed-caption")?.textContent || undefined, blockAlign: parsedBlockAlignment(element, original) } };
+      }
       if (element.dataset.spacerHeight !== undefined || element.classList.contains("studio-spacer")) {
         const height = Number(element.dataset.spacerHeight);
         const width = element.dataset.spacerWidth === undefined ? undefined : Number(element.dataset.spacerWidth);
         return { block: { ...(original.type === "spacer" ? original : {}), id, type: "spacer", height, heightUnit: element.dataset.spacerHeightUnit as Extract<ContentBlock, { type: "spacer" }>["heightUnit"] | undefined, width, widthUnit: element.dataset.spacerWidthUnit as Extract<ContentBlock, { type: "spacer" }>["widthUnit"] | undefined } };
       }
-      const type = element.tagName.toLowerCase() === "section" ? "section" : "group";
+      const type = declaredType === "section" || (!declaredType && element.tagName.toLowerCase() === "section") ? "section" : "group";
       if (element.dataset.columnLayout === "true" || element.classList.contains("studio-columns")) {
         const originalColumns = original.type === "columns" ? original : undefined;
         const columns: ContentBlock[] = [];
@@ -379,7 +397,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
           columns.push(parsed.block);
         }
         if (columns.some(column => column.type !== "column")) return { error: "Columns can contain only Column blocks." };
-        return { block: { ...(originalColumns ?? {}), id, type: "columns", ...parseLayoutOptions(element), children: columns as Extract<ContentBlock, { type: "column" }>[], style: originalColumns?.style } };
+        return { block: { ...(originalColumns ?? {}), id, type: "columns", ...parseLayoutOptions(element), children: columns as Extract<ContentBlock, { type: "column" }>[], style: originalColumns?.style, blockAlign: parsedBlockAlignment(element, original) } };
       }
       if (element.classList.contains("studio-column")) {
         const children: ContentBlock[] = [];
@@ -420,7 +438,8 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       const layout = (element.className.match(/layout-(stack|row|columns)/)?.[1] ?? "stack") as "stack" | "row" | "columns";
       const options = parseLayoutOptions(element);
       if (type === "section") return { block: { ...(original.type === "section" ? original : {}), id, type: "section", role: sectionRoleFromData(element.dataset.sectionRole), layout, ...options, children } };
-      return { block: { ...(original.type === "group" ? original : {}), id, type: "group", layout, ...options, children } };
+      const semanticTag = element.tagName.toLowerCase();
+      return { block: { ...(original.type === "group" ? original : {}), id, type: "group", layout, ...options, children, blockAlign: parsedBlockAlignment(element, original), tagName: ["div", "main", "section", "article", "aside", "header", "footer", "nav"].includes(semanticTag) ? semanticTag as Extract<ContentBlock, { type: "group" }>["tagName"] : undefined, ariaLabel: element.getAttribute("aria-label") || undefined } };
     }
     default:
       return { error: `This element (${element.tagName.toLowerCase()}) is not supported for this block.` };
@@ -452,6 +471,16 @@ function preserveParagraphStyle(original: ContentBlock, id: string) {
 function alignmentFromClass(element: HTMLElement) {
   const value = element.className.match(/align-(left|centre|right)/)?.[1];
   return value as "left" | "centre" | "right" | undefined;
+}
+
+function blockAlignmentFromClass(element: HTMLElement) {
+  const className = typeof element.className === "string" ? element.className : element.getAttribute?.("class") ?? "";
+  const value = className.match(/(?:^|\s)align(left|center|right|wide|full)(?:\s|$)/)?.[1];
+  return value as "left" | "center" | "right" | "wide" | "full" | undefined;
+}
+
+function parsedBlockAlignment(element: HTMLElement, original: ContentBlock) {
+  return blockAlignmentFromClass(element) ?? (element.dataset.blockAlignExplicit === "true" ? undefined : contentBlockAlignment(original));
 }
 
 function parseRuns(element: HTMLElement): RichTextRun[] | undefined {
@@ -521,5 +550,10 @@ function parseTable(element: HTMLElement, id: string, original: ContentBlock): H
   const columnWidths = sizes("data-column-widths", rows[0].length, original.type === "table" ? original.columnWidths : undefined);
   const rowHeights = sizes("data-row-heights", rows.length, original.type === "table" ? original.rowHeights : undefined);
   if (columnWidths === null || rowHeights === null) return { error: "Table dimensions must be positive numbers matching the column and row counts." };
-  return { block: { id, type: "table", rows, hasHeader: Boolean(head), hasFooter: Boolean(foot), fixedWidth: element.dataset.fixedWidth !== "false", tableStyle: element.classList.contains("is-striped") ? "stripes" : "default", caption: element.querySelector("caption")?.textContent || undefined, columnWidths, rowHeights } };
+  const encodedAlignments = element.dataset.columnAlignments;
+  const firstRow = (head ?? body ?? foot)?.querySelectorAll("tr")[0];
+  const cellAlignments = [...firstRow?.children ?? []].map((cell) => { const value = typeof cell.getAttribute === "function" ? cell.getAttribute("data-align") : null; return value === "center" ? "centre" : value || "left"; });
+  const parsedAlignments = encodedAlignments?.split(",") ?? cellAlignments;
+  const columnAlignments = parsedAlignments.length === rows[0].length && parsedAlignments.every((alignment) => ["left", "centre", "right"].includes(alignment)) ? parsedAlignments as ("left" | "centre" | "right")[] : original.type === "table" && original.columnAlignments?.length === rows[0].length ? original.columnAlignments : undefined;
+  return { block: { id, type: "table", rows, hasHeader: Boolean(head), hasFooter: Boolean(foot), fixedWidth: element.dataset.fixedWidth !== "false", tableStyle: element.classList.contains("is-striped") ? "stripes" : "default", caption: element.querySelector("caption")?.textContent || undefined, columnWidths, rowHeights, columnAlignments, blockAlign: parsedBlockAlignment(element, original) } };
 }
