@@ -572,6 +572,18 @@ test("template inspector keeps controls compact and checkbox sizing independent"
   assert.match(templateStyles, /\.template-inspector label \{ display: grid; gap: 5px; margin: 4px 0;/);
 });
 
+test("templates use the shared resizable panes and readable document status labels", () => {
+  const workspace = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
+  const inspector = readFileSync(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8");
+  const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(workspace, /<Pane trackClassName="studio-library-track" className="studio-library"/);
+  assert.match(inspector, /<Pane trackClassName="studio-inspector-track" className="studio-inspector template-inspector"/);
+  assert.match(prototype, /libraryPaneWidth=\{libraryPaneWidth\}[\s\S]*inspectorPaneWidth=\{inspectorPaneWidth\}/);
+  assert.match(styles, /\.document-item \.document-status \{[^}]*min-width: 42px;/);
+  assert.match(workspace, /<span className=\{`document-status is-\$\{document\.status\}`\}>\{document\.status\.charAt\(0\)\.toUpperCase\(\) \+ document\.status\.slice\(1\)\}<\/span>/);
+});
+
 test("content navigation presents Templates as a sibling authoring mode", () => {
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
