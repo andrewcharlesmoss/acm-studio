@@ -78,7 +78,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         }
         if (block.type === "quote") {
           return (
-            <figure className={`${studio ? "quote-field" : "pull-quote"} align-${block.align ?? "left"}`} key={block.id}>
+            <figure className={`${studio ? "quote-field" : "pull-quote"} align-${block.align ?? "left"}${block.quoteStyle === "plain" ? " is-style-plain" : ""}`} key={block.id}>
               <blockquote className={studio ? "block-textarea preview-rich-text" : undefined}>{renderText(block.text, block.runs, mediaUrls, footnoteNumbers)}</blockquote>
               {block.attribution ? <figcaption>— {block.attribution}</figcaption> : null}
             </figure>

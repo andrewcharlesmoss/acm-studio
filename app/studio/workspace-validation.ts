@@ -103,7 +103,8 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
     switch (block.type) {
       case "paragraph": return typeof block.text === "string" && validRuns(block.runs) && validParagraphStyle(block.style);
       case "heading": return typeof block.text === "string" && validRuns(block.runs) && [1, 2, 3, 4, 5, 6].includes(block.level as number);
-      case "quote": return typeof block.text === "string" && validRuns(block.runs) && optionalString(block.attribution);
+      case "quote": return typeof block.text === "string" && validRuns(block.runs) && optionalString(block.attribution)
+        && (block.quoteStyle === undefined || ["default", "plain"].includes(block.quoteStyle as string));
       case "list": return ["ordered", "unordered"].includes(block.style as string) && strings(block.items)
         && (block.start === undefined || (typeof block.start === "number" && Number.isInteger(block.start) && block.start >= 1 && block.start <= 100000))
         && optionalBoolean(block.reversed);

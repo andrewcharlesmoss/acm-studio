@@ -228,6 +228,19 @@ test("HTML editing reads Spacer dimensions and rejects unsupported units", () =>
   assert.equal(validContentBlocks([invalid.block]), false);
 });
 
+test("HTML editing reads Quote style and alignment and rejects unsupported styles", () => {
+  const { __parseElement } = loadModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url));
+  const { validContentBlocks } = loadModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
+  const original = { id: "quote", type: "quote", text: "Original" };
+  const element = { tagName: "BLOCKQUOTE", dataset: { blockId: "quote" }, className: "align-centre is-style-plain", classList: { contains: (name) => name === "is-style-plain" }, textContent: "Quoted", childNodes: [{ nodeType: 3, textContent: "Quoted" }], querySelector: () => null };
+  const parsed = __parseElement(element, original);
+  assert.equal(parsed.block.text, "Quoted");
+  assert.equal(parsed.block.align, "centre");
+  assert.equal(parsed.block.quoteStyle, "plain");
+  assert.equal(validContentBlocks([parsed.block]), true);
+  assert.equal(validContentBlocks([{ ...parsed.block, quoteStyle: "unsupported" }]), false);
+});
+
 test("Mini Golf embeds all source Inter subsets without registering a global Inter family", () => {
   const css = readFileSync(new URL("../app/studio/site-draft.css", import.meta.url), "utf8");
   const faces = [...css.matchAll(/@font-face\s*\{([^}]+)\}/g)];

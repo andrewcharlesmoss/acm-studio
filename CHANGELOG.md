@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added Quote text alignment and a Plain style to the block inspector.
 - Added Spacer width and unit controls, plus spacing and advanced settings for
   Spacer and Embed blocks.
 - Expanded block inspectors with shared appearance controls, list numbering,

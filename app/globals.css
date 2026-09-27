@@ -707,6 +707,8 @@ button, input, textarea, select { font: inherit; }
 }
 
 .pull-quote figcaption { color: var(--muted); font-size: 13px; margin-top: 16px; }
+.pull-quote.is-style-plain { border: 0; margin: 1.8em 0; padding: 0; }
+.pull-quote.is-style-plain blockquote { font-size: inherit; font-weight: inherit; letter-spacing: normal; line-height: inherit; }
 
 .prose pre {
   background: #e9e9e9;

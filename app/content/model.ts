@@ -104,7 +104,7 @@ export type PostDateFormat = "long" | "short" | "iso";
 export type ContentBlock = (
   | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; style?: ParagraphStyle }
   | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment }
-  | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; attribution?: string; align?: TextAlignment }
+  | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; attribution?: string; align?: TextAlignment; quoteStyle?: "default" | "plain" }
   | { id: string; type: "list"; style: "ordered" | "unordered"; items: string[]; start?: number; reversed?: boolean }
   | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; columnWidths?: number[]; rowHeights?: number[] }
   | { id: string; type: "code"; language?: string; code: string }

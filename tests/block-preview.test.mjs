@@ -186,6 +186,17 @@ test("the public article renderer remains independent of the Studio presentation
   assert.doesNotMatch(html, /studio-block-preview|heading-field|content-block/);
 });
 
+test("Plain quotes keep their text alignment in Studio and public previews", () => {
+  const block = { id: "quote", type: "quote", text: "A considered thought", attribution: "Author", align: "centre", quoteStyle: "plain" };
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
+    assert.match(html, /class="(?:quote-field|pull-quote) align-centre is-style-plain"/);
+    assert.match(html, /<blockquote[^>]*>A considered thought<\/blockquote>/);
+    assert.match(html, /<figcaption>— Author<\/figcaption>/);
+  }
+  assert.match(blockToHtml(block), /class="align-centre is-style-plain"/);
+});
+
 test("local publications preserve cover images and the default post cover", () => {
   const base = {
     id: "post-1", kind: "post", title: "Post", subtitle: "", slug: "post", excerpt: "Summary",

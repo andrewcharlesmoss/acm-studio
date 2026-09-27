@@ -96,7 +96,7 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
     case "heading":
       return `<h${block.level}${attributes}${classAttribute(block.align ? `align-${block.align}` : undefined)}>${runsToHtml(block.runs, block.text)}</h${block.level}>`;
     case "quote":
-      return `<blockquote${attributes}${classAttribute(block.align ? `align-${block.align}` : undefined)}>${runsToHtml(block.runs, block.text)}${block.attribution ? `<cite>${escapeText(block.attribution)}</cite>` : ""}</blockquote>`;
+      return `<blockquote${attributes}${classAttribute([block.align ? `align-${block.align}` : "", block.quoteStyle === "plain" ? "is-style-plain" : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}${block.attribution ? `<cite>${escapeText(block.attribution)}</cite>` : ""}</blockquote>`;
     case "list": {
       const tag = block.style === "ordered" ? "ol" : "ul";
       return `<${tag}${attributes}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}>${block.items.map((item) => `<li>${escapeText(item)}</li>`).join("")}</${tag}>`;
@@ -318,7 +318,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
     case "h1": case "h2": case "h3": case "h4": case "h5": case "h6":
       { const runs = parseRuns(element); return { block: { id, type: "heading", level: Number(element.tagName.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6, text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element) } }; }
     case "blockquote":
-      { const runs = parseRuns(element); return { block: { id, type: "quote", text: runs ? plainTextFromRuns(runs) : textContent.replace(element.querySelector("cite")?.textContent ?? "", "").trim(), runs, attribution: element.querySelector("cite")?.textContent || undefined, align: alignmentFromClass(element) } }; }
+      { const runs = parseRuns(element); return { block: { id, type: "quote", text: runs ? plainTextFromRuns(runs) : textContent.replace(element.querySelector("cite")?.textContent ?? "", "").trim(), runs, attribution: element.querySelector("cite")?.textContent || undefined, align: alignmentFromClass(element), quoteStyle: element.classList.contains("is-style-plain") ? "plain" : undefined } }; }
     case "ul": case "ol":
       return { block: { id, type: "list", style: element.tagName.toLowerCase() === "ol" ? "ordered" : "unordered", items: [...element.children].filter((child) => child.tagName.toLowerCase() === "li").map((child) => child.textContent ?? ""), start: element.tagName.toLowerCase() === "ol" && element.hasAttribute("start") ? (Number(element.getAttribute("start")) || undefined) : undefined, reversed: element.tagName.toLowerCase() === "ol" && element.hasAttribute("reversed") || undefined } };
     case "table":
