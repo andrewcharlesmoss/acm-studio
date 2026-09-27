@@ -232,13 +232,15 @@ test("dedicated Columns presets follow WordPress order and preserve editable col
 
 test("HTML editing serialises layout options and Spacer through the executable block boundary", () => {
   const env = environment(); const html = env.load("studio/studio-html-editor.ts"); const validation = env.load("studio/workspace-validation.ts");
-  const block = { id: "group-1", type: "group", layout: "columns", columns: 3, gap: 24, paddingX: 16, paddingY: 32, contentWidth: "constrained", stackAt: "tablet", children: [{ id: "spacer-1", type: "spacer", height: 48 }] };
+  const block = { id: "group-1", type: "group", layout: "columns", columns: 3, gap: 24, paddingX: 16, paddingY: 32, contentWidth: "constrained", stackAt: "tablet", children: [{ id: "spacer-1", type: "spacer", height: 3, heightUnit: "rem", width: 8, widthUnit: "rem" }] };
   const serialised = html.blockToHtml(block);
   assert.match(serialised, /data-layout-gap="24"/);
   assert.match(serialised, /data-layout-padding-x="16"/);
   assert.match(serialised, /data-layout-stack-at="tablet"/);
-  assert.match(serialised, /data-spacer-height="48"/);
+  assert.match(serialised, /data-spacer-height="3" data-spacer-height-unit="rem" data-spacer-width="8" data-spacer-width-unit="rem"/);
   assert.equal(validation.validContentBlocks([block]), true);
+  assert.equal(validation.validContentBlocks([{ ...block, children: [{ ...block.children[0], widthUnit: "javascript:" }] }]), false);
+  assert.equal(validation.validContentBlocks([{ ...block, children: [{ ...block.children[0], height: Number.POSITIVE_INFINITY }] }]), false);
 });
 
 test("invalid references, duplicate slots, cycles, duplicate IDs and unsafe URLs are rejected", () => {

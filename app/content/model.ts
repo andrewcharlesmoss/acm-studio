@@ -22,6 +22,7 @@ export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "ar
 export type ParagraphTextTransform = "none" | "uppercase" | "lowercase" | "capitalize";
 export type ParagraphTextDecoration = "none" | "underline" | "line-through";
 export type ParagraphShadow = "none" | "soft" | "strong";
+export type SpacerUnit = "px" | "em" | "rem" | "vw" | "vh";
 export function listNumber(block: { items: string[]; start?: number; reversed?: boolean }, index: number): number {
   const first = block.start ?? (block.reversed ? block.items.length : 1);
   return first + (block.reversed ? -index : index);
@@ -113,7 +114,7 @@ export type ContentBlock = (
   | { id: string; type: "footnotes"; notes: Footnote[] }
   | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary"; opensInNewTab?: boolean }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
-  | { id: string; type: "spacer"; height: number }
+  | { id: string; type: "spacer"; height: number; heightUnit?: SpacerUnit; width?: number; widthUnit?: SpacerUnit }
   | { id: string; type: "document-title"; align?: TextAlignment }
   | { id: string; type: "document-subtitle"; align?: TextAlignment }
   | { id: string; type: "cover-image"; align?: TextAlignment }

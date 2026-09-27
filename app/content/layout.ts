@@ -2,8 +2,7 @@ import type { CSSProperties } from "react";
 import type { LayoutMode, LayoutOptions } from "./model";
 
 export const LAYOUT_SPACING_PRESETS = [0, 8, 16, 24, 32, 48, 64, 96] as const;
-export const SPACER_HEIGHT_PRESETS = [8, 16, 24, 32, 48, 64, 96, 128] as const;
-export const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6], spacer: [4, 320] } as const;
+export const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6] } as const;
 export const LAYOUT_BREAKPOINTS = { tablet: 780, mobile: 620 } as const;
 
 export function layoutStyleProperties(options: LayoutOptions): CSSProperties {

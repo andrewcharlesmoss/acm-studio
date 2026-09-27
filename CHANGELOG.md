@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Added Spacer width and unit controls, plus spacing and advanced settings for
+  Spacer and Embed blocks.
 - Expanded block inspectors with shared appearance controls, list numbering,
   table styles, divider variants, image display and accessibility settings,
   and new-tab links. See `docs/block-inspector-compatibility.md` for supported

@@ -10,6 +10,7 @@ import { imageDisplayStyle } from "../content/image-style";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeMathMLMarkup } from "../content/mathml";
 import { buttonVisualCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
+import { spacerDimensions } from "../content/spacer";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
 import { BlockLibraryIcon } from "./block-library-icons";
 import { StudioIcon } from "./studio-icons";
@@ -1049,7 +1050,7 @@ type BlockFieldProps = { block: ContentBlock; rootBlocks?: ContentBlock[]; docum
 export function BlockField(props: BlockFieldProps) {
   const { block } = props;
   const content = <BlockFieldContent {...props} />;
-  if (!block.visualStyle) return content;
+  if (!block.visualStyle || block.type === "spacer") return content;
   const style = block.visualStyle;
   return <div id={paragraphStyleAnchor(style)} className={visualStyleClassName(style)} style={block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : undefined) : paragraphStyleToCss(style)}>{content}</div>;
 }
@@ -1091,7 +1092,7 @@ function BlockFieldContent({ block, rootBlocks = [block], document, templatePlac
       </div> : null}
     </div>;
   }
-  if (block.type === "spacer") return <button type="button" className="spacer-field" style={{ height: `${block.height}px` }} data-studio-block-id={block.id} aria-label="Spacer block" />;
+  if (block.type === "spacer") return <button type="button" id={paragraphStyleAnchor(block.visualStyle)} className={`spacer-field${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block), margin: block.visualStyle?.margin }} data-studio-block-id={block.id} aria-label="Spacer block" />;
   if (block.type === "reading-time") return <div className={`metadata-block-editor reading-time-block-editor${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`}>{block.presentation !== "plain" ? <span className="reading-time-badge">{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span> : <span>{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span>}</div>;
   if (block.type === "post-author") { const author = documentAuthor(documentContext); return <div className={`metadata-block-editor article-byline align-${block.align ?? "left"}`}>{author ? <>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></> : <span className="metadata-missing">Add an author in Document settings.</span>}</div>; }
   if (block.type === "post-date") { const date = formatDocumentDate(documentContext, block.format); return <div className={`metadata-block-editor article-byline-detail align-${block.align ?? "left"}`}>{date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={documentContext.publishAt ?? documentContext.publishedAt}>{date}</time></> : <span className="metadata-missing">Add a publication date in Document settings.</span>}</div>; }

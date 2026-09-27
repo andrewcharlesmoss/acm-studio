@@ -217,6 +217,17 @@ test("HTML editing preserves paragraph alignment and table dimension contracts",
   assert.match(__parseTable(fakeTable({ "data-column-widths": "0,-1" }), "table", original).error, /positive numbers/);
 });
 
+test("HTML editing reads Spacer dimensions and rejects unsupported units", () => {
+  const { __parseElement } = loadModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url));
+  const original = { id: "space", type: "spacer", height: 32, visualStyle: { margin: "12px" } };
+  const element = (widthUnit) => ({ tagName: "DIV", dataset: { blockId: "space", spacerHeight: "2", spacerHeightUnit: "em", spacerWidth: "8", spacerWidthUnit: widthUnit }, classList: { contains: () => false } });
+  const parsed = __parseElement(element("rem"), original);
+  assert.deepEqual({ ...parsed.block }, { ...original, height: 2, heightUnit: "em", width: 8, widthUnit: "rem" });
+  const invalid = __parseElement(element("%"), original);
+  const { validContentBlocks } = loadModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
+  assert.equal(validContentBlocks([invalid.block]), false);
+});
+
 test("Mini Golf embeds all source Inter subsets without registering a global Inter family", () => {
   const css = readFileSync(new URL("../app/studio/site-draft.css", import.meta.url), "utf8");
   const faces = [...css.matchAll(/@font-face\s*\{([^}]+)\}/g)];

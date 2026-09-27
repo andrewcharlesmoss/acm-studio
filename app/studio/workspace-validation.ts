@@ -1,9 +1,10 @@
 import type { ContentBlock } from "../content/model";
 import { safeMathMLMarkup } from "../content/mathml";
 import { safeImageSource } from "../content/rich-text";
+import { validSpacerSize } from "../content/spacer";
 import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
 
-const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6], spacer: [4, 320] } as const;
+const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6] } as const;
 function validLayoutOptions(value: Record<string, unknown>): boolean {
   const finiteWithin = (candidate: unknown, min: number, max: number) => candidate === undefined || (typeof candidate === "number" && Number.isFinite(candidate) && candidate >= min && candidate <= max);
   return (value.horizontalAlign === undefined || ["left", "centre", "right", "stretch"].includes(value.horizontalAlign as string))
@@ -129,7 +130,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.options === undefined || strings(block.options));
       case "divider": return block.style === undefined || ["default", "wide", "dots"].includes(block.style as string);
       case "footnotes": return Array.isArray(block.notes) && block.notes.length <= 1000 && block.notes.every((note) => isRecord(note) && typeof note.id === "string" && note.id.length > 0 && note.id.length <= 160 && typeof note.text === "string" && note.text.length <= 10000);
-      case "spacer": return typeof block.height === "number" && Number.isFinite(block.height) && block.height >= LAYOUT_VALUE_LIMITS.spacer[0] && block.height <= LAYOUT_VALUE_LIMITS.spacer[1];
+      case "spacer": return validSpacerSize(block.height, block.heightUnit, true) && validSpacerSize(block.width, block.widthUnit);
       case "document-title":
       case "document-subtitle":
       case "cover-image": return true;

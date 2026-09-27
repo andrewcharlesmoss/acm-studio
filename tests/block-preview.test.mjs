@@ -120,6 +120,19 @@ test("image display settings and decorative text reach both renderers", () => {
   assert.match(blockToHtml(linked), /target="_blank" rel="noopener noreferrer"/);
 });
 
+test("Spacer dimensions and Embed spacing render in both views and survive HTML export", () => {
+  const blocks = [
+    { id: "space", type: "spacer", height: 2, heightUnit: "em", width: 8, widthUnit: "rem", visualStyle: { margin: "12px", anchor: "section-gap", className: "custom-gap" } },
+    { id: "resource", type: "embed", url: "https://example.com/resource", title: "Resource", visualStyle: { margin: "20px", anchor: "reference-card" } },
+  ];
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
+    assert.match(html, /id="section-gap" class="content-spacer custom-gap" style="height:2em;width:8rem;margin:12px"/);
+    assert.match(html, /id="reference-card" class="block-visual-style" style="margin:20px"/);
+  }
+  assert.match(blockToHtml(blocks[0]), /data-spacer-height="2" data-spacer-height-unit="em" data-spacer-width="8" data-spacer-width-unit="rem"/);
+});
+
 test("table settings keep caption, striping and automatic cell widths in preview and HTML", () => {
   const block = { id: "comparison", type: "table", rows: [["Name", "Value"], ["A", "1"]], hasHeader: true, caption: "Results", tableStyle: "stripes", fixedWidth: false };
   const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));

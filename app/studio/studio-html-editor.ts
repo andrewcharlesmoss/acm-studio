@@ -127,7 +127,7 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
     case "footnotes":
       return `<section${attributes} class="article-footnotes"><ol>${block.notes.map(note => `<li id="footnote-${escapeAttribute(note.id)}"><span>${escapeText(note.text)}</span><a data-footnote-back="true" href="#footnote-ref-${escapeAttribute(note.id)}" aria-label="Return to footnote reference">↩</a></li>`).join("")}</ol></section>`;
     case "spacer":
-      return `<div${attributes}${classAttribute("studio-spacer")} data-spacer-height="${block.height}" aria-hidden="true"></div>`;
+      return `<div${attributes}${classAttribute("studio-spacer")} data-spacer-height="${block.height}"${block.heightUnit ? ` data-spacer-height-unit="${block.heightUnit}"` : ""}${block.width === undefined ? "" : ` data-spacer-width="${block.width}"`}${block.widthUnit ? ` data-spacer-width-unit="${block.widthUnit}"` : ""} aria-hidden="true"></div>`;
     case "document-title":
       return `<h1${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)}></h1>`;
     case "document-subtitle":
@@ -352,7 +352,8 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
     case "section": case "div": {
       if (element.dataset.spacerHeight !== undefined || element.classList.contains("studio-spacer")) {
         const height = Number(element.dataset.spacerHeight);
-        return { block: { ...(original.type === "spacer" ? original : {}), id, type: "spacer", height } };
+        const width = element.dataset.spacerWidth === undefined ? undefined : Number(element.dataset.spacerWidth);
+        return { block: { ...(original.type === "spacer" ? original : {}), id, type: "spacer", height, heightUnit: element.dataset.spacerHeightUnit as Extract<ContentBlock, { type: "spacer" }>["heightUnit"] | undefined, width, widthUnit: element.dataset.spacerWidthUnit as Extract<ContentBlock, { type: "spacer" }>["widthUnit"] | undefined } };
       }
       const type = element.tagName.toLowerCase() === "section" ? "section" : "group";
       if (element.dataset.columnLayout === "true" || element.classList.contains("studio-columns")) {
