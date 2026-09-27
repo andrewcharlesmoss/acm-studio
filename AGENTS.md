@@ -32,14 +32,11 @@ These dimensions are a visual reference; its artwork comes from the ACM icon
 collection. Keep the menu compact and do not infer CSS sizes from Retina
 screenshots.
 
-Studio interaction controls use original ACM artwork. The block hover toolbar,
-block transform menu, alignment menu and rich-text formatting menu consume
-product-neutral symbols from the sibling `@acm/icons` package, adding a symbol
-there when the reusable library has no suitable match. Use its React adapter
-and optical scales; do not redraw those symbols locally. Other Studio controls
-use the reusable `app/studio/acm-studio-icons.tsx` module. Preserve the
-`StudioIcon` and table-icon wrappers as compatibility APIs. Do not trace or
-copy third-party paths. Andrew explicitly authorised the Copilot keyboard mark
+Studio interaction controls use original ACM artwork from the sibling
+`@acm/icons` catalogue. Use its React adapter and optical scales, and keep
+new shared symbols product-neutral. Preserve the `StudioIcon` and table-icon
+wrappers as compatibility APIs. Do not trace or copy third-party paths.
+Andrew explicitly authorised the Copilot keyboard mark
 as a sourced brand exception on 26 September 2026. Its MIT-licensed Lobe Icons
 SVG, provenance and licence are owned by `acm-icons/sources/copilot/`; preserve
 the shared geometry and licence notices when previewing or exporting it.
