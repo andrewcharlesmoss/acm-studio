@@ -145,11 +145,12 @@ export type StudioCanvasProps = {
   onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null;
   onSplitParagraphs: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null;
   onInsertBlock: (type: InsertableBlockType, parentId?: string) => ContentBlock;
+  onInsertBlockAt: (type: InsertableBlockType, insertionIndex: number) => ContentBlock;
   onSetShowInserter: (show: boolean) => void;
   onSetInserterQuery: (query: string) => void;
 };
 
-export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onOpenInlineImage, onAddFootnote, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onInsertBlock, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onOpenInlineImage, onAddFootnote, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onInsertBlock, onInsertBlockAt, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
   const [textSelections, setTextSelections] = useState<Record<string, TextSelection | null>>({});
@@ -207,12 +208,25 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   }
   function handleBlockDragOver(event: DragEvent<HTMLDivElement>, index: number) {
     event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer.types.includes("application/x-acm-studio-block")) {
+      event.dataTransfer.dropEffect = "copy";
+      onSetDragOverIndex(dragInsertionIndex(event, index));
+      return;
+    }
     const from = draggingIndexRef.current;
     const insertionIndex = dragInsertionIndex(event, index);
     onSetDragOverIndex(from === null || insertionIndex === from || insertionIndex === from + 1 ? null : insertionIndex);
   }
   function handleBlockDrop(event: DragEvent<HTMLDivElement>, index: number) {
     event.preventDefault();
+    event.stopPropagation();
+    const libraryType = event.dataTransfer.getData("application/x-acm-studio-block");
+    if (filteredBlocks.some(item => item.type === libraryType && item.type !== "template-content")) {
+      onInsertBlockAt(libraryType as InsertableBlockType, dragInsertionIndex(event, index));
+      onSetDragOverIndex(null);
+      return;
+    }
     const from = draggingIndexRef.current;
     if (from !== null) {
       const insertionIndex = dragInsertionIndex(event, index);
@@ -623,7 +637,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
       {publishFeedback ? <div className="publish-feedback" role="status"><span>{publishFeedback}</span><button type="button" onClick={() => onSetPublishFeedback(null)} aria-label="Dismiss publication message"><StudioIcon name="close" size={18} /></button></div> : null}
       {toolbarContent}
       <div className="editor-work-area">
-      {showInserter && !previewing && !codeEditor ? <BlockInserter closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={filteredBlocks} onSetQuery={onSetInserterQuery} onInsert={(type) => onInsertBlock(type, inserterParentId ?? undefined)} onDismiss={dismissInserter} /> : null}
+      {showInserter && !previewing && !codeEditor ? <BlockInserter closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={filteredBlocks} onSetQuery={onSetInserterQuery} onInsert={(type) => onInsertBlock(type, inserterParentId ?? undefined)} onDragEnd={() => onSetDragOverIndex(null)} onDismiss={dismissInserter} /> : null}
       {!previewing && !showInserter && listViewOpen ? <button className="studio-list-backdrop" type="button" aria-label="Close List View" onClick={closeListView} /> : null}
       {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlockFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} onRemoveBlock={onRemoveBlock} onMoveItem={(parentId, index, direction) => {
         if (!parentId) { onMoveBlock(index, direction); return; }
@@ -676,7 +690,18 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
               </div>
             </div> : allowCoverImage ? <button className="canvas-add-cover" type="button" onClick={onOpenCoverMediaLibrary}><StudioIcon name="add" size={18} />Add cover image</button> : null}
 
-            <div className="canvas-blocks">
+            <div className="canvas-blocks" onDragOver={event => {
+              if (!event.dataTransfer.types.includes("application/x-acm-studio-block")) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "copy";
+              onSetDragOverIndex(activeDocument.blocks.length);
+            }} onDrop={event => {
+              const libraryType = event.dataTransfer.getData("application/x-acm-studio-block");
+              if (!filteredBlocks.some(item => item.type === libraryType && item.type !== "template-content")) return;
+              event.preventDefault();
+              onInsertBlockAt(libraryType as InsertableBlockType, activeDocument.blocks.length);
+              onSetDragOverIndex(null);
+            }}>
               {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" onClick={() => toggleInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
               {activeDocument.blocks.map((block, index) => (
                 <div className="block-position" key={block.id}
@@ -798,6 +823,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                   </article>
                 </div>
               ))}
+              {showInserter ? <div className={`canvas-library-drop-zone${dragOverIndex === activeDocument.blocks.length ? " is-active" : ""}`} aria-hidden="true" /> : null}
               <div className={`canvas-appender${appenderActive ? " is-active" : ""}`}>
                 <input
                   ref={appenderInputRef}
@@ -1048,7 +1074,7 @@ function HoverBlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"]
   return <BlockTypeIcon type={type} />;
 }
 
-function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDismiss }: { closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: InsertableBlockType) => void; onDismiss: () => void }) {
+function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDragEnd, onDismiss }: { closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: InsertableBlockType) => void; onDragEnd: () => void; onDismiss: () => void }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const dismiss = useCallback(() => {
@@ -1083,7 +1109,7 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
             if (!items.length) return null;
             const insertableItems = items.filter((item): item is (typeof filteredBlocks)[number] & { type: InsertableBlockType } => item.type !== "template-content");
             if (!insertableItems.length) return null;
-            return <div className="inserter-group" key={group}><h3>{group}</h3><div>{insertableItems.map((item) => <button type="button" key={item.type} onClick={() => onInsert(item.type)}><span><BlockTypeIcon type={item.type} /></span><strong>{item.label}</strong><small>{item.description}</small></button>)}</div></div>;
+            return <div className="inserter-group" key={group}><h3>{group}</h3><div>{insertableItems.map((item) => <button type="button" draggable key={item.type} onDragStart={event => { event.dataTransfer.effectAllowed = "copy"; event.dataTransfer.setData("application/x-acm-studio-block", item.type); }} onDragEnd={onDragEnd} onClick={() => onInsert(item.type)}><span><BlockTypeIcon type={item.type} /></span><strong>{item.label}</strong><small>{item.description}</small></button>)}</div></div>;
           })}
       </Pane>
     </div>

@@ -49,13 +49,12 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
     return true;
   }
 
-  function insertBlock(type: InsertableBlockType) {
-    const block = blockCommands.insertBlock(type, insertAfterIndex);
+  function insertBlock(type: InsertableBlockType, afterIndex = insertAfterIndex, keepInserterOpen = false) {
+    const block = blockCommands.insertBlock(type, afterIndex);
     setSelectedDocumentField(null);
     setSelectedBlockId(block.id);
     setInspectorTab("block");
-    setShowInserter(false);
-    setInserterQuery("");
+    if (!keepInserterOpen) { setShowInserter(false); setInserterQuery(""); }
     return block;
   }
 
@@ -154,6 +153,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
             },
             onSplitParagraphs: (id, paragraphs) => blockCommands.splitParagraphs(id, paragraphs),
             onInsertBlock: insertBlock,
+            onInsertBlockAt: (type, insertionIndex) => insertBlock(type, insertionIndex - 1, true),
             onSetShowInserter: setShowInserter,
             onSetInserterQuery: setInserterQuery,
           }}

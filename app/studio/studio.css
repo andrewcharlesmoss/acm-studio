@@ -589,6 +589,8 @@
 .canvas-add-cover { align-items: center; display: inline-flex; gap: 5px; justify-content: center; margin: 24px 0 34px; width: 100%; }
 .canvas-blocks, .studio-block-preview { display: grid; min-width: 0; }
 .canvas-blocks { padding-top: 52px; }
+.canvas-library-drop-zone { border: 2px dashed transparent; border-radius: 5px; height: 32px; margin-top: 8px; }
+.canvas-library-drop-zone.is-active { border-color: var(--accent); background: var(--accent-soft); }
 .studio-block-preview { gap: var(--studio-block-gap); }
 .cover-inserter-position { height: 30px; position: relative; }
 .cover-inserter-position .between-blocks { top: 0; }
@@ -1094,7 +1096,8 @@
 .inserter-results { align-content: start; display: grid; flex: 1; gap: 22px; min-height: 0; overflow: auto; }
 .inserter-group h3 { color: var(--muted); font-size: var(--studio-ui-size); letter-spacing: .07em; margin-bottom: 8px; text-transform: uppercase; }
 .inserter-group > div { display: grid; gap: 7px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.inserter-group button { background: white; border: 1px solid #d9d7d0; border-radius: 8px; cursor: pointer; display: grid; min-height: 104px; padding: 12px; text-align: left; }
+.inserter-group button { background: white; border: 1px solid #d9d7d0; border-radius: 8px; cursor: grab; display: grid; min-height: 104px; padding: 12px; text-align: left; }
+.inserter-group button:active { cursor: grabbing; }
 .inserter-group button:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .inserter-group button > span { color: #6b7075; font-size: 20px; }
 .inserter-group button strong { font-size: var(--studio-ui-size); margin-top: 8px; }

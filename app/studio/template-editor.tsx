@@ -98,14 +98,15 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     });
     updateNodes(next);
   }
-  function insertNode(node: TemplateNode) {
-    if (!writable) return;
+  function insertNode(node: TemplateNode, afterIndex = insertAfter, atRoot = false, keepInserterOpen = false) {
     const projected = templateEditorBlocks([node])[0];
-    if ((selectedBlock?.type === "group" || selectedBlock?.type === "column") && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart) commands.updateBlock(selectedBlock.id, block => block.type === "group" || block.type === "column" ? { ...block, children: [...block.children, projected] } : block);
+    if (!writable) return projected;
+    if (!atRoot && (selectedBlock?.type === "group" || selectedBlock?.type === "column") && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart) commands.updateBlock(selectedBlock.id, block => block.type === "group" || block.type === "column" ? { ...block, children: [...block.children, projected] } : block);
     else {
-      const next = [...target.nodes]; next.splice(insertAfter === null ? next.length : insertAfter + 1, 0, node); updateNodes(next);
+      const next = [...target.nodes]; next.splice(afterIndex === null ? next.length : afterIndex + 1, 0, node); updateNodes(next);
     }
-    setSelected(node.id); setShowInserter(false); setQuery("");
+    setSelected(node.id);
+    if (!keepInserterOpen) { setShowInserter(false); setQuery(""); }
     return projected;
   }
   function insertBlock(type: BlockLibraryItemType, parentId?: string) {
@@ -184,5 +185,9 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
           } : undefined} />;
       } },
       onOpenInserter: (index, search = "", parentId) => { setInsertAfter(index); setQuery(search); setInserterParentId(parentId ?? null); setShowInserter(true); }, onSetPublishFeedback: () => {}, onDocumentFieldChange: () => {}, onApplyDocumentCode: () => {}, onFocusDocumentField: () => {}, onOpenCoverMediaLibrary: () => {}, onRemoveCoverImage: () => {}, onSelectBlock: setSelected, onClearBlockSelection: () => setSelected(null), onSetDragOverIndex: setDragOver, onMoveBlockTo: commands.moveBlockTo, onMoveBlock: commands.moveBlock, onDuplicateBlock: commands.duplicateBlock, onRemoveBlock: commands.removeBlock, onUpdateBlock: commands.updateBlock, onSplitParagraph: splitParagraph, onMergeParagraphBackward: (id) => { const merged = commands.mergeParagraphBackward(id); if (merged) setSelected(merged.blockId); return merged; }, onSplitParagraphs: splitParagraphs, onInsertBlock: (type) => insertBlock(type, inserterParentId ?? undefined), onSetShowInserter: setShowInserter, onSetInserterQuery: setQuery,
+      onInsertBlockAt: (type, insertionIndex) => {
+        const node = templateNodesFromBlocks([createBlock(type, templateId())])[0];
+        return insertNode(node, insertionIndex - 1, true, true);
+      },
     }} />;
 }

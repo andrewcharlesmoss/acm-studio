@@ -423,13 +423,12 @@ export function StudioPrototype() {
     }
   }
 
-  function insertBlock(type: InsertableBlockType, parentId?: string) {
-    const block = blockCommands.insertBlock(type, insertAfterIndex, parentId);
+  function insertBlock(type: InsertableBlockType, parentId?: string, afterIndex = insertAfterIndex, keepInserterOpen = false) {
+    const block = blockCommands.insertBlock(type, afterIndex, parentId);
     setDocumentFieldSelection(null);
     setSelectedBlockId(block.id);
     setInspectorTab("block");
-    setShowInserter(false);
-    setInserterQuery("");
+    if (!keepInserterOpen) { setShowInserter(false); setInserterQuery(""); }
     return block;
   }
 
@@ -655,6 +654,7 @@ export function StudioPrototype() {
             },
             onSplitParagraphs: (id, paragraphs) => blockCommands.splitParagraphs(id, paragraphs),
             onInsertBlock: insertBlock,
+            onInsertBlockAt: (type, insertionIndex) => insertBlock(type, undefined, insertionIndex - 1, true),
             onSetShowInserter: setShowInserter,
             onSetInserterQuery: setInserterQuery,
           }}
