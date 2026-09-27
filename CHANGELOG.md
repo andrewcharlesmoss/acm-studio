@@ -9,8 +9,8 @@
   rendering and HTML round-tripping.
 - Updated the shared block-width catalogue symbols so their central width bars
   use the filled Gutenberg treatment while retaining original ACM artwork.
-- Matched Gutenberg's custom font-size control with an integrated unit picker,
-  theme-coloured range slider and px/em/rem/vw/vh units.
+- Matched Gutenberg's custom font-size control with an integrated compact unit
+  menu, theme-coloured range slider and px/em/rem/vw/vh units.
 - Dragged Block Library items now insert at the canvas drop position while keeping the library open for further additions.
 - Added Gutenberg-ordered block alignment menus to every analogous core block that declares alignment support, including Left/Centre/Right floating layouts, Wide/Full widths, typed validation, HTML round-tripping and migration from the Image block's legacy Wide display setting.
 - Added Image block height, Default/Rounded styles and custom, image-file and lightbox link destinations across editing, previews and HTML round-trip.
