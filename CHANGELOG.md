@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- Expanded block inspectors with shared appearance controls, list numbering,
+  table styles, divider variants, image display and accessibility settings,
+  and new-tab links. See `docs/block-inspector-compatibility.md` for supported
+  WordPress comparisons and remaining gaps.
+- Added a dedicated Gutenberg-style Columns block with selectable nested Column
+  blocks, responsive widths, WordPress-ordered layout presets and template/HTML
+  support. Workspace schema v8 and template schema v0.7.0 read their supported
+  earlier versions.
 - Added the Block Library icon collection, aligned tiles with shared ACM symbols,
   added Studio symbols where the catalogue lacked suitable matches, and included
   template Content with shared icons at their optical scales. Heading tiles use

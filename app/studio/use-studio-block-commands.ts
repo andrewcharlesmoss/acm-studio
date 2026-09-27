@@ -1,6 +1,6 @@
 "use client";
 
-import type { ContentBlock, RichTextRun } from "../content/model";
+import type { ColumnBlock, ContentBlock, RichTextRun } from "../content/model";
 import { normaliseTextRuns } from "../content/rich-text";
 import { createBlock, type InsertableBlockType, type StudioDocument } from "./editor-model";
 import {
@@ -26,9 +26,11 @@ export function useStudioBlockCommands({
     updateActiveDocument((document) => updateBlockById(document, blockId, update));
   }
 
-  function insertBlock(type: InsertableBlockType, afterIndex: number | null) {
+  function insertBlock(type: InsertableBlockType, afterIndex: number | null, parentId?: string | null) {
     const block = createBlock(type);
-    updateActiveDocument((document) => insertBlockAt(document, block, afterIndex));
+    updateActiveDocument((document) => parentId
+      ? updateBlockById(document, parentId, (parent: ContentBlock) => (parent.type === "section" || parent.type === "group" || parent.type === "column") ? { ...parent, children: [...parent.children, block] } : parent)
+      : insertBlockAt(document, block, afterIndex));
     return block;
   }
 
@@ -47,7 +49,7 @@ export function useStudioBlockCommands({
         for (const block of blocks) {
           if (block.id === blockId && block.type === "paragraph") {
             next.push(before, after);
-          } else if ((block.type === "section" || block.type === "group" || block.type === "component") && Array.isArray(block.children)) {
+          } else if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") && Array.isArray(block.children)) {
             next.push({ ...block, children: split(block.children) } as ContentBlock);
           } else {
             next.push(block);
@@ -80,7 +82,7 @@ export function useStudioBlockCommands({
         return next;
       }
       return blocks.map((block) => {
-        if ((block.type === "section" || block.type === "group" || block.type === "component") && Array.isArray(block.children)) {
+        if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") && Array.isArray(block.children)) {
           const children = merge(block.children);
           if (children !== block.children) return { ...block, children } as ContentBlock;
         }
@@ -112,7 +114,7 @@ export function useStudioBlockCommands({
           if (block.id === blockId && block.type === "paragraph") {
             next.push(...replacements);
             replaced = true;
-          } else if ((block.type === "section" || block.type === "group" || block.type === "component") && Array.isArray(block.children)) {
+          } else if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") && Array.isArray(block.children)) {
             next.push({ ...block, children: split(block.children) } as ContentBlock);
           } else {
             next.push(block);
@@ -146,7 +148,8 @@ export function useStudioBlockCommands({
       const id = createUniqueId(block.type);
       ids.push(id);
       const next = { ...block, id } as ContentBlock;
-      if (next.type === "section" || next.type === "group") return { ...next, children: next.children.map(assignIds) };
+      if (next.type === "columns") return { ...next, children: next.children.map(column => assignIds(column) as ColumnBlock) };
+      if (next.type === "section" || next.type === "group" || next.type === "column") return { ...next, children: next.children.map(assignIds) };
       if (next.type === "component" && next.children) return { ...next, children: next.children.map(assignIds) };
       return next;
     };
@@ -163,7 +166,8 @@ export function useStudioBlockCommands({
     if (!source) return null;
     const remap = (block: ContentBlock): ContentBlock => {
       const next = { ...JSON.parse(JSON.stringify(block)) as ContentBlock, id: createUniqueId(block.type) };
-      if (next.type === "section" || next.type === "group") return { ...next, children: next.children.map(remap) };
+      if (next.type === "columns") return { ...next, children: next.children.map(column => remap(column) as ColumnBlock) };
+      if (next.type === "section" || next.type === "group" || next.type === "column") return { ...next, children: next.children.map(remap) };
       if (next.type === "component" && next.children) return { ...next, children: next.children.map(remap) };
       return next;
     };
@@ -176,7 +180,8 @@ export function useStudioBlockCommands({
         for (const block of blocks) {
           next.push(block);
           if (block.id === blockId) next.push(remapped);
-          else if ((block.type === "section" || block.type === "group" || block.type === "component") && Array.isArray(block.children)) next[next.length - 1] = { ...block, children: insert(block.children) } as ContentBlock;
+          else if (block.type === "columns") next[next.length - 1] = { ...block, children: block.children.map(column => ({ ...column, children: insert(column.children) })) };
+          else if ((block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component") && Array.isArray(block.children)) next[next.length - 1] = { ...block, children: insert(block.children) } as ContentBlock;
         }
         return next;
       }

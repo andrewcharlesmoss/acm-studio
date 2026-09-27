@@ -38,7 +38,7 @@ const optionalParagraphClasses = (value: unknown) => value === undefined || (typ
 function collectBlockIds(blocks: ContentBlock[], ids = new Set<string>()) {
   for (const block of blocks) {
     ids.add(block.id);
-    if (block.type === "section" || block.type === "group" || block.type === "component") collectBlockIds(block.children ?? [], ids);
+    if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") collectBlockIds(block.children ?? [], ids);
   }
   return ids;
 }
@@ -53,18 +53,23 @@ function uniqueBlockId(base: string, ids: Set<string>) {
 
 function withUniqueBlockIds(block: ContentBlock, ids: Set<string>): ContentBlock {
   const id = uniqueBlockId(block.id, ids);
-  if (block.type === "section" || block.type === "group" || block.type === "component") {
-    return { ...block, id, children: (block.children ?? []).map(child => withUniqueBlockIds(child, ids)) };
+  if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") {
+    const children = (block.children ?? []).map(child => withUniqueBlockIds(child, ids));
+    return block.type === "columns" ? { ...block, id, children: children as Extract<ContentBlock, { type: "column" }>[] } : { ...block, id, children } as ContentBlock;
   }
   return { ...block, id };
 }
 
-function validParagraphStyle(value: unknown) {
+export function validParagraphStyle(value: unknown) {
   if (value === undefined) return true;
   if (!isRecord(value)) return false;
-  return (value.fontSize === undefined || ["small", "medium", "large", "x-large", "xx-large"].includes(value.fontSize as string))
+  return (value.fontFamily === undefined || ["inter", "helvetica-neue", "helvetica", "arial"].includes(value.fontFamily as string))
+    && (value.fontSize === undefined || ["small", "medium", "large", "x-large", "xx-large"].includes(value.fontSize as string))
     && (value.appearance === undefined || ["regular", "italic", "bold", "bold-italic"].includes(value.appearance as string))
+    && (value.textTransform === undefined || ["none", "uppercase", "lowercase", "capitalize"].includes(value.textTransform as string))
+    && (value.textDecoration === undefined || ["none", "underline", "line-through"].includes(value.textDecoration as string))
     && (value.borderStyle === undefined || ["none", "solid", "dashed"].includes(value.borderStyle as string))
+    && (value.shadow === undefined || ["none", "soft", "strong"].includes(value.shadow as string))
     && (value.backgroundGradient === undefined || ["sunrise", "ocean", "forest", "violet"].includes(value.backgroundGradient as string))
     && optionalParagraphLength(value.lineHeight) && optionalSignedParagraphLength(value.letterSpacing)
     && optionalParagraphColour(value.textColor) && optionalParagraphColour(value.backgroundColor) && optionalParagraphColour(value.linkColor)
@@ -88,33 +93,41 @@ function validRuns(value: unknown) {
 
 const COMPONENT_NAMES = ["mini-golf-account", "mini-golf-setup", "mini-golf-scorecard", "mini-golf-leaderboard", "mini-golf-share"];
 
-function validContentBlock(block: Record<string, unknown>, ids: Set<string>, depth: number): boolean {
+function validContentBlock(block: Record<string, unknown>, ids: Set<string>, depth: number, parentType?: string): boolean {
   if (typeof block.id !== "string" || block.id.length === 0 || ids.has(block.id) || depth > 8) return false;
   if (block.siteRole !== undefined && !["logo", "title", "eyebrow", "status", "progress", "table-size", "auto-resize", "new-game", "holes", "players", "reset-scores", "export-excel", "export-image", "export-html", "metric-average", "metric-deviation", "metric-holes", "player-name", "score-value", "score-label", "metric-label", "metric-value", "footer-name", "copyright", "social-icon", "social-action"].includes(block.siteRole as string)) return false;
+  if (!validParagraphStyle(block.visualStyle)) return false;
   ids.add(block.id);
     if (block.align !== undefined && !["left", "centre", "right"].includes(block.align as string)) return false;
     switch (block.type) {
       case "paragraph": return typeof block.text === "string" && validRuns(block.runs) && validParagraphStyle(block.style);
       case "heading": return typeof block.text === "string" && validRuns(block.runs) && [1, 2, 3, 4, 5, 6].includes(block.level as number);
       case "quote": return typeof block.text === "string" && validRuns(block.runs) && optionalString(block.attribution);
-      case "list": return ["ordered", "unordered"].includes(block.style as string) && strings(block.items);
+      case "list": return ["ordered", "unordered"].includes(block.style as string) && strings(block.items)
+        && (block.start === undefined || (typeof block.start === "number" && Number.isInteger(block.start) && block.start >= 1 && block.start <= 100000))
+        && optionalBoolean(block.reversed);
       case "table": {
         if (!Array.isArray(block.rows) || !block.rows.length || !block.rows.every(strings)) return false;
         const columns = block.rows[0].length;
         const dimensions = (sizes: unknown, count: number) => sizes === undefined || (Array.isArray(sizes) && sizes.length === count
           && sizes.every((size) => typeof size === "number" && Number.isFinite(size) && size > 0));
         return columns > 0 && block.rows.every((row) => row.length === columns)
-          && optionalBoolean(block.hasHeader) && optionalBoolean(block.hasFooter)
+          && optionalBoolean(block.hasHeader) && optionalBoolean(block.hasFooter) && optionalBoolean(block.fixedWidth)
+          && (block.tableStyle === undefined || ["default", "stripes"].includes(block.tableStyle as string)) && optionalString(block.caption)
           && dimensions(block.columnWidths, columns) && dimensions(block.rowHeights, block.rows.length);
       }
       case "code": return typeof block.code === "string" && optionalString(block.language);
       case "image": return typeof block.src === "string" && typeof block.alt === "string" && optionalString(block.mediaId)
-        && optionalString(block.caption) && optionalBoolean(block.wide);
+        && optionalString(block.caption) && optionalBoolean(block.wide) && optionalBoolean(block.decorative) && optionalString(block.title) && optionalString(block.linkUrl) && optionalBoolean(block.opensInNewTab)
+        && (block.aspectRatio === undefined || ["original", "square", "portrait", "landscape", "wide"].includes(block.aspectRatio as string))
+        && (block.scale === undefined || ["cover", "contain"].includes(block.scale as string))
+        && (block.displayWidth === undefined || (typeof block.displayWidth === "number" && Number.isInteger(block.displayWidth) && block.displayWidth >= 32 && block.displayWidth <= 2400))
+        && [block.focalX, block.focalY].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100));
       case "embed": return typeof block.url === "string" && typeof block.title === "string";
-      case "button": return typeof block.label === "string" && typeof block.url === "string" && ["primary", "secondary"].includes(block.style as string);
+      case "button": return typeof block.label === "string" && typeof block.url === "string" && ["primary", "secondary"].includes(block.style as string) && optionalBoolean(block.opensInNewTab);
       case "field": return ["text", "select"].includes(block.control as string) && typeof block.label === "string" && typeof block.value === "string"
         && (block.options === undefined || strings(block.options));
-      case "divider": return true;
+      case "divider": return block.style === undefined || ["default", "wide", "dots"].includes(block.style as string);
       case "footnotes": return Array.isArray(block.notes) && block.notes.length <= 1000 && block.notes.every((note) => isRecord(note) && typeof note.id === "string" && note.id.length > 0 && note.id.length <= 160 && typeof note.text === "string" && note.text.length <= 10000);
       case "spacer": return typeof block.height === "number" && Number.isFinite(block.height) && block.height >= LAYOUT_VALUE_LIMITS.spacer[0] && block.height <= LAYOUT_VALUE_LIMITS.spacer[1];
       case "document-title":
@@ -137,6 +150,14 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.data === undefined || (isRecord(block.data) && Object.values(block.data).every((item) => typeof item === "string" || typeof item === "number" || typeof item === "boolean" || strings(item))))
         && (block.source === undefined || (isRecord(block.source) && typeof block.source.module === "string" && typeof block.source.exportName === "string" && typeof block.source.revision === "string"))
         && Array.isArray(block.children) && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1));
+      case "columns": return validLayoutOptions(block) && validParagraphStyle(block.style)
+        && Array.isArray(block.children) && block.children.length >= 1 && block.children.length <= 6
+        && block.children.every((child) => isRecord(child) && child.type === "column" && validContentBlock(child, ids, depth + 1, "columns"));
+      case "column": return parentType === "columns"
+        && (block.width === undefined || (typeof block.width === "number" && Number.isFinite(block.width) && block.width >= 5 && block.width <= 100))
+        && (block.verticalAlign === undefined || ["top", "centre", "bottom", "stretch"].includes(block.verticalAlign as string))
+        && validParagraphStyle(block.style)
+        && Array.isArray(block.children) && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1, "column"));
       case "component": {
         if (!COMPONENT_NAMES.includes(block.component as string)) return false;
         if (block.data !== undefined && (!isRecord(block.data) || !Object.values(block.data).every((item) => typeof item === "string" || typeof item === "number" || typeof item === "boolean" || strings(item)))) return false;
@@ -162,7 +183,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
           footnoteIds.add(note.id);
         }
       }
-      if ((block.type === "section" || block.type === "group" || block.type === "component") && block.children && !collectFootnoteIds(block.children)) return false;
+      if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") && block.children && !collectFootnoteIds(block.children)) return false;
     }
     return true;
   }
@@ -172,7 +193,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -189,23 +210,25 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   if (migrated.version === 4) migrated.version = 5;
   if (migrated.version === 5) migrated.version = 6;
   if (!Array.isArray(migrated.bin)) migrated.bin = [];
-  migrated.documents = (migrated.documents as unknown[]).map(candidate => {
-    if (!isRecord(candidate)) return candidate;
-    const next = { ...candidate };
-    if (next.documentShellVersion !== 1 && Array.isArray(next.blocks)) {
-      const blocks = next.blocks as ContentBlock[];
-      const existingTypes = new Set(blocks.map(block => block.type));
-      const ids = collectBlockIds(blocks);
-      const shell = createDocumentShellBlocks(String(next.id)).filter(block => {
-        if (existingTypes.has(block.type)) return false;
-        return !ids.has(block.id);
-      }).map(block => withUniqueBlockIds(block, ids));
-      next.blocks = [...shell, ...blocks];
-      next.documentShellVersion = 1;
-    }
-    if (next.templateOverrides !== undefined) return next;
-    return { ...next, templateOverrides: { author: true, category: true, tags: true, parentPageId: true } };
-  });
+  if (typeof migrated.version === "number" && migrated.version < 7) {
+    migrated.documents = (migrated.documents as unknown[]).map(candidate => {
+      if (!isRecord(candidate)) return candidate;
+      const next = { ...candidate };
+      if (next.documentShellVersion !== 1 && Array.isArray(next.blocks)) {
+        const blocks = next.blocks as ContentBlock[];
+        const existingTypes = new Set(blocks.map(block => block.type));
+        const ids = collectBlockIds(blocks);
+        const shell = createDocumentShellBlocks(String(next.id)).filter(block => {
+          if (existingTypes.has(block.type)) return false;
+          return !ids.has(block.id);
+        }).map(block => withUniqueBlockIds(block, ids));
+        next.blocks = [...shell, ...blocks];
+        next.documentShellVersion = 1;
+      }
+      if (next.templateOverrides !== undefined) return next;
+      return { ...next, templateOverrides: { author: true, category: true, tags: true, parentPageId: true } };
+    });
+  }
   if (migrated.version === 6) {
     const binned = migrated.bin as unknown[];
     const allDocuments = [
@@ -238,14 +261,15 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
     migrated.categories = categories;
     migrated.version = 7;
   }
+  if (migrated.version === 7) migrated.version = 8;
   return migrated as StudioWorkspace;
 }
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7].includes(value.version as number) || !Array.isArray(value.documents)
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
-  const categories = value.categories === undefined && value.version !== 7 ? [] : value.categories;
+  const categories = value.categories === undefined && typeof value.version === "number" && value.version < 7 ? [] : value.categories;
   const binnedDocuments = value.bin.map(item => {
     if (!isRecord(item) || typeof item.id !== "string" || typeof item.deletedAt !== "string" || !date(item.deletedAt) || !isRecord(item.document)) return invalid();
     if (item.assignment !== undefined && (!isRecord(item.assignment) || item.assignment.documentId !== item.document.id)) return invalid();
@@ -307,7 +331,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       parentId = documentsById.get(parentId)?.parentPageId;
     }
   }
-  return { ...value, version: 7, bin: value.bin, categories } as StudioWorkspace;
+  return { ...value, version: 8, bin: value.bin, categories } as StudioWorkspace;
 }
 
 export function validatePublicationSnapshot(value: unknown): void {

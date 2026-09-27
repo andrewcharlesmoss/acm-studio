@@ -679,6 +679,9 @@ button, input, textarea, select { font: inherit; }
 .prose li { margin-bottom: 0.5em; padding-left: 0.35em; }
 .content-table-frame { border: 1px solid #bfc3ca; border-radius: 6px; margin: 1.8em 0; overflow: hidden; }
 .content-table { border-collapse: separate; border-spacing: 0; font-family: var(--font-sans); font-size: 15px; line-height: 1.5; table-layout: fixed; width: 100%; }
+.content-table.is-auto-layout, .table-field-grid.is-auto-layout { table-layout: auto; }
+.content-table caption, .table-field-grid caption { caption-side: bottom; padding: 10px 12px; text-align: left; }
+.content-table-frame.is-striped tbody tr:nth-child(odd) > *, .table-field.is-striped tbody tr:nth-child(odd) > * { background-color: #f2f2f7; }
 .content-table th, .content-table td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; padding: 0; position: relative; text-align: left; vertical-align: top; }
 .content-table tr > :last-child { border-right: 0; }
 .content-table > :last-child > tr:last-child > * { border-bottom: 0; }
@@ -720,6 +723,26 @@ button, input, textarea, select { font: inherit; }
 
 .prose pre code { font: inherit; white-space: inherit; }
 
+/* Inspector styling lives on a neutral wrapper so Edit, Preview and published
+   content share the same box. Only explicitly changed typography overrides
+   each block's normal type scale. */
+.block-visual-style.has-custom-font-size :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-marker, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { font-size: inherit; }
+.block-visual-style.has-custom-font-family :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-marker, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { font-family: inherit; }
+.block-visual-style.has-custom-appearance :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { font-style: inherit; font-weight: inherit; }
+.block-visual-style.has-custom-line-height :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { line-height: inherit; }
+.block-visual-style.has-custom-letter-spacing :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { letter-spacing: inherit; }
+.block-visual-style.has-custom-text-colour :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-marker, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { color: inherit; }
+.block-visual-style.has-custom-background :is(pre, .code-highlight, .studio-code-preview) { background: transparent; }
+.block-visual-style a { color: var(--studio-paragraph-link-color, inherit); }
+.block-visual-style.has-custom-font-size :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-size: inherit; }
+.block-visual-style.has-custom-font-family :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-family: inherit; }
+.block-visual-style.has-custom-appearance :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-style: inherit; font-weight: inherit; }
+.block-visual-style.has-custom-text-colour :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { color: inherit; }
+.content-divider { border: 0; border-top: 1px solid var(--line); display: block; margin: 0; }
+.content-divider.is-wide { border-top-width: 3px; }
+.content-divider.is-dots { background: radial-gradient(circle, currentColor 2px, transparent 2.5px) left center / 12px 6px repeat-x; border: 0; height: 6px; margin-inline: auto; width: 36px; }
+.block-visual-style.has-custom-text-colour .content-divider { border-color: currentColor; }
+
 .article-image img { border-radius: 16px; display: block; max-width: 100%; }
 .inline-rich-image { display: inline-block; height: auto; max-height: 1.5em; max-width: min(100%, 240px); object-fit: contain; vertical-align: middle; }
 .inline-rich-image-fallback { border: 1px solid var(--line); border-radius: 3px; color: var(--muted); font-size: .85em; padding: 0 .35em; }
@@ -728,6 +751,10 @@ button, input, textarea, select { font: inherit; }
 .article-footnotes { border-top: 1px solid var(--line); font-size: .9em; margin-top: 2rem; padding-top: 1rem; }
 .article-footnotes ol { padding-left: 1.5rem; }
 .article-footnotes li { margin-block: .5rem; }
+.block-visual-style.has-custom-font-size :is(.article-footnotes, .footnotes-field, .footnotes-field textarea) { font-size: inherit; }
+.block-visual-style.has-custom-font-family :is(.article-footnotes, .footnotes-field, .footnotes-field textarea) { font-family: inherit; }
+.block-visual-style.has-custom-appearance :is(.article-footnotes, .footnotes-field, .footnotes-field textarea) { font-style: inherit; font-weight: inherit; }
+.block-visual-style.has-custom-text-colour :is(.article-footnotes, .footnotes-field, .footnotes-field textarea) { color: inherit; }
 .article-image figcaption { color: var(--muted); font-size: 12px; margin-top: 8px; }
 .embed-card { border: 1px solid var(--line); border-radius: 14px; display: grid; font-size: 14px; gap: 6px; padding: 20px; }
 .embed-card span { color: var(--muted); font-size: 11px; text-transform: uppercase; }

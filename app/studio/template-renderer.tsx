@@ -4,6 +4,8 @@ import { documentFieldVisible } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
+import { columnsLayoutStyle } from "../content/columns";
+import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import type { ContentBlock } from "../content/model";
 import type { StudioDocument } from "./editor-model";
 import type { SiteStyles, TemplateNode, TemplatePart, TemplateSet, TemplateSnapshot } from "./template-model";
@@ -13,18 +15,18 @@ import { universalStylePresetToCss, universalStylePresetToCssVariables } from "@
 
 function hasDocumentMetadataBlocks(blocks: StudioDocument["blocks"]): boolean {
   return blocks.some(block => ["reading-time", "post-author", "post-date"].includes(block.type)
-    || ((block.type === "section" || block.type === "group" || block.type === "component") && hasDocumentMetadataBlocks(block.children ?? [])));
+    || ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") && hasDocumentMetadataBlocks(block.children ?? [])));
 }
 
 function templateHasElement(nodes: TemplateNode[], set: TemplateSet, wanted: string, seen = new Set<string>()): boolean {
   return nodes.some(node => node.type === "element" && node.element === wanted
-    || (node.type === "group" || node.type === "section") && templateHasElement(node.children, set, wanted, seen)
+    || (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column") && templateHasElement(node.children, set, wanted, seen)
     || node.type === "part" && !seen.has(node.partId) && Boolean(set.parts.find(part => part.id === node.partId && templateHasElement(part.nodes, set, wanted, new Set([...seen, part.id])))));
 }
 
 function templateHasBlockType(nodes: TemplateNode[], set: TemplateSet, wanted: ContentBlock["type"], seen = new Set<string>()): boolean {
   return nodes.some(node => node.type === wanted
-    || (node.type === "group" || node.type === "section") && templateHasBlockType(node.children, set, wanted, seen)
+    || (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column") && templateHasBlockType(node.children, set, wanted, seen)
     || node.type === "part" && !seen.has(node.partId) && Boolean(set.parts.find(part => part.id === node.partId && templateHasBlockType(part.nodes, set, wanted, new Set([...seen, part.id])))));
 }
 
@@ -35,8 +37,9 @@ function removeTemplateShellBlocks(blocks: ContentBlock[], set: TemplateSet, nod
   if (templateHasElement(nodes, set, "cover-image")) hidden.add("cover-image");
   for (const type of ["reading-time", "post-author", "post-date"] as const) if (templateHasBlockType(nodes, set, type)) hidden.add(type);
   if (!hidden.size) return blocks;
-  return blocks.filter(block => !hidden.has(block.type)).map(block => block.type === "group" || block.type === "section" || block.type === "component"
+  return blocks.filter(block => !hidden.has(block.type)).map(block => block.type === "group" || block.type === "section" || block.type === "component" || block.type === "column"
     ? { ...block, children: removeTemplateShellBlocks(block.children ?? [], set, nodes) }
+    : block.type === "columns" ? { ...block, children: block.children.map(column => ({ ...column, children: removeTemplateShellBlocks(column.children, set, nodes) })) }
     : block);
 }
 
@@ -128,6 +131,15 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
     } else if (node.type === "group" || node.type === "section") {
       const Group = node.type === "section" ? "section" : "div";
       result = <Group className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}`} style={layoutStyleProperties(node)} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</Group>;
+    } else if (node.type === "columns") {
+      const className = paragraphStyleClassName(node.style);
+      result = (!shared ? renderOrdinary?.(node) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle(node), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.map(column => {
+        const columnClassName = paragraphStyleClassName(column.style);
+        return <div id={paragraphStyleAnchor(column.style)} className={`template-column${columnClassName ? ` ${columnClassName}` : ""}`} key={column.id} style={{ ...(column.verticalAlign ? { alignSelf: column.verticalAlign === "centre" ? "center" : column.verticalAlign === "bottom" ? "end" : column.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(column.style) }}>{column.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</div>;
+      })}</div>;
+    } else if (node.type === "column") {
+      const className = paragraphStyleClassName(node.style);
+      result = <div id={paragraphStyleAnchor(node.style)} className={`template-column${className ? ` ${className}` : ""}`} style={{ ...(node.verticalAlign ? { alignSelf: node.verticalAlign === "centre" ? "center" : node.verticalAlign === "bottom" ? "end" : node.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(node.style) }}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</div>;
     } else if (node.type === "element") {
       const align = node.align === "centre" ? "center" : node.align;
       let element: ReactNode;

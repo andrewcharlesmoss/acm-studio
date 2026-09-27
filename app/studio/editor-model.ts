@@ -1,4 +1,5 @@
 import type { ContentBlock, DocumentDisplayField, DocumentDisplayMode } from "../content/model";
+import { createColumnsBlock } from "../content/columns";
 import type { LocallyPublishedArticle } from "../content/local-publishing";
 import type { TemplateAssignment } from "./template-model";
 
@@ -45,7 +46,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6 | 7;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8;
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
   documents: StudioDocument[];
@@ -62,7 +63,7 @@ export type StudioBinnedDocument = {
 };
 
 
-export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes">;
+export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column">;
 export type BlockLibraryItemType = InsertableBlockType | "template-content";
 
 export const blockCatalogue: Array<{
@@ -72,6 +73,7 @@ export const blockCatalogue: Array<{
   group: "Text" | "Media" | "Design" | "Other";
 }> = [
   { type: "group", label: "Group", description: "Combine blocks into a stack, row or columns.", group: "Design" },
+  { type: "columns", label: "Columns", description: "Arrange blocks in adjustable, responsive columns.", group: "Design" },
   { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Design" },
   { type: "paragraph", label: "Paragraph", description: "Start with ordinary text.", group: "Text" },
   { type: "heading", label: "Heading", description: "Introduce a new section.", group: "Text" },
@@ -121,7 +123,7 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 7,
+  version: 8,
   activeDocumentId: "page-home",
   bin: [],
   categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],
@@ -213,6 +215,7 @@ export function cloneWorkspace(workspace: StudioWorkspace): StudioWorkspace {
 
 export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now()}`): ContentBlock {
   if (type === "group") return { id, type, layout: "stack", children: [] };
+  if (type === "columns") return createColumnsBlock(id);
   if (type === "section") return { id, type, layout: "stack", children: [] };
   if (type === "heading") return { id, type, level: 2, text: "A new section" };
   if (type === "quote") return { id, type, text: "A useful thought worth emphasising." };

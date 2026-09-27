@@ -238,11 +238,22 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     let removedReference = false;
     for (const node of nodes) {
       if (node.type === "part" && node.partId === partId) { removedReference = true; continue; }
-      if (node.type === "group" || node.type === "section") {
+      if (node.type === "group" || node.type === "section" || node.type === "column") {
         const nested = removeSharedPartReferences(node.children, partId);
         removedReference ||= nested.removedReference;
         if (!nested.nodes.length && nested.removedReference) continue;
         remainingNodes.push(nested.removedReference ? { ...node, children: nested.nodes } : node);
+        continue;
+      }
+      if (node.type === "columns") {
+        let removedColumnReference = false;
+        const children = node.children.map(column => {
+          const nested = removeSharedPartReferences(column.children, partId);
+          removedColumnReference ||= nested.removedReference;
+          return nested.removedReference ? { ...column, children: nested.nodes } : column;
+        });
+        removedReference ||= removedColumnReference;
+        remainingNodes.push(removedColumnReference ? { ...node, children } : node);
         continue;
       }
       remainingNodes.push(node);

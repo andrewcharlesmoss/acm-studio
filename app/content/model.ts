@@ -18,9 +18,20 @@ export type ParagraphFontSize = "small" | "medium" | "large" | "x-large" | "xx-l
 export type ParagraphAppearance = "regular" | "italic" | "bold" | "bold-italic";
 export type ParagraphBorderStyle = "none" | "solid" | "dashed";
 export type ParagraphBackgroundGradient = "sunrise" | "ocean" | "forest" | "violet";
+export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "arial";
+export type ParagraphTextTransform = "none" | "uppercase" | "lowercase" | "capitalize";
+export type ParagraphTextDecoration = "none" | "underline" | "line-through";
+export type ParagraphShadow = "none" | "soft" | "strong";
+export function listNumber(block: { items: string[]; start?: number; reversed?: boolean }, index: number): number {
+  const first = block.start ?? (block.reversed ? block.items.length : 1);
+  return first + (block.reversed ? -index : index);
+}
 export type ParagraphStyle = {
+  fontFamily?: ParagraphFontFamily;
   fontSize?: ParagraphFontSize;
   appearance?: ParagraphAppearance;
+  textTransform?: ParagraphTextTransform;
+  textDecoration?: ParagraphTextDecoration;
   lineHeight?: string;
   letterSpacing?: string;
   textColor?: string;
@@ -32,6 +43,7 @@ export type ParagraphStyle = {
   borderStyle?: ParagraphBorderStyle;
   borderWidth?: string;
   borderColor?: string;
+  shadow?: ParagraphShadow;
   borderRadius?: string;
   anchor?: string;
   className?: string;
@@ -72,6 +84,7 @@ export type LayoutOptions = {
   columns?: number;
   stackAt?: LayoutStackAt;
 };
+export type ColumnBlock = { id: string; type: "column"; width?: number; verticalAlign?: LayoutVerticalAlignment; style?: ParagraphStyle; children: ContentBlock[] };
 
 export type DocumentRenderContext = {
   kind: "page" | "post";
@@ -91,14 +104,14 @@ export type ContentBlock = (
   | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; style?: ParagraphStyle }
   | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment }
   | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; attribution?: string; align?: TextAlignment }
-  | { id: string; type: "list"; style: "ordered" | "unordered"; items: string[] }
-  | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean; columnWidths?: number[]; rowHeights?: number[] }
+  | { id: string; type: "list"; style: "ordered" | "unordered"; items: string[]; start?: number; reversed?: boolean }
+  | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; columnWidths?: number[]; rowHeights?: number[] }
   | { id: string; type: "code"; language?: string; code: string }
-  | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean }
+  | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean; decorative?: boolean; title?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain"; displayWidth?: number; focalX?: number; focalY?: number; linkUrl?: string; opensInNewTab?: boolean }
   | { id: string; type: "embed"; url: string; title: string }
-  | { id: string; type: "divider" }
+  | { id: string; type: "divider"; style?: "default" | "wide" | "dots" }
   | { id: string; type: "footnotes"; notes: Footnote[] }
-  | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary" }
+  | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary"; opensInNewTab?: boolean }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
   | { id: string; type: "spacer"; height: number }
   | { id: string; type: "document-title"; align?: TextAlignment }
@@ -109,7 +122,9 @@ export type ContentBlock = (
   | { id: string; type: "post-date"; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment }
   | ({ id: string; type: "section"; role?: SiteSectionRole; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
   | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
-  | { id: string; type: "component"; component: SiteComponentName; data?: SiteComponentData; source?: SiteComponentSource; children?: ContentBlock[] }) & { siteRole?: SiteContentRole };
+  | ({ id: string; type: "columns"; children: ColumnBlock[]; style?: ParagraphStyle } & Omit<LayoutOptions, "columns" | "horizontalAlign">)
+  | ColumnBlock
+  | { id: string; type: "component"; component: SiteComponentName; data?: SiteComponentData; source?: SiteComponentSource; children?: ContentBlock[] }) & { siteRole?: SiteContentRole; visualStyle?: ParagraphStyle };
 
 export type Project = {
   slug: string;

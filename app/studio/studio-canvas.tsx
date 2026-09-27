@@ -6,26 +6,29 @@ import { BlockRenderer } from "../components/content";
 import { ArticleMetaIcon } from "../components/article-meta-icon";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
+import { imageDisplayStyle } from "../content/image-style";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeMathMLMarkup } from "../content/mathml";
-import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
+import { buttonVisualCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
 import { BlockLibraryIcon } from "./block-library-icons";
 import { StudioIcon } from "./studio-icons";
 import { Pane } from "./panes/pane-components";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
 import { linkAtTextRange, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark } from "../content/rich-text";
-import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
-import { createBlock, type StudioDocument, type InsertableBlockType } from "./editor-model";
+import { DEFAULT_TABLE_ROW_HEIGHT, fitTableColumn, listNumber, normaliseTableColumnWidths, normaliseTableRowHeights, resizeTableColumn, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
+import type { StudioDocument, InsertableBlockType } from "./editor-model";
 import type { StudioPresentation } from "./studio-presentation";
 import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBlock, parseHtmlToBlocks } from "./studio-html-editor";
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
+import { columnsLayoutStyle } from "../content/columns";
 
 function StudioHoverIcon({ name, size = 24, vertical = false }: { name: IconName; size?: number; vertical?: boolean }) {
   return <AcmIcon className={vertical ? "studio-hover-icon is-vertical" : "studio-hover-icon"} name={name} scale="Regular-M" size={size} />;
 }
 
 function blockLabel(type: ContentBlock["type"]) {
+  if (type === "column") return "Column";
   if (type === "reading-time") return "Reading Time";
   if (type === "post-author") return "Post Author";
   if (type === "post-date") return "Post Date";
@@ -36,7 +39,7 @@ function blockLabel(type: ContentBlock["type"]) {
 }
 
 function blockChildren(block: ContentBlock) {
-  return (block.type === "section" || block.type === "group" || block.type === "component") ? (block.children ?? []) : [];
+  return (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") ? (block.children ?? []) : [];
 }
 
 function lastParagraphBlock(blocks: ContentBlock[]): Extract<ContentBlock, { type: "paragraph" }> | null {
@@ -102,7 +105,7 @@ export type StudioCanvasProps = {
   inserterQuery: string;
   filteredBlocks: typeof import("./editor-model").blockCatalogue;
   publishFeedback: string | null;
-  onOpenInserter: (afterIndex: number | null, query?: string) => void;
+  onOpenInserter: (afterIndex: number | null, query?: string, parentId?: string) => void;
   onSetPublishFeedback: (feedback: string | null) => void;
   onDocumentFieldChange: <K extends keyof StudioDocument>(field: K, value: StudioDocument[K]) => void;
   onApplyDocumentCode: (blocks: ContentBlock[]) => void;
@@ -123,7 +126,7 @@ export type StudioCanvasProps = {
   onSplitParagraph: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null;
   onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null;
   onSplitParagraphs: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null;
-  onInsertBlock: (type: InsertableBlockType) => ContentBlock;
+  onInsertBlock: (type: InsertableBlockType, parentId?: string) => ContentBlock;
   onSetShowInserter: (show: boolean) => void;
   onSetInserterQuery: (query: string) => void;
 };
@@ -143,6 +146,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
   const codeEditorInputRef = useRef<HTMLTextAreaElement>(null);
   const listViewToggleRef = useRef<HTMLButtonElement>(null);
   const [inserterClosing, setInserterClosing] = useState(false);
+  const [inserterParentId, setInserterParentId] = useState<string | null>(null);
   const appenderInputRef = useRef<HTMLInputElement>(null);
   const [linkEditor, setLinkEditor] = useState<LinkEditorState | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -221,11 +225,12 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
     else setInserterClosing(true);
   }
 
-  function openInserter(afterIndex: number | null, query?: string) {
+  function openInserter(afterIndex: number | null, query?: string, parentId: string | null = null) {
     setInserterClosing(false);
     setHoveredBlockId(null);
     setListViewOpen(false);
-    onOpenInserter(afterIndex, query);
+    setInserterParentId(parentId);
+    onOpenInserter(afterIndex, query, parentId ?? undefined);
   }
 
   function toggleInserter(afterIndex: number | null, query?: string) {
@@ -572,16 +577,16 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
       {publishFeedback ? <div className="publish-feedback" role="status"><span>{publishFeedback}</span><button type="button" onClick={() => onSetPublishFeedback(null)} aria-label="Dismiss publication message"><StudioIcon name="close" size={18} /></button></div> : null}
       {toolbarContent}
       <div className="editor-work-area">
-      {showInserter && !previewing && !codeEditor ? <BlockInserter closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={filteredBlocks} onSetQuery={onSetInserterQuery} onInsert={onInsertBlock} onDismiss={dismissInserter} /> : null}
+      {showInserter && !previewing && !codeEditor ? <BlockInserter closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={filteredBlocks} onSetQuery={onSetInserterQuery} onInsert={(type) => onInsertBlock(type, inserterParentId ?? undefined)} onDismiss={dismissInserter} /> : null}
       {!previewing && !showInserter && listViewOpen ? <button className="studio-list-backdrop" type="button" aria-label="Close List View" onClick={closeListView} /> : null}
       {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlockFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} onRemoveBlock={onRemoveBlock} onMoveItem={(parentId, index, direction) => {
         if (!parentId) { onMoveBlock(index, direction); return; }
         onUpdateBlock(parentId, (parent) => {
-          if (parent.type !== "section" && parent.type !== "group" && parent.type !== "component") return parent;
+          if (parent.type !== "section" && parent.type !== "group" && parent.type !== "columns" && parent.type !== "column" && parent.type !== "component") return parent;
           const children = [...(parent.children ?? [])]; const target = index + direction;
           if (target < 0 || target >= children.length) return parent;
           const [moved] = children.splice(index, 1); children.splice(target, 0, moved);
-          return { ...parent, children };
+          return parent.type === "columns" ? { ...parent, children: children as typeof parent.children } : { ...parent, children };
         });
       }} /> : null}
 
@@ -639,7 +644,8 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                     data-studio-block-anchor-id={block.id}
                     data-studio-hovered={hoveredBlockId === block.id}
                     onPointerDown={(event) => {
-                      onSelectBlock(block.id);
+                      const nestedBlockId = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]")?.dataset.studioNestedBlockId : undefined;
+                      onSelectBlock(nestedBlockId ?? block.id);
                       if (!(event.target instanceof Element) || !event.target.closest(".alignment-control")) setAlignmentMenuBlockId(null);
                       if (!(event.target instanceof Element) || !event.target.closest(".rich-text-format-control")) setRichTextMenuBlockId(null);
                       if (!(event.target instanceof Element) || !event.target.closest(".transform-control")) setTransformMenuBlockId(null);
@@ -651,7 +657,8 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                     }}
                     onFocusCapture={(event) => {
                       if (event.target instanceof Element && event.target.closest(".mini-golf-nested-controls, .mini-golf-nested-block")) return;
-                      onSelectBlock(block.id);
+                      const nestedBlockId = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]")?.dataset.studioNestedBlockId : undefined;
+                      onSelectBlock(nestedBlockId ?? block.id);
                     }}
                   >
                     <div className="canvas-block-toolbar">
@@ -741,7 +748,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                         {htmlEditor.error ? <p className="html-editor-error" role="alert">{htmlEditor.error}</p> : null}
                         <div className="html-editor-actions"><button type="button" onClick={() => setHtmlEditor(null)}>Cancel</button><button className="html-editor-apply" type="submit">Apply</button></div>
                       </form> : null}
-                      {htmlEditor?.blockId === block.id ? null : presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField, onSplitParagraphs }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaBlockUrls} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
+                      {htmlEditor?.blockId === block.id ? null : presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField, onSplitParagraphs }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaBlockUrls} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onOpenNestedInserter={(parentId) => openInserter(null, undefined, parentId)} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
                   </article>
                 </div>
               ))}
@@ -981,7 +988,7 @@ function TransformIcon({ transform }: { transform: BlockTransform }) {
 }
 
 function BlockTypeIcon({ type }: { type: ContentBlock["type"] | "template-content" }) {
-  const blockType = type === "component" || type === "footnotes" ? "template-content" : type;
+  const blockType = type === "component" || type === "footnotes" ? "template-content" : type === "column" ? "columns" : type;
   return <BlockLibraryIcon type={blockType} />;
 }
 
@@ -1037,7 +1044,17 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
   );
 }
 
-export function BlockField({ block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onChange }: { block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; templatePlaceholder?: boolean; selectedBlockId?: string | null; hoveredBlockId?: string | null; mediaUrl?: string; mediaUrls?: Record<string, string>; coverImageUrl?: string; onOpenCoverMediaLibrary?: () => void; onRemoveCoverImage?: () => void; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null) => void; onLinkActivate: (selection: TextSelection) => void; onSplitParagraph?: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null; onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null; onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null; onChange: (block: ContentBlock) => void }) {
+type BlockFieldProps = { block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; templatePlaceholder?: boolean; selectedBlockId?: string | null; hoveredBlockId?: string | null; mediaUrl?: string; mediaUrls?: Record<string, string>; coverImageUrl?: string; onOpenCoverMediaLibrary?: () => void; onRemoveCoverImage?: () => void; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null) => void; onLinkActivate: (selection: TextSelection) => void; onSplitParagraph?: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null; onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null; onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null; onOpenNestedInserter?: (parentId: string) => void; onChange: (block: ContentBlock) => void };
+
+export function BlockField(props: BlockFieldProps) {
+  const { block } = props;
+  const content = <BlockFieldContent {...props} />;
+  if (!block.visualStyle) return content;
+  const style = block.visualStyle;
+  return <div id={paragraphStyleAnchor(style)} className={visualStyleClassName(style)} style={block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : undefined) : paragraphStyleToCss(style)}>{content}</div>;
+}
+
+function BlockFieldContent({ block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onOpenNestedInserter, onChange }: BlockFieldProps) {
   const documentContext: DocumentRenderContext = document ?? { kind: "page" };
   if (block.type === "paragraph") return <RichTextEditor mediaUrls={mediaUrls} id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph ? (beforeRuns, afterRuns) => onSplitParagraph(block.id, beforeRuns, afterRuns) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
   if (block.type === "heading") return <RichTextEditor mediaUrls={mediaUrls} className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
@@ -1049,10 +1066,12 @@ export function BlockField({ block, rootBlocks = [block], document, templatePlac
   // eslint-disable-next-line @next/next/no-img-element
   if (block.type === "image") {
     const imageSource = block.mediaId ? safeImageSource(mediaUrl ?? "", { allowBlob: true }) : safeImageSource(block.src);
-    return <figure className={`image-field${block.wide ? " is-wide" : ""}`}>{imageSource ? <img src={imageSource} alt={block.alt} /> : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}{block.caption ? <figcaption>{block.caption}</figcaption> : null}</figure>;
+    const imageLink = block.linkUrl ? safeTextLink(block.linkUrl) : null;
+    const image = imageSource ? <img src={imageSource} alt={block.decorative ? "" : block.alt} title={block.title} style={imageDisplayStyle(block)} /> : null;
+    return <figure className={`image-field${block.wide ? " is-wide" : ""}`}>{image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined} onClick={(event) => event.preventDefault()}>{image}</a> : image) : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}{block.caption ? <figcaption>{block.caption}</figcaption> : null}</figure>;
   }
   if (block.type === "embed") return <div className="embed-field"><span><StudioIcon name="external" /></span><div><strong>{block.title}</strong><small>{block.url || "Add a URL in Block settings"}</small></div></div>;
-  if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`}>{block.label}</span></div>;
+  if (block.type === "button") return <div className="button-field"><span className={`content-button is-${block.style}`} style={buttonVisualCss(block.visualStyle)}>{block.label}</span></div>;
   if (block.type === "field") return <label className="content-field"><span>{block.label}</span>{block.control === "select" ? <select value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })}>{(block.options?.length ? block.options : [block.value]).map((option) => <option key={option}>{option}</option>)}</select> : <input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} />}</label>;
   if (block.type === "footnotes") return <section className="footnotes-field" aria-label="Footnotes"><strong>Footnotes</strong><ol>{block.notes.map((note, index) => <li key={note.id}><textarea aria-label={`Footnote ${index + 1}`} rows={2} value={note.text} onChange={event => onChange({ ...block, notes: block.notes.map(item => item.id === note.id ? { ...item, text: event.target.value } : item) })} /></li>)}</ol></section>;
   if (block.type === "document-title") return documentFieldVisible(documentContext, "title") ? <h1 className={`metadata-block-editor document-dynamic-title${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}`}>{templatePlaceholder ? "Title" : document?.title || "Add a title in Document settings."}</h1> : null;
@@ -1076,8 +1095,10 @@ export function BlockField({ block, rootBlocks = [block], document, templatePlac
   if (block.type === "reading-time") return <div className={`metadata-block-editor reading-time-block-editor${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`}>{block.presentation !== "plain" ? <span className="reading-time-badge">{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span> : <span>{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span>}</div>;
   if (block.type === "post-author") { const author = documentAuthor(documentContext); return <div className={`metadata-block-editor article-byline align-${block.align ?? "left"}`}>{author ? <>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></> : <span className="metadata-missing">Add an author in Document settings.</span>}</div>; }
   if (block.type === "post-date") { const date = formatDocumentDate(documentContext, block.format); return <div className={`metadata-block-editor article-byline-detail align-${block.align ?? "left"}`}>{date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={documentContext.publishAt ?? documentContext.publishedAt}>{date}</time></> : <span className="metadata-missing">Add a publication date in Document settings.</span>}</div>; }
-  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} rootBlocks={rootBlocks} document={document} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onChange({ ...block, children: [...block.children, createBlock("paragraph", `nested-paragraph-${crypto.randomUUID()}`)] })}><StudioIcon name="add" size={16} /> Add nested block</button></Group>; }
-  return <div className="divider-field"><span /></div>;
+  if (block.type === "columns") return <div id={paragraphStyleAnchor(block.style)} className={`studio-columns${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...columnsLayoutStyle(block), ...paragraphStyleToCss(block.style) }} {...layoutDataAttributes(block)}>{block.children.map((column) => <div className="studio-column-block studio-nested-block" data-studio-nested-block-id={column.id} data-studio-selected={selectedBlockId === column.id} data-studio-hovered={hoveredBlockId === column.id} key={column.id}><BlockField block={column} rootBlocks={rootBlocks} document={document} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onOpenNestedInserter={onOpenNestedInserter} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === column.id ? next as typeof column : candidate) })} /></div>)}</div>;
+  if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`studio-column-content${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} rootBlocks={rootBlocks} document={document} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onOpenNestedInserter={onOpenNestedInserter} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onOpenNestedInserter?.(block.id)}><StudioIcon name="add" size={16} /> Add block</button></div>;
+  if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : "div"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined}>{block.children.map((child) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} rootBlocks={rootBlocks} document={document} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onOpenNestedInserter={onOpenNestedInserter} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onOpenNestedInserter?.(block.id)}><StudioIcon name="add" size={16} /> Add block</button></Group>; }
+  return <div className="divider-field"><span className={`content-divider is-${block.type === "divider" ? block.style ?? "default" : "default"}`} /></div>;
 }
 
 function CodeEditor({ value, language, onChange }: { value: string; language?: string; onChange: (value: string) => void }) {
@@ -1699,7 +1720,7 @@ function ListField({ block, onChange }: { block: Extract<ContentBlock, { type: "
     <div ref={listRef} className={`list-field-editor is-${block.style}`}>
       {items.map((item, index) => (
         <div className="list-field-row" key={`${block.id}-item-${index}`}>
-          <span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${index + 1}.` : "•"}</span>
+          <span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${listNumber(block, index)}.` : "•"}</span>
           <AutoResizeTextarea value={item} onChange={(event) => updateItem(index, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); insertItem(index); } else if (event.key === "Backspace" && !event.shiftKey && item.length === 0 && items.length > 1) { event.preventDefault(); removeItem(index, index - 1); } }} aria-label={`${block.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}`} placeholder="List item" />
         </div>
       ))}
@@ -1841,14 +1862,15 @@ export function TableField({ block, onCellFocus, onChange }: { block: Extract<Co
   }
 
   return (
-    <div className="table-field" data-studio-nested-block-id={block.id}>
-      <table className="table-field-grid" ref={tableRef}>
-        <colgroup>{columnWidths.map((width, index) => <col key={`column-${index}`} style={{ width: `${width}%` }} />)}</colgroup>
+    <div className={`table-field${block.tableStyle === "stripes" ? " is-striped" : ""}`} data-studio-nested-block-id={block.id}>
+      <table className={`table-field-grid${block.fixedWidth === false ? " is-auto-layout" : ""}`} ref={tableRef}>
+        {block.caption ? <caption>{block.caption}</caption> : null}
+        {block.fixedWidth !== false ? <colgroup>{columnWidths.map((width, index) => <col key={`column-${index}`} style={{ width: `${width}%` }} />)}</colgroup> : null}
         {block.hasHeader ? <thead>{renderRow(normalisedRows[0], 0, "header")}</thead> : null}
         <tbody>{normalisedRows.slice(block.hasHeader ? 1 : 0, hasFooterRow ? -1 : undefined).map((row, rowIndex) => renderRow(row, rowIndex + (block.hasHeader ? 1 : 0), "body"))}</tbody>
         {hasFooterRow ? <tfoot>{renderRow(normalisedRows[normalisedRows.length - 1], normalisedRows.length - 1, "footer")}</tfoot> : null}
       </table>
-      {columnWidths.slice(0, -1).map((_, index) => (
+      {block.fixedWidth !== false ? columnWidths.slice(0, -1).map((_, index) => (
         <button
           className={`table-resize-handle table-column-resize-handle${resizeDraft?.kind === "column" && resizeDraft.index === index ? " is-resizing" : ""}`}
           key={`column-resize-${index}`} type="button"
@@ -1863,7 +1885,7 @@ export function TableField({ block, onCellFocus, onChange }: { block: Extract<Co
             if (event.key === "Escape") { resizeRef.current = null; setResizeDraft(null); }
           }}
         />
-      ))}
+      )) : null}
       {rowHeights.map((_, index) => (
         <button
           className={`table-resize-handle table-row-resize-handle${resizeDraft?.kind === "row" && resizeDraft.index === index ? " is-resizing" : ""}`}

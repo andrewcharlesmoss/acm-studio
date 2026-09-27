@@ -50,6 +50,89 @@ test("metadata HTML keeps dynamic block identity and settings", () => {
   assert.match(html, /align-right/);
 });
 
+test("Columns render as proportional responsive regions and retain column identities in HTML", () => {
+  const blocks = [{ id: "columns", type: "columns", gap: 20, stackAt: "mobile", children: [
+    { id: "column-left", type: "column", width: 33.333, children: [{ id: "left-text", type: "paragraph", text: "Left" }] },
+    { id: "column-right", type: "column", width: 66.667, children: [{ id: "right-text", type: "paragraph", text: "Right" }] },
+  ] }];
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio" }));
+  assert.match(html, /class="content-columns"/);
+  assert.match(html, /--block-layout-grid-template:minmax\(0, 33\.333fr\) minmax\(0, 66\.667fr\)/);
+  assert.match(html, /class="content-column"/);
+  assert.match(html, /Left/);
+  assert.match(html, /Right/);
+  const source = blockToHtml(blocks[0]);
+  assert.match(source, /data-column-layout="true"/);
+  assert.match(source, /data-block-type="column" data-block-id="column-left"/);
+  assert.match(source, /data-column-width="66\.667"/);
+});
+
+test("shared visual settings render around text blocks in Studio and public views", () => {
+  const blocks = [
+    { id: "styled-heading", type: "heading", level: 2, text: "Heading", visualStyle: { fontSize: "large", textColor: "#123456", anchor: "heading-link" } },
+    { id: "styled-list", type: "list", style: "ordered", items: ["One"], visualStyle: { backgroundColor: "#f2f2f7", padding: "12px", className: "custom-list" } },
+    { id: "styled-code", type: "code", code: "let value = 1;", visualStyle: { borderStyle: "solid", borderWidth: "2px", borderColor: "#123456" } },
+    { id: "styled-footnotes", type: "footnotes", notes: [{ id: "one", text: "Source note" }], visualStyle: { fontSize: "large", textColor: "#123456" } },
+  ];
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
+    assert.match(html, /id="heading-link" class="block-visual-style has-custom-font-size has-custom-text-colour" style="font-size:20px;color:#123456"/);
+    assert.match(html, /class="block-visual-style has-custom-background custom-list" style="background-color:#f2f2f7;padding:12px"/);
+    assert.match(html, /class="block-visual-style" style="border-style:solid;border-width:2px;border-color:#123456"/);
+    assert.match(html, /class="block-visual-style has-custom-font-size has-custom-text-colour" style="font-size:20px;color:#123456"><section class="article-footnotes"/);
+  }
+});
+
+test("ordered list settings, divider styles and button target reach the rendered view and HTML", () => {
+  const blocks = [
+    { id: "countdown", type: "list", style: "ordered", items: ["First", "Second"], start: 4, reversed: true },
+    { id: "break", type: "divider", style: "dots", visualStyle: { textColor: "#123456", margin: "12px" } },
+    { id: "action", type: "button", label: "Visit", url: "https://example.com", style: "primary", opensInNewTab: true },
+  ];
+  const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "article" }));
+  const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio" }));
+  assert.match(article, /<ol start="4" reversed=""><li>First<\/li>/);
+  assert.match(studio, /4\.<\/span>/);
+  assert.match(studio, /3\.<\/span>/);
+  assert.match(article, /content-divider is-dots/);
+  assert.match(article, /target="_blank" rel="noopener noreferrer"/);
+  assert.match(blockToHtml(blocks[0]), /<ol[^>]*start="4" reversed>/);
+  assert.match(blockToHtml(blocks[1]), /class="is-dots"/);
+  assert.match(blockToHtml(blocks[2]), /target="_blank" rel="noopener noreferrer"/);
+});
+
+test("image display settings and decorative text reach both renderers", () => {
+  const block = { id: "photo", type: "image", src: "https://example.com/photo.jpg", alt: "An informative description", decorative: true, title: "Photo", aspectRatio: "square", scale: "cover", displayWidth: 320, focalX: 25, focalY: 75, visualStyle: { borderStyle: "solid", borderColor: "#123456", borderWidth: "2px", borderRadius: "12px", shadow: "soft" } };
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
+    assert.match(html, /alt="" title="Photo"/);
+    assert.match(html, /width:320px;aspect-ratio:1 \/ 1;object-fit:cover;object-position:25% 75%/);
+    assert.match(html, /border-style:solid;border-width:2px;border-color:#123456;border-radius:12px;box-shadow:/);
+    assert.doesNotMatch(html, /An informative description/);
+  }
+  const source = blockToHtml(block);
+  assert.match(source, /data-decorative="true"/);
+  assert.match(source, /data-aspect-ratio="square"/);
+  assert.match(source, /data-display-width="320"/);
+  const linked = { ...block, decorative: false, linkUrl: "https://example.com", opensInNewTab: true };
+  const linkedHtml = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [linked], variant: "article" }));
+  assert.match(linkedHtml, /<a href="https:\/\/example.com" target="_blank" rel="noopener noreferrer"><img/);
+  assert.match(blockToHtml(linked), /target="_blank" rel="noopener noreferrer"/);
+});
+
+test("table settings keep caption, striping and automatic cell widths in preview and HTML", () => {
+  const block = { id: "comparison", type: "table", rows: [["Name", "Value"], ["A", "1"]], hasHeader: true, caption: "Results", tableStyle: "stripes", fixedWidth: false };
+  const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
+  assert.match(rendered, /class="content-table-frame is-striped"/);
+  assert.match(rendered, /class="content-table is-auto-layout"/);
+  assert.match(rendered, /<caption>Results<\/caption>/);
+  assert.doesNotMatch(rendered, /<colgroup>/);
+  const source = blockToHtml(block);
+  assert.match(source, /data-fixed-width="false"/);
+  assert.match(source, /class="studio-table is-striped"/);
+  assert.match(source, /<caption>Results<\/caption>/);
+});
+
 test("Studio preview preserves block order, semantic content and raw whitespace without editable controls", () => {
   const blocks = [
     { id: "paragraph", type: "paragraph", text: "First\n\nLast", align: "centre" },

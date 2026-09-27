@@ -99,7 +99,7 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<blockquote${attributes}${classAttribute(block.align ? `align-${block.align}` : undefined)}>${runsToHtml(block.runs, block.text)}${block.attribution ? `<cite>${escapeText(block.attribution)}</cite>` : ""}</blockquote>`;
     case "list": {
       const tag = block.style === "ordered" ? "ol" : "ul";
-      return `<${tag}${attributes}>${block.items.map((item) => `<li>${escapeText(item)}</li>`).join("")}</${tag}>`;
+      return `<${tag}${attributes}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}>${block.items.map((item) => `<li>${escapeText(item)}</li>`).join("")}</${tag}>`;
     }
     case "table": {
       const rows = block.rows.length ? block.rows : [[""]];
@@ -110,18 +110,20 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       const head = headerRows ? `<thead>${renderRow(rows[0], "th")}</thead>` : "";
       const body = rows.slice(headerRows, bodyEnd).map((row) => renderRow(row, "td")).join("");
       const foot = footerRows ? `<tfoot>${renderRow(rows[rows.length - 1], "td")}</tfoot>` : "";
-      return `<table${attributes}${block.columnWidths ? ` data-column-widths="${block.columnWidths.join(",")}"` : ""}${block.rowHeights ? ` data-row-heights="${block.rowHeights.join(",")}"` : ""}${classAttribute("studio-table")}>${head}<tbody>${body}</tbody>${foot}</table>`;
+      return `<table${attributes}${block.fixedWidth === false ? ' data-fixed-width="false"' : ""}${block.columnWidths ? ` data-column-widths="${block.columnWidths.join(",")}"` : ""}${block.rowHeights ? ` data-row-heights="${block.rowHeights.join(",")}"` : ""}${classAttribute(`studio-table${block.tableStyle === "stripes" ? " is-striped" : ""}`)}>${block.caption ? `<caption>${escapeText(block.caption)}</caption>` : ""}${head}<tbody>${body}</tbody>${foot}</table>`;
     }
     case "code":
       return `<pre${attributes}><code${classAttribute(block.language ? `language-${block.language}` : undefined)}>${escapeText(block.code)}</code></pre>`;
     case "image": {
       const safeSource = safeImageSource(block.src) ?? "";
-      return `<figure${attributes}${classAttribute(block.wide ? "is-wide" : undefined)}><img src="${escapeAttribute(safeSource)}" alt="${escapeAttribute(block.alt)}" />${block.caption ? `<figcaption>${escapeText(block.caption)}</figcaption>` : ""}</figure>`;
+      const image = `<img src="${escapeAttribute(safeSource)}" alt="${escapeAttribute(block.decorative ? "" : block.alt)}"${block.decorative ? ' data-decorative="true"' : ""}${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.aspectRatio && block.aspectRatio !== "original" ? ` data-aspect-ratio="${block.aspectRatio}"` : ""}${block.scale ? ` data-scale="${block.scale}"` : ""}${block.displayWidth ? ` data-display-width="${block.displayWidth}"` : ""}${block.focalX !== undefined ? ` data-focal-x="${block.focalX}"` : ""}${block.focalY !== undefined ? ` data-focal-y="${block.focalY}"` : ""} />`;
+      const link = block.linkUrl ? safeTextLink(block.linkUrl) : null;
+      return `<figure${attributes}${classAttribute(block.wide ? "is-wide" : undefined)}>${link ? `<a href="${escapeAttribute(link)}"${block.opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${image}</a>` : image}${block.caption ? `<figcaption>${escapeText(block.caption)}</figcaption>` : ""}</figure>`;
     }
     case "embed":
       return `<aside${attributes} data-embed-url="${escapeAttribute(block.url)}"><a href="${escapeAttribute(block.url)}">${escapeText(block.title)}</a></aside>`;
     case "divider":
-      return `<hr${attributes} />`;
+      return `<hr${attributes}${classAttribute(block.style && block.style !== "default" ? `is-${block.style}` : undefined)} />`;
     case "footnotes":
       return `<section${attributes} class="article-footnotes"><ol>${block.notes.map(note => `<li id="footnote-${escapeAttribute(note.id)}"><span>${escapeText(note.text)}</span><a data-footnote-back="true" href="#footnote-ref-${escapeAttribute(note.id)}" aria-label="Return to footnote reference">↩</a></li>`).join("")}</ol></section>`;
     case "spacer":
@@ -139,13 +141,17 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
     case "post-date":
       return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-metadata-icon="${block.showIcon !== false}"></p>`;
     case "button":
-      return `<p${attributes}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}">${escapeText(block.label)}</a></p>`;
+      return `<p${attributes}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}"${block.opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${escapeText(block.label)}</a></p>`;
     case "field":
       return `<label${attributes}><span>${escapeText(block.label)}</span>${block.control === "select" ? `<select>${(block.options?.length ? block.options : [block.value]).map((option) => `<option${option === block.value ? " selected" : ""}>${escapeText(option)}</option>`).join("")}</select>` : `<input value="${escapeAttribute(block.value)}" />`}</label>`;
     case "section":
       return `<section${attributes} data-section-role="${escapeAttribute(block.role ?? "")}"${layoutHtmlAttributes(block)}${classAttribute(`studio-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`)}>${serialiseChildren(block.children)}</section>`;
     case "group":
       return `<div${attributes}${layoutHtmlAttributes(block)}${classAttribute(`studio-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`)}>${serialiseChildren(block.children)}</div>`;
+    case "columns":
+      return `<div${attributes}${layoutHtmlAttributes(block)} data-column-layout="true"${classAttribute(`studio-columns${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${block.children.map(column => `<div data-block-type="column" data-block-id="${escapeAttribute(column.id)}" data-column-width="${column.width ?? 100 / block.children.length}"${column.verticalAlign ? ` data-column-vertical-align="${column.verticalAlign}"` : ""}${classAttribute(`studio-column${column.style?.className ? ` ${escapeAttribute(column.style.className)}` : ""}`)}>${serialiseChildren(column.children)}</div>`).join("")}</div>`;
+    case "column":
+      return `<div${attributes} data-column-width="${block.width ?? 100}"${block.verticalAlign ? ` data-column-vertical-align="${block.verticalAlign}"` : ""}${classAttribute(`studio-column${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${serialiseChildren(block.children)}</div>`;
     case "component":
       return `<div${attributes}${classAttribute("studio-component")} data-component="${escapeAttribute(block.component)}"${block.source ? ` data-source-module="${escapeAttribute(block.source.module)}" data-source-export="${escapeAttribute(block.source.exportName)}" data-source-revision="${escapeAttribute(block.source.revision)}"` : ""}>${block.children ? serialiseChildren(block.children) : ""}</div>`;
   }
@@ -190,8 +196,7 @@ function classAttribute(value?: string) {
   return value ? ` class="${escapeAttribute(value)}"` : "";
 }
 
-function layoutHtmlAttributes(block: Extract<ContentBlock, { type: "group" | "section" }>) {
-  const options: LayoutOptions = block;
+function layoutHtmlAttributes(options: LayoutOptions) {
   return [
     options.horizontalAlign && ` data-layout-horizontal-align="${escapeAttribute(options.horizontalAlign)}"`,
     options.verticalAlign && ` data-layout-vertical-align="${escapeAttribute(options.verticalAlign)}"`,
@@ -217,7 +222,8 @@ export type HtmlParseResult = { block: ContentBlock } | { error: string };
 export type HtmlBlocksParseResult = { blocks: ContentBlock[] } | { error: string };
 
 export function collectBlockIds(block: ContentBlock): string[] {
-  if (block.type === "section" || block.type === "group") return [block.id, ...block.children.flatMap(collectBlockIds)];
+  if (block.type === "section" || block.type === "group" || block.type === "column") return [block.id, ...block.children.flatMap(collectBlockIds)];
+  if (block.type === "columns") return [block.id, ...block.children.flatMap(collectBlockIds)];
   if (block.type === "component") return [block.id, ...(block.children?.flatMap(collectBlockIds) ?? [])];
   return [block.id];
 }
@@ -249,7 +255,7 @@ export function parseHtmlToBlocks(html: string, originals: ContentBlock[]): Html
   const nodes = [...document.body.childNodes].filter((node) => node.nodeType !== Node.TEXT_NODE || node.textContent?.trim());
   if (nodes.some((node) => node.nodeType !== Node.ELEMENT_NODE)) return { error: "Use supported block elements only." };
   const originalById = new Map<string, ContentBlock>();
-  const index = (blocks: ContentBlock[]) => blocks.forEach((block) => { originalById.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "component") index(block.children ?? []); });
+  const index = (blocks: ContentBlock[]) => blocks.forEach((block) => { originalById.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component") index(block.children ?? []); else if (block.type === "columns") block.children.forEach(column => index([column])); });
   index(originals);
   const blocks: ContentBlock[] = [];
   for (const node of nodes) {
@@ -268,11 +274,12 @@ export function parseHtmlToBlocks(html: string, originals: ContentBlock[]): Html
 
 function parseElement(element: HTMLElement, original: ContentBlock, originals = new Map<string, ContentBlock>()): HtmlParseResult {
   if (!originals.size) {
-    const index = (block: ContentBlock) => { originals.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "component") (block.children ?? []).forEach(index); };
+    const index = (block: ContentBlock) => { originals.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component") (block.children ?? []).forEach(index); else if (block.type === "columns") block.children.forEach(index); };
     index(original);
   }
   const parsed = parseElementContent(element, original, originals);
   if ("error" in parsed) return parsed;
+  if (parsed.block.type === original.type && original.visualStyle) parsed.block.visualStyle = original.visualStyle;
   const role = element.dataset.siteRole;
   if (role !== undefined) {
     if (!["logo", "title", "eyebrow", "status", "progress", "table-size", "auto-resize", "new-game", "holes", "players", "reset-scores", "export-excel", "export-image", "export-html", "metric-average", "metric-deviation", "metric-holes", "player-name", "score-value", "score-label", "metric-label", "metric-value", "footer-name", "copyright", "social-icon", "social-action"].includes(role)) return { error: "This source role is not supported." };
@@ -304,7 +311,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
   switch (element.tagName.toLowerCase()) {
     case "p": {
       const link = element.querySelector("a");
-      if (link?.classList.contains("content-button")) return { block: { id, type: "button", label: link.textContent ?? "", url: safeTextLink(link.getAttribute("href") ?? "") || "#", style: link.classList.contains("is-secondary") ? "secondary" : "primary" } };
+      if (link?.classList.contains("content-button")) return { block: { id, type: "button", label: link.textContent ?? "", url: safeTextLink(link.getAttribute("href") ?? "") || "#", style: link.classList.contains("is-secondary") ? "secondary" : "primary", opensInNewTab: link.getAttribute("target") === "_blank" || undefined } };
       const runs = parseRuns(element);
       return { block: { ...preserveParagraphStyle(original, id), type: "paragraph", text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element) ?? (element.dataset.alignExplicit === "true" ? undefined : original.type === "paragraph" ? original.align : undefined) } };
     }
@@ -313,7 +320,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
     case "blockquote":
       { const runs = parseRuns(element); return { block: { id, type: "quote", text: runs ? plainTextFromRuns(runs) : textContent.replace(element.querySelector("cite")?.textContent ?? "", "").trim(), runs, attribution: element.querySelector("cite")?.textContent || undefined, align: alignmentFromClass(element) } }; }
     case "ul": case "ol":
-      return { block: { id, type: "list", style: element.tagName.toLowerCase() === "ol" ? "ordered" : "unordered", items: [...element.children].filter((child) => child.tagName.toLowerCase() === "li").map((child) => child.textContent ?? "") } };
+      return { block: { id, type: "list", style: element.tagName.toLowerCase() === "ol" ? "ordered" : "unordered", items: [...element.children].filter((child) => child.tagName.toLowerCase() === "li").map((child) => child.textContent ?? ""), start: element.tagName.toLowerCase() === "ol" && element.hasAttribute("start") ? (Number(element.getAttribute("start")) || undefined) : undefined, reversed: element.tagName.toLowerCase() === "ol" && element.hasAttribute("reversed") || undefined } };
     case "table":
       return parseTable(element, id, original);
     case "pre":
@@ -324,14 +331,18 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       const rawSrc = image.getAttribute("src") ?? "";
       const src = safeImageSource(rawSrc);
       if (!src && !(original.type === "image" && original.mediaId && rawSrc === "")) return { error: "Image blocks must use a safe image URL." };
-      const next: Extract<ContentBlock, { type: "image" }> = { ...(original.type === "image" ? original : {}), id, type: "image", src: src ?? "", alt: image.getAttribute("alt") ?? "", caption: element.querySelector("figcaption")?.textContent || undefined, wide: element.classList.contains("is-wide") };
+      const aspectRatio = image.dataset.aspectRatio;
+      const scale = image.dataset.scale;
+      const numberAttribute = (name: string) => { const value = image.getAttribute(name); return value === null || value === "" ? undefined : Number(value); };
+      const link = image.closest("a");
+      const next: Extract<ContentBlock, { type: "image" }> = { ...(original.type === "image" ? original : {}), id, type: "image", src: src ?? "", alt: image.dataset.decorative === "true" && original.type === "image" ? original.alt : image.getAttribute("alt") ?? "", decorative: image.dataset.decorative === "true", title: image.getAttribute("title") || undefined, aspectRatio: aspectRatio && ["original", "square", "portrait", "landscape", "wide"].includes(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "image" }>["aspectRatio"] : undefined, scale: scale === "cover" || scale === "contain" ? scale : undefined, displayWidth: numberAttribute("data-display-width"), focalX: numberAttribute("data-focal-x"), focalY: numberAttribute("data-focal-y"), linkUrl: link ? safeTextLink(link.getAttribute("href") ?? "") || undefined : undefined, opensInNewTab: link?.getAttribute("target") === "_blank" || undefined, caption: element.querySelector("figcaption")?.textContent || undefined, wide: element.classList.contains("is-wide") };
       const originalSrc = original.type === "image" ? safeImageSource(original.src) ?? "" : "";
       if (original.type === "image" && (src ?? "") !== originalSrc) delete next.mediaId;
       return { block: next };
     }
     case "aside":
       return { block: { id, type: "embed", url: safeTextLink(element.getAttribute("data-embed-url") ?? element.querySelector("a")?.getAttribute("href") ?? "") || "", title: element.textContent ?? "" } };
-    case "hr": return { block: { id, type: "divider" } };
+    case "hr": return { block: { id, type: "divider", style: element.classList.contains("is-dots") ? "dots" : element.classList.contains("is-wide") ? "wide" : "default" } };
     case "label": {
       const control = element.querySelector("select") ? "select" : "text";
       const input = element.querySelector("input") as HTMLInputElement | null;
@@ -344,6 +355,33 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
         return { block: { ...(original.type === "spacer" ? original : {}), id, type: "spacer", height } };
       }
       const type = element.tagName.toLowerCase() === "section" ? "section" : "group";
+      if (element.dataset.columnLayout === "true" || element.classList.contains("studio-columns")) {
+        const originalColumns = original.type === "columns" ? original : undefined;
+        const columns: ContentBlock[] = [];
+        for (const child of [...element.children]) {
+          const childElement = child as HTMLElement;
+          if (!childElement.classList.contains("studio-column")) return { error: "Columns must contain Column blocks." };
+          const childId = childElement.dataset.blockId || crypto.randomUUID();
+          const originalChild = originalColumns?.children.find(candidate => candidate.id === childId) ?? originals.get(childId);
+          const parsed = parseElement(childElement, originalChild ?? { id: childId, type: "column", children: [] }, originals);
+          if ("error" in parsed) return parsed;
+          columns.push(parsed.block);
+        }
+        if (columns.some(column => column.type !== "column")) return { error: "Columns can contain only Column blocks." };
+        return { block: { ...(originalColumns ?? {}), id, type: "columns", ...parseLayoutOptions(element), children: columns as Extract<ContentBlock, { type: "column" }>[], style: originalColumns?.style } };
+      }
+      if (element.classList.contains("studio-column")) {
+        const children: ContentBlock[] = [];
+        for (const child of [...element.children]) {
+          const childElement = child as HTMLElement;
+          const childId = childElement.dataset.blockId || crypto.randomUUID();
+          const parsed = parseElement(childElement, originals.get(childId) ?? { id: childId, type: "paragraph", text: "" }, originals);
+          if ("error" in parsed) return parsed;
+          children.push(parsed.block);
+        }
+        const width = Number(element.dataset.columnWidth);
+        return { block: { ...(original.type === "column" ? original : { id, type: "column" as const, children: [] }), id, type: "column", width: Number.isFinite(width) ? width : undefined, verticalAlign: element.dataset.columnVerticalAlign as Extract<ContentBlock, { type: "column" }> ["verticalAlign"], children } };
+      }
       if (type === "group" && element.dataset.component) {
         if (original.type !== "component" || original.component !== element.dataset.component) return { error: "Component blocks are code-backed; edit their supported properties in the inspector." };
         if (!original.children?.length) return { block: original };
@@ -472,5 +510,5 @@ function parseTable(element: HTMLElement, id: string, original: ContentBlock): H
   const columnWidths = sizes("data-column-widths", rows[0].length, original.type === "table" ? original.columnWidths : undefined);
   const rowHeights = sizes("data-row-heights", rows.length, original.type === "table" ? original.rowHeights : undefined);
   if (columnWidths === null || rowHeights === null) return { error: "Table dimensions must be positive numbers matching the column and row counts." };
-  return { block: { id, type: "table", rows, hasHeader: Boolean(head), hasFooter: Boolean(foot), columnWidths, rowHeights } };
+  return { block: { id, type: "table", rows, hasHeader: Boolean(head), hasFooter: Boolean(foot), fixedWidth: element.dataset.fixedWidth !== "false", tableStyle: element.classList.contains("is-striped") ? "stripes" : "default", caption: element.querySelector("caption")?.textContent || undefined, columnWidths, rowHeights } };
 }

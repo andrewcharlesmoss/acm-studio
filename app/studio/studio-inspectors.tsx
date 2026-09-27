@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
-import type { ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphAppearance, ParagraphBackgroundGradient, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, TextAlignment } from "../content/model";
+import type { ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphAppearance, ParagraphBackgroundGradient, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, TextAlignment } from "../content/model";
 import { PARAGRAPH_BACKGROUND_GRADIENTS, paragraphBackgroundGradientCss } from "../content/paragraph-styles";
 import { formatDocumentDate } from "../content/document-metadata";
 import { readingTimeMinutes } from "../content/reading-time";
@@ -14,6 +14,7 @@ import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { documentDisplaySource, type FieldUsage } from "./document-fields";
 import { createPasswordProtection } from "../content/password-protection";
+import { COLUMN_LAYOUT_PRESETS, setColumnCount, setColumnsLayout, setColumnWidth } from "../content/columns";
 
 function blockLabel(type: ContentBlock["type"]) {
   return type.charAt(0).toUpperCase() + type.slice(1);
@@ -62,6 +63,7 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
   const [localCollapsed, setLocalCollapsed] = useState(false);
   const collapsed = paneCollapsed ?? localCollapsed;
   const setCollapsed = onPaneCollapsedChange ?? setLocalCollapsed;
+  const selectedColumnParent = selectedBlock?.type === "column" ? findColumnsParent(activeDocument.blocks, selectedBlock.id) : undefined;
   return (
     <Pane trackClassName="studio-inspector-track" className="studio-inspector" bodyClassName="inspector-scroll" label="Editor Inspector" side="right" width={paneWidth} onWidthChange={onPaneWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed} onCollapsedChange={setCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
       tabs={<PaneTabs id={tabPrefix} label="Editor settings" className="inspector-tabs" tabs={[
@@ -78,13 +80,29 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
             <p>This field is part of the document. Edit it on the canvas.</p>
           </InspectorAccordionSection>
         ) : selectedBlock ? (
-          <BlockInspector block={selectedBlock} onChange={onBlockChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
+          <BlockInspector block={selectedBlock} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
       </PaneTabPanel>)}
     </Pane>
   );
+}
+
+function findColumnsParent(blocks: ContentBlock[], columnId: string): ColumnsBlock | undefined {
+  for (const block of blocks) {
+    if (block.type === "columns" && block.children.some(column => column.id === columnId)) return block;
+    if (block.type === "columns") {
+      for (const column of block.children) {
+        const found = findColumnsParent(column.children, columnId);
+        if (found) return found;
+      }
+    } else if ((block.type === "column" || block.type === "group" || block.type === "section" || block.type === "component") && block.children) {
+      const found = findColumnsParent(block.children, columnId);
+      if (found) return found;
+    }
+  }
+  return undefined;
 }
 
 type DocumentInspectorProps = {
@@ -455,23 +473,23 @@ function DocumentStylesInspector({ document }: { document: StudioDocument }) {
   return <div className="inspector-sections"><InspectorAccordionSection title="Styles"><p className="setting-note">Document styles come from the assigned template and explicit block styles. There is no separate document-level style override.</p><div className="inspector-value-row"><span>Document type</span><strong>{document.kind === "post" ? "Post" : "Page"}</strong></div><div className="inspector-value-row"><span>Breakpoint rules</span><strong>Template controlled</strong></div></InspectorAccordionSection></div>;
 }
 
-export function BlockInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {
+export function BlockInspector({ block, onChange, onColumnWidthChange, onOpenFiles, canOpenFiles }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {
   const alignedBlock = block.type === "heading" || block.type === "document-title" || block.type === "document-subtitle" || block.type === "cover-image" ? block : null;
   const alignment = alignedBlock?.align ?? null;
   return (
     <div className="inspector-sections">
       <InspectorAccordionSection title={<>{blockLabel(block.type)} block</>}><p className="setting-note">{block.type === "paragraph" ? "Start with the basic building block of all narrative." : "Changes apply to the selected block."}</p></InspectorAccordionSection>
       {alignedBlock ? <InspectorAccordionSection title={<>Text</>}><label><span>Alignment</span><select value={alignment ?? "left"} onChange={(event) => onChange({ ...alignedBlock, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label>{alignedBlock.type === "heading" ? <label><span>Level</span><select value={alignedBlock.level} onChange={(event) => onChange({ ...alignedBlock, level: Number(event.target.value) as HeadingLevel })}>{[1, 2, 3, 4, 5, 6].map((level) => <option value={level} key={level}>Heading {level}</option>)}</select></label> : null}</InspectorAccordionSection> : null}
-      {block.type === "paragraph" ? <ParagraphInspector key={block.id} block={block} onChange={onChange} /> : null}
+      {["paragraph", "heading", "quote", "list", "table", "code", "button", "footnotes", "group", "section", "columns", "column", "document-title", "document-subtitle", "reading-time", "post-author", "post-date"].includes(block.type) ? <ParagraphInspector key={block.id} block={block} onChange={onChange} /> : null}
       {block.type === "quote" ? <InspectorAccordionSection title={<>Quote</>}><label><span>Attribution</span><input value={block.attribution ?? ""} onChange={(event) => onChange({ ...block, attribution: event.target.value })} placeholder="Optional name" /></label></InspectorAccordionSection> : null}
-      {block.type === "list" ? <InspectorAccordionSection title={<>List</>}><label><span>Style</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "ordered" | "unordered" })}><option value="unordered">Bullets</option><option value="ordered">Numbers</option></select></label><p className="setting-note">Edit each item directly in the canvas.</p></InspectorAccordionSection> : null}
-      {block.type === "table" ? <InspectorAccordionSection title={<>Table</>}><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.hasHeader)} onChange={(event) => onChange({ ...block, hasHeader: event.target.checked })} /><span>Header row</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.hasFooter)} onChange={(event) => onChange({ ...block, hasFooter: event.target.checked })} /><span>Footer row</span></label><p className="setting-note">Select a cell, then use the table toolbar menu to add or remove rows and columns.</p></InspectorAccordionSection> : null}
+      {block.type === "list" ? <InspectorAccordionSection title={<>List</>}><label><span>Style</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "ordered" | "unordered" })}><option value="unordered">Bullets</option><option value="ordered">Numbers</option></select></label>{block.style === "ordered" ? <><label><span>Start at</span><input type="number" min="1" max="100000" value={block.start ?? (block.reversed ? Math.max(1, block.items.length) : 1)} onChange={(event) => onChange({ ...block, start: Math.max(1, Math.min(100000, Number(event.target.value) || 1)) })} /></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.reversed)} onChange={(event) => onChange({ ...block, reversed: event.target.checked })} /><span>Reverse numbering</span></label></> : null}<p className="setting-note">Edit each item directly in the canvas.</p></InspectorAccordionSection> : null}
+      {block.type === "table" ? <><InspectorAccordionSection title="Table"><label className="checkbox-setting"><input type="checkbox" checked={block.fixedWidth !== false} onChange={(event) => onChange({ ...block, fixedWidth: event.target.checked })} /><span>Fixed width table cells</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.hasHeader)} onChange={(event) => onChange({ ...block, hasHeader: event.target.checked })} /><span>Header row</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.hasFooter)} onChange={(event) => onChange({ ...block, hasFooter: event.target.checked })} /><span>Footer row</span></label><label><span>Caption</span><input value={block.caption ?? ""} onChange={(event) => onChange({ ...block, caption: event.target.value || undefined })} /></label><p className="setting-note">Select a cell, then use the table toolbar menu to add or remove rows and columns.</p></InspectorAccordionSection><InspectorAccordionSection title="Styles"><label><span>Table style</span><select value={block.tableStyle ?? "default"} onChange={(event) => onChange({ ...block, tableStyle: event.target.value as "default" | "stripes" })}><option value="default">Default</option><option value="stripes">Stripes</option></select></label></InspectorAccordionSection></> : null}
       {block.type === "code" ? <InspectorAccordionSection title={<>Code</>}><label><span>Language</span><select value={(block.language?.trim().toLowerCase() || "text")} onChange={(event) => onChange({ ...block, language: event.target.value })}>{block.language && !isKnownCodeLanguage(block.language) ? <option value={block.language.trim().toLowerCase()}>Plain text — unsupported “{block.language}”</option> : null}{CODE_LANGUAGE_OPTIONS.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><p className="setting-note">Choose a language to apply syntax highlighting while preserving the original code.</p></InspectorAccordionSection> : null}
-      {block.type === "image" ? <InspectorAccordionSection title={<>Image</>}>{canOpenFiles ? <button className="choose-media-button" type="button" onClick={onOpenFiles}>Choose from files</button> : null}{block.mediaId ? <p className="setting-note">This block uses a managed local file.</p> : <label><span>Image URL</span><input type="url" value={block.src} onChange={(event) => onChange({ ...block, src: event.target.value })} placeholder="https://…" /></label>}<label><span>Alternative text</span><input value={block.alt} onChange={(event) => onChange({ ...block, alt: event.target.value })} /></label><label><span>Caption</span><input value={block.caption ?? ""} onChange={(event) => onChange({ ...block, caption: event.target.value })} /></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.wide)} onChange={(event) => onChange({ ...block, wide: event.target.checked })} /><span>Wide display</span></label></InspectorAccordionSection> : null}
+      {block.type === "image" ? <ImageInspector block={block} onChange={onChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} /> : null}
       {block.type === "embed" ? <InspectorAccordionSection title={<>Embed</>}><label><span>Title</span><input value={block.title} onChange={(event) => onChange({ ...block, title: event.target.value })} /></label><label><span>URL</span><input type="url" value={block.url} onChange={(event) => onChange({ ...block, url: event.target.value })} /></label></InspectorAccordionSection> : null}
-      {block.type === "button" ? <InspectorAccordionSection title={<>Button</>}><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>URL</span><input value={block.url} onChange={(event) => onChange({ ...block, url: event.target.value })} /></label><label><span>Style</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "primary" | "secondary" })}><option value="primary">Primary</option><option value="secondary">Secondary</option></select></label></InspectorAccordionSection> : null}
+      {block.type === "button" ? <InspectorAccordionSection title={<>Button</>}><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>URL</span><input value={block.url} onChange={(event) => onChange({ ...block, url: event.target.value })} /></label><label><span>Style</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "primary" | "secondary" })}><option value="primary">Primary</option><option value="secondary">Secondary</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.opensInNewTab)} onChange={(event) => onChange({ ...block, opensInNewTab: event.target.checked })} /><span>Open in new tab</span></label></InspectorAccordionSection> : null}
       {block.type === "field" ? <InspectorAccordionSection title={<>Field</>}><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>Control</span><select value={block.control} onChange={(event) => onChange({ ...block, control: event.target.value as "text" | "select" })}><option value="text">Text</option><option value="select">Select</option></select></label><label><span>Value</span><input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} /></label>{block.control === "select" ? <label><span>Options</span><input value={(block.options ?? []).join(", ")} onChange={(event) => onChange({ ...block, options: event.target.value.split(",").map((option) => option.trim()).filter(Boolean) })} placeholder="First, Second" /></label> : null}</InspectorAccordionSection> : null}
-      {block.type === "divider" ? <InspectorAccordionSection title="Divider"><p className="setting-note">This divider has no additional settings.</p></InspectorAccordionSection> : null}
+      {block.type === "divider" ? <DividerInspector block={block} onChange={onChange} /> : null}
       {block.type === "spacer" ? <InspectorAccordionSection title={<>Spacer</>}><PresetNumberSetting label="Height" value={block.height} presets={SPACER_HEIGHT_PRESETS} min={LAYOUT_VALUE_LIMITS.spacer[0]} max={LAYOUT_VALUE_LIMITS.spacer[1]} onChange={(height) => onChange({ ...block, height: height ?? 32 })} /><p className="setting-note">Spacer blocks add empty space without adding screen-reader content.</p></InspectorAccordionSection> : null}
       {block.type === "reading-time" ? <InspectorAccordionSection title={<>Reading Time</>}><label><span>Prefix</span><input value={block.prefix ?? "Reading Time:"} onChange={(event) => onChange({ ...block, prefix: event.target.value })} /></label><label><span>Presentation</span><select value={block.presentation ?? "badge"} onChange={(event) => onChange({ ...block, presentation: event.target.value as ReadingTimePresentation })}><option value="badge">Badge</option><option value="plain">Plain text</option></select></label><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><p className="setting-note">The value is calculated from ordinary document content at 220 words per minute.</p></InspectorAccordionSection> : null}
       {block.type === "post-author" ? <InspectorAccordionSection title={<>Post Author</>}><label><span>Prefix</span><input value={block.prefix ?? "By"} onChange={(event) => onChange({ ...block, prefix: event.target.value })} /></label><label className="checkbox-setting"><input type="checkbox" checked={block.avatar !== false} onChange={(event) => onChange({ ...block, avatar: event.target.checked })} /><span>Show initials avatar</span></label><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><p className="setting-note">The author value is edited in Document metadata.</p></InspectorAccordionSection> : null}
@@ -479,6 +497,8 @@ export function BlockInspector({ block, onChange, onOpenFiles, canOpenFiles }: {
       {block.type === "section" ? <LayoutInspector block={block} onChange={onChange} heading="Section" note={`This section contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
       {block.type === "section" && block.source ? <InspectorAccordionSection title="Source"><p className="setting-note">Source: {block.source.module} · {block.source.exportName} · {block.source.revision.slice(0, 8)}</p>{canOpenFiles ? <button className="choose-media-button" type="button" onClick={onOpenFiles}>Open source files</button> : null}</InspectorAccordionSection> : null}
       {block.type === "group" ? <LayoutInspector block={block} onChange={onChange} heading="Group" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
+      {block.type === "columns" ? <ColumnsInspector block={block} onChange={onChange} /> : null}
+      {block.type === "column" ? <ColumnInspector block={block} onChange={onChange} onWidthChange={onColumnWidthChange} /> : null}
       {block.type === "component" ? <ComponentInspector block={block} onChange={onChange} /> : null}
     </div>
   );
@@ -486,9 +506,81 @@ export function BlockInspector({ block, onChange, onOpenFiles, canOpenFiles }: {
 
 type LayoutBlock = Extract<ContentBlock, { type: "group" | "section" }>;
 
+function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {
+  const ratio = block.aspectRatio ?? "original";
+  const style = block.visualStyle ?? {};
+  function updateVisualStyle(changes: Partial<ParagraphStyle>) {
+    const next = { ...style, ...changes };
+    for (const key of Object.keys(next) as (keyof ParagraphStyle)[]) if (!next[key]) delete next[key];
+    onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined });
+  }
+  return <>
+    <InspectorAccordionSection title="Image">
+      {canOpenFiles ? <button className="choose-media-button" type="button" onClick={onOpenFiles}>Choose from files</button> : null}
+      {block.mediaId ? <p className="setting-note">This block uses a managed local file.</p> : <label><span>Image URL</span><input type="url" value={block.src} onChange={(event) => onChange({ ...block, src: event.target.value })} placeholder="https://…" /></label>}
+      <label><span>Alternative text</span><input value={block.alt} disabled={Boolean(block.decorative)} onChange={(event) => onChange({ ...block, alt: event.target.value })} /></label>
+      <label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.decorative)} disabled={Boolean(block.linkUrl)} onChange={(event) => onChange({ ...block, decorative: event.target.checked })} /><span>Mark as decorative</span></label>
+      <label><span>Caption</span><input value={block.caption ?? ""} onChange={(event) => onChange({ ...block, caption: event.target.value })} /></label>
+      <label><span>Link URL</span><input type="url" value={block.linkUrl ?? ""} onChange={(event) => onChange({ ...block, linkUrl: event.target.value || undefined, decorative: event.target.value ? false : block.decorative })} placeholder="https://…" /></label>
+      {block.linkUrl ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.opensInNewTab)} onChange={(event) => onChange({ ...block, opensInNewTab: event.target.checked })} /><span>Open in new tab</span></label> : null}
+      <label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.wide)} onChange={(event) => onChange({ ...block, wide: event.target.checked })} /><span>Wide display</span></label>
+    </InspectorAccordionSection>
+    <InspectorAccordionSection title="Dimensions">
+      <label><span>Aspect ratio</span><select value={ratio} onChange={(event) => onChange({ ...block, aspectRatio: event.target.value as typeof block.aspectRatio })}><option value="original">Original</option><option value="square">Square — 1:1</option><option value="portrait">Portrait — 3:4</option><option value="landscape">Landscape — 4:3</option><option value="wide">Wide — 16:9</option></select></label>
+      <label><span>Width (px)</span><input type="number" min="32" max="2400" value={block.displayWidth ?? ""} placeholder="Auto" onChange={(event) => onChange({ ...block, displayWidth: event.target.value ? Math.max(32, Math.min(2400, Number(event.target.value) || 32)) : undefined })} /></label>
+      {ratio !== "original" ? <><label><span>Scale</span><select value={block.scale ?? "cover"} onChange={(event) => onChange({ ...block, scale: event.target.value as "cover" | "contain" })}><option value="cover">Cover</option><option value="contain">Contain</option></select></label><div className="inspector-two-column"><label><span>Focal X (%)</span><input type="number" min="0" max="100" value={block.focalX ?? 50} onChange={(event) => onChange({ ...block, focalX: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} /></label><label><span>Focal Y (%)</span><input type="number" min="0" max="100" value={block.focalY ?? 50} onChange={(event) => onChange({ ...block, focalY: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} /></label></div></> : null}
+      <ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateVisualStyle({ margin: value })} />
+    </InspectorAccordionSection>
+    <InspectorAccordionSection title="Border & shadow"><ColourSetting label="Border colour" value={style.borderColor} onChange={(value) => updateVisualStyle({ borderColor: value })} /><label><span>Border style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateVisualStyle({ borderStyle: event.target.value as ParagraphBorderStyle })}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option></select></label><div className="inspector-two-column"><label><span>Border width</span><input value={style.borderWidth ?? ""} onChange={(event) => updateVisualStyle({ borderWidth: event.target.value })} placeholder="1px" /></label><label><span>Radius</span><input value={style.borderRadius ?? ""} onChange={(event) => updateVisualStyle({ borderRadius: event.target.value })} placeholder="0" /></label></div><label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateVisualStyle({ shadow: (event.target.value || undefined) as ParagraphStyle["shadow"] })}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label></InspectorAccordionSection>
+    <InspectorAccordionSection title="Advanced"><label><span>Title attribute</span><input value={block.title ?? ""} onChange={(event) => onChange({ ...block, title: event.target.value || undefined })} /></label><label><span>HTML anchor</span><input value={style.anchor ?? ""} onChange={(event) => updateVisualStyle({ anchor: event.target.value })} placeholder="section-name" /></label><label><span>Additional CSS class(es)</span><input value={style.className ?? ""} onChange={(event) => updateVisualStyle({ className: event.target.value })} placeholder="custom-class" /></label></InspectorAccordionSection>
+  </>;
+}
+
+function DividerInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "divider" }>; onChange: (block: ContentBlock) => void }) {
+  const style = block.visualStyle ?? {};
+  function updateVisualStyle(changes: Partial<ParagraphStyle>) {
+    const next = { ...style, ...changes };
+    for (const key of Object.keys(next) as (keyof ParagraphStyle)[]) if (!next[key]) delete next[key];
+    onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined });
+  }
+  return <>
+    <InspectorAccordionSection title="Styles"><label><span>Style</span><select value={block.style ?? "default"} onChange={(event) => onChange({ ...block, style: event.target.value as "default" | "wide" | "dots" })}><option value="default">Default</option><option value="wide">Wide line</option><option value="dots">Dots</option></select></label></InspectorAccordionSection>
+    <InspectorAccordionSection title="Colour"><ColourSetting label="Divider colour" value={style.textColor} onChange={(value) => updateVisualStyle({ textColor: value })} /></InspectorAccordionSection>
+    <InspectorAccordionSection title="Dimensions"><ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateVisualStyle({ margin: value })} /></InspectorAccordionSection>
+    <InspectorAccordionSection title="Advanced"><label><span>HTML anchor</span><input value={style.anchor ?? ""} onChange={(event) => updateVisualStyle({ anchor: event.target.value })} placeholder="section-name" /></label><label><span>Additional CSS class(es)</span><input value={style.className ?? ""} onChange={(event) => updateVisualStyle({ className: event.target.value })} placeholder="custom-class" /></label></InspectorAccordionSection>
+  </>;
+}
+
 function LayoutInspector({ block, onChange, heading, note }: { block: LayoutBlock; onChange: (block: ContentBlock) => void; heading: string; note: string }) {
   const update = (changes: Partial<LayoutBlock>) => onChange({ ...block, ...changes });
   return <InspectorAccordionSection title={<>{heading} layout</>}><label><span>Arrangement</span><select value={block.layout} onChange={(event) => update({ layout: event.target.value as LayoutMode })}><option value="stack">Stack</option><option value="row">Row</option><option value="columns">Columns</option></select></label><div className="inspector-two-column"><label><span>Horizontal alignment</span><select value={block.horizontalAlign ?? ""} onChange={(event) => update({ horizontalAlign: (event.target.value || undefined) as LayoutBlock["horizontalAlign"] })}><option value="">Default</option><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option><option value="stretch">Stretch</option></select></label><label><span>Vertical alignment</span><select value={block.verticalAlign ?? ""} onChange={(event) => update({ verticalAlign: (event.target.value || undefined) as LayoutBlock["verticalAlign"] })}><option value="">Default</option><option value="top">Top</option><option value="centre">Centre</option><option value="bottom">Bottom</option><option value="stretch">Stretch</option></select></label></div><div className="inspector-two-column"><PresetNumberSetting label="Gap" value={block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={(gap) => update({ gap })} /><PresetNumberSetting label="Horizontal padding" value={block.paddingX} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.padding[0]} max={LAYOUT_VALUE_LIMITS.padding[1]} onChange={(paddingX) => update({ paddingX })} /><PresetNumberSetting label="Vertical padding" value={block.paddingY} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.padding[0]} max={LAYOUT_VALUE_LIMITS.padding[1]} onChange={(paddingY) => update({ paddingY })} /></div><label><span>Content width</span><select value={block.contentWidth ?? ""} onChange={(event) => update({ contentWidth: (event.target.value || undefined) as LayoutBlock["contentWidth"] })}><option value="">Default</option><option value="constrained">Constrained</option><option value="full">Full width</option></select></label>{block.layout === "columns" ? <label><span>Columns</span><select value={block.columns ?? 2} onChange={(event) => update({ columns: Number(event.target.value) })}>{[1, 2, 3, 4, 5, 6].map((count) => <option value={count} key={count}>{count}</option>)}</select></label> : null}<label><span>Stack at</span><select value={block.stackAt ?? ""} onChange={(event) => update({ stackAt: (event.target.value || undefined) as LayoutBlock["stackAt"] })}><option value="">Never</option><option value="tablet">Tablet — 780px</option><option value="mobile">Mobile — 620px</option></select></label><p className="setting-note">{note} Responsive changes use Studio’s shared 780px and 620px breakpoints.</p></InspectorAccordionSection>;
+}
+
+type ColumnsBlock = Extract<ContentBlock, { type: "columns" }>;
+
+function ColumnsInspector({ block, onChange }: { block: ColumnsBlock; onChange: (block: ContentBlock) => void }) {
+  const update = (changes: Partial<ColumnsBlock>) => onChange({ ...block, ...changes });
+  const createId = () => `column-${crypto.randomUUID()}`;
+  return <InspectorAccordionSection title="Columns layout">
+    <p className="setting-note">Choose a WordPress-style layout, then add blocks inside each Column.</p>
+    <div className="column-layout-presets" role="group" aria-label="Column layout">
+      {COLUMN_LAYOUT_PRESETS.map((preset) => <button key={preset.label} type="button" aria-label={preset.label} aria-pressed={block.children.length === preset.widths.length && preset.widths.every((width, index) => Math.abs((block.children[index]?.width ?? 100 / block.children.length) - width) < 1)} onClick={() => onChange(setColumnsLayout(block, preset.widths, createId))}>
+        <span aria-hidden="true" className="column-layout-preview">{preset.widths.map((width, index) => <i key={index} style={{ flexGrow: width }} />)}</span><span>{preset.widths.map(width => Math.round(width)).join(" / ")}</span>
+      </button>)}
+    </div>
+    <div className="column-count-controls"><span>Columns</span><div><button type="button" aria-label="Remove column" disabled={block.children.length <= 1} onClick={() => onChange(setColumnCount(block, block.children.length - 1, () => createId()))}>−</button><output aria-live="polite">{block.children.length}</output><button type="button" aria-label="Add column" disabled={block.children.length >= 6} onClick={() => onChange(setColumnCount(block, block.children.length + 1, () => createId()))}>+</button></div></div>
+    <div className="inspector-two-column"><label><span>Vertical alignment</span><select value={block.verticalAlign ?? "stretch"} onChange={(event) => update({ verticalAlign: event.target.value as ColumnsBlock["verticalAlign"] })}><option value="top">Top</option><option value="centre">Centre</option><option value="bottom">Bottom</option><option value="stretch">Stretch</option></select></label><PresetNumberSetting label="Column gap" value={block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={(gap) => update({ gap })} /></div>
+    <label><span>Block width</span><select value={block.contentWidth ?? ""} onChange={(event) => update({ contentWidth: (event.target.value || undefined) as ColumnsBlock["contentWidth"] })}><option value="">Default</option><option value="constrained">Constrained</option><option value="full">Full width</option></select></label>
+    <label><span>Stack columns at</span><select value={block.stackAt ?? "mobile"} onChange={(event) => update({ stackAt: event.target.value as ColumnsBlock["stackAt"] })}><option value="mobile">Mobile — 620px</option><option value="tablet">Tablet — 780px</option><option value="never">Never</option></select></label>
+  </InspectorAccordionSection>;
+}
+
+function ColumnInspector({ block, onChange, onWidthChange }: { block: ColumnBlock; onChange: (block: ContentBlock) => void; onWidthChange?: (columnId: string, width: number) => void }) {
+  return <InspectorAccordionSection title="Column settings">
+    <label><span>Width (%)</span><input type="number" min="5" max="95" step="1" value={Math.round(block.width ?? 100)} disabled={!onWidthChange} onChange={(event) => { const width = Math.max(5, Math.min(95, Number(event.target.value) || 5)); onWidthChange?.(block.id, width); }} /></label>
+    <label><span>Vertical alignment</span><select value={block.verticalAlign ?? ""} onChange={(event) => onChange({ ...block, verticalAlign: (event.target.value || undefined) as ColumnBlock["verticalAlign"] })}><option value="">Use Columns setting</option><option value="top">Top</option><option value="centre">Centre</option><option value="bottom">Bottom</option><option value="stretch">Stretch</option></select></label>
+    <p className="setting-note">Add and edit blocks inside this column on the canvas.</p>
+  </InspectorAccordionSection>;
 }
 
 function PresetNumberSetting({ label, value, presets, min, max, onChange }: { label: string; value: number | undefined; presets: readonly number[]; min: number; max: number; onChange: (value: number | undefined) => void }) {
@@ -504,14 +596,21 @@ function ComponentInspector({ block, onChange }: { block: Extract<ContentBlock, 
   return <InspectorAccordionSection title={<>{block.component.replace("mini-golf-", "Mini Golf ")} component</>}><p className="setting-note">This application interface is inactive in Studio. Edit only its supported content properties.</p>{block.source ? <p className="setting-note">Source: {block.source.module} · {block.source.exportName} · {block.source.revision.slice(0, 8)}</p> : null}{fields.map(([key, label]) => <label key={key}><span>{label}</span><input value={typeof data[key] === "string" ? data[key] as string : ""} onChange={(event) => update(key, event.target.value)} /></label>)}</InspectorAccordionSection>;
 }
 
-function ParagraphInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "paragraph" }>; onChange: (block: ContentBlock) => void }) {
-  const style = block.style ?? {};
+type StyledBlock = ContentBlock;
+
+function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { type: "paragraph" | "columns" | "column" }> {
+  return block.type === "paragraph" || block.type === "columns" || block.type === "column";
+}
+
+function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange: (block: ContentBlock) => void }) {
+  const style = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
   const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");
   function updateStyle<K extends keyof ParagraphStyle>(field: K, value: ParagraphStyle[K] | undefined) {
     const nextStyle = { ...style };
     if (value === undefined || value === "") delete nextStyle[field];
     else nextStyle[field] = value;
-    onChange({ ...block, style: Object.keys(nextStyle).length ? nextStyle : undefined });
+    const updatedStyle = Object.keys(nextStyle).length ? nextStyle : undefined;
+    onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
   }
   function updateBackground(backgroundColor: string | undefined, backgroundGradient: ParagraphBackgroundGradient | undefined) {
     const nextStyle = { ...style };
@@ -519,7 +618,8 @@ function ParagraphInspector({ block, onChange }: { block: Extract<ContentBlock, 
     else delete nextStyle.backgroundColor;
     if (backgroundGradient) nextStyle.backgroundGradient = backgroundGradient;
     else delete nextStyle.backgroundGradient;
-    onChange({ ...block, style: Object.keys(nextStyle).length ? nextStyle : undefined });
+    const updatedStyle = Object.keys(nextStyle).length ? nextStyle : undefined;
+    onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
   }
   const fontSizes: { value: ParagraphFontSize; label: string; accessibleName: string }[] = [
     { value: "small", label: "S", accessibleName: "Small" },
@@ -531,10 +631,12 @@ function ParagraphInspector({ block, onChange }: { block: Extract<ContentBlock, 
   return <>
     <InspectorAccordionSection className="inspector-panel" title="Typography">
       <ColourSetting label="Text colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} />
+      <label><span>Font family</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label>
       <fieldset className="paragraph-font-size-setting"><legend>Font size</legend><div role="group" aria-label="Font size" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateStyle("fontSize", style.fontSize === value ? undefined : value)}>{label}</button>)}</div></fieldset>
       <label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option><option value="regular">Regular</option><option value="italic">Italic</option><option value="bold">Bold</option><option value="bold-italic">Bold italic</option></select></label>
+      <div className="inspector-two-column"><label><span>Letter case</span><select value={style.textTransform ?? ""} onChange={(event) => updateStyle("textTransform", (event.target.value || undefined) as ParagraphStyle["textTransform"])}><option value="">Default</option><option value="none">Normal</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalise</option></select></label><label><span>Decoration</span><select value={style.textDecoration ?? ""} onChange={(event) => updateStyle("textDecoration", (event.target.value || undefined) as ParagraphStyle["textDecoration"])}><option value="">Default</option><option value="none">None</option><option value="underline">Underline</option><option value="line-through">Strikethrough</option></select></label></div>
       <div className="inspector-two-column"><label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label><label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label></div>
-      <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} />
+      {block.type !== "button" ? <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} /> : null}
     </InspectorAccordionSection>
     <InspectorAccordionSection className="inspector-panel" title="Background">
       <div className="paragraph-background-modes" role="group" aria-label="Background type"><button type="button" aria-pressed={backgroundMode === "colour"} className={backgroundMode === "colour" ? "is-active" : ""} onClick={() => { setBackgroundMode("colour"); if (style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }}>Colour</button><button type="button" aria-pressed={backgroundMode === "gradient"} className={backgroundMode === "gradient" ? "is-active" : ""} onClick={() => setBackgroundMode("gradient")}>Gradient</button></div>
@@ -549,6 +651,7 @@ function ParagraphInspector({ block, onChange }: { block: Extract<ContentBlock, 
       <ColourSetting label="Colour" value={style.borderColor} onChange={(value) => updateStyle("borderColor", value)} />
       <label><span>Style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option></select></label>
       <div className="inspector-two-column"><label><span>Width</span><input value={style.borderWidth ?? ""} onChange={(event) => updateStyle("borderWidth", event.target.value)} placeholder="1px" /></label><label><span>Radius</span><input value={style.borderRadius ?? ""} onChange={(event) => updateStyle("borderRadius", event.target.value)} placeholder="0" /></label></div>
+      <label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label>
     </InspectorAccordionSection>
     <InspectorAccordionSection className="inspector-panel" title={<>Advanced</>}><label><span>HTML anchor</span><input value={style.anchor ?? ""} onChange={(event) => updateStyle("anchor", event.target.value)} placeholder="section-name" /></label><label><span>Additional CSS class(es)</span><input value={style.className ?? ""} onChange={(event) => updateStyle("className", event.target.value)} placeholder="custom-class" /></label></InspectorAccordionSection>
   </>;

@@ -119,14 +119,14 @@ test("legacy template stores migrate to inheritance-aware format without losing 
   const env = environment(); const model = env.load("studio/template-model.ts"); const editor = env.load("studio/editor-model.ts"); const set = model.createTemplateSet();
   delete set.defaults;
   const migrated = model.validateTemplateStore({ version: "0.1.0", sets: [set], assignments: [] });
-  assert.equal(migrated.version, "0.6.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
+  assert.equal(migrated.version, "0.7.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
   assert.deepEqual(plain(editor.createDocumentFromTemplate("post").blocks), []);
 });
 
-test("template schemas v0.1.0 through v0.5.0 migrate styles without changing the legacy appearance", () => {
+test("template schemas v0.1.0 through v0.6.0 migrate styles without changing the legacy appearance", () => {
   const env = environment(); const m = env.load("studio/template-model.ts");
   const oldStyles = { background: "#F5F4EF", text: "#171A1D", accent: "#3158C9", border: "#D5D3CB", font: "inter", fontSize: 18, spacing: 30, contentWidth: 1200, radius: 10, borderWidth: 2 };
-  const versions = ["0.1.0", "0.2.0", "0.3.0", "0.4.0", "0.5.0"];
+  const versions = ["0.1.0", "0.2.0", "0.3.0", "0.4.0", "0.5.0", "0.6.0"];
   const firstDefault = m.createTemplateSet(); const secondDefault = m.createTemplateSet();
   firstDefault.styles.palette.accent = "#000000";
   assert.equal(secondDefault.styles.palette.accent, "#0088FF");
@@ -134,7 +134,7 @@ test("template schemas v0.1.0 through v0.5.0 migrate styles without changing the
     const set = m.createTemplateSet(); set.styles = structuredClone(oldStyles);
     const store = m.validateTemplateStore({ version, sets: [set], assignments: [] });
     const migrated = store.sets[0].styles;
-    assert.equal(store.version, "0.6.0");
+    assert.equal(store.version, "0.7.0");
     assert.equal(migrated.palette.surface, oldStyles.background);
     assert.equal(migrated.palette.textPrimary, oldStyles.text);
     assert.equal(migrated.palette.accent, oldStyles.accent);
@@ -167,7 +167,7 @@ test("legacy styles migrate in template Bin entries and imports normalise packag
   assert.equal(store.bin[1].setSnapshot.styles.typography.body.size.desktop.value, 1.25);
   const imported = packageFixture(env); imported.version = "0.5.0"; imported.set.styles = structuredClone(oldStyles);
   const normalised = p.validateTemplatePackage(imported);
-  assert.equal(normalised.version, "0.6.0");
+  assert.equal(normalised.version, "0.7.0");
   assert.equal(normalised.set.styles.palette.surface, oldStyles.background);
   assert.equal(normalised.set.styles.typography.body.family, "georgia");
 });
@@ -197,6 +197,37 @@ test("responsive layout options and Spacer blocks validate and survive template 
   assert.equal(layout.hasLayoutOptions({ layout: "stack", gap: 24 }), true);
   const set = templates.createTemplateSet(); set.parts[0].nodes.push(group); templates.validateTemplateSet(set);
   assert.deepEqual(JSON.parse(JSON.stringify(templates.templateNodesFromBlocks(templates.templateEditorBlocks([group]))[0])), group);
+});
+
+test("dedicated Columns presets follow WordPress order and preserve editable columns", () => {
+  const env = environment(); const columns = env.load("content/columns.ts"); const validation = env.load("studio/workspace-validation.ts"); const templates = env.load("studio/template-model.ts");
+  assert.deepEqual(plain(columns.COLUMN_LAYOUT_PRESETS.map(preset => preset.widths)), [[100], [50, 50], [33.333, 66.667], [66.667, 33.333], [33.333, 33.333, 33.334], [25, 50, 25]]);
+  let block = columns.createColumnsBlock("columns", [50, 50]);
+  block.children[0].children.push({ id: "left-copy", type: "paragraph", text: "Left" });
+  block.children[1].children.push({ id: "right-copy", type: "paragraph", text: "Right" });
+  block = columns.setColumnsLayout(block, [33.333, 66.667], index => `column-${index}`);
+  assert.deepEqual(plain(block.children.map(column => column.width)), [33.333, 66.667]);
+  assert.equal(block.children[0].children[0].text, "Left");
+  block = columns.setColumnWidth(block, block.children[0].id, 40);
+  assert.equal(Math.round(block.children.reduce((total, column) => total + column.width, 0)), 100);
+  assert.equal(Math.round(block.children[0].width), 40);
+  const expanded = columns.setColumnCount(block, 3, index => `new-column-${index}`);
+  assert.equal(expanded.children.length, 3);
+  assert.equal(expanded.children[0].children[0].text, "Left");
+  assert.equal(validation.validContentBlocks([expanded]), true);
+  assert.equal(validation.validContentBlocks([expanded.children[0]]), false);
+  expanded.children[2].children.push({ id: "third-copy", type: "paragraph", text: "Keep this too" });
+  const twoColumns = columns.setColumnsLayout(expanded, [50, 50], index => `replacement-${index}`);
+  assert.equal(twoColumns.children.length, 2);
+  assert.equal(twoColumns.children[1].children.at(-1).text, "Keep this too");
+  const oneColumn = columns.setColumnCount(twoColumns, 1, index => `unused-${index}`);
+  assert.equal(oneColumn.children.length, 1);
+  assert.equal(oneColumn.children[0].children.at(-1).text, "Keep this too");
+  const set = templates.createTemplateSet();
+  set.templates[0].nodes.push(templates.templateNodesFromBlocks([expanded])[0]);
+  templates.validateTemplateSet(set);
+  const roundTrip = templates.templateNodesFromBlocks(templates.templateEditorBlocks([expanded]));
+  assert.deepEqual(plain(roundTrip[0]), plain(templates.templateNodesFromBlocks([expanded])[0]));
 });
 
 test("HTML editing serialises layout options and Spacer through the executable block boundary", () => {
@@ -326,12 +357,16 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   set.identity.name = "<script>unsafe</script>";
   set.identity.copyright = "{copyright} {year} {site-title}";
   set.parts[0].nodes.push({ id: m.templateId(), type: "paragraph", text: "Shared note", style: { textColor: "#ff0000" } });
+  set.templates[0].nodes.push({ id: "styled-columns", type: "columns", gap: 16, stackAt: "mobile", style: { textColor: "#123456", backgroundColor: "#eeeeee", padding: "12px", borderStyle: "solid", borderWidth: "2px", borderColor: "#222222", anchor: "columns-anchor", className: "authored-columns" }, children: [{ id: "styled-column", type: "column", width: 100, style: { backgroundColor: "#dddddd", padding: "8px", anchor: "column-anchor", className: "authored-column" }, children: [{ id: "styled-copy", type: "paragraph", text: "Styled column" }] }] });
   const snapshot = { version: m.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
   const html = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc }));
   assert.match(html, /class="template-surface acm-universal-style-preset acm-template-style-/);
   assert.match(html, /@media \(max-width: 1024px\)/);
   assert.match(html, /--acm-type-body-size:20px/);
   assert.match(html, /template-header/); assert.match(html, /template-footer/); assert.match(html, /--template-font-size:1.0625rem/); assert.match(html, /color:#ff0000/); assert.match(html, /Shared note/); assert.match(html, /&lt;script&gt;/); assert.doesNotMatch(html, /<script>/);
+  assert.match(html, /id="columns-anchor" class="template-columns authored-columns"/);
+  assert.match(html, /color:#123456/); assert.match(html, /background-color:#eeeeee/); assert.match(html, /padding:12px/); assert.match(html, /border-width:2px/);
+  assert.match(html, /id="column-anchor" class="template-column authored-column"/); assert.match(html, /background-color:#dddddd/); assert.match(html, /padding:8px/); assert.match(html, /Styled column/);
   assert.match(html, /I make focused products/); assert.doesNotMatch(html, /Edit Header|template-node-select/);
   assert.match(html, new RegExp(`© ${new Date().getFullYear()} &lt;script&gt;unsafe&lt;\\/script&gt;`));
   const edit = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document: doc, editorCanvas: true, editingDocument: true, onDocumentChange() {}, content: createElement("textarea", { "aria-label": "Canonical body" }) }));
@@ -340,6 +375,8 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   assert.match(edit, /Canonical body/); assert.match(edit, /Document title/);
   const post = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents.find(document => document.kind === "post"));
   post.subtitle = "A supporting summary";
+  const metadataBlocks = post.blocks.filter(block => ["post-author", "post-date", "reading-time"].includes(block.type));
+  post.blocks = [...post.blocks.filter(block => !["post-author", "post-date", "reading-time"].includes(block.type)), { id: "metadata-columns", type: "columns", children: [{ id: "metadata-column", type: "column", width: 100, children: metadataBlocks }] }];
   const postHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { ...snapshot, templateId: set.templates.find(template => template.kind === "post").id }, document: post }));
   assert.match(postHtml, /<h1>Building the publishing foundation<\/h1>/);
   assert.match(postHtml, /<p class="template-subtitle">A supporting summary<\/p>/);

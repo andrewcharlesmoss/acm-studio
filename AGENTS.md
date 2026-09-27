@@ -135,11 +135,12 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.6.0 and read versions
-v0.1.0 through v0.5.0. Published local posts retain an immutable design snapshot
+Template packages and stored template contracts use v0.7.0 and read versions
+v0.1.0 through v0.6.0. Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
+Workspace data uses version 8 and reads versions 2–7.
 
 Deleted pages, posts, template entries and unassigned template sets move to the
 local Studio Bin. Keep their assignments, local publication snapshots and

@@ -81,7 +81,7 @@ function countTemplateUsage(nodes: TemplateNode[], set: TemplateSet, wanted: Doc
   for (const node of nodes) {
     if (wanted.displayBlocks?.includes(node.type as ContentBlock["type"])) count++;
     if (node.type === "element" && wanted.templateElements?.includes(node.element)) count++;
-    if (node.type === "group" || node.type === "section") count += countTemplateUsage(node.children, set, wanted);
+    if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column") count += countTemplateUsage(node.children, set, wanted);
     if (node.type === "part") {
       const part = set.parts.find(item => item.id === node.partId);
       if (part) count += countTemplateUsage(part.nodes, set, wanted);

@@ -283,7 +283,7 @@ export function StudioPrototype() {
     const assigned = templateSnapshot?.set.templates.find(template => template.id === templateSnapshot.templateId);
     const createFreshNodeCloner = (partIds: Map<string, string>) => (node: TemplateNode): TemplateNode => {
       const copy = copyTemplateData(node); copy.id = templateId();
-      if (copy.type === "group" || copy.type === "section") copy.children = copy.children.map(createFreshNodeCloner(partIds));
+      if (copy.type === "group" || copy.type === "section" || copy.type === "columns" || copy.type === "column") copy.children = copy.children.map(createFreshNodeCloner(partIds));
       if (copy.type === "part") copy.partId = partIds.get(copy.partId) ?? copy.partId;
       return copy;
     };
@@ -292,7 +292,7 @@ export function StudioPrototype() {
       const referenced = new Set<string>();
       const collect = (nodes: TemplateNode[]) => nodes.forEach(node => {
         if (node.type === "part") { referenced.add(node.partId); return; }
-        if (node.type === "group" || node.type === "section") collect(node.children);
+        if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column") collect(node.children);
       });
       collect(sourceTemplate.nodes);
       const parts: TemplatePart[] = [];
@@ -304,7 +304,7 @@ export function StudioPrototype() {
         const nested = new Set<string>();
         const collectNested = (nodes: TemplateNode[]) => nodes.forEach(node => {
           if (node.type === "part") nested.add(node.partId);
-          else if (node.type === "group" || node.type === "section") collectNested(node.children);
+          else if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column") collectNested(node.children);
         });
         collectNested(part.nodes);
         nested.forEach(clonePart);
@@ -423,8 +423,8 @@ export function StudioPrototype() {
     }
   }
 
-  function insertBlock(type: InsertableBlockType) {
-    const block = blockCommands.insertBlock(type, insertAfterIndex);
+  function insertBlock(type: InsertableBlockType, parentId?: string) {
+    const block = blockCommands.insertBlock(type, insertAfterIndex, parentId);
     setDocumentFieldSelection(null);
     setSelectedBlockId(block.id);
     setInspectorTab("block");

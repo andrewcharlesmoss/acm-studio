@@ -99,7 +99,7 @@ export function validatePostForPublication(document: StudioDocument, documents: 
   const hasContent = (blocks: StudioDocument["blocks"]): boolean => blocks.some((block) => {
     if (block.type === "paragraph" || block.type === "heading" || block.type === "quote") return Boolean(block.text.trim());
     if (block.type === "list") return block.items.some((item) => item.trim());
-    if (block.type === "section" || block.type === "group" || block.type === "component") return hasContent(block.children ?? []);
+    if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") return hasContent(block.children ?? []);
     if (block.type === "reading-time" || block.type === "post-author" || block.type === "post-date" || block.type === "spacer" || block.type === "divider") return false;
     return true;
   });

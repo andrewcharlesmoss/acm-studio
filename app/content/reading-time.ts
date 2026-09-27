@@ -27,6 +27,8 @@ function readingTimeText(blocks: ContentBlock[]): string {
       case "cover-image": return "";
       case "section":
       case "group":
+      case "columns":
+      case "column":
       case "component": return readingTimeText(block.children ?? []);
     }
   }).join(" ");

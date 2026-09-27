@@ -1,0 +1,37 @@
+# Block inspector compatibility
+
+ACM Studio uses Gutenberg as its reference for block settings. The comparison
+below covers every Studio block type available in the editor on 27 September
+2026. WordPress controls vary with its theme, registered block supports and
+media services. Studio stores portable typed blocks and provides local previews;
+these settings do not turn its data into WordPress block markup.
+
+| Studio block | WordPress reference | Studio inspector support | Remaining difference |
+| --- | --- | --- | --- |
+| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; typography, colours, background, dimensions, border, shadow and advanced fields. | WordPress theme presets and custom CSS editor are not imported. |
+| Heading | [Heading](https://wordpress.org/documentation/article/heading-block/) | Level, alignment and shared visual settings. | Transform and rich-text toolbar details remain Studio-specific. |
+| Quote | [Quote](https://wordpress.org/documentation/article/quote-block/) | Attribution, alignment and shared visual settings. | Nested paragraph/citation block editing is not modelled. |
+| List | [List](https://wordpress.org/documentation/article/list-block/) | Bullets or numbers, start value, reverse order and shared visual settings. | Items remain strings rather than individually styled nested List Item blocks; indentation and rich-text item formatting are not yet supported. |
+| Table | [Table](https://wordpress.org/documentation/article/table-block/) | Fixed or adaptive cell widths, header/footer, caption, Default or Stripes style, and shared visual settings. | Cells remain plain text; WordPress cell-level rich text and links are not yet supported. |
+| Code | [Code](https://wordpress.org/documentation/article/code-block/) | Language and shared visual settings. | Language selection and highlighting are Studio additions. |
+| Image | [Image](https://wordpress.org/documentation/article/image-block/) | Source, alternative text or decorative state, caption, link/new-tab target, display width, aspect ratio, cover/contain scale, focal position, margin, border, shadow and advanced fields. | Resolution variants, media-editor crop/rotate/flip, duotone filters and height presets need a managed derivative pipeline; Studio does not offer controls that would falsely imply those files exist. |
+| Embed | [Embed](https://wordpress.org/documentation/article/embed-block/) | Title and URL. | Studio renders a safe resource card, not a provider embed; provider-specific embed and responsive controls remain unsupported. |
+| Button | [Buttons](https://wordpress.org/documentation/article/buttons-block/) | Label, link/new-tab target, primary/secondary appearance and shared visual settings. | Studio has one Button block, not a nested Buttons container; per-state hover/focus/active styles are not modelled. |
+| Divider | [Separator](https://wordpress.org/documentation/article/separator-block/) | Default, wide and dots; colour, margin and advanced fields. | Theme-dependent alignment presets are not imported. |
+| Spacer | [Spacer](https://wordpress.org/documentation/article/spacer-block/) | Height. | Width and advanced anchor/classes are not exposed. |
+| Group | [Group](https://wordpress.org/documentation/article/group-block/) | Stack/row/columns layout, alignment, gap, padding, responsive stacking and shared visual settings. | Gutenberg's theme layout presets are not imported. |
+| Columns and Column | [Columns](https://wordpress.org/documentation/article/columns-block/) | WordPress-ordered layout presets, count, width, vertical alignment, responsive stacking and shared visual settings. | WordPress's theme-specific width and style presets are not imported. |
+| Document Title | [Title](https://wordpress.org/documentation/article/title-block/) | Alignment and shared visual settings. | Title content is owned by document metadata. |
+| Post Author | [Post Author](https://wordpress.org/documentation/article/post-author-block/) | Prefix, avatar, alignment and shared visual settings. | Author identity is owned by document metadata; initials replace a profile image. |
+| Post Date | [Post Date](https://wordpress.org/documentation/article/post-date-block/) | Date format, icon, alignment and shared visual settings. | Source date is owned by document metadata. |
+| Document Subtitle, Reading Time | Studio-specific | Content-specific options plus shared visual settings. | No exact Gutenberg core counterpart. |
+| Section | Studio-specific semantic Group | Layout and shared visual settings. | Section role and source metadata are Studio-owned. |
+| Cover Image | Studio-specific dynamic field | Alignment. | It displays document cover metadata, rather than behaving as Gutenberg's content-bearing Cover block. |
+| Field, Component | Studio-specific | Content or component controls. | No exact Gutenberg core counterpart. |
+| Footnotes | [Footnotes](https://wordpress.org/documentation/article/footnotes-block/) | Notes are edited on the canvas; typography, colours, background, dimensions, border, shadow and advanced fields use the shared inspector. | Studio stores notes in one block rather than Gutenberg's inline-reference structure. |
+
+The shared appearance controls are deliberately limited to the project's
+font stack: Inter, Helvetica Neue, Helvetica and Arial. Existing document
+records and template snapshots keep their previous appearance unless a block
+setting is changed. A WordPress feature in the final column is a compatibility
+gap, not an available control.

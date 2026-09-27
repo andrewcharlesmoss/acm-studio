@@ -8,6 +8,13 @@ const fontSizes: Record<NonNullable<ParagraphStyle["fontSize"]>, string> = {
   "xx-large": "32px",
 };
 
+const fontFamilies: Record<NonNullable<ParagraphStyle["fontFamily"]>, string> = {
+  inter: 'Inter, "Helvetica Neue", Helvetica, Arial, sans-serif',
+  "helvetica-neue": '"Helvetica Neue", Helvetica, Arial, sans-serif',
+  helvetica: 'Helvetica, Arial, sans-serif',
+  arial: 'Arial, sans-serif',
+};
+
 export const PARAGRAPH_BACKGROUND_GRADIENTS: Record<NonNullable<ParagraphStyle["backgroundGradient"]>, string> = {
   sunrise: "linear-gradient(135deg, #fde68a, #fca5a5)",
   ocean: "linear-gradient(135deg, #bae6fd, #a5b4fc)",
@@ -22,11 +29,14 @@ export function paragraphBackgroundGradientCss(gradient: NonNullable<ParagraphSt
 export function paragraphStyleToCss(style?: ParagraphStyle): Record<string, string> {
   if (!style) return {};
   const css: Record<string, string> = {};
+  if (style.fontFamily) css.fontFamily = fontFamilies[style.fontFamily];
   if (style.fontSize) css.fontSize = fontSizes[style.fontSize];
   if (style.appearance === "italic" || style.appearance === "bold-italic") css.fontStyle = "italic";
   if (style.appearance === "bold" || style.appearance === "bold-italic") css.fontWeight = "700";
   if (style.lineHeight) css.lineHeight = style.lineHeight;
   if (style.letterSpacing) css.letterSpacing = style.letterSpacing;
+  if (style.textTransform) css.textTransform = style.textTransform;
+  if (style.textDecoration) css.textDecoration = style.textDecoration;
   if (style.textColor) css.color = style.textColor;
   if (style.backgroundColor) css.backgroundColor = style.backgroundColor;
   if (style.backgroundGradient) css.backgroundImage = paragraphBackgroundGradientCss(style.backgroundGradient);
@@ -39,11 +49,32 @@ export function paragraphStyleToCss(style?: ParagraphStyle): Record<string, stri
     css.borderColor = style.borderColor || "#d1cfc7";
   }
   if (style.borderRadius) css.borderRadius = style.borderRadius;
+  if (style.shadow) css.boxShadow = style.shadow === "soft" ? "0 4px 16px rgb(0 0 0 / 12%)" : style.shadow === "strong" ? "0 12px 32px rgb(0 0 0 / 22%)" : "none";
+  return css;
+}
+
+export function buttonVisualCss(style?: ParagraphStyle): Record<string, string> {
+  const css = paragraphStyleToCss(style);
+  delete css.margin;
   return css;
 }
 
 export function paragraphStyleClassName(style?: ParagraphStyle) {
   return style?.className?.trim().replace(/[^a-zA-Z0-9_-]+/g, " ").trim() || "";
+}
+
+export function visualStyleClassName(style: ParagraphStyle) {
+  return [
+    "block-visual-style",
+    style.fontFamily && "has-custom-font-family",
+    style.fontSize && "has-custom-font-size",
+    style.appearance && "has-custom-appearance",
+    style.lineHeight && "has-custom-line-height",
+    style.letterSpacing && "has-custom-letter-spacing",
+    style.textColor && "has-custom-text-colour",
+    (style.backgroundColor || style.backgroundGradient) && "has-custom-background",
+    paragraphStyleClassName(style),
+  ].filter(Boolean).join(" ");
 }
 
 export function paragraphStyleAnchor(style?: ParagraphStyle) {

@@ -95,7 +95,7 @@ function renderBlock(context: Context, parentRole?: Section["role"], tableFontSi
       const findSize = (items: ContentBlock[]): string | undefined => {
         for (const item of items) {
           if (item.type === "field" && item.siteRole === "table-size") return item.value;
-          if (item.type === "section" || item.type === "group") { const found = findSize(item.children); if (found) return found; }
+          if (item.type === "section" || item.type === "group" || item.type === "columns" || item.type === "column") { const found = findSize(item.children); if (found) return found; }
         }
       };
       const value = findSize(block.children);
@@ -106,7 +106,8 @@ function renderBlock(context: Context, parentRole?: Section["role"], tableFontSi
       const templates = block.children.filter(item => item.type === "section" && item.role === "leaderboard-card");
       const template = templates[0];
       const bind = (item: ContentBlock, player: typeof runtime.model.stats[number]): ContentBlock => {
-        if ("children" in item && item.children) return { ...item, children: item.children.map(child => bind(child, player)) };
+        if (item.type === "columns") return { ...item, children: item.children.map(column => ({ ...column, children: column.children.map(child => bind(child, player)) })) };
+        if ((item.type === "section" || item.type === "group" || item.type === "column" || item.type === "component") && item.children) return { ...item, children: item.children.map(child => bind(child, player)) };
         if (item.type !== "paragraph" && item.type !== "heading") return item;
         let text = item.text;
         if (item.siteRole === "player-name") text = player.name || "Unnamed player";

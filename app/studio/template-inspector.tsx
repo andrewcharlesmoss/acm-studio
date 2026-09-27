@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
 import type { ContentBlock } from "../content/model";
+import { setColumnWidth } from "../content/columns";
 import { BlockInspector } from "./studio-inspectors";
 import { InspectorAccordionSection, InspectorContentDisabledProvider } from "./inspector-accordion";
-import { templateId, templateElementLabel, type TemplateSet, type PageTemplate, type TemplatePart, type SiteLink, type SiteStyles } from "./template-model";
+import { templateId, templateElementLabel, templateEditorBlocks, type TemplateSet, type PageTemplate, type TemplatePart, type SiteLink, type SiteStyles } from "./template-model";
 import { templateCopyrightPlaceholders } from "./template-placeholders";
 
 export function TemplateTextSetting({ label, value, onCommit, placeholder }: { label: string; value: string; onCommit: (value: string) => void; placeholder?: string }) {
@@ -30,6 +31,7 @@ export function TemplateInspector({ set, target, selectedBlock, writable, onChan
   function selectTab(nextTab: typeof tab) { setLocalTab(nextTab); onTabChange?.(nextTab); }
   const element = selectedBlock?.type === "group" ? selectedBlock.data?.templateElement : undefined;
   const partId = selectedBlock?.type === "group" ? selectedBlock.data?.templatePart : undefined;
+  const selectedColumnParent = selectedBlock?.type === "column" ? findColumnsParent(templateEditorBlocks(target.nodes), selectedBlock.id) : undefined;
   const templateTarget = target.kind === "page" || target.kind === "post" ? target : undefined;
   const defaults = templateTarget?.defaults ?? set.defaults ?? {};
   const changeDefaults = (next: NonNullable<TemplateSet["defaults"]>) => onChange(templateTarget ? { ...set, templates: set.templates.map(template => template.id === templateTarget.id ? { ...template, defaults: next } : template) } : { ...set, defaults: next });
@@ -41,7 +43,7 @@ export function TemplateInspector({ set, target, selectedBlock, writable, onChan
   return <aside className="studio-inspector template-inspector">
     <div className="pane-tabs inspector-tabs" role="tablist" aria-label="Template settings">{(["template", "block", "styles"] as const).map(item => <button type="button" key={item} role="tab" aria-selected={tab === item} className={tab === item ? "is-active" : ""} onClick={() => selectTab(item)}><span className="pane-tab-label">{item === "template" ? "Template" : item === "block" ? "Block" : "Styles"}</span></button>)}</div>
     <div className="inspector-scroll"><InspectorContentDisabledProvider disabled={!writable}>
-      {tab === "block" ? selectedBlock ? element ? <InspectorAccordionSection contentDisabled={!writable} title={templateElementLabel(String(element))}><p>Content is supplied by the preview document or site identity.</p><label>Alignment<select value={String(selectedBlock.type === "group" ? selectedBlock.data?.align ?? "left" : "left")} onChange={event => onBlockChange({ ...selectedBlock, data: { ...(selectedBlock.type === "group" ? selectedBlock.data : {}), align: event.target.value } } as ContentBlock)}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : partId ? <InspectorAccordionSection contentDisabled={!writable} title="Shared part"><label>Part<select value={String(partId)} onChange={event => onBlockChange({ ...selectedBlock, data: { templatePart: event.target.value } } as ContentBlock)}>{set.parts.map(part => <option value={part.id} key={part.id}>{part.name}</option>)}</select></label><button type="button" onClick={() => onEditPart(String(partId))}>Edit {set.parts.find(part => part.id === partId)?.name}</button></InspectorAccordionSection> : <BlockInspector block={selectedBlock} onChange={onBlockChange} onOpenFiles={() => onOpenMedia()} canOpenFiles /> : <p>Select a block in the canvas or List View.</p> : tab === "styles" ? <>
+      {tab === "block" ? selectedBlock ? element ? <InspectorAccordionSection contentDisabled={!writable} title={templateElementLabel(String(element))}><p>Content is supplied by the preview document or site identity.</p><label>Alignment<select value={String(selectedBlock.type === "group" ? selectedBlock.data?.align ?? "left" : "left")} onChange={event => onBlockChange({ ...selectedBlock, data: { ...(selectedBlock.type === "group" ? selectedBlock.data : {}), align: event.target.value } } as ContentBlock)}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : partId ? <InspectorAccordionSection contentDisabled={!writable} title="Shared part"><label>Part<select value={String(partId)} onChange={event => onBlockChange({ ...selectedBlock, data: { templatePart: event.target.value } } as ContentBlock)}>{set.parts.map(part => <option value={part.id} key={part.id}>{part.name}</option>)}</select></label><button type="button" onClick={() => onEditPart(String(partId))}>Edit {set.parts.find(part => part.id === partId)?.name}</button></InspectorAccordionSection> : <BlockInspector block={selectedBlock} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={() => onOpenMedia()} canOpenFiles /> : <p>Select a block in the canvas or List View.</p> : tab === "styles" ? <>
         <InspectorAccordionSection contentDisabled={!writable} title="Semantic colours"><p>Applies to every template in {set.name}. Explicit block styles take precedence.</p>
           {([ ["surface", "Surface"], ["surfaceRaised", "Raised surface"], ["surfaceSubtle", "Subtle surface"], ["textPrimary", "Primary text"], ["textSecondary", "Secondary text"], ["border", "Border"], ["accent", "Accent"], ["onAccent", "Text on accent"], ["success", "Success"], ["information", "Information"], ["alert", "Alert"], ["warning", "Warning"], ["rating", "Rating"] ] as [keyof SiteStyles["palette"], string][]).map(([key, label]) => <label key={key}>{label}<input type="color" value={set.styles.palette[key]} onChange={event => changePalette(key, event.target.value)} /></label>)}
         </InspectorAccordionSection>
@@ -70,4 +72,20 @@ export function TemplateInspector({ set, target, selectedBlock, writable, onChan
       </>}
     </InspectorContentDisabledProvider></div>
   </aside>;
+}
+
+function findColumnsParent(blocks: ContentBlock[], columnId: string): Extract<ContentBlock, { type: "columns" }> | undefined {
+  for (const block of blocks) {
+    if (block.type === "columns") {
+      if (block.children.some(column => column.id === columnId)) return block;
+      for (const column of block.children) {
+        const nested = findColumnsParent(column.children, columnId);
+        if (nested) return nested;
+      }
+    } else if ((block.type === "group" || block.type === "section" || block.type === "column" || block.type === "component") && block.children) {
+      const nested = findColumnsParent(block.children, columnId);
+      if (nested) return nested;
+    }
+  }
+  return undefined;
 }

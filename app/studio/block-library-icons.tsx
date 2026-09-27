@@ -11,6 +11,7 @@ type BlockSymbol = SharedSymbol | StudioSymbol;
 const blockSymbols: Record<BlockLibraryItemType, BlockSymbol> = {
   "template-content": { source: "ACM Studio", symbol: "block" },
   group: { source: "ACM Icons", symbol: "arrange.group" },
+  columns: { source: "ACM Icons", symbol: "layout.columns" },
   section: { source: "ACM Studio", symbol: "block" },
   paragraph: { source: "ACM Icons", symbol: "text.paragraph" },
   heading: { source: "ACM Studio", symbol: "heading-marker" },

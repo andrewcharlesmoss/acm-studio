@@ -38,6 +38,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   const [showInserter, setShowInserter] = useState(false);
   const [query, setQuery] = useState("");
   const [insertAfter, setInsertAfter] = useState<number | null>(null);
+  const [inserterParentId, setInserterParentId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
   const blocks = templateEditorBlocks(target.nodes);
   // Metadata blocks are ordinary dynamic blocks and can be placed in a
@@ -100,16 +101,27 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   function insertNode(node: TemplateNode) {
     if (!writable) return;
     const projected = templateEditorBlocks([node])[0];
-    if (selectedBlock?.type === "group" && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart) commands.updateBlock(selectedBlock.id, block => block.type === "group" ? { ...block, children: [...block.children, projected] } : block);
+    if ((selectedBlock?.type === "group" || selectedBlock?.type === "column") && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart) commands.updateBlock(selectedBlock.id, block => block.type === "group" || block.type === "column" ? { ...block, children: [...block.children, projected] } : block);
     else {
       const next = [...target.nodes]; next.splice(insertAfter === null ? next.length : insertAfter + 1, 0, node); updateNodes(next);
     }
     setSelected(node.id); setShowInserter(false); setQuery("");
     return projected;
   }
-  function insertBlock(type: BlockLibraryItemType) {
-    if (type === "template-content") return insertNode({ id: templateId(), type: "element", element: "content" })!;
-    const block = createBlock(type, templateId()); insertNode(templateNodesFromBlocks([block])[0]); return block;
+  function insertBlock(type: BlockLibraryItemType, parentId?: string) {
+    const node = type === "template-content" ? { id: templateId(), type: "element" as const, element: "content" as const } : templateNodesFromBlocks([createBlock(type, templateId())])[0];
+    const projected = templateEditorBlocks([node])[0];
+    const parent = parentId ? findBlockById(blocks, parentId) : undefined;
+    if (parent && (parent.type === "group" || parent.type === "column") && !parent.data?.templateElement && !parent.data?.templatePart) {
+      commands.updateBlock(parent.id, block => block.type === "group" || block.type === "column" ? { ...block, children: [...block.children, projected] } : block);
+      setSelected(parent.id); setShowInserter(false); setQuery(""); setInserterParentId(null);
+      return projected;
+    }
+    setInserterParentId(null);
+    return insertNode(node);
+  }
+  function openNestedInserter(parentId: string) {
+    setInsertAfter(null); setQuery(""); setInserterParentId(parentId); setShowInserter(true);
   }
   const users: string[] = [];
   for (const template of set.templates) {
@@ -138,15 +150,16 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: templateBlockCatalogue.filter(block => `${block.label} ${block.description}`.toLowerCase().includes(query.toLowerCase())), publishFeedback: null,
       presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => <TemplateSurface set={set} editing={context.mode === "edit"} editorCanvas={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>, renderBlock: context => {
         if (!context.block) return null;
-        const previewDynamicPlaceholder = context.mode === "preview" && ["document-title", "document-subtitle"].includes(context.block.type);
-        if (!["group", "section", "cover-image"].includes(context.block.type)) return context.mode === "edit" && writable || previewDynamicPlaceholder
-          ? <BlockField block={context.block} rootBlocks={resolvedSample.blocks} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} templatePlaceholder selectedBlockId={selected} mediaUrl={context.block.type === "image" && context.block.mediaId ? mediaUrls[context.block.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onSplitParagraph={splitParagraph} onSplitParagraphs={splitParagraphs} onChange={block => commands.updateBlock(block.id, () => block)} />
-          : <BlockRenderer blocks={[context.block]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={templatePreviewDocument} readingTimeBlocks={templatePreviewDocument.blocks} />;
+        const currentBlock = context.block;
+        const previewDynamicPlaceholder = context.mode === "preview" && ["document-title", "document-subtitle"].includes(currentBlock.type);
+        if (!["group", "section", "cover-image"].includes(currentBlock.type)) return context.mode === "edit" && writable || previewDynamicPlaceholder
+          ? <BlockField block={currentBlock} rootBlocks={resolvedSample.blocks} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} templatePlaceholder selectedBlockId={selected} mediaUrl={currentBlock.type === "image" && currentBlock.mediaId ? mediaUrls[currentBlock.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onSplitParagraph={splitParagraph} onSplitParagraphs={splitParagraphs} onOpenNestedInserter={openNestedInserter} onChange={block => commands.updateBlock(block.id, () => block)} />
+          : <BlockRenderer blocks={[currentBlock]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={templatePreviewDocument} readingTimeBlocks={templatePreviewDocument.blocks} />;
         const contentSlot = <div className="template-content-slot" role="note" aria-label="Content slot"><strong>Content</strong><span>Supplied by each document</span></div>;
-        const sourceNode = context.block.type === "cover-image" ? findTemplateNode(context.block.id) : undefined;
-        const nodes = sourceNode ? [sourceNode] : templateNodesFromBlocks([context.block]);
-        return <TemplateNodes key={context.block.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={nodes} mediaUrls={mediaUrls} content={contentSlot} editingDocument={context.mode === "edit" && writable} templatePreview={context.mode === "preview"} onChangeCover={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => onOpenMedia(context.block.id) : undefined} onRemoveCoverImage={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => clearCoverImage(context.block.id) : undefined} onRemoveCoverBlock={context.mode === "edit" && writable && context.block.type === "cover-image" ? () => commands.removeBlock(context.block.id) : undefined} onEditPart={context.mode === "edit" ? onEditPart : undefined}
-          renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={node as ContentBlock} rootBlocks={resolvedSample.blocks} document={resolvedSample} templatePlaceholder selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onSplitParagraph={splitParagraph} onSplitParagraphs={splitParagraphs} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
+        const sourceNode = currentBlock.type === "cover-image" ? findTemplateNode(currentBlock.id) : undefined;
+        const nodes = sourceNode ? [sourceNode] : templateNodesFromBlocks([currentBlock]);
+        return <TemplateNodes key={currentBlock.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={nodes} mediaUrls={mediaUrls} content={contentSlot} editingDocument={context.mode === "edit" && writable} templatePreview={context.mode === "preview"} onChangeCover={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => onOpenMedia(currentBlock.id) : undefined} onRemoveCoverImage={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => clearCoverImage(currentBlock.id) : undefined} onRemoveCoverBlock={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => commands.removeBlock(currentBlock.id) : undefined} onEditPart={context.mode === "edit" ? onEditPart : undefined}
+          renderOrdinary={context.mode === "edit" && writable ? node => <BlockField block={templateEditorBlocks([node])[0] as ContentBlock} rootBlocks={resolvedSample.blocks} document={resolvedSample} templatePlaceholder selectedBlockId={selected} mediaUrl={node.type === "image" && node.mediaId ? mediaUrls[node.mediaId] : undefined} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} onSplitParagraph={splitParagraph} onSplitParagraphs={splitParagraphs} onOpenNestedInserter={openNestedInserter} onChange={block => commands.updateBlock(block.id, () => block)} /> : undefined}
           decorate={context.mode === "edit" ? (node, result) => {
             if (!findBlockById(blocks, node.id)) return result;
             const label = node.type === "element" ? templateElementLabel(node.element) : node.type === "part" ? "Shared Part" : templateElementLabel(node.type);
@@ -170,6 +183,6 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
             return selectionFrame;
           } : undefined} />;
       } },
-      onOpenInserter: (index, search = "") => { setInsertAfter(index); setQuery(search); setShowInserter(true); }, onSetPublishFeedback: () => {}, onDocumentFieldChange: () => {}, onApplyDocumentCode: () => {}, onFocusDocumentField: () => {}, onOpenCoverMediaLibrary: () => {}, onRemoveCoverImage: () => {}, onSelectBlock: setSelected, onClearBlockSelection: () => setSelected(null), onSetDragOverIndex: setDragOver, onMoveBlockTo: commands.moveBlockTo, onMoveBlock: commands.moveBlock, onDuplicateBlock: commands.duplicateBlock, onRemoveBlock: commands.removeBlock, onUpdateBlock: commands.updateBlock, onSplitParagraph: splitParagraph, onMergeParagraphBackward: (id) => { const merged = commands.mergeParagraphBackward(id); if (merged) setSelected(merged.blockId); return merged; }, onSplitParagraphs: splitParagraphs, onInsertBlock: insertBlock, onSetShowInserter: setShowInserter, onSetInserterQuery: setQuery,
+      onOpenInserter: (index, search = "", parentId) => { setInsertAfter(index); setQuery(search); setInserterParentId(parentId ?? null); setShowInserter(true); }, onSetPublishFeedback: () => {}, onDocumentFieldChange: () => {}, onApplyDocumentCode: () => {}, onFocusDocumentField: () => {}, onOpenCoverMediaLibrary: () => {}, onRemoveCoverImage: () => {}, onSelectBlock: setSelected, onClearBlockSelection: () => setSelected(null), onSetDragOverIndex: setDragOver, onMoveBlockTo: commands.moveBlockTo, onMoveBlock: commands.moveBlock, onDuplicateBlock: commands.duplicateBlock, onRemoveBlock: commands.removeBlock, onUpdateBlock: commands.updateBlock, onSplitParagraph: splitParagraph, onMergeParagraphBackward: (id) => { const merged = commands.mergeParagraphBackward(id); if (merged) setSelected(merged.blockId); return merged; }, onSplitParagraphs: splitParagraphs, onInsertBlock: (type) => insertBlock(type, inserterParentId ?? undefined), onSetShowInserter: setShowInserter, onSetInserterQuery: setQuery,
     }} />;
 }

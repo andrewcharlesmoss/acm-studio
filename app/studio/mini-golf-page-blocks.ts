@@ -6,7 +6,7 @@ const source = { module: "mini-golf-scorecard/app/page", exportName: "Home", rev
 /** Expand only pre-v7 page drafts: subsequent deletions are authored state. */
 export function completeMiniGolfPage(blocks: ContentBlock[], title: string, subtitle: string): ContentBlock[] {
   const ids = new Set<string>();
-  const collect = (items: ContentBlock[]) => items.forEach((item) => { ids.add(item.id); if (item.type === "section" || item.type === "group" || item.type === "component") collect(item.children ?? []); });
+  const collect = (items: ContentBlock[]) => items.forEach((item) => { ids.add(item.id); if (item.type === "section" || item.type === "group" || item.type === "columns" || item.type === "column" || item.type === "component") collect(item.children ?? []); });
   collect(blocks);
   const id = (preferred: string) => { let value = preferred; let suffix = 2; while (ids.has(value)) value = `${preferred}-${suffix++}`; ids.add(value); return value; };
   const paragraph = (key: string, text: string, siteRole?: SiteContentRole): ContentBlock => ({ id: id(key), type: "paragraph", text, siteRole });
@@ -56,6 +56,8 @@ export function completeMiniGolfPage(blocks: ContentBlock[], title: string, subt
 /** Upgrade former renderer conventions without overwriting authored changes. */
 export function applyMiniGolfSourceContract(blocks: ContentBlock[], staging: boolean, updateLegacyDefaults = true): ContentBlock[] {
   return blocks.map((block) => {
+    if (block.type === "columns") return { ...block, children: block.children.map(column => ({ ...column, children: applyMiniGolfSourceContract(column.children, staging, updateLegacyDefaults) })) };
+    if (block.type === "column") return { ...block, children: applyMiniGolfSourceContract(block.children, staging, updateLegacyDefaults) };
     if (block.type !== "section" && block.type !== "group" && block.type !== "component") return block;
     const children = applyMiniGolfSourceContract(block.children ?? [], staging, updateLegacyDefaults).map((child): ContentBlock => {
       if (updateLegacyDefaults && block.type === "section" && block.role === "setup" && child.type === "button" && !child.siteRole && /(?:^|-)new-game$/.test(child.id)) return { ...child, siteRole: "new-game" };
@@ -73,7 +75,11 @@ export function applyMiniGolfSourceContract(blocks: ContentBlock[], staging: boo
 /** Add stable runtime bindings without changing authored values or structure. */
 export function bindMiniGolfRuntime(blocks: ContentBlock[]): ContentBlock[] {
   return blocks.map(block => {
-    const next = "children" in block && block.children ? { ...block, children: bindMiniGolfRuntime(block.children) } : block;
+    const next = block.type === "columns"
+      ? { ...block, children: block.children.map(column => ({ ...column, children: bindMiniGolfRuntime(column.children) })) }
+      : (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component") && block.children
+        ? { ...block, children: bindMiniGolfRuntime(block.children) }
+        : block;
     if (next.siteRole === "metric-value") {
       const role = next.id.includes("-metric-1-") ? "metric-average" : next.id.includes("-metric-2-") ? "metric-deviation" : next.id.includes("-metric-3-") ? "metric-holes" : null;
       return role ? { ...next, siteRole: role } : next;

@@ -46,7 +46,7 @@ export function documentText(block: ContentBlock): string {
   if (block.type === "embed") return block.title;
   if (block.type === "image") return block.caption ?? "";
   if (block.type === "table") return block.rows.flat().join(" ");
-  if (block.type === "section" || block.type === "group") return block.children.map(documentText).join(" ");
+  if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column") return block.children.map(documentText).join(" ");
   if (block.type === "component") return Object.values(block.data ?? {}).flatMap((item) => Array.isArray(item) ? item : [item]).join(" ");
   return "";
 }

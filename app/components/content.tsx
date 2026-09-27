@@ -2,12 +2,14 @@ import { Fragment, type ReactNode } from "react";
 import katex from "katex";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
-import { normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
+import { listNumber, normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { safeMathMLMarkup } from "../content/mathml";
-import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
+import { buttonVisualCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
+import { columnsLayoutStyle } from "../content/columns";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
+import { imageDisplayStyle } from "../content/image-style";
 import { ArticleMetaIcon } from "./article-meta-icon";
 import { StudioIcon } from "../studio/studio-icons";
 
@@ -57,11 +59,17 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
   function collectFootnoteNumbers(source: ContentBlock[]) {
     for (const block of source) {
       if (block.type === "footnotes") block.notes.forEach((note) => footnoteNumbers.set(note.id, nextFootnoteNumber++));
-      if ((block.type === "section" || block.type === "group" || block.type === "component") && block.children) collectFootnoteNumbers(block.children);
+      if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") && block.children) collectFootnoteNumbers(block.children);
     }
   }
   collectFootnoteNumbers(blocks);
   function renderBlock(block: ContentBlock) {
+    const content = renderBlockContent(block);
+    if (!block.visualStyle) return content;
+    const style = block.visualStyle;
+    return <div key={block.id} id={paragraphStyleAnchor(style)} className={visualStyleClassName(style)} style={block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : undefined) : paragraphStyleToCss(style)}>{content}</div>;
+  }
+  function renderBlockContent(block: ContentBlock) {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
         if (block.type === "paragraph") return <p id={paragraphStyleAnchor(block.style)} className={`${studio ? "block-textarea paragraph-field preview-rich-text " : ""}align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} key={block.id}>{renderText(block.text, block.runs, mediaUrls, footnoteNumbers)}</p>;
         if (block.type === "heading") {
@@ -77,10 +85,10 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         }
         if (block.type === "list") {
           const items = block.items.map((item, index) => studio
-            ? <li className="list-field-row" key={index}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${index + 1}.` : "•"}</span><span className="list-item-text">{item}</span></li>
+            ? <li className="list-field-row" key={index}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? `${listNumber(block, index)}.` : "•"}</span><span className="list-item-text">{item}</span></li>
             : <li key={index}>{item}</li>);
           return block.style === "ordered"
-            ? <ol className={studio ? "list-field-preview" : undefined} key={block.id}>{items}</ol>
+            ? <ol className={studio ? "list-field-preview" : undefined} start={block.start} reversed={block.reversed || undefined} key={block.id}>{items}</ol>
             : <ul className={studio ? "list-field-preview" : undefined} key={block.id}>{items}</ul>;
         }
         if (block.type === "table") return <ContentTable block={block} key={block.id} />;
@@ -92,13 +100,13 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           const imageSource = block.mediaId
             ? safeImageSource(mediaUrls[block.mediaId] ?? "", { allowBlob: true })
             : safeImageSource(block.src);
+          const imageLink = block.linkUrl ? safeTextLink(block.linkUrl) : null;
+          // Sample and local editor content use externally supplied image URLs only.
+          // eslint-disable-next-line @next/next/no-img-element
+          const image = imageSource ? <img src={imageSource} alt={block.decorative ? "" : block.alt} title={block.title} style={imageDisplayStyle(block)} /> : null;
           return (
             <figure key={block.id} className={`${studio ? "image-field" : "article-image"}${block.wide ? " is-wide" : ""}`}>
-              {imageSource ? (
-                // Sample and local editor content use externally supplied image URLs only.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imageSource} alt={block.alt} />
-              ) : studio ? <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div> : <div className="image-placeholder" role="img" aria-label={block.alt || "Image placeholder"}>Image</div>}
+              {image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined}>{image}</a> : image) : studio ? <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div> : <div className="image-placeholder" role="img" aria-label={block.alt || "Image placeholder"}>Image</div>}
               {block.caption ? <figcaption>{block.caption}</figcaption> : null}
             </figure>
           );
@@ -113,7 +121,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         );
         if (block.type === "button") return (
           <p className={studio ? "button-field" : "button-block"} key={block.id}>
-            {blockUrl ? <a className={`content-button is-${block.style}`} href={blockUrl}>{block.label}</a> : <span className={`content-button is-${block.style}`}>{block.label}</span>}
+            {blockUrl ? <a className={`content-button is-${block.style}`} style={buttonVisualCss(block.visualStyle)} href={blockUrl} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined}>{block.label}</a> : <span className={`content-button is-${block.style}`} style={buttonVisualCss(block.visualStyle)}>{block.label}</span>}
           </p>
         );
         if (block.type === "field") return <label className="content-field" key={block.id}><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled><option>{block.value}</option></select> : <input value={block.value} readOnly />}</label>;
@@ -147,9 +155,11 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         }
         if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child)}</div>)}</section>;
         if (block.type === "group") return <div className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((child) => renderBlock(child))}</div>;
+        if (block.type === "columns") return <div id={paragraphStyleAnchor(block.style)} className={`content-columns${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...columnsLayoutStyle(block), ...paragraphStyleToCss(block.style) }} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((column) => renderBlock(column))}</div>;
+        if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`content-column${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }} key={block.id}>{block.children.map((child) => renderBlock(child))}</div>;
         if (block.type === "spacer") return <div className="content-spacer" style={{ height: `${block.height}px` }} aria-hidden="true" key={block.id} />;
         if (block.type === "component") return null;
-        return studio ? <div className="divider-field" key={block.id}><hr className="content-divider" /></div> : <hr className="content-divider" key={block.id} />;
+        return studio ? <div className="divider-field" key={block.id}><hr className={`content-divider is-${block.style ?? "default"}`} /></div> : <hr className={`content-divider is-${block.style ?? "default"}`} key={block.id} />;
   }
   return (
     <div className={studio ? "studio-block-preview" : "prose"}>
@@ -193,9 +203,10 @@ function ContentTable({ block }: { block: Extract<ContentBlock, { type: "table" 
   }
 
   return (
-    <div className="content-table-frame">
-      <table className="content-table">
-        <colgroup>{columnWidths.map((width, index) => <col key={`column-${index}`} style={{ width: `${width}%` }} />)}</colgroup>
+    <div className={`content-table-frame${block.tableStyle === "stripes" ? " is-striped" : ""}`}>
+      <table className={`content-table${block.fixedWidth === false ? " is-auto-layout" : ""}`}>
+        {block.caption ? <caption>{block.caption}</caption> : null}
+        {block.fixedWidth !== false ? <colgroup>{columnWidths.map((width, index) => <col key={`column-${index}`} style={{ width: `${width}%` }} />)}</colgroup> : null}
         {headerRows.length ? <thead>{headerRows.map((row, index) => renderRow(row, index, true))}</thead> : null}
         <tbody>{normalisedRows.slice(bodyStart, bodyEnd).map((row, index) => renderRow(row, index + bodyStart))}</tbody>
         {footerRows.length ? <tfoot>{footerRows.map((row, index) => renderRow(row, normalisedRows.length - footerRows.length + index))}</tfoot> : null}
