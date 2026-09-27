@@ -1059,7 +1059,7 @@ export function BlockField(props: BlockFieldProps) {
 function BlockFieldContent({ block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onOpenNestedInserter, onChange }: BlockFieldProps) {
   const documentContext: DocumentRenderContext = document ?? { kind: "page" };
   if (block.type === "paragraph") return <RichTextEditor mediaUrls={mediaUrls} id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={paragraphStyleToCss(block.style) as React.CSSProperties} fitText={block.style?.fitText} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph ? (beforeRuns, afterRuns) => onSplitParagraph(block.id, beforeRuns, afterRuns) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
-  if (block.type === "heading") return <RichTextEditor mediaUrls={mediaUrls} className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}`} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
+  if (block.type === "heading") return <RichTextEditor mediaUrls={mediaUrls} className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}${block.visualStyle?.fitText ? " has-fit-text" : ""}`} fitText={block.visualStyle?.fitText} fitTextSignature={JSON.stringify(block.visualStyle ?? {})} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Heading" aria-label="Heading text" />;
   if (block.type === "quote") return <div className={`quote-field align-${block.align ?? "left"}${block.quoteStyle === "plain" ? " is-style-plain" : ""}`}><RichTextEditor mediaUrls={mediaUrls} className="block-textarea" text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} aria-label="Quote text" />{block.attribution ? <span>— {block.attribution}</span> : null}</div>;
   if (block.type === "list") return <ListField block={block} onChange={onChange} />;
   if (block.type === "table") return <TableField block={block} onCellFocus={onTableCellFocus} onChange={onChange} />;
@@ -1167,6 +1167,7 @@ function CodeEditor({ value, language, onChange }: { value: string; language?: s
 
 export type RichTextEditorProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
   fitText?: boolean;
+  fitTextSignature?: string;
   as?: "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "span" | "dt" | "dd";
   text: string;
   runs?: RichTextRun[];
@@ -1179,12 +1180,12 @@ export type RichTextEditorProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   onSplitParagraphs?: (paragraphs: RichTextRun[][]) => string[] | null;
 };
 
-export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls = {}, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onKeyDown: onKeyDownProp, className, fitText = false, ...props }: RichTextEditorProps) {
+export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls = {}, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onKeyDown: onKeyDownProp, className, fitText = false, fitTextSignature = "", ...props }: RichTextEditorProps) {
   const Tag = elementName as "div";
   const editorRef = useRef<HTMLDivElement>(null);
   const normalizationAttemptRef = useRef<string | null>(null);
   const renderedRuns = runs?.length ? runs : textToRuns(text);
-  useFitText(editorRef, fitText, typeof props.style?.fontSize === "string" ? props.style.fontSize : "", `${text}|${className}|${props.style?.fontFamily}|${props.style?.fontWeight}|${props.style?.fontStyle}|${props.style?.letterSpacing}|${props.style?.lineHeight}`);
+  useFitText(editorRef, fitText, typeof props.style?.fontSize === "string" ? props.style.fontSize : "", `${text}|${className}|${fitTextSignature}|${props.style?.fontFamily}|${props.style?.fontWeight}|${props.style?.fontStyle}|${props.style?.letterSpacing}|${props.style?.lineHeight}`);
 
   useLayoutEffect(() => {
     const editor = editorRef.current;

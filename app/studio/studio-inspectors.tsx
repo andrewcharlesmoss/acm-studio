@@ -637,7 +637,8 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     { id: "line-height", label: "Line height" }, { id: "letter-spacing", label: "Letter spacing" },
     ...(block.type === "paragraph" ? [{ id: "line-indent", label: "Line indent" }, { id: "columns", label: "Columns" }] : []),
     { id: "decoration", label: "Decoration" }, { id: "letter-case", label: "Letter case" },
-    ...(block.type === "paragraph" ? [{ id: "drop-cap", label: "Drop cap" }, { id: "fit-text", label: "Fit text" }] : []),
+    ...(block.type === "paragraph" ? [{ id: "drop-cap", label: "Drop cap" }] : []),
+    ...(block.type === "paragraph" || block.type === "heading" ? [{ id: "fit-text", label: "Fit text" }] : []),
     { id: "family", label: "Font family" },
   ];
   const dimensionOptions: InspectorToolOption[] = [{ id: "padding", label: "Padding" }, { id: "margin", label: "Margin" }];

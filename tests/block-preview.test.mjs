@@ -202,6 +202,15 @@ test("the public article renderer remains independent of the Studio presentation
   assert.doesNotMatch(html, /studio-block-preview|heading-field|content-block/);
 });
 
+test("Heading Fit text reaches Studio and public renderers without exposing measurement props", () => {
+  const block = { id: "heading-fit", type: "heading", level: 2, text: "A fitted heading", visualStyle: { fitText: true, fontFamily: "inter" } };
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
+    assert.match(html, /<h2 class="[^"]*has-fit-text">A fitted heading<\/h2>/);
+    assert.doesNotMatch(html, /styleSignature|fitTextSignature/);
+  }
+});
+
 test("Plain quotes keep their text alignment in Studio and public previews", () => {
   const block = { id: "quote", type: "quote", text: "A considered thought", attribution: "Author", align: "centre", quoteStyle: "plain" };
   for (const variant of ["studio", "article"]) {

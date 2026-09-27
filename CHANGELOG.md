@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added Heading Fit text using the existing measured typography control.
 - Added captions to Embed blocks across Edit, Preview and HTML editing.
 - Added Paragraph Fit text, measured in Edit, Preview and published rendering.
 - Added Gutenberg-style optional appearance menus and per-section resets to

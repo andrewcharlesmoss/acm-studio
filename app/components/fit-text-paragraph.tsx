@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, type CSSProperties, type ReactNode, type RefObject } from "react";
+import type { HeadingLevel } from "../content/model";
 
 const MIN_FIT_SIZE = 13;
 const MAX_FIT_SIZE = 120;
@@ -82,4 +83,11 @@ export function FitTextParagraph({ id, className, style, children }: { id?: stri
   const ref = useRef<HTMLParagraphElement>(null);
   useFitText(ref, true, "", `${className}|${style?.fontFamily}|${style?.fontWeight}|${style?.fontStyle}|${style?.letterSpacing}|${style?.lineHeight}`);
   return <p ref={ref} id={id} className={className} style={style}>{children}</p>;
+}
+
+export function FitTextHeading({ level, className, styleSignature, children }: { level: HeadingLevel; className: string; styleSignature: string; children: ReactNode }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  useFitText(ref, true, "", `${className}|${styleSignature}`);
+  const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+  return <Tag ref={ref} className={className}>{children}</Tag>;
 }

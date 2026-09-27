@@ -27,7 +27,7 @@ import remains future work, not a capability supplied by this inspector review.
 | Studio block | WordPress reference | Studio inspector support | Remaining difference |
 | --- | --- | --- | --- |
 | Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; optional Typography, Dimensions, Border and Elements controls with per-section Reset all; background, line indent, text columns, drop cap, fit text and advanced fields. | WordPress theme presets and custom CSS editor are not yet supported. |
-| Heading | [Heading](https://wordpress.org/documentation/article/heading-block/) | Level, alignment and shared visual settings. | Transform and rich-text toolbar details remain Studio-specific. |
+| Heading | [Heading](https://wordpress.org/documentation/article/heading-block/) | Level, alignment, Fit text and shared visual settings. | Gutenberg's text shadow and writing mode, theme presets, block-wide/full alignment, and some toolbar details remain unsupported. |
 | Quote | [Quote](https://wordpress.org/documentation/article/quote-block/) | Attribution, text alignment, Default or Plain style, and shared visual settings. | Gutenberg's separate block alignment (including wide/full), background images and multi-paragraph quote editing are not modelled. |
 | List | [List](https://wordpress.org/documentation/article/list-block/) | Bullets or numbers, start value, reverse order and shared visual settings. | Items remain strings rather than individually styled nested List Item blocks; indentation and rich-text item formatting are not yet supported. |
 | Table | [Table](https://wordpress.org/documentation/article/table-block/) | Fixed or adaptive cell widths, header/footer, caption, Default or Stripes style, and shared visual settings. | Cells remain plain text; WordPress cell-level rich text and links are not yet supported. |
@@ -60,7 +60,7 @@ control. Removing it clears that setting from the block; Reset all clears the
 section's visible settings together. Studio keeps its own neutral colour
 palette. Paragraph line indent and text columns use CSS properties, and drop
 cap uses the first-letter treatment in both editing and rendered output.
-Fit text measures the paragraph at its available width after rendering, then
+Fit text measures a Paragraph or Heading at its available width after rendering, then
 updates its size when the text, font or width changes. It fits short text on one
 line and bounds the size between 13px and 120px; longer text wraps at the
 minimum size instead of overflowing. It temporarily takes

@@ -741,7 +741,7 @@ button, input, textarea, select { font: inherit; }
 .block-visual-style.has-custom-appearance :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-style: inherit; font-weight: inherit; }
 .block-visual-style.has-custom-text-colour :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { color: inherit; }
 .has-drop-cap:is(p, .paragraph-field)::first-letter { float: left; font-size: 3.4em; font-weight: 600; line-height: .82; margin: .04em .12em 0 0; }
-.has-fit-text:is(p, .paragraph-field) { white-space: pre; word-break: normal; }
+.has-fit-text:is(p, .paragraph-field, .heading-field, h1, h2, h3, h4, h5, h6) { white-space: pre; word-break: normal; }
 .has-fit-text.has-drop-cap:is(p, .paragraph-field)::first-letter { float: none; font-size: inherit; line-height: inherit; margin: 0; }
 .content-divider { border: 0; border-top: 1px solid var(--line); display: block; margin: 0; }
 .content-divider.is-wide { border-top-width: 3px; }

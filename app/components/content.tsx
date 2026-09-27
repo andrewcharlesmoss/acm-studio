@@ -12,7 +12,7 @@ import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDat
 import { readingTimeLabel } from "../content/reading-time";
 import { imageDisplayStyle } from "../content/image-style";
 import { ArticleMetaIcon } from "./article-meta-icon";
-import { FitTextParagraph } from "./fit-text-paragraph";
+import { FitTextHeading, FitTextParagraph } from "./fit-text-paragraph";
 import { StudioIcon } from "../studio/studio-icons";
 
 export function StatusPill({ status }: { status: Project["status"] }) {
@@ -82,7 +82,11 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
             : <p id={paragraphStyleAnchor(block.style)} className={className} style={style} key={block.id}>{children}</p>;
         }
         if (block.type === "heading") {
-          return renderHeading(block.level, `${studio ? `block-textarea heading-field is-h${block.level} preview-rich-text ` : ""}align-${block.align ?? "left"}`, block.id, renderText(block.text, block.runs, mediaUrls, footnoteNumbers));
+          const className = `${studio ? `block-textarea heading-field is-h${block.level} preview-rich-text ` : ""}align-${block.align ?? "left"}${block.visualStyle?.fitText ? " has-fit-text" : ""}`;
+          const content = renderText(block.text, block.runs, mediaUrls, footnoteNumbers);
+          return block.visualStyle?.fitText
+            ? <FitTextHeading level={block.level} className={className} styleSignature={JSON.stringify(block.visualStyle ?? {})} key={block.id}>{content}</FitTextHeading>
+            : renderHeading(block.level, className, block.id, content);
         }
         if (block.type === "quote") {
           return (
