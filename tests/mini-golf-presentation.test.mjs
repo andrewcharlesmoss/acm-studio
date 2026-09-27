@@ -262,6 +262,16 @@ test("HTML editing retains ordered list marker styles and validates persisted va
   assert.equal(validContentBlocks([{ ...original, marker: "invalid" }]), false);
 });
 
+test("custom font sizes and expanded Appearance values validate for saved text blocks", () => {
+  const { validContentBlocks } = loadModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
+  const paragraph = { id: "p", type: "paragraph", text: "Readable", style: { fontSizeCustom: "1.75rem", appearance: "semi-bold-italic" } };
+  const heading = { id: "h", type: "heading", level: 2, text: "Title", visualStyle: { fontSizeCustom: "32px", appearance: "black" } };
+  assert.equal(validContentBlocks([paragraph, heading]), true);
+  assert.equal(validContentBlocks([{ ...paragraph, style: { fontSizeCustom: "9999px" } }]), false);
+  assert.equal(validContentBlocks([{ ...paragraph, style: { fontSizeCustom: "url(evil)" } }]), false);
+  assert.equal(validContentBlocks([{ ...heading, visualStyle: { appearance: "unknown" } }]), false);
+});
+
 test("Mini Golf embeds all source Inter subsets without registering a global Inter family", () => {
   const css = readFileSync(new URL("../app/studio/site-draft.css", import.meta.url), "utf8");
   const faces = [...css.matchAll(/@font-face\s*\{([^}]+)\}/g)];

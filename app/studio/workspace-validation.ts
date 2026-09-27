@@ -31,6 +31,7 @@ const date = (value: unknown) => typeof value === "string" && Number.isFinite(Da
 const uniqueIds = (records: Record<string, unknown>[]) => records.every((item) => typeof item.id === "string" && item.id.length > 0)
   && new Set(records.map((item) => item.id)).size === records.length;
 const optionalParagraphLength = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:0|\d+(?:\.\d+)?(?:px|em|rem|%|ch|vw|vh)?)$/.test(value));
+const optionalCustomFontSize = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:\d+(?:\.\d+)?)(?:px|em|rem)$/.test(value) && Number.parseFloat(value) > 0 && Number.parseFloat(value) <= (value.endsWith("px") ? 400 : 25));
 const optionalSignedParagraphLength = (value: unknown) => value === undefined || (typeof value === "string" && /^-?(?:0|\d+(?:\.\d+)?(?:px|em|rem|%|ch|vw|vh)?)$/.test(value));
 const optionalParagraphColour = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^)]*\))$/i.test(value));
 const optionalParagraphAnchor = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-z][a-z0-9_-]*$/i.test(value));
@@ -66,7 +67,8 @@ export function validParagraphStyle(value: unknown) {
   if (!isRecord(value)) return false;
   return (value.fontFamily === undefined || ["inter", "helvetica-neue", "helvetica", "arial"].includes(value.fontFamily as string))
     && (value.fontSize === undefined || ["small", "medium", "large", "x-large", "xx-large"].includes(value.fontSize as string))
-    && (value.appearance === undefined || ["regular", "italic", "bold", "bold-italic"].includes(value.appearance as string))
+    && optionalCustomFontSize(value.fontSizeCustom)
+    && (value.appearance === undefined || ["thin", "extra-light", "light", "regular", "medium", "semi-bold", "bold", "extra-bold", "black", "thin-italic", "extra-light-italic", "light-italic", "italic", "medium-italic", "semi-bold-italic", "bold-italic", "extra-bold-italic", "black-italic"].includes(value.appearance as string))
     && (value.textTransform === undefined || ["none", "uppercase", "lowercase", "capitalize"].includes(value.textTransform as string))
     && (value.textDecoration === undefined || ["none", "underline", "line-through"].includes(value.textDecoration as string))
     && (value.borderStyle === undefined || ["none", "solid", "dashed"].includes(value.borderStyle as string))

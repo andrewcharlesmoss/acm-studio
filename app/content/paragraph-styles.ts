@@ -1,4 +1,4 @@
-import type { ParagraphStyle } from "./model";
+import type { ParagraphStyle, ParagraphWeight } from "./model";
 
 const fontSizes: Record<NonNullable<ParagraphStyle["fontSize"]>, string> = {
   small: "14px",
@@ -13,6 +13,11 @@ const fontFamilies: Record<NonNullable<ParagraphStyle["fontFamily"]>, string> = 
   "helvetica-neue": '"Helvetica Neue", Helvetica, Arial, sans-serif',
   helvetica: 'Helvetica, Arial, sans-serif',
   arial: 'Arial, sans-serif',
+};
+
+const fontWeights: Record<ParagraphWeight, string> = {
+  thin: "100", "extra-light": "200", light: "300", regular: "400", medium: "500",
+  "semi-bold": "600", bold: "700", "extra-bold": "800", black: "900",
 };
 
 export const PARAGRAPH_BACKGROUND_GRADIENTS: Record<NonNullable<ParagraphStyle["backgroundGradient"]>, string> = {
@@ -30,9 +35,16 @@ export function paragraphStyleToCss(style?: ParagraphStyle): Record<string, stri
   if (!style) return {};
   const css: Record<string, string> = {};
   if (style.fontFamily) css.fontFamily = fontFamilies[style.fontFamily];
-  if (style.fontSize && !fitTextEnabled(style)) css.fontSize = fontSizes[style.fontSize];
-  if (style.appearance === "italic" || style.appearance === "bold-italic") css.fontStyle = "italic";
-  if (style.appearance === "bold" || style.appearance === "bold-italic") css.fontWeight = "700";
+  if (!fitTextEnabled(style)) {
+    if (style.fontSizeCustom) css.fontSize = style.fontSizeCustom;
+    else if (style.fontSize) css.fontSize = fontSizes[style.fontSize];
+  }
+  if (style.appearance) {
+    const italic = style.appearance === "italic" || style.appearance.endsWith("-italic");
+    const weight = style.appearance === "italic" ? "regular" : italic ? style.appearance.slice(0, -7) as ParagraphWeight : style.appearance;
+    css.fontStyle = italic ? "italic" : "normal";
+    css.fontWeight = fontWeights[weight];
+  }
   if (style.lineHeight) css.lineHeight = style.lineHeight;
   if (style.letterSpacing) css.letterSpacing = style.letterSpacing;
   if (style.textIndent) css.textIndent = style.textIndent;
@@ -75,7 +87,7 @@ export function visualStyleClassName(style: ParagraphStyle) {
   return [
     "block-visual-style",
     style.fontFamily && "has-custom-font-family",
-    style.fontSize && "has-custom-font-size",
+    (style.fontSize || style.fontSizeCustom) && "has-custom-font-size",
     style.appearance && "has-custom-appearance",
     style.lineHeight && "has-custom-line-height",
     style.letterSpacing && "has-custom-letter-spacing",

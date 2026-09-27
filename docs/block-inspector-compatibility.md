@@ -26,7 +26,7 @@ import remains future work, not a capability supplied by this inspector review.
 
 | Studio block | WordPress reference | Studio inspector support | Remaining difference |
 | --- | --- | --- | --- |
-| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; optional Typography, Dimensions, Border and Elements controls with per-section Reset all; background, line indent, text columns, drop cap, fit text, orientation and advanced fields. | Custom font sizes, the full theme-dependent Appearance choices, WordPress theme presets and its custom CSS editor are not yet supported. |
+| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Alignment; optional Typography, Dimensions, Border and Elements controls with per-section Reset all; preset and custom font sizes in px/em/rem, nine Appearance weights with italic variants, background, line indent, text columns, drop cap, fit text, orientation and advanced fields. | WordPress theme-defined font size and Appearance presets, and its custom CSS editor are not yet supported. |
 | Heading | [Heading](https://wordpress.org/documentation/article/heading-block/) | Level, alignment, Fit text, orientation and shared visual settings. | Gutenberg's text shadow, theme presets, block-wide/full alignment, and some toolbar details remain unsupported. |
 | Quote | [Quote](https://wordpress.org/documentation/article/quote-block/) | Attribution, text alignment, Default or Plain style, and shared visual settings. | Gutenberg's separate block alignment (including wide/full), background images and multi-paragraph quote editing are not modelled. |
 | List | [List](https://wordpress.org/documentation/article/list-block/) | Bullets or numbers; ordered styles for numbers, letters and Roman numerals; start value, reverse order, inline-formatted item content, item-scoped text formatting and links for top-level Lists, and shared visual settings. Existing plain-string items remain readable. | Nested List Item blocks and indentation are not yet supported. The block HTML editor rejects nested lists instead of flattening them. List items do not yet have per-item inspector settings. Footnotes and inline images are unavailable from the List formatting menu because their insertion handlers currently target whole text blocks. Formatting controls for Lists placed inside container blocks remain unavailable. |
@@ -49,10 +49,20 @@ import remains future work, not a capability supplied by this inspector review.
 | Footnotes | [Footnotes](https://wordpress.org/documentation/article/footnotes-block/) | Notes are edited on the canvas; typography, colours, background, dimensions, border, shadow and advanced fields use the shared inspector. | Studio stores notes in one block rather than Gutenberg's inline-reference structure. |
 
 The shared appearance controls are deliberately limited to the project's
-font stack: Inter, Helvetica Neue, Helvetica and Arial. Existing document
+font stack: Inter, Helvetica Neue, Helvetica and Arial. The Appearance menu
+offers the standard weight range; fallback fonts may synthesise weights they do
+not supply. Custom font sizes use px, em or rem and are stored separately from
+the five Studio presets, with only one active size at a time. Existing document
 records and template snapshots keep their previous appearance unless a block
 setting is changed. A WordPress feature in the final column is a compatibility
 gap, not an available control.
+
+Typography options follow the order in the WordPress Typography reference.
+Gutenberg's available controls can vary with the selected block and theme, so
+Studio may expose a supported option such as Font family or Orientation even
+when it does not appear in a particular WordPress site's menu. The inspector's
+options menus appear beside the pane at desktop widths, and their Reset all
+footer remains visible while long option lists scroll.
 
 The inspector follows Gutenberg's section order and optional-control menu
 pattern for the shared appearance settings. A checked menu item shows its

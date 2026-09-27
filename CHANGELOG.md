@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Added custom px/em/rem font sizes and Gutenberg's full weight and italic Appearance choices to shared block Typography settings.
+- Moved inspector option menus beside the settings pane and kept Reset all visible beneath scrollable options.
 - Added Gutenberg-style text orientation to Paragraph and Heading block settings, with vertical text in Edit and Preview.
 - Added List item text formatting and link editing through the shared canvas toolbar.
 - Added Gutenberg's ordered-list numbering styles for numbers, letters and Roman numerals, preserving the choice in previews and HTML.

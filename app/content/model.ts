@@ -18,7 +18,8 @@ export function listItemText(item: ListItem): string { return typeof item === "s
 export type OrderedListMarker = "1" | "A" | "a" | "I" | "i";
 export type Footnote = { id: string; text: string };
 export type ParagraphFontSize = "small" | "medium" | "large" | "x-large" | "xx-large";
-export type ParagraphAppearance = "regular" | "italic" | "bold" | "bold-italic";
+export type ParagraphWeight = "thin" | "extra-light" | "light" | "regular" | "medium" | "semi-bold" | "bold" | "extra-bold" | "black";
+export type ParagraphAppearance = ParagraphWeight | "italic" | `${Exclude<ParagraphWeight, "regular">}-italic`;
 export type ParagraphBorderStyle = "none" | "solid" | "dashed";
 export type ParagraphBackgroundGradient = "sunrise" | "ocean" | "forest" | "violet";
 export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "arial";
@@ -58,6 +59,7 @@ export function listMarker(block: { items: ListItem[]; start?: number; reversed?
 export type ParagraphStyle = {
   fontFamily?: ParagraphFontFamily;
   fontSize?: ParagraphFontSize;
+  fontSizeCustom?: string;
   appearance?: ParagraphAppearance;
   textTransform?: ParagraphTextTransform;
   textDecoration?: ParagraphTextDecoration;

@@ -26,3 +26,14 @@ test("vertical orientation preserves typography and temporarily suspends horizon
   assert.equal(fitTextEnabled({ ...style, orientation: "horizontal-tb" }), true);
   assert.equal(paragraphStyleToCss({ ...style, orientation: "horizontal-tb" }).fontSize, undefined);
 });
+
+test("custom font sizes and the full Appearance range reach CSS without changing legacy values", () => {
+  assert.deepEqual(paragraphStyleToCss({ fontSizeCustom: "1.75rem", appearance: "semi-bold-italic" }), { fontSize: "1.75rem", fontStyle: "italic", fontWeight: "600" });
+  assert.deepEqual(paragraphStyleToCss({ appearance: "thin" }), { fontStyle: "normal", fontWeight: "100" });
+  assert.deepEqual(paragraphStyleToCss({ appearance: "black-italic" }), { fontStyle: "italic", fontWeight: "900" });
+  assert.deepEqual(paragraphStyleToCss({ appearance: "regular" }), { fontStyle: "normal", fontWeight: "400" });
+  assert.deepEqual(paragraphStyleToCss({ appearance: "italic" }), { fontStyle: "italic", fontWeight: "400" });
+  assert.deepEqual(paragraphStyleToCss({ appearance: "bold-italic" }), { fontStyle: "italic", fontWeight: "700" });
+  assert.equal(paragraphStyleToCss({ fontSizeCustom: "32px", fitText: true }).fontSize, undefined);
+  assert.match(visualStyleClassName({ fontSizeCustom: "32px" }), /has-custom-font-size/);
+});

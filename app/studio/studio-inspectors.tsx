@@ -630,17 +630,20 @@ function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { t
 function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange: (block: ContentBlock) => void }) {
   const style = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
   const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");
+  const [fontSizeViewOverride, setFontSizeViewOverride] = useState<{ source: string; mode: "presets" | "custom" } | null>(null);
+  const fontSizeSource = `${block.id}:${style.fontSize ?? ""}:${style.fontSizeCustom ?? ""}`;
+  const fontSizeMode = fontSizeViewOverride?.source === fontSizeSource ? fontSizeViewOverride.mode : style.fontSizeCustom ? "custom" : "presets";
   const activeBackgroundMode = style.backgroundGradient ? "gradient" : backgroundMode;
   const typographyOptions: InspectorToolOption[] = [
     { id: "colour", label: "Colour" }, { id: "size", label: "Size" },
-    { id: "appearance", label: "Appearance" },
+    { id: "family", label: "Font family" }, { id: "appearance", label: "Appearance" },
     { id: "line-height", label: "Line height" }, { id: "letter-spacing", label: "Letter spacing" },
     ...(block.type === "paragraph" ? [{ id: "line-indent", label: "Line indent" }, { id: "columns", label: "Columns" }] : []),
-    { id: "decoration", label: "Decoration" }, { id: "letter-case", label: "Letter case" },
+    { id: "decoration", label: "Decoration" },
+    ...(block.type === "paragraph" || block.type === "heading" ? [{ id: "orientation", label: "Orientation" }] : []),
+    { id: "letter-case", label: "Letter case" },
     ...(block.type === "paragraph" ? [{ id: "drop-cap", label: "Drop cap" }] : []),
     ...(block.type === "paragraph" || block.type === "heading" ? [{ id: "fit-text", label: "Fit text" }] : []),
-    ...(block.type === "paragraph" || block.type === "heading" ? [{ id: "orientation", label: "Orientation" }] : []),
-    { id: "family", label: "Font family" },
   ];
   const dimensionOptions: InspectorToolOption[] = [{ id: "padding", label: "Padding" }, { id: "margin", label: "Margin" }];
   const borderOptions: InspectorToolOption[] = [{ id: "border", label: "Border" }, { id: "radius", label: "Radius" }, { id: "shadow", label: "Shadow" }];
@@ -650,7 +653,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
   const [borderUserVisible, setBorderVisible] = useState(() => new Set<string>());
   const [elementsUserVisible, setElementsVisible] = useState(() => new Set<string>());
   const typographyVisible = new Set([...typographyUserVisible, ...[
-    style.textColor && "colour", style.fontSize && "size", style.appearance && "appearance", style.fontFamily && "family",
+    style.textColor && "colour", (style.fontSize || style.fontSizeCustom) && "size", style.appearance && "appearance", style.fontFamily && "family",
     style.lineHeight && "line-height", style.letterSpacing && "letter-spacing", style.textIndent && "line-indent",
     style.textColumns && "columns", style.textDecoration && "decoration", style.textTransform && "letter-case", style.dropCap && "drop-cap", style.fitText && "fit-text", style.orientation && "orientation",
   ].filter((value): value is string => Boolean(value))]);
@@ -660,7 +663,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
   ].filter((value): value is string => Boolean(value))]);
   const elementsVisible = new Set([...elementsUserVisible, ...[style.linkColor && "link-colour"].filter((value): value is string => Boolean(value))]);
   const toolFields: Record<string, (keyof ParagraphStyle)[]> = {
-    colour: ["textColor"], family: ["fontFamily"], size: ["fontSize"], appearance: ["appearance"],
+    colour: ["textColor"], family: ["fontFamily"], size: ["fontSize", "fontSizeCustom"], appearance: ["appearance"],
     "line-height": ["lineHeight"], "letter-spacing": ["letterSpacing"], "line-indent": ["textIndent"], columns: ["textColumns"], decoration: ["textDecoration"],
     "letter-case": ["textTransform"], padding: ["padding"], margin: ["margin"],
     "drop-cap": ["dropCap"], "fit-text": ["fitText"], orientation: ["orientation"],
@@ -694,6 +697,17 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     else delete nextStyle.fitText;
     writeStyle(nextStyle);
   }
+  function updateFontSize(value: ParagraphFontSize | string | undefined, mode: "presets" | "custom") {
+    setFontSizeViewOverride(null);
+    const nextStyle = { ...style };
+    delete nextStyle.fontSize;
+    delete nextStyle.fontSizeCustom;
+    if (value) {
+      if (mode === "custom") nextStyle.fontSizeCustom = value;
+      else nextStyle.fontSize = value as ParagraphFontSize;
+    }
+    writeStyle(nextStyle);
+  }
   function updateBackground(backgroundColor: string | undefined, backgroundGradient: ParagraphBackgroundGradient | undefined) {
     const nextStyle = { ...style };
     if (backgroundColor) nextStyle.backgroundColor = backgroundColor;
@@ -709,21 +723,26 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     { value: "x-large", label: "XL", accessibleName: "Extra large" },
     { value: "xx-large", label: "XXL", accessibleName: "Extra extra large" },
   ];
+  const appearanceWeights = [
+    ["thin", "Thin"], ["extra-light", "Extra light"], ["light", "Light"], ["regular", "Regular"],
+    ["medium", "Medium"], ["semi-bold", "Semi bold"], ["bold", "Bold"],
+    ["extra-bold", "Extra bold"], ["black", "Black"],
+  ] as const;
   return <>
     <InspectorToolsSection title="Typography" options={typographyOptions} visible={typographyVisible} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
       {typographyVisible.has("colour") ? <ColourSetting label="Text colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /> : null}
-      {typographyVisible.has("size") ? <fieldset className="paragraph-font-size-setting" disabled={fitTextEnabled(style)}><legend>Font size</legend><div role="group" aria-label="Font size" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateStyle("fontSize", style.fontSize === value ? undefined : value)}>{label}</button>)}</div></fieldset> : null}
-      {typographyVisible.has("appearance") ? <label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option><option value="regular">Regular</option><option value="italic">Italic</option><option value="bold">Bold</option><option value="bold-italic">Bold italic</option></select></label> : null}
+      {typographyVisible.has("size") ? <fieldset className="paragraph-font-size-setting" disabled={fitTextEnabled(style)}><legend>Font size</legend><button type="button" className="paragraph-font-size-mode" aria-pressed={fontSizeMode === "custom"} onClick={() => setFontSizeViewOverride({ source: fontSizeSource, mode: fontSizeMode === "custom" ? "presets" : "custom" })}>{fontSizeMode === "custom" ? "Use presets" : "Custom size"}</button>{fontSizeMode === "custom" ? <CustomFontSizeSetting key={`${block.id}-custom-size`} value={style.fontSizeCustom} onChange={value => updateFontSize(value, "custom")} /> : <div role="group" aria-label="Font size presets" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateFontSize(style.fontSize === value ? undefined : value, "presets")}>{label}</button>)}</div>}</fieldset> : null}
+      {typographyVisible.has("family") ? <label><span>Font family</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
+      {typographyVisible.has("appearance") ? <label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option>{appearanceWeights.map(([value, label]) => <option key={value} value={value}>{label}</option>)}{appearanceWeights.map(([value, label]) => <option key={`${value}-italic`} value={value === "regular" ? "italic" : `${value}-italic`}>{label} italic</option>)}</select></label> : null}
       {typographyVisible.has("line-height") ? <label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label> : null}
       {typographyVisible.has("letter-spacing") ? <label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label> : null}
       {typographyVisible.has("line-indent") ? <ParagraphLengthSetting key={`${block.id}-indent`} label="Line indent" value={style.textIndent} min={-100} max={200} onChange={(value) => updateStyle("textIndent", value)} /> : null}
       {typographyVisible.has("columns") ? <label><span>Columns</span><select value={style.textColumns ?? ""} onChange={(event) => updateStyle("textColumns", event.target.value ? Number(event.target.value) : undefined)}><option value="">Default</option>{[1, 2, 3, 4].map(count => <option key={count} value={count}>{count}</option>)}</select></label> : null}
       {typographyVisible.has("decoration") ? <label><span>Decoration</span><select value={style.textDecoration ?? ""} onChange={(event) => updateStyle("textDecoration", (event.target.value || undefined) as ParagraphStyle["textDecoration"])}><option value="">Default</option><option value="none">None</option><option value="underline">Underline</option><option value="line-through">Strikethrough</option></select></label> : null}
+      {typographyVisible.has("orientation") ? <label><span>Orientation</span><select value={style.orientation ?? ""} onChange={event => updateStyle("orientation", (event.target.value || undefined) as ParagraphStyle["orientation"])}><option value="">Default</option><option value="horizontal-tb">Horizontal</option><option value="vertical-rl">Vertical</option></select></label> : null}
       {typographyVisible.has("letter-case") ? <label><span>Letter case</span><select value={style.textTransform ?? ""} onChange={(event) => updateStyle("textTransform", (event.target.value || undefined) as ParagraphStyle["textTransform"])}><option value="">Default</option><option value="none">Normal</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalise</option></select></label> : null}
       {typographyVisible.has("drop-cap") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.dropCap)} onChange={event => updateStyle("dropCap", event.target.checked || undefined)} /><span>Drop cap</span></label> : null}
       {typographyVisible.has("fit-text") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.fitText)} onChange={event => updateFitText(event.target.checked)} /><span>Fit text{style.fitText && style.orientation === "vertical-rl" ? " (paused for vertical text)" : ""}</span></label> : null}
-      {typographyVisible.has("orientation") ? <label><span>Orientation</span><select value={style.orientation ?? ""} onChange={event => updateStyle("orientation", (event.target.value || undefined) as ParagraphStyle["orientation"])}><option value="">Default</option><option value="horizontal-tb">Horizontal</option><option value="vertical-rl">Vertical</option></select></label> : null}
-      {typographyVisible.has("family") ? <label><span>Font family</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
     </InspectorToolsSection>
     <InspectorAccordionSection className="inspector-panel" title="Background">
       <div className="paragraph-background-modes" role="group" aria-label="Background type"><button type="button" aria-pressed={activeBackgroundMode === "colour"} className={activeBackgroundMode === "colour" ? "is-active" : ""} onClick={() => { setBackgroundMode("colour"); if (style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }}>Colour</button><button type="button" aria-pressed={activeBackgroundMode === "gradient"} className={activeBackgroundMode === "gradient" ? "is-active" : ""} onClick={() => setBackgroundMode("gradient")}>Gradient</button></div>
@@ -744,6 +763,21 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     </InspectorToolsSection> : null}
     <InspectorAccordionSection className="inspector-panel" title={<>Advanced</>}><label><span>HTML anchor</span><input value={style.anchor ?? ""} onChange={(event) => updateStyle("anchor", event.target.value)} placeholder="section-name" /></label><label><span>Additional CSS class(es)</span><input value={style.className ?? ""} onChange={(event) => updateStyle("className", event.target.value)} placeholder="custom-class" /></label></InspectorAccordionSection>
   </>;
+}
+
+function CustomFontSizeSetting({ value, onChange }: { value?: string; onChange: (value: string | undefined) => void }) {
+  const match = value?.match(/^(\d+(?:\.\d+)?)(px|em|rem)$/);
+  const [unit, setUnit] = useState<"px" | "em" | "rem">((match?.[2] as "px" | "em" | "rem") ?? "px");
+  const [draft, setDraft] = useState<string | null>(null);
+  const displayedValue = draft ?? match?.[1] ?? "";
+  function commit(next: string, nextUnit = unit) {
+    setDraft(null);
+    if (!next.trim()) { onChange(undefined); return; }
+    const amount = Number(next);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    onChange(`${Math.min(amount, nextUnit === "px" ? 400 : 25)}${nextUnit}`);
+  }
+  return <div className="paragraph-custom-font-size"><input aria-label="Custom font size" type="number" min="0.1" max={unit === "px" ? 400 : 25} step="0.1" value={displayedValue} placeholder="Size" onChange={event => setDraft(event.target.value)} onBlur={() => { if (draft !== null) commit(draft); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select aria-label="Custom font size unit" value={unit} onChange={event => { const nextUnit = event.target.value as "px" | "em" | "rem"; setUnit(nextUnit); if (displayedValue) commit(displayedValue, nextUnit); }}><option value="px">px</option><option value="em">em</option><option value="rem">rem</option></select><button type="button" className="paragraph-reset-button" onClick={() => { setDraft(null); onChange(undefined); }} disabled={!value}>Reset</button></div>;
 }
 
 function ParagraphLengthSetting({ label, value, min, max, onChange }: { label: string; value?: string; min: number; max: number; onChange: (value: string | undefined) => void }) {

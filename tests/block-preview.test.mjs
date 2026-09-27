@@ -272,6 +272,21 @@ test("vertical Paragraph and Heading orientation render in both previews without
   }
 });
 
+test("custom font size and Appearance render for Paragraph and Heading in Studio and public views", () => {
+  const blocks = [
+    { id: "custom-p", type: "paragraph", text: "Custom size", style: { fontSizeCustom: "1.5rem", appearance: "medium" } },
+    { id: "custom-h", type: "heading", level: 2, text: "Custom weight", visualStyle: { fontSizeCustom: "28px", appearance: "extra-bold-italic" } },
+  ];
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
+    assert.match(html, /font-size:1\.5rem/);
+    assert.match(html, /font-size:28px/);
+    assert.match(html, /font-weight:500/);
+    assert.match(html, /font-weight:800/);
+    assert.match(html, /font-style:italic/);
+  }
+});
+
 test("Plain quotes keep their text alignment in Studio and public previews", () => {
   const block = { id: "quote", type: "quote", text: "A considered thought", attribution: "Author", align: "centre", quoteStyle: "plain" };
   for (const variant of ["studio", "article"]) {
