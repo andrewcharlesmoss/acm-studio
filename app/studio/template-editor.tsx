@@ -125,6 +125,27 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     return projected;
   }
   function insertBlock(type: BlockLibraryItemType, parentId?: string) {
+    if (type === "social-linkedin" || type === "social-tiktok") {
+      const socialIcon = createBlock(type, templateId());
+      const parent = parentId ? findBlockById(blocks, parentId) : undefined;
+      if (parent?.type === "social-icons") {
+        commands.updateBlock(parent.id, block => block.type === "social-icons" ? { ...block, children: [...block.children, socialIcon] } : block);
+        selectBlock(socialIcon.id); setShowInserter(false); setQuery(""); setInserterParentId(null);
+        return socialIcon;
+      }
+      const socialGroup = { id: templateId(), type: "social-icons" as const, children: [socialIcon] };
+      const socialNode = templateNodesFromBlocks([socialGroup])[0];
+      const projectedSocialGroup = templateEditorBlocks([socialNode])[0];
+      if (parent && (parent.type === "group" || parent.type === "column") && !parent.data?.templateElement && !parent.data?.templatePart) {
+        commands.updateBlock(parent.id, block => block.type === "group" || block.type === "column" ? { ...block, children: [...block.children, projectedSocialGroup] } : block);
+        selectBlock(socialIcon.id); setShowInserter(false); setQuery(""); setInserterParentId(null);
+        return socialIcon;
+      }
+      setInserterParentId(null);
+      insertNode(socialNode);
+      selectBlock(socialIcon.id);
+      return socialIcon;
+    }
     const node = type === "template-content" ? { id: templateId(), type: "element" as const, element: "content" as const } : templateNodesFromBlocks([createBlock(type, templateId())])[0];
     const projected = templateEditorBlocks([node])[0];
     const parent = parentId ? findBlockById(blocks, parentId) : undefined;

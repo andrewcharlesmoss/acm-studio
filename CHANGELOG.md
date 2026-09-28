@@ -242,6 +242,7 @@
 
 ### Changed
 - Grouped the Social Icons block and its LinkedIn and TikTok choices under Widgets in the block library.
+- Added LinkedIn and TikTok as standalone Widgets choices; inserting either creates its Social Icons parent automatically.
 - The Styles font picker now offers Inter and only the fallback families in
   the shared font stack, while retaining older preset values for compatibility.
 - Rebalanced stacked UK number-row and punctuation legends into measured upper

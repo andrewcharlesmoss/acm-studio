@@ -88,6 +88,8 @@ export const blockCatalogue: Array<{
   { type: "divider", label: "Divider", description: "Separate two sections.", group: "Design" },
   { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design" },
   { type: "social-icons", label: "Social Icons", description: "Add links to your social profiles.", group: "Widgets" },
+  { type: "social-linkedin", label: "LinkedIn", description: "Link to a LinkedIn profile.", group: "Widgets" },
+  { type: "social-tiktok", label: "TikTok", description: "Link to a TikTok profile.", group: "Widgets" },
   { type: "document-title", label: "Document Title", description: "Display the current page or post title.", group: "Other" },
   { type: "document-subtitle", label: "Document Subtitle", description: "Display the current page or post subtitle.", group: "Other" },
   { type: "cover-image", label: "Cover Image", description: "Display the document cover image.", group: "Other" },

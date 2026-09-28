@@ -28,10 +28,15 @@ export function useStudioBlockCommands({
 
   function insertBlock(type: InsertableBlockType, afterIndex: number | null, parentId?: string | null) {
     const block = createBlock(type);
+    const socialChild = block.type === "social-linkedin" || block.type === "social-tiktok";
+    const socialGroup = socialChild ? { id: createUniqueId("social-icons"), type: "social-icons" as const, children: [block] } : null;
     updateActiveDocument((document) => parentId
-      ? updateBlockById(document, parentId, (parent: ContentBlock) => (parent.type === "section" || parent.type === "group" || parent.type === "column") ? { ...parent, children: [...parent.children, block] }
-        : parent.type === "social-icons" && (block.type === "social-linkedin" || block.type === "social-tiktok") ? { ...parent, children: [...parent.children, block] } : parent)
-      : insertBlockAt(document, block, afterIndex));
+      ? updateBlockById(document, parentId, (parent: ContentBlock) => parent.type === "social-icons" && socialChild
+        ? { ...parent, children: [...parent.children, block] }
+        : (parent.type === "section" || parent.type === "group" || parent.type === "column")
+          ? { ...parent, children: [...parent.children, socialGroup ?? block] }
+          : parent)
+      : insertBlockAt(document, socialGroup ?? block, afterIndex));
     return block;
   }
 
@@ -150,7 +155,7 @@ export function useStudioBlockCommands({
       ids.push(id);
       const next = { ...block, id } as ContentBlock;
       if (next.type === "columns") return { ...next, children: next.children.map(column => assignIds(column) as ColumnBlock) };
-      if (next.type === "section" || next.type === "group" || next.type === "column") return { ...next, children: next.children.map(assignIds) };
+      if (next.type === "section" || next.type === "group" || next.type === "column" || next.type === "social-icons") return { ...next, children: next.children.map(assignIds) };
       if (next.type === "component" && next.children) return { ...next, children: next.children.map(assignIds) };
       return next;
     };
