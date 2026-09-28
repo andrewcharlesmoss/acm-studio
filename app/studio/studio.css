@@ -398,6 +398,8 @@
 .studio-library > .pane-tabs-region { border-bottom: 0; flex: none; }
 .studio-library > .pane-footer { border-top: 0; display: block; padding: 0; }
 .studio-library-track { grid-column: 1; min-width: 0; }
+.studio-library-track, .studio-inspector-track { position: relative; z-index: 40; }
+.studio-library-track .pane-collapse, .studio-inspector-track .pane-collapse { z-index: 41; }
 .studio-library .library-tools { padding: 8px 0; }
 .studio-library .library-tools > .library-tool-button { box-sizing: border-box; width: 100%; }
 .studio-library .library-tools > .library-tool-button:first-child { border-bottom: 0; }

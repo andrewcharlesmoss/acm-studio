@@ -39,6 +39,15 @@ const { listMarker } = await import(await compileModule(new URL("../app/content/
 const { validContentBlocks } = await import(await compileModule(new URL("../app/studio/workspace-validation.ts", import.meta.url)));
 const { normaliseCustomFontSize, validCustomFontSize } = await import(await compileModule(new URL("../app/content/font-size.ts", import.meta.url)));
 
+test("Advanced HTML anchor and class metadata is retained by the HTML source format", () => {
+  const paragraph = blockToHtml({ id: "paragraph", type: "paragraph", text: "Hello", style: { anchor: "about-me" } });
+  const image = blockToHtml({ id: "image", type: "image", src: "https://example.com/photo.png", alt: "Photo", visualStyle: { anchor: "portrait", className: "rounded-photo" } });
+  assert.match(paragraph, /data-html-anchor="about-me"/);
+  assert.match(paragraph, /data-additional-classes=""/);
+  assert.match(image, /data-html-anchor="portrait"/);
+  assert.match(image, /data-additional-classes="rounded-photo"/);
+});
+
 test("custom font sizes use the same limits in the inspector and workspace validator", () => {
   assert.equal(normaliseCustomFontSize(500, "px"), "400px");
   assert.equal(normaliseCustomFontSize(26, "vw"), "25vw");

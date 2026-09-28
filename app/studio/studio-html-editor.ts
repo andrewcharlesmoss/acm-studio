@@ -91,6 +91,10 @@ export function formatHtml(html: string): string {
 
 function serialiseBlock(block: ContentBlock, attributes = ""): string {
   if (block.siteRole) attributes += ` data-site-role="${escapeAttribute(block.siteRole)}"`;
+  const advancedStyle = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : block.visualStyle;
+  if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
+    attributes += ` data-html-anchor="${escapeAttribute(advancedStyle?.anchor ?? "")}" data-additional-classes="${escapeAttribute(advancedStyle?.className ?? "")}"`;
+  }
   switch (block.type) {
     case "paragraph":
       return `<p${attributes} data-align-explicit="true" data-block-align-explicit="true"${classAttribute([block.style?.className, block.align ? `align-${block.align}` : "", block.blockAlign ? `align${block.blockAlign}` : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}</p>`;
@@ -284,6 +288,29 @@ export function parseHtmlToBlocks(html: string, originals: ContentBlock[]): Html
 }
 
 function parseElement(element: HTMLElement, original: ContentBlock, originals = new Map<string, ContentBlock>()): HtmlParseResult {
+  const parsed = parseElementBase(element, original, originals);
+  if ("error" in parsed) return parsed;
+  const block = parsed.block;
+  const styleKey = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? "style" : "visualStyle";
+  const existingStyle = styleKey === "style" ? block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : undefined : block.visualStyle;
+  const anchor = element.dataset.htmlAnchor;
+  const className = element.dataset.additionalClasses;
+  const nextStyle = { ...(existingStyle ?? {}) };
+  if (anchor === undefined || !anchor) delete nextStyle.anchor;
+  else nextStyle.anchor = anchor;
+  if (className === undefined || !className) delete nextStyle.className;
+  else nextStyle.className = className;
+  if (Object.keys(nextStyle).length === 0) {
+    if (styleKey === "style") {
+      if (block.type === "paragraph" || block.type === "columns" || block.type === "column") delete block.style;
+    } else delete block.visualStyle;
+  } else if (styleKey === "style") {
+    if (block.type === "paragraph" || block.type === "columns" || block.type === "column") block.style = nextStyle;
+  } else block.visualStyle = nextStyle;
+  return parsed;
+}
+
+function parseElementBase(element: HTMLElement, original: ContentBlock, originals = new Map<string, ContentBlock>()): HtmlParseResult {
   if (!originals.size) {
     const index = (block: ContentBlock) => { originals.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component" || block.type === "social-icons") (block.children ?? []).forEach(index); else if (block.type === "columns") block.children.forEach(index); };
     index(original);
