@@ -881,6 +881,18 @@
 .social-icons-block.is-vertical.justify-centre ul { align-items: center; }
 .social-icons-block.is-vertical.justify-right ul { align-items: flex-end; }
 .social-icons-block li { display: inline-flex; margin: 0; padding: 0; }
+.social-icons-block .social-icons-appender { position: relative; }
+.social-icon-picker { background: #fff; border: 1px solid #d2d0c8; border-radius: 5px; box-shadow: 0 8px 24px rgba(27, 28, 29, .16); left: 0; padding: 10px; position: absolute; top: calc(100% + 8px); width: min(320px, calc(100vw - 32px)); z-index: 30; }
+.social-icon-picker-header { align-items: center; display: flex; gap: 6px; }
+.social-icon-picker-header input { flex: 1 1 auto; min-width: 0; }
+.social-icon-picker-header button { align-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--muted); cursor: pointer; display: inline-flex; height: 36px; justify-content: center; width: 36px; }
+.social-icon-picker-header button:hover { background: #f0efeb; color: var(--ink); }
+.social-icon-picker-options { display: grid; gap: 4px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 8px; }
+.social-icon-picker-options > button { align-items: center; background: transparent; border: 0; border-radius: 5px; color: var(--ink); cursor: pointer; display: flex; flex-direction: column; gap: 5px; justify-content: center; min-height: 74px; padding: 8px 4px; }
+.social-icon-picker-options > button:hover, .social-icon-picker-options > button:focus-visible { background: #f2f4ff; color: var(--accent); }
+.social-icon-picker-options > button svg { height: 24px; width: 24px; }
+.social-icon-picker-options > button strong { font-size: var(--studio-ui-size); font-weight: 600; }
+.social-icon-picker-options > p { color: var(--muted); grid-column: 1 / -1; margin: 8px; text-align: center; }
 .social-icon-item { align-items: center; background: #0a66c2; border-radius: 999px; box-sizing: border-box; color: #fff; display: inline-flex; font-size: 15px; font-weight: 600; gap: 8px; justify-content: center; line-height: 1.2; min-height: 40px; min-width: 40px; padding: 6px; text-decoration: none; }
 .social-icon-item.is-tiktok { background: #171717; }
 .social-icon-glyph { align-items: center; display: inline-flex; justify-content: center; }
