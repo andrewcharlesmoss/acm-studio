@@ -241,6 +241,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Grouped the Social Icons block and its LinkedIn and TikTok choices under Widgets in the block library.
 - The Styles font picker now offers Inter and only the fallback families in
   the shared font stack, while retaining older preset values for compatibility.
 - Rebalanced stacked UK number-row and punctuation legends into measured upper

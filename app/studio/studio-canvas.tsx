@@ -1250,7 +1250,7 @@ function BlockInserter({ closing, onCloseAnimationEnd, inserterQuery, filteredBl
       <Pane trackClassName="block-inserter-track" className={`block-inserter${closing ? " is-closing" : ""}`} bodyClassName="inserter-results" label="Block Library" side="left" width={320} collapsed={false} onCollapsedChange={() => undefined} collapseIcon={null} collapsible={false} inert={closing}
         header={<div className="block-inserter-heading"><div><p className="eyebrow">Block library</p><h2 id="inserter-title">Choose a block</h2></div><button type="button" onClick={() => { dismiss(); onCloseAnimationEnd(); }} aria-label="Close block library"><StudioIcon name="close" /></button></div>}
         toolbar={<input ref={searchInputRef} type="search" value={inserterQuery} onChange={(event) => onSetQuery(event.target.value)} placeholder="Search blocks" aria-label="Search blocks" />}>
-          {(["Text", "Media", "Design", "Other"] as const).map((group) => {
+          {(["Text", "Media", "Design", "Widgets", "Other"] as const).map((group) => {
             const items = filteredBlocks.filter((item) => item.group === group);
             if (!items.length) return null;
             const insertableItems = items.filter((item): item is (typeof filteredBlocks)[number] & { type: InsertableBlockType } => item.type !== "template-content");
