@@ -32,6 +32,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   };
   const templatePreviewDocument = { ...resolvedSample, title: "", subtitle: "", coverImage: { src: "", alt: "" }, author: undefined, publishAt: undefined, publishedAt: undefined, blocks: [] };
   const [selected, setSelected] = useState<string | null>(null);
+  const [localInspectorTab, setLocalInspectorTab] = useState<"template" | "block" | "styles">("template");
   const [previewing, setPreviewing] = useState(false);
   const [width, setWidth] = useState(1200);
   const [zoom, setZoom] = useState(TEMPLATE_ZOOM_DEFAULT);
@@ -46,8 +47,21 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   // template. Their values come from the preview document at render time.
   const templateBlockCatalogue = target.kind === "page" || target.kind === "post" ? [...blockCatalogue, templateContentBlock] : blockCatalogue;
   const selectedBlock = selected ? findBlockById(blocks, selected) : null;
+  const activeInspectorTab = inspectorTab ?? localInspectorTab;
   const editingProjection = { ...resolvedSample, blocks };
   const nodesRef = useRef(target.nodes);
+  function selectInspectorTab(tab: "template" | "block" | "styles") {
+    setLocalInspectorTab(tab);
+    onInspectorTabChange?.(tab);
+  }
+  function selectBlock(blockId: string) {
+    setSelected(blockId);
+    selectInspectorTab("block");
+  }
+  function clearBlockSelection() {
+    setSelected(null);
+    if (activeInspectorTab === "block") selectInspectorTab("template");
+  }
   useLayoutEffect(() => { nodesRef.current = target.nodes; }, [target.nodes]);
   useEffect(() => {
     const isWithinTemplateWorkspace = (target: EventTarget | null) => target instanceof Element && Boolean(target.closest(".template-editing"));
@@ -77,12 +91,12 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   const commands = useStudioBlockCommands({ activeDocument: editingProjection, updateActiveDocument: update => { if (writable) updateNodes(templateNodesFromBlocks(update({ ...sample, blocks: templateEditorBlocks(nodesRef.current) }).blocks, nodesRef.current)); } });
   function splitParagraph(id: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) {
     const nextId = writable ? commands.splitParagraph(id, beforeRuns, afterRuns) : null;
-    if (nextId) setSelected(nextId);
+    if (nextId) selectBlock(nextId);
     return nextId;
   }
   function splitParagraphs(id: string, paragraphs: RichTextRun[][]) {
     const ids = writable ? commands.splitParagraphs(id, paragraphs) : null;
-    if (ids?.[0]) setSelected(ids[0]);
+    if (ids?.[0]) selectBlock(ids[0]);
     return ids;
   }
   function findTemplateNode(id: string): TemplateNode | undefined {
@@ -106,7 +120,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     else {
       const next = [...target.nodes]; next.splice(afterIndex === null ? next.length : afterIndex + 1, 0, node); updateNodes(next);
     }
-    setSelected(node.id);
+    selectBlock(node.id);
     if (!keepInserterOpen) { setShowInserter(false); setQuery(""); }
     return projected;
   }
@@ -116,7 +130,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     const parent = parentId ? findBlockById(blocks, parentId) : undefined;
     if (parent && (parent.type === "group" || parent.type === "column") && !parent.data?.templateElement && !parent.data?.templatePart) {
       commands.updateBlock(parent.id, block => block.type === "group" || block.type === "column" ? { ...block, children: [...block.children, projected] } : block);
-      setSelected(parent.id); setShowInserter(false); setQuery(""); setInserterParentId(null);
+      selectBlock(projected.id); setShowInserter(false); setQuery(""); setInserterParentId(null);
       return projected;
     }
     setInserterParentId(null);
@@ -148,7 +162,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     {selectedBlock?.type === "group" && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart ? <span>New blocks will be inserted into the selected group.</span> : null}
   </div>;
   return <StudioEditor writable={writable} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
-    target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: <TemplateInspector set={set} target={target} selectedBlock={selectedBlock} tab={inspectorTab} onTabChange={onInspectorTabChange} paneWidth={inspectorPaneWidth} onPaneWidthChange={onInspectorPaneWidthChange} paneCollapsed={inspectorPaneCollapsed} onPaneCollapsedChange={onInspectorPaneCollapsedChange} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onOpenMedia={logo => onOpenMedia(selectedBlock?.id ?? null, logo)} onEditPart={onEditPart} users={users} /> }}
+    target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: <TemplateInspector set={set} target={target} selectedBlock={selectedBlock} tab={activeInspectorTab} onTabChange={selectInspectorTab} paneWidth={inspectorPaneWidth} onPaneWidthChange={onInspectorPaneWidthChange} paneCollapsed={inspectorPaneCollapsed} onPaneCollapsedChange={onInspectorPaneCollapsedChange} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onOpenMedia={logo => onOpenMedia(selectedBlock?.id ?? null, logo)} onEditPart={onEditPart} users={users} /> }}
     canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: templateBlockCatalogue.filter(block => `${block.label} ${block.description}`.toLowerCase().includes(query.toLowerCase())), publishFeedback: null,
       presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => <TemplateSurface set={set} editing={context.mode === "edit"} editorCanvas={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>, renderBlock: context => {
         if (!context.block) return null;
@@ -173,19 +187,19 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
               role="group"
               aria-label={`Template node: ${label}`}
               tabIndex={0}
-              onPointerDown={event => { event.stopPropagation(); setSelected(node.id); }}
-              onFocusCapture={() => setSelected(node.id)}
+              onPointerDown={event => { event.stopPropagation(); selectBlock(node.id); }}
+              onFocusCapture={() => selectBlock(node.id)}
               onKeyDown={event => {
                 if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
                 event.preventDefault();
-                setSelected(node.id);
+                selectBlock(node.id);
               }}
             >{result}</div>;
             /* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
             return selectionFrame;
           } : undefined} />;
       } },
-      onOpenInserter: (index, search = "", parentId) => { setInsertAfter(index); setQuery(search); setInserterParentId(parentId ?? null); setShowInserter(true); }, onSetPublishFeedback: () => {}, onDocumentFieldChange: () => {}, onApplyDocumentCode: () => {}, onFocusDocumentField: () => {}, onOpenCoverMediaLibrary: () => {}, onRemoveCoverImage: () => {}, onSelectBlock: setSelected, onClearBlockSelection: () => setSelected(null), onSetDragOverIndex: setDragOver, onMoveBlockTo: commands.moveBlockTo, onMoveBlock: commands.moveBlock, onDuplicateBlock: commands.duplicateBlock, onRemoveBlock: commands.removeBlock, onUpdateBlock: commands.updateBlock, onSplitParagraph: splitParagraph, onMergeParagraphBackward: (id) => { const merged = commands.mergeParagraphBackward(id); if (merged) setSelected(merged.blockId); return merged; }, onSplitParagraphs: splitParagraphs, onInsertBlock: (type) => insertBlock(type, inserterParentId ?? undefined), onSetShowInserter: setShowInserter, onSetInserterQuery: setQuery,
+      onOpenInserter: (index, search = "", parentId) => { setInsertAfter(index); setQuery(search); setInserterParentId(parentId ?? null); setShowInserter(true); }, onSetPublishFeedback: () => {}, onDocumentFieldChange: () => {}, onApplyDocumentCode: () => {}, onFocusDocumentField: () => {}, onOpenCoverMediaLibrary: () => {}, onRemoveCoverImage: () => {}, onSelectBlock: selectBlock, onClearBlockSelection: clearBlockSelection, onSetDragOverIndex: setDragOver, onMoveBlockTo: commands.moveBlockTo, onMoveBlock: commands.moveBlock, onDuplicateBlock: commands.duplicateBlock, onRemoveBlock: commands.removeBlock, onUpdateBlock: commands.updateBlock, onSplitParagraph: splitParagraph, onMergeParagraphBackward: (id) => { const merged = commands.mergeParagraphBackward(id); if (merged) selectBlock(merged.blockId); return merged; }, onSplitParagraphs: splitParagraphs, onInsertBlock: (type) => insertBlock(type, inserterParentId ?? undefined), onSetShowInserter: setShowInserter, onSetInserterQuery: setQuery,
       onInsertBlockAt: (type, insertionIndex) => {
         const node = templateNodesFromBlocks([createBlock(type, templateId())])[0];
         return insertNode(node, insertionIndex - 1, true, true);
