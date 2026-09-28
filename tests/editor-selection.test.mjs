@@ -56,3 +56,44 @@ test("selection offsets across multiple text nodes retain the intended range", (
   assert.equal(state.points[1].node, state.nodes[1]);
   assert.equal(state.points[1].offset, 3);
 });
+
+test("cross-block pointer selection preserves backward anchor and focus", () => {
+  const source = canvas.slice(canvas.indexOf("function applyCrossBlockSelection("), canvas.indexOf("function escapeHtml("));
+  const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const nodeA = { textContent: "first block" };
+  const nodeB = { textContent: "second block" };
+  let selectedRange = null;
+  let selectedDirection = null;
+  const context = {
+    Range: { START_TO_START: 0 },
+    document: { createRange: () => ({ setStart(node, offset) { this.start = [node, offset]; }, setEnd(node, offset) { this.end = [node, offset]; } }) },
+    window: { getSelection: () => ({ setBaseAndExtent(anchorNode, anchorOffset, focusNode, focusOffset) { selectedDirection = [[anchorNode, anchorOffset], [focusNode, focusOffset]]; }, removeAllRanges() { selectedRange = null; }, addRange(range) { selectedRange = range; } }) },
+  };
+  vm.runInNewContext(`${compiled}\nthis.selectRange = applyCrossBlockSelection;`, context);
+  const start = { startContainer: nodeB, startOffset: 4, compareBoundaryPoints: () => 1 };
+  const end = { startContainer: nodeA, startOffset: 2 };
+  context.selectRange(start, end);
+  assert.deepEqual(selectedDirection, [[nodeB, 4], [nodeA, 2]]);
+  assert.equal(selectedRange, null);
+});
+
+test("cross-block pointer selection falls back to an ordered range when direction APIs are unavailable", () => {
+  const source = canvas.slice(canvas.indexOf("function applyCrossBlockSelection("), canvas.indexOf("function escapeHtml("));
+  const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const nodeA = { textContent: "first block" };
+  const nodeB = { textContent: "second block" };
+  let selectedRange = null;
+  const context = {
+    Range: { START_TO_START: 0 },
+    document: { createRange: () => ({ setStart(node, offset) { this.start = [node, offset]; }, setEnd(node, offset) { this.end = [node, offset]; } }) },
+    window: { getSelection: () => ({ removeAllRanges() { selectedRange = null; }, addRange(range) { selectedRange = range; } }) },
+  };
+  vm.runInNewContext(`${compiled}\nthis.selectRange = applyCrossBlockSelection;`, context);
+  const start = { startContainer: nodeB, startOffset: 4, compareBoundaryPoints: () => 1 };
+  const end = { startContainer: nodeA, startOffset: 2 };
+  context.selectRange(start, end);
+  assert.equal(selectedRange.start[0], nodeA);
+  assert.equal(selectedRange.start[1], 2);
+  assert.equal(selectedRange.end[0], nodeB);
+  assert.equal(selectedRange.end[1], 4);
+});

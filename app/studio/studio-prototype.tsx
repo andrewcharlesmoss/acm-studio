@@ -67,6 +67,7 @@ export function StudioPrototype() {
   const [inspectorPaneWidth, setInspectorPaneWidth] = useState(300);
   const libraryTabsId = useId();
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [pendingColumnsLayoutBlockId, setPendingColumnsLayoutBlockId] = useState<string | null>(null);
   const [inlineImageTarget, setInlineImageTarget] = useState<{ blockId: string; selection: { start: number; end: number } } | null>(null);
   const [documentFieldSelection, setDocumentFieldSelection] = useState<{ documentId: string; field: "title" | "subtitle" } | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"document" | "studio" | "block" | "styles">("document");
@@ -425,6 +426,7 @@ export function StudioPrototype() {
 
   function insertBlock(type: InsertableBlockType, parentId?: string, afterIndex = insertAfterIndex, keepInserterOpen = false) {
     const block = blockCommands.insertBlock(type, afterIndex, parentId);
+    setPendingColumnsLayoutBlockId(block.type === "columns" ? block.id : null);
     setDocumentFieldSelection(null);
     setSelectedBlockId(block.id);
     setInspectorTab("block");
@@ -598,6 +600,8 @@ export function StudioPrototype() {
             coverImageUrl: media.coverImageUrl,
             mediaBlockUrls: media.blockUrls,
             selectedBlockId,
+            pendingColumnsLayoutBlockId,
+            onColumnsLayoutSelected: () => setPendingColumnsLayoutBlockId(null),
             dragOverIndex,
             showInserter,
             inserterQuery,
