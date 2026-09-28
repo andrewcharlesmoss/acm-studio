@@ -139,6 +139,8 @@ export type ReadingTimePresentation = "badge" | "plain";
 export type PostDateFormat = "long" | "short" | "iso";
 export type ButtonWidth = 25 | 50 | 75 | 100;
 
+export type SocialIconBlock = { id: string; type: "social-linkedin" | "social-tiktok"; url: string; label?: string };
+
 export type ContentBlock = (
   | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment; style?: ParagraphStyle }
   | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment }
@@ -159,6 +161,8 @@ export type ContentBlock = (
   | { id: string; type: "reading-time"; prefix?: string; presentation?: ReadingTimePresentation; align?: TextAlignment }
   | { id: string; type: "post-author"; prefix?: string; avatar?: boolean; align?: TextAlignment }
   | { id: string; type: "post-date"; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment; isLink?: boolean }
+  | { id: string; type: "social-icons"; children: SocialIconBlock[]; justification?: "left" | "centre" | "right" | "space-between"; orientation?: "horizontal" | "vertical"; iconSize?: "small" | "normal" | "large"; showLabels?: boolean; openInNewTab?: boolean }
+  | SocialIconBlock
   | ({ id: string; type: "section"; role?: SiteSectionRole; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
   | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource; blockAlign?: BlockAlignment; tagName?: "div" | "main" | "section" | "article" | "aside" | "header" | "footer" | "nav"; ariaLabel?: string } & LayoutOptions)
   | ({ id: string; type: "columns"; children: ColumnBlock[]; style?: ParagraphStyle; blockAlign?: BlockAlignment } & Omit<LayoutOptions, "columns" | "horizontalAlign">)

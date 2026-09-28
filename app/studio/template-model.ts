@@ -50,7 +50,7 @@ export const templateElementLabel = (value: string) => value.split("-").map(word
 export const copyTemplateData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 export function visitTemplateNodes(nodes: TemplateNode[], visit: (node: TemplateNode) => void) {
-  for (const node of nodes) { visit(node); if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column") visitTemplateNodes(node.children, visit); }
+  for (const node of nodes) { visit(node); if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column" || node.type === "social-icons") visitTemplateNodes(node.children, visit); }
 }
 
 export function createTemplateSet(name = "ACM Neutral"): TemplateSet {
@@ -182,7 +182,7 @@ export function validateTemplateSet(value: unknown): TemplateSet {
         if (!part || ancestors.has(part.id)) invalid("Shared parts must exist in this set and cannot form cycles.");
         slots += countContent(part!.nodes, new Set([...ancestors, part!.id]), depth + 1);
       } else if (node.type === "element" && node.element === "content") slots++;
-      else if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column") slots += countContent(node.children, ancestors, depth + 1);
+      else if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column" || node.type === "social-icons") slots += countContent(node.children, ancestors, depth + 1);
     }
     return slots;
   }

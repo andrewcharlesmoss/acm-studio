@@ -1,4 +1,4 @@
-import { listItemText, type ContentBlock, type LayoutOptions, type RichTextRun, type SiteSectionRole, type TextMark } from "../content/model";
+import { listItemText, type ContentBlock, type LayoutOptions, type RichTextRun, type SiteSectionRole, type SocialIconBlock, type TextMark } from "../content/model";
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { hasLayoutOptions } from "../content/layout";
 import { plainTextFromRuns, safeImageSource, safeTextLink } from "../content/rich-text";
@@ -25,7 +25,7 @@ export function formatHtml(html: string): string {
   const lines: string[] = [];
   let depth = 0;
   let currentLine = "";
-  const blockElements = new Set(["aside", "blockquote", "div", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "label", "li", "main", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul"]);
+  const blockElements = new Set(["aside", "blockquote", "div", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "label", "li", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul"]);
   const textContainers = new Set(["a", "blockquote", "code", "em", "h1", "h2", "h3", "h4", "h5", "h6", "li", "p", "pre", "q", "span", "strong", "td", "th"]);
   const voidElements = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
   const tagStack: string[] = [];
@@ -142,6 +142,13 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<div${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "By")}" data-metadata-avatar="${block.avatar !== false}"></div>`;
     case "post-date":
       return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-metadata-icon="${block.showIcon !== false}" data-metadata-link="${Boolean(block.isLink)}"></p>`;
+    case "social-icons":
+      return `<nav${attributes} aria-label="Social links" data-social-justification="${block.justification ?? "left"}" data-social-orientation="${block.orientation ?? "horizontal"}" data-social-size="${block.iconSize ?? "normal"}" data-social-labels="${Boolean(block.showLabels)}" data-social-new-tab="${Boolean(block.openInNewTab)}">${serialiseChildren(block.children)}</nav>`;
+    case "social-linkedin":
+    case "social-tiktok": {
+      const url = safeTextLink(block.url);
+      return `<a${attributes}${url ? ` href="${escapeAttribute(url)}"` : ""} data-social-url="${escapeAttribute(block.url)}">${escapeText(block.label ?? "")}</a>`;
+    }
     case "button":
       return `<p${attributes} data-button-width="${block.width ?? ""}"${classAttribute([`button-block align-${block.align ?? "centre"}`, block.width ? `has-width-${block.width}` : ""].filter(Boolean).join(" "))}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}"${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.opensInNewTab ? ' target="_blank"' : ""}${block.rel || block.opensInNewTab ? ` rel="${escapeAttribute([block.rel, block.opensInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" "))}"` : ""}>${escapeText(block.label)}</a></p>`;
     case "field":
@@ -226,7 +233,7 @@ export type HtmlParseResult = { block: ContentBlock } | { error: string };
 export type HtmlBlocksParseResult = { blocks: ContentBlock[] } | { error: string };
 
 export function collectBlockIds(block: ContentBlock): string[] {
-  if (block.type === "section" || block.type === "group" || block.type === "column") return [block.id, ...block.children.flatMap(collectBlockIds)];
+  if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "social-icons") return [block.id, ...block.children.flatMap(collectBlockIds)];
   if (block.type === "columns") return [block.id, ...block.children.flatMap(collectBlockIds)];
   if (block.type === "component") return [block.id, ...(block.children?.flatMap(collectBlockIds) ?? [])];
   return [block.id];
@@ -259,7 +266,7 @@ export function parseHtmlToBlocks(html: string, originals: ContentBlock[]): Html
   const nodes = [...document.body.childNodes].filter((node) => node.nodeType !== Node.TEXT_NODE || node.textContent?.trim());
   if (nodes.some((node) => node.nodeType !== Node.ELEMENT_NODE)) return { error: "Use supported block elements only." };
   const originalById = new Map<string, ContentBlock>();
-  const index = (blocks: ContentBlock[]) => blocks.forEach((block) => { originalById.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component") index(block.children ?? []); else if (block.type === "columns") block.children.forEach(column => index([column])); });
+  const index = (blocks: ContentBlock[]) => blocks.forEach((block) => { originalById.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component" || block.type === "social-icons") index(block.children ?? []); else if (block.type === "columns") block.children.forEach(column => index([column])); });
   index(originals);
   const blocks: ContentBlock[] = [];
   for (const node of nodes) {
@@ -278,7 +285,7 @@ export function parseHtmlToBlocks(html: string, originals: ContentBlock[]): Html
 
 function parseElement(element: HTMLElement, original: ContentBlock, originals = new Map<string, ContentBlock>()): HtmlParseResult {
   if (!originals.size) {
-    const index = (block: ContentBlock) => { originals.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component") (block.children ?? []).forEach(index); else if (block.type === "columns") block.children.forEach(index); };
+    const index = (block: ContentBlock) => { originals.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component" || block.type === "social-icons") (block.children ?? []).forEach(index); else if (block.type === "columns") block.children.forEach(index); };
     index(original);
   }
   const parsed = parseElementContent(element, original, originals);
@@ -309,6 +316,24 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
   if (declaredType === "reading-time") return { block: { id, type: "reading-time", prefix: element.dataset.metadataPrefix ?? (original.type === "reading-time" ? original.prefix : "Reading Time:"), presentation: element.dataset.metadataPresentation === "plain" ? "plain" : "badge", align: alignmentFromClass(element) ?? (original.type === "reading-time" ? original.align : undefined) } };
   if (declaredType === "post-author") return { block: { id, type: "post-author", prefix: element.dataset.metadataPrefix ?? (original.type === "post-author" ? original.prefix : "By"), avatar: element.dataset.metadataAvatar !== "false", align: alignmentFromClass(element) ?? (original.type === "post-author" ? original.align : undefined) } };
   if (declaredType === "post-date") return { block: { id, type: "post-date", format: ["long", "short", "iso"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined), isLink: element.dataset.metadataLink === "true" } };
+  if (declaredType === "social-icons") {
+    if (element.tagName.toLowerCase() !== "nav") return { error: "Social Icons must use a nav element." };
+    const children: SocialIconBlock[] = [];
+    for (const child of [...element.children]) {
+      const icon = child as HTMLElement;
+      if (icon.tagName.toLowerCase() !== "a" || icon.children.length) return { error: "Social Icons can contain only LinkedIn or TikTok links." };
+      const childId = icon.dataset.blockId || crypto.randomUUID();
+      const parsed = parseElement(icon, originals.get(childId) ?? { id: childId, type: "social-linkedin", url: "" }, originals);
+      if ("error" in parsed) return parsed;
+      if (parsed.block.type !== "social-linkedin" && parsed.block.type !== "social-tiktok") return { error: "Social Icons can contain only LinkedIn or TikTok links." };
+      children.push(parsed.block);
+    }
+    return { block: { id, type: "social-icons", children, justification: ["left", "centre", "right", "space-between"].includes(element.dataset.socialJustification ?? "") ? element.dataset.socialJustification as Extract<ContentBlock, { type: "social-icons" }>["justification"] : "left", orientation: element.dataset.socialOrientation === "vertical" ? "vertical" : "horizontal", iconSize: ["small", "normal", "large"].includes(element.dataset.socialSize ?? "") ? element.dataset.socialSize as Extract<ContentBlock, { type: "social-icons" }>["iconSize"] : "normal", showLabels: element.dataset.socialLabels === "true", openInNewTab: element.dataset.socialNewTab === "true" } };
+  }
+  if (declaredType === "social-linkedin" || declaredType === "social-tiktok") {
+    if (element.tagName.toLowerCase() !== "a") return { error: "Social icons must use link elements." };
+    return { block: { id, type: declaredType, url: element.getAttribute("href") ?? element.dataset.socialUrl ?? "", label: element.textContent || undefined } };
+  }
   if (declaredType === "document-title") {
     const level = Number(element.tagName.slice(1));
     return { block: { id, type: "document-title", align: alignmentFromClass(element) ?? (original.type === "document-title" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original), level: [1, 2, 3, 4, 5, 6].includes(level) ? level as 1 | 2 | 3 | 4 | 5 | 6 : original.type === "document-title" ? original.level : 2, isLink: element.dataset.metadataLink === "true", linkTarget: element.dataset.linkTarget === "_blank" ? "_blank" : "_self", rel: element.dataset.linkRel || undefined } };

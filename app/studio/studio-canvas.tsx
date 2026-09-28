@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type HTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
-import { AcmIcon, type IconName } from "@acm/icons/react";
+import { AcmIcon } from "@acm/icons/react";
+import type { IconName } from "@acm/icons";
 import { BlockRenderer } from "../components/content";
 import { useFitText } from "../components/fit-text-paragraph";
 import { ArticleMetaIcon } from "../components/article-meta-icon";
@@ -14,6 +15,8 @@ import { buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleCl
 import { spacerDimensions } from "../content/spacer";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
 import { BlockLibraryIcon } from "./block-library-icons";
+import { socialIconCatalogue } from "./editor-model";
+import { SocialIconView } from "../components/social-icons";
 import { StudioIcon } from "./studio-icons";
 import { Pane } from "./panes/pane-components";
 import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
@@ -25,6 +28,7 @@ import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBloc
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
 import { COLUMN_LAYOUT_PRESETS, columnsLayoutStyle, setColumnsLayout } from "../content/columns";
 import { blockAlignmentClass, blockAlignmentOptions, contentBlockAlignment } from "../content/block-alignment";
+import { findBlockById } from "./studio-command-operations.mjs";
 
 function StudioHoverIcon({ name, size = 24, vertical = false }: { name: IconName; size?: number; vertical?: boolean }) {
   return <AcmIcon className={vertical ? "studio-hover-icon is-vertical" : "studio-hover-icon"} name={name} scale="Regular-M" size={size} />;
@@ -38,11 +42,14 @@ function blockLabel(type: ContentBlock["type"]) {
   if (type === "document-title") return "Document Title";
   if (type === "document-subtitle") return "Document Subtitle";
   if (type === "cover-image") return "Cover Image";
+  if (type === "social-icons") return "Social Icons";
+  if (type === "social-linkedin") return "LinkedIn";
+  if (type === "social-tiktok") return "TikTok";
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
 function blockChildren(block: ContentBlock) {
-  return (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") ? (block.children ?? []) : [];
+  return (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "social-icons") ? (block.children ?? []) : [];
 }
 
 function lastParagraphBlock(blocks: ContentBlock[]): Extract<ContentBlock, { type: "paragraph" }> | null {
@@ -682,16 +689,18 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
       {publishFeedback ? <div className="publish-feedback" role="status"><span>{publishFeedback}</span><button type="button" onClick={() => onSetPublishFeedback(null)} aria-label="Dismiss publication message"><StudioIcon name="close" size={18} /></button></div> : null}
       {toolbarContent}
       <div className="editor-work-area">
-      {showInserter && !previewing && !codeEditor ? <BlockInserter closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={filteredBlocks} onSetQuery={onSetInserterQuery} onInsert={(type) => onInsertBlock(type, inserterParentId ?? undefined)} onDragEnd={() => onSetDragOverIndex(null)} onDismiss={dismissInserter} /> : null}
+      {showInserter && !previewing && !codeEditor ? <BlockInserter closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={inserterParentId && findBlockById(activeDocument.blocks, inserterParentId)?.type === "social-icons" ? socialIconCatalogue.filter(item => `${item.label} ${item.description}`.toLowerCase().includes(inserterQuery.toLowerCase())) : filteredBlocks} onSetQuery={onSetInserterQuery} onInsert={(type) => onInsertBlock(type, inserterParentId ?? undefined)} onDragEnd={() => onSetDragOverIndex(null)} onDismiss={dismissInserter} /> : null}
       {!previewing && !showInserter && listViewOpen ? <button className="studio-list-backdrop" type="button" aria-label="Close List View" onClick={closeListView} /> : null}
       {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlockFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} onRemoveBlock={onRemoveBlock} onMoveItem={(parentId, index, direction) => {
         if (!parentId) { onMoveBlock(index, direction); return; }
         onUpdateBlock(parentId, (parent) => {
-          if (parent.type !== "section" && parent.type !== "group" && parent.type !== "columns" && parent.type !== "column" && parent.type !== "component") return parent;
+          if (parent.type !== "section" && parent.type !== "group" && parent.type !== "columns" && parent.type !== "column" && parent.type !== "component" && parent.type !== "social-icons") return parent;
           const children = [...(parent.children ?? [])]; const target = index + direction;
           if (target < 0 || target >= children.length) return parent;
           const [moved] = children.splice(index, 1); children.splice(target, 0, moved);
-          return parent.type === "columns" ? { ...parent, children: children as typeof parent.children } : { ...parent, children };
+          if (parent.type === "columns") return { ...parent, children: children as typeof parent.children };
+          if (parent.type === "social-icons") return { ...parent, children: children as typeof parent.children };
+          return { ...parent, children };
         });
       }} /> : null}
 
@@ -1328,6 +1337,8 @@ function BlockFieldContent({ block, rootBlocks = [block], document, templatePlac
   if (block.type === "reading-time") return <div className={`metadata-block-editor reading-time-block-editor${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`}>{block.presentation !== "plain" ? <span className="reading-time-badge">{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span> : <span>{block.prefix ?? "Reading Time:"} {readingTimeLabel(rootBlocks)}</span>}</div>;
   if (block.type === "post-author") { const author = documentAuthor(documentContext); return <div className={`metadata-block-editor article-byline align-${block.align ?? "left"}`}>{author ? <>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></> : <span className="metadata-missing">Add an author in Document settings.</span>}</div>; }
   if (block.type === "post-date") { const date = formatDocumentDate(documentContext, block.format); const value = date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={documentContext.publishAt ?? documentContext.publishedAt}>{date}</time></> : <span className="metadata-missing">Add a publication date in Document settings.</span>; const href = document?.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null; return <div className={`metadata-block-editor article-byline-detail align-${block.align ?? "left"}`}>{block.isLink && href ? <a href={href} onClick={(event) => event.preventDefault()}>{value}</a> : value}</div>; }
+  if (block.type === "social-icons") return <nav className={`social-icons-block is-editing is-${block.orientation ?? "horizontal"} justify-${block.justification ?? "left"} size-${block.iconSize ?? "normal"}`} aria-label="Social links"><ul>{block.children.map(child => <li className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} tabIndex={0} aria-label={`${blockLabel(child.type)} icon block`} key={child.id}><SocialIconView block={child} showLabel={block.showLabels} editing /></li>)}<li className="social-icons-appender"><button className="social-icons-add" type="button" onClick={() => onOpenNestedInserter?.(block.id)} aria-label="Add social icon" title="Add social icon"><StudioIcon name="add" size={18} /></button></li></ul></nav>;
+  if (block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel editing />;
   if (block.type === "columns") {
     if (block.id === pendingColumnsLayoutBlockId) return <ColumnsLayoutChooser block={block} onSelect={widths => {
       onChange(setColumnsLayout(block, widths, index => `column-${crypto.randomUUID()}-${index + 1}`));

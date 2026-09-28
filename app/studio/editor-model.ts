@@ -87,12 +87,18 @@ export const blockCatalogue: Array<{
   { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Design" },
   { type: "divider", label: "Divider", description: "Separate two sections.", group: "Design" },
   { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design" },
+  { type: "social-icons", label: "Social Icons", description: "Add links to your social profiles.", group: "Other" },
   { type: "document-title", label: "Document Title", description: "Display the current page or post title.", group: "Other" },
   { type: "document-subtitle", label: "Document Subtitle", description: "Display the current page or post subtitle.", group: "Other" },
   { type: "cover-image", label: "Cover Image", description: "Display the document cover image.", group: "Other" },
   { type: "reading-time", label: "Reading Time", description: "Show the calculated reading time for this document.", group: "Other" },
   { type: "post-author", label: "Post Author", description: "Show the document author when one is set.", group: "Other" },
   { type: "post-date", label: "Post Date", description: "Show the document publication date.", group: "Other" },
+];
+
+export const socialIconCatalogue: typeof blockCatalogue = [
+  { type: "social-linkedin", label: "LinkedIn", description: "Link to a LinkedIn profile.", group: "Other" },
+  { type: "social-tiktok", label: "TikTok", description: "Link to a TikTok profile.", group: "Other" },
 ];
 
 export const templateContentBlock = {
@@ -214,6 +220,8 @@ export function cloneWorkspace(workspace: StudioWorkspace): StudioWorkspace {
 }
 
 export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now()}`): ContentBlock {
+  if (type === "social-icons") return { id, type, children: [] };
+  if (type === "social-linkedin" || type === "social-tiktok") return { id, type, url: "" };
   if (type === "group") return { id, type, layout: "stack", children: [] };
   if (type === "columns") return createColumnsBlock(id);
   if (type === "section") return { id, type, layout: "stack", children: [] };

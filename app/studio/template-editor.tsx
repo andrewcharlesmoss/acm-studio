@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ContentBlock, RichTextRun } from "../content/model";
 import { BlockRenderer } from "../components/content";
-import { blockCatalogue, createBlock, createWorkspacePreviewDocument, templateContentBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
+import { blockCatalogue, createBlock, createWorkspacePreviewDocument, socialIconCatalogue, templateContentBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
 import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
@@ -128,8 +128,8 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     const node = type === "template-content" ? { id: templateId(), type: "element" as const, element: "content" as const } : templateNodesFromBlocks([createBlock(type, templateId())])[0];
     const projected = templateEditorBlocks([node])[0];
     const parent = parentId ? findBlockById(blocks, parentId) : undefined;
-    if (parent && (parent.type === "group" || parent.type === "column") && !parent.data?.templateElement && !parent.data?.templatePart) {
-      commands.updateBlock(parent.id, block => block.type === "group" || block.type === "column" ? { ...block, children: [...block.children, projected] } : block);
+    if (parent && ((parent.type === "group" || parent.type === "column") && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "social-icons" && (projected.type === "social-linkedin" || projected.type === "social-tiktok"))) {
+      commands.updateBlock(parent.id, block => block.type === "group" || block.type === "column" ? { ...block, children: [...block.children, projected] } : block.type === "social-icons" && (projected.type === "social-linkedin" || projected.type === "social-tiktok") ? { ...block, children: [...block.children, projected] } : block);
       selectBlock(projected.id); setShowInserter(false); setQuery(""); setInserterParentId(null);
       return projected;
     }
@@ -163,7 +163,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   </div>;
   return <StudioEditor writable={writable} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
     target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: <TemplateInspector set={set} target={target} selectedBlock={selectedBlock} tab={activeInspectorTab} onTabChange={selectInspectorTab} paneWidth={inspectorPaneWidth} onPaneWidthChange={onInspectorPaneWidthChange} paneCollapsed={inspectorPaneCollapsed} onPaneCollapsedChange={onInspectorPaneCollapsedChange} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onOpenMedia={logo => onOpenMedia(selectedBlock?.id ?? null, logo)} onEditPart={onEditPart} users={users} /> }}
-    canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: templateBlockCatalogue.filter(block => `${block.label} ${block.description}`.toLowerCase().includes(query.toLowerCase())), publishFeedback: null,
+    canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: (inserterParentId && findBlockById(blocks, inserterParentId)?.type === "social-icons" ? socialIconCatalogue : templateBlockCatalogue).filter(block => `${block.label} ${block.description}`.toLowerCase().includes(query.toLowerCase())), publishFeedback: null,
       presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => <TemplateSurface set={set} editing={context.mode === "edit"} editorCanvas={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>, renderBlock: context => {
         if (!context.block) return null;
         const currentBlock = context.block;
@@ -188,8 +188,8 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
               role="group"
               aria-label={`Template node: ${label}`}
               tabIndex={0}
-              onPointerDown={event => { event.stopPropagation(); selectBlock(node.id); }}
-              onFocusCapture={() => selectBlock(node.id)}
+              onPointerDown={event => { event.stopPropagation(); const nestedId = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]")?.dataset.studioNestedBlockId : undefined; selectBlock(nestedId ?? node.id); }}
+              onFocusCapture={event => { const nestedId = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]")?.dataset.studioNestedBlockId : undefined; selectBlock(nestedId ?? node.id); }}
               onKeyDown={event => {
                 if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
                 event.preventDefault();

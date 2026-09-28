@@ -29,7 +29,8 @@ export function useStudioBlockCommands({
   function insertBlock(type: InsertableBlockType, afterIndex: number | null, parentId?: string | null) {
     const block = createBlock(type);
     updateActiveDocument((document) => parentId
-      ? updateBlockById(document, parentId, (parent: ContentBlock) => (parent.type === "section" || parent.type === "group" || parent.type === "column") ? { ...parent, children: [...parent.children, block] } : parent)
+      ? updateBlockById(document, parentId, (parent: ContentBlock) => (parent.type === "section" || parent.type === "group" || parent.type === "column") ? { ...parent, children: [...parent.children, block] }
+        : parent.type === "social-icons" && (block.type === "social-linkedin" || block.type === "social-tiktok") ? { ...parent, children: [...parent.children, block] } : parent)
       : insertBlockAt(document, block, afterIndex));
     return block;
   }
@@ -167,7 +168,7 @@ export function useStudioBlockCommands({
     const remap = (block: ContentBlock): ContentBlock => {
       const next = { ...JSON.parse(JSON.stringify(block)) as ContentBlock, id: createUniqueId(block.type) };
       if (next.type === "columns") return { ...next, children: next.children.map(column => remap(column) as ColumnBlock) };
-      if (next.type === "section" || next.type === "group" || next.type === "column") return { ...next, children: next.children.map(remap) };
+      if (next.type === "section" || next.type === "group" || next.type === "column" || next.type === "social-icons") return { ...next, children: next.children.map(remap) } as ContentBlock;
       if (next.type === "component" && next.children) return { ...next, children: next.children.map(remap) };
       return next;
     };
@@ -181,7 +182,7 @@ export function useStudioBlockCommands({
           next.push(block);
           if (block.id === blockId) next.push(remapped);
           else if (block.type === "columns") next[next.length - 1] = { ...block, children: block.children.map(column => ({ ...column, children: insert(column.children) })) };
-          else if ((block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component") && Array.isArray(block.children)) next[next.length - 1] = { ...block, children: insert(block.children) } as ContentBlock;
+          else if ((block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component" || block.type === "social-icons") && Array.isArray(block.children)) next[next.length - 1] = { ...block, children: insert(block.children) } as ContentBlock;
         }
         return next;
       }

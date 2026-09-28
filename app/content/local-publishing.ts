@@ -3,6 +3,7 @@ import { listItemText, type Article, type ContentBlock } from "./model";
 import type { StudioDocument, StudioPasswordProtection } from "../studio/editor-model";
 import { readingTimeLabel } from "./reading-time";
 import { contentMediaIds } from "./media-references";
+import { safeTextLink } from "./rich-text";
 import { copyTemplateData, templateMediaIds, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateSnapshot } from "../studio/template-model";
 import { LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY } from "./local-storage-keys";
 
@@ -100,6 +101,7 @@ export function validatePostForPublication(document: StudioDocument, documents: 
     if (block.type === "paragraph" || block.type === "heading" || block.type === "quote") return Boolean(block.text.trim());
     if (block.type === "list") return block.items.some((item) => listItemText(item).trim());
     if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") return hasContent(block.children ?? []);
+    if (block.type === "social-icons") return block.children.some(child => Boolean(safeTextLink(child.url)));
     if (block.type === "reading-time" || block.type === "post-author" || block.type === "post-date" || block.type === "spacer" || block.type === "divider") return false;
     return true;
   });

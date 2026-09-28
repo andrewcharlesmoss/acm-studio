@@ -872,6 +872,29 @@
 .block-canvas :is(.studio-nested-block, [data-studio-selected]):not([data-studio-selected="true"]):is(:hover, [data-studio-hovered="true"]) { outline: 1px solid #8f8f8f; outline-offset: -1px; }
 .block-canvas :is(.studio-nested-block, [data-studio-selected])[data-studio-selected="true"] { outline: 1px solid #8f8f8f; outline-offset: -1px; }
 .nested-add-block { align-items: center; background: transparent; border: 1px dashed #b6b4ac; color: var(--muted); display: inline-flex; gap: 6px; justify-content: center; min-height: 34px; padding: 6px 10px; }
+.social-icons-block { min-width: 0; }
+.social-icons-block ul { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; list-style: none; margin: 0; padding: 0; width: 100%; }
+.social-icons-block.justify-centre ul { justify-content: center; }
+.social-icons-block.justify-right ul { justify-content: flex-end; }
+.social-icons-block.justify-space-between ul { justify-content: space-between; }
+.social-icons-block.is-vertical ul { align-items: flex-start; flex-direction: column; }
+.social-icons-block.is-vertical.justify-centre ul { align-items: center; }
+.social-icons-block.is-vertical.justify-right ul { align-items: flex-end; }
+.social-icons-block li { display: inline-flex; margin: 0; padding: 0; }
+.social-icon-item { align-items: center; background: #0a66c2; border-radius: 999px; box-sizing: border-box; color: #fff; display: inline-flex; font-size: 15px; font-weight: 600; gap: 8px; justify-content: center; line-height: 1.2; min-height: 40px; min-width: 40px; padding: 6px; text-decoration: none; }
+.social-icon-item.is-tiktok { background: #171717; }
+.social-icon-glyph { align-items: center; display: inline-flex; justify-content: center; }
+.social-icon-glyph svg { height: 24px; width: 24px; }
+.social-icon-label { padding-right: 7px; }
+.social-icons-block.size-small .social-icon-item { min-height: 32px; min-width: 32px; }
+.social-icons-block.size-small .social-icon-glyph svg { height: 19px; width: 19px; }
+.social-icons-block.size-large .social-icon-item { min-height: 48px; min-width: 48px; }
+.social-icons-block.size-large .social-icon-glyph svg { height: 30px; width: 30px; }
+.social-icons-block.is-editing .studio-nested-block { border-radius: 999px; cursor: pointer; }
+.social-icons-block.is-editing .studio-nested-block:focus-visible, .social-icon-item:focus-visible, .social-icons-add:focus-visible { outline: 2px solid var(--focus-ring-colour); outline-offset: 3px; }
+.social-icons-add { align-items: center; background: transparent; border: 1px solid currentColor; border-radius: 999px; color: var(--ink); display: inline-flex; height: 40px; justify-content: center; padding: 0; width: 40px; }
+.social-icons-block.size-small .social-icons-add { height: 32px; width: 32px; }
+.social-icons-block.size-large .social-icons-add { height: 48px; width: 48px; }
 .table-field-grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 100%; }
 .table-field-grid th, .table-field-grid td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; min-width: 0; padding: 0; position: relative; text-align: left; vertical-align: top; }
 .table-field-grid tr > :last-child { border-right: 0; }

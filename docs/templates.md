@@ -27,6 +27,11 @@ belong to the focused template workspace and leave text, code and form editing
 to the browser. The Template inspector owns identity, navigation and
 social/support links; Styles applies to the whole set. Ordinary paragraph style
 overrides take precedence over the set's tokens.
+The block inserter also offers Social Icons. Add LinkedIn and TikTok inside it,
+then select each child in the canvas or List View to enter its profile URL.
+The parent controls orientation, justification, size, labels and whether links
+open in a new tab. Existing footer social/support template elements remain
+readable; authors can replace or supplement them with the block.
 The Copyright setting supports `{copyright}` (©), `{year}` (the current year)
 and `{site-title}` (the Site Name). Values resolve when a template is rendered;
 unknown brace-wrapped text remains unchanged. New template sets use all three

@@ -16,6 +16,7 @@ import { ImageLightbox } from "./image-lightbox";
 import { ArticleMetaIcon } from "./article-meta-icon";
 import { FitTextHeading, FitTextParagraph } from "./fit-text-paragraph";
 import { StudioIcon } from "../studio/studio-icons";
+import { SocialIconView } from "./social-icons";
 
 export function StatusPill({ status }: { status: Project["status"] }) {
   return <span className={`status-pill status-${status.toLowerCase()}`}>{status}</span>;
@@ -183,6 +184,11 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           const value = date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={document ? document.publishAt ?? document.publishedAt : undefined}>{date}</time></> : <span className="metadata-missing">Add a publication date in Document settings.</span>;
           return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}>{block.isLink && href ? <a href={href}>{value}</a> : value}</div> : null;
         }
+        if (block.type === "social-icons") {
+          const links = block.children.filter(child => Boolean(safeTextLink(child.url)));
+          return links.length ? <nav className={`social-icons-block is-${block.orientation ?? "horizontal"} justify-${block.justification ?? "left"} size-${block.iconSize ?? "normal"}`} aria-label="Social links" key={block.id}><ul>{links.map(child => <li key={child.id}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;
+        }
+        if (block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel key={block.id} />;
         if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child)}</div>)}</section>;
         if (block.type === "group") {
           const GroupElement = block.tagName ?? "div";
@@ -192,7 +198,8 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`content-column${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }} key={block.id}>{block.children.map((child) => renderBlock(child))}</div>;
         if (block.type === "spacer") return <div id={paragraphStyleAnchor(block.visualStyle)} className={`content-spacer${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block), margin: block.visualStyle?.margin }} aria-hidden="true" key={block.id} />;
         if (block.type === "component") return null;
-        return studio ? <div className={`divider-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><hr className={`content-divider is-${block.style ?? "default"}`} /></div> : <hr className={`content-divider is-${block.style ?? "default"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id} />;
+        if (block.type === "divider") return studio ? <div className={`divider-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><hr className={`content-divider is-${block.style ?? "default"}`} /></div> : <hr className={`content-divider is-${block.style ?? "default"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id} />;
+        return null;
   }
   return (
     <div className={studio ? "studio-block-preview" : "prose"}>

@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added a Social Icons block with selectable LinkedIn and TikTok child blocks, profile links and group layout controls in documents and templates.
 - Added Gutenberg-compatible Table column-content alignment, Post Title level
   and link settings, Post Date linking, Featured Image sizing/link controls and
   Group semantic element and ARIA label settings, all with typed validation,

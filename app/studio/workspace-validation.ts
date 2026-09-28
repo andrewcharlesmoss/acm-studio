@@ -43,7 +43,7 @@ const optionalParagraphClasses = (value: unknown) => value === undefined || (typ
 function collectBlockIds(blocks: ContentBlock[], ids = new Set<string>()) {
   for (const block of blocks) {
     ids.add(block.id);
-    if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") collectBlockIds(block.children ?? [], ids);
+    if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "social-icons") collectBlockIds(block.children ?? [], ids);
   }
   return ids;
 }
@@ -58,7 +58,7 @@ function uniqueBlockId(base: string, ids: Set<string>) {
 
 function withUniqueBlockIds(block: ContentBlock, ids: Set<string>): ContentBlock {
   const id = uniqueBlockId(block.id, ids);
-  if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") {
+  if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "social-icons") {
     const children = (block.children ?? []).map(child => withUniqueBlockIds(child, ids));
     return block.type === "columns" ? { ...block, id, children: children as Extract<ContentBlock, { type: "column" }>[] } : { ...block, id, children } as ContentBlock;
   }
@@ -165,6 +165,15 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.presentation === undefined || ["badge", "plain"].includes(block.presentation as string));
       case "post-author": return optionalString(block.prefix) && optionalBoolean(block.avatar);
       case "post-date": return (block.format === undefined || ["long", "short", "iso"].includes(block.format as string)) && optionalBoolean(block.showIcon) && optionalBoolean(block.isLink);
+      case "social-icons": return (block.justification === undefined || ["left", "centre", "right", "space-between"].includes(block.justification as string))
+        && (block.orientation === undefined || ["horizontal", "vertical"].includes(block.orientation as string))
+        && (block.iconSize === undefined || ["small", "normal", "large"].includes(block.iconSize as string))
+        && optionalBoolean(block.showLabels) && optionalBoolean(block.openInNewTab)
+        && Array.isArray(block.children) && block.children.length <= 100
+        && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1, "social-icons"));
+      case "social-linkedin":
+      case "social-tiktok": return parentType === "social-icons" && typeof block.url === "string" && block.url.length <= 2000
+        && (block.label === undefined || (typeof block.label === "string" && block.label.length <= 160));
       case "section":
         return ["stack", "row", "columns"].includes(block.layout as string)
           && validLayoutOptions(block)
@@ -213,7 +222,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
           footnoteIds.add(note.id);
         }
       }
-      if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") && block.children && !collectFootnoteIds(block.children)) return false;
+      if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "social-icons") && block.children && !collectFootnoteIds(block.children)) return false;
     }
     return true;
   }

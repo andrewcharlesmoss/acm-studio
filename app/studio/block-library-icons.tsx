@@ -36,6 +36,9 @@ const blockSymbols: Record<BlockIconType, BlockSymbol> = {
   "reading-time": { source: "ACM Studio", symbol: "clock" },
   "post-author": { source: "ACM Icons", symbol: "account.record" },
   "post-date": { source: "ACM Studio", symbol: "calendar" },
+  "social-icons": { source: "ACM Icons", symbol: "social.icons" },
+  "social-linkedin": { source: "ACM Icons", symbol: "brand.linkedin" },
+  "social-tiktok": { source: "ACM Icons", symbol: "brand.tiktok" },
 };
 
 export function blockLibrarySymbol(type: BlockLibraryItemType): BlockSymbol {
