@@ -700,7 +700,10 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
         if (activeSelection && activeSelection.pointerId !== event.pointerId) return;
         const target = event.target instanceof Element ? event.target : event.target instanceof Node ? event.target.parentElement : null;
         const block = target?.closest<HTMLElement>(".canvas-block");
-        if (event.button !== 0 || !block || target?.closest(".canvas-block-toolbar, button, input, textarea, select, [role=\"button\"]")) {
+        // Template nodes own selection inside a rendered parent block. Do not
+        // start cross-block text selection from their pointer event: its
+        // pointer-up handler would otherwise select the outer canvas block.
+        if (event.button !== 0 || !block || target?.closest(".template-node-selectable, .canvas-block-toolbar, button, input, textarea, select, [role=\"button\"]")) {
           crossBlockSelectionRef.current = null;
           return;
         }

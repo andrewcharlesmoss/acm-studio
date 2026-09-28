@@ -182,8 +182,9 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
             // This named focusable group preserves editable descendants without nesting them in a button.
             /* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
             const selectionFrame = <div
-              className={`template-node-selectable${selected === node.id ? " template-node-selected" : ""}`}
+              className="template-node-selectable"
               data-studio-nested-block-id={node.id}
+              data-studio-selected={selected === node.id}
               role="group"
               aria-label={`Template node: ${label}`}
               tabIndex={0}
