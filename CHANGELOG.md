@@ -241,6 +241,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Font size controls now show the preset sizes by default, including blocks that have a saved custom size.
 - Grouped the Social Icons block and its LinkedIn and TikTok choices under Widgets in the block library.
 - Added LinkedIn and TikTok as standalone Widgets choices; inserting either creates its Social Icons parent automatically.
 - The Styles font picker now offers Inter and only the fallback families in

@@ -660,7 +660,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
   const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");
   const [fontSizeViewOverride, setFontSizeViewOverride] = useState<{ source: string; mode: "presets" | "custom" } | null>(null);
   const fontSizeSource = `${block.id}:${style.fontSize ?? ""}:${style.fontSizeCustom ?? ""}`;
-  const fontSizeMode = fontSizeViewOverride?.source === fontSizeSource ? fontSizeViewOverride.mode : style.fontSizeCustom ? "custom" : "presets";
+  const fontSizeMode = fontSizeViewOverride?.source === fontSizeSource ? fontSizeViewOverride.mode : "presets";
   const activeBackgroundMode = style.backgroundGradient ? "gradient" : backgroundMode;
   const typographyOptions: InspectorToolOption[] = [
     { id: "colour", label: "Colour" }, { id: "size", label: "Size" },
