@@ -24,7 +24,7 @@ type MediaSort = "newest" | "name" | "size";
 type MediaManagerProps = {
   writable: boolean;
   targetLabel: string;
-  targetKind?: "block" | "cover";
+  targetKind?: "block" | "cover" | "background";
   onInsertImage: (asset: MediaAsset, objectUrl?: string, altText?: string) => void;
 };
 
@@ -189,6 +189,10 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
 
   function requestImageInsert(asset: MediaAsset, trigger?: HTMLButtonElement) {
     if (!canMutate) return;
+    if (targetKind === "background") {
+      onInsertImage(asset, objectUrls[asset.id]);
+      return;
+    }
     insertAltTriggerRef.current = trigger ?? null;
     setInsertAltText(asset.altText || asset.name.replace(/\.[^.]+$/, ""));
     setInsertAltAsset(asset);
@@ -650,7 +654,7 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
               </section>
               <section><h2>File details</h2><label><span>Name</span><input disabled={!canMutate} value={selectedAsset.name} onChange={(event) => { if (canMutate) setAssets((current) => current.map((asset) => asset.id === selectedAsset.id ? { ...asset, name: event.target.value } : asset)); }} onBlur={(event) => void saveAsset({ name: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label><dl><div><dt>Type</dt><dd>{selectedAsset.type}</dd></div><div><dt>Size</dt><dd>{formatBytes(selectedAsset.size)}</dd></div><div><dt>Added</dt><dd>{new Date(selectedAsset.createdAt).toLocaleDateString("en-GB")}</dd></div></dl></section>
               <section><h2>Organisation</h2><label><span>Folder</span><select disabled={!canMutate} value={selectedAsset.folderId ?? ""} onChange={(event) => void saveAsset({ folderId: event.target.value || null })}><option value="">All files</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label></section>
-              {selectedAsset.type.startsWith("image/") ? <section><h2>Image information</h2><label><span>Alternative text</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.altText} onChange={(event) => { if (canMutate) setAssets((current) => current.map((asset) => asset.id === selectedAsset.id ? { ...asset, altText: event.target.value } : asset)); }} onBlur={(event) => void saveAsset({ altText: event.target.value })} placeholder="Describe the image for people who cannot see it" /></label><label><span>Caption</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.caption} onChange={(event) => { if (canMutate) setAssets((current) => current.map((asset) => asset.id === selectedAsset.id ? { ...asset, caption: event.target.value } : asset)); }} onBlur={(event) => void saveAsset({ caption: event.target.value })} /></label><button ref={insertAltTriggerRef} className="media-insert-button" type="button" disabled={!canMutate} onClick={(event) => requestImageInsert(selectedAsset, event.currentTarget)}>{targetKind === "cover" ? "Use as cover image" : `Insert into ${targetLabel}`}</button></section> : null}
+              {selectedAsset.type.startsWith("image/") ? <section><h2>Image information</h2>{targetKind !== "background" ? <label><span>Alternative text</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.altText} onChange={(event) => { if (canMutate) setAssets((current) => current.map((asset) => asset.id === selectedAsset.id ? { ...asset, altText: event.target.value } : asset)); }} onBlur={(event) => void saveAsset({ altText: event.target.value })} placeholder="Describe the image for people who cannot see it" /></label> : <p className="setting-note">Background images are decorative and do not need alternative text.</p>}<label><span>Caption</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.caption} onChange={(event) => { if (canMutate) setAssets((current) => current.map((asset) => asset.id === selectedAsset.id ? { ...asset, caption: event.target.value } : asset)); }} onBlur={(event) => void saveAsset({ caption: event.target.value })} /></label><button ref={insertAltTriggerRef} className="media-insert-button" type="button" disabled={!canMutate} onClick={(event) => requestImageInsert(selectedAsset, event.currentTarget)}>{targetKind === "cover" ? "Use as cover image" : targetKind === "background" ? "Use as background image" : `Insert into ${targetLabel}`}</button></section> : null}
               <section className="media-file-actions"><h2>Actions</h2><button type="button" onClick={downloadAsset}>Download</button><button className="danger-button" type="button" disabled={!canMutate} onClick={() => void removeAsset()}>Delete file</button></section>
             </div>
           ) : selectedFolder ? (

@@ -122,7 +122,7 @@ test("a genuinely absent workspace may initialise and save", () => {
   const state = hookHarness(load("app/studio/workspace-repository.ts").browserWorkspaceRepository, load).flush();
   assert.match(state.saveLabel, /Saved locally/);
   assert.equal(localStorage.writes.length, 1);
-  assert.equal(JSON.parse(localStorage.raw()).version, 12);
+  assert.equal(JSON.parse(localStorage.raw()).version, 13);
 });
 
 test("autosave status reports persistence time rather than a stale document timestamp", () => {
@@ -238,7 +238,7 @@ test("workspace v2 migration adds metadata blocks once without changing body IDs
   delete post.author;
   const migrated = validation.migrateStudioWorkspace(legacy);
   assert.equal(legacy.version, 2);
-  assert.equal(migrated.version, 12);
+  assert.equal(migrated.version, 13);
   const nextPost = migrated.documents.find((document) => document.id === post.id);
   assert.equal(nextPost.author, "Andrew Moss");
   assert.deepEqual(Array.from(nextPost.blocks.slice(2), (block) => block.id), bodyIds);
@@ -249,46 +249,46 @@ test("workspace v2 migration adds metadata blocks once without changing body IDs
   assert.equal(JSON.stringify(validation.migrateStudioWorkspace(migrated)), JSON.stringify(migrated));
 });
 
-test("workspace v7 migrates to v12 without changing documents or categories", () => {
+test("workspace v7 migrates to v13 without changing documents or categories", () => {
   const legacy = structuredClone(initialStudioWorkspace);
   legacy.version = 7;
   const documents = structuredClone(legacy.documents);
   const categories = structuredClone(legacy.categories);
   const migrated = validation.migrateStudioWorkspace(legacy);
-  assert.equal(migrated.version, 12);
+  assert.equal(migrated.version, 13);
   assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
   assert.equal(JSON.stringify(migrated.categories), JSON.stringify(categories));
 });
 
-test("workspace v8 migrates to v12 without changing documents or categories", () => {
+test("workspace v8 migrates to v13 without changing documents or categories", () => {
   const legacy = structuredClone(initialStudioWorkspace);
   legacy.version = 8;
   const documents = structuredClone(legacy.documents);
   const categories = structuredClone(legacy.categories);
   const migrated = validation.migrateStudioWorkspace(legacy);
-  assert.equal(migrated.version, 12);
+  assert.equal(migrated.version, 13);
   assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
   assert.equal(JSON.stringify(migrated.categories), JSON.stringify(categories));
 });
 
-test("workspace v10 migration preserves content and advances to v12", () => {
+test("workspace v10 migration preserves content and advances to v13", () => {
   const legacy = structuredClone(initialStudioWorkspace);
   legacy.version = 10;
   const documents = structuredClone(legacy.documents);
   const migrated = validation.migrateStudioWorkspace(legacy);
-  assert.equal(migrated.version, 12);
+  assert.equal(migrated.version, 13);
   assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
-  assert.equal(validation.validateStudioWorkspace(migrated).version, 12);
+  assert.equal(validation.validateStudioWorkspace(migrated).version, 13);
 });
 
-test("workspace v11 migration preserves content and advances to v12", () => {
+test("workspace v11 migration preserves content and advances to v13", () => {
   const legacy = structuredClone(initialStudioWorkspace);
   legacy.version = 11;
   const documents = structuredClone(legacy.documents);
   const migrated = validation.migrateStudioWorkspace(legacy);
-  assert.equal(migrated.version, 12);
+  assert.equal(migrated.version, 13);
   assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
-  assert.equal(validation.validateStudioWorkspace(migrated).version, 12);
+  assert.equal(validation.validateStudioWorkspace(migrated).version, 13);
 });
 
 test("current workspace and publication snapshots round-trip validation", () => {
@@ -296,6 +296,23 @@ test("current workspace and publication snapshots round-trip validation", () => 
   const { toLocallyPublishedArticle } = load("app/content/local-publishing.ts");
   backup.publications = JSON.stringify({ version: 1, posts: [toLocallyPublishedArticle(backup.workspace.documents.find((document) => document.kind === "post"))] });
   assert.equal(backupStore.validateStudioBackup(backup), backup);
+});
+
+test("Quote and Group background image settings pass workspace validation", () => {
+  const validation = load("app/studio/workspace-validation.ts");
+  for (const backgroundRepeat of ["repeat", "no-repeat"]) {
+    assert.equal(validation.validParagraphStyle({
+      backgroundImageMediaId: "managed-image-1",
+      backgroundSize: "fixed",
+      backgroundRepeat,
+      backgroundFixedSize: 320,
+      backgroundPositionX: 25,
+      backgroundPositionY: 75,
+    }), true);
+  }
+  assert.equal(validation.validParagraphStyle({ backgroundRepeat: true }), false);
+  assert.equal(validation.validParagraphStyle({ linkColor: "#2f6eb4", linkHoverColor: "#1e1e1e" }), true);
+  assert.equal(validation.validParagraphStyle({ linkHoverColor: "not-a-colour" }), false);
 });
 
 for (const [name, corrupt] of [

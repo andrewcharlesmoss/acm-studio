@@ -471,6 +471,13 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     setPreviewing(false);
   }
 
+  function openBackgroundMediaLibrary(targetBlockId: string) {
+    if (!confirmCodeEditorDiscard()) return;
+    media.targetBlockBackground(targetBlockId);
+    setStudioSection("files");
+    setPreviewing(false);
+  }
+
   function openCoverMediaLibrary() {
     if (!confirmCodeEditorDiscard()) return;
     media.targetCoverImage();
@@ -723,6 +730,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             },
             onBlockChange: (next) => selectedBlock && blockCommands.updateBlock(selectedBlock.id, () => next),
             onOpenFiles: () => openMediaLibrary(selectedBlock?.id ?? null),
+            onOpenBackgroundMedia: openBackgroundMediaLibrary,
             onOpenCoverMediaLibrary: openCoverMediaLibrary,
             onRemoveCoverImage: media.removeCoverImage,
             onPublish: publishing.publish,
@@ -738,8 +746,8 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
         /> : studioSection === "files" ? <MediaManager
           key={ownershipGeneration}
           writable={exclusiveWritable}
-          targetLabel={inlineImageTarget ? "Inline image" : media.targetCover ? "Cover image" : media.targetBlockId ? "Image block" : "Media library"}
-          targetKind={media.targetCover ? "cover" : "block"}
+          targetLabel={inlineImageTarget ? "Inline image" : media.targetCover ? "Cover image" : media.targetBackground ? "Background image" : media.targetBlockId ? "Image block" : "Media library"}
+          targetKind={media.targetCover ? "cover" : media.targetBackground ? "background" : "block"}
           onInsertImage={(asset, _objectUrl, altText) => {
             if (inlineImageTarget) {
               const { blockId, selection } = inlineImageTarget;
@@ -756,7 +764,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
               setStudioSection("content");
               return;
             }
-            media.insertImage(asset, undefined, altText);
+            media.insertImage(asset, media.targetBackground ? { target: "background" } : undefined, altText);
           }}
         /> : <BackupManager workspace={workspace} />}
         </>}

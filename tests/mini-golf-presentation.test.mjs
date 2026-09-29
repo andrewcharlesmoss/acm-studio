@@ -199,10 +199,12 @@ test("New Game appearance depends on its role rather than a generated ID", () =>
 
 test("HTML editing preserves paragraph alignment and table dimension contracts", () => {
   const { blocksToHtml, __parseElement, __parseTable } = loadModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url));
-  const paragraph = { id: "p", type: "paragraph", text: "Aligned", align: "centre" };
+  const paragraph = { id: "p", type: "paragraph", text: "Aligned", align: "centre", style: { additionalCss: "color: red;" } };
   assert.match(blocksToHtml([paragraph]), /class="align-centre"/);
-  const parsedParagraph = __parseElement({ tagName: "P", dataset: { blockId: "p" }, className: "align-centre", classList: { contains: () => false }, textContent: "Aligned", querySelector: () => null, childNodes: [{ nodeType: 3, textContent: "Aligned" }] }, paragraph);
+  assert.match(blocksToHtml([paragraph]), /data-additional-css="color: red;"/);
+  const parsedParagraph = __parseElement({ tagName: "P", dataset: { blockId: "p", additionalCss: "color: red;" }, className: "align-centre", classList: { contains: () => false }, textContent: "Aligned", querySelector: () => null, childNodes: [{ nodeType: 3, textContent: "Aligned" }] }, paragraph);
   assert.equal(parsedParagraph.block.align, "centre");
+  assert.equal(parsedParagraph.block.style.additionalCss, "color: red;");
   const removedAlignment = __parseElement({ tagName: "P", dataset: { blockId: "p", alignExplicit: "true" }, className: "", classList: { contains: () => false }, textContent: "Aligned", querySelector: () => null, childNodes: [{ nodeType: 3, textContent: "Aligned" }] }, paragraph);
   assert.equal(removedAlignment.block.align, undefined);
   assert.match(blocksToHtml([paragraph]), /data-align-explicit="true"/);

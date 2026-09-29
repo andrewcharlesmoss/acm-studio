@@ -23,6 +23,7 @@ export function useStudioMedia({
 }) {
   const [targetBlockId, setTargetBlockId] = useState<string | null>(null);
   const [targetCover, setTargetCover] = useState(false);
+  const [targetBackground, setTargetBackground] = useState(false);
   const [blockUrls, setBlockUrls] = useState<Record<string, string>>({});
   const blockUrlsRef = useRef<Record<string, string>>({});
   const referencedMediaKey = useMemo(() => documents
@@ -65,20 +66,29 @@ export function useStudioMedia({
   function targetBlock(blockId: string | null = null) {
     setTargetBlockId(blockId);
     setTargetCover(false);
+    setTargetBackground(false);
+  }
+
+  function targetBlockBackground(blockId: string) {
+    setTargetBlockId(blockId);
+    setTargetCover(false);
+    setTargetBackground(true);
   }
 
   function targetCoverImage() {
     setTargetBlockId(null);
     setTargetCover(true);
+    setTargetBackground(false);
   }
 
   function removeCoverImage() {
     updateActiveDocument((document) => ({ ...document, coverImage: null }));
   }
 
-  function insertImage(asset: MediaAsset, destination?: { target?: "block" | "cover"; blockId?: string | null } | string, altText?: string) {
+  function insertImage(asset: MediaAsset, destination?: { target?: "block" | "cover" | "background"; blockId?: string | null } | string, altText?: string) {
     const options = typeof destination === "string" ? undefined : destination;
     const insertAsCover = options?.target === "cover" || (options?.target === undefined && targetCover);
+    const insertAsBackground = options?.target === "background" || (options?.target === undefined && targetBackground);
     const destinationBlockId = options?.target === "block" ? options.blockId ?? null : targetBlockId;
     if (insertAsCover) {
       const coverImage: StudioCoverImage = {
@@ -88,7 +98,20 @@ export function useStudioMedia({
       };
       updateActiveDocument((document) => ({ ...document, coverImage }));
       setTargetCover(false);
+      setTargetBackground(false);
       onReturnToDocument("document");
+      return;
+    }
+    if (insertAsBackground) {
+      if (!destinationBlockId) return;
+      updateBlock(destinationBlockId, block => {
+        if (block.type !== "quote" && block.type !== "group") return block;
+        return { ...block, visualStyle: { ...block.visualStyle, backgroundImageMediaId: asset.id } };
+      });
+      setTargetBlockId(null);
+      setTargetBackground(false);
+      onSelectBlock(destinationBlockId);
+      onReturnToDocument("block");
       return;
     }
     const image = {
@@ -102,11 +125,12 @@ export function useStudioMedia({
     if (destinationBlockId) updateBlock(destinationBlockId, () => image);
     else updateActiveDocument((document) => ({ ...document, blocks: [...document.blocks, image] }));
     setTargetBlockId(null);
+    setTargetBackground(false);
     onSelectBlock(image.id);
     onReturnToDocument("block");
   }
 
-  async function insertImageById(mediaId: string, destination?: { target?: "block" | "cover"; blockId?: string | null }, altText?: string) {
+  async function insertImageById(mediaId: string, destination?: { target?: "block" | "cover" | "background"; blockId?: string | null }, altText?: string) {
     const asset = await getMediaAsset(mediaId);
     if (!asset || !asset.type.startsWith("image/")) return false;
     insertImage(asset, destination, altText);
@@ -124,9 +148,11 @@ export function useStudioMedia({
   return {
     targetBlockId,
     targetCover,
+    targetBackground,
     blockUrls,
     coverImageUrl,
     targetBlock,
+    targetBlockBackground,
     targetCoverImage,
     removeCoverImage,
     insertImage,

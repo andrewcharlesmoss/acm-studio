@@ -131,7 +131,7 @@ not empty itself. The Bin is included in full Studio backups.
 
 ## Storage and portable contract
 
-The template-store and JSON package schema is **v0.12.0** (`0.12.0` in JSON).
+The template-store and JSON package schema is **v0.13.0** (`0.13.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -149,8 +149,8 @@ reference, with a root Content element following the pair. This conservative
 shape recognises legacy defaults whose `isDefault` flag was omitted while
 leaving nested or otherwise ambiguous authored copy intact. It preserves both
 node IDs, the heading level and text alignment, and applicable visual styles.
-The conversion does not run on v0.12.0 title placeholders or rewrite later
-template edits.
+The conversion does not run on v0.12.0 or v0.13.0 title placeholders or rewrite
+later template edits.
 
 Separately, active-store and package validation at every supported schema
 version folds legacy paragraph `style` values on dynamic subtitles into
@@ -166,7 +166,7 @@ preserve the template's previous rendering. The same conversion is used for
 active sets, Bin entries, imported packages, backups and template snapshots.
 Existing published snapshots keep their original version and captured values;
 later template edits do not change them. Publishing a changed design records a
-v0.12.0 snapshot only through the normal **Update** action.
+v0.13.0 snapshot only through the normal **Update** action.
 
 The explicit shared-editor target supplies template blocks and an inspector.
 Dynamic elements are projected into block-command handles only in memory;
@@ -184,12 +184,12 @@ same library pane as content; selecting an entry opens the editor directly
 without a separate template-library page.
 
 Layout options, Spacer, document metadata, dynamic document-field blocks,
-root-level Group sticky positioning and Gutenberg's Huge Social Icons size are
-additive to the existing typed block contract. Workspace data is now version 12,
-with readers for versions 2–11;
-local publication snapshots are version 5 with readers for versions 1–4, and
-full backups remain version 4. Template packages are v0.12.0, with readers for
-v0.1.0–v0.11.0. Group and Section templates support the Grid layout with a maximum
+root-level Group sticky positioning, Gutenberg's Huge Social Icons size and
+managed Quote/Group background images are additive to the existing typed block
+contract. Workspace data is now version 13, with readers for versions 2–12;
+local publication snapshots are version 6 with readers for versions 1–5, and
+full backups remain version 4. Template packages are v0.13.0, with readers for
+v0.1.0–v0.12.0. Group and Section templates support the Grid layout with a maximum
 column count and minimum column width in pixels. Each
 Page/Post template may supply
 Author, Category, Tags and Parent page defaults plus display defaults for

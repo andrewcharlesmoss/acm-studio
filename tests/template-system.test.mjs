@@ -202,7 +202,7 @@ test("v0.12 migrates one exact pre-Content placeholder pair per computed-default
   const migratedSet = migrated.sets[0]; const migratedPage = migratedSet.templates.find(template => template.kind === "page");
   const migratedTitle = migratedPage.nodes.find(node => node.id === title.id);
   const migratedSubtitle = migratedPage.nodes.find(node => node.id === subtitle.id);
-  assert.equal(migrated.version, "0.12.0");
+  assert.equal(migrated.version, "0.13.0");
   assert.deepEqual(plain(migratedTitle), { id: title.id, type: "element", element: "document-title", level: 2, align: "centre", visualStyle: title.visualStyle });
   assert.deepEqual(plain(migratedSubtitle), { id: subtitle.id, type: "element", element: "subtitle", align: "right", visualStyle: { ...subtitle.style, ...subtitle.visualStyle } });
   assert.equal(migratedPage.isDefault, true);
@@ -371,6 +371,17 @@ test("fixed template cover images validate, survive projection and retain their 
   assert.equal(roundTrip.find(node => node.id === cover.id).coverImageHidden, true);
 });
 
+test("Group and Quote background images retain their template projection and media references", () => {
+  const env = environment(); const model = env.load("studio/template-model.ts"); const set = model.createTemplateSet();
+  const group = { id: "background-group", type: "group", layout: "stack", visualStyle: { backgroundImageMediaId: "asset-group", backgroundSize: "fixed", backgroundFixedSize: 280 }, children: [] };
+  const quote = { id: "background-quote", type: "quote", text: "A quote", visualStyle: { backgroundImageMediaId: "asset-quote", backgroundPositionX: 20 } };
+  set.templates[0].nodes.push(group, quote);
+  model.validateTemplateSet(set);
+  assert.deepEqual(plain(model.templateMediaIds(set)), ["asset-group", "asset-quote"]);
+  const projected = model.templateEditorBlocks([group, quote]);
+  assert.deepEqual(plain(model.templateNodesFromBlocks(projected)), [group, quote]);
+});
+
 test("responsive layout options and Spacer blocks validate and survive template projection", () => {
   const env = environment(); const validation = env.load("studio/workspace-validation.ts"); const templates = env.load("studio/template-model.ts"); const layout = env.load("content/layout.ts");
   const spacer = { id: "spacer-1", type: "spacer", height: 48 };
@@ -397,7 +408,7 @@ test("sticky Group position survives template storage and block projection", () 
   assert.equal(blocks[0].position, "sticky");
   assert.deepEqual(plain(templates.templateNodesFromBlocks(blocks)[0]), group);
   const legacyStore = templates.validateTemplateStore({ version: "0.10.0", sets: [set], assignments: [] });
-  assert.equal(legacyStore.version, "0.12.0");
+  assert.equal(legacyStore.version, "0.13.0");
 });
 
 test("dedicated Columns presets follow WordPress order and preserve editable columns", () => {
@@ -506,10 +517,15 @@ function packageFixture(env) {
 
 test("portable imports remap all design/media IDs and reject missing media, wrong versions and malformed bytes", () => {
   const env = environment(); const p = env.load("studio/template-package.ts"); const input = packageFixture(env);
+  const m = env.load("studio/template-model.ts");
+  input.set.templates[0].nodes.push({ id: m.templateId(), type: "group", layout: "stack", visualStyle: { backgroundImageMediaId: "image-source" }, children: [] });
+  input.set.templates[0].nodes.push({ id: m.templateId(), type: "quote", text: "A quote", visualStyle: { backgroundImageMediaId: "image-source" } });
   const result = p.prepareTemplateImport(input);
   assert.notEqual(result.set.id, input.set.id); assert.notEqual(result.assets[0].id, "image-source");
   assert.equal(result.set.identity.logo.mediaId, result.assets[0].id);
   assert.equal(result.set.parts[0].nodes[0].children.at(-1).mediaId, result.assets[0].id);
+  assert.ok(result.set.templates[0].nodes.find(node => node.type === "group").visualStyle.backgroundImageMediaId === result.assets[0].id);
+  assert.ok(result.set.templates[0].nodes.find(node => node.type === "quote").visualStyle.backgroundImageMediaId === result.assets[0].id);
   assert.throws(() => p.validateTemplatePackage({ ...input, media: [] }), /every referenced/);
   assert.throws(() => p.validateTemplatePackage({ ...input, version: "9.0.0" }), /supported/);
   input.media[0].size = 4; assert.throws(() => p.validateTemplatePackage(input), /invalid/);
@@ -736,7 +752,7 @@ test("template and publication image references prevent deletion until removed",
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document, { version: m.TEMPLATE_VERSION, set, templateId: set.templates[1].id });
-  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 5);
+  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 6);
   env.storage.removeItem(m.TEMPLATE_STORAGE_KEY);
   assert.throws(() => store.assertTemplateMediaCanBeDeleted("image-source"), /published template snapshot/);
   publications.unpublishDocumentLocally(document.id);

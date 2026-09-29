@@ -130,7 +130,9 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       </TemplatePartRegion>;
     } else if (node.type === "group" || node.type === "section") {
       const Group = node.type === "section" ? "section" : "div";
-      result = <Group className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}`} style={layoutStyleProperties(node)} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</Group>;
+      const backgroundImageUrl = node.type === "group" && node.visualStyle?.backgroundImageMediaId ? mediaUrls[node.visualStyle.backgroundImageMediaId] : undefined;
+      const style = node.type === "group" ? node.visualStyle : undefined;
+      result = <Group id={paragraphStyleAnchor(style)} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</Group>;
     } else if (node.type === "columns") {
       const className = paragraphStyleClassName(node.style);
       result = (!shared ? renderOrdinary?.(node) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle(node), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.map(column => {
