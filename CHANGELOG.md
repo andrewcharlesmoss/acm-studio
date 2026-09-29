@@ -478,6 +478,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Standardised Studio inspector number fields to a shared 80px width that fits six digits, including font size, paragraph length and box dimensions.
 - Kept the Inspector options specimen's control and toggle positions stable while changing menu options or hiding its example field.
 - Kept the narrow Editor Inspector tab underline centred beneath its label, including on hover.
 - Replaced the inaccurate Copilot key drawing with a sourced, MIT-licensed

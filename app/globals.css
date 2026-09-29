@@ -18,6 +18,7 @@
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --studio-ui-font: -apple-system, system-ui, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   --studio-ui-size: 13px;
+  --studio-number-field-width: 80px;
   --studio-content-width: 771px;
   --max-width: 1240px;
 }
