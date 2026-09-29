@@ -122,7 +122,7 @@ test("a genuinely absent workspace may initialise and save", () => {
   const state = hookHarness(load("app/studio/workspace-repository.ts").browserWorkspaceRepository, load).flush();
   assert.match(state.saveLabel, /Saved locally/);
   assert.equal(localStorage.writes.length, 1);
-  assert.equal(JSON.parse(localStorage.raw()).version, 9);
+  assert.equal(JSON.parse(localStorage.raw()).version, 12);
 });
 
 test("autosave status reports persistence time rather than a stale document timestamp", () => {
@@ -238,7 +238,7 @@ test("workspace v2 migration adds metadata blocks once without changing body IDs
   delete post.author;
   const migrated = validation.migrateStudioWorkspace(legacy);
   assert.equal(legacy.version, 2);
-  assert.equal(migrated.version, 9);
+  assert.equal(migrated.version, 12);
   const nextPost = migrated.documents.find((document) => document.id === post.id);
   assert.equal(nextPost.author, "Andrew Moss");
   assert.deepEqual(Array.from(nextPost.blocks.slice(2), (block) => block.id), bodyIds);
@@ -249,26 +249,46 @@ test("workspace v2 migration adds metadata blocks once without changing body IDs
   assert.equal(JSON.stringify(validation.migrateStudioWorkspace(migrated)), JSON.stringify(migrated));
 });
 
-test("workspace v7 migrates to v9 without changing documents or categories", () => {
+test("workspace v7 migrates to v12 without changing documents or categories", () => {
   const legacy = structuredClone(initialStudioWorkspace);
   legacy.version = 7;
   const documents = structuredClone(legacy.documents);
   const categories = structuredClone(legacy.categories);
   const migrated = validation.migrateStudioWorkspace(legacy);
-  assert.equal(migrated.version, 9);
+  assert.equal(migrated.version, 12);
   assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
   assert.equal(JSON.stringify(migrated.categories), JSON.stringify(categories));
 });
 
-test("workspace v8 migrates to v9 without changing documents or categories", () => {
+test("workspace v8 migrates to v12 without changing documents or categories", () => {
   const legacy = structuredClone(initialStudioWorkspace);
   legacy.version = 8;
   const documents = structuredClone(legacy.documents);
   const categories = structuredClone(legacy.categories);
   const migrated = validation.migrateStudioWorkspace(legacy);
-  assert.equal(migrated.version, 9);
+  assert.equal(migrated.version, 12);
   assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
   assert.equal(JSON.stringify(migrated.categories), JSON.stringify(categories));
+});
+
+test("workspace v10 migration preserves content and advances to v12", () => {
+  const legacy = structuredClone(initialStudioWorkspace);
+  legacy.version = 10;
+  const documents = structuredClone(legacy.documents);
+  const migrated = validation.migrateStudioWorkspace(legacy);
+  assert.equal(migrated.version, 12);
+  assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
+  assert.equal(validation.validateStudioWorkspace(migrated).version, 12);
+});
+
+test("workspace v11 migration preserves content and advances to v12", () => {
+  const legacy = structuredClone(initialStudioWorkspace);
+  legacy.version = 11;
+  const documents = structuredClone(legacy.documents);
+  const migrated = validation.migrateStudioWorkspace(legacy);
+  assert.equal(migrated.version, 12);
+  assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
+  assert.equal(validation.validateStudioWorkspace(migrated).version, 12);
 });
 
 test("current workspace and publication snapshots round-trip validation", () => {

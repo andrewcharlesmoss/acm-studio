@@ -34,10 +34,9 @@ open in a new tab. Existing footer social/support template elements remain
 readable; authors can replace or supplement them with the block.
 The Copyright setting supports `{copyright}` (©), `{year}` (the current year)
 and `{site-title}` (the Site Name). Values resolve when a template is rendered;
-unknown brace-wrapped text remains unchanged. New template sets use all three
-placeholders in the default footer copyright line. Published template snapshots
-keep their saved design and copyright string, while these explicit dynamic
-values resolve at render time so the year stays current.
+unknown brace-wrapped text remains unchanged. New template sets use
+`© 2026 Andrew Moss. All Rights Reserved.` in the shared Footer part. Existing
+authored footer text and published snapshots keep their saved copyright value.
 Templated bodies and ordinary template blocks display dividers in every
 preview and publication surface. Standalone Header/Footer targets use the same
 semantic region and responsive styling as their composed references.
@@ -132,7 +131,7 @@ not empty itself. The Bin is included in full Studio backups.
 
 ## Storage and portable contract
 
-The template-store and JSON package schema is **v0.9.0** (`0.9.0` in JSON).
+The template-store and JSON package schema is **v0.12.0** (`0.12.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -142,6 +141,24 @@ reference Studio document IDs. The local-storage key is
 data disables template writes without replacing the original value. **Export
 Original Data** retains its raw contents for recovery.
 
+Title-placeholder migration applies only when validating an active store or
+portable package from v0.11.0 or earlier. Default Page/Post templates migrate
+the adjacent plain Heading `Title` and Paragraph `Subtitle` pair only at the
+canonical root position: immediately after an optional leading Header part
+reference, with a root Content element following the pair. This conservative
+shape recognises legacy defaults whose `isDefault` flag was omitted while
+leaving nested or otherwise ambiguous authored copy intact. It preserves both
+node IDs, the heading level and text alignment, and applicable visual styles.
+The conversion does not run on v0.12.0 title placeholders or rewrite later
+template edits.
+
+Separately, active-store and package validation at every supported schema
+version folds legacy paragraph `style` values on dynamic subtitles into
+`visualStyle`, with existing `visualStyle` values taking precedence. This
+normalisation is idempotent: after the first validation, the legacy field is
+absent from the active subtitle record. Bin entries and immutable published
+snapshots retain their legacy values for recovery and remain readable.
+
 Template data at v0.1.0 through v0.6.0 is migrated in memory to the nested
 style contract. Legacy colours, typeface, body size, heading and metadata
 typography, buttons and layout values are converted to explicit values that
@@ -149,7 +166,7 @@ preserve the template's previous rendering. The same conversion is used for
 active sets, Bin entries, imported packages, backups and template snapshots.
 Existing published snapshots keep their original version and captured values;
 later template edits do not change them. Publishing a changed design records a
-v0.9.0 snapshot only through the normal **Update** action.
+v0.12.0 snapshot only through the normal **Update** action.
 
 The explicit shared-editor target supplies template blocks and an inspector.
 Dynamic elements are projected into block-command handles only in memory;
@@ -166,12 +183,14 @@ integrated route, sets and their Page/Post/Header/Footer entries appear in the
 same library pane as content; selecting an entry opens the editor directly
 without a separate template-library page.
 
-Layout options, Spacer, document metadata and dynamic document-field blocks are
-additive to the existing typed block contract. Workspace data is now version 10,
-with readers for versions 2–9; local publication snapshots and full backups are
-version 4, with readers for their earlier versions. Template packages are
-v0.9.0, with readers for v0.1.0–v0.8.0. Group and Section templates support the
-Grid layout with a maximum column count and minimum column width in pixels. Each
+Layout options, Spacer, document metadata, dynamic document-field blocks,
+root-level Group sticky positioning and Gutenberg's Huge Social Icons size are
+additive to the existing typed block contract. Workspace data is now version 12,
+with readers for versions 2–11;
+local publication snapshots are version 5 with readers for versions 1–4, and
+full backups remain version 4. Template packages are v0.12.0, with readers for
+v0.1.0–v0.11.0. Group and Section templates support the Grid layout with a maximum
+column count and minimum column width in pixels. Each
 Page/Post template may supply
 Author, Category, Tags and Parent page defaults plus display defaults for
 dynamic fields; legacy set-level defaults remain a fallback. Documents record

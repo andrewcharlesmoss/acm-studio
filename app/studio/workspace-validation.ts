@@ -144,8 +144,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
       case "spacer": return validSpacerSize(block.height, block.heightUnit, true) && validSpacerSize(block.width, block.widthUnit);
       case "document-title": return (block.level === undefined || [1, 2, 3, 4, 5, 6].includes(block.level as number))
         && optionalBoolean(block.isLink) && (block.linkTarget === undefined || ["_self", "_blank"].includes(block.linkTarget as string)) && optionalString(block.rel);
-      case "document-subtitle":
-        return true;
+      case "document-subtitle": return true;
       case "cover-image": return optionalBoolean(block.isLink)
         && (block.linkTarget === undefined || ["_self", "_blank"].includes(block.linkTarget as string)) && optionalString(block.rel)
         && (block.aspectRatio === undefined || ["original", "square", "portrait", "landscape", "wide"].includes(block.aspectRatio as string))
@@ -159,7 +158,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
       case "social-icons": return (block.justification === undefined || ["left", "centre", "right", "space-between"].includes(block.justification as string))
         && (block.orientation === undefined || ["horizontal", "vertical"].includes(block.orientation as string))
         && optionalBoolean(block.allowWrap)
-        && (block.iconSize === undefined || ["small", "normal", "large"].includes(block.iconSize as string))
+        && (block.iconSize === undefined || ["small", "normal", "large", "huge"].includes(block.iconSize as string))
         && (block.socialStyle === undefined || ["default", "logos-only", "pill-shape"].includes(block.socialStyle as string))
         && [block.horizontalGap, block.verticalGap].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 120))
         && optionalBoolean(block.showLabels) && optionalBoolean(block.openInNewTab)
@@ -170,14 +169,16 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.label === undefined || (typeof block.label === "string" && block.label.length <= 160))
         && optionalString(block.rel);
       case "section":
-        return ["stack", "row", "columns", "grid"].includes(block.layout as string)
+        return block.position === undefined
+          && ["stack", "row", "columns", "grid"].includes(block.layout as string)
           && validLayoutOptions(block)
           && (block.role === undefined || ["account", "setup", "scorecard", "leaderboard", "share", "hero", "hero-copy", "account-copy", "scorecard-heading", "scorecard-actions", "leaderboard-card", "leaderboard-score", "leaderboard-metrics", "metric", "footer", "footer-brand", "footer-links", "social-link"].includes(block.role as string))
           && (block.data === undefined || (isRecord(block.data) && Object.values(block.data).every((item) => typeof item === "string" || typeof item === "number" || typeof item === "boolean" || strings(item))))
           && (!(block.data && typeof block.data.holes === "number") || (Number.isInteger(block.data.holes) && block.data.holes >= 1 && block.data.holes <= 18))
           && (block.source === undefined || (isRecord(block.source) && typeof block.source.module === "string" && typeof block.source.exportName === "string" && typeof block.source.revision === "string"))
           && Array.isArray(block.children) && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1));
-      case "group": return ["stack", "row", "columns", "grid"].includes(block.layout as string)
+      case "group": return (block.position === undefined || block.position === "sticky")
+        && ["stack", "row", "columns", "grid"].includes(block.layout as string)
         && validLayoutOptions(block)
         && (block.tagName === undefined || ["div", "main", "section", "article", "aside", "header", "footer", "nav"].includes(block.tagName as string))
         && optionalString(block.ariaLabel)
@@ -228,7 +229,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -299,12 +300,14 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   if (migrated.version === 7) migrated.version = 8;
   if (migrated.version === 8) migrated.version = 9;
   if (migrated.version === 9) migrated.version = 10;
+  if (migrated.version === 10) migrated.version = 11;
+  if (migrated.version === 11) migrated.version = 12;
   return migrated as StudioWorkspace;
 }
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10].includes(value.version as number) || !Array.isArray(value.documents)
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
   const categories = value.categories === undefined && typeof value.version === "number" && value.version < 7 ? [] : value.categories;
   const binnedDocuments = value.bin.map(item => {
@@ -368,11 +371,11 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       parentId = documentsById.get(parentId)?.parentPageId;
     }
   }
-  return { ...value, version: 10, bin: value.bin, categories } as StudioWorkspace;
+  return { ...value, version: 12, bin: value.bin, categories } as StudioWorkspace;
 }
 
 export function validatePublicationSnapshot(value: unknown): void {
-  if (!isRecord(value) || ![1, 2, 3, 4].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
+  if (!isRecord(value) || ![1, 2, 3, 4, 5].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
   const ids = new Set();
   for (const post of value.posts) {
     if (!isRecord(post) || !["localDocumentId", "slug", "title", "summary", "displayDate", "readingTime"].every((field) => typeof post[field] === "string")

@@ -303,6 +303,16 @@ test("dynamic Gutenberg fields and Group semantics retain their compatibility se
   assert.match(blockToHtml(blocks[3]), /^<nav[^>]*aria-label="Related pages"/);
 });
 
+test("root Group sticky position validates and renders in Studio preview", () => {
+  const group = { id: "sticky-group", type: "group", layout: "stack", position: "sticky", children: [{ id: "sticky-copy", type: "paragraph", text: "Pinned content" }] };
+  const section = { id: "ordinary-section", type: "section", layout: "stack", children: [] };
+  assert.equal(validContentBlocks([group]), true);
+  assert.equal(validContentBlocks([{ ...group, position: "fixed" }]), false);
+  assert.equal(validContentBlocks([{ ...section, position: "sticky" }]), false);
+  const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [group], variant: "studio" }));
+  assert.match(rendered, /class="content-group layout-stack" style="position:sticky;top:0px;/);
+});
+
 test("Cover Image border and shadow styles render in Studio and article previews", () => {
   const block = { id: "styled-cover", type: "cover-image", aspectRatio: "wide", visualStyle: { borderStyle: "solid", borderWidth: "2px", borderColor: "#123456", borderRadius: "12px", shadow: "soft" } };
   const document = { kind: "post", slug: "cover-example", title: "Cover example", coverImage: { src: "https://example.com/cover.jpg", alt: "A cover" } };
@@ -370,6 +380,7 @@ test("Social Icons serialize style, spacing, alignment and per-icon link metadat
     id: "socials",
     type: "social-icons",
     allowWrap: false,
+    iconSize: "huge",
     socialStyle: "logos-only",
     horizontalGap: 12,
     verticalGap: 20,
@@ -382,9 +393,11 @@ test("Social Icons serialize style, spacing, alignment and per-icon link metadat
   assert.equal(validContentBlocks([block]), true);
   assert.equal(validContentBlocks([{ ...block, allowWrap: "false" }]), false);
   assert.equal(validContentBlocks([{ ...block, socialStyle: "round" }]), false);
+  assert.equal(validContentBlocks([{ ...block, iconSize: "giant" }]), false);
   assert.equal(validContentBlocks([{ ...block, horizontalGap: 121 }]), false);
   assert.match(html, /data-social-wrap="false"/);
   assert.match(html, /data-social-style="logos-only"/);
+  assert.match(html, /data-social-size="huge"/);
   assert.match(html, /data-social-horizontal-gap="12" data-social-vertical-gap="20"/);
   assert.match(html, /data-block-align-explicit="true"[^>]*class="aligncenter"/);
   assert.match(html, /rel="nofollow" data-social-url=/);
@@ -392,6 +405,7 @@ test("Social Icons serialize style, spacing, alignment and per-icon link metadat
   const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
   assert.match(rendered, /social-icons-block is-horizontal is-no-wrap/);
   assert.match(rendered, /is-style-logos-only aligncenter/);
+  assert.match(rendered, /social-icons-block[^\"]*size-huge/);
   assert.match(rendered, /column-gap:12px;row-gap:20px/);
   assert.match(rendered, /target="_blank" rel="nofollow noopener noreferrer"/);
   assert.match(rendered, /--social-icon-background:#2f6fb0/);
@@ -400,10 +414,19 @@ test("Social Icons serialize style, spacing, alignment and per-icon link metadat
 
 test("Social Icons block alignment does not override inner icon justification", async () => {
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const studioStyles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(styles, /\.social-icons-block\.size-small \{ font-size: 16px; \}/);
+  assert.match(styles, /\.social-icons-block\.size-small \.social-icon-item,\s*\.social-icons-block\.size-small \.social-icons-add \{ position: relative; \}/);
+  assert.match(styles, /\.social-icons-block\.size-small \.social-icon-item::before,\s*\.social-icons-block\.size-small \.social-icons-add::before \{ content: ""; inset: -12px; position: absolute; \}/, "small links and the add control get a transparent expanded hit target");
+  assert.match(styles, /\.social-icons-block\.size-normal \{ font-size: 24px; \}/);
+  assert.match(styles, /\.social-icons-block\.size-large \{ font-size: 36px; \}/);
+  assert.match(styles, /\.social-icons-block\.size-huge \{ font-size: 48px; \}/);
+  assert.match(styles, /\.social-icons-block\.is-style-logos-only \.social-icon-glyph svg \{ height: 1\.25em; width: 1\.25em; \}/);
   assert.match(styles, /\.social-icons-block\.justify-centre ul \{ justify-content: center; \}/);
   assert.match(styles, /\.social-icons-block\.justify-right ul \{ justify-content: flex-end; \}/);
   assert.match(styles, /\.prose \.social-icons-block\.aligncenter \{ margin-inline: auto; width: fit-content; max-width: 100%; \}/);
   assert.match(styles, /\.prose \.social-icons-block\.alignright \{ margin-left: auto; width: 50%; \}/);
+  assert.match(studioStyles, /\.social-icons-block\.size-small \.social-icons-add \{ height: 24px; width: 24px; \}/, "the visible plus button stays at its small visual scale");
   assert.doesNotMatch(styles, /\.social-icons-block\.align(?:center|right) ul \{ justify-content:/);
 });
 
@@ -483,6 +506,7 @@ test("Social Icons and Divider settings survive the semantic HTML parser round-t
     const social = {
       id: "socials",
       type: "social-icons",
+      iconSize: "huge",
       socialStyle: "pill-shape",
       horizontalGap: 14,
       verticalGap: 22,
@@ -494,6 +518,7 @@ test("Social Icons and Divider settings survive the semantic HTML parser round-t
     const parsedSocial = parseHtmlToBlock(blockToHtml(social), social);
     assert.ok("block" in parsedSocial);
     assert.equal(parsedSocial.block.socialStyle, "pill-shape");
+    assert.equal(parsedSocial.block.iconSize, "huge");
     assert.equal(parsedSocial.block.horizontalGap, 14);
     assert.equal(parsedSocial.block.verticalGap, 22);
     assert.equal(parsedSocial.block.blockAlign, "right");
@@ -513,6 +538,13 @@ test("Social Icons and Divider settings survive the semantic HTML parser round-t
     const parsedGroup = parseHtmlToBlock(groupHtml, { id: group.id, type: "group", layout: "row", children: [] });
     assert.ok("block" in parsedGroup);
     assert.deepEqual([parsedGroup.block.gap, parsedGroup.block.columnGap, parsedGroup.block.rowGap], [12, 24, 8]);
+
+    const stickyGroup = { id: "sticky-group", type: "group", layout: "stack", position: "sticky", children: [{ id: "sticky-copy", type: "paragraph", text: "Pinned" }] };
+    const stickyGroupHtml = blockToHtml(stickyGroup);
+    assert.match(stickyGroupHtml, /data-group-position="sticky"/);
+    const parsedStickyGroup = parseHtmlToBlock(stickyGroupHtml, stickyGroup);
+    assert.ok("block" in parsedStickyGroup);
+    assert.equal(parsedStickyGroup.block.position, "sticky");
 
     const columns = { id: "layout-columns", type: "columns", gap: 12, columnGap: 24, rowGap: 8, children: [{ id: "layout-column", type: "column", width: 100, verticalAlign: "bottom", gap: 4, columnGap: 10, rowGap: 6, children: [] }] };
     const columnsHtml = blockToHtml(columns);
@@ -682,7 +714,7 @@ test("scheduled posts retain their scheduled time and sticky posts sort first", 
   });
   assert.equal(scheduled.scheduledAt, scheduledAt);
   assert.equal(scheduled.sticky, true);
-  assert.deepEqual(parseLocallyPublishedArticles(JSON.stringify({ version: 4, posts: [regular, scheduled] })).map((article) => article.localDocumentId), ["scheduled-post", "regular-post"]);
+  assert.deepEqual(parseLocallyPublishedArticles(JSON.stringify({ version: 5, posts: [regular, scheduled] })).map((article) => article.localDocumentId), ["scheduled-post", "regular-post"]);
 });
 
 test("scheduled posts require a future publication time", () => {

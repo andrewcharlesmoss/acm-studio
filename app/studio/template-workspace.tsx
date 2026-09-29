@@ -8,7 +8,7 @@ import { MediaManager } from "./media-manager";
 import { StudioIcon } from "./studio-icons";
 import { SiteNavigation } from "./site-navigation";
 import { AcmIcon } from "@acm/icons/react";
-import { createTemplateSet, copyTemplateData, templateId, templateMediaIds, visitTemplateNodes, TEMPLATE_STORAGE_KEY, type TemplateSet, type PageTemplate, type TemplatePart, type TemplateNode } from "./template-model";
+import { createTemplateSet, createDocumentTemplateNodes, copyTemplateData, templateId, templateMediaIds, visitTemplateNodes, TEMPLATE_STORAGE_KEY, type TemplateSet, type PageTemplate, type TemplatePart, type TemplateNode } from "./template-model";
 import { exportTemplatePackage, importTemplatePackage, TEMPLATE_PACKAGE_LIMIT, validateTemplatePackage } from "./template-package";
 import { contentMediaIds, useTemplateMedia } from "./use-template-media";
 import type { MediaAsset } from "./media-store";
@@ -215,7 +215,7 @@ export function TemplateWorkspacePanel({ workspace, templates, standalone = fals
     if (!set) return;
     askName(`New ${kind === "page" || kind === "post" ? "Template" : "Shared Part"}`, `New ${kind}`, name => {
       const id = templateId();
-      const item = { id, name, kind, nodes: kind === "page" || kind === "post" ? [{ id: templateId(), type: "element" as const, element: "content" as const }] : [] };
+      const item = { id, name, kind, nodes: kind === "page" || kind === "post" ? createDocumentTemplateNodes(kind) : [] };
       const next = kind === "page" || kind === "post" ? { ...set, templates: [...set.templates, item as PageTemplate] } : { ...set, parts: [...set.parts, item as TemplatePart] };
       const saved = templates.commit(store => ({ ...store, sets: store.sets.map(candidate => candidate.id === set.id ? next : candidate) }));
       if (saved) changeSelection({ setId, targetId: id }); return saved;

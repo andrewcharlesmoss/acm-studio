@@ -5,10 +5,11 @@ export const LAYOUT_SPACING_PRESETS = [0, 8, 16, 24, 32, 48, 64, 96] as const;
 export const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6], minColumnWidth: [80, 600] } as const;
 export const LAYOUT_BREAKPOINTS = { tablet: 780, mobile: 620 } as const;
 
-export function layoutStyleProperties(options: LayoutOptions): CSSProperties {
+export function layoutStyleProperties(options: LayoutOptions & { position?: "sticky" }): CSSProperties {
   const maxColumns = options.columns ?? 3;
   const columnGap = options.columnGap ?? options.gap ?? 0;
   return {
+    ...(options.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : {}),
     ...(options.gap === undefined ? {} : { "--block-layout-gap": `${options.gap}px` }),
     ...(options.columnGap === undefined ? {} : { "--block-layout-column-gap": `${options.columnGap}px` }),
     ...(options.rowGap === undefined ? {} : { "--block-layout-row-gap": `${options.rowGap}px` }),

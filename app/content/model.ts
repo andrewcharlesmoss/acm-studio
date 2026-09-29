@@ -167,10 +167,10 @@ export type ContentBlock = (
   | { id: string; type: "reading-time"; prefix?: string; presentation?: ReadingTimePresentation; align?: TextAlignment }
   | { id: string; type: "post-author"; prefix?: string; avatar?: boolean; align?: TextAlignment }
   | { id: string; type: "post-date"; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment; isLink?: boolean }
-  | { id: string; type: "social-icons"; children: SocialIconBlock[]; justification?: "left" | "centre" | "right" | "space-between"; orientation?: "horizontal" | "vertical"; allowWrap?: boolean; iconSize?: "small" | "normal" | "large"; socialStyle?: "default" | "logos-only" | "pill-shape"; horizontalGap?: number; verticalGap?: number; blockAlign?: Extract<BlockAlignment, "left" | "center" | "right">; showLabels?: boolean; openInNewTab?: boolean }
+  | { id: string; type: "social-icons"; children: SocialIconBlock[]; justification?: "left" | "centre" | "right" | "space-between"; orientation?: "horizontal" | "vertical"; allowWrap?: boolean; iconSize?: "small" | "normal" | "large" | "huge"; socialStyle?: "default" | "logos-only" | "pill-shape"; horizontalGap?: number; verticalGap?: number; blockAlign?: Extract<BlockAlignment, "left" | "center" | "right">; showLabels?: boolean; openInNewTab?: boolean }
   | SocialIconBlock
   | ({ id: string; type: "section"; role?: SiteSectionRole; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
-  | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource; blockAlign?: BlockAlignment; tagName?: "div" | "main" | "section" | "article" | "aside" | "header" | "footer" | "nav"; ariaLabel?: string } & LayoutOptions)
+  | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource; blockAlign?: BlockAlignment; tagName?: "div" | "main" | "section" | "article" | "aside" | "header" | "footer" | "nav"; ariaLabel?: string; position?: "sticky" } & LayoutOptions)
   | ({ id: string; type: "columns"; children: ColumnBlock[]; style?: ParagraphStyle; blockAlign?: BlockAlignment } & Omit<LayoutOptions, "columns" | "horizontalAlign" | "minColumnWidth">)
   | ColumnBlock
   | { id: string; type: "component"; component: SiteComponentName; data?: SiteComponentData; source?: SiteComponentSource; children?: ContentBlock[] }) & { siteRole?: SiteContentRole; visualStyle?: ParagraphStyle };

@@ -55,11 +55,27 @@ test("layout gap axes render independently and preserve legacy gap fallback", ()
     "--block-layout-gap": "16px",
     "--block-layout-column-gap": "32px",
     "--block-layout-row-gap": "8px",
+    "--block-layout-min-column-width": "192px",
+    "--block-layout-max-column-width": "calc((100% - 64px) / 3)",
   });
-  assert.deepEqual(layoutStyleProperties({ gap: 16 }), { "--block-layout-gap": "16px" });
+  assert.deepEqual(layoutStyleProperties({ gap: 16 }), {
+    "--block-layout-gap": "16px",
+    "--block-layout-min-column-width": "192px",
+    "--block-layout-max-column-width": "calc((100% - 32px) / 3)",
+  });
   assert.equal(validLayoutOptions({ gap: 16, columnGap: 32, rowGap: 8 }), true);
   assert.equal(validLayoutOptions({ columnGap: 121 }), false);
   assert.equal(validLayoutOptions({ rowGap: -1 }), false);
+});
+
+test("sticky Group position maps to a zero-offset sticky style", () => {
+  assert.deepEqual(layoutStyleProperties({ position: "sticky" }), {
+    position: "sticky",
+    top: "0px",
+    zIndex: 10,
+    "--block-layout-min-column-width": "192px",
+    "--block-layout-max-column-width": "calc((100% - 0px) / 3)",
+  });
 });
 
 test("minimum dimensions and text shadow reach CSS", () => {

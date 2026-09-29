@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- New Page/Post templates start with dynamic Document Title and Document Subtitle fields. Dynamic field styles apply directly to the rendered heading, input or paragraph. The shared Footer part in new template sets uses `© 2026 Andrew Moss. All Rights Reserved.` Active-store and package migration converts the exact root `Title`/`Subtitle` pair at the canonical starter position in each computed-default template, including legacy defaults with no `isDefault` flag; ambiguous nested copy stays authored text. It folds legacy active subtitle paragraph styles into `visualStyle` and leaves Bin entries and published snapshots unchanged. Paragraph Advanced settings include Additional CSS class(es), and Small Social Icons keep compact glyphs with expanded transparent hit targets. Template schema v0.12.0 reads v0.1.0–v0.11.0.
+- Added Gutenberg's Huge Social Icons size and matched the Small, Normal, Large and Huge artwork scales to Gutenberg. Workspace schema v12 reads versions 2–11; template schema v0.11.0 reads v0.1.0–v0.10.0.
+- Added root-level sticky positioning for Group blocks in documents and templates, including typed persistence, previews and HTML source round-tripping. Workspace schema v11 reads versions 2–10, local publication snapshots use v5, and template schema v0.10.0 reads v0.1.0–v0.9.0.
 - Added Gutenberg's responsive Grid arrangement to Group and Section blocks, with maximum columns and a minimum column width. Workspace schema v10 reads versions 2–9; template schema v0.9.0 reads v0.1.0–v0.8.0.
 - Added independent horizontal and vertical layout gaps for Group, Columns and Column blocks while retaining legacy scalar gap values as fallbacks. Workspace schema v9 and template schema v0.8.0 retain readers for earlier supported data.
 - Added Gutenberg-style Social Icons variants, block alignment, separate horizontal and vertical spacing, and link `rel` settings; Divider blocks can now use an `hr` or `div` element.

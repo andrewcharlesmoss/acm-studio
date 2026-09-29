@@ -898,9 +898,11 @@
 .social-icon-picker-options > p { color: var(--muted); grid-column: 1 / -1; margin: 8px; text-align: center; }
 .social-icons-block.is-editing .studio-nested-block { border-radius: 999px; cursor: pointer; }
 .social-icons-block.is-editing .studio-nested-block:focus-visible, .social-icon-item:focus-visible, .social-icons-add:focus-visible { outline: 2px solid var(--focus-ring-colour); outline-offset: 3px; }
-.social-icons-add { align-items: center; background: transparent; border: 1px solid currentColor; border-radius: 999px; color: var(--ink); display: inline-flex; height: 40px; justify-content: center; padding: 0; width: 40px; }
-.social-icons-block.size-small .social-icons-add { height: 32px; width: 32px; }
-.social-icons-block.size-large .social-icons-add { height: 48px; width: 48px; }
+.social-icons-add { align-items: center; background: transparent; border: 1px solid currentColor; border-radius: 999px; color: var(--ink); display: inline-flex; height: 1.5em; justify-content: center; padding: 0; width: 1.5em; }
+.social-icons-block.size-small .social-icons-add { height: 24px; width: 24px; }
+.social-icons-block.size-normal .social-icons-add { height: 36px; width: 36px; }
+.social-icons-block.size-large .social-icons-add { height: 54px; width: 54px; }
+.social-icons-block.size-huge .social-icons-add { height: 72px; width: 72px; }
 .table-field-grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 100%; }
 .table-field-grid th, .table-field-grid td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; min-width: 0; padding: 0; position: relative; text-align: left; vertical-align: top; }
 .table-field-grid tr > :last-child { border-right: 0; }

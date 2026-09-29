@@ -133,6 +133,15 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
   assert.match(source, /const optionalElementOptions = elementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
 });
 
+test("Paragraph exposes Gutenberg Additional CSS class(es) in Advanced", async () => {
+  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const advancedFields = source.slice(source.indexOf("function advancedFieldsForBlock"), source.indexOf("function AdvancedFieldsInspector"));
+  const advancedInspector = source.slice(source.indexOf("function AdvancedFieldsInspector"), source.indexOf("function ParagraphInspector"));
+  assert.match(advancedFields, /return \{ anchor: true, className: true \};/);
+  assert.match(advancedInspector, /<span>Additional CSS class\(es\)<\/span><input value=\{style\.className \?\? ""\}/);
+  assert.match(advancedInspector, /block\.type === "paragraph" \|\| block\.type === "columns" \|\| block\.type === "column"\) onChange\(\{ \.\.\.block, style:/);
+});
+
 test("minimum dimension controls match mapped Gutenberg block support", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   assert.match(source, /\["quote", "group", "section"\]\.includes\(block\.type\) \|\| style\.minHeight/);
@@ -317,8 +326,8 @@ test("template dynamic fields use neutral placeholders", async () => {
   assert.match(canvas, /templatePlaceholder \? "Subtitle" : document\?\.subtitle \|\| "Add a subtitle in Document settings\."/);
   assert.match(editor, /const contentSlot = <div className="template-content-slot"/);
   assert.match(editor, /templatePreview=\{context\.mode === "preview"\}/);
-  assert.match(renderer, /templatePreview \? <h1 className="template-dynamic-placeholder">Title<\/h1>/);
-  assert.match(renderer, /templatePreview \? <p className="template-subtitle template-dynamic-placeholder">Subtitle<\/p>/);
+  assert.ok(renderer.includes("templatePreview ? <TitleElement id={fieldVisualId} className={titleClassName} style={titleStyle}>Title</TitleElement>"));
+  assert.ok(renderer.includes("templatePreview ? <p id={fieldVisualId} className={`template-subtitle template-dynamic-placeholder${subtitleClass}`} style={subtitleStyle}>Subtitle</p>"));
   assert.match(styles, /\.template-dynamic-placeholder \{ color: #7b8088; \}/);
 });
 

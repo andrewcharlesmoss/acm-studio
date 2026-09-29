@@ -817,6 +817,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                   {index > 0 ? <button className="between-blocks" type="button" onClick={() => toggleInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
                   <article
                     className={`canvas-block is-${block.type}${contentBlockAlignment(block) ? ` has-block-align-${contentBlockAlignment(block)}` : ""}${selectedBlockId === block.id ? " is-selected" : ""}`}
+                    style={block.type === "group" && block.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : undefined}
                     data-studio-block-anchor-id={block.id}
                     data-studio-hovered={hoveredBlockId === block.id}
                     onPointerDown={(event) => {

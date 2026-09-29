@@ -85,6 +85,7 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
   const collapsed = paneCollapsed ?? localCollapsed;
   const setCollapsed = onPaneCollapsedChange ?? setLocalCollapsed;
   const selectedColumnParent = selectedBlock?.type === "column" ? findColumnsParent(activeDocument.blocks, selectedBlock.id) : undefined;
+  const canSetSticky = selectedBlock?.type === "group" && activeDocument.blocks.some(block => block.id === selectedBlock.id);
   return (
     <Pane trackClassName="studio-inspector-track" className="studio-inspector" bodyClassName="inspector-scroll" label="Editor Inspector" side="right" width={paneWidth} onWidthChange={onPaneWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed} onCollapsedChange={setCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
       tabs={<PaneTabs id={tabPrefix} label="Editor settings" className="inspector-tabs" tabs={[
@@ -101,7 +102,7 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
             <p>This field is part of the document. Edit it on the canvas.</p>
           </InspectorAccordionSection>
         ) : selectedBlock ? (
-          <BlockInspector block={selectedBlock} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
+          <BlockInspector block={selectedBlock} canSetSticky={canSetSticky} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
@@ -605,7 +606,7 @@ function fontSizeModeKey(scope: string, block: ContentBlock) {
   return JSON.stringify([scope, block.id, block.type]) ?? "";
 }
 
-export function BlockInspector({ block, onChange, onColumnWidthChange, onOpenFiles, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
+export function BlockInspector({ block, canSetSticky = false, onChange, onColumnWidthChange, onOpenFiles, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; canSetSticky?: boolean; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
   const tabPrefix = useId();
   const [selectedTab, setSelectedTab] = useState<{ blockId: string; blockType: ContentBlock["type"]; tab: "block" | "studio" } | null>(null);
   const selectedFontSizeModeKey = fontSizeModeKey(fontSizeModeScope, block);
@@ -626,7 +627,7 @@ export function BlockInspector({ block, onChange, onColumnWidthChange, onOpenFil
       {block.type === "cover-image" ? <CoverImageInspector block={block} onChange={onChange} /> : null}
       {block.type === "embed" ? <><InspectorAccordionSection title={<>Embed</>}><label><span>URL</span><input type="url" value={block.url} onChange={(event) => onChange({ ...block, url: event.target.value })} /></label><label><span>Caption</span><input value={block.caption ?? ""} onChange={(event) => onChange({ ...block, caption: event.target.value || undefined })} /></label></InspectorAccordionSection><SpacingAndAdvancedInspector block={block} onChange={onChange} advancedFields={advanced} /></> : null}
       {block.type === "button" ? <InspectorAccordionSection title={<>Button</>}><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>URL</span><input value={block.url} onChange={(event) => onChange({ ...block, url: event.target.value })} /></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.opensInNewTab)} onChange={(event) => onChange({ ...block, opensInNewTab: event.target.checked })} /><span>Open in new tab</span></label><label><span>Style</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "primary" | "secondary" })}><option value="primary">Fill</option><option value="secondary">Outline</option></select></label><label><span>Width</span><select value={block.width ?? ""} onChange={(event) => onChange({ ...block, width: event.target.value ? Number(event.target.value) as 25 | 50 | 75 | 100 : undefined })}><option value="">Auto</option><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option></select></label><label><span>Text alignment</span><select value={block.align ?? "centre"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><label><span>Title attribute</span><input value={block.title ?? ""} onChange={(event) => onChange({ ...block, title: event.target.value || undefined })} /></label><label><span>Link rel</span><input value={block.rel ?? ""} onChange={(event) => onChange({ ...block, rel: event.target.value || undefined })} placeholder="nofollow sponsored" /></label></InspectorAccordionSection> : null}
-      {block.type === "social-icons" ? <InspectorAccordionSection title="Social Icons"><p className="setting-note">Use the plus button in the block to add LinkedIn or TikTok. Select an icon to edit its link.</p><label><span>Style</span><select value={block.socialStyle ?? "default"} onChange={event => onChange({ ...block, socialStyle: event.target.value as NonNullable<typeof block.socialStyle> })}><option value="default">Default</option><option value="logos-only">Logos Only</option><option value="pill-shape">Pill Shape</option></select></label><label><span>Justification</span><select value={block.justification ?? "left"} onChange={event => onChange({ ...block, justification: event.target.value as NonNullable<typeof block.justification> })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option><option value="space-between">Space between</option></select></label><label><span>Orientation</span><select value={block.orientation ?? "horizontal"} onChange={event => onChange({ ...block, orientation: event.target.value as NonNullable<typeof block.orientation> })}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={block.allowWrap !== false} onChange={event => onChange({ ...block, allowWrap: event.target.checked })} /><span>Allow to wrap</span></label><label><span>Icon size</span><select value={block.iconSize ?? "normal"} onChange={event => onChange({ ...block, iconSize: event.target.value as NonNullable<typeof block.iconSize> })}><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.showLabels)} onChange={event => onChange({ ...block, showLabels: event.target.checked })} /><span>Show text labels</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.openInNewTab)} onChange={event => onChange({ ...block, openInNewTab: event.target.checked })} /><span>Open links in a new tab</span></label></InspectorAccordionSection> : null}
+      {block.type === "social-icons" ? <InspectorAccordionSection title="Social Icons"><p className="setting-note">Use the plus button in the block to add LinkedIn or TikTok. Select an icon to edit its link.</p><label><span>Style</span><select value={block.socialStyle ?? "default"} onChange={event => onChange({ ...block, socialStyle: event.target.value as NonNullable<typeof block.socialStyle> })}><option value="default">Default</option><option value="logos-only">Logos Only</option><option value="pill-shape">Pill Shape</option></select></label><label><span>Justification</span><select value={block.justification ?? "left"} onChange={event => onChange({ ...block, justification: event.target.value as NonNullable<typeof block.justification> })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option><option value="space-between">Space between</option></select></label><label><span>Orientation</span><select value={block.orientation ?? "horizontal"} onChange={event => onChange({ ...block, orientation: event.target.value as NonNullable<typeof block.orientation> })}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={block.allowWrap !== false} onChange={event => onChange({ ...block, allowWrap: event.target.checked })} /><span>Allow to wrap</span></label><label><span>Icon size</span><select value={block.iconSize ?? "normal"} onChange={event => onChange({ ...block, iconSize: event.target.value as NonNullable<typeof block.iconSize> })}><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option><option value="huge">Huge</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.showLabels)} onChange={event => onChange({ ...block, showLabels: event.target.checked })} /><span>Show text labels</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.openInNewTab)} onChange={event => onChange({ ...block, openInNewTab: event.target.checked })} /><span>Open links in a new tab</span></label></InspectorAccordionSection> : null}
       {block.type === "social-linkedin" || block.type === "social-tiktok" ? <InspectorAccordionSection title={block.type === "social-linkedin" ? "LinkedIn" : "TikTok"}><label><span>Profile URL</span><input type="url" value={block.url} onChange={event => onChange({ ...block, url: event.target.value })} placeholder={block.type === "social-linkedin" ? "https://www.linkedin.com/in/…" : "https://www.tiktok.com/@…"} /></label>{block.url && !safeTextLink(block.url) ? <p className="setting-note" role="alert">Enter a valid link. The icon will not link until the address is valid.</p> : null}<label><span>Text label</span><input value={block.label ?? ""} onChange={event => onChange({ ...block, label: event.target.value || undefined })} placeholder={block.type === "social-linkedin" ? "LinkedIn" : "TikTok"} /></label><label><span>Link rel</span><input value={block.rel ?? ""} onChange={event => onChange({ ...block, rel: event.target.value || undefined })} placeholder="nofollow" /></label></InspectorAccordionSection> : null}
       {block.type === "social-icons" ? <InspectorAccordionSection title="Spacing"><label><span>Gap</span><input type="number" min="0" max="120" value={block.horizontalGap === block.verticalGap ? block.horizontalGap ?? "" : ""} placeholder={block.horizontalGap === block.verticalGap ? "Default" : "Mixed"} onChange={event => { const gap = event.target.value === "" ? undefined : Math.max(0, Math.min(120, Number(event.target.value) || 0)); onChange({ ...block, horizontalGap: gap, verticalGap: gap }); }} /></label></InspectorAccordionSection> : null}
       {block.type === "divider" ? <DividerInspector block={block} onChange={onChange} /> : null}
@@ -635,7 +636,7 @@ export function BlockInspector({ block, onChange, onColumnWidthChange, onOpenFil
       {block.type === "post-author" ? <InspectorAccordionSection title="Alignment"><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : null}
       {block.type === "post-date" ? <InspectorAccordionSection title="Post Date"><label><span>Format</span><select value={block.format ?? "long"} onChange={(event) => onChange({ ...block, format: event.target.value as PostDateFormat })}><option value="long">Long — 2 September 2026</option><option value="short">Short — 02/09/2026</option><option value="iso">ISO — 2026-09-02</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.isLink)} onChange={(event) => onChange({ ...block, isLink: event.target.checked })} /><span>Link to post</span></label><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><p className="setting-note">The value uses Publish date first, then the existing publication date.</p></InspectorAccordionSection> : null}
       {block.type === "section" ? <LayoutInspector block={block} onChange={onChange} heading="Section" note={`This section contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
-      {block.type === "group" ? <LayoutInspector block={block} onChange={onChange} heading="Group" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
+      {block.type === "group" ? <LayoutInspector block={block} onChange={onChange} canSetSticky={canSetSticky} heading="Group" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
       {block.type === "columns" ? <ColumnsInspector block={block} onChange={onChange} /> : null}
       {block.type === "column" ? <ColumnInspector block={block} onChange={onChange} onWidthChange={onColumnWidthChange} /> : null}
       {["paragraph", "heading", "quote", "list", "table", "code", "button", "footnotes", "group", "section", "columns", "column", "document-title", "document-subtitle", "reading-time", "post-author", "post-date", "social-icons"].includes(block.type) ? <ParagraphInspector key={`${block.id}:${block.type}`} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
@@ -675,7 +676,7 @@ type AdvancedFields = { anchor: boolean; className: boolean };
 // without a shared style wrapper do not expose generic Advanced fields.
 function advancedFieldsForBlock(block: ContentBlock): AdvancedFields | null {
   if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
-    return { anchor: true, className: block.type !== "paragraph" };
+    return { anchor: true, className: true };
   }
   return null;
 }
@@ -807,9 +808,85 @@ function DividerInspector({ block, onChange }: { block: Extract<ContentBlock, { 
   </>;
 }
 
-function LayoutInspector({ block, onChange, heading, note }: { block: LayoutBlock; onChange: (block: ContentBlock) => void; heading: string; note: string }) {
-  const update = (changes: Partial<LayoutBlock>) => onChange({ ...block, ...changes } as ContentBlock);
-  return <InspectorAccordionSection title={<>{heading} layout</>}><label><span>Arrangement</span><select value={block.layout} onChange={(event) => update({ layout: event.target.value as LayoutMode })}><option value="stack">Stack</option><option value="row">Row</option><option value="columns">Columns</option><option value="grid">Grid</option></select></label><div className="inspector-two-column"><label><span>Horizontal alignment</span><select value={block.horizontalAlign ?? ""} onChange={(event) => update({ horizontalAlign: (event.target.value || undefined) as LayoutBlock["horizontalAlign"] })}><option value="">Default</option><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option><option value="stretch">Stretch</option></select></label><label><span>Vertical alignment</span><select value={block.verticalAlign ?? ""} onChange={(event) => update({ verticalAlign: (event.target.value || undefined) as LayoutBlock["verticalAlign"] })}><option value="">Default</option><option value="top">Top</option><option value="centre">Centre</option><option value="bottom">Bottom</option><option value="stretch">Stretch</option></select></label></div><div className="inspector-two-column"><PresetNumberSetting label="Horizontal gap" value={block.columnGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={(columnGap) => update({ columnGap })} /><PresetNumberSetting label="Vertical gap" value={block.rowGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={(rowGap) => update({ rowGap })} /><PresetNumberSetting label="Horizontal padding" value={block.paddingX} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.padding[0]} max={LAYOUT_VALUE_LIMITS.padding[1]} onChange={(paddingX) => update({ paddingX })} /><PresetNumberSetting label="Vertical padding" value={block.paddingY} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.padding[0]} max={LAYOUT_VALUE_LIMITS.padding[1]} onChange={(paddingY) => update({ paddingY })} /></div><label><span>Content width</span><select value={block.contentWidth ?? ""} onChange={(event) => update({ contentWidth: (event.target.value || undefined) as LayoutBlock["contentWidth"] })}><option value="">Default</option><option value="constrained">Constrained</option><option value="full">Full width</option></select></label>{block.layout === "columns" ? <label><span>Columns</span><select value={block.columns ?? 2} onChange={(event) => update({ columns: Number(event.target.value) })}>{[1, 2, 3, 4, 5, 6].map((count) => <option value={count} key={count}>{count}</option>)}</select></label> : null}{block.layout === "grid" ? <><label><span>Max. columns</span><select value={block.columns ?? 3} onChange={(event) => update({ columns: Number(event.target.value) })}>{[1, 2, 3, 4, 5, 6].map((count) => <option value={count} key={count}>{count}</option>)}</select></label><PresetNumberSetting label="Min. column width" value={block.minColumnWidth ?? 192} presets={[120, 160, 192, 240, 320]} min={LAYOUT_VALUE_LIMITS.minColumnWidth[0]} max={LAYOUT_VALUE_LIMITS.minColumnWidth[1]} onChange={(minColumnWidth) => update({ minColumnWidth })} /><p className="setting-note">Columns wrap automatically to fit the available width.</p></> : null}<p className="setting-note">{note}</p></InspectorAccordionSection>;
+function LayoutInspector({ block, onChange, canSetSticky = false, heading, note }: { block: LayoutBlock; onChange: (block: ContentBlock) => void; canSetSticky?: boolean; heading: string; note: string }) {
+  const update = (changes: Partial<LayoutBlock> & { position?: "sticky" }) => onChange({ ...block, ...changes } as ContentBlock);
+  return (
+    <InspectorAccordionSection title={<>{heading} layout</>}>
+      <label>
+        <span>Arrangement</span>
+        <select value={block.layout} onChange={(event) => update({ layout: event.target.value as LayoutMode })}>
+          <option value="stack">Stack</option>
+          <option value="row">Row</option>
+          <option value="columns">Columns</option>
+          <option value="grid">Grid</option>
+        </select>
+      </label>
+      {canSetSticky && block.type === "group" ? (
+        <label>
+          <span>Position</span>
+          <select value={block.position ?? ""} onChange={(event) => update({ position: event.target.value === "sticky" ? "sticky" : undefined })}>
+            <option value="">Default</option>
+            <option value="sticky">Sticky</option>
+          </select>
+        </label>
+      ) : null}
+      <div className="inspector-two-column">
+        <label>
+          <span>Horizontal alignment</span>
+          <select value={block.horizontalAlign ?? ""} onChange={(event) => update({ horizontalAlign: (event.target.value || undefined) as LayoutBlock["horizontalAlign"] })}>
+            <option value="">Default</option>
+            <option value="left">Left</option>
+            <option value="centre">Centre</option>
+            <option value="right">Right</option>
+            <option value="stretch">Stretch</option>
+          </select>
+        </label>
+        <label>
+          <span>Vertical alignment</span>
+          <select value={block.verticalAlign ?? ""} onChange={(event) => update({ verticalAlign: (event.target.value || undefined) as LayoutBlock["verticalAlign"] })}>
+            <option value="">Default</option>
+            <option value="top">Top</option>
+            <option value="centre">Centre</option>
+            <option value="bottom">Bottom</option>
+            <option value="stretch">Stretch</option>
+          </select>
+        </label>
+      </div>
+      <div className="inspector-two-column">
+        <PresetNumberSetting label="Horizontal gap" value={block.columnGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={(columnGap) => update({ columnGap })} />
+        <PresetNumberSetting label="Vertical gap" value={block.rowGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={(rowGap) => update({ rowGap })} />
+        <PresetNumberSetting label="Horizontal padding" value={block.paddingX} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.padding[0]} max={LAYOUT_VALUE_LIMITS.padding[1]} onChange={(paddingX) => update({ paddingX })} />
+        <PresetNumberSetting label="Vertical padding" value={block.paddingY} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.padding[0]} max={LAYOUT_VALUE_LIMITS.padding[1]} onChange={(paddingY) => update({ paddingY })} />
+      </div>
+      <label>
+        <span>Content width</span>
+        <select value={block.contentWidth ?? ""} onChange={(event) => update({ contentWidth: (event.target.value || undefined) as LayoutBlock["contentWidth"] })}>
+          <option value="">Default</option>
+          <option value="constrained">Constrained</option>
+          <option value="full">Full width</option>
+        </select>
+      </label>
+      {block.layout === "columns" ? (
+        <label>
+          <span>Columns</span>
+          <select value={block.columns ?? 2} onChange={(event) => update({ columns: Number(event.target.value) })}>
+            {[1, 2, 3, 4, 5, 6].map((count) => <option value={count} key={count}>{count}</option>)}
+          </select>
+        </label>
+      ) : null}
+      {block.layout === "grid" ? <>
+        <label>
+          <span>Max. columns</span>
+          <select value={block.columns ?? 3} onChange={(event) => update({ columns: Number(event.target.value) })}>
+            {[1, 2, 3, 4, 5, 6].map((count) => <option value={count} key={count}>{count}</option>)}
+          </select>
+        </label>
+        <PresetNumberSetting label="Min. column width" value={block.minColumnWidth ?? 192} presets={[120, 160, 192, 240, 320]} min={LAYOUT_VALUE_LIMITS.minColumnWidth[0]} max={LAYOUT_VALUE_LIMITS.minColumnWidth[1]} onChange={(minColumnWidth) => update({ minColumnWidth })} />
+        <p className="setting-note">Columns wrap automatically to fit the available width.</p>
+      </> : null}
+      <p className="setting-note">{note}</p>
+    </InspectorAccordionSection>
+  );
 }
 
 type ColumnsBlock = Extract<ContentBlock, { type: "columns" }>;

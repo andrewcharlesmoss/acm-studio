@@ -758,7 +758,7 @@ button, input, textarea, select { font: inherit; }
 .content-divider.is-wide { border-top-width: 3px; }
 .content-divider.is-dots { background: radial-gradient(circle, currentColor 2px, transparent 2.5px) left center / 12px 6px repeat-x; border: 0; height: 6px; margin-inline: auto; width: 36px; }
 .block-visual-style.has-custom-text-colour .content-divider { border-color: currentColor; }
-.social-icons-block { min-width: 0; }
+.social-icons-block { font-size: 24px; min-width: 0; }
 .social-icons-block ul { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; list-style: none; margin: 0; padding: 0; width: 100%; }
 .social-icons-block.is-no-wrap ul { flex-wrap: nowrap; }
 .social-icons-block.justify-centre ul { justify-content: center; }
@@ -771,22 +771,24 @@ button, input, textarea, select { font: inherit; }
 .social-icons-block.is-vertical.justify-centre ul { align-items: center; }
 .social-icons-block.is-vertical.justify-right ul { align-items: flex-end; }
 .social-icons-block li { display: inline-flex; margin: 0; padding: 0; }
-.social-icon-item { align-items: center; background: var(--social-icon-background, #0a66c2); background-image: var(--social-icon-background-image, none); border-radius: 999px; box-sizing: border-box; color: var(--social-icon-colour, #fff); display: inline-flex; font-size: inherit; font-weight: 600; gap: 8px; justify-content: center; line-height: 1.2; min-height: 40px; min-width: 40px; padding: 6px; text-decoration: none; }
+.social-icon-item { align-items: center; background: var(--social-icon-background, #0a66c2); background-image: var(--social-icon-background-image, none); border-radius: 999px; box-sizing: border-box; color: var(--social-icon-colour, #fff); display: inline-flex; font-size: inherit; font-weight: 600; gap: 0; justify-content: center; line-height: 0; padding: .25em; text-decoration: none; }
 .social-icon-item.is-tiktok { background-color: var(--social-icon-background, #171717); }
 .social-icon-glyph { align-items: center; display: inline-flex; justify-content: center; }
-.social-icon-glyph svg { height: 24px; width: 24px; }
-.social-icon-label { padding-right: 7px; }
-.social-icons-block.size-small .social-icon-item { min-height: 32px; min-width: 32px; }
-.social-icons-block.size-small .social-icon-glyph svg { height: 19px; width: 19px; }
-.social-icons-block.size-large .social-icon-item { min-height: 48px; min-width: 48px; }
-.social-icons-block.size-large .social-icon-glyph svg { height: 30px; width: 30px; }
+.social-icon-glyph svg { height: 1em; width: 1em; }
+.social-icon-label { font-size: .65em; margin-inline: .5em; }
+.social-icons-block.size-small { font-size: 16px; }
+.social-icons-block.size-small .social-icon-item,
+.social-icons-block.size-small .social-icons-add { position: relative; }
+.social-icons-block.size-small .social-icon-item::before,
+.social-icons-block.size-small .social-icons-add::before { content: ""; inset: -12px; position: absolute; }
+.social-icons-block.size-normal { font-size: 24px; }
+.social-icons-block.size-large { font-size: 36px; }
+.social-icons-block.size-huge { font-size: 48px; }
 .social-icons-block.is-style-logos-only .social-icon-item { background: transparent; background-image: none; color: currentColor; min-height: 0; min-width: 0; padding: 0; }
 .social-icons-block.is-style-logos-only .social-icon-item.is-linkedin { color: #0a66c2; }
 .social-icons-block.is-style-logos-only .social-icon-item.is-tiktok { color: #171717; }
-.social-icons-block.is-style-logos-only .social-icon-glyph svg { height: 32px; width: 32px; }
+.social-icons-block.is-style-logos-only .social-icon-glyph svg { height: 1.25em; width: 1.25em; }
 .social-icons-block.is-style-logos-only .social-icon-label { display: none; }
-.social-icons-block.is-style-logos-only.size-small .social-icon-glyph svg { height: 24px; width: 24px; }
-.social-icons-block.is-style-logos-only.size-large .social-icon-glyph svg { height: 40px; width: 40px; }
 .social-icons-block.is-style-pill-shape .social-icon-item { padding-inline: calc((2 / 3) * 1em); }
 
 .article-image img { border-radius: 16px; display: block; max-width: 100%; }

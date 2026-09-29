@@ -51,9 +51,12 @@ function environment(overrides = {}) {
 }
 
 test("neutral templates validate and their editor projection round-trips without lost content", () => {
-  const env = environment(); const m = env.load("studio/template-model.ts");
+  const env = environment(); const m = env.load("studio/template-model.ts"); const renderer = env.load("studio/template-renderer.tsx"); const editor = env.load("studio/editor-model.ts");
   const set = m.createTemplateSet(); m.validateTemplateSet(set);
-  assert.equal(set.identity.copyright, "{copyright} {year} {site-title}");
+  assert.equal(set.identity.copyright, "© 2026 Andrew Moss. All Rights Reserved.");
+  const document = plain(editor.initialStudioWorkspace.documents.find(item => item.kind === "page"));
+  const defaultFooter = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { version: m.TEMPLATE_VERSION, set, templateId: set.templates.find(item => item.kind === "page").id }, document }));
+  assert.match(defaultFooter, /© 2026 Andrew Moss\. All Rights Reserved\./);
   const post = set.templates.find(item => item.kind === "post");
   assert.deepEqual(plain(post.nodes.filter(node => node.type !== "part").map(node => node.type)), ["element", "element", "element", "group", "element"]);
   const metadata = post.nodes.find(node => node.type === "group");
@@ -119,8 +122,176 @@ test("legacy template stores migrate to inheritance-aware format without losing 
   const env = environment(); const model = env.load("studio/template-model.ts"); const editor = env.load("studio/editor-model.ts"); const set = model.createTemplateSet();
   delete set.defaults;
   const migrated = model.validateTemplateStore({ version: "0.1.0", sets: [set], assignments: [] });
-  assert.equal(migrated.version, "0.8.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
+  assert.equal(migrated.version, model.TEMPLATE_VERSION); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
   assert.deepEqual(plain(editor.createDocumentFromTemplate("post").blocks), []);
+});
+
+test("new Page and Post templates start with dynamic document fields and one Content slot", () => {
+  const model = environment().load("studio/template-model.ts");
+  for (const kind of ["page", "post"]) {
+    const nodes = model.createDocumentTemplateNodes(kind);
+    assert.deepEqual(plain(nodes.filter(node => node.type === "element" && ["document-title", "subtitle"].includes(node.element)).map(node => node.element)), ["document-title", "subtitle"]);
+    assert.equal(nodes.filter(node => node.type === "element" && node.element === "content").length, 1);
+    if (kind === "post") {
+      assert.equal(nodes.filter(node => node.type === "element" && node.element === "cover-image").length, 1);
+      assert.equal(nodes.some(node => node.type === "group" && node.children.some(child => child.type === "post-author") && node.children.some(child => child.type === "post-date") && node.children.some(child => child.type === "reading-time")), true);
+    }
+  }
+  const workspace = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
+  assert.match(workspace, /createDocumentTemplateNodes\(kind\)/);
+});
+
+test("v0.12 migrates one exact pre-Content placeholder pair per computed-default active template", () => {
+  const env = environment(); const model = env.load("studio/template-model.ts"); const editor = env.load("studio/editor-model.ts"); const renderer = env.load("studio/template-renderer.tsx");
+  const set = model.createTemplateSet("Migration fixture");
+  const page = set.templates.find(template => template.kind === "page");
+  const pageTitleIndex = page.nodes.findIndex(node => node.type === "element" && node.element === "document-title");
+  const title = { id: model.templateId(), type: "heading", level: 2, text: "Title", align: "centre", visualStyle: { fontSize: "large", textColor: "#123456" } };
+  const subtitle = { id: model.templateId(), type: "paragraph", text: "Subtitle", align: "right", style: { textColor: "#234567", className: "subtitle-copy", anchor: "subtitle-anchor" }, visualStyle: { appearance: "medium" } };
+  page.nodes.splice(pageTitleIndex, 2, title, subtitle);
+  const afterContentPair = [
+    { id: model.templateId(), type: "heading", level: 3, text: "Title" },
+    { id: model.templateId(), type: "paragraph", text: "Subtitle" },
+  ];
+  const pageContentIndex = page.nodes.findIndex(node => node.type === "element" && node.element === "content");
+  page.nodes.splice(pageContentIndex + 1, 0, { id: model.templateId(), type: "group", layout: "stack", children: afterContentPair });
+  const post = set.templates.find(template => template.kind === "post");
+  const postTitleIndex = post.nodes.findIndex(node => node.type === "element" && node.element === "document-title");
+  delete post.isDefault;
+  const nestedPostGroup = { id: model.templateId(), type: "group", layout: "stack", children: [] };
+  const nestedPostTitle = { id: model.templateId(), type: "heading", level: 2, text: "Title" };
+  const nestedPostSubtitle = { id: model.templateId(), type: "paragraph", text: "Subtitle" };
+  nestedPostGroup.children = [nestedPostTitle, nestedPostSubtitle];
+  const secondPostTitle = { id: model.templateId(), type: "heading", level: 2, text: "Title" };
+  const secondPostSubtitle = { id: model.templateId(), type: "paragraph", text: "Subtitle" };
+  post.nodes.splice(postTitleIndex, 2, secondPostTitle, secondPostSubtitle);
+  const postContentIndex = post.nodes.findIndex(node => node.type === "element" && node.element === "content");
+  post.nodes.splice(postContentIndex + 1, 0, nestedPostGroup);
+  const customTemplate = { id: model.templateId(), name: "Custom page", kind: "page", isDefault: false, nodes: [
+    { id: model.templateId(), type: "heading", level: 2, text: "Title" },
+    { id: model.templateId(), type: "paragraph", text: "Subtitle" },
+    { id: model.templateId(), type: "element", element: "content" },
+  ] };
+  const unmarkedTemplate = { id: model.templateId(), name: "Unmarked page", kind: "page", nodes: [
+    { id: model.templateId(), type: "heading", level: 2, text: "Title" },
+    { id: model.templateId(), type: "paragraph", text: "Subtitle" },
+    { id: model.templateId(), type: "element", element: "content" },
+  ] };
+  const styledPlaceholderTemplate = { id: model.templateId(), name: "Wide placeholder", kind: "page", isDefault: true, nodes: [
+    { id: model.templateId(), type: "heading", level: 2, text: "Title", blockAlign: "wide" },
+    { id: model.templateId(), type: "paragraph", text: "Subtitle" },
+    { id: model.templateId(), type: "element", element: "content" },
+  ] };
+  const nestedOnlyTemplate = { id: model.templateId(), name: "Nested authored title", kind: "page", isDefault: true, nodes: [
+    { id: model.templateId(), type: "part", partId: set.parts.find(part => part.kind === "header").id },
+    { id: model.templateId(), type: "group", layout: "stack", children: [
+      { id: model.templateId(), type: "heading", level: 2, text: "Title" },
+      { id: model.templateId(), type: "paragraph", text: "Subtitle" },
+    ] },
+    { id: model.templateId(), type: "element", element: "content" },
+  ] };
+  set.templates.push(customTemplate, unmarkedTemplate, styledPlaceholderTemplate, nestedOnlyTemplate);
+  const binnedSet = model.createTemplateSet("Binned fixture");
+  const binnedPage = binnedSet.templates.find(template => template.kind === "page");
+  const binnedSubtitle = binnedPage.nodes.find(node => node.type === "element" && node.element === "subtitle");
+  binnedSubtitle.style = { textColor: "#654321" };
+  const binned = { id: model.templateId(), deletedAt: "2026-09-29T10:00:00.000Z", kind: "set", set: binnedSet };
+  const customNodes = plain(customTemplate.nodes); const unmarkedNodes = plain(unmarkedTemplate.nodes); const styledPlaceholderNodes = plain(styledPlaceholderTemplate.nodes); const nestedOnlyNodes = plain(nestedOnlyTemplate.nodes); const secondPostPair = plain([secondPostTitle, secondPostSubtitle]); const binnedNodes = plain(binnedSet.templates[0].nodes);
+
+  const migrated = model.validateTemplateStore({ version: "0.11.0", sets: [set], assignments: [], bin: [binned] });
+  const migratedSet = migrated.sets[0]; const migratedPage = migratedSet.templates.find(template => template.kind === "page");
+  const migratedTitle = migratedPage.nodes.find(node => node.id === title.id);
+  const migratedSubtitle = migratedPage.nodes.find(node => node.id === subtitle.id);
+  assert.equal(migrated.version, "0.12.0");
+  assert.deepEqual(plain(migratedTitle), { id: title.id, type: "element", element: "document-title", level: 2, align: "centre", visualStyle: title.visualStyle });
+  assert.deepEqual(plain(migratedSubtitle), { id: subtitle.id, type: "element", element: "subtitle", align: "right", visualStyle: { ...subtitle.style, ...subtitle.visualStyle } });
+  assert.equal(migratedPage.isDefault, true);
+  const afterContentGroup = migratedPage.nodes.find(node => node.type === "group" && node.children.some(child => child.id === afterContentPair[0].id));
+  assert.deepEqual(plain(afterContentGroup.children), afterContentPair, "a later nested pair after Content stays authored text");
+  assert.deepEqual(plain(migratedSet.templates.find(template => template.id === customTemplate.id).nodes), customNodes);
+  assert.deepEqual(plain(migratedSet.templates.find(template => template.id === unmarkedTemplate.id).nodes), unmarkedNodes);
+  assert.deepEqual(plain(migratedSet.templates.find(template => template.id === styledPlaceholderTemplate.id).nodes), styledPlaceholderNodes);
+  assert.deepEqual(plain(migratedSet.templates.find(template => template.id === nestedOnlyTemplate.id).nodes), nestedOnlyNodes, "nested authored title copy is never treated as the canonical starter field pair");
+  const migratedPost = migratedSet.templates.find(template => template.kind === "post");
+  assert.equal(migratedPost.isDefault, true, "the old omitted flag is inferred as the default template");
+  const migratedNestedPostGroup = migratedPost.nodes.find(node => node.id === nestedPostGroup.id);
+  assert.deepEqual(plain(migratedNestedPostGroup.children), [nestedPostTitle, nestedPostSubtitle], "nested pairs stay authored text, even when they follow Content");
+  assert.equal(migratedPost.nodes.find(node => node.id === secondPostTitle.id).element, "document-title", "legacy defaults without isDefault still migrate their canonical root pair");
+  assert.equal(migratedPost.nodes.find(node => node.id === secondPostSubtitle.id).element, "subtitle");
+  assert.deepEqual(plain(migrated.bin[0].set.templates[0].nodes), binnedNodes);
+  assert.deepEqual(plain(model.validateTemplateSnapshot({ version: "0.11.0", set: binnedSet, templateId: binnedPage.id }).set.templates[0].nodes), binnedNodes);
+  assert.deepEqual(plain(model.templateEditorBlocks([binnedSubtitle])[0].visualStyle), binnedSubtitle.style, "legacy Bin subtitles still project their styles without changing stored data");
+  assert.deepEqual(plain(model.templateNodesFromBlocks(model.templateEditorBlocks(migratedPage.nodes), migratedPage.nodes).slice(1, 3)), [plain(migratedTitle), plain(migratedSubtitle)]);
+  assert.deepEqual(plain(model.validateTemplateStore(migrated)), plain(migrated), "loading a current store must not repeat the migration");
+
+  const currentSet = model.createTemplateSet("Current subtitle normalization");
+  const currentSubtitle = currentSet.templates.find(template => template.kind === "page").nodes.find(node => node.type === "element" && node.element === "subtitle");
+  currentSubtitle.style = { textColor: "#123456", className: "legacy-subtitle", anchor: "legacy-subtitle-anchor" };
+  currentSubtitle.visualStyle = { appearance: "medium", className: "visual-subtitle" };
+  const currentNormalized = model.validateTemplateStore({ version: model.TEMPLATE_VERSION, sets: [currentSet], assignments: [] });
+  const canonicalSubtitle = currentNormalized.sets[0].templates[0].nodes.find(node => node.id === currentSubtitle.id);
+  assert.equal(canonicalSubtitle.style, undefined, "v0.12 active subtitle records do not retain the legacy style field");
+  assert.deepEqual(plain(canonicalSubtitle.visualStyle), { textColor: "#123456", className: "visual-subtitle", anchor: "legacy-subtitle-anchor", appearance: "medium" });
+
+  const linkedTitle = { id: model.templateId(), type: "element", element: "document-title", level: 2, align: "left", isLink: true, linkTarget: "_blank", rel: "nofollow" };
+  const linkedTitleBlock = model.templateEditorBlocks([linkedTitle])[0];
+  assert.deepEqual(plain(model.templateNodesFromBlocks([linkedTitleBlock])[0]), linkedTitle, "Document Title link settings survive projection and reverse projection");
+  const linkedSet = model.createTemplateSet("Linked title");
+  const linkedTemplate = linkedSet.templates.find(template => template.kind === "page");
+  linkedTemplate.nodes = [linkedTitle, { id: model.templateId(), type: "element", element: "content" }];
+  const validatedLinkedSet = model.validateTemplateStore({ version: model.TEMPLATE_VERSION, sets: [linkedSet], assignments: [] }).sets[0];
+  const validatedLinkedTemplate = validatedLinkedSet.templates.find(template => template.id === linkedTemplate.id);
+  assert.deepEqual(plain(validatedLinkedTemplate.nodes[0]), linkedTitle, "template validation keeps Document Title link settings");
+
+  const document = plain(editor.initialStudioWorkspace.documents.find(item => item.kind === "page"));
+  document.title = "Selected preview title"; document.subtitle = "Selected preview subtitle"; document.slug = "selected-title";
+  const snapshot = { version: model.TEMPLATE_VERSION, set: migratedSet, templateId: migratedPage.id };
+  const html = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document }));
+  assert.match(html, /<h2[^>]*>Selected preview title<\/h2>/);
+  assert.match(html, /<p[^>]*>Selected preview subtitle<\/p>/);
+  const linkedHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { version: model.TEMPLATE_VERSION, set: validatedLinkedSet, templateId: validatedLinkedTemplate.id }, document }));
+  assert.match(linkedHtml, /<h2[^>]*><a href="\/selected-title" target="_blank" rel="nofollow noopener noreferrer">Selected preview title<\/a><\/h2>/);
+  const styledSet = model.createTemplateSet("Dynamic field styles");
+  const styledPage = styledSet.templates.find(template => template.kind === "page");
+  const styledTitle = styledPage.nodes.find(node => node.type === "element" && node.element === "document-title");
+  const styledSubtitle = styledPage.nodes.find(node => node.type === "element" && node.element === "subtitle");
+  styledTitle.level = 3;
+  styledTitle.visualStyle = { textColor: "#123456", className: "document-heading", anchor: "document-heading" };
+  styledSubtitle.visualStyle = { textColor: "#234567", className: "document-subtitle-copy", anchor: "document-subtitle" };
+  const styledSnapshot = { version: model.TEMPLATE_VERSION, set: styledSet, templateId: styledPage.id };
+  const styledPreviewHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: styledSnapshot, document, templatePreview: true }));
+  assert.match(styledPreviewHtml, /<h3 id="document-heading" class="template-dynamic-placeholder document-heading" style="color:#123456">Title<\/h3>/, "Document Title Preview uses the configured H3 level and styling");
+  assert.match(styledPreviewHtml, /<p id="document-subtitle" class="template-subtitle template-dynamic-placeholder document-subtitle-copy" style="color:#234567">Subtitle<\/p>/, "Document Subtitle styling is placed on the visible paragraph in Preview");
+  const styledEditHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: styledSnapshot, document, editingDocument: true, selectedDocumentField: "title" }));
+  assert.match(styledEditHtml, /<input id="document-heading" class="template-title-input document-heading" data-heading-level="3" style="color:#123456" aria-label="Document title" value="Selected preview title"\/>/, "Document Title Edit input retains the H3 level and visual style");
+  assert.match(styledEditHtml, /<input id="document-subtitle" class="template-subtitle-input document-subtitle-copy" style="color:#234567" aria-label="Document subtitle" placeholder="Add a subtitle" value="Selected preview subtitle"\/>/, "Document Subtitle styles remain on the editable input");
+  const styledDocumentHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: styledSnapshot, document }));
+  assert.match(styledDocumentHtml, /<h3 id="document-heading" class="document-heading" style="color:#123456">Selected preview title<\/h3>/, "Document rendering uses the configured H3 level and styling");
+  assert.match(styledDocumentHtml, /<p id="document-subtitle" class="template-subtitle document-subtitle-copy" style="color:#234567">Selected preview subtitle<\/p>/, "Document Subtitle styling is preserved in document rendering");
+  const templateCss = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  for (const level of [1, 2, 3, 4, 5, 6]) assert.ok(templateCss.includes(`input.template-title-input[data-heading-level="${level}"]`) && templateCss.includes(`--acm-type-h${level}-size`), `H${level} typography is mapped to its editable title input`);
+  assert.deepEqual(plain(migrated.bin[0].set.templates.find(template => template.kind === "page").nodes.find(node => node.id === binnedSubtitle.id)), plain(binnedSubtitle), "legacy Bin subtitle style remains recoverable");
+});
+
+test("pre-v0.12 template packages migrate only their canonical root title pair and normalise subtitle styles", () => {
+  const env = environment(); const model = env.load("studio/template-model.ts"); const packages = env.load("studio/template-package.ts");
+  const value = packageFixture(env); value.version = "0.11.0";
+  const page = value.set.templates.find(template => template.kind === "page"); delete page.isDefault;
+  const titleIndex = page.nodes.findIndex(node => node.type === "element" && node.element === "document-title");
+  const title = { id: model.templateId(), type: "heading", level: 3, text: "Title", align: "centre" };
+  const subtitle = { id: model.templateId(), type: "paragraph", text: "Subtitle", style: { textColor: "#345678", className: "legacy-copy" } };
+  page.nodes.splice(titleIndex, 2, title, subtitle);
+  const nestedPair = [
+    { id: model.templateId(), type: "heading", level: 2, text: "Title" },
+    { id: model.templateId(), type: "paragraph", text: "Subtitle" },
+  ];
+  page.nodes.splice(titleIndex + 2, 0, { id: model.templateId(), type: "group", layout: "stack", children: nestedPair });
+  const normalised = packages.validateTemplatePackage(value);
+  const normalisedPage = normalised.set.templates.find(template => template.id === page.id);
+  assert.equal(normalised.version, model.TEMPLATE_VERSION);
+  assert.deepEqual(plain(normalisedPage.nodes[titleIndex]), { id: title.id, type: "element", element: "document-title", level: 3, align: "centre" });
+  assert.deepEqual(plain(normalisedPage.nodes[titleIndex + 1]), { id: subtitle.id, type: "element", element: "subtitle", visualStyle: subtitle.style });
+  assert.deepEqual(plain(normalisedPage.nodes[titleIndex + 2].children), nestedPair, "ambiguous nested copy is not rewritten during package import");
 });
 
 test("template v0.7.0 layout gaps validate and migrate without dropping scalar or axis values", () => {
@@ -128,7 +299,7 @@ test("template v0.7.0 layout gaps validate and migrate without dropping scalar o
   const group = set.parts[0].nodes.find(node => node.type === "group");
   group.gap = 16; group.columnGap = 32; group.rowGap = 8;
   const store = model.validateTemplateStore({ version: "0.7.0", sets: [set], assignments: [] });
-  assert.equal(store.version, "0.8.0");
+  assert.equal(store.version, model.TEMPLATE_VERSION);
   const migratedGroup = store.sets[0].parts[0].nodes.find(node => node.type === "group");
   assert.equal(migratedGroup.gap, 16);
   assert.equal(migratedGroup.columnGap, 32);
@@ -146,7 +317,7 @@ test("template schemas v0.1.0 through v0.6.0 migrate styles without changing the
     const set = m.createTemplateSet(); set.styles = structuredClone(oldStyles);
     const store = m.validateTemplateStore({ version, sets: [set], assignments: [] });
     const migrated = store.sets[0].styles;
-    assert.equal(store.version, "0.8.0");
+    assert.equal(store.version, m.TEMPLATE_VERSION);
     assert.equal(migrated.palette.surface, oldStyles.background);
     assert.equal(migrated.palette.textPrimary, oldStyles.text);
     assert.equal(migrated.palette.accent, oldStyles.accent);
@@ -177,9 +348,11 @@ test("legacy styles migrate in template Bin entries and imports normalise packag
   ] });
   assert.equal(store.bin[0].set.styles.typography.body.family, "georgia");
   assert.equal(store.bin[1].setSnapshot.styles.typography.body.size.desktop.value, 1.25);
+  const previousPackage = packageFixture(env); previousPackage.version = "0.10.0";
+  assert.equal(p.validateTemplatePackage(previousPackage).version, m.TEMPLATE_VERSION);
   const imported = packageFixture(env); imported.version = "0.5.0"; imported.set.styles = structuredClone(oldStyles);
   const normalised = p.validateTemplatePackage(imported);
-  assert.equal(normalised.version, "0.8.0");
+  assert.equal(normalised.version, m.TEMPLATE_VERSION);
   assert.equal(normalised.set.styles.palette.surface, oldStyles.background);
   assert.equal(normalised.set.styles.typography.body.family, "georgia");
 });
@@ -203,12 +376,28 @@ test("responsive layout options and Spacer blocks validate and survive template 
   const spacer = { id: "spacer-1", type: "spacer", height: 48 };
   const group = { id: "group-1", type: "group", layout: "columns", columns: 3, gap: 24, paddingX: 16, paddingY: 32, contentWidth: "constrained", stackAt: "tablet", horizontalAlign: "centre", verticalAlign: "centre", children: [spacer] };
   assert.equal(validation.validContentBlocks([group]), true);
-  assert.equal(validation.validContentBlocks([{ ...spacer, height: 321 }]), false);
+  assert.equal(validation.validContentBlocks([{ ...spacer, height: 1001 }]), false);
   assert.equal(layout.hasLayoutOptions({ layout: "stack" }), false);
   assert.equal(layout.hasLayoutOptions({ layout: "row" }), true);
   assert.equal(layout.hasLayoutOptions({ layout: "stack", gap: 24 }), true);
   const set = templates.createTemplateSet(); set.parts[0].nodes.push(group); templates.validateTemplateSet(set);
   assert.deepEqual(JSON.parse(JSON.stringify(templates.templateNodesFromBlocks(templates.templateEditorBlocks([group]))[0])), group);
+});
+
+test("sticky Group position survives template storage and block projection", () => {
+  const env = environment(); const validation = env.load("studio/workspace-validation.ts"); const templates = env.load("studio/template-model.ts");
+  const group = { id: "sticky-template-group", type: "group", layout: "stack", position: "sticky", children: [{ id: "sticky-template-copy", type: "paragraph", text: "Pinned in the template" }] };
+  assert.equal(validation.validContentBlocks([group]), true);
+  assert.throws(() => templates.validateTemplateSet({ ...templates.createTemplateSet(), templates: [{ id: "bad-template", name: "Bad", kind: "page", nodes: [{ ...group, position: "fixed" }] }] }), /Invalid template layout/);
+  assert.throws(() => templates.validateTemplateSet({ ...templates.createTemplateSet(), templates: [{ id: "bad-section-template", name: "Bad section", kind: "page", nodes: [{ id: "bad-section", type: "section", layout: "stack", position: "sticky", children: [] }] }] }), /Invalid template layout/);
+  const set = templates.createTemplateSet();
+  set.templates[0].nodes.push(group);
+  templates.validateTemplateSet(set);
+  const blocks = templates.templateEditorBlocks([group]);
+  assert.equal(blocks[0].position, "sticky");
+  assert.deepEqual(plain(templates.templateNodesFromBlocks(blocks)[0]), group);
+  const legacyStore = templates.validateTemplateStore({ version: "0.10.0", sets: [set], assignments: [] });
+  assert.equal(legacyStore.version, "0.12.0");
 });
 
 test("dedicated Columns presets follow WordPress order and preserve editable columns", () => {
@@ -547,6 +736,7 @@ test("template and publication image references prevent deletion until removed",
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document, { version: m.TEMPLATE_VERSION, set, templateId: set.templates[1].id });
+  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 5);
   env.storage.removeItem(m.TEMPLATE_STORAGE_KEY);
   assert.throws(() => store.assertTemplateMediaCanBeDeleted("image-source"), /published template snapshot/);
   publications.unpublishDocumentLocally(document.id);

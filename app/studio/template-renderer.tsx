@@ -142,11 +142,31 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       result = <div id={paragraphStyleAnchor(node.style)} className={`template-column${className ? ` ${className}` : ""}`} style={{ ...(node.verticalAlign ? { alignSelf: node.verticalAlign === "centre" ? "center" : node.verticalAlign === "bottom" ? "end" : node.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(node.style) }}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</div>;
     } else if (node.type === "element") {
       const align = node.align === "centre" ? "center" : node.align;
+      const fieldVisualStyle = node.element === "document-title" ? node.visualStyle
+        : node.element === "subtitle" ? { ...(node.style ?? {}), ...(node.visualStyle ?? {}) }
+          : undefined;
+      const fieldVisualClassName = paragraphStyleClassName(fieldVisualStyle);
+      const fieldVisualId = paragraphStyleAnchor(fieldVisualStyle);
       let element: ReactNode;
       switch (node.element) {
         case "content": element = content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} />; break;
-        case "document-title": element = documentFieldVisible(document, "title") ? templatePreview ? <h1 className="template-dynamic-placeholder">Title</h1> : editingDocument ? <input className="template-title-input" aria-label="Document title" value={document.title} onFocus={() => onFocusDocumentField?.("title")} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <h1>{document.title}</h1> : null; break;
-        case "subtitle": element = documentFieldVisible(document, "subtitle") && (templatePreview ? <p className="template-subtitle template-dynamic-placeholder">Subtitle</p> : editingDocument ? <input className="template-subtitle-input" aria-label="Document subtitle" placeholder="Add a subtitle" value={document.subtitle ?? ""} onFocus={() => onFocusDocumentField?.("subtitle")} onChange={event => onDocumentChange?.("subtitle", event.target.value)} /> : document.subtitle ? <p className="template-subtitle">{document.subtitle}</p> : null); break;
+        case "document-title": {
+          const TitleElement = `h${node.level ?? 1}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+          const href = document.slug ? safeTextLink(document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          // eslint-disable-next-line @next/next/no-target-blank
+          const linkedTitle = node.isLink && href ? <a href={href} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={[node.rel, node.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{document.title}</a> : document.title;
+          const titleClassName = ["template-dynamic-placeholder", fieldVisualClassName].filter(Boolean).join(" ");
+          const titleInputClassName = ["template-title-input", fieldVisualClassName].filter(Boolean).join(" ");
+          const titleStyle = paragraphStyleToCss(fieldVisualStyle);
+          element = documentFieldVisible(document, "title") ? templatePreview ? <TitleElement id={fieldVisualId} className={titleClassName} style={titleStyle}>Title</TitleElement> : editingDocument ? <input id={fieldVisualId} className={titleInputClassName} data-heading-level={node.level ?? 1} style={titleStyle} aria-label="Document title" value={document.title} onFocus={() => onFocusDocumentField?.("title")} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <TitleElement id={fieldVisualId} className={fieldVisualClassName || undefined} style={titleStyle}>{linkedTitle}</TitleElement> : null;
+          break;
+        }
+        case "subtitle": {
+          const subtitleStyle = paragraphStyleToCss(fieldVisualStyle);
+          const subtitleClass = fieldVisualClassName ? ` ${fieldVisualClassName}` : "";
+          element = documentFieldVisible(document, "subtitle") && (templatePreview ? <p id={fieldVisualId} className={`template-subtitle template-dynamic-placeholder${subtitleClass}`} style={subtitleStyle}>Subtitle</p> : editingDocument ? <input id={fieldVisualId} className={`template-subtitle-input${subtitleClass}`} style={subtitleStyle} aria-label="Document subtitle" placeholder="Add a subtitle" value={document.subtitle ?? ""} onFocus={() => onFocusDocumentField?.("subtitle")} onChange={event => onDocumentChange?.("subtitle", event.target.value)} /> : document.subtitle ? <p id={fieldVisualId} className={`template-subtitle${subtitleClass}`} style={subtitleStyle}>{document.subtitle}</p> : null);
+          break;
+        }
         case "post-metadata": {
           const metadataBlocks = document.metadataBlocksVersion === 2 || hasDocumentMetadataBlocks(document.blocks);
           element = document.kind === "post" ? templatePreview ? <p className="template-metadata template-dynamic-placeholder">Author · Publication date · Reading time</p> : <p className="template-metadata">{document.category}{metadataBlocks ? "" : ` · ${readingTimeLabel(document.blocks)}${document.publishedAt ? ` · ${new Date(document.publishedAt).toLocaleDateString("en-GB")}` : ""}`}</p> : null;
@@ -186,7 +206,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
     } else result = (!shared ? renderOrdinary?.(node) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} />;
     return (!shared ? decorate?.(node, result) : undefined) ?? result;
   }
-  return <>{nodes.map(node => <div className="template-node" key={node.id}>{render(node, new Set(), 0)}</div>)}</>;
+  return <>{nodes.map(node => <div className="template-node" key={node.id} style={node.type === "group" && node.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : undefined}>{render(node, new Set(), 0)}</div>)}</>;
 }
 
 export function TemplateDocument({ snapshot, editorCanvas = false, ...context }: Omit<TemplateRenderContext, "set"> & { snapshot: TemplateSnapshot; editorCanvas?: boolean }) {
