@@ -74,7 +74,11 @@ test("Controls catalogue links to the production shared controls and describes o
   assert.match(page, /"colour-picker": "Colour"/);
   assert.match(page, /"custom-font-size": "Sizing"/);
   assert.match(page, /"inspector-tools": "Inspector"/);
+  assert.match(page, /ui-control-tools-example/);
+  assert.match(page, /aria-hidden=\{!showInspectorExample\}/);
   assert.match(page, /id="colour-picker"/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-example \.inspector-tools-section \{ min-width:0; min-height:104px; \}/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-field\.is-hidden \{ visibility:hidden/);
   for (const anchor of ["colour-picker", "custom-font-size", "paragraph-length", "box-length", "inspector-tools", "inspector-accordion"]) assert.ok(page.includes(`id="${anchor}"`), anchor);
   assert.match(page, /href=\{entry\.blockHref\}>Paragraph entry/);
   assert.match(inspectors, /from "\.\/controls\/colour-picker"/);

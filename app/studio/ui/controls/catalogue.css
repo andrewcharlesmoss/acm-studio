@@ -7,6 +7,13 @@
 .ui-control-entry header p,.ui-paragraph-inventory > p,.ui-paragraph-reference p { color:var(--rl-muted); }
 .ui-control-example { display:flex; align-items:center; flex-wrap:wrap; gap:1rem; margin:1rem 0; padding:1rem; border:1px solid var(--rl-line); border-radius:7px; background:#f7f6f2; }
 .ui-control-example > p { flex-basis:100%; margin:0; color:var(--rl-muted); font-size:.875rem; }
+.ui-control-tools-example { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; }
+.ui-control-tools-example .inspector-tools-section { min-width:0; min-height:104px; }
+.ui-control-tools-example .inspector-tools-content,.ui-control-tools-example .ui-control-tools-field { min-width:0; }
+.ui-control-tools-example .ui-control-tools-field { min-height:48px; }
+.ui-control-tools-example .ui-control-tools-field.is-hidden { visibility:hidden; pointer-events:none; }
+.ui-control-tools-example .ui-control-tools-field label { min-width:0; }
+.ui-control-tools-example .ui-control-tools-field input { box-sizing:border-box; width:100%; }
 .ui-control-size-example { align-items:flex-start; flex-direction:column; }
 .ui-control-size-example > * { width:min(100%,520px); }
 .ui-control-disabled { opacity:.6; }
@@ -52,6 +59,7 @@
 @media(max-width:720px) {
   .ui-controls-layout { display:block; }
   .ui-controls-main.ui-page-intro { padding:1.25rem 1rem 1rem; }
+  .ui-control-tools-example { grid-template-columns:minmax(0,1fr); }
   .ui-control-entry,.ui-paragraph-overview,.ui-paragraph-specimen,.ui-paragraph-inventory,.ui-paragraph-reference,.ui-control-deferred { margin:1rem; padding:1rem; }
   .ui-paragraph-editor-layout { grid-template-columns:minmax(0,1fr); }
   .ui-paragraph-inspector { border-left:0; border-top:1px solid var(--rl-line); }
