@@ -75,11 +75,15 @@ defaults, reset fields and dependency links; it does not define a second saved
 format. Controls link back to Paragraph, so the definition is the source for
 both sides of the block/control relationship. Its
 specimen uses the real `ParagraphEditField`, `BlockInspector` and Studio
-`BlockRenderer`, with one editable block and local state. Text editing keeps
-native field history; specimen Undo and Redo cover inspector changes only.
-Reset Example restores the temporary sample. The preview includes ordinary
-linked text and adjacent Paragraphs for the existing indentation rule. No real
-document, browser persistence or product write lock is involved.
+`BlockRenderer`, with three selectable, editable paragraphs and local state.
+The inspector follows the active paragraph. Specimen Undo and Redo cover local
+text and inspector changes while keyboard undo inside a field keeps the native
+text history. Reset Example restores all three temporary paragraphs. The
+preview includes ordinary linked text and adjacent Paragraphs for the existing
+indentation rule. Identity, relationships, control inventory and compatibility
+notes are collapsed disclosure sections; direct section hashes open their
+containing disclosure. No real document, browser persistence or product write
+lock is involved.
 
 The Controls section initially documents the shared colour picker, custom
 font-size and Paragraph length controls, plus the existing box-dimension,
@@ -87,11 +91,13 @@ inspector-options and accordion components. The colour picker owns swatch
 geometry, overlapping unset/explicit states, palette selection, popover
 positioning and dismissal. Link contrast stays in the Link adapter; gradient
 selection stays in the Paragraph background adapter. Each entry links back to
-Paragraph and records current consumers. Box dimensions and
-inspector options remain in their existing modules. Design, media, template and
-other catalogue controls are future reuse candidates, not migrated by this
-pilot. Ribbon catalogue specimens remain examples and do not become inspector
-dependencies.
+Paragraph and records current consumers in a collapsed disclosure. Specimens
+stay within the production inspector's compact control width and include
+interactive reset, disabled, focus and selection states where they apply. Box
+dimensions and inspector options remain in their existing modules. Design,
+media, template and other catalogue controls are future reuse candidates, not
+migrated by this pilot. Ribbon catalogue specimens remain examples and do not
+become inspector dependencies.
 Ribbon icon usage in the inspector means examples in the Ribbon catalogue only;
 it is not an exhaustive inventory of use throughout ACM products.
 

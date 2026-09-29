@@ -15,6 +15,7 @@ test("Studio UI Library exposes its canonical sections and keeps section routes 
   assert.match(read("app/studio/ribbon/page.tsx"), /redirect\("\/studio\/ui\/ribbon"\)/);
   assert.match(read("app/studio/panes/page.tsx"), /redirect\("\/studio\/ui\/panes"\)/);
   assert.match(read("app/studio/ui/styles/page.tsx"), /StyleGuideSandbox/);
+  assert.match(read("app/studio/ui/style-guide.css"), /\.sg-guide-views \{[^}]*contain: paint/);
 });
 
 test("top kickers use uppercase styling across the Studio UI Library sections", () => {
@@ -38,6 +39,13 @@ test("Paragraph Block Library uses the definition, real inspector and isolated S
   assert.match(specimen, /<ParagraphEditField/);
   assert.match(specimen, /<BlockInspector/);
   assert.match(specimen, /<BlockRenderer[^>]+variant="studio"/);
+  assert.match(specimen, /paragraphs\.map\(\(paragraph, index\)/);
+  assert.match(specimen, /setActiveId\(paragraph\.id\)/);
+  assert.match(specimen, /ariaLabel=\{`Paragraph/);
+  assert.match(specimen, /<details className="ui-paragraph-overview ui-paragraph-disclosure"/);
+  assert.match(specimen, /id="control-inventory"/);
+  assert.match(specimen, /id="compatibility-notes"/);
+  assert.match(specimen, /window\.addEventListener\("hashchange", openHashDisclosure\)/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-paragraph-canvas \{[^}]*overflow-x:clip/);
   assert.match(specimen, /navigationRootRef=\{specimenRef\}/);
   assert.match(specimen, /paragraphInspectorProfile\.dependencies\.map/);
@@ -45,7 +53,9 @@ test("Paragraph Block Library uses the definition, real inspector and isolated S
   assert.match(definition, /href: "\/studio\/ui\/controls#colour-picker"/);
   assert.match(definition, /href: "#background"/);
   assert.match(specimen, /Reset Example/);
-  assert.match(specimen, /inspectorSnapshot/);
+  assert.match(specimen, /historyRef\.current\.past/);
+  assert.match(specimen, /Undo and Redo cover temporary specimen text and settings/);
+  assert.match(specimen, /className="ui-paragraph-sample-note"/);
   assert.doesNotMatch(specimen, /studioWriteOwnership|localStorage|sessionStorage/);
   assert.match(read("app/studio/ui/blocks/page.tsx"), /blockLibraryEntries\.map/);
 });
@@ -78,6 +88,10 @@ test("Controls catalogue links to the production shared controls and describes o
   assert.match(page, /<BoxLengthSetting/);
   assert.match(page, /<InspectorToolsSection/);
   assert.match(page, /<InspectorAccordionSection/);
+  assert.match(page, /<details className="ui-control-facts"/);
+  assert.match(page, /Clear both colours/);
+  assert.match(page, /Reset example/);
+  assert.match(page, /visible\.has\("line-height"\) && showInspectorExample/);
   assert.match(globals, /--studio-number-field-width: 80px/);
   assert.match(studioStyles, /\.inspector-sections input\[type="number"\] \{ width: var\(--studio-number-field-width\); \}/);
   assert.match(studioStyles, /\.paragraph-length-controls \{[^}]*grid-template-columns: minmax\(60px, 1fr\) var\(--studio-number-field-width\)/);
@@ -90,11 +104,12 @@ test("Controls catalogue links to the production shared controls and describes o
   assert.match(page, /aria-current=\{activeEntry === entry\.id \? "location"/);
   assert.match(page, /window\.addEventListener\("scroll"/);
   assert.match(page, /window\.addEventListener\("resize"/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-live \{ width:min\(100%,320px\)/);
   assert.match(page, /"colour-picker": "Colour"/);
   assert.match(page, /"custom-font-size": "Sizing"/);
   assert.match(page, /"inspector-tools": "Inspector"/);
   assert.match(page, /ui-control-tools-example/);
-  assert.match(page, /aria-hidden=\{!showInspectorExample\}/);
+  assert.match(page, /aria-hidden=\{!visible\.has\("line-height"\) \|\| !showInspectorExample\}/);
   assert.match(page, /id="colour-picker"/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-example \.inspector-tools-section \{ min-width:0; min-height:104px; \}/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-field\.is-hidden \{ visibility:hidden/);

@@ -120,7 +120,7 @@
 .sg-guide-view-switch { display: flex; flex-wrap: wrap; gap: .35rem; }
 .sg-guide-view-switch button { min-height: 40px; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .7rem; background: #fff; color: var(--rl-ink); font: inherit; cursor: pointer; }
 .sg-guide-view-switch button[aria-pressed="true"] { border-color: var(--rl-ink); background: #eeede9; font-weight: 600; }
-.sg-guide-views { display: grid; min-width: 0; }
+.sg-guide-views { display: grid; min-width: 0; contain: paint; }
 .sg-guide-views > .sg-guide-document { grid-area: 1 / 1; }
 .sg-guide-document { min-height: 330px; max-height: 55vh; min-width: 0; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--rl-line); border-radius: 6px; background: #f8f8f7; }
 .sg-guide-document.is-inactive { visibility: hidden; pointer-events: none; }

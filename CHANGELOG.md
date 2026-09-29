@@ -479,6 +479,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Made all three Paragraph catalogue examples selectable and editable, moved indentation guidance outside the canvas, collapsed detailed documentation, and narrowed Controls specimens to inspector width with compact state and ownership disclosures.
+- Fixed the Styles section's long written guide content from creating a large blank scroll area below the final specimen.
 - Standardised Studio inspector number fields to a shared 80px width that fits six digits, including font size, paragraph length and box dimensions.
 - Kept the Inspector options specimen's control and toggle positions stable while changing menu options or hiding its example field.
 - Kept the narrow Editor Inspector tab underline centred beneath its label, including on hover.

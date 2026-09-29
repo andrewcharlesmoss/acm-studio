@@ -32,46 +32,53 @@ const followingParagraph: Extract<ContentBlock, { type: "paragraph" }> = {
   type: "paragraph",
   text: "This adjacent paragraph demonstrates the stored indent context in Preview.",
 };
-
-type InspectorSnapshot = Pick<Extract<ContentBlock, { type: "paragraph" }>, "align" | "blockAlign" | "style" | "visualStyle" | "siteRole">;
-const inspectorSnapshot = (block: Extract<ContentBlock, { type: "paragraph" }>): InspectorSnapshot => ({ align: block.align, blockAlign: block.blockAlign, style: block.style, visualStyle: block.visualStyle, siteRole: block.siteRole });
+const initialParagraphs = [precedingParagraph, initialParagraph, followingParagraph];
+type ParagraphSpecimenBlock = Extract<ContentBlock, { type: "paragraph" }>;
+const copyParagraphs = (paragraphs: ParagraphSpecimenBlock[]) => paragraphs.map(paragraph => structuredClone(paragraph));
 
 export function ParagraphBlockCatalogue() {
-  const [block, setBlock] = useState(initialParagraph);
+  const [paragraphs, setParagraphs] = useState(() => copyParagraphs(initialParagraphs));
+  const [activeId, setActiveId] = useState(initialParagraph.id);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [resetRevision, setResetRevision] = useState(0);
   const [historyAvailability, setHistoryAvailability] = useState({ canUndo: false, canRedo: false });
   const specimenRef = useRef<HTMLDivElement>(null);
-  const currentRef = useRef(block);
-  const historyRef = useRef<{ past: InspectorSnapshot[]; future: InspectorSnapshot[] }>({ past: [], future: [] });
+  const currentRef = useRef(paragraphs);
+  const historyRef = useRef<{ past: ParagraphSpecimenBlock[][]; future: ParagraphSpecimenBlock[][]; lastTextEdit?: { id: string; time: number } }>({ past: [], future: [] });
 
-  const updateText = useCallback((next: Extract<ContentBlock, { type: "paragraph" }>) => {
-    currentRef.current = next;
-    setBlock(next);
+  const updateParagraph = useCallback((next: ParagraphSpecimenBlock, textChange = false) => {
+    const history = historyRef.current;
+    const now = Date.now();
+    const coalesceTextEdit = textChange && history.lastTextEdit?.id === next.id && now - history.lastTextEdit.time < 900;
+    if (!coalesceTextEdit) history.past = [...history.past, copyParagraphs(currentRef.current)].slice(-60);
+    history.future = [];
+    history.lastTextEdit = textChange ? { id: next.id, time: now } : undefined;
+    const updated = currentRef.current.map(paragraph => paragraph.id === next.id ? next : paragraph);
+    currentRef.current = updated;
+    setParagraphs(updated);
+    setHistoryAvailability({ canUndo: history.past.length > 0, canRedo: false });
   }, []);
   const updateInspector = useCallback((next: ContentBlock) => {
     if (next.type !== "paragraph") return;
-    historyRef.current = { past: [...historyRef.current.past, inspectorSnapshot(currentRef.current)].slice(-60), future: [] };
+    updateParagraph(next);
+  }, [updateParagraph]);
+  const applySnapshot = useCallback((snapshot: ParagraphSpecimenBlock[]) => {
+    const next = copyParagraphs(snapshot);
+    historyRef.current.lastTextEdit = undefined;
     currentRef.current = next;
-    setBlock(next);
-    setHistoryAvailability({ canUndo: historyRef.current.past.length > 0, canRedo: historyRef.current.future.length > 0 });
-  }, []);
-  const applySnapshot = useCallback((snapshot: InspectorSnapshot) => {
-    const next = { ...currentRef.current, ...snapshot };
-    currentRef.current = next;
-    setBlock(next);
+    setParagraphs(next);
     setHistoryAvailability({ canUndo: historyRef.current.past.length > 0, canRedo: historyRef.current.future.length > 0 });
   }, []);
   const undo = useCallback(() => {
     const previous = historyRef.current.past.at(-1);
     if (!previous) return;
-    historyRef.current = { past: historyRef.current.past.slice(0, -1), future: [...historyRef.current.future, inspectorSnapshot(currentRef.current)] };
+    historyRef.current = { past: historyRef.current.past.slice(0, -1), future: [...historyRef.current.future, copyParagraphs(currentRef.current)] };
     applySnapshot(previous);
   }, [applySnapshot]);
   const redo = useCallback(() => {
     const next = historyRef.current.future.at(-1);
     if (!next) return;
-    historyRef.current = { past: [...historyRef.current.past, inspectorSnapshot(currentRef.current)], future: historyRef.current.future.slice(0, -1) };
+    historyRef.current = { past: [...historyRef.current.past, copyParagraphs(currentRef.current)], future: historyRef.current.future.slice(0, -1) };
     applySnapshot(next);
   }, [applySnapshot]);
 
@@ -97,55 +104,73 @@ export function ParagraphBlockCatalogue() {
   function resetExample() {
     historyRef.current = { past: [], future: [] };
     setHistoryAvailability({ canUndo: false, canRedo: false });
-    currentRef.current = initialParagraph;
-    setBlock(initialParagraph);
+    setActiveId(initialParagraph.id);
+    const resetParagraphs = copyParagraphs(initialParagraphs);
+    currentRef.current = resetParagraphs;
+    setParagraphs(resetParagraphs);
     setResetRevision(value => value + 1);
   }
 
-  const studioBlock = block as ContentBlock;
-  const previousIndent = precedingParagraph.style?.textIndent;
+  const activeParagraph = paragraphs.find(paragraph => paragraph.id === activeId) ?? paragraphs[1];
+  const activeIndex = paragraphs.findIndex(paragraph => paragraph.id === activeParagraph.id);
+  useEffect(() => {
+    function openHashDisclosure() {
+      if (!window.location.hash) return;
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      const target = document.getElementById(id);
+      if (!target) return;
+      const parent = target.closest("details");
+      if (!parent) return;
+      parent.open = true;
+      requestAnimationFrame(() => target.scrollIntoView({ block: "start" }));
+    }
+    openHashDisclosure();
+    window.addEventListener("hashchange", openHashDisclosure);
+    return () => window.removeEventListener("hashchange", openHashDisclosure);
+  }, []);
+
+  function paragraphIndent(index: number) {
+    return index > 0 ? paragraphs[index - 1].style?.textIndent : undefined;
+  }
   return <StudioUiLibrary section="blocks"><div className="ui-blocks-layout">
     <BlockLibraryNavigation active="paragraph" />
     <section className="ui-blocks-main ui-page-intro ui-paragraph-page">
     <p className="rl-eyebrow"><a href="/studio/ui/blocks">Blocks</a> / Paragraph</p>
     <h1>Paragraph</h1>
     <p>{paragraphBlockDefinition.description} {paragraphBlockDefinition.inspector.intendedUse}</p>
-    <section className="ui-paragraph-overview" aria-labelledby="ui-paragraph-overview-title">
-      <div><h2 id="ui-paragraph-overview-title">Identity and ownership</h2><dl><div><dt>Block type</dt><dd><code>{paragraphBlockDefinition.type}</code></dd></div><div><dt>Creation default</dt><dd><code>{paragraphBlockDefinition.create("example").text}</code></dd></div><div><dt>Saved content</dt><dd>Typed Paragraph block with text, rich-text runs and the existing ParagraphStyle fields.</dd></div></dl></div>
+    <details className="ui-paragraph-overview ui-paragraph-disclosure"><summary><span>Identity and relationships</span><small>Block ownership, nesting and transforms</small></summary><div className="ui-paragraph-overview-content">
+      <div><h2>Identity and ownership</h2><dl><div><dt>Block type</dt><dd><code>{paragraphBlockDefinition.type}</code></dd></div><div><dt>Creation default</dt><dd><code>{paragraphBlockDefinition.create("example").text}</code></dd></div><div><dt>Saved content</dt><dd>Typed Paragraph block with text, rich-text runs and the existing ParagraphStyle fields.</dd></div></dl></div>
       <div><h2>Relationships</h2><p>{paragraphInspectorProfile.nesting}</p><p>{paragraphInspectorProfile.context}</p><p>Transforms are resolved from the editor’s registered block transform definitions.</p><ul>{paragraphInspectorProfile.transforms.map(item => <li key={item.type}>{item.label} (<code>{item.type}</code>)</li>)}</ul></div>
-    </section>
-
+    </div></details>
     <section className="ui-paragraph-specimen" aria-labelledby="ui-paragraph-specimen-title">
       <header className="ui-paragraph-specimen-header"><div><p className="rl-eyebrow">Temporary state only</p><h2 id="ui-paragraph-specimen-title">Editable specimen</h2></div><div className="ui-paragraph-actions">
-        <button type="button" aria-label="Undo specimen inspector change" title="Undo (⌘Z / Ctrl+Z)" disabled={!historyAvailability.canUndo} onClick={undo}><StudioIcon name="undo" size={18} /></button>
-        <button type="button" aria-label="Redo specimen inspector change" title="Redo (⌘⇧Z / Ctrl+Y)" disabled={!historyAvailability.canRedo} onClick={redo}><StudioIcon name="redo" size={18} /></button>
+        <button type="button" aria-label="Undo specimen change" title="Undo (⌘Z / Ctrl+Z)" disabled={!historyAvailability.canUndo} onClick={undo}><StudioIcon name="undo" size={18} /></button>
+        <button type="button" aria-label="Redo specimen change" title="Redo (⌘⇧Z / Ctrl+Y)" disabled={!historyAvailability.canRedo} onClick={redo}><StudioIcon name="redo" size={18} /></button>
         <div role="group" aria-label="Specimen view"><button type="button" aria-pressed={mode === "edit"} onClick={() => setMode("edit")}>Edit</button><button type="button" aria-pressed={mode === "preview"} onClick={() => setMode("preview")}>Preview</button></div>
         <button type="button" onClick={resetExample}><StudioIcon name="rotate" size={18} />Reset Example</button>
       </div></header>
       <div className="ui-paragraph-editor-layout" ref={specimenRef}>
         <div className="ui-paragraph-canvas" aria-label={mode === "edit" ? "Paragraph edit specimen" : "Paragraph preview specimen"}>
-          {mode === "edit" ? <>
-            <BlockRenderer blocks={[precedingParagraph]} variant="studio" showMissingMetadata={false} />
-            <ParagraphEditField key={`edit-${resetRevision}`} block={block} previousParagraphIndent={previousIndent} onChange={updateText} onSelectionChange={() => {}} onLinkActivate={() => {}} navigationRootRef={specimenRef} />
-            <BlockRenderer blocks={[followingParagraph]} variant="studio" showMissingMetadata={false} />
-          </> : <BlockRenderer blocks={[precedingParagraph, studioBlock, followingParagraph]} variant="studio" showMissingMetadata={false} />}
-          <p className="ui-paragraph-sample-note">The preceding paragraph has a line indent; its value is applied to the following Paragraph according to Studio’s existing adjacency rule.</p>
+          {mode === "edit" ? paragraphs.map((paragraph, index) => <div key={`${paragraph.id}-${resetRevision}`} className={`ui-paragraph-editable${activeId === paragraph.id ? " is-selected" : ""}`} onFocusCapture={() => setActiveId(paragraph.id)}>
+            <ParagraphEditField block={paragraph} previousParagraphIndent={paragraphIndent(index)} onChange={next => updateParagraph(next, true)} onSelectionChange={() => setActiveId(paragraph.id)} onLinkActivate={() => {}} navigationRootRef={specimenRef} ariaLabel={`Paragraph ${index + 1} of ${paragraphs.length}`} />
+          </div>) : <BlockRenderer blocks={paragraphs} variant="studio" showMissingMetadata={false} />}
         </div>
-        <aside className="ui-paragraph-inspector" aria-label="Paragraph block inspector">
-          <BlockInspector key={`${block.id}-${resetRevision}`} block={block} onChange={updateInspector} onOpenFiles={() => {}} canOpenFiles={false} fontSizeModeScope="paragraph-library" fontSizeViewModes={{}} onFontSizeViewModeChange={() => {}} />
+        <aside className="ui-paragraph-inspector" aria-label={`Paragraph ${activeIndex + 1} of ${paragraphs.length} settings`}>
+          <BlockInspector key={`${activeParagraph.id}-${resetRevision}`} block={activeParagraph} onChange={updateInspector} onOpenFiles={() => {}} canOpenFiles={false} fontSizeModeScope="paragraph-library" fontSizeViewModes={{}} onFontSizeViewModeChange={() => {}} />
         </aside>
       </div>
-      <p className="ui-paragraph-isolation">Inspector Undo/Redo records specimen settings only. Text editing keeps the browser’s native text history. Reset Example restores this local sample; no document, settings store or write lock is involved.</p>
+      <p className="ui-paragraph-sample-note">The first paragraph’s line indent supplies the following paragraph’s indentation context. Select any paragraph to edit its text and settings.</p>
+      <p className="ui-paragraph-isolation">Undo and Redo cover temporary specimen text and settings. Keyboard undo inside a paragraph stays with the browser’s native text history. Reset Example restores all three paragraphs; no document, settings store or write lock is involved.</p>
     </section>
 
-    <section className="ui-paragraph-inventory" aria-labelledby="ui-paragraph-controls-title">
-      <h2 id="ui-paragraph-controls-title">Inspector controls and dependencies</h2>
+    <details className="ui-paragraph-inventory ui-paragraph-disclosure" id="control-inventory">
+      <summary><span>Inspector controls and dependencies</span><small>Control order, ownership and shared components</small></summary>
       <p>The rows follow the live inspector’s section and menu order. Block and Studio options remain separate tabs inside the inspector.</p>
       {paragraphInspectorProfile.inventorySections.map(section => <section id={section.id} key={section.id}><h3>{section.label}</h3><ol>{paragraphInspectorProfile.controls.filter(control => control.section === section.id).map(control => <li key={control.id}><span>{control.label}</span><span>{control.source === "gutenberg" ? "Block" : "Studio"}</span><span>{control.fields.join(", ")}</span></li>)}{section.fields.length > 0 ? <li><span>{section.label} settings</span><span>{section.source === "gutenberg" ? "Block" : "Studio"}</span><span>{section.fields.join(", ")}</span></li> : null}</ol></section>)}
       <h3>Dependencies</h3><ul>{paragraphInspectorProfile.dependencies.map(dependency => <li key={dependency.id}><a href={dependency.href} title={dependency.purpose}>{dependency.label}</a></li>)}</ul>
-    </section>
+    </details>
 
-    <section className="ui-paragraph-reference"><h2>Reference and compatibility</h2><p>Gutenberg is the default behaviour and visual reference. Core Paragraph options stay in Block; ACM additions such as Font family, Orientation, Text shadow and minimum dimensions stay in Studio.</p><p>ACM Studio retains its typed content model, managed media and safe style handling. The inspector catalogue is a current implementation profile, not a second saved format. Full Ribbon, inserter, publication and document workflows are outside this specimen.</p></section>
+    <details className="ui-paragraph-reference ui-paragraph-disclosure" id="compatibility-notes"><summary><span>Gutenberg compatibility and Studio additions</span><small>What matches the reference and what is specific to Studio</small></summary><div><p>Gutenberg is the default behaviour and visual reference. Core Paragraph options stay in Block; ACM additions such as Font family, Orientation, Text shadow and minimum dimensions stay in Studio.</p><p>ACM Studio retains its typed content model, managed media and safe style handling. The inspector catalogue is a current implementation profile, not a second saved format. Full Ribbon, inserter, publication and document workflows are outside this specimen.</p></div></details>
     </section>
   </div></StudioUiLibrary>;
 }

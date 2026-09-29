@@ -1352,7 +1352,7 @@ export function BlockField(props: BlockFieldProps) {
   return <div id={paragraphStyleAnchor(style)} className={className} style={css}>{content}</div>;
 }
 
-export function ParagraphEditField({ block, previousParagraphIndent, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, navigationRootRef, mediaUrls = {} }: {
+export function ParagraphEditField({ block, previousParagraphIndent, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, navigationRootRef, mediaUrls = {}, ariaLabel = "Paragraph text" }: {
   block: Extract<ContentBlock, { type: "paragraph" }>;
   previousParagraphIndent?: string;
   onChange: (block: Extract<ContentBlock, { type: "paragraph" }>) => void;
@@ -1363,9 +1363,10 @@ export function ParagraphEditField({ block, previousParagraphIndent, onChange, o
   onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null;
   navigationRootRef?: RefObject<HTMLElement | null>;
   mediaUrls?: Record<string, string>;
+  ariaLabel?: string;
 }) {
   const classes = paragraphStyleClassName(block.style, block.align);
-  return <RichTextEditor mediaUrls={mediaUrls} id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${classes ? ` ${classes}` : ""}`} style={paragraphStyleToCss(block.style, undefined, previousParagraphIndent) as React.CSSProperties} fitText={fitTextEnabled(block.style)} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onSelectionChange} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph ? (beforeRuns, afterRuns) => onSplitParagraph(block.id, beforeRuns, afterRuns) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} navigationRootRef={navigationRootRef} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label="Paragraph text" />;
+  return <RichTextEditor mediaUrls={mediaUrls} id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${classes ? ` ${classes}` : ""}`} style={paragraphStyleToCss(block.style, undefined, previousParagraphIndent) as React.CSSProperties} fitText={fitTextEnabled(block.style)} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onSelectionChange} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph ? (beforeRuns, afterRuns) => onSplitParagraph(block.id, beforeRuns, afterRuns) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} navigationRootRef={navigationRootRef} data-studio-block-id={block.id} data-placeholder="Start writing…" aria-label={ariaLabel} />;
 }
 
 function BlockFieldContent({ block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, previousParagraphIndent, writable = true, pendingColumnsLayoutBlockId, onColumnsLayoutSelected, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onOpenNestedInserter, onInsertNestedBlock, onChange }: BlockFieldProps) {
