@@ -52,6 +52,7 @@ test("Block Library menu follows documented definitions and the editor catalogue
   assert.match(index, /<BlockLibraryNavigation active="all" \/>/);
   assert.match(index, /blockLibraryEntries\.map/);
   assert.match(paragraph, /<BlockLibraryNavigation active="paragraph" \/>/);
+  assert.match(read("app/studio/ui/catalogue-navigation.css"), /\.ui-catalogue-navigation-list a\[aria-current="page"\]/);
 });
 
 test("Controls catalogue links to the production shared controls and describes ownership", () => {
@@ -66,6 +67,13 @@ test("Controls catalogue links to the production shared controls and describes o
   assert.match(page, /<InspectorAccordionSection/);
   assert.match(page, /owner|Owner/);
   assert.match(page, /consumers|Consumers/);
+  assert.match(page, /aria-label="Controls menu"/);
+  assert.match(page, /aria-current=\{activeEntry === entry\.id \? "location"/);
+  assert.match(page, /window\.addEventListener\("scroll"/);
+  assert.match(page, /window\.addEventListener\("resize"/);
+  assert.match(page, /"colour-picker": "Colour"/);
+  assert.match(page, /"custom-font-size": "Sizing"/);
+  assert.match(page, /"inspector-tools": "Inspector"/);
   assert.match(page, /id="colour-picker"/);
   for (const anchor of ["colour-picker", "custom-font-size", "paragraph-length", "box-length", "inspector-tools", "inspector-accordion"]) assert.ok(page.includes(`id="${anchor}"`), anchor);
   assert.match(page, /href=\{entry\.blockHref\}>Paragraph entry/);

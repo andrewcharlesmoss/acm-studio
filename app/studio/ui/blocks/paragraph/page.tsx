@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ParagraphBlockCatalogue } from "./paragraph-block-catalogue";
+import "../../catalogue-navigation.css";
 import "../catalogue.css";
 import "../../controls/catalogue.css";
 

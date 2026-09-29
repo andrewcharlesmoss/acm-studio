@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { blockLibraryEntries } from "../../blocks/library-catalogue";
 import { BlockLibraryNavigation } from "./block-library-navigation";
 import { StudioUiLibrary } from "../studio-ui-library";
+import "../catalogue-navigation.css";
 import "./catalogue.css";
 
 export const metadata: Metadata = { title: "Blocks · Studio UI Library", description: "Browse documented ACM Studio block definitions and interactive specimens." };

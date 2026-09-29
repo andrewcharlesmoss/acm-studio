@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added a grouped Controls side menu that links to each specimen, tracks the active section while scrolling and shares its visual navigation styles with the Block Library.
 - Added the Paragraph Block Library entry and reusable Controls catalogue, backed by one Paragraph capability profile, the production rich-text field and inspector, and isolated editable/preview specimens. Consolidated shared colour-picker behaviour and reused the extracted font-size and length controls in the inspector and catalogue.
 - Paragraph inspector now uses Gutenberg's Colour label, reserves blue Studio badges for Paragraph-only options, follows Gutenberg's adjacent-paragraph line indent behaviour, lists Border and Dimensions options in Gutenberg order, disables Drop cap for Gutenberg-incompatible text alignment, and preserves legacy drop-cap preferences when alignment changes. Link colour has separate Default and Hover values. Typography Reset all is enabled only when an optional control is active. Paragraph Advanced includes Gutenberg-style descriptions, uppercase field captions and blank empty fields, plus Additional CSS class(es) and safe, block-scoped Additional CSS declarations with HTML-source round-tripping.
 - Quote and Group blocks accept managed background images with Gutenberg-style size, repeat and focal-position controls. Template packages remap and preserve these image references. Workspace schema v13 reads versions 2–12, local publication snapshots use v6 and read versions 1–5, and template schema v0.13.0 reads v0.1.0–v0.12.0.

@@ -21,7 +21,9 @@ The library has nine sections:
   the existing block catalogue categories; Paragraph is the first complete
   entry at `/studio/ui/blocks/paragraph`.
 - **Controls** — working shared inspector controls with their supported states,
-  ownership and consumers at `/studio/ui/controls`.
+  ownership and consumers at `/studio/ui/controls`. A sticky grouped side menu
+  links to each same-page entry and follows the visible section; it becomes a
+  horizontally scrollable menu on narrow screens.
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
   specimens at 16, 24 and 32px, with a Block Library collection that shows the
   exact symbols used by each insertable block and the template Content tile.
