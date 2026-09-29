@@ -1,5 +1,5 @@
 .ui-panels-page { display: grid; gap: 24px; }
-.ui-panels-specimen { display: grid; gap: 14px; }
+.ui-panels-specimen { display: grid; gap: 14px; margin-inline: 2rem; }
 .ui-panels-specimen > h2 { margin: 0; font-size: 1.125rem; }
 .ui-panels-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 420px); align-items: start; gap: 16px; min-height: 620px; padding: 16px; border: 1px solid #d7d7d4; border-radius: 14px; background: #f2f2f0; }
 .ui-panels-workspace-content { min-width: 0; min-height: 220px; padding: 20px; border: 1px solid #dededb; border-radius: 12px; background: #fff; }
@@ -21,6 +21,9 @@
 .ui-panels-contract { margin: 0; color: #636366; font-size: .875rem; line-height: 1.5; }
 @media (max-width: 760px) {
   .ui-panels-workspace { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+}
+@media (max-width: 720px) {
+  .ui-panels-specimen { margin-inline: 1rem; }
 }
 
 .ui-panels-notice { margin: 10px 0 0; color: var(--muted); font-size: var(--type-secondary); }

@@ -17,5 +17,8 @@ test("Panels is a separate Studio UI Library section backed by the shared card",
   assert.match(catalogue, /<PanelCard/);
   assert.match(catalogue, /setOpen\(false\)/);
   assert.match(catalogue, /local_user@example\.test/);
+  const styles = read("app/studio/ui/panels/panel-catalogue.css");
+  assert.match(styles, /\.ui-panels-specimen \{[^}]*margin-inline: 2rem/);
+  assert.match(styles, /@media \(max-width: 720px\) \{\s*\.ui-panels-specimen \{ margin-inline: 1rem; \}/);
   assert.match(read("docs/panel-library.md"), /Consumers own panel placement/);
 });
