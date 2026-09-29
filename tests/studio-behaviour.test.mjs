@@ -68,15 +68,34 @@ test("new table blocks start with an editable two-row grid", async () => {
 
 test("custom font size stays selected while its live value changes", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
-  assert.match(source, /useState<\{ blockId: string; mode: "presets" \| "custom" \} \| null>/);
-  assert.match(source, /fontSizeViewOverride\?\.blockId === block\.id\s*\?\s*fontSizeViewOverride\.mode\s*:\s*style\.fontSizeCustom\s*\?\s*"custom"\s*:\s*"presets"/);
-  assert.match(source, /setFontSizeViewOverride\(\{ blockId: block\.id, mode: fontSizeMode === "custom" \? "presets" : "custom" \}\)/);
-  assert.match(source, /setFontSizeViewOverride\(mode === "custom" \? \{ blockId: block\.id, mode: "custom" \} : null\)/);
+  assert.match(source, /const \[fontSizeViewModes, setFontSizeViewModes\] = useState<Record<string, "presets" \| "custom">>\(\{\}\)/);
+  assert.match(source, /fontSizeViewMode\s*\?\s*fontSizeViewMode\s*:\s*style\.fontSizeCustom\s*\?\s*"custom"\s*:\s*"presets"/);
+  assert.match(source, /fontSizeViewMode=\{fontSizeViewModes\[`\$\{block\.id\}:\$\{block\.type\}`\] \?\? null\}/);
+  assert.match(source, /onFontSizeViewModeChange=\{mode => setFontSizeViewModes\(current => \(\{ \.\.\.current, \[`\$\{block\.id\}:\$\{block\.type\}`\]: mode \}\)\)\}/);
+  assert.match(source, /onFontSizeViewModeChange\(mode\)/);
+  assert.match(source, /onFontSizeViewModeChange\(fontSizeMode === "custom" \? "presets" : "custom"\)/);
+  assert.match(source, /const \[sliderDraft, setSliderDraft\] = useState<string \| null>\(null\)/);
+  assert.match(source, /const sliderDraggingRef = useRef\(false\)/);
+  assert.match(source, /onPointerDown=\{\(\) => \{ sliderDraggingRef\.current = true; \}\}/);
+  assert.match(source, /onPointerUp=\{event => \{ if \(!sliderDraggingRef\.current\) return; sliderDraggingRef\.current = false; const next = event\.currentTarget\.value; setSliderDraft\(null\); commit\(next\); \}\}/);
+  assert.match(source, /onChange=\{event => \{ if \(sliderDraggingRef\.current\) setSliderDraft\(event\.target\.value\); else commit\(event\.target\.value\); \}\}/);
   assert.match(source, /const sliderMinimum = relativeUnit \? 0\.1 : 1/);
   assert.match(source, /const sliderMaximum = customFontSizeMaximum\(unit\)/);
   assert.match(source, /type="range" min=\{sliderMinimum\} max=\{sliderMaximum\}/);
-  assert.match(source, /aria-label="Custom font size slider"[^>]*onChange=\{event => commit\(event\.target\.value\)\}/);
+  assert.match(source, /aria-label="Custom font size slider"[^>]*value=\{sliderValue\}/);
   assert.doesNotMatch(source, /fontSizeSource/);
+});
+
+test("minimum dimension controls match mapped Gutenberg block support", async () => {
+  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  assert.match(source, /\["quote", "group", "section"\]\.includes\(block\.type\) \|\| style\.minHeight/);
+  assert.match(source, /\["group", "section"\]\.includes\(block\.type\) \|\| style\.minWidth/);
+});
+
+test("shadow controls match mapped Gutenberg block support", async () => {
+  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  assert.match(source, /const coreBlocksWithShadow = \["heading", "quote", "button", "group", "section", "columns", "column", "image", "cover-image", "document-title"\]/);
+  assert.match(source, /block\.type === "paragraph" \|\| block\.type === "heading" \? \[\{ id: "text-shadow"/);
 });
 
 test("block-specific ACM controls have their own inspector tab and document popovers wait for a portal root", async () => {

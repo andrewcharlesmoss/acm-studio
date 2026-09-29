@@ -71,6 +71,8 @@ export type ParagraphStyle = {
   dropCap?: boolean;
   fitText?: boolean;
   orientation?: ParagraphOrientation;
+  minHeight?: string;
+  minWidth?: string;
   textColor?: string;
   backgroundColor?: string;
   backgroundGradient?: ParagraphBackgroundGradient;
@@ -81,6 +83,7 @@ export type ParagraphStyle = {
   borderWidth?: string;
   borderColor?: string;
   shadow?: ParagraphShadow;
+  textShadow?: ParagraphShadow;
   borderRadius?: string;
   anchor?: string;
   className?: string;

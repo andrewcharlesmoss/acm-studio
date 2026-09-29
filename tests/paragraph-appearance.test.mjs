@@ -46,3 +46,11 @@ test("axis spacing and separate border sides reach CSS as authored", () => {
   assert.equal(css.borderWidth, "1px 2px 3px 4px");
   assert.equal(css.borderRadius, "4px 8px 12px 16px");
 });
+
+test("minimum dimensions and text shadow reach CSS", () => {
+  assert.deepEqual(paragraphStyleToCss({ minHeight: "12rem", minWidth: "30ch", textShadow: "soft" }), {
+    minHeight: "12rem",
+    minWidth: "30ch",
+    textShadow: "0 1px 2px rgb(0 0 0 / 28%)",
+  });
+});

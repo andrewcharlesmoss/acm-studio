@@ -58,6 +58,8 @@ export function paragraphStyleToCss(style?: ParagraphStyle): Record<string, stri
   if (style.linkColor) css["--studio-paragraph-link-color"] = style.linkColor;
   if (style.padding) css.padding = style.padding;
   if (style.margin) css.margin = style.margin;
+  if (style.minHeight) css.minHeight = style.minHeight;
+  if (style.minWidth) css.minWidth = style.minWidth;
   if (style.borderStyle && style.borderStyle !== "none") {
     css.borderStyle = style.borderStyle;
     css.borderWidth = style.borderWidth || "1px";
@@ -65,6 +67,7 @@ export function paragraphStyleToCss(style?: ParagraphStyle): Record<string, stri
   }
   if (style.borderRadius) css.borderRadius = style.borderRadius;
   if (style.shadow) css.boxShadow = style.shadow === "soft" ? "0 4px 16px rgb(0 0 0 / 12%)" : style.shadow === "strong" ? "0 12px 32px rgb(0 0 0 / 22%)" : "none";
+  if (style.textShadow) css.textShadow = style.textShadow === "soft" ? "0 1px 2px rgb(0 0 0 / 28%)" : style.textShadow === "strong" ? "0 2px 5px rgb(0 0 0 / 40%)" : "none";
   return css;
 }
 
