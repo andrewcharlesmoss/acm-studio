@@ -21,6 +21,10 @@ test("paragraph typography settings render as CSS without changing the text", ()
   assert.match(visualStyleClassName({ fitText: true }), /has-fit-text/);
 });
 
+test("legacy additional classes remain in output when the Gutenberg-disabled control is hidden", () => {
+  assert.equal(paragraphStyleClassName({ className: "legacy-paragraph-class" }), "legacy-paragraph-class");
+});
+
 test("vertical orientation preserves typography and temporarily suspends horizontal Fit text", () => {
   const style = { orientation: "vertical-rl", fitText: true, fontSize: "large", textColumns: 2 };
   assert.equal(fitTextEnabled(style), false);

@@ -133,11 +133,13 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
   assert.match(source, /const optionalElementOptions = elementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
 });
 
-test("Paragraph exposes Gutenberg Additional CSS class(es) in Advanced", async () => {
+test("Paragraph omits Gutenberg-disabled Additional CSS class(es) while preserving stored classes", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const advancedFields = source.slice(source.indexOf("function advancedFieldsForBlock"), source.indexOf("function AdvancedFieldsInspector"));
   const advancedInspector = source.slice(source.indexOf("function AdvancedFieldsInspector"), source.indexOf("function ParagraphInspector"));
-  assert.match(advancedFields, /return \{ anchor: true, className: true \};/);
+  assert.match(advancedFields, /return \{ anchor: true, className: block\.type !== "paragraph" \};/);
+  assert.match(advancedFields, /if \(\["paragraph", "heading", "quote"/);
+  assert.match(advancedInspector, /fields\.className \? <label><span>Additional CSS class\(es\)<\/span><input value=\{style\.className \?\? ""\}/);
   assert.match(advancedInspector, /<span>Additional CSS class\(es\)<\/span><input value=\{style\.className \?\? ""\}/);
   assert.match(advancedInspector, /block\.type === "paragraph" \|\| block\.type === "columns" \|\| block\.type === "column"\) onChange\(\{ \.\.\.block, style:/);
 });

@@ -682,7 +682,7 @@ type AdvancedFields = { anchor: boolean; className: boolean };
 // without a shared style wrapper do not expose generic Advanced fields.
 function advancedFieldsForBlock(block: ContentBlock): AdvancedFields | null {
   if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
-    return { anchor: true, className: true };
+    return { anchor: true, className: block.type !== "paragraph" };
   }
   return null;
 }
