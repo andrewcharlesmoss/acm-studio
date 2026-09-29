@@ -39,6 +39,10 @@ collection is `/studio/ui/icons?collection=blocks`, and Styles is
 `/studio/ui/styles`. `/studio/ribbon` and `/studio/panes` remain
 compatible redirects. Studio navigation links to the combined library.
 
+Page-level kickers use uppercase styling across every library section. The
+shared library stylesheet covers the common page intro and the Ribbon and Pane
+intro variants; secondary specimen kickers retain their own wording and style.
+
 ## Ownership boundaries
 
 The library groups reference views without combining package ownership. The

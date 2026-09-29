@@ -17,6 +17,13 @@ test("Studio UI Library exposes its canonical sections and keeps section routes 
   assert.match(read("app/studio/ui/styles/page.tsx"), /StyleGuideSandbox/);
 });
 
+test("top kickers use uppercase styling across the Studio UI Library sections", () => {
+  const styles = read("app/studio/ui/studio-ui-library.css");
+  assert.match(styles, /\.ui-library-content \.ui-page-intro > \.rl-eyebrow,/);
+  assert.match(styles, /\.ui-library-content \.ui-ribbon-page > \.rl-title > \.rl-eyebrow,/);
+  assert.match(styles, /\.ui-library-content \.ui-pane-page \.pl-catalogue > \.pl-intro > \.pl-eyebrow \{ text-transform: uppercase; \}/);
+});
+
 test("Paragraph Block Library uses the definition, real inspector and isolated Studio rendering", () => {
   const definition = read("app/studio/blocks/paragraph/definition.ts");
   const specimen = read("app/studio/ui/blocks/paragraph/paragraph-block-catalogue.tsx");

@@ -8,6 +8,9 @@
 .ui-library-sections a[aria-current="page"] { color: var(--rl-ink); border-bottom-color: var(--rl-accent); }
 .ui-library-content { min-width: 0; }
 .ui-page-intro { padding: 1.75rem 2rem 1.25rem; }
+.ui-library-content .ui-page-intro > .rl-eyebrow,
+.ui-library-content .ui-ribbon-page > .rl-title > .rl-eyebrow,
+.ui-library-content .ui-pane-page .pl-catalogue > .pl-intro > .pl-eyebrow { text-transform: uppercase; }
 .ui-page-intro h1 { margin: .45rem 0; font-size: clamp(1.65rem, 3vw, 2.2rem); line-height: 1.2; letter-spacing: -.035em; }
 .ui-page-intro > p:last-child { color: var(--rl-muted); font-size: 1rem; }
 .ui-workspace-page { padding-bottom: 2rem; }
