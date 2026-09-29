@@ -36,7 +36,22 @@ test("Paragraph Block Library uses the definition, real inspector and isolated S
   assert.match(specimen, /Reset Example/);
   assert.match(specimen, /inspectorSnapshot/);
   assert.doesNotMatch(specimen, /studioWriteOwnership|localStorage|sessionStorage/);
-  assert.match(read("app/studio/ui/blocks/page.tsx"), /Paragraph entry/);
+  assert.match(read("app/studio/ui/blocks/page.tsx"), /blockLibraryEntries\.map/);
+});
+
+test("Block Library menu follows documented definitions and the editor catalogue categories", () => {
+  const catalogue = read("app/studio/blocks/library-catalogue.ts");
+  const navigation = read("app/studio/ui/blocks/block-library-navigation.tsx");
+  const index = read("app/studio/ui/blocks/page.tsx");
+  const paragraph = read("app/studio/ui/blocks/paragraph/paragraph-block-catalogue.tsx");
+  assert.match(catalogue, /blockCatalogue\.find/);
+  assert.match(catalogue, /detailedBlockDefinitions/);
+  assert.match(navigation, /aria-label="Block Library"/);
+  assert.match(navigation, /aria-current=\{active === "all" \? "page" : undefined\}/);
+  assert.match(navigation, /aria-current=\{active === entry\.type \? "page" : undefined\}/);
+  assert.match(index, /<BlockLibraryNavigation active="all" \/>/);
+  assert.match(index, /blockLibraryEntries\.map/);
+  assert.match(paragraph, /<BlockLibraryNavigation active="paragraph" \/>/);
 });
 
 test("Controls catalogue links to the production shared controls and describes ownership", () => {

@@ -251,6 +251,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Added a Blocks-local menu on the Block Library index and detail pages. It groups documented entries by their existing block catalogue category and keeps the active page clear.
 - Moved ACM-only Code language and Embed card title settings to the Studio inspector tab, keeping Gutenberg-aligned settings in Block.
 - Font size controls now show the preset sizes by default, including blocks that have a saved custom size.
 - Matched shared inspector default controls to their Gutenberg block declarations while keeping optional and Studio-specific controls available in their menus.

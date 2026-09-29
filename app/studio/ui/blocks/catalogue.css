@@ -1,4 +1,27 @@
+.ui-blocks-layout { display:grid; grid-template-columns:220px minmax(0,1fr); align-items:start; min-width:0; }
+.ui-block-library-menu { min-height:calc(100dvh - 137px); padding:1.25rem 1rem; border-right:1px solid var(--rl-line); background:#fafafa; }
+.ui-block-library-menu h2 { margin:.25rem .65rem 1rem; font-size:.9375rem; }
+.ui-block-library-menu-group { margin-top:1.25rem; }
+.ui-block-library-menu-group h3 { margin:0 .65rem .45rem; color:var(--rl-muted); font-size:.8125rem; font-weight:600; }
+.ui-block-library-menu-list { display:grid; gap:.2rem; list-style:none; margin:0; padding:0; }
+.ui-block-library-menu-list a { display:block; padding:.55rem .65rem; border-radius:5px; color:var(--rl-muted); text-decoration:none; }
+.ui-block-library-menu-list a:hover { background:var(--rl-selection); color:var(--rl-ink); }
+.ui-block-library-menu-list a:focus-visible { outline:2px solid var(--rl-accent); outline-offset:2px; }
+.ui-block-library-menu-list a[aria-current="page"] { background:#e7e7e5; color:var(--rl-ink); font-weight:600; }
+.ui-blocks-main { min-width:0; }
 .ui-catalogue-card { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-top:1.75rem; padding:1.25rem 1.5rem; border:1px solid var(--rl-line); border-radius:9px; background:#fff; }
 .ui-catalogue-card h2 { margin:.25rem 0; }
 .ui-catalogue-card p { color:var(--rl-muted); }
 .ui-catalogue-card a { display:inline-flex; flex:0 0 auto; align-items:center; gap:.5rem; color:var(--rl-accent); text-decoration:none; }
+@media (max-width:720px) {
+  .ui-blocks-layout { display:block; }
+  .ui-block-library-menu { min-height:0; padding:.8rem 1rem; border-right:0; border-bottom:1px solid var(--rl-line); }
+  .ui-block-library-menu h2 { margin:0 0 .5rem; }
+  .ui-block-library-menu nav { display:flex; align-items:flex-start; gap:1rem; overflow-x:auto; }
+  .ui-block-library-menu-list { display:flex; flex:0 0 auto; }
+  .ui-block-library-menu-group { display:flex; flex:0 0 auto; align-items:center; gap:.35rem; margin:0; }
+  .ui-block-library-menu-group h3 { margin:0 .25rem 0 .4rem; }
+  .ui-blocks-main.ui-page-intro { padding:1.25rem 1rem 1rem; }
+  .ui-catalogue-card { display:block; padding:1rem; }
+  .ui-catalogue-card a { margin-top:.75rem; }
+}

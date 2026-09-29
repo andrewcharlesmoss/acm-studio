@@ -7,6 +7,7 @@ import { paragraphBlockDefinition, paragraphInspectorProfile } from "../../../bl
 import { BlockInspector } from "../../../studio-inspectors";
 import { ParagraphEditField } from "../../../studio-canvas";
 import { StudioIcon } from "../../../studio-icons";
+import { BlockLibraryNavigation } from "../block-library-navigation";
 import { StudioUiLibrary } from "../../studio-ui-library";
 
 const initialRuns: RichTextRun[] = [
@@ -103,7 +104,9 @@ export function ParagraphBlockCatalogue() {
 
   const studioBlock = block as ContentBlock;
   const previousIndent = precedingParagraph.style?.textIndent;
-  return <StudioUiLibrary section="blocks"><main className="ui-page-intro ui-paragraph-page">
+  return <StudioUiLibrary section="blocks"><div className="ui-blocks-layout">
+    <BlockLibraryNavigation active="paragraph" />
+    <section className="ui-blocks-main ui-page-intro ui-paragraph-page">
     <p className="rl-eyebrow"><a href="/studio/ui/blocks">Blocks</a> / Paragraph</p>
     <h1>Paragraph</h1>
     <p>{paragraphBlockDefinition.description} {paragraphBlockDefinition.inspector.intendedUse}</p>
@@ -143,5 +146,6 @@ export function ParagraphBlockCatalogue() {
     </section>
 
     <section className="ui-paragraph-reference"><h2>Reference and compatibility</h2><p>Gutenberg is the default behaviour and visual reference. Core Paragraph options stay in Block; ACM additions such as Font family, Orientation, Text shadow and minimum dimensions stay in Studio.</p><p>ACM Studio retains its typed content model, managed media and safe style handling. The inspector catalogue is a current implementation profile, not a second saved format. Full Ribbon, inserter, publication and document workflows are outside this specimen.</p></section>
-  </main></StudioUiLibrary>;
+    </section>
+  </div></StudioUiLibrary>;
 }

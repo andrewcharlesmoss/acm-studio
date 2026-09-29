@@ -73,6 +73,8 @@ export const paragraphBlockDefinition = {
   type: "paragraph" as const,
   label: "Paragraph",
   description: paragraphInspectorProfile.description,
+  libraryHref: "/studio/ui/blocks/paragraph",
+  librarySummary: "Ordinary prose with inline formatting, Gutenberg-aligned settings and separate Studio additions.",
   create: (id: string): Extract<ContentBlock, { type: "paragraph" }> => ({ id, type: "paragraph", text: "Start writing here." }),
   inspector: paragraphInspectorProfile,
 };

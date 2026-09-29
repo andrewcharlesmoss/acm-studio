@@ -17,8 +17,9 @@ The library has nine sections:
 - **Panels** — the shared card surface and header slots, demonstrated with
   temporary sample data from `@acm/panel`.
 - **Blocks** — block definitions, inspector capabilities, relationships and
-  isolated editing specimens. Paragraph is the first complete entry at
-  `/studio/ui/blocks/paragraph`.
+  isolated editing specimens. A local menu groups fully documented entries by
+  the existing block catalogue categories; Paragraph is the first complete
+  entry at `/studio/ui/blocks/paragraph`.
 - **Controls** — working shared inspector controls with their supported states,
   ownership and consumers at `/studio/ui/controls`.
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
