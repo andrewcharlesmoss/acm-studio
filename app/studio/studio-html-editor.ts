@@ -92,7 +92,7 @@ export function formatHtml(html: string): string {
 function serialiseBlock(block: ContentBlock, attributes = ""): string {
   if (block.siteRole) attributes += ` data-site-role="${escapeAttribute(block.siteRole)}"`;
   const advancedStyle = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : block.visualStyle;
-  if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
+  if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
     attributes += ` data-html-anchor="${escapeAttribute(advancedStyle?.anchor ?? "")}" data-additional-classes="${escapeAttribute(advancedStyle?.className ?? "")}"`;
   }
   switch (block.type) {
@@ -147,7 +147,7 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
     case "post-date":
       return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-metadata-icon="${block.showIcon !== false}" data-metadata-link="${Boolean(block.isLink)}"></p>`;
     case "social-icons":
-      return `<nav${attributes} aria-label="Social links" data-social-justification="${block.justification ?? "left"}" data-social-orientation="${block.orientation ?? "horizontal"}" data-social-size="${block.iconSize ?? "normal"}" data-social-labels="${Boolean(block.showLabels)}" data-social-new-tab="${Boolean(block.openInNewTab)}">${serialiseChildren(block.children)}</nav>`;
+      return `<nav${attributes} aria-label="Social links" data-social-justification="${block.justification ?? "left"}" data-social-orientation="${block.orientation ?? "horizontal"}" data-social-wrap="${block.allowWrap !== false}" data-social-size="${block.iconSize ?? "normal"}" data-social-labels="${Boolean(block.showLabels)}" data-social-new-tab="${Boolean(block.openInNewTab)}">${serialiseChildren(block.children)}</nav>`;
     case "social-linkedin":
     case "social-tiktok": {
       const url = safeTextLink(block.url);
@@ -355,11 +355,11 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       if (parsed.block.type !== "social-linkedin" && parsed.block.type !== "social-tiktok") return { error: "Social Icons can contain only LinkedIn or TikTok links." };
       children.push(parsed.block);
     }
-    return { block: { id, type: "social-icons", children, justification: ["left", "centre", "right", "space-between"].includes(element.dataset.socialJustification ?? "") ? element.dataset.socialJustification as Extract<ContentBlock, { type: "social-icons" }>["justification"] : "left", orientation: element.dataset.socialOrientation === "vertical" ? "vertical" : "horizontal", iconSize: ["small", "normal", "large"].includes(element.dataset.socialSize ?? "") ? element.dataset.socialSize as Extract<ContentBlock, { type: "social-icons" }>["iconSize"] : "normal", showLabels: element.dataset.socialLabels === "true", openInNewTab: element.dataset.socialNewTab === "true" } };
+    return { block: { ...(original.type === "social-icons" ? { visualStyle: original.visualStyle } : {}), id, type: "social-icons", children, justification: ["left", "centre", "right", "space-between"].includes(element.dataset.socialJustification ?? "") ? element.dataset.socialJustification as Extract<ContentBlock, { type: "social-icons" }>["justification"] : "left", orientation: element.dataset.socialOrientation === "vertical" ? "vertical" : "horizontal", allowWrap: element.dataset.socialWrap !== "false", iconSize: ["small", "normal", "large"].includes(element.dataset.socialSize ?? "") ? element.dataset.socialSize as Extract<ContentBlock, { type: "social-icons" }>["iconSize"] : "normal", showLabels: element.dataset.socialLabels === "true", openInNewTab: element.dataset.socialNewTab === "true" } };
   }
   if (declaredType === "social-linkedin" || declaredType === "social-tiktok") {
     if (element.tagName.toLowerCase() !== "a") return { error: "Social icons must use link elements." };
-    return { block: { id, type: declaredType, url: element.getAttribute("href") ?? element.dataset.socialUrl ?? "", label: element.textContent || undefined } };
+    return { block: { ...(original.type === declaredType ? { visualStyle: original.visualStyle } : {}), id, type: declaredType, url: element.getAttribute("href") ?? element.dataset.socialUrl ?? "", label: element.textContent || undefined } };
   }
   if (declaredType === "document-title") {
     const level = Number(element.tagName.slice(1));

@@ -2,8 +2,12 @@ import { listItemText, type ContentBlock } from "./model";
 
 /** Editorial estimate: 220 words per minute, rounded up to at least one minute. */
 export function readingTimeMinutes(blocks: ContentBlock[]): number {
-  const words = readingTimeText(blocks).trim().split(/\s+/).filter(Boolean).length;
+  const words = contentWordCount(blocks);
   return Math.max(1, Math.ceil(words / 220));
+}
+
+export function contentWordCount(blocks: ContentBlock[]): number {
+  return readingTimeText(blocks).trim().split(/\s+/).filter(Boolean).length;
 }
 
 function readingTimeText(blocks: ContentBlock[]): string {

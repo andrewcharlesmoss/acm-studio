@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { AcmIcon } from "@acm/icons/react";
-import type { ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphAppearance, ParagraphBackgroundGradient, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, SpacerUnit, TextAlignment } from "../content/model";
+import type { ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphAppearance, ParagraphBackgroundGradient, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, SiteSectionRole, SpacerUnit, TextAlignment } from "../content/model";
 import { PARAGRAPH_BACKGROUND_GRADIENTS, fitTextEnabled, paragraphBackgroundGradientCss } from "../content/paragraph-styles";
 import { formatDocumentDate } from "../content/document-metadata";
-import { readingTimeMinutes } from "../content/reading-time";
+import { contentWordCount, readingTimeMinutes } from "../content/reading-time";
 import type { LayoutMode } from "../content/model";
 import { LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS } from "../content/layout";
 import { CODE_LANGUAGE_OPTIONS, isKnownCodeLanguage } from "../content/code-highlighting.mjs";
@@ -23,9 +24,20 @@ import { COLUMN_LAYOUT_PRESETS, setColumnCount, setColumnsLayout, setColumnWidth
 import { SPACER_SIZE_LIMIT, SPACER_UNITS } from "../content/spacer";
 import { customFontSizeMaximum, normaliseCustomFontSize, type CustomFontSizeUnit } from "../content/font-size";
 import { safeTextLink } from "../content/rich-text";
+import { UNIVERSAL_STYLE_PRESET, type UniversalStylePreset } from "@acm/styles";
 
 function blockLabel(type: ContentBlock["type"]) {
   return type.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+}
+
+function usePortalRoot() {
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    // Resolve the body after hydration so server and first client renders match.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPortalRoot(globalThis.document?.body ?? null);
+  }, []);
+  return portalRoot;
 }
 
 export type StudioInspectorProps = {
@@ -141,7 +153,9 @@ type DocumentInspectorProps = {
 };
 
 function DocumentInspector({ panel, documentControls, document, resolvedDocument, categories, tagSuggestions, onCategorySelectionChange, onAddCategory, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate, pages, onOpenCoverMediaLibrary, onRemoveCoverImage, onChange, onPublish, onUnpublish, onDuplicate, onDelete, canDelete, canDuplicate, allowedStatuses = ["draft", "pending", "private", "scheduled", "published"], allowedPageTemplates = ["default", "wide", "landing"] }: DocumentInspectorProps) {
+  const portalRoot = usePortalRoot();
   const [statusOpen, setStatusOpen] = useState(false);
+  const [statusPopoverPosition, setStatusPopoverPosition] = useState<{ left: number; top: number } | null>(null);
   const [passwordEditorOpen, setPasswordEditorOpen] = useState(false);
   const [passwordDraft, setPasswordDraft] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -151,16 +165,24 @@ function DocumentInspector({ panel, documentControls, document, resolvedDocument
   const passwordSaveGenerationRef = useRef(0);
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishPopoverPosition, setPublishPopoverPosition] = useState<{ left: number; top: number } | null>(null);
+  const [excerptOpen, setExcerptOpen] = useState(false);
+  const [excerptPopoverPosition, setExcerptPopoverPosition] = useState<{ left: number; top: number } | null>(null);
   const statusTriggerRef = useRef<HTMLButtonElement>(null);
+  const statusPopoverRef = useRef<HTMLDivElement>(null);
   const publishTriggerRef = useRef<HTMLButtonElement>(null);
   const publishPopoverRef = useRef<HTMLDivElement>(null);
   const publishHourInputRef = useRef<HTMLInputElement>(null);
+  const excerptTriggerRef = useRef<HTMLButtonElement>(null);
+  const excerptPopoverRef = useRef<HTMLDivElement>(null);
+  const excerptInputRef = useRef<HTMLTextAreaElement>(null);
   const statusLabel = documentStatusLabel(document.status);
   const publishDate = document.publishAt ? formatPublishDate(document.publishAt) : "Immediately";
   const selectedDate = parsePublicationDate(document.publishAt) ?? new Date();
   const [calendarMonth, setCalendarMonth] = useState(startOfMonth(selectedDate));
   const [categoriesOpen, setCategoriesOpen] = useState(true);
   const categoriesContentId = useId();
+  const statusPopoverId = useId();
+  const excerptPopoverId = useId();
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryParentId, setNewCategoryParentId] = useState("");
@@ -186,6 +208,8 @@ function DocumentInspector({ panel, documentControls, document, resolvedDocument
   }
 
   function openPublishDate() {
+    setExcerptOpen(false);
+    setStatusOpen(false);
     if (publishOpen) {
       setPublishOpen(false);
       return;
@@ -220,16 +244,51 @@ function DocumentInspector({ panel, documentControls, document, resolvedDocument
 
   const calendarDays = getCalendarDays(calendarMonth);
 
+  useLayoutEffect(() => {
+    if (!statusOpen) return;
+    function positionStatusPopover() {
+      const trigger = statusTriggerRef.current;
+      const popover = statusPopoverRef.current;
+      if (!trigger || !popover) return;
+      const rect = trigger.getBoundingClientRect();
+      const inspectorLeft = trigger.closest(".studio-inspector")?.getBoundingClientRect().left ?? rect.left;
+      const width = Math.min(360, window.innerWidth - 32);
+      setStatusPopoverPosition({
+        left: Math.max(16, inspectorLeft - width - 12),
+        top: Math.max(16, Math.min(rect.top, window.innerHeight - popover.getBoundingClientRect().height - 16)),
+      });
+    }
+    positionStatusPopover();
+    const popover = statusPopoverRef.current;
+    const sizeObserver = popover ? new ResizeObserver(positionStatusPopover) : null;
+    if (popover) sizeObserver?.observe(popover);
+    window.addEventListener("resize", positionStatusPopover);
+    window.addEventListener("scroll", positionStatusPopover, true);
+    return () => {
+      sizeObserver?.disconnect();
+      window.removeEventListener("resize", positionStatusPopover);
+      window.removeEventListener("scroll", positionStatusPopover, true);
+    };
+  }, [statusOpen]);
+
   useEffect(() => {
     if (!statusOpen) return;
-    function closeWithEscape(event: KeyboardEvent) {
+    function closeWithEscape(event: globalThis.KeyboardEvent) {
       if (event.key !== "Escape") return;
       event.preventDefault();
       setStatusOpen(false);
       requestAnimationFrame(() => statusTriggerRef.current?.focus());
     }
+    function closeOnOutsidePointer(event: globalThis.PointerEvent) {
+      if (statusPopoverRef.current?.contains(event.target as Node) || statusTriggerRef.current?.contains(event.target as Node)) return;
+      setStatusOpen(false);
+    }
     globalThis.document.addEventListener("keydown", closeWithEscape);
-    return () => globalThis.document.removeEventListener("keydown", closeWithEscape);
+    globalThis.document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => {
+      globalThis.document.removeEventListener("keydown", closeWithEscape);
+      globalThis.document.removeEventListener("pointerdown", closeOnOutsidePointer);
+    };
   }, [statusOpen]);
 
   async function savePasswordProtection(value = passwordDraft) {
@@ -253,37 +312,42 @@ function DocumentInspector({ panel, documentControls, document, resolvedDocument
     }
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!publishOpen) return;
     function positionPublishPopover() {
       const trigger = publishTriggerRef.current;
-      if (!trigger) return;
+      const popover = publishPopoverRef.current;
+      if (!trigger || !popover) return;
       const rect = trigger.getBoundingClientRect();
       const inspectorLeft = trigger.closest(".studio-inspector")?.getBoundingClientRect().left ?? rect.left;
       const width = Math.min(320, window.innerWidth - 32);
       setPublishPopoverPosition({
         left: Math.max(16, inspectorLeft - width - 12),
-        top: Math.min(Math.max(16, rect.top - 12), Math.max(16, window.innerHeight - 520)),
+        top: Math.max(16, Math.min(rect.top - 12, window.innerHeight - popover.getBoundingClientRect().height - 16)),
       });
     }
-    function closePublishPopover(event: PointerEvent) {
+    function closePublishPopover(event: globalThis.PointerEvent) {
       if (publishPopoverRef.current?.contains(event.target as Node) || publishTriggerRef.current?.contains(event.target as Node)) return;
       setPublishOpen(false);
       if (!(event.target instanceof Element) || !event.target.closest("button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])")) requestAnimationFrame(() => publishTriggerRef.current?.focus());
     }
-    function closeWithEscape(event: KeyboardEvent) {
+    function closeWithEscape(event: globalThis.KeyboardEvent) {
       if (event.key !== "Escape") return;
       event.preventDefault();
       setPublishOpen(false);
       requestAnimationFrame(() => publishTriggerRef.current?.focus());
     }
     positionPublishPopover();
+    const popover = publishPopoverRef.current;
+    const sizeObserver = popover ? new ResizeObserver(positionPublishPopover) : null;
+    if (popover) sizeObserver?.observe(popover);
     window.addEventListener("resize", positionPublishPopover);
     window.addEventListener("scroll", positionPublishPopover, true);
     globalThis.document.addEventListener("pointerdown", closePublishPopover);
     globalThis.document.addEventListener("keydown", closeWithEscape);
     requestAnimationFrame(() => publishHourInputRef.current?.focus());
     return () => {
+      sizeObserver?.disconnect();
       window.removeEventListener("resize", positionPublishPopover);
       window.removeEventListener("scroll", positionPublishPopover, true);
       globalThis.document.removeEventListener("pointerdown", closePublishPopover);
@@ -291,31 +355,84 @@ function DocumentInspector({ panel, documentControls, document, resolvedDocument
     };
   }, [publishOpen]);
 
+  useLayoutEffect(() => {
+    if (!excerptOpen) return;
+    function positionExcerptPopover() {
+      const trigger = excerptTriggerRef.current;
+      const popover = excerptPopoverRef.current;
+      if (!trigger || !popover) return;
+      const rect = trigger.getBoundingClientRect();
+      const inspectorLeft = trigger.closest(".studio-inspector")?.getBoundingClientRect().left ?? rect.left;
+      const width = Math.min(640, window.innerWidth - 32);
+      setExcerptPopoverPosition({
+        left: Math.max(16, inspectorLeft - width - 12),
+        top: Math.max(16, Math.min(rect.top - 12, window.innerHeight - popover.getBoundingClientRect().height - 16)),
+      });
+    }
+    function closeExcerptPopover(event: globalThis.PointerEvent) {
+      if (excerptPopoverRef.current?.contains(event.target as Node) || excerptTriggerRef.current?.contains(event.target as Node)) return;
+      setExcerptOpen(false);
+      if (!(event.target instanceof Element) || !event.target.closest("button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])")) requestAnimationFrame(() => excerptTriggerRef.current?.focus());
+    }
+    function closeWithEscape(event: globalThis.KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setExcerptOpen(false);
+      requestAnimationFrame(() => excerptTriggerRef.current?.focus());
+    }
+    positionExcerptPopover();
+    const popover = excerptPopoverRef.current;
+    const sizeObserver = popover ? new ResizeObserver(positionExcerptPopover) : null;
+    if (popover) sizeObserver?.observe(popover);
+    window.addEventListener("resize", positionExcerptPopover);
+    window.addEventListener("scroll", positionExcerptPopover, true);
+    globalThis.document.addEventListener("pointerdown", closeExcerptPopover);
+    globalThis.document.addEventListener("keydown", closeWithEscape);
+    requestAnimationFrame(() => excerptInputRef.current?.focus());
+    return () => {
+      sizeObserver?.disconnect();
+      window.removeEventListener("resize", positionExcerptPopover);
+      window.removeEventListener("scroll", positionExcerptPopover, true);
+      globalThis.document.removeEventListener("pointerdown", closeExcerptPopover);
+      globalThis.document.removeEventListener("keydown", closeWithEscape);
+    };
+  }, [excerptOpen]);
+
   const isDocumentPanel = panel === "document";
   const hasCategories = document.kind === "post";
+  const postWordCount = document.kind === "post" ? contentWordCount(document.blocks) : 0;
+  const postReadingTime = document.kind === "post" ? readingTimeMinutes(document.blocks) : 0;
+  const lastEdited = new Date(document.updatedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 
   return (
-    <div className="inspector-sections">
+    <div className={`inspector-sections${document.kind === "post" && isDocumentPanel ? " post-document-inspector" : ""}`}>
       {isDocumentPanel ? <>
         <InspectorAccordionSection kind={document.kind} title={document.kind === "page" ? "Page" : "Post"}>
           <div className="document-summary"><span className={`kind-badge is-${document.kind}`}>{document.kind === "page" ? "P" : "A"}</span><div><strong>{document.title}</strong><small>{document.kind} · {statusLabel}</small></div></div>
           <label><span>Title</span><input value={document.title} onChange={event => onChange("title", event.target.value)} /></label>
           {onOpenCoverMediaLibrary ? <div className="page-featured-image"><span>Featured image</span><div><button type="button" className="choose-media-button" onClick={onOpenCoverMediaLibrary}>{document.coverImage ? "Replace featured image" : "Set featured image"}</button>{document.coverImage && onRemoveCoverImage ? <button type="button" className="page-featured-image-remove" onClick={onRemoveCoverImage}>Remove image</button> : null}</div></div> : null}
         </InspectorAccordionSection>
+        {document.kind === "post" ? <div className="post-summary-block">
+          <div className="post-excerpt-control">
+            <button ref={excerptTriggerRef} className="post-excerpt-trigger" type="button" aria-expanded={excerptOpen} aria-haspopup="dialog" aria-controls={excerptPopoverId} onClick={() => { setStatusOpen(false); setPublishOpen(false); setExcerptOpen(open => !open); }}>{document.excerpt.trim() ? "Edit excerpt" : "Add an excerpt…"}</button>
+            {excerptOpen && portalRoot ? createPortal(<section ref={excerptPopoverRef} id={excerptPopoverId} className="inspector-popover post-excerpt-popover" role="dialog" aria-label="Excerpt" style={excerptPopoverPosition ?? undefined}><div className="inspector-popover-heading"><h2>Excerpt</h2><button type="button" aria-label="Close excerpt" onClick={() => { setExcerptOpen(false); requestAnimationFrame(() => excerptTriggerRef.current?.focus()); }}><StudioIcon name="close" size={20} /></button></div><textarea ref={excerptInputRef} aria-label="Excerpt" rows={6} value={document.excerpt} onChange={(event) => onChange("excerpt", event.target.value)} /><a href="https://wordpress.org/documentation/article/what-is-an-excerpt-block-editor/" target="_blank" rel="noopener noreferrer">Learn more about manual excerpts <StudioIcon name="external" size={14} /></a><p className="setting-note">Leave blank and Studio will generate a summary.</p></section>, portalRoot) : null}
+          </div>
+          <div className="post-content-summary" aria-label="Post content summary"><span>{postWordCount} {postWordCount === 1 ? "word" : "words"}</span><span>{postReadingTime} {postReadingTime === 1 ? "minute" : "minutes"} reading time</span><span>Last edited {lastEdited}</span></div>
+        </div>
+        : null}
         <InspectorAccordionSection kind={document.kind} title="Publishing">
           <div className="local-publish-status"><i className={`document-status is-${document.status}`} /><div><strong>{document.status === "published" ? "Published locally" : statusLabel}</strong><small>{document.status === "published" && document.publishedAt ? `Since ${new Date(document.publishedAt).toLocaleDateString("en-GB")}` : document.status === "scheduled" && document.publishAt ? `Scheduled for ${new Date(document.publishAt).toLocaleString("en-GB")}` : "Only visible in Studio"}</small></div></div>
-          <div className="inspector-setting-row"><span>Status</span><button ref={statusTriggerRef} className="inspector-setting-trigger" type="button" aria-expanded={statusOpen} aria-haspopup="true" onClick={() => setStatusOpen((open) => !open)}>{statusLabel}<StudioIcon name="chevron-right" size={16} /></button></div>
-          {statusOpen ? <div className="inspector-popover" role="group" aria-label="Status and visibility"><div className="inspector-popover-heading"><strong>Status &amp; visibility</strong><button type="button" aria-label="Close status and visibility" onClick={() => { setStatusOpen(false); requestAnimationFrame(() => statusTriggerRef.current?.focus()); }}><StudioIcon name="close" size={16} /></button></div><div className="status-options" role="radiogroup" aria-label="Document status">{allowedStatuses.map((status) => <button className="status-option" type="button" role="radio" aria-checked={document.status === status} key={status} onClick={() => { if (document.status === "scheduled" && status !== "scheduled") onUnpublish(); if (status === "scheduled" && !document.publishAt) onChange("publishAt", new Date(Date.now() + 60 * 60 * 1000).toISOString()); if (status === "published") { const now = new Date().toISOString(); onChange("publishAt", undefined); onChange("publishedAt", now); } onChange("status", status); setStatusOpen(false); }}><span className="status-radio" aria-hidden="true" /><span><strong>{documentStatusLabel(status)}</strong><small>{documentStatusDescription(status, document.kind)}</small></span></button>)}</div><div className="password-protection-option"><div className="password-protection-toggle"><input id="password-protection-toggle" type="checkbox" checked={Boolean(document.passwordProtection) || passwordEditorOpen} onChange={(event) => { setPasswordError(""); if (event.target.checked) setPasswordEditorOpen(true); else { passwordSaveGenerationRef.current += 1; onChange("passwordProtection", null); setPasswordEditorOpen(false); setPasswordDraft(""); } }} /><label htmlFor="password-protection-toggle"><strong>Password protected</strong><small>Only visible to people who know the password.</small></label></div>{passwordEditorOpen ? <div className="password-protection-editor">{document.kind === "page" ? <small>Page publishing is not available yet, so this setting does not protect a page preview.</small> : null}<label htmlFor="document-password">Password</label><div className="password-protection-input" aria-busy={passwordSaving} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) void savePasswordProtection(); }}><input id="document-password" type={passwordVisible ? "text" : "password"} autoComplete="new-password" maxLength={256} placeholder={document.passwordProtection ? "Enter a new password to replace it" : "Use a secure password"} value={passwordDraft} onChange={(event) => setPasswordDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void savePasswordProtection(); } }} /><button type="button" title={passwordVisible ? "Hide password" : "Show password"} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(value => !value)}><StudioIcon name={passwordVisible ? "seen-off" : "seen"} size={18} /></button></div>{document.passwordProtection ? <button className="password-protection-cancel" type="button" onClick={() => { passwordSaveGenerationRef.current += 1; setPasswordEditorOpen(false); setPasswordDraft(""); setPasswordVisible(false); }}>Cancel</button> : null}{passwordError ? <p role="status">{passwordError}</p> : null}</div> : document.passwordProtection ? <div className="password-protection-saved"><small>Password is set.</small><button type="button" onClick={() => { setPasswordError(""); setPasswordEditorOpen(true); }}>Change password</button></div> : null}</div>{document.kind === "post" ? <div className="sticky-post-option"><div className="password-protection-toggle"><input id="sticky-post-toggle" type="checkbox" checked={Boolean(document.sticky)} onChange={(event) => onChange("sticky", event.target.checked)} /><label htmlFor="sticky-post-toggle"><strong>Sticky</strong><small>Pin this post to the top of the Writing archive.</small></label></div></div> : null}</div> : null}
+          <div className="inspector-setting-row"><span>Status</span><button ref={statusTriggerRef} className="inspector-setting-trigger" type="button" aria-expanded={statusOpen} aria-haspopup="dialog" aria-controls={statusPopoverId} onClick={() => { setExcerptOpen(false); setStatusOpen((open) => !open); }}>{statusLabel}<StudioIcon name="chevron-right" size={16} /></button></div>
+          {statusOpen && portalRoot ? createPortal(<div ref={statusPopoverRef} id={statusPopoverId} className="inspector-popover status-visibility-popover" role="dialog" aria-label="Status and visibility" style={statusPopoverPosition ?? undefined}><div className="inspector-popover-heading"><strong>Status &amp; visibility</strong><button type="button" aria-label="Close status and visibility" onClick={() => { setStatusOpen(false); requestAnimationFrame(() => statusTriggerRef.current?.focus()); }}><StudioIcon name="close" size={16} /></button></div><div className="status-options" role="radiogroup" aria-label="Document status">{allowedStatuses.map((status) => <button className="status-option" type="button" role="radio" aria-checked={document.status === status} key={status} onClick={() => { if (document.status === "scheduled" && status !== "scheduled") onUnpublish(); if (status === "scheduled" && !document.publishAt) onChange("publishAt", new Date(Date.now() + 60 * 60 * 1000).toISOString()); if (status === "published") { const now = new Date().toISOString(); onChange("publishAt", undefined); onChange("publishedAt", now); } onChange("status", status); setStatusOpen(false); }}><span className="status-radio" aria-hidden="true" /><span><strong>{documentStatusLabel(status)}</strong><small>{documentStatusDescription(status, document.kind)}</small></span></button>)}</div><div className="password-protection-option"><div className="password-protection-toggle"><input id="password-protection-toggle" type="checkbox" checked={Boolean(document.passwordProtection) || passwordEditorOpen} onChange={(event) => { setPasswordError(""); if (event.target.checked) setPasswordEditorOpen(true); else { passwordSaveGenerationRef.current += 1; onChange("passwordProtection", null); setPasswordEditorOpen(false); setPasswordDraft(""); } }} /><label htmlFor="password-protection-toggle"><strong>Password protected</strong><small>Only visible to people who know the password.</small></label></div>{passwordEditorOpen ? <div className="password-protection-editor">{document.kind === "page" ? <small>Page publishing is not available yet, so this setting does not protect a page preview.</small> : null}<label htmlFor="document-password">Password</label><div className="password-protection-input" aria-busy={passwordSaving} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) void savePasswordProtection(); }}><input id="document-password" type={passwordVisible ? "text" : "password"} autoComplete="new-password" maxLength={256} placeholder={document.passwordProtection ? "Enter a new password to replace it" : "Use a secure password"} value={passwordDraft} onChange={(event) => setPasswordDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void savePasswordProtection(); } }} /><button type="button" title={passwordVisible ? "Hide password" : "Show password"} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(value => !value)}><StudioIcon name={passwordVisible ? "seen-off" : "seen"} size={18} /></button></div>{document.passwordProtection ? <button className="password-protection-cancel" type="button" onClick={() => { passwordSaveGenerationRef.current += 1; setPasswordEditorOpen(false); setPasswordDraft(""); setPasswordVisible(false); }}>Cancel</button> : null}{passwordError ? <p role="status">{passwordError}</p> : null}</div> : document.passwordProtection ? <div className="password-protection-saved"><small>Password is set.</small><button type="button" onClick={() => { setPasswordError(""); setPasswordEditorOpen(true); }}>Change password</button></div> : null}</div>{document.kind === "post" ? <div className="sticky-post-option"><div className="password-protection-toggle"><input id="sticky-post-toggle" type="checkbox" checked={Boolean(document.sticky)} onChange={(event) => onChange("sticky", event.target.checked)} /><label htmlFor="sticky-post-toggle"><strong>Sticky</strong><small>Pin this post to the top of the Writing archive.</small></label></div></div> : null}</div>, portalRoot) : null}
           <div className="inspector-setting-row"><span>Publish</span><button ref={publishTriggerRef} className="inspector-setting-trigger" type="button" aria-expanded={publishOpen} aria-haspopup="dialog" aria-controls="publish-date-popover" onClick={openPublishDate}>{publishDate}<StudioIcon name="chevron-right" size={16} /></button></div>
-          {publishOpen ? <div ref={publishPopoverRef} id="publish-date-popover" className="inspector-popover publish-date-popover" role="dialog" aria-label="Publish date" style={publishPopoverPosition ?? undefined}><div className="inspector-popover-heading"><strong>Publish</strong><button className="publish-now-button" type="button" onClick={publishImmediately}>Now</button><button type="button" aria-label="Close publish date" onClick={() => { setPublishOpen(false); requestAnimationFrame(() => publishTriggerRef.current?.focus()); }}><StudioIcon name="close" size={20} /></button></div><div className="publish-time-row"><strong>Time</strong><div className="publish-time-controls"><div className="publish-time-input"><input ref={publishHourInputRef} aria-label="Hour" inputMode="numeric" min="0" max="23" value={String(selectedDate.getHours()).padStart(2, "0")} onChange={(event) => updateDateParts({ hours: clampNumber(event.target.value, 0, 23) })} /><span>:</span><input aria-label="Minute" inputMode="numeric" min="0" max="59" value={String(selectedDate.getMinutes()).padStart(2, "0")} onChange={(event) => updateDateParts({ minutes: clampNumber(event.target.value, 0, 59) })} /></div><span className="publish-timezone">UTC+0</span></div></div><div className="publish-date-fields"><strong>Date</strong><div><input aria-label="Day" inputMode="numeric" min="1" max="31" value={String(selectedDate.getDate()).padStart(2, "0")} onChange={(event) => updateDateParts({ day: clampNumber(event.target.value, 1, 31) })} /><select aria-label="Month" value={selectedDate.getMonth()} onChange={(event) => updateDateParts({ month: Number(event.target.value) })}>{MONTH_NAMES.map((month, index) => <option value={index} key={month}>{month}</option>)}</select><input aria-label="Year" inputMode="numeric" value={selectedDate.getFullYear()} onChange={(event) => updateDateParts({ year: clampNumber(event.target.value, 1, 9999) })} /></div></div><div className="publish-calendar"><div className="publish-calendar-heading"><button type="button" aria-label="Previous month" onClick={() => moveCalendarMonth(-1)}><StudioIcon name="arrow-left" size={20} /></button><strong>{formatCalendarMonth(calendarMonth)}</strong><button type="button" aria-label="Next month" onClick={() => moveCalendarMonth(1)}><StudioIcon name="arrow-right" size={20} /></button></div><div className="publish-calendar-weekdays">{WEEKDAY_NAMES.map((weekday) => <span key={weekday}>{weekday}</span>)}</div><div className="publish-calendar-grid">{calendarDays.map((day, index) => day ? <button type="button" className={isSameCalendarDay(day, selectedDate) ? "is-selected" : ""} aria-label={day.toLocaleDateString("en-GB", { dateStyle: "full" })} key={day.toISOString()} onClick={() => updatePublicationDate(new Date(day.getFullYear(), day.getMonth(), day.getDate(), selectedDate.getHours(), selectedDate.getMinutes()))}>{day.getDate()}</button> : <span aria-hidden="true" key={`empty-${index}`} />)}</div></div><p className="setting-note">This date is used when the {document.kind} is published locally.</p></div> : null}
+          {publishOpen && portalRoot ? createPortal(<div ref={publishPopoverRef} id="publish-date-popover" className="inspector-popover publish-date-popover" role="dialog" aria-label="Publish date" style={publishPopoverPosition ?? undefined}><div className="inspector-popover-heading"><strong>Publish</strong><button className="publish-now-button" type="button" onClick={publishImmediately}>Now</button><button type="button" aria-label="Close publish date" onClick={() => { setPublishOpen(false); requestAnimationFrame(() => publishTriggerRef.current?.focus()); }}><StudioIcon name="close" size={20} /></button></div><div className="publish-time-row"><strong>Time</strong><div className="publish-time-controls"><div className="publish-time-input"><input ref={publishHourInputRef} aria-label="Hour" inputMode="numeric" min="0" max="23" value={String(selectedDate.getHours()).padStart(2, "0")} onChange={(event) => updateDateParts({ hours: clampNumber(event.target.value, 0, 23) })} /><span>:</span><input aria-label="Minute" inputMode="numeric" min="0" max="59" value={String(selectedDate.getMinutes()).padStart(2, "0")} onChange={(event) => updateDateParts({ minutes: clampNumber(event.target.value, 0, 59) })} /></div><span className="publish-timezone">UTC+0</span></div></div><div className="publish-date-fields"><strong>Date</strong><div><input aria-label="Day" inputMode="numeric" min="1" max="31" value={String(selectedDate.getDate()).padStart(2, "0")} onChange={(event) => updateDateParts({ day: clampNumber(event.target.value, 1, 31) })} /><select aria-label="Month" value={selectedDate.getMonth()} onChange={(event) => updateDateParts({ month: Number(event.target.value) })}>{MONTH_NAMES.map((month, index) => <option value={index} key={month}>{month}</option>)}</select><input aria-label="Year" inputMode="numeric" value={selectedDate.getFullYear()} onChange={(event) => updateDateParts({ year: clampNumber(event.target.value, 1, 9999) })} /></div></div><div className="publish-calendar"><div className="publish-calendar-heading"><button type="button" aria-label="Previous month" onClick={() => moveCalendarMonth(-1)}><StudioIcon name="arrow-left" size={20} /></button><strong>{formatCalendarMonth(calendarMonth)}</strong><button type="button" aria-label="Next month" onClick={() => moveCalendarMonth(1)}><StudioIcon name="arrow-right" size={20} /></button></div><div className="publish-calendar-weekdays">{WEEKDAY_NAMES.map((weekday) => <span key={weekday}>{weekday}</span>)}</div><div className="publish-calendar-grid">{calendarDays.map((day, index) => day ? <button type="button" className={isSameCalendarDay(day, selectedDate) ? "is-selected" : ""} aria-label={day.toLocaleDateString("en-GB", { dateStyle: "full" })} key={day.toISOString()} onClick={() => updatePublicationDate(new Date(day.getFullYear(), day.getMonth(), day.getDate(), selectedDate.getHours(), selectedDate.getMinutes()))}>{day.getDate()}</button> : <span aria-hidden="true" key={`empty-${index}`} />)}</div></div><p className="setting-note">This date is used when the {document.kind} is published locally.</p></div>, portalRoot) : null}
           {document.kind === "post" ? <div className="publishing-actions"><button className="publish-action" type="button" onClick={onPublish}>{document.status === "published" ? "Update published post" : document.status === "scheduled" ? "Schedule post" : "Publish post"}</button>{document.status === "published" || document.status === "scheduled" ? <button type="button" onClick={onUnpublish}>{document.status === "scheduled" ? "Cancel schedule" : "Return to draft"}</button> : null}</div> : null}
         </InspectorAccordionSection>
-        {document.kind === "post" ? <InspectorAccordionSection kind={document.kind} title="Excerpt" detail="Optional"><textarea aria-label="Excerpt (optional)" rows={4} value={document.excerpt} onChange={(event) => onChange("excerpt", event.target.value)} placeholder="A short public summary" /><p className="setting-note">Leave blank and Studio will generate a summary.</p></InspectorAccordionSection> : null}
         {document.kind === "page" ? <InspectorAccordionSection kind={document.kind} title="Address"><label><span>Slug</span><input value={document.slug} onChange={(event) => onChange("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label></InspectorAccordionSection> : null}
+        {document.kind === "post" ? <InspectorAccordionSection kind={document.kind} title="Address"><label><span>Slug</span><input value={document.slug} onChange={(event) => onChange("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label></InspectorAccordionSection> : null}
         <InspectorAccordionSection kind={document.kind} title="Author"><select aria-label="Author" value={resolvedDocument.author ?? ""} onChange={(event) => { onFieldOverride?.("author", false); onChange("author", event.target.value); }}><option value="">No author</option>{resolvedDocument.author && resolvedDocument.author !== "Andrew Moss" ? <option value={resolvedDocument.author}>{resolvedDocument.author}</option> : null}<option value="Andrew Moss">Andrew Moss</option></select></InspectorAccordionSection>
         {documentControls}
         {document.kind === "page" ? <InspectorAccordionSection kind={document.kind} title="Parent page"><label><span>Parent</span><select value={resolvedDocument.parentPageId ?? ""} onChange={(event) => { onFieldOverride?.("parentPageId", false); onChange("parentPageId", event.target.value || undefined); }}><option value="">None</option>{pages.filter((page) => page.id !== document.id).map((page) => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label></InspectorAccordionSection> : null}
-        {document.kind === "post" ? <InspectorAccordionSection kind={document.kind} title="Address"><label><span>Slug</span><input value={document.slug} onChange={(event) => onChange("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label></InspectorAccordionSection> : null}
         {hasCategories ? <>
           <section className="post-categories-section">
             <h2><button type="button" className="post-categories-heading" aria-expanded={categoriesOpen} aria-controls={categoriesContentId} onClick={() => setCategoriesOpen(open => !open)}><span>Categories</span><StudioIcon name={categoriesOpen ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
@@ -482,12 +599,16 @@ function DocumentStylesInspector({ document }: { document: StudioDocument }) {
 }
 
 export function BlockInspector({ block, onChange, onColumnWidthChange, onOpenFiles, canOpenFiles }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {
+  const tabPrefix = useId();
+  const [selectedTab, setSelectedTab] = useState<{ blockId: string; blockType: ContentBlock["type"]; tab: "block" | "studio" } | null>(null);
+  const hasStudioOptions = ["field", "component", "section", "reading-time", "post-author", "post-date"].includes(block.type);
+  const defaultTab: "block" | "studio" = block.type === "field" || block.type === "component" ? "studio" : "block";
+  const activeTab = selectedTab?.blockId === block.id && selectedTab.blockType === block.type ? selectedTab.tab : defaultTab;
   const alignedBlock = block.type === "heading" || block.type === "document-title" || block.type === "document-subtitle" || block.type === "cover-image" ? block : null;
   const alignment = alignedBlock?.align ?? null;
   const advanced = advancedFieldsForBlock(block);
-  return (
-    <div className="inspector-sections">
-      <section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span aria-hidden="true"><BlockLibraryIcon type={block.type} /></span><h2>{blockLabel(block.type)}</h2></div><p className="setting-note">{block.type === "paragraph" ? "Start with the basic building block of all narrative." : block.type === "columns" ? "Display content in multiple columns, with blocks added to each column." : "Changes apply to the selected block."}</p></section>
+  const blockSettings = (
+    <>
       {alignedBlock ? <InspectorAccordionSection title={<>Text</>}><label><span>Alignment</span><select value={alignment ?? "left"} onChange={(event) => onChange({ ...alignedBlock, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label>{alignedBlock.type === "heading" || alignedBlock.type === "document-title" ? <label><span>Level</span><select value={alignedBlock.level ?? 2} onChange={(event) => onChange({ ...alignedBlock, level: Number(event.target.value) as HeadingLevel })}>{[1, 2, 3, 4, 5, 6].map((level) => <option value={level} key={level}>Heading {level}</option>)}</select></label> : null}</InspectorAccordionSection> : null}
       {block.type === "document-title" ? <InspectorAccordionSection title="Link settings"><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.isLink)} onChange={(event) => onChange({ ...block, isLink: event.target.checked })} /><span>Make title a link</span></label>{block.isLink ? <><label className="checkbox-setting"><input type="checkbox" checked={block.linkTarget === "_blank"} onChange={(event) => onChange({ ...block, linkTarget: event.target.checked ? "_blank" : "_self" })} /><span>Open in new tab</span></label><label><span>Link rel</span><input value={block.rel ?? ""} onChange={(event) => onChange({ ...block, rel: event.target.value || undefined })} placeholder="nofollow sponsored" /></label></> : null}</InspectorAccordionSection> : null}
       {block.type === "quote" ? <InspectorAccordionSection title={<>Quote</>}><label><span>Attribution</span><input value={block.attribution ?? ""} onChange={(event) => onChange({ ...block, attribution: event.target.value })} placeholder="Optional name" /></label><label><span>Text alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><label><span>Style</span><select value={block.quoteStyle ?? "default"} onChange={(event) => onChange({ ...block, quoteStyle: event.target.value as "default" | "plain" })}><option value="default">Default</option><option value="plain">Plain</option></select></label></InspectorAccordionSection> : null}
@@ -498,33 +619,49 @@ export function BlockInspector({ block, onChange, onColumnWidthChange, onOpenFil
       {block.type === "cover-image" ? <CoverImageInspector block={block} onChange={onChange} /> : null}
       {block.type === "embed" ? <><InspectorAccordionSection title={<>Embed</>}><label><span>Title</span><input value={block.title} onChange={(event) => onChange({ ...block, title: event.target.value })} /></label><label><span>URL</span><input type="url" value={block.url} onChange={(event) => onChange({ ...block, url: event.target.value })} /></label><label><span>Caption</span><input value={block.caption ?? ""} onChange={(event) => onChange({ ...block, caption: event.target.value || undefined })} /></label></InspectorAccordionSection><SpacingAndAdvancedInspector block={block} onChange={onChange} advancedFields={advanced} /></> : null}
       {block.type === "button" ? <InspectorAccordionSection title={<>Button</>}><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>URL</span><input value={block.url} onChange={(event) => onChange({ ...block, url: event.target.value })} /></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.opensInNewTab)} onChange={(event) => onChange({ ...block, opensInNewTab: event.target.checked })} /><span>Open in new tab</span></label><label><span>Style</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "primary" | "secondary" })}><option value="primary">Fill</option><option value="secondary">Outline</option></select></label><label><span>Width</span><select value={block.width ?? ""} onChange={(event) => onChange({ ...block, width: event.target.value ? Number(event.target.value) as 25 | 50 | 75 | 100 : undefined })}><option value="">Auto</option><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option></select></label><label><span>Text alignment</span><select value={block.align ?? "centre"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><label><span>Title attribute</span><input value={block.title ?? ""} onChange={(event) => onChange({ ...block, title: event.target.value || undefined })} /></label><label><span>Link rel</span><input value={block.rel ?? ""} onChange={(event) => onChange({ ...block, rel: event.target.value || undefined })} placeholder="nofollow sponsored" /></label></InspectorAccordionSection> : null}
-      {block.type === "social-icons" ? <InspectorAccordionSection title="Social Icons"><p className="setting-note">Use the plus button in the block to add LinkedIn or TikTok. Select an icon to edit its link.</p><label><span>Justification</span><select value={block.justification ?? "left"} onChange={event => onChange({ ...block, justification: event.target.value as NonNullable<typeof block.justification> })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option><option value="space-between">Space between</option></select></label><label><span>Orientation</span><select value={block.orientation ?? "horizontal"} onChange={event => onChange({ ...block, orientation: event.target.value as NonNullable<typeof block.orientation> })}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option></select></label><label><span>Icon size</span><select value={block.iconSize ?? "normal"} onChange={event => onChange({ ...block, iconSize: event.target.value as NonNullable<typeof block.iconSize> })}><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.showLabels)} onChange={event => onChange({ ...block, showLabels: event.target.checked })} /><span>Show text labels</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.openInNewTab)} onChange={event => onChange({ ...block, openInNewTab: event.target.checked })} /><span>Open links in a new tab</span></label></InspectorAccordionSection> : null}
+      {block.type === "social-icons" ? <InspectorAccordionSection title="Social Icons"><p className="setting-note">Use the plus button in the block to add LinkedIn or TikTok. Select an icon to edit its link.</p><label><span>Justification</span><select value={block.justification ?? "left"} onChange={event => onChange({ ...block, justification: event.target.value as NonNullable<typeof block.justification> })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option><option value="space-between">Space between</option></select></label><label><span>Orientation</span><select value={block.orientation ?? "horizontal"} onChange={event => onChange({ ...block, orientation: event.target.value as NonNullable<typeof block.orientation> })}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={block.allowWrap !== false} onChange={event => onChange({ ...block, allowWrap: event.target.checked })} /><span>Allow to wrap</span></label><label><span>Icon size</span><select value={block.iconSize ?? "normal"} onChange={event => onChange({ ...block, iconSize: event.target.value as NonNullable<typeof block.iconSize> })}><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.showLabels)} onChange={event => onChange({ ...block, showLabels: event.target.checked })} /><span>Show text labels</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.openInNewTab)} onChange={event => onChange({ ...block, openInNewTab: event.target.checked })} /><span>Open links in a new tab</span></label></InspectorAccordionSection> : null}
       {block.type === "social-linkedin" || block.type === "social-tiktok" ? <InspectorAccordionSection title={block.type === "social-linkedin" ? "LinkedIn" : "TikTok"}><label><span>Profile URL</span><input type="url" value={block.url} onChange={event => onChange({ ...block, url: event.target.value })} placeholder={block.type === "social-linkedin" ? "https://www.linkedin.com/in/…" : "https://www.tiktok.com/@…"} /></label>{block.url && !safeTextLink(block.url) ? <p className="setting-note" role="alert">Enter a valid link. The icon will not link until the address is valid.</p> : null}<label><span>Text label</span><input value={block.label ?? ""} onChange={event => onChange({ ...block, label: event.target.value || undefined })} placeholder={block.type === "social-linkedin" ? "LinkedIn" : "TikTok"} /></label></InspectorAccordionSection> : null}
-      {block.type === "field" ? <InspectorAccordionSection title={<>Field</>}><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>Control</span><select value={block.control} onChange={(event) => onChange({ ...block, control: event.target.value as "text" | "select" })}><option value="text">Text</option><option value="select">Select</option></select></label><label><span>Value</span><input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} /></label>{block.control === "select" ? <label><span>Options</span><input value={(block.options ?? []).join(", ")} onChange={(event) => onChange({ ...block, options: event.target.value.split(",").map((option) => option.trim()).filter(Boolean) })} placeholder="First, Second" /></label> : null}</InspectorAccordionSection> : null}
       {block.type === "divider" ? <DividerInspector block={block} onChange={onChange} /> : null}
       {block.type === "spacer" ? <><SpacerInspector block={block} onChange={onChange} /><SpacingAndAdvancedInspector block={block} onChange={onChange} advancedFields={advanced} /></> : null}
-      {block.type === "reading-time" ? <InspectorAccordionSection title={<>Reading Time</>}><label><span>Prefix</span><input value={block.prefix ?? "Reading Time:"} onChange={(event) => onChange({ ...block, prefix: event.target.value })} /></label><label><span>Presentation</span><select value={block.presentation ?? "badge"} onChange={(event) => onChange({ ...block, presentation: event.target.value as ReadingTimePresentation })}><option value="badge">Badge</option><option value="plain">Plain text</option></select></label><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><p className="setting-note">The value is calculated from ordinary document content at 220 words per minute.</p></InspectorAccordionSection> : null}
-      {block.type === "post-author" ? <InspectorAccordionSection title={<>Post Author</>}><label><span>Prefix</span><input value={block.prefix ?? "By"} onChange={(event) => onChange({ ...block, prefix: event.target.value })} /></label><label className="checkbox-setting"><input type="checkbox" checked={block.avatar !== false} onChange={(event) => onChange({ ...block, avatar: event.target.checked })} /><span>Show initials avatar</span></label><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><p className="setting-note">The author value is edited in Document metadata.</p></InspectorAccordionSection> : null}
-      {block.type === "post-date" ? <InspectorAccordionSection title={<>Post Date</>}><label><span>Format</span><select value={block.format ?? "long"} onChange={(event) => onChange({ ...block, format: event.target.value as PostDateFormat })}><option value="long">Long — 2 September 2026</option><option value="short">Short — 02/09/2026</option><option value="iso">ISO — 2026-09-02</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.isLink)} onChange={(event) => onChange({ ...block, isLink: event.target.checked })} /><span>Link to post</span></label><label className="checkbox-setting"><input type="checkbox" checked={block.showIcon !== false} onChange={(event) => onChange({ ...block, showIcon: event.target.checked })} /><span>Show clock icon</span></label><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><p className="setting-note">The value uses Publish date first, then the existing publication date.</p></InspectorAccordionSection> : null}
+      {block.type === "reading-time" ? <InspectorAccordionSection title="Alignment"><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : null}
+      {block.type === "post-author" ? <InspectorAccordionSection title="Alignment"><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : null}
+      {block.type === "post-date" ? <InspectorAccordionSection title="Post Date"><label><span>Format</span><select value={block.format ?? "long"} onChange={(event) => onChange({ ...block, format: event.target.value as PostDateFormat })}><option value="long">Long — 2 September 2026</option><option value="short">Short — 02/09/2026</option><option value="iso">ISO — 2026-09-02</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.isLink)} onChange={(event) => onChange({ ...block, isLink: event.target.checked })} /><span>Link to post</span></label><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><p className="setting-note">The value uses Publish date first, then the existing publication date.</p></InspectorAccordionSection> : null}
       {block.type === "section" ? <LayoutInspector block={block} onChange={onChange} heading="Section" note={`This section contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
-      {block.type === "section" && block.source ? <InspectorAccordionSection title="Source"><p className="setting-note">Source: {block.source.module} · {block.source.exportName} · {block.source.revision.slice(0, 8)}</p>{canOpenFiles ? <button className="choose-media-button" type="button" onClick={onOpenFiles}>Open source files</button> : null}</InspectorAccordionSection> : null}
       {block.type === "group" ? <LayoutInspector block={block} onChange={onChange} heading="Group" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
       {block.type === "columns" ? <ColumnsInspector block={block} onChange={onChange} /> : null}
       {block.type === "column" ? <ColumnInspector block={block} onChange={onChange} onWidthChange={onColumnWidthChange} /> : null}
-      {["paragraph", "heading", "quote", "list", "table", "code", "button", "footnotes", "group", "section", "columns", "column", "document-title", "document-subtitle", "reading-time", "post-author", "post-date"].includes(block.type) ? <ParagraphInspector key={block.id} block={block} onChange={onChange} /> : null}
-      {block.type === "component" ? <ComponentInspector block={block} onChange={onChange} /> : null}
+      {["paragraph", "heading", "quote", "list", "table", "code", "button", "footnotes", "group", "section", "columns", "column", "document-title", "document-subtitle", "reading-time", "post-author", "post-date", "social-icons"].includes(block.type) ? <ParagraphInspector key={`${block.id}:${block.type}`} block={block} onChange={onChange} /> : null}
       {advanced && block.type !== "embed" && block.type !== "spacer" && block.type !== "image" && block.type !== "divider" ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advanced} /> : null}
-    </div>
+    </>
   );
+  const studioSettings = (
+    <>
+      {block.type === "field" ? <InspectorAccordionSection title="Field"><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>Control</span><select value={block.control} onChange={(event) => onChange({ ...block, control: event.target.value as "text" | "select" })}><option value="text">Text</option><option value="select">Select</option></select></label><label><span>Value</span><input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} /></label>{block.control === "select" ? <label><span>Options</span><input value={(block.options ?? []).join(", ")} onChange={(event) => onChange({ ...block, options: event.target.value.split(",").map((option) => option.trim()).filter(Boolean) })} placeholder="First, Second" /></label> : null}</InspectorAccordionSection> : null}
+      {block.type === "component" ? <ComponentInspector block={block} onChange={onChange} /> : null}
+      {block.type === "section" ? <InspectorAccordionSection title="Studio section"><label><span>Site role</span><select value={block.role ?? ""} onChange={(event) => onChange({ ...block, role: (event.target.value || undefined) as SiteSectionRole | undefined })}><option value="">None</option>{(["account", "setup", "scorecard", "leaderboard", "share", "hero", "hero-copy", "account-copy", "scorecard-heading", "scorecard-actions", "leaderboard-card", "leaderboard-score", "leaderboard-metrics", "metric", "footer", "footer-brand", "footer-links", "social-link"] as SiteSectionRole[]).map((role) => <option value={role} key={role}>{role}</option>)}</select></label>{block.source ? <><p className="setting-note">Source: {block.source.module} · {block.source.exportName} · {block.source.revision.slice(0, 8)}</p>{canOpenFiles ? <button className="choose-media-button" type="button" onClick={onOpenFiles}>Open source files</button> : null}</> : null}</InspectorAccordionSection> : null}
+      {block.type === "reading-time" ? <InspectorAccordionSection title="Reading Time"><label><span>Prefix</span><input value={block.prefix ?? "Reading Time:"} onChange={(event) => onChange({ ...block, prefix: event.target.value })} /></label><label><span>Presentation</span><select value={block.presentation ?? "badge"} onChange={(event) => onChange({ ...block, presentation: event.target.value as ReadingTimePresentation })}><option value="badge">Badge</option><option value="plain">Plain text</option></select></label><p className="setting-note">The value is calculated from ordinary document content at 220 words per minute.</p></InspectorAccordionSection> : null}
+      {block.type === "post-author" ? <InspectorAccordionSection title="Post Author"><label><span>Prefix</span><input value={block.prefix ?? "By"} onChange={(event) => onChange({ ...block, prefix: event.target.value })} /></label><label className="checkbox-setting"><input type="checkbox" checked={block.avatar !== false} onChange={(event) => onChange({ ...block, avatar: event.target.checked })} /><span>Show initials avatar</span></label><p className="setting-note">The author value is edited in Document metadata.</p></InspectorAccordionSection> : null}
+      {block.type === "post-date" ? <InspectorAccordionSection title="Studio date options"><label className="checkbox-setting"><input type="checkbox" checked={block.showIcon !== false} onChange={(event) => onChange({ ...block, showIcon: event.target.checked })} /><span>Show clock icon</span></label></InspectorAccordionSection> : null}
+    </>
+  );
+  const tabs = [{ id: "block", label: "Block" }, { id: "studio", label: "Studio" }];
+  function selectTab(tab: "block" | "studio") {
+    setSelectedTab({ blockId: block.id, blockType: block.type, tab });
+  }
+  return <div className="block-inspector-settings">
+    {hasStudioOptions ? <PaneTabs id={tabPrefix} label={`${blockLabel(block.type)} settings`} tabs={tabs} active={activeTab} onChange={(tab) => selectTab(tab as "block" | "studio")} /> : null}
+    {hasStudioOptions ? <PaneTabPanel id={tabPrefix} tab="block" active={activeTab} className="block-inspector-tabpanel"><div className="inspector-sections">{blockSettings}</div></PaneTabPanel> : <div className="inspector-sections">{blockSettings}</div>}
+    {hasStudioOptions ? <PaneTabPanel id={tabPrefix} tab="studio" active={activeTab} className="block-inspector-tabpanel"><div className="inspector-sections">{studioSettings}</div></PaneTabPanel> : null}
+  </div>;
 }
 
 type AdvancedFields = { anchor: boolean; className: boolean };
 
-// Match the Gutenberg core blocks represented by Studio. Paragraph opts out of
-// custom classes; Studio-only blocks and individual social links have no match.
+// Match the Gutenberg core blocks represented by Studio. Studio-only blocks
+// without a shared style wrapper do not expose generic Advanced fields.
 function advancedFieldsForBlock(block: ContentBlock): AdvancedFields | null {
-  if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
-    return { anchor: true, className: block.type !== "paragraph" };
+  if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
+    return { anchor: true, className: true };
   }
   return null;
 }
@@ -680,18 +817,38 @@ function ComponentInspector({ block, onChange }: { block: Extract<ContentBlock, 
 
 type StyledBlock = ContentBlock;
 
+const styleGuidePaletteRoles: { key: keyof UniversalStylePreset["palette"]; label: string }[] = [
+  { key: "surface", label: "Surface" },
+  { key: "surfaceRaised", label: "Raised surface" },
+  { key: "surfaceSubtle", label: "Subtle surface" },
+  { key: "textPrimary", label: "Primary text" },
+  { key: "textSecondary", label: "Secondary text" },
+  { key: "border", label: "Border" },
+  { key: "accent", label: "Accent" },
+  { key: "onAccent", label: "Text on accent" },
+  { key: "success", label: "Success" },
+  { key: "information", label: "Information" },
+  { key: "alert", label: "Alert" },
+  { key: "warning", label: "Warning" },
+  { key: "rating", label: "Rating" },
+];
+
 function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { type: "paragraph" | "columns" | "column" }> {
   return block.type === "paragraph" || block.type === "columns" || block.type === "column";
 }
 
 function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange: (block: ContentBlock) => void }) {
   const style = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
+  const socialIconsOnly = block.type === "social-icons";
   const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");
-  const [fontSizeViewOverride, setFontSizeViewOverride] = useState<{ source: string; mode: "presets" | "custom" } | null>(null);
-  const fontSizeSource = `${block.id}:${style.fontSize ?? ""}:${style.fontSizeCustom ?? ""}`;
-  const fontSizeMode = fontSizeViewOverride?.source === fontSizeSource ? fontSizeViewOverride.mode : "presets";
+  const [fontSizeViewOverride, setFontSizeViewOverride] = useState<{ blockId: string; mode: "presets" | "custom" } | null>(null);
+  const fontSizeMode = fontSizeViewOverride?.blockId === block.id
+    ? fontSizeViewOverride.mode
+    : style.fontSizeCustom ? "custom" : "presets";
   const activeBackgroundMode = style.backgroundGradient ? "gradient" : backgroundMode;
-  const typographyOptions: InspectorToolOption[] = [
+  const typographyOptions: InspectorToolOption[] = socialIconsOnly ? [
+    { id: "colour", label: "Colour" }, { id: "size", label: "Size" },
+  ] : [
     { id: "colour", label: "Colour" }, { id: "size", label: "Size" },
     { id: "family", label: "Font family" }, { id: "appearance", label: "Appearance" },
     { id: "line-height", label: "Line height" }, { id: "letter-spacing", label: "Letter spacing" },
@@ -707,10 +864,10 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     { id: "padding", label: "Padding" },
     ...(!["button", "column"].includes(block.type) ? [{ id: "margin", label: "Margin" }] : []),
   ];
-  const borderOptions: InspectorToolOption[] = [{ id: "border", label: "Border" }, ...(block.type !== "table" ? [{ id: "radius", label: "Radius" }] : [])];
+  const borderOptions: InspectorToolOption[] = [{ id: "border", label: "Border" }, ...(block.type !== "table" ? [{ id: "radius", label: "Radius" }, { id: "shadow", label: "Shadow" }] : [])];
   const elementOptions: InspectorToolOption[] = ["paragraph", "heading", "quote", "list", "footnotes", "group", "columns", "column", "document-title", "post-author", "post-date"].includes(block.type) ? [{ id: "link-colour", label: "Link colour" }] : [];
   const marginLayout = ["code", "group", "columns"].includes(block.type) ? "vertical" as const : "axes" as const;
-  const [typographyUserVisible, setTypographyVisible] = useState(() => new Set(["colour", "size", "appearance"]));
+  const [typographyUserVisible, setTypographyVisible] = useState(() => new Set(socialIconsOnly ? ["colour", "size"] : ["colour", "size", "appearance"]));
   const [dimensionsUserVisible, setDimensionsVisible] = useState(() => new Set<string>());
   const [borderUserVisible, setBorderVisible] = useState(() => new Set<string>());
   const [elementsUserVisible, setElementsVisible] = useState(() => new Set<string>());
@@ -721,7 +878,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
   ].filter((value): value is string => Boolean(value))]);
   const dimensionsVisible = new Set([...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin"].filter((value): value is string => Boolean(value))]);
   const borderVisible = new Set([...borderUserVisible, ...[
-    (style.borderStyle || style.borderColor || style.borderWidth) && "border", style.borderRadius && "radius",
+    (style.borderStyle || style.borderColor || style.borderWidth) && "border", style.borderRadius && "radius", style.shadow && "shadow",
   ].filter((value): value is string => Boolean(value))]);
   const elementsVisible = new Set([...elementsUserVisible, ...[style.linkColor && "link-colour"].filter((value): value is string => Boolean(value))]);
   const toolFields: Record<string, (keyof ParagraphStyle)[]> = {
@@ -760,7 +917,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     writeStyle(nextStyle);
   }
   function updateFontSize(value: ParagraphFontSize | string | undefined, mode: "presets" | "custom") {
-    setFontSizeViewOverride(null);
+    setFontSizeViewOverride(mode === "custom" ? { blockId: block.id, mode: "custom" } : null);
     const nextStyle = { ...style };
     delete nextStyle.fontSize;
     delete nextStyle.fontSizeCustom;
@@ -808,8 +965,8 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
   ] as const;
   return <>
     <InspectorToolsSection title="Typography" options={typographyOptions} visible={typographyVisible} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
-      {typographyVisible.has("colour") ? <ColourSetting label="Text colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /> : null}
-      {typographyVisible.has("size") ? <fieldset className="paragraph-font-size-setting" disabled={fitTextEnabled(style)}><legend className="visually-hidden">Font size</legend><div className="paragraph-font-size-heading"><span>Font size</span><button type="button" className="paragraph-font-size-mode" aria-label={fontSizeMode === "custom" ? "Use font size presets" : "Use custom font size"} title={fontSizeMode === "custom" ? "Use font size presets" : "Use custom font size"} aria-pressed={fontSizeMode === "custom"} onClick={() => setFontSizeViewOverride({ source: fontSizeSource, mode: fontSizeMode === "custom" ? "presets" : "custom" })}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button></div>{fontSizeMode === "custom" ? <CustomFontSizeSetting key={`${block.id}-custom-size`} value={style.fontSizeCustom} onChange={value => updateFontSize(value, "custom")} /> : <div role="group" aria-label="Font size presets" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateFontSize(style.fontSize === value ? undefined : value, "presets")}>{label}</button>)}</div>}</fieldset> : null}
+      {typographyVisible.has("colour") ? <PaletteColourSetting label="Text colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /> : null}
+      {typographyVisible.has("size") ? <fieldset className="paragraph-font-size-setting" disabled={fitTextEnabled(style)}><legend className="visually-hidden">Font size</legend><div className="paragraph-font-size-heading"><span>Font size</span><button type="button" className="paragraph-font-size-mode" aria-label={fontSizeMode === "custom" ? "Use font size presets" : "Use custom font size"} title={fontSizeMode === "custom" ? "Use font size presets" : "Use custom font size"} aria-pressed={fontSizeMode === "custom"} onClick={() => setFontSizeViewOverride({ blockId: block.id, mode: fontSizeMode === "custom" ? "presets" : "custom" })}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button></div>{fontSizeMode === "custom" ? <CustomFontSizeSetting key={`${block.id}-custom-size`} value={style.fontSizeCustom} onChange={value => updateFontSize(value, "custom")} /> : <div role="group" aria-label="Font size presets" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateFontSize(style.fontSize === value ? undefined : value, "presets")}>{label}</button>)}</div>}</fieldset> : null}
       {typographyVisible.has("family") ? <label><span>Font family</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
       {typographyVisible.has("appearance") ? <label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option>{appearanceWeights.map(([value, label]) => <option key={value} value={value}>{label}</option>)}{appearanceWeights.map(([value, label]) => <option key={`${value}-italic`} value={value === "regular" ? "italic" : `${value}-italic`}>{label} italic</option>)}</select></label> : null}
       {typographyVisible.has("line-height") ? <label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label> : null}
@@ -823,8 +980,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
       {typographyVisible.has("fit-text") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.fitText)} onChange={event => updateFitText(event.target.checked)} /><span>Fit text{style.fitText && style.orientation === "vertical-rl" ? " (paused for vertical text)" : ""}</span></label> : null}
     </InspectorToolsSection>
     <InspectorAccordionSection className="inspector-panel" title="Background">
-      <div className="paragraph-background-modes" role="group" aria-label="Background type"><button type="button" aria-pressed={activeBackgroundMode === "colour"} className={activeBackgroundMode === "colour" ? "is-active" : ""} onClick={() => { setBackgroundMode("colour"); if (style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }}>Colour</button><button type="button" aria-pressed={activeBackgroundMode === "gradient"} className={activeBackgroundMode === "gradient" ? "is-active" : ""} onClick={() => setBackgroundMode("gradient")}>Gradient</button></div>
-      {activeBackgroundMode === "colour" ? <ColourSetting label="Background colour" value={style.backgroundColor} onChange={(value) => updateBackground(value, undefined)} /> : <div className="paragraph-gradient-options" role="group" aria-label="Background gradient">{(Object.entries(PARAGRAPH_BACKGROUND_GRADIENTS) as [ParagraphBackgroundGradient, string][]).map(([gradient]) => <button key={gradient} type="button" aria-label={`${gradient} gradient`} aria-pressed={style.backgroundGradient === gradient} className={style.backgroundGradient === gradient ? "is-active" : ""} style={{ backgroundImage: paragraphBackgroundGradientCss(gradient) }} onClick={() => updateBackground(undefined, gradient)} />)}</div>}
+      <ParagraphBackgroundControl mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} onModeChange={mode => { setBackgroundMode(mode); if (mode === "colour" && style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </InspectorAccordionSection>
     <InspectorToolsSection title="Dimensions" options={dimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
@@ -834,6 +990,7 @@ function ParagraphInspector({ block, onChange }: { block: StyledBlock; onChange:
     <InspectorToolsSection title="Border" options={borderOptions} visible={borderVisible} canReset={Boolean(borderVisible.size || style.shadow)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools([...borderVisible, "shadow"]); setBorderVisible(new Set()); }}>
       {borderVisible.has("border") ? <div className="box-border-setting"><div className="box-border-appearance"><BorderColourControl value={style.borderColor} onChange={updateBorderColour} /><label><span>Border style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label></div><BoxLengthSetting key={`${block.id}-border-width`} label="Width" value={style.borderWidth ?? (style.borderStyle && style.borderStyle !== "none" ? "1px" : undefined)} canReset={Boolean(style.borderWidth)} layout="all" allowPercent={false} min={0} max={20} onChange={updateBorderWidth} /></div> : null}
       {borderVisible.has("radius") ? <BoxLengthSetting key={`${block.id}-radius`} label="Radius" value={style.borderRadius} layout="all" corners min={0} max={100} onChange={value => updateStyle("borderRadius", value)} /> : null}
+      {borderVisible.has("shadow") ? <label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
     </InspectorToolsSection>
     {elementOptions.length ? <InspectorToolsSection title="Elements" options={elementOptions} visible={elementsVisible} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
       {elementsVisible.has("link-colour") ? <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} /> : null}
@@ -852,9 +1009,10 @@ function CustomFontSizeSetting({ value, onChange }: { value?: string; onChange: 
   const unitMenuRef = useRef<HTMLDivElement>(null);
   const displayedValue = draft ?? match?.[1] ?? "";
   const relativeUnit = unit !== "px";
-  const sliderMaximum = relativeUnit ? 10 : 100;
+  const sliderMinimum = relativeUnit ? 0.1 : 1;
+  const sliderMaximum = customFontSizeMaximum(unit);
   const numericValue = Number(displayedValue);
-  const sliderValue = displayedValue && Number.isFinite(numericValue) ? Math.min(numericValue, sliderMaximum) : relativeUnit ? 1 : 16;
+  const sliderValue = displayedValue && Number.isFinite(numericValue) ? Math.max(sliderMinimum, Math.min(numericValue, sliderMaximum)) : relativeUnit ? 1 : 16;
   function commit(next: string, nextUnit = unit) {
     setDraft(null);
     if (!next.trim()) { onChange(undefined); return; }
@@ -873,7 +1031,7 @@ function CustomFontSizeSetting({ value, onChange }: { value?: string; onChange: 
     if (displayedValue) commit(displayedValue, nextUnit);
     closeUnitMenu(true);
   }
-  return <div className="paragraph-custom-font-size"><div className="paragraph-custom-font-size-input" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeUnitMenu(); }}><input aria-label="Custom font size" type="number" min="0" max={customFontSizeMaximum(unit)} step={relativeUnit ? "0.1" : "1"} value={displayedValue} onChange={event => setDraft(event.target.value)} onBlur={() => { if (draft !== null) commit(draft); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><button ref={unitTriggerRef} className="paragraph-custom-font-size-unit" type="button" aria-label={`Custom font size unit: ${unit}`} aria-haspopup="menu" aria-expanded={unitMenuOpen} aria-controls={unitMenuId} onClick={() => setUnitMenuOpen(open => !open)}>{unit}</button>{unitMenuOpen ? <div ref={unitMenuRef} id={unitMenuId} className="paragraph-custom-font-size-unit-menu" role="menu" tabIndex={-1} aria-label="Custom font size unit" onKeyDown={event => {
+  return <div className="paragraph-custom-font-size"><div className="paragraph-custom-font-size-input" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeUnitMenu(); }}><input aria-label="Custom font size" type="number" min={sliderMinimum} max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={displayedValue} onChange={event => setDraft(event.target.value)} onBlur={() => { if (draft !== null) commit(draft); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><button ref={unitTriggerRef} className="paragraph-custom-font-size-unit" type="button" aria-label={`Custom font size unit: ${unit}`} aria-haspopup="menu" aria-expanded={unitMenuOpen} aria-controls={unitMenuId} onClick={() => setUnitMenuOpen(open => !open)}>{unit}</button>{unitMenuOpen ? <div ref={unitMenuRef} id={unitMenuId} className="paragraph-custom-font-size-unit-menu" role="menu" tabIndex={-1} aria-label="Custom font size unit" onKeyDown={event => {
     if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeUnitMenu(true); return; }
     const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]'));
     const activeIndex = items.indexOf(event.target as HTMLButtonElement);
@@ -883,7 +1041,7 @@ function CustomFontSizeSetting({ value, onChange }: { value?: string; onChange: 
     else if (event.key === "Home") nextIndex = 0;
     else if (event.key === "End") nextIndex = items.length - 1;
     if (nextIndex !== null && items.length) { event.preventDefault(); items[nextIndex]?.focus(); }
-  }}>{units.map(option => <button className={option === unit ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={option === unit} key={option} onClick={() => selectUnit(option)}><span className="paragraph-custom-font-size-unit-check">{option === unit ? <AcmIcon name="state.selected" scale="Regular-S" size={16} /> : null}</span><span>{option}</span></button>)}</div> : null}</div><input className="paragraph-custom-font-size-slider" aria-label="Custom font size slider" type="range" min="0" max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={sliderValue} onChange={event => commit(event.target.value)} /></div>;
+  }}>{units.map(option => <button className={option === unit ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={option === unit} key={option} onClick={() => selectUnit(option)}><span className="paragraph-custom-font-size-unit-check">{option === unit ? <AcmIcon name="state.selected" scale="Regular-S" size={16} /> : null}</span><span>{option}</span></button>)}</div> : null}</div><input className="paragraph-custom-font-size-slider" aria-label="Custom font size slider" type="range" min={sliderMinimum} max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={sliderValue} onChange={event => commit(event.target.value)} /></div>;
 }
 
 function ParagraphLengthSetting({ label, value, min, max, onChange }: { label: string; value?: string; min: number; max: number; onChange: (value: string | undefined) => void }) {
@@ -917,4 +1075,179 @@ function ParagraphLengthSetting({ label, value, min, max, onChange }: { label: s
 
 function ColourSetting({ label, value, onChange }: { label: string; value?: string; onChange: (value: string | undefined) => void }) {
   return <div className="inspector-colour-setting"><span>{label}</span><div><label className="inspector-colour-control"><span aria-hidden="true" style={value ? { backgroundColor: value } : undefined} /> <input aria-label={label} type="color" value={value ?? "#1e1e1e"} onChange={(event) => onChange(event.target.value)} /></label><button type="button" onClick={() => onChange(undefined)} disabled={!value}>Reset</button></div></div>;
+}
+
+function PaletteColourSetting({ label, value, onChange }: { label: string; value?: string; onChange: (value: string | undefined) => void }) {
+  const [open, setOpen] = useState(false);
+  const settingRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const paletteRef = useRef<HTMLDivElement>(null);
+  const paletteId = useId();
+  const [palettePosition, setPalettePosition] = useState({ left: 16, top: 16, width: 280 });
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    function positionPalette() {
+      const trigger = triggerRef.current;
+      const palette = paletteRef.current;
+      if (!trigger || !palette) return;
+      const triggerRect = trigger.getBoundingClientRect();
+      const inspectorLeft = trigger.closest(".studio-inspector")?.getBoundingClientRect().left ?? triggerRect.left;
+      const width = Math.min(280, window.innerWidth - 32);
+      setPalettePosition({
+        left: Math.max(16, inspectorLeft - width - 12),
+        top: Math.max(16, Math.min(triggerRect.top, window.innerHeight - palette.getBoundingClientRect().height - 16)),
+        width,
+      });
+    }
+    positionPalette();
+    window.addEventListener("resize", positionPalette);
+    window.addEventListener("scroll", positionPalette, true);
+    return () => {
+      window.removeEventListener("resize", positionPalette);
+      window.removeEventListener("scroll", positionPalette, true);
+    };
+  }, [open]);
+
+  function closePalette() {
+    setOpen(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setOpen(false);
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    };
+    const handlePointerDown = (event: globalThis.PointerEvent) => {
+      if (event.target instanceof Node && !settingRef.current?.contains(event.target) && !paletteRef.current?.contains(event.target)) setOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [open]);
+
+  return <div ref={settingRef} className="inspector-colour-setting paragraph-palette-setting">
+    <span>{label}</span>
+    <div className="paragraph-palette-actions">
+      <button ref={triggerRef} type="button" className={`paragraph-palette-trigger${value ? " has-colour" : ""}`} aria-label={`Choose ${label}`} aria-expanded={open} aria-controls={paletteId} onClick={() => setOpen(current => !current)}>
+        <span aria-hidden="true" style={value ? { backgroundColor: value } : undefined} />
+      </button>
+      <button type="button" onClick={() => onChange(undefined)} disabled={!value}>Reset</button>
+    </div>
+    {open ? createPortal(<div ref={paletteRef} id={paletteId} className="paragraph-colour-palette" role="group" aria-label="Style Guide colour palette" style={palettePosition}>
+      <div className="paragraph-colour-palette-heading"><strong>{label}</strong><button type="button" aria-label={`Close ${label} palette`} title="Close" onClick={closePalette}><StudioIcon name="close" size={16} /></button></div>
+      <StyleGuideColourSwatches value={value} onChange={onChange} />
+      <label className="paragraph-custom-colour"><span>Custom colour</span><input aria-label="Custom text colour" type="color" value={value ?? UNIVERSAL_STYLE_PRESET.palette.textPrimary} onChange={event => onChange(event.target.value)} /></label>
+    </div>, document.body) : null}
+  </div>;
+}
+
+function StyleGuideColourSwatches({ value, onChange }: { value?: string; onChange: (value: string) => void }) {
+  return <div className="paragraph-colour-swatches">
+    {styleGuidePaletteRoles.map(({ key, label }) => {
+      const colour = UNIVERSAL_STYLE_PRESET.palette[key];
+      const selected = value?.toLowerCase() === colour.toLowerCase();
+      return <button key={key} type="button" className="paragraph-colour-swatch" aria-label={`${label}, ${colour}`} aria-pressed={selected} title={`${label} — ${colour}`} onClick={() => onChange(colour)}>
+        <span aria-hidden="true" style={{ backgroundColor: colour }} />
+      </button>;
+    })}
+  </div>;
+}
+
+function ParagraphBackgroundControl({ mode, colour, gradient, onModeChange, onColourChange, onGradientChange }: {
+  mode: "colour" | "gradient";
+  colour?: string;
+  gradient?: ParagraphBackgroundGradient;
+  onModeChange: (mode: "colour" | "gradient") => void;
+  onColourChange: (value: string | undefined) => void;
+  onGradientChange: (value: ParagraphBackgroundGradient) => void;
+}) {
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const paletteId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const colourTriggerRef = useRef<HTMLButtonElement>(null);
+  const paletteRef = useRef<HTMLDivElement>(null);
+  const [palettePosition, setPalettePosition] = useState({ left: 16, top: 16, width: 280 });
+
+  useLayoutEffect(() => {
+    if (!paletteOpen) return;
+    function positionPalette() {
+      const trigger = colourTriggerRef.current;
+      const palette = paletteRef.current;
+      if (!trigger || !palette) return;
+      const triggerRect = trigger.getBoundingClientRect();
+      const inspectorLeft = trigger.closest(".studio-inspector")?.getBoundingClientRect().left ?? triggerRect.left;
+      const width = Math.min(280, window.innerWidth - 32);
+      setPalettePosition({
+        left: Math.max(16, inspectorLeft - width - 12),
+        top: Math.max(16, Math.min(triggerRect.top, window.innerHeight - palette.getBoundingClientRect().height - 16)),
+        width,
+      });
+    }
+    positionPalette();
+    window.addEventListener("resize", positionPalette);
+    window.addEventListener("scroll", positionPalette, true);
+    return () => {
+      window.removeEventListener("resize", positionPalette);
+      window.removeEventListener("scroll", positionPalette, true);
+    };
+  }, [paletteOpen]);
+
+  function closePalette() {
+    setPaletteOpen(false);
+    requestAnimationFrame(() => colourTriggerRef.current?.focus());
+  }
+
+  useEffect(() => {
+    if (!paletteOpen) return;
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setPaletteOpen(false);
+      requestAnimationFrame(() => colourTriggerRef.current?.focus());
+    };
+    const handlePointerDown = (event: globalThis.PointerEvent) => {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target) && !paletteRef.current?.contains(event.target)) setPaletteOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [paletteOpen]);
+
+  const selectColourMode = () => {
+    if (mode !== "colour") onModeChange("colour");
+    setPaletteOpen(current => mode === "colour" ? !current : true);
+  };
+  const selectGradientMode = () => {
+    onModeChange("gradient");
+    setPaletteOpen(false);
+  };
+
+  return <div ref={rootRef} className="paragraph-background-control">
+    <div className="paragraph-background-modes" role="group" aria-label="Background type">
+      <button ref={colourTriggerRef} type="button" aria-pressed={mode === "colour"} aria-expanded={paletteOpen} aria-controls={paletteId} className={mode === "colour" ? "is-active" : ""} onClick={selectColourMode}>
+        <span className={`paragraph-background-mode-swatch${colour ? " has-colour" : ""}`} aria-hidden="true" style={colour ? { backgroundColor: colour } : undefined} />Colour
+      </button>
+      <button type="button" aria-pressed={mode === "gradient"} className={mode === "gradient" ? "is-active" : ""} onClick={selectGradientMode}>
+        <span className={`paragraph-background-mode-swatch${gradient ? " has-gradient" : ""}`} aria-hidden="true" style={gradient ? { backgroundImage: paragraphBackgroundGradientCss(gradient) } : undefined} />Gradient
+      </button>
+    </div>
+    {paletteOpen ? createPortal(<div ref={paletteRef} id={paletteId} className="paragraph-colour-palette" role="group" aria-label="Style Guide background colour palette" style={palettePosition}>
+      <div className="paragraph-colour-palette-heading"><strong>Background colour</strong><button type="button" aria-label="Close Background colour palette" title="Close" onClick={closePalette}><StudioIcon name="close" size={16} /></button></div>
+      <StyleGuideColourSwatches value={colour} onChange={value => onColourChange(value)} />
+      <label className="paragraph-custom-colour"><span>Custom colour</span><input aria-label="Custom background colour" type="color" value={colour ?? UNIVERSAL_STYLE_PRESET.palette.surface} onChange={event => onColourChange(event.target.value)} /></label>
+      <button type="button" className="paragraph-reset-button" disabled={!colour} onClick={() => onColourChange(undefined)}>Clear background colour</button>
+    </div>, document.body) : null}
+    {mode === "gradient" ? <div className="paragraph-gradient-options" role="group" aria-label="Background gradient">{(Object.entries(PARAGRAPH_BACKGROUND_GRADIENTS) as [ParagraphBackgroundGradient, string][]).map(([name]) => <button key={name} type="button" aria-label={`${name} gradient`} aria-pressed={gradient === name} className={gradient === name ? "is-active" : ""} style={{ backgroundImage: paragraphBackgroundGradientCss(name) }} onClick={() => onGradientChange(name)} />)}</div> : null}
+  </div>;
 }

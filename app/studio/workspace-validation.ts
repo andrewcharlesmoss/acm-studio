@@ -167,6 +167,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
       case "post-date": return (block.format === undefined || ["long", "short", "iso"].includes(block.format as string)) && optionalBoolean(block.showIcon) && optionalBoolean(block.isLink);
       case "social-icons": return (block.justification === undefined || ["left", "centre", "right", "space-between"].includes(block.justification as string))
         && (block.orientation === undefined || ["horizontal", "vertical"].includes(block.orientation as string))
+        && optionalBoolean(block.allowWrap)
         && (block.iconSize === undefined || ["small", "normal", "large"].includes(block.iconSize as string))
         && optionalBoolean(block.showLabels) && optionalBoolean(block.openInNewTab)
         && Array.isArray(block.children) && block.children.length <= 100

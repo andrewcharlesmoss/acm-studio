@@ -66,6 +66,30 @@ test("new table blocks start with an editable two-row grid", async () => {
   assert.match(source, /if \(type === "table"\) return \{ id, type, rows: \[\["", "", ""\], \["", "", ""\]\] \};/);
 });
 
+test("custom font size stays selected while its live value changes", async () => {
+  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  assert.match(source, /useState<\{ blockId: string; mode: "presets" \| "custom" \} \| null>/);
+  assert.match(source, /fontSizeViewOverride\?\.blockId === block\.id \? fontSizeViewOverride\.mode : "presets"/);
+  assert.match(source, /setFontSizeViewOverride\(\{ blockId: block\.id, mode: fontSizeMode === "custom" \? "presets" : "custom" \}\)/);
+  assert.match(source, /setFontSizeViewOverride\(mode === "custom" \? \{ blockId: block\.id, mode: "custom" \} : null\)/);
+  assert.match(source, /const sliderMinimum = relativeUnit \? 0\.1 : 1/);
+  assert.match(source, /const sliderMaximum = customFontSizeMaximum\(unit\)/);
+  assert.match(source, /type="range" min=\{sliderMinimum\} max=\{sliderMaximum\}/);
+  assert.match(source, /aria-label="Custom font size slider"[^>]*onChange=\{event => commit\(event\.target\.value\)\}/);
+  assert.doesNotMatch(source, /fontSizeSource/);
+});
+
+test("block-specific ACM controls have their own inspector tab and document popovers wait for a portal root", async () => {
+  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  assert.match(source, /label: "Block" }, \{ id: "studio", label: "Studio" \}/);
+  assert.match(source, /hasStudioOptions \? <PaneTabs/);
+  assert.match(source, /<PaneTabPanel id=\{tabPrefix\} tab="studio"/);
+  assert.match(source, /function usePortalRoot\(\)/);
+  assert.match(source, /excerptOpen && portalRoot \? createPortal/);
+  assert.match(source, /statusOpen && portalRoot \? createPortal/);
+  assert.match(source, /publishOpen && portalRoot \? createPortal/);
+});
+
 test("table editing exposes row and column actions from the toolbar menu", async () => {
   const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(source, /aria-label="Table options"/);
@@ -315,11 +339,34 @@ test("the document inspector exposes Gutenberg-style status and publish date con
   assert.match(source, /documentStatusDescription/);
   assert.match(source, /onChange\("publishAt"/);
   assert.match(source, /aria-haspopup="dialog" aria-controls="publish-date-popover"/);
+  assert.match(source, /publishOpen && portalRoot \? createPortal\(<div ref=\{publishPopoverRef\} id="publish-date-popover"[\s\S]*?portalRoot\) : null\}/);
+  assert.match(source, /className="post-excerpt-control"[\s\S]*?post-content-summary[\s\S]*?title="Publishing"[\s\S]*?title="Address"[\s\S]*?title="Author"/);
+  assert.match(source, /document\.kind === "post" \? <div className="post-summary-block">[\s\S]*?className="post-excerpt-control"[\s\S]*?className="post-content-summary"/);
   assert.match(source, /trigger\.closest\("\.studio-inspector"\)\?\.getBoundingClientRect\(\)\.left/);
   assert.match(source, /globalThis\.document\.addEventListener\("pointerdown", closePublishPopover\)/);
   assert.match(source, /event\.target\.closest\("button, input, select, textarea, a\[href\], \[tabindex\]:not\(\[tabindex='-1'\]\)"\)/);
   assert.match(source, /event\.key !== "Escape"/);
-  assert.match(styles, /\.publish-date-popover \{[^}]*position: fixed[^}]*z-index: 20/);
+  assert.match(styles, /\.publish-date-popover \{[^}]*position: fixed[^}]*z-index: 80/);
+});
+
+test("post excerpts open in a Gutenberg-style pane beside the inspector", async () => {
+  const [source, styles] = await Promise.all([
+    readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(source, /document\.excerpt\.trim\(\) \? "Edit excerpt" : "Add an excerpt…"/);
+  assert.match(source, /excerptOpen && portalRoot \? createPortal\(<section ref=\{excerptPopoverRef\} id=\{excerptPopoverId\}[^\n]*role="dialog" aria-label="Excerpt"/);
+  assert.match(source, /className="inspector-popover post-excerpt-popover"[\s\S]*?portalRoot\) : null\}/);
+  assert.match(source, /statusOpen && portalRoot \? createPortal\(<div ref=\{statusPopoverRef\}[\s\S]*?portalRoot\) : null\}/);
+  assert.match(source, /function usePortalRoot\(\)[\s\S]*?setPortalRoot\(globalThis\.document\?\.body \?\? null\)/);
+  assert.match(source, /aria-label="Close excerpt"/);
+  assert.match(source, /Learn more about manual excerpts/);
+  assert.match(source, /function closeWithEscape\(event: globalThis\.KeyboardEvent\)[\s\S]*?setExcerptOpen\(false\)[\s\S]*?excerptTriggerRef\.current\?\.focus\(\)/);
+  assert.match(source, /left: Math\.max\(16, inspectorLeft - width - 12\)/);
+  assert.match(styles, /\.post-excerpt-popover \{[^}]*position: fixed[^}]*z-index: 80/);
+  assert.match(styles, /\.post-document-inspector > \.post-summary-block \{[^}]*display: grid[^}]*gap: 12px[^}]*padding: 14px 18px 18px/);
+  assert.match(styles, /\.post-document-inspector \.post-excerpt-trigger \{[^}]*color: var\(--accent-strong\)[^}]*display: inline-flex/);
+  assert.match(styles, /\.post-document-inspector \.post-content-summary \{[^}]*display: grid[^}]*gap: 6px/);
 });
 
 test("document settings keep WordPress-like fields separate from Studio-specific controls", async () => {

@@ -149,8 +149,11 @@ function diffValues(before: unknown, after: unknown, path: string[], changes: St
     const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
     for (const key of keys) {
       if (ignoredPath([...path, key])) continue;
-      const beforePresent = Object.prototype.hasOwnProperty.call(before, key);
-      const afterPresent = Object.prototype.hasOwnProperty.call(after, key);
+      // Studio snapshots are persisted as JSON, which omits object properties
+      // whose value is undefined. Keep transaction presence semantics aligned
+      // with that persisted shape instead of trying to clone undefined.
+      const beforePresent = Object.prototype.hasOwnProperty.call(before, key) && before[key] !== undefined;
+      const afterPresent = Object.prototype.hasOwnProperty.call(after, key) && after[key] !== undefined;
       diffValues(beforePresent ? before[key] : undefined, afterPresent ? after[key] : undefined, [...path, key], changes);
       if (beforePresent !== afterPresent && !changes.some(change => change.kind === "set" && equal(change.path, [...path, key]))) {
         changes.push({ kind: "set", path: [...path, key], beforePresent, before: beforePresent ? clone(before[key]) : null, afterPresent, after: afterPresent ? clone(after[key]) : null });
@@ -673,9 +676,10 @@ export class StudioSyncSession<T> {
     if (this.processingPrimary) return; this.processingPrimary = true;
     try {
       while (this.primaryQueue.length) {
-        const operation = this.primaryQueue.shift()!; const previousSnapshot = this.snapshot; const result = applyStudioTransaction(previousSnapshot, operation.transaction, operation.resolution === true);
-        if (result.conflicts.length) { const error = new Error("Studio changes conflict with another tab."); if (operation.local) { this.openConflict(operation.transaction, { ...result, snapshot: previousSnapshot }, operation, error.message); operation.reject?.(error); break; } this.remember(operation.transaction.transactionId, false, this.revision, error.message); this.sendReject(operation.requestId ?? operation.transaction.transactionId, error.message, result.conflicts); continue; }
+        const operation = this.primaryQueue.shift()!; const previousSnapshot = this.snapshot;
         try {
+          const result = applyStudioTransaction(previousSnapshot, operation.transaction, operation.resolution === true);
+          if (result.conflicts.length) { const error = new Error("Studio changes conflict with another tab."); if (operation.local) { this.openConflict(operation.transaction, { ...result, snapshot: previousSnapshot }, operation, error.message); operation.reject?.(error); break; } this.remember(operation.transaction.transactionId, false, this.revision, error.message); this.sendReject(operation.requestId ?? operation.transaction.transactionId, error.message, result.conflicts); continue; }
           await this.options.persistPrimary(this.validate(result.snapshot));
           this.snapshot = this.validate(result.snapshot);
           // Selection and timestamps are tab-local, not outstanding content.

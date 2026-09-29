@@ -303,6 +303,25 @@ test("dynamic Gutenberg fields and Group semantics retain their compatibility se
   assert.match(blockToHtml(blocks[3]), /^<nav[^>]*aria-label="Related pages"/);
 });
 
+test("Social Icons wrapping, colours and per-icon advanced settings round-trip to HTML", () => {
+  const block = {
+    id: "socials",
+    type: "social-icons",
+    allowWrap: false,
+    visualStyle: { textColor: "#ffffff", backgroundColor: "#2f6fb0" },
+    children: [{ id: "linkedin", type: "social-linkedin", url: "https://linkedin.com/in/example", visualStyle: { anchor: "linkedin-profile", className: "profile-link" } }],
+  };
+  const html = blockToHtml(block);
+  assert.equal(validContentBlocks([block]), true);
+  assert.equal(validContentBlocks([{ ...block, allowWrap: "false" }]), false);
+  assert.match(html, /data-social-wrap="false"/);
+  assert.match(html, /data-html-anchor="linkedin-profile" data-additional-classes="profile-link"/);
+  const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
+  assert.match(rendered, /social-icons-block is-horizontal is-no-wrap/);
+  assert.match(rendered, /--social-icon-background:#2f6fb0/);
+  assert.match(rendered, /--social-icon-colour:#ffffff/);
+});
+
 test("Studio preview preserves block order, semantic content and raw whitespace without editable controls", () => {
   const blocks = [
     { id: "paragraph", type: "paragraph", text: "First\n\nLast", align: "centre" },

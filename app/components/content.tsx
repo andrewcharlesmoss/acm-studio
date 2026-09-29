@@ -4,7 +4,7 @@ import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
 import { listItemText, listMarker, normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { safeMathMLMarkup } from "../content/mathml";
-import { buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
+import { buttonVisualCss, fitTextEnabled, paragraphBackgroundGradientCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { spacerDimensions } from "../content/spacer";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
@@ -72,7 +72,9 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     const content = renderBlockContent(block);
     if (!block.visualStyle || block.type === "spacer") return content;
     const style = block.visualStyle;
-    return <div key={block.id} id={paragraphStyleAnchor(style)} className={visualStyleClassName(style)} style={block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : undefined) : paragraphStyleToCss(style)}>{content}</div>;
+    const css = block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style);
+    if (block.type === "social-icons") { delete css.backgroundColor; delete css.backgroundImage; }
+    return <div key={block.id} id={paragraphStyleAnchor(style)} className={visualStyleClassName(style)} style={css}>{content}</div>;
   }
   function renderBlockContent(block: ContentBlock) {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
@@ -186,7 +188,10 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         }
         if (block.type === "social-icons") {
           const links = block.children.filter(child => Boolean(safeTextLink(child.url)));
-          return links.length ? <nav className={`social-icons-block is-${block.orientation ?? "horizontal"} justify-${block.justification ?? "left"} size-${block.iconSize ?? "normal"}`} aria-label="Social links" key={block.id}><ul>{links.map(child => <li key={child.id}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;
+          const style = paragraphStyleToCss(block.visualStyle);
+          delete style.backgroundColor;
+          delete style.backgroundImage;
+          return links.length ? <nav className={`social-icons-block is-${block.orientation ?? "horizontal"} ${block.allowWrap === false ? "is-no-wrap" : "is-wrapping"} justify-${block.justification ?? "left"} size-${block.iconSize ?? "normal"}`} style={{ ...style, "--social-icon-background": block.visualStyle?.backgroundColor, "--social-icon-background-image": block.visualStyle?.backgroundGradient ? paragraphBackgroundGradientCss(block.visualStyle.backgroundGradient) : undefined, "--social-icon-colour": block.visualStyle?.textColor } as React.CSSProperties} aria-label="Social links" key={block.id}><ul>{links.map(child => <li key={child.id}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;
         }
         if (block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel key={block.id} />;
         if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child)}</div>)}</section>;

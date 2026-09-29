@@ -134,7 +134,10 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
           try { snapshotWasPersisted = repository.load() !== null; }
           catch { snapshotWasPersisted = false; }
         }
-        if (snapshotWasPersisted) lastPersistedWorkspaceRef.current = JSON.stringify({ ...cloneWorkspace(snapshot), activeDocumentId: workspaceRef.current.activeDocumentId });
+        if (snapshotWasPersisted) {
+          const persistedWorkspace = { ...cloneWorkspace(snapshot), activeDocumentId: workspaceRef.current.activeDocumentId };
+          lastPersistedWorkspaceRef.current = JSON.stringify(persistedWorkspace);
+        }
         if (pendingConflictRef.current) { authoritativeWorkspaceRef.current = cloneWorkspace(snapshot); return; }
         const reconciled = reconcilePendingPeerSave(snapshot, acknowledgedTransaction);
         if (reconciled.conflict) queueMicrotask(() => { if (!closed) syncRef.current?.resumeConflict(reconciled.conflict!); });
@@ -150,6 +153,11 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         workspaceRef.current = displayed;
         setSyncSnapshotReady(true);
         setWorkspace(displayed);
+        if (primary && source === "commit" && lastPersistedWorkspaceRef.current === JSON.stringify(displayed)) {
+          const updated = new Date();
+          setSaveError(null);
+          setSaveLabel(`Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
+        }
         if (!primary && (source === "welcome" || source === "update" || source === "commit")) setSaveLabel("Synced with another ACM Studio tab");
         if (source === "update" || source === "welcome" || source === "failover" || source === "recovery") {
           historyRef.current = [];
