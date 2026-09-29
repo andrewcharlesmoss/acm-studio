@@ -21,10 +21,13 @@ test("Paragraph Block Library uses the definition, real inspector and isolated S
   const definition = read("app/studio/blocks/paragraph/definition.ts");
   const specimen = read("app/studio/ui/blocks/paragraph/paragraph-block-catalogue.tsx");
   const inspector = read("app/studio/studio-inspectors.tsx");
+  const studioStyles = read("app/studio/studio.css");
   assert.match(definition, /paragraphInspectorProfile/);
   assert.match(definition, /availableBlockTransforms/);
   assert.match(inspector, /defaults = gutenbergInspectorDefaults\[block\.type\]/);
   assert.match(inspector, /paragraphInspectorProfile\.controls/);
+  assert.ok(inspector.includes('className={`advanced-fields-section${block.type === "paragraph" ? " paragraph-advanced-fields" : ""}`}'));
+  assert.match(studioStyles, /\.inspector-sections \.advanced-fields-section > h2 \{[^}]*text-transform: none/);
   assert.match(specimen, /<ParagraphEditField/);
   assert.match(specimen, /<BlockInspector/);
   assert.match(specimen, /<BlockRenderer[^>]+variant="studio"/);

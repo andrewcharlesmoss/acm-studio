@@ -1030,6 +1030,7 @@
 .inspector-sections .inspector-block-summary h2 { font-size: 16px; font-weight: 700; letter-spacing: normal; margin: 0; text-transform: none; }
 .inspector-block-summary .setting-note { margin: 0; }
 .inspector-accordion-section > h2 { margin: 0; }
+.inspector-sections .advanced-fields-section > h2 { letter-spacing: normal; text-transform: none; }
 .inspector-accordion-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: flex-start; letter-spacing: inherit; padding: 0; text-align: left; text-transform: inherit; width: 100%; }
 .inspector-accordion-detail { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 500; letter-spacing: normal; margin-left: 6px; text-transform: none; }
 .inspector-accordion-heading svg { margin-left: auto; }
