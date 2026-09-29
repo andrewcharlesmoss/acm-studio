@@ -1027,7 +1027,7 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
     ...(["quote", "group", "section"].includes(block.type) || style.minHeight ? [{ id: "min-height", label: "Minimum height" }] : []),
     ...(["group", "section"].includes(block.type) || style.minWidth ? [{ id: "min-width", label: "Minimum width" }] : []),
   ];
-  const coreBlocksWithShadow = ["heading", "quote", "button", "group", "section", "columns", "column", "image", "cover-image", "document-title"];
+  const coreBlocksWithShadow = ["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"];
   const borderOptions: InspectorToolOption[] = [{ id: "border", label: "Border" }, ...(block.type !== "table" ? [{ id: "radius", label: "Radius" }, ...((coreBlocksWithShadow.includes(block.type) || style.shadow) ? [{ id: "shadow", label: "Shadow" }] : [])] : [])];
   const elementOptions: InspectorToolOption[] = ["paragraph", "heading", "quote", "list", "footnotes", "group", "columns", "column", "document-title", "post-author", "post-date"].includes(block.type) ? [{ id: "link-colour", label: "Link colour" }] : [];
   const marginLayout = ["code", "group", "columns"].includes(block.type) ? "vertical" as const : "axes" as const;

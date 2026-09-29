@@ -152,7 +152,7 @@ test("minimum dimension controls match mapped Gutenberg block support", async ()
 
 test("shadow controls match mapped Gutenberg block support", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
-  assert.match(source, /const coreBlocksWithShadow = \["heading", "quote", "button", "group", "section", "columns", "column", "image", "cover-image", "document-title"\]/);
+  assert.match(source, /const coreBlocksWithShadow = \["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"\]/);
   assert.match(source, /block\.type === "paragraph" \|\| block\.type === "heading" \? \[\{ id: "text-shadow"/);
 });
 
