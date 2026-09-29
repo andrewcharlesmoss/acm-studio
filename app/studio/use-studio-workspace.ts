@@ -12,7 +12,9 @@ import { reconcileStudioPendingSave, type StudioPendingSave } from "./studio-pen
 
 const MAX_HISTORY = 60;
 
-export function useStudioWorkspace(repository: WorkspaceRepository = browserWorkspaceRepository, ownership: StudioWriteOwnership = studioWriteOwnership, initialWorkspace: StudioWorkspace = initialStudioWorkspace, scope = "main-studio", validateSnapshot: (value: unknown) => StudioWorkspace = validateStudioWorkspace) {
+export function useStudioWorkspace(repository: WorkspaceRepository = browserWorkspaceRepository, ownership: StudioWriteOwnership = studioWriteOwnership, initialWorkspace: StudioWorkspace = initialStudioWorkspace, scope = "main-studio", validateSnapshot: (value: unknown) => StudioWorkspace = validateStudioWorkspace, options: { readOnly?: boolean; activeDocumentId?: string } = {}) {
+  const readOnly = options.readOnly === true;
+  const requestedDocumentId = options.activeDocumentId;
   const [workspace, setWorkspace] = useState<StudioWorkspace>(() => cloneWorkspace(initialWorkspace));
   const [ready, setReady] = useState(false);
   const [saveLabel, setSaveLabel] = useState("Preparing local workspace…");
@@ -66,7 +68,10 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         : "Local workspace ready";
       queueMicrotask(() => {
         if (cancelled || (token && tokenRef.current !== token)) return;
-        const loaded = savedWorkspace ?? cloneWorkspace(initialWorkspace);
+        const loaded = cloneWorkspace(savedWorkspace ?? initialWorkspace);
+        if (readOnly && requestedDocumentId && loaded.documents.some((document) => document.id === requestedDocumentId)) {
+          loaded.activeDocumentId = requestedDocumentId;
+        }
         const reconciled = pendingConflictRef.current
           ? { workspace: validateSnapshot(pendingConflictRef.current.localSnapshot), conflict: pendingConflictRef.current }
           : reconcilePendingPeerSave(loaded);
@@ -85,6 +90,10 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         if (token) ownership.loaded(token, !failed);
       });
     };
+    if (readOnly) {
+      load(null);
+      return () => { cancelled = true; unsubscribe(); };
+    }
     // A retry only re-attempts the writer lock. Do not reload the browsing
     // snapshot on every attempt: a peer tab may be editing through the sync
     // channel while it waits to become the persistence owner.
@@ -102,10 +111,10 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       unsubscribe();
       release();
     };
-  }, [repository, ownership, attempt, initialWorkspace, validateSnapshot, reconcilePendingPeerSave]);
+  }, [repository, ownership, attempt, initialWorkspace, validateSnapshot, reconcilePendingPeerSave, readOnly, requestedDocumentId]);
 
   useEffect(() => {
-    if (ownershipState !== "waiting") return;
+    if (readOnly || ownershipState !== "waiting") return;
     // Web Locks with ifAvailable do not wake a waiting tab when the current
     // owner closes. Polling only retries acquisition; it never writes without
     // the lock and therefore preserves the no-unlocked-fallback rule.
@@ -113,10 +122,10 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       if (ownership.getState() === "waiting") setAttempt((value) => value + 1);
     }, 1000);
     return () => clearInterval(retryTimer);
-  }, [ownership, ownershipState]);
+  }, [ownership, ownershipState, readOnly]);
 
   useEffect(() => {
-    if (!ready || loadError || ownershipState === "loading" || !["writable", "waiting"].includes(ownershipState)) return;
+    if (readOnly || !ready || loadError || ownershipState === "loading" || !["writable", "waiting"].includes(ownershipState)) return;
     let closed = false;
     const primary = ownership.canWrite(loadedToken);
     const session = createStudioSync<StudioWorkspace>({
@@ -193,14 +202,14 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       setSyncSnapshotReady(false);
       setSyncStatus("disconnected");
     };
-  }, [ready, loadError, ownershipState, loadedToken, repository, initialWorkspace, ownership, scope, validateSnapshot, reconcilePendingPeerSave]);
+  }, [ready, loadError, ownershipState, loadedToken, repository, initialWorkspace, ownership, scope, validateSnapshot, reconcilePendingPeerSave, readOnly]);
 
   const primaryWritable = ownership.canWrite(loadedToken);
   const peerWritable = !primaryWritable && syncStatus === "synced" && syncSnapshotReady;
-  const editable = primaryWritable || peerWritable;
+  const editable = !readOnly && (primaryWritable || peerWritable);
 
   useEffect(() => {
-    if (!ready || loadError || syncConflict || (!primaryWritable && !peerWritable)) return;
+    if (readOnly || !ready || loadError || syncConflict || (!primaryWritable && !peerWritable)) return;
     let cancelled = false;
     let message: string;
     let failed = false;
@@ -253,7 +262,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       });
     })();
     return () => { cancelled = true; };
-  }, [ready, repository, loadedRepository, loadError, syncConflict, workspace, ownership, loadedToken, ownershipState, primaryWritable, peerWritable]);
+  }, [ready, repository, loadedRepository, loadError, syncConflict, workspace, ownership, loadedToken, ownershipState, primaryWritable, peerWritable, readOnly]);
 
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
     if (!editable) return false;
@@ -353,5 +362,5 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
           : null;
   const ownershipLabel = ownershipState === "waiting" && (peerWritable || syncStatus === "connecting") ? null : ownershipMessage(ownershipState);
   const canRetryEditing = ownershipState === "unavailable" || (ownershipState === "waiting" && ["unsupported", "disconnected"].includes(syncStatus));
-  return { workspace, ready, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing, retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? statusLabel ?? ownershipLabel ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
+  return { workspace, ready, loadError, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing, retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? statusLabel ?? ownershipLabel ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
 }

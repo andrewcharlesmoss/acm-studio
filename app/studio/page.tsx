@@ -6,6 +6,18 @@ export const metadata: Metadata = {
   description: "The local page and post editor for the Andrew Charles Moss publishing foundation.",
 };
 
-export default function StudioPage() {
-  return <StudioPrototype />;
+export const dynamic = "force-dynamic";
+
+export default async function StudioPage({ searchParams }: { searchParams: Promise<{ preview?: string | string[]; documentId?: string | string[]; viewport?: string | string[]; template?: string | string[] }> }) {
+  const query = await searchParams;
+  const preview = Array.isArray(query.preview) ? query.preview[0] : query.preview;
+  const documentId = Array.isArray(query.documentId) ? query.documentId[0] : query.documentId;
+  const viewport = Array.isArray(query.viewport) ? query.viewport[0] : query.viewport;
+  const template = Array.isArray(query.template) ? query.template[0] : query.template;
+  return <StudioPrototype initialView={{
+    preview: preview === "1",
+    documentId: documentId ?? null,
+    viewport: viewport === "tablet" || viewport === "mobile" ? viewport : "desktop",
+    showTemplate: template !== "0",
+  }} />;
 }

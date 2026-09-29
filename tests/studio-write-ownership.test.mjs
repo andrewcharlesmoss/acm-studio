@@ -25,13 +25,14 @@ function modules(globals = {}, overrides = {}) {
 }
 const tick = async () => { for (let index = 0; index < 12; index++) await Promise.resolve(); };
 function locks() {
-  let held = false;
+  let held = false; let requests = 0;
   return { async request(_name, options, callback) {
+    requests++;
     assert.equal(options.ifAvailable, true);
     if (held) return callback(null);
     held = true;
     try { return await callback({ name: "test" }); } finally { held = false; }
-  }, held: () => held };
+  }, held: () => held, requests: () => requests };
 }
 async function own(coordinator, manager, readable = true) {
   const release = coordinator.acquire((token) => coordinator.loaded(token, readable), manager);
@@ -250,7 +251,7 @@ for (const operation of ["folder", "upload", "replace", "read"]) {
 }
 
 function hookTab(storage, manager, studioSync = null) {
-  const slots = []; let index = 0; let dirty = true; let effects = []; let result;
+  const slots = []; let index = 0; let dirty = true; let effects = []; let result; let hookArgs = [];
   const registerEffect = (effect, deps) => {
     const id = index++; const previous = slots[id];
     if (!previous || deps.some((value, i) => !Object.is(value, previous.deps[i]))) {
@@ -280,12 +281,13 @@ function hookTab(storage, manager, studioSync = null) {
   const useWorkspace = load("app/studio/use-studio-workspace.ts").useStudioWorkspace;
   return {
     load,
-    async flush() {
+    async flush(...args) {
+      if (args.length) hookArgs = args;
       for (let pass = 0; pass < 10; pass++) {
         if (dirty) {
           dirty = false; index = 0;
           // eslint-disable-next-line react-hooks/rules-of-hooks -- Isolated dispatcher drives the actual hook.
-          result = useWorkspace();
+          result = useWorkspace(...hookArgs);
           const pending = effects; effects = []; pending.forEach((effect) => effect());
         }
         await tick();
@@ -474,6 +476,28 @@ test("read-only tab can browse; ownership retry reloads fresh content and old cl
   await second.flush();
   assert.equal(raw, acquiredRaw);
   second.close(); await tick();
+});
+
+test("read-only preview loads its requested document without acquiring ownership or saving selection", async () => {
+  const workspace = structuredClone(modules()("app/studio/editor-model.ts").initialStudioWorkspace);
+  const requested = workspace.documents.find((document) => document.id !== workspace.activeDocumentId);
+  assert.ok(requested);
+  let raw = JSON.stringify(workspace); let writes = 0;
+  const key = modules()("app/content/local-publishing.ts").LOCAL_WORKSPACE_KEY;
+  const storage = { getItem: (candidate) => candidate === key ? raw : null, setItem: (_candidate, value) => { raw = value; writes++; } };
+  const manager = locks();
+  const preview = hookTab(storage, manager);
+  const session = await preview.flush(undefined, undefined, undefined, undefined, undefined, { readOnly: true, activeDocumentId: requested.id });
+  assert.equal(session.ready, true);
+  assert.equal(session.writable, false);
+  assert.equal(session.workspace.activeDocumentId, requested.id);
+  assert.equal(manager.requests(), 0, "a preview must not join writer ownership");
+  assert.equal(writes, 0);
+  const stalePreview = await preview.flush(undefined, undefined, undefined, undefined, undefined, { readOnly: true, activeDocumentId: "missing-document" });
+  assert.equal(stalePreview.workspace.documents.some((document) => document.id === "missing-document"), false);
+  assert.equal(manager.requests(), 0);
+  assert.equal(writes, 0);
+  preview.close();
 });
 
 test("missing parent folders are rejected before upload, child creation or file movement", async () => {

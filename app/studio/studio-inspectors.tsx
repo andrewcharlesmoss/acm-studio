@@ -10,7 +10,7 @@ import { contentWordCount, readingTimeMinutes } from "../content/reading-time";
 import type { LayoutMode } from "../content/model";
 import { LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS } from "../content/layout";
 import { CODE_LANGUAGE_OPTIONS, isKnownCodeLanguage } from "../content/code-highlighting.mjs";
-import type { StudioCategory, StudioDocument, StudioDocumentKind, StudioDocumentStatus } from "./editor-model";
+import { blockCatalogue, type StudioCategory, type StudioDocument, type StudioDocumentKind, type StudioDocumentStatus } from "./editor-model";
 import { StudioIcon } from "./studio-icons";
 import { BlockLibraryIcon } from "./block-library-icons";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
@@ -613,6 +613,11 @@ export function BlockInspector({ block, canSetSticky = false, onChange, onColumn
   const hasStudioOptions = ["field", "component", "section", "reading-time", "post-author", "post-date", "code", "embed", "spacer", "group", "columns", "social-icons"].includes(block.type);
   const defaultTab: "block" | "studio" = block.type === "field" || block.type === "component" ? "studio" : "block";
   const activeTab = selectedTab?.blockId === block.id && selectedTab.blockType === block.type ? selectedTab.tab : defaultTab;
+  const blockInfo = blockCatalogue.find((item) => item.type === block.type);
+  const blockName = blockInfo?.label ?? blockLabel(block.type);
+  const blockDescription = block.type === "paragraph"
+    ? "Start with the basic building block of all narrative."
+    : blockInfo?.description ?? `Configure this ${blockName.toLowerCase()} block.`;
   const alignedBlock = block.type === "heading" || block.type === "document-title" || block.type === "document-subtitle" || block.type === "cover-image" ? block : null;
   const alignment = alignedBlock?.align ?? null;
   const advanced = advancedFieldsForBlock(block);
@@ -664,7 +669,8 @@ export function BlockInspector({ block, canSetSticky = false, onChange, onColumn
     setSelectedTab({ blockId: block.id, blockType: block.type, tab });
   }
   return <div className="block-inspector-settings">
-    {hasStudioOptions ? <PaneTabs id={tabPrefix} label={`${blockLabel(block.type)} settings`} tabs={tabs} active={activeTab} onChange={(tab) => selectTab(tab as "block" | "studio")} /> : null}
+    <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span><BlockLibraryIcon type={block.type} /></span><h2>{blockName}</h2></div><p className="setting-note">{blockDescription}</p></section></div>
+    {hasStudioOptions ? <PaneTabs id={tabPrefix} label={`${blockName} settings`} tabs={tabs} active={activeTab} onChange={(tab) => selectTab(tab as "block" | "studio")} /> : null}
     {hasStudioOptions ? <PaneTabPanel id={tabPrefix} tab="block" active={activeTab} className="block-inspector-tabpanel"><div className="inspector-sections">{blockSettings}</div></PaneTabPanel> : <div className="inspector-sections">{blockSettings}</div>}
     {hasStudioOptions ? <PaneTabPanel id={tabPrefix} tab="studio" active={activeTab} className="block-inspector-tabpanel"><div className="inspector-sections">{studioSettings}</div></PaneTabPanel> : null}
   </div>;

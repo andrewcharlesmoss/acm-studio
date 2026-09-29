@@ -5,6 +5,7 @@ import { SiteNavigation } from "./site-navigation";
 import { MediaManager } from "./media-manager";
 import { StudioEditor, useStudioDocumentCounts } from "./studio-editor";
 import { StudioIcon } from "./studio-icons";
+import { StudioViewMenu, viewportWidthFor, type StudioViewport } from "./studio-view-menu";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { AcmIcon } from "@acm/icons/react";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
@@ -42,9 +43,20 @@ function exportJson(value: unknown, filename: string) {
   link.click();
   URL.revokeObjectURL(url);
 }
-export function StudioPrototype() {
-  const studioSession = useStudioWorkspace();
-  const [previewing, setPreviewing] = useState(false);
+type StudioInitialView = {
+  preview: boolean;
+  documentId: string | null;
+  viewport: StudioViewport;
+  showTemplate: boolean;
+};
+
+export function StudioPrototype({ initialView }: { initialView: StudioInitialView }) {
+  const [previewWindow] = useState(initialView.preview);
+  const [previewDocumentId] = useState(initialView.documentId);
+  const studioSession = useStudioWorkspace(undefined, undefined, undefined, undefined, undefined, { readOnly: previewWindow, activeDocumentId: previewDocumentId ?? undefined });
+  const [previewing, setPreviewing] = useState(previewWindow);
+  const [viewViewport, setViewViewport] = useState<StudioViewport>(initialView.viewport);
+  const [showTemplate, setShowTemplate] = useState(initialView.showTemplate);
   const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup" | "bin">("content");
   const [templateTarget, setTemplateTarget] = useState(() => {
     const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
@@ -205,7 +217,7 @@ export function StudioPrototype() {
     setDocumentFieldSelection(null);
     setSelectedBlockId(null);
   }
-  useStudioHistoryShortcuts(studioSection === "templates" ? templateSession.undo : undoStudio, studioSection === "templates" ? templateSession.redo : redoStudio, studioSection === "content" || studioSection === "templates");
+  useStudioHistoryShortcuts(studioSection === "templates" ? templateSession.undo : undoStudio, studioSection === "templates" ? templateSession.redo : redoStudio, (studioSection === "content" || studioSection === "templates") && !previewWindow);
 
   function switchStudioMode(mode: "content" | "templates" | "bin", contentTabOverride?: "document" | "studio" | "block" | "styles") {
     if (!confirmCodeEditorDiscard()) return;
@@ -488,22 +500,31 @@ export function StudioPrototype() {
         }
         return;
       }
-      if (event.key.toLowerCase() === "s" && studioSection === "content" && activeDocument.kind === "post") {
+      if (!previewWindow && event.key.toLowerCase() === "s" && studioSection === "content" && activeDocument.kind === "post") {
         event.preventDefault();
         publishing.publish();
       }
     }
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  }, [activeDocument.kind, publishing, studioSection]);
+  }, [activeDocument.kind, previewWindow, publishing, studioSection]);
+
+  if (previewWindow && !studioSession.ready) return <main className="studio-preview-unavailable" role="status">Loading preview…</main>;
+  if (previewWindow && (studioSession.loadError || !previewDocumentId || !workspace.documents.some(document => document.id === previewDocumentId))) {
+    return <main className="studio-preview-unavailable" role="alert"><h1>Document unavailable</h1><p>This document could not be found in the local Studio workspace. Return to Studio and open its preview again.</p></main>;
+  }
 
   return (
-    <div className="studio-shell studio-desktop-only" onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
+    <div className={`studio-shell studio-desktop-only${previewWindow ? " studio-preview-window" : ""}`} onBeforeInputCapture={(event) => { if ((!writable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!writable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!writable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <header className="studio-header">
         <a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a>
         <div className="studio-breadcrumbs">{studioSection === "templates" ? <><span>Templates</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Shared presentation</strong></> : studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"}</strong></> : hasContentDocuments ? <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></> : <><span>Content</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Empty workspace</strong></>}</div>
         <div className="studio-state"><span className="prototype-pill">LOCAL</span><span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span>{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
+          {studioSection === "content" && hasContentDocuments && !previewWindow ? <StudioViewMenu viewport={viewViewport} onViewportChange={setViewViewport} showTemplate={showTemplate} hasTemplate={hasTemplate} onShowTemplateChange={setShowTemplate} onPreviewInNewTab={() => {
+            const query = new URLSearchParams({ preview: "1", documentId: activeDocument.id, viewport: viewViewport, template: showTemplate ? "1" : "0" });
+            window.open(`/studio?${query.toString()}`, "_blank", "noopener,noreferrer");
+          }} /> : null}
           {studioSection === "templates" ? (
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Content</button>
           ) : studioSection !== "content" ? (
@@ -586,11 +607,13 @@ export function StudioPrototype() {
             <button className="button-primary" type="button" disabled={!writable} onClick={() => addDocument(libraryKind === "post" ? "post" : "page")}>Create {libraryKind === "post" ? "post" : "page"}</button>
             <button className="button-secondary" type="button" disabled={!writable} onClick={() => addDocument(libraryKind === "post" ? "page" : "post")}>Create {libraryKind === "post" ? "page" : "post"}</button>
           </div>
-        </section> : studioSection === "content" ? <StudioEditor writable={writable} onUndo={undoStudio} onRedo={redoStudio} canUndo={canUndo} canRedo={canRedo}
+        </section> : studioSection === "content" ? <StudioEditor writable={writable && !previewWindow} onUndo={undoStudio} onRedo={redoStudio} canUndo={canUndo} canRedo={canRedo}
           canvas={{
             activeDocument: resolvedDocument,
-            className: hasTemplate ? "template-editing" : undefined,
-            presentation: templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage),
+            className: hasTemplate && showTemplate ? "template-editing" : undefined,
+            presentation: showTemplate ? templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage) : undefined,
+            viewportWidth: viewportWidthFor(viewViewport),
+            viewportWidthCanOverflow: true,
             previewing,
             onPreviewChange: setPreviewing,
             wordCount,

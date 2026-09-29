@@ -480,6 +480,21 @@ test("Gutenberg block controls and ACM-only controls stay in their respective in
   assert.match(studioSettings, /title="Embed card"[\s\S]*?<span>Card title<\/span>/);
 });
 
+test("the selected block summary stays above its inspector tabs", async () => {
+  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const inspectorStart = source.indexOf("export function BlockInspector");
+  const summaryStart = source.indexOf("className=\"inspector-block-summary\"", inspectorStart);
+  const tabsStart = source.indexOf("<PaneTabs id={tabPrefix}", summaryStart);
+  assert.ok(summaryStart > inspectorStart);
+  assert.ok(tabsStart > summaryStart);
+  const summary = source.slice(summaryStart, tabsStart);
+  assert.match(summary, /<BlockLibraryIcon type=\{block\.type\} \/>/);
+  assert.match(summary, /<h2>\{blockName\}<\/h2>/);
+  assert.match(summary, /<p className="setting-note">\{blockDescription\}<\/p>/);
+  assert.match(source, /blockCatalogue\.find\(\(item\) => item\.type === block\.type\)/);
+  assert.match(source, /block\.type === "paragraph"\s*\? "Start with the basic building block of all narrative\."/);
+});
+
 test("document settings keep WordPress-like fields separate from Studio-specific controls", async () => {
   const [source, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8"),
@@ -1952,4 +1967,31 @@ test("content type tabs follow the shared Studio tool menu", () => {
   const templates = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
   const templateLibrary = templates.slice(templates.indexOf('<aside className="studio-library">'), templates.indexOf('<div className="document-list template-document-list">'));
   assert.ok(templateLibrary.indexOf('className="library-tool-button"') < templateLibrary.indexOf('className="library-tabs"'));
+});
+
+test("Studio View menu exposes viewport, template and read-only preview actions", async () => {
+  const menu = readFileSync(new URL("../app/studio/studio-view-menu.tsx", import.meta.url), "utf8");
+  const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const page = readFileSync(new URL("../app/studio/page.tsx", import.meta.url), "utf8");
+  const workspace = readFileSync(new URL("../app/studio/use-studio-workspace.ts", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(menu, /\{ id: "desktop", label: "Desktop", width: 1200 \}/);
+  assert.match(menu, /\{ id: "tablet", label: "Tablet", width: 768 \}/);
+  assert.match(menu, /\{ id: "mobile", label: "Mobile", width: 390 \}/);
+  assert.match(menu, /role="menuitemradio" aria-checked=\{viewport === item\.id\}/);
+  assert.match(menu, /role="menuitemcheckbox" aria-checked=\{showTemplate\}/);
+  assert.match(menu, /Viewport-specific style editing is not available in Studio yet/);
+  assert.match(menu, /event\.key === "Escape"/);
+  assert.match(prototype, /window\.open\(`\/studio\?\$\{query\.toString\(\)\}`, "_blank", "noopener,noreferrer"\)/);
+  assert.match(page, /return <StudioPrototype initialView=\{/);
+  assert.match(page, /export const dynamic = "force-dynamic"/);
+  assert.match(prototype, /export function StudioPrototype\(\{ initialView \}: \{ initialView: StudioInitialView \}\)/);
+  assert.match(prototype, /if \(previewWindow && \(studioSession\.loadError \|\| !previewDocumentId \|\| !workspace\.documents\.some\(document => document\.id === previewDocumentId\)\)\)[\s\S]*?Document unavailable/);
+  assert.match(workspace, /return \{ workspace, ready, loadError,/);
+  assert.match(prototype, /useStudioWorkspace\(undefined, undefined, undefined, undefined, undefined, \{ readOnly: previewWindow, activeDocumentId: previewDocumentId \?\? undefined \}\)/);
+  assert.match(prototype, /writable=\{writable && !previewWindow\}/);
+  assert.match(prototype, /viewportWidth: viewportWidthFor\(viewViewport\)/);
+  assert.match(css, /\.studio-preview-window \.editor-document-bar \{ display: none; \}/);
+  assert.match(css, /\.studio-preview-window\.studio-desktop-only \{ min-width: 0; width: 100%; \}/);
+  assert.match(css, /\.studio-preview-window\.studio-desktop-only > \.studio-workspace \{ display: block; min-width: 0; width: 100%; \}/);
 });
