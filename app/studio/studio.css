@@ -1079,7 +1079,7 @@
 .paragraph-font-size-heading > span { text-transform: uppercase; }
 .paragraph-font-size-mode { align-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--ink); cursor: pointer; display: inline-flex; justify-content: center; height: 40px; padding: 0; width: 40px; }
 .paragraph-font-size-mode:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
-.paragraph-custom-font-size { align-items: center; display: grid; gap: 16px; grid-template-columns: minmax(112px, 0.5fr) minmax(90px, 1fr); }
+.paragraph-custom-font-size { align-items: center; display: grid; gap: 16px; grid-template-columns: 100px minmax(90px, 1fr); }
 .paragraph-custom-font-size > * { min-width: 0; }
 .paragraph-custom-font-size-input { align-items: stretch; background: white; border: 1px solid #8d8d8d; border-radius: 2px; display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 40px; position: relative; }
 .inspector-sections .paragraph-custom-font-size-input input { background: transparent; border: 0; border-radius: 0; min-width: 0; outline: 0; }
