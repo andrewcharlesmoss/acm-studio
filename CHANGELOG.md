@@ -245,6 +245,7 @@
 ### Changed
 - Moved ACM-only Code language and Embed card title settings to the Studio inspector tab, keeping Gutenberg-aligned settings in Block.
 - Font size controls now show the preset sizes by default, including blocks that have a saved custom size.
+- Matched shared inspector default controls to their Gutenberg block declarations while keeping optional and Studio-specific controls available in their menus.
 - Grouped the Social Icons block and its LinkedIn and TikTok choices under Widgets in the block library.
 - Added LinkedIn and TikTok as standalone Widgets choices; inserting either creates its Social Icons parent automatically.
 - The Styles font picker now offers Inter and only the fallback families in
@@ -631,6 +632,4 @@
 - Stabilised auto-height measurements so the editor no longer observes the
   element it is resizing, preventing the browser's ResizeObserver loop error.
 - Added `{copyright}`, `{year}` and `{site-title}` placeholders to template copyright text, with a current-year default for new template sets.
-
-### Fixed
 - Fixed custom font-size slider dragging so the value commits on release without switching back to presets, including when the pointer is released outside the slider. Releasing without changing the value does not add an undo entry.

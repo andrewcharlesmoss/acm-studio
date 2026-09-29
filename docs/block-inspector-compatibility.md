@@ -106,12 +106,15 @@ on other blocks so Reset all can clear them. The Border menu offers only the
 controls supported by the mapped block.
 
 The inspector follows Gutenberg's section order and optional-control menu
-pattern for the shared appearance settings. A checked menu item shows its
+pattern for Typography, Dimensions, Border and Elements. Core default controls
+declared for each mapped block remain visible and are omitted from that
+section's optional-control menu; optional controls stay in the menu. ACM-only
+metadata blocks retain their Studio defaults. A checked menu item shows its
 control. Removing it clears that setting from the block; Reset all clears the
 section's visible settings together. Foreground and background swatches come
 from the executable Style Guide palette. Paragraph line indent and text columns
-use CSS properties, and drop cap uses the first-letter treatment in both editing
-and rendered output.
+use CSS properties, and drop cap uses the first-letter treatment in both
+editing and rendered output.
 Fit text measures a Paragraph or Heading at its available width after rendering, then
 updates its size when the text, font or width changes. It fits short text on one
 line and bounds the size between 13px and 120px; longer text wraps at the

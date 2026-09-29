@@ -834,6 +834,37 @@ function ComponentInspector({ block, onChange }: { block: Extract<ContentBlock, 
 
 type StyledBlock = ContentBlock;
 
+type InspectorControlDefaults = {
+  typography?: readonly string[];
+  dimensions?: readonly string[];
+  border?: readonly string[];
+  elements?: readonly string[];
+};
+
+// Core blocks declare these defaults through __experimentalDefaultControls.
+// ACM-only metadata blocks keep Studio's existing starting controls.
+const gutenbergInspectorDefaults: Partial<Record<ContentBlock["type"], InspectorControlDefaults>> = {
+  paragraph: { typography: ["colour", "size"] },
+  heading: { typography: ["colour", "size"] },
+  quote: { typography: ["colour", "size"], border: ["border", "radius"] },
+  list: { typography: ["colour", "size"] },
+  table: { typography: ["colour", "size"], border: ["border"] },
+  code: { typography: ["colour", "size"], border: ["border"] },
+  button: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+  footnotes: { typography: ["colour", "size"], elements: ["link-colour"] },
+  "document-title": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] },
+  "post-date": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] },
+  "social-icons": { dimensions: ["margin"], border: ["border", "radius"] },
+  group: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+  section: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+  columns: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+  column: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+};
+
+const studioInspectorDefaults: InspectorControlDefaults = {
+  typography: ["colour", "size", "appearance"],
+};
+
 const styleGuidePaletteRoles: { key: keyof UniversalStylePreset["palette"]; label: string }[] = [
   { key: "surface", label: "Surface" },
   { key: "surfaceRaised", label: "Raised surface" },
@@ -857,6 +888,11 @@ function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { t
 function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewModeChange }: { block: StyledBlock; onChange: (block: ContentBlock) => void; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void }) {
   const style = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
   const socialIconsOnly = block.type === "social-icons";
+  const defaults = gutenbergInspectorDefaults[block.type] ?? studioInspectorDefaults;
+  const defaultTypography = new Set(defaults.typography ?? []);
+  const defaultDimensions = new Set(defaults.dimensions ?? []);
+  const defaultBorder = new Set(defaults.border ?? []);
+  const defaultElements = new Set(defaults.elements ?? []);
   const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");
   const fontSizeMode = fontSizeViewMode
     ? fontSizeViewMode
@@ -887,20 +923,24 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
   const borderOptions: InspectorToolOption[] = [{ id: "border", label: "Border" }, ...(block.type !== "table" ? [{ id: "radius", label: "Radius" }, ...((coreBlocksWithShadow.includes(block.type) || style.shadow) ? [{ id: "shadow", label: "Shadow" }] : [])] : [])];
   const elementOptions: InspectorToolOption[] = ["paragraph", "heading", "quote", "list", "footnotes", "group", "columns", "column", "document-title", "post-author", "post-date"].includes(block.type) ? [{ id: "link-colour", label: "Link colour" }] : [];
   const marginLayout = ["code", "group", "columns"].includes(block.type) ? "vertical" as const : "axes" as const;
-  const [typographyUserVisible, setTypographyVisible] = useState(() => new Set(socialIconsOnly ? ["colour", "size"] : ["colour", "size", "appearance"]));
+  const [typographyUserVisible, setTypographyVisible] = useState(() => new Set<string>());
   const [dimensionsUserVisible, setDimensionsVisible] = useState(() => new Set<string>());
   const [borderUserVisible, setBorderVisible] = useState(() => new Set<string>());
   const [elementsUserVisible, setElementsVisible] = useState(() => new Set<string>());
-  const typographyVisible = new Set([...typographyUserVisible, ...[
+  const typographyVisible = new Set([...defaultTypography, ...typographyUserVisible, ...[
     style.textColor && "colour", (style.fontSize || style.fontSizeCustom) && "size", style.appearance && "appearance", style.fontFamily && "family", style.textShadow && "text-shadow",
     style.lineHeight && "line-height", style.letterSpacing && "letter-spacing", style.textIndent && "line-indent",
     style.textColumns && "columns", style.textDecoration && "decoration", style.textTransform && "letter-case", style.dropCap && "drop-cap", style.fitText && "fit-text", style.orientation && "orientation",
   ].filter((value): value is string => Boolean(value))]);
-  const dimensionsVisible = new Set([...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin", style.minHeight && "min-height", style.minWidth && "min-width"].filter((value): value is string => Boolean(value))]);
-  const borderVisible = new Set([...borderUserVisible, ...[
+  const dimensionsVisible = new Set([...defaultDimensions, ...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin", style.minHeight && "min-height", style.minWidth && "min-width"].filter((value): value is string => Boolean(value))]);
+  const borderVisible = new Set([...defaultBorder, ...borderUserVisible, ...[
     (style.borderStyle || style.borderColor || style.borderWidth) && "border", style.borderRadius && "radius", style.shadow && "shadow",
   ].filter((value): value is string => Boolean(value))]);
-  const elementsVisible = new Set([...elementsUserVisible, ...[style.linkColor && "link-colour"].filter((value): value is string => Boolean(value))]);
+  const elementsVisible = new Set([...defaultElements, ...elementsUserVisible, ...[style.linkColor && "link-colour"].filter((value): value is string => Boolean(value))]);
+  const optionalTypographyOptions = typographyOptions.filter(option => !defaultTypography.has(option.id));
+  const optionalDimensionOptions = dimensionOptions.filter(option => !defaultDimensions.has(option.id));
+  const optionalBorderOptions = borderOptions.filter(option => !defaultBorder.has(option.id));
+  const optionalElementOptions = elementOptions.filter(option => !defaultElements.has(option.id));
   const toolFields: Record<string, (keyof ParagraphStyle)[]> = {
     colour: ["textColor"], family: ["fontFamily"], size: ["fontSize", "fontSizeCustom"], appearance: ["appearance"], "text-shadow": ["textShadow"],
     "line-height": ["lineHeight"], "letter-spacing": ["letterSpacing"], "line-indent": ["textIndent"], columns: ["textColumns"], decoration: ["textDecoration"],
@@ -984,7 +1024,7 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
     ["extra-bold", "Extra bold"], ["black", "Black"],
   ] as const;
   return <>
-    <InspectorToolsSection title="Typography" options={typographyOptions} visible={typographyVisible} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
+    <InspectorToolsSection title="Typography" options={optionalTypographyOptions} visible={typographyVisible} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
       {typographyVisible.has("colour") ? <PaletteColourSetting label="Text colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /> : null}
       {typographyVisible.has("size") ? <fieldset className="paragraph-font-size-setting" disabled={fitTextEnabled(style)}><legend className="visually-hidden">Font size</legend><div className="paragraph-font-size-heading"><span>Font size</span><button type="button" className="paragraph-font-size-mode" aria-label={fontSizeMode === "custom" ? "Use font size presets" : "Use custom font size"} title={fontSizeMode === "custom" ? "Use font size presets" : "Use custom font size"} aria-pressed={fontSizeMode === "custom"} onClick={() => onFontSizeViewModeChange(fontSizeMode === "custom" ? "presets" : "custom")}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button></div>{fontSizeMode === "custom" ? <CustomFontSizeSetting key={`${block.id}-custom-size`} value={style.fontSizeCustom} onChange={value => updateFontSize(value, "custom")} onInteractionStart={() => onFontSizeViewModeChange("custom")} /> : <div role="group" aria-label="Font size presets" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateFontSize(style.fontSize === value ? undefined : value, "presets")}>{label}</button>)}</div>}</fieldset> : null}
       {typographyVisible.has("family") ? <label><span>Font family</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
@@ -1004,18 +1044,18 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
       <ParagraphBackgroundControl mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} onModeChange={mode => { setBackgroundMode(mode); if (mode === "colour" && style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </InspectorAccordionSection>
-    <InspectorToolsSection title="Dimensions" options={dimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
+    <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
       {dimensionsVisible.has("padding") ? <BoxLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding} layout="axes" min={0} max={100} onChange={(value) => updateStyle("padding", value)} /> : null}
       {dimensionsVisible.has("margin") ? <BoxLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} layout={marginLayout} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
       {dimensionsVisible.has("min-height") ? <ParagraphLengthSetting key={`${block.id}-min-height`} label="Minimum height" value={style.minHeight} min={0} max={4000} onChange={(value) => updateStyle("minHeight", value)} /> : null}
       {dimensionsVisible.has("min-width") ? <ParagraphLengthSetting key={`${block.id}-min-width`} label="Minimum width" value={style.minWidth} min={0} max={4000} onChange={(value) => updateStyle("minWidth", value)} /> : null}
     </InspectorToolsSection>
-    <InspectorToolsSection title="Border" options={borderOptions} visible={borderVisible} canReset={Boolean(borderVisible.size || style.shadow)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools([...borderVisible, "shadow"]); setBorderVisible(new Set()); }}>
+    <InspectorToolsSection title="Border" options={optionalBorderOptions} visible={borderVisible} canReset={Boolean(borderVisible.size || style.shadow)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools([...borderVisible, "shadow"]); setBorderVisible(new Set()); }}>
       {borderVisible.has("border") ? <div className="box-border-setting"><div className="box-border-appearance"><BorderColourControl value={style.borderColor} onChange={updateBorderColour} /><label><span>Border style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label></div><BoxLengthSetting key={`${block.id}-border-width`} label="Width" value={style.borderWidth ?? (style.borderStyle && style.borderStyle !== "none" ? "1px" : undefined)} canReset={Boolean(style.borderWidth)} layout="all" allowPercent={false} min={0} max={20} onChange={updateBorderWidth} /></div> : null}
       {borderVisible.has("radius") ? <BoxLengthSetting key={`${block.id}-radius`} label="Radius" value={style.borderRadius} layout="all" corners min={0} max={100} onChange={value => updateStyle("borderRadius", value)} /> : null}
       {borderVisible.has("shadow") ? <label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
     </InspectorToolsSection>
-    {elementOptions.length ? <InspectorToolsSection title="Elements" options={elementOptions} visible={elementsVisible} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
+    {elementOptions.length ? <InspectorToolsSection title="Elements" options={optionalElementOptions} visible={elementsVisible} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
       {elementsVisible.has("link-colour") ? <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} /> : null}
     </InspectorToolsSection> : null}
   </>;

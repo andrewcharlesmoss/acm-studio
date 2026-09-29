@@ -97,6 +97,32 @@ test("custom font size stays selected while its live value changes", async () =>
   assert.doesNotMatch(source, /fontSizeSource/);
 });
 
+test("shared inspector control defaults follow each Gutenberg block declaration", async () => {
+  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  for (const declaration of [
+    'paragraph: { typography: ["colour", "size"] }',
+    'heading: { typography: ["colour", "size"] }',
+    'quote: { typography: ["colour", "size"], border: ["border", "radius"] }',
+    'list: { typography: ["colour", "size"] }',
+    'table: { typography: ["colour", "size"], border: ["border"] }',
+    'code: { typography: ["colour", "size"], border: ["border"] }',
+    'button: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
+    'footnotes: { typography: ["colour", "size"], elements: ["link-colour"] }',
+    '"document-title": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] }',
+    '"post-date": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] }',
+    '"social-icons": { dimensions: ["margin"], border: ["border", "radius"] }',
+    'group: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
+    'section: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
+    'columns: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
+    'column: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
+  ]) assert.ok(source.includes(declaration), `Missing inspector default declaration: ${declaration}`);
+  assert.match(source, /const typographyOptions: InspectorToolOption\[\] = socialIconsOnly \?/);
+  assert.match(source, /const optionalTypographyOptions = typographyOptions\.filter\(option => !defaultTypography\.has\(option\.id\)\)/);
+  assert.match(source, /const optionalDimensionOptions = dimensionOptions\.filter\(option => !defaultDimensions\.has\(option\.id\)\)/);
+  assert.match(source, /const optionalBorderOptions = borderOptions\.filter\(option => !defaultBorder\.has\(option\.id\)\)/);
+  assert.match(source, /const optionalElementOptions = elementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
+});
+
 test("minimum dimension controls match mapped Gutenberg block support", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   assert.match(source, /\["quote", "group", "section"\]\.includes\(block\.type\) \|\| style\.minHeight/);
