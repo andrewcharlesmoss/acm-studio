@@ -1028,6 +1028,10 @@ function CustomFontSizeSetting({ value, onChange, onInteractionStart }: { value?
   const [draft, setDraft] = useState<string | null>(null);
   const [sliderDraft, setSliderDraft] = useState<string | null>(null);
   const sliderDraggingRef = useRef(false);
+  const sliderPointerIdRef = useRef<number | null>(null);
+  const sliderStartValueRef = useRef<string | null>(null);
+  const sliderRef = useRef<HTMLInputElement>(null);
+  const finishSliderDragRef = useRef<(pointerId?: number) => void>(() => {});
   const [unitMenuOpen, setUnitMenuOpen] = useState(false);
   const unitMenuId = useId();
   const unitTriggerRef = useRef<HTMLButtonElement>(null);
@@ -1045,12 +1049,29 @@ function CustomFontSizeSetting({ value, onChange, onInteractionStart }: { value?
     const normalised = normaliseCustomFontSize(Number(next), nextUnit);
     if (normalised) onChange(normalised);
   }
-  function finishSliderDrag(input: HTMLInputElement) {
+  function finishSliderDrag(input = sliderRef.current, pointerId?: number) {
+    if (!input) return;
     if (!sliderDraggingRef.current) return;
+    if (pointerId !== undefined && sliderPointerIdRef.current !== pointerId) return;
+    const changed = input.value !== sliderStartValueRef.current;
     sliderDraggingRef.current = false;
+    sliderPointerIdRef.current = null;
+    sliderStartValueRef.current = null;
     setSliderDraft(null);
-    commit(input.value);
+    if (changed) commit(input.value);
   }
+  useLayoutEffect(() => {
+    finishSliderDragRef.current = (pointerId) => finishSliderDrag(sliderRef.current, pointerId);
+  });
+  useEffect(() => {
+    const finishPointerInteraction = (event: PointerEvent) => finishSliderDragRef.current(event.pointerId);
+    window.addEventListener("pointerup", finishPointerInteraction);
+    window.addEventListener("pointercancel", finishPointerInteraction);
+    return () => {
+      window.removeEventListener("pointerup", finishPointerInteraction);
+      window.removeEventListener("pointercancel", finishPointerInteraction);
+    };
+  }, []);
   useEffect(() => {
     if (unitMenuOpen) unitMenuRef.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
   }, [unitMenuOpen]);
@@ -1073,7 +1094,7 @@ function CustomFontSizeSetting({ value, onChange, onInteractionStart }: { value?
     else if (event.key === "Home") nextIndex = 0;
     else if (event.key === "End") nextIndex = items.length - 1;
     if (nextIndex !== null && items.length) { event.preventDefault(); items[nextIndex]?.focus(); }
-  }}>{units.map(option => <button className={option === unit ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={option === unit} key={option} onClick={() => selectUnit(option)}><span className="paragraph-custom-font-size-unit-check">{option === unit ? <AcmIcon name="state.selected" scale="Regular-S" size={16} /> : null}</span><span>{option}</span></button>)}</div> : null}</div><input className="paragraph-custom-font-size-slider" aria-label="Custom font size slider" type="range" min={sliderMinimum} max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={sliderValue} onPointerDown={event => { sliderDraggingRef.current = true; event.currentTarget.setPointerCapture(event.pointerId); onInteractionStart(); }} onPointerUp={event => finishSliderDrag(event.currentTarget)} onPointerCancel={event => finishSliderDrag(event.currentTarget)} onLostPointerCapture={event => finishSliderDrag(event.currentTarget)} onBlur={event => finishSliderDrag(event.currentTarget)} onChange={event => { if (sliderDraggingRef.current) setSliderDraft(event.currentTarget.value); else commit(event.currentTarget.value); }} /></div>;
+  }}>{units.map(option => <button className={option === unit ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={option === unit} key={option} onClick={() => selectUnit(option)}><span className="paragraph-custom-font-size-unit-check">{option === unit ? <AcmIcon name="state.selected" scale="Regular-S" size={16} /> : null}</span><span>{option}</span></button>)}</div> : null}</div><input ref={sliderRef} className="paragraph-custom-font-size-slider" aria-label="Custom font size slider" type="range" min={sliderMinimum} max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={sliderValue} onPointerDown={event => { if (!sliderDraggingRef.current) { sliderDraggingRef.current = true; sliderPointerIdRef.current = event.pointerId; sliderStartValueRef.current = event.currentTarget.value; onInteractionStart(); } }} onPointerUp={event => finishSliderDrag(event.currentTarget, event.pointerId)} onPointerCancel={event => finishSliderDrag(event.currentTarget, event.pointerId)} onLostPointerCapture={event => finishSliderDrag(event.currentTarget, event.pointerId)} onBlur={event => finishSliderDrag(event.currentTarget)} onChange={event => { if (sliderDraggingRef.current) setSliderDraft(event.currentTarget.value); else commit(event.currentTarget.value); }} /></div>;
 }
 
 function ParagraphLengthSetting({ label, value, min, max, onChange }: { label: string; value?: string; min: number; max: number; onChange: (value: string | undefined) => void }) {

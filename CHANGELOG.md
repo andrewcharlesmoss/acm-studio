@@ -14,7 +14,6 @@
   use the filled Gutenberg treatment while retaining original ACM artwork.
 - Matched Gutenberg's custom font-size control with an integrated compact unit
   menu, theme-coloured range slider and px/em/rem/vw/vh units.
-- Fixed custom font-size range dragging so releasing the pointer outside the slider commits the value and keeps custom mode active.
 - Dragged Block Library items now insert at the canvas drop position while keeping the library open for further additions.
 - Added Gutenberg-ordered block alignment menus to every analogous core block that declares alignment support, including Left/Centre/Right floating layouts, Wide/Full widths, typed validation, HTML round-tripping and migration from the Image block's legacy Wide display setting.
 - Added Image block height, Default/Rounded styles and custom, image-file and lightbox link destinations across editing, previews and HTML round-trip.
@@ -632,3 +631,6 @@
 - Stabilised auto-height measurements so the editor no longer observes the
   element it is resizing, preventing the browser's ResizeObserver loop error.
 - Added `{copyright}`, `{year}` and `{site-title}` placeholders to template copyright text, with a current-year default for new template sets.
+
+### Fixed
+- Fixed custom font-size slider dragging so the value commits on release without switching back to presets, including when the pointer is released outside the slider. Releasing without changing the value does not add an undo entry.
