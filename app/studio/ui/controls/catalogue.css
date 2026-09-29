@@ -40,7 +40,7 @@
 .ui-paragraph-actions button:disabled { opacity:.48; cursor:not-allowed; }
 .ui-paragraph-actions button:focus-visible,.ui-control-entry button:focus-visible,.ui-control-index a:focus-visible,.ui-catalogue-card a:focus-visible { outline:2px solid #465b78; outline-offset:2px; }
 .ui-paragraph-editor-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,360px); min-width:0; }
-.ui-paragraph-canvas { min-width:0; padding:1.5rem; overflow-wrap:anywhere; }
+.ui-paragraph-canvas { min-width:0; padding:1.5rem; overflow-wrap:anywhere; overflow-x:clip; }
 .ui-paragraph-canvas > .block-textarea { outline:1px solid transparent; }
 .ui-paragraph-canvas > .block-textarea:focus { outline-color:#929292; }
 .ui-paragraph-sample-note,.ui-paragraph-isolation { color:var(--rl-muted); font-size:.875rem; }

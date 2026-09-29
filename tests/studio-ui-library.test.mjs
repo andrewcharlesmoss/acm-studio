@@ -28,6 +28,7 @@ test("Paragraph Block Library uses the definition, real inspector and isolated S
   assert.match(specimen, /<ParagraphEditField/);
   assert.match(specimen, /<BlockInspector/);
   assert.match(specimen, /<BlockRenderer[^>]+variant="studio"/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-paragraph-canvas \{[^}]*overflow-x:clip/);
   assert.match(specimen, /navigationRootRef=\{specimenRef\}/);
   assert.match(specimen, /paragraphInspectorProfile\.dependencies\.map/);
   assert.match(specimen, /<section id=\{section\.id\} key=\{section\.id\}>/);
