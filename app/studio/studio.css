@@ -576,6 +576,11 @@
 .document-preview > .preview-cover-image { margin: 24px 0 34px; }
 .canvas-cover-image { margin: 24px 0 0; }
 .canvas-cover-wrap { position: relative; margin: 24px 0 4px; }
+.cover-image-visual-style-frame > .document-dynamic-cover { margin: 0; }
+.canvas-block > .cover-image-visual-style-frame > .canvas-cover-wrap.document-dynamic-cover { margin: 0; }
+.canvas-block > .cover-image-visual-style-frame > .canvas-cover-wrap.document-dynamic-cover > .canvas-cover-image { margin: 0; }
+.canvas-block > .cover-image-visual-style-frame.has-cover-image-frame-override > .canvas-cover-wrap.document-dynamic-cover > .canvas-cover-image { border: 0; border-radius: 0; }
+.template-editing .canvas-block.is-cover-image .template-node-selectable .cover-image-visual-style-frame.has-cover-image-frame-override .canvas-cover-wrap.document-dynamic-cover > .canvas-cover-image { border: 0; border-radius: 0; }
 .canvas-block > .canvas-cover-wrap.document-dynamic-cover { margin: 0; }
 .canvas-block > .canvas-cover-wrap.document-dynamic-cover > .canvas-cover-image { margin: 0; }
 .template-editing .canvas-block.is-cover-image .canvas-cover-wrap.document-dynamic-cover { margin: 0; }

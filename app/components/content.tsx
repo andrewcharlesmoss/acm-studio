@@ -74,7 +74,12 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     const style = block.visualStyle;
     const css = block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style);
     if (block.type === "social-icons") { delete css.backgroundColor; delete css.backgroundImage; }
-    return <div key={block.id} id={paragraphStyleAnchor(style)} className={visualStyleClassName(style)} style={css}>{content}</div>;
+    if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
+    const coverFrameClass = block.type === "cover-image"
+      ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`
+      : "";
+    const className = `${visualStyleClassName(style)}${coverFrameClass}`;
+    return <div key={block.id} id={paragraphStyleAnchor(style)} className={className} style={css}>{content}</div>;
   }
   function renderBlockContent(block: ContentBlock) {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
@@ -165,7 +170,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           if (!document || !documentFieldVisible(document, "coverImage") || !document.coverImage) return null;
           const source = safeImageSource(document.coverImage.src);
           const href = document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
-          const image = source ? <img src={source} alt={document.coverImage.alt} style={imageDisplayStyle(block)} /> : <div className="image-placeholder" role="img" aria-label={document.coverImage.alt || "Cover image placeholder"}>Cover image</div>;
+          const image = source ? <img src={source} alt={document.coverImage.alt} style={imageDisplayStyle(block, { includeFrame: false })} /> : <div className="image-placeholder" role="img" aria-label={document.coverImage.alt || "Cover image placeholder"}>Cover image</div>;
           // eslint-disable-next-line react/jsx-no-target-blank
           return <figure className={`document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{block.isLink && href ? <a href={href} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={[block.rel, block.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image}</figure>;
         }

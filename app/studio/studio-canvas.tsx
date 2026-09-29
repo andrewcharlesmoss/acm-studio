@@ -1337,7 +1337,12 @@ export function BlockField(props: BlockFieldProps) {
   const style = block.visualStyle;
   const css = block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style);
   if (block.type === "social-icons") { delete css.backgroundColor; delete css.backgroundImage; }
-  return <div id={paragraphStyleAnchor(style)} className={visualStyleClassName(style)} style={css}>{content}</div>;
+  if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
+  const coverFrameClass = block.type === "cover-image"
+    ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`
+    : "";
+  const className = `${visualStyleClassName(style)}${coverFrameClass}`;
+  return <div id={paragraphStyleAnchor(style)} className={className} style={css}>{content}</div>;
 }
 
 function BlockFieldContent({ block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, writable = true, pendingColumnsLayoutBlockId, onColumnsLayoutSelected, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onOpenNestedInserter, onInsertNestedBlock, onChange }: BlockFieldProps) {
@@ -1374,7 +1379,7 @@ function BlockFieldContent({ block, rootBlocks = [block], document, templatePlac
       <div className={`canvas-cover-image${imageSource ? " is-source" : ""}`} role="img" aria-label={document?.coverImage?.alt || "Mock cover image"}>
         {imageSource ? <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imageSource} alt={document?.coverImage?.alt || ""} style={imageDisplayStyle(block)} />
+          <img src={imageSource} alt={document?.coverImage?.alt || ""} style={imageDisplayStyle(block, { includeFrame: false })} />
         </> : null}
       </div>
       {onOpenCoverMediaLibrary || onRemoveCoverImage ? <div className="canvas-cover-actions">

@@ -303,6 +303,68 @@ test("dynamic Gutenberg fields and Group semantics retain their compatibility se
   assert.match(blockToHtml(blocks[3]), /^<nav[^>]*aria-label="Related pages"/);
 });
 
+test("Cover Image border and shadow styles render in Studio and article previews", () => {
+  const block = { id: "styled-cover", type: "cover-image", aspectRatio: "wide", visualStyle: { borderStyle: "solid", borderWidth: "2px", borderColor: "#123456", borderRadius: "12px", shadow: "soft" } };
+  const document = { kind: "post", slug: "cover-example", title: "Cover example", coverImage: { src: "https://example.com/cover.jpg", alt: "A cover" } };
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant, document }));
+    assert.match(html, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override" style="[^"]*border-style:solid;border-width:2px;border-color:#123456;border-radius:12px;box-shadow:/);
+    const imageStyle = html.match(/<img[^>]*style="([^"]+)"/)?.[1] ?? "";
+    assert.doesNotMatch(imageStyle, /border-style|border-width|border-color|border-radius|box-shadow/);
+    for (const property of ["border-style:", "border-radius:", "box-shadow:"]) {
+      assert.equal(html.split(property).length - 1, 1, `${property} should be applied once to the cover frame`);
+    }
+  }
+  assert.equal(validContentBlocks([block]), true);
+  assert.match(blockToHtml(block), /data-block-type="cover-image"/);
+});
+
+test("cover frame styling does not change Image block frame behaviour", () => {
+  const block = { id: "styled-image", type: "image", src: "https://example.com/photo.jpg", alt: "Photo", visualStyle: { borderStyle: "solid", borderWidth: "2px", borderColor: "#123456", borderRadius: "12px", shadow: "soft" } };
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
+  assert.match(html, /<img[^>]*style="[^"]*border-style:solid;border-width:2px;border-color:#123456;border-radius:12px;box-shadow:/);
+  assert.equal(html.split("border-style:").length - 1, 1);
+  assert.equal(html.split("border-radius:").length - 1, 1);
+  assert.equal(html.split("box-shadow:").length - 1, 1);
+});
+
+test("Cover Image editor renders one styled frame without changing its canvas margins", async () => {
+  const { BlockField } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const block = { id: "styled-cover", type: "cover-image", aspectRatio: "wide", visualStyle: { borderStyle: "solid", borderWidth: "2px", borderColor: "#123456", borderRadius: "12px", shadow: "soft" } };
+  const document = { id: "cover-post", kind: "post", status: "draft", title: "Cover", coverImage: { src: "https://example.com/cover.jpg", alt: "Cover" }, blocks: [block] };
+  const html = renderToStaticMarkup(createElement(BlockField, {
+    block,
+    document,
+    coverImageUrl: document.coverImage.src,
+    onTableCellFocus() {},
+    onTextSelection() {},
+    onLinkActivate() {},
+    onChange() {},
+  }));
+  assert.match(html, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override" style="[^"]*border-style:solid/);
+  assert.match(html, /cover-image-visual-style-frame[^>]*><div class="canvas-cover-wrap document-dynamic-cover[^>]*><div class="canvas-cover-image is-source"/);
+  const imageStyle = html.match(/<img[^>]*style="([^"]+)"/)?.[1] ?? "";
+  assert.doesNotMatch(imageStyle, /border-style|border-width|border-color|border-radius|box-shadow/);
+  assert.equal(html.split("border-style:").length - 1, 1);
+  assert.equal(html.split("border-radius:").length - 1, 1);
+  assert.equal(html.split("box-shadow:").length - 1, 1);
+
+  const renderCover = (visualStyle) => renderToStaticMarkup(createElement(BlockField, {
+    block: { ...block, visualStyle },
+    document,
+    coverImageUrl: document.coverImage.src,
+    onTableCellFocus() {},
+    onTextSelection() {},
+    onLinkActivate() {},
+    onChange() {},
+  }));
+  const shadowOnly = renderCover({ shadow: "soft" });
+  assert.match(shadowOnly, /class="block-visual-style cover-image-visual-style-frame" style="box-shadow:/);
+  assert.doesNotMatch(shadowOnly, /has-cover-image-frame-override/);
+  const noBorder = renderCover({ borderStyle: "none" });
+  assert.match(noBorder, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override"/);
+});
+
 test("Social Icons serialize style, spacing, alignment and per-icon link metadata", () => {
   const block = {
     id: "socials",

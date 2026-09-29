@@ -18,6 +18,7 @@
 - Added Gutenberg-ordered block alignment menus to every analogous core block that declares alignment support, including Left/Centre/Right floating layouts, Wide/Full widths, typed validation, HTML round-tripping and migration from the Image block's legacy Wide display setting.
 - Added Image block height, Default/Rounded styles and custom, image-file and lightbox link destinations across editing, previews and HTML round-trip.
 - Added Gutenberg-compatible Button width, text alignment, title and link-relation controls, with Fill and Outline labels in the block pane.
+- Added Gutenberg-supported border and shadow settings to the Cover Image block, rendered with the shared image style.
 - Added Gutenberg-style axis and side controls for block padding and margins, plus linked or separate border widths and corner radii, using Studio's neutral control colours.
 - Added custom font sizes and Gutenberg's full weight and italic Appearance choices to shared block Typography settings.
 - Moved inspector option menus beside the settings pane and kept Reset all visible beneath scrollable options.

@@ -135,6 +135,21 @@ test("shadow controls match mapped Gutenberg block support", async () => {
   assert.match(source, /block\.type === "paragraph" \|\| block\.type === "heading" \? \[\{ id: "text-shadow"/);
 });
 
+test("Cover Image exposes shared border, radius and shadow styling", async () => {
+  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const inspector = source.slice(source.indexOf("function CoverImageInspector"), source.indexOf("function DividerInspector"));
+  assert.match(inspector, /const style = block\.visualStyle \?\? \{\}/);
+  assert.match(inspector, /title="Border & shadow"/);
+  assert.match(inspector, /function updateBorderColour\(value: string \| undefined\)/);
+  assert.match(inspector, /updateVisualStyle\(\{ borderColor: value, \.\.\.\(value \? \{ borderStyle: style\.borderStyle && style\.borderStyle !== "none" \? style\.borderStyle : "solid" \} : \{\}\) \}\)/);
+  assert.match(inspector, /function updateBorderWidth\(value: string\)/);
+  assert.match(inspector, /updateVisualStyle\(\{ borderWidth: value \|\| undefined, \.\.\.\(value \? \{ borderStyle: style\.borderStyle && style\.borderStyle !== "none" \? style\.borderStyle : "solid" \} : \{\}\) \}\)/);
+  assert.match(inspector, /onChange=\{updateBorderColour\}/);
+  assert.match(inspector, /updateVisualStyle\(\{ borderStyle: event\.target\.value as ParagraphBorderStyle \}\)/);
+  assert.match(inspector, /updateVisualStyle\(\{ borderRadius: event\.target\.value \}\)/);
+  assert.match(inspector, /updateVisualStyle\(\{ shadow: \(event\.target\.value \|\| undefined\) as ParagraphStyle\["shadow"\] \}\)/);
+});
+
 test("block-specific ACM controls have their own inspector tab and document popovers wait for a portal root", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   assert.match(source, /label: "Block" }, \{ id: "studio", label: "Studio" \}/);
@@ -257,8 +272,13 @@ test("dynamic cover blocks keep selection borders tight to the image", async () 
   const styles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(styles, /\.canvas-block > \.canvas-cover-wrap\.document-dynamic-cover \{ margin: 0; \}/);
   assert.match(styles, /\.canvas-block > \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ margin: 0; \}/);
+  assert.match(styles, /\.cover-image-visual-style-frame > \.document-dynamic-cover \{ margin: 0; \}/);
+  assert.match(styles, /\.canvas-block > \.cover-image-visual-style-frame > \.canvas-cover-wrap\.document-dynamic-cover \{ margin: 0; \}/);
+  assert.match(styles, /\.canvas-block > \.cover-image-visual-style-frame > \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ margin: 0; \}/);
+  assert.match(styles, /\.canvas-block > \.cover-image-visual-style-frame\.has-cover-image-frame-override > \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ border: 0; border-radius: 0; \}/);
   assert.match(styles, /\.template-editing \.canvas-block\.is-cover-image \.canvas-cover-wrap\.document-dynamic-cover \{ margin: 0; \}/);
   assert.match(styles, /\.template-editing \.canvas-block\.is-cover-image \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ margin: 0; \}/);
+  assert.match(styles, /\.template-editing \.canvas-block\.is-cover-image \.template-node-selectable \.cover-image-visual-style-frame\.has-cover-image-frame-override \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ border: 0; border-radius: 0; \}/);
 });
 
 test("template cover editing uses the shared hover actions", async () => {

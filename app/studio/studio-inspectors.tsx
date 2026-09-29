@@ -758,6 +758,18 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block:
 
 function CoverImageInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "cover-image" }>; onChange: (block: ContentBlock) => void }) {
   const ratio = block.aspectRatio ?? "original";
+  const style = block.visualStyle ?? {};
+  function updateVisualStyle(changes: Partial<ParagraphStyle>) {
+    const next = { ...style, ...changes };
+    for (const key of Object.keys(next) as (keyof ParagraphStyle)[]) if (!next[key]) delete next[key];
+    onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined });
+  }
+  function updateBorderColour(value: string | undefined) {
+    updateVisualStyle({ borderColor: value, ...(value ? { borderStyle: style.borderStyle && style.borderStyle !== "none" ? style.borderStyle : "solid" } : {}) });
+  }
+  function updateBorderWidth(value: string) {
+    updateVisualStyle({ borderWidth: value || undefined, ...(value ? { borderStyle: style.borderStyle && style.borderStyle !== "none" ? style.borderStyle : "solid" } : {}) });
+  }
   return <>
     <InspectorAccordionSection title="Link settings">
       <label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.isLink)} onChange={(event) => onChange({ ...block, isLink: event.target.checked })} /><span>Link to post</span></label>
@@ -769,6 +781,7 @@ function CoverImageInspector({ block, onChange }: { block: Extract<ContentBlock,
       <label><span>Height (px)</span><input type="number" min="32" max="2400" value={block.displayHeight ?? ""} placeholder="Auto" onChange={(event) => onChange({ ...block, displayHeight: event.target.value ? Math.max(32, Math.min(2400, Number(event.target.value) || 32)) : undefined })} /></label>
       {ratio !== "original" ? <><label><span>Scale</span><select value={block.scale ?? "cover"} onChange={(event) => onChange({ ...block, scale: event.target.value as "cover" | "contain" })}><option value="cover">Cover</option><option value="contain">Contain</option></select></label><div className="inspector-two-column"><label><span>Focal X (%)</span><input type="number" min="0" max="100" value={block.focalX ?? 50} onChange={(event) => onChange({ ...block, focalX: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} /></label><label><span>Focal Y (%)</span><input type="number" min="0" max="100" value={block.focalY ?? 50} onChange={(event) => onChange({ ...block, focalY: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} /></label></div></> : null}
     </InspectorAccordionSection>
+    <InspectorAccordionSection title="Border & shadow"><ColourSetting label="Border colour" value={style.borderColor} onChange={updateBorderColour} /><label><span>Border style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateVisualStyle({ borderStyle: event.target.value as ParagraphBorderStyle })}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label><div className="inspector-two-column"><label><span>Border width</span><input value={style.borderWidth ?? ""} onChange={(event) => updateBorderWidth(event.target.value)} placeholder="1px" /></label><label><span>Radius</span><input value={style.borderRadius ?? ""} onChange={(event) => updateVisualStyle({ borderRadius: event.target.value })} placeholder="0" /></label></div><label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateVisualStyle({ shadow: (event.target.value || undefined) as ParagraphStyle["shadow"] })}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label></InspectorAccordionSection>
   </>;
 }
 
