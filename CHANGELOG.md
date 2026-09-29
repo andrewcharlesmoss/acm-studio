@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added sorting by the first-added date and time for shared interface icons, with the selected symbol's timestamp shown in UK local time.
 - Added a grouped Controls side menu that links to each specimen, tracks the active section while scrolling and shares its visual navigation styles with the Block Library.
 - Added the Paragraph Block Library entry and reusable Controls catalogue, backed by one Paragraph capability profile, the production rich-text field and inspector, and isolated editable/preview specimens. Consolidated shared colour-picker behaviour and reused the extracted font-size and length controls in the inspector and catalogue.
 - Paragraph inspector now uses Gutenberg's Colour label, reserves blue Studio badges for Paragraph-only options, follows Gutenberg's adjacent-paragraph line indent behaviour, lists Border and Dimensions options in Gutenberg order, disables Drop cap for Gutenberg-incompatible text alignment, and preserves legacy drop-cap preferences when alignment changes. Link colour has separate Default and Hover values. Typography Reset all is enabled only when an optional control is active. Paragraph Advanced includes Gutenberg-style descriptions, uppercase field captions and blank empty fields, plus Additional CSS class(es) and safe, block-scoped Additional CSS declarations with HTML-source round-tripping.

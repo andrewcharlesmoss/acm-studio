@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { iconNames, iconMetadata, iconScales, type IconName } from "@acm/icons";
+import { iconNames, iconMetadata, iconScales, iconAddedAt, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { AcmStudioIcon } from "../acm-studio-icons";
 import { blockCatalogue, templateContentBlock, type BlockLibraryItemType } from "../editor-model";
@@ -10,6 +10,7 @@ import { commandInventory } from "../ribbon/catalogue-model";
 import { StudioUiLibrary } from "./studio-ui-library";
 import { createIconPng, createIconSvg, downloadIconFile } from "./icon-download.mjs";
 import { KeyboardCatalogue } from "./keyboard-catalogue";
+import { formatIconAddedAt, sortIconsByAddedAt, type IconSortOrder } from "./icon-sort";
 
 const blockLibraryCatalogue = [...blockCatalogue, templateContentBlock];
 
@@ -17,11 +18,12 @@ export function IconsCatalogue({ initialIcon, collection = "icons" }: { initialI
   const [iconQuery, setIconQuery] = useState("");
   const [golden, setGolden] = useState(false);
   const [dark, setDark] = useState(false);
+  const [iconSortOrder, setIconSortOrder] = useState<IconSortOrder>("catalogue");
   const [icon, setIcon] = useState<IconName>(() => iconNames.includes(initialIcon as IconName) ? initialIcon as IconName : "action.undo");
   const [exportStatus, setExportStatus] = useState("");
   const [blockQuery, setBlockQuery] = useState("");
   const [blockSymbol, setBlockSymbol] = useState<BlockLibraryItemType>("paragraph");
-  const filteredIcons = iconNames.filter((name) => !name.startsWith("keyboard.") && (!golden || iconMetadata[name].golden) && (name + " " + iconMetadata[name].label + " " + iconMetadata[name].keywords.join(" ")).toLowerCase().includes(iconQuery.toLowerCase()));
+  const filteredIcons = sortIconsByAddedAt(iconNames.filter((name) => !name.startsWith("keyboard.") && (!golden || iconMetadata[name].golden) && (name + " " + iconMetadata[name].label + " " + iconMetadata[name].keywords.join(" ")).toLowerCase().includes(iconQuery.toLowerCase())), iconAddedAt, iconSortOrder);
   const filteredBlocks = blockLibraryCatalogue.filter((item) => `${item.label} ${item.description} ${item.group} ${blockLibrarySymbol(item.type).symbol}`.toLowerCase().includes(blockQuery.toLowerCase()));
   const selectedBlock = blockLibraryCatalogue.find((item) => item.type === blockSymbol) ?? blockLibraryCatalogue[0];
   const selectedBlockSymbol = blockLibrarySymbol(selectedBlock.type);
@@ -88,6 +90,7 @@ export function IconsCatalogue({ initialIcon, collection = "icons" }: { initialI
           <label className="rl-search"><AcmIcon name="action.search" size={18} /><input aria-label="Search Icons" placeholder="Search icons…" value={iconQuery} onChange={(event) => setIconQuery(event.target.value)} /></label>
           <label className="rl-check"><input type="checkbox" checked={golden} onChange={(event) => setGolden(event.target.checked)} />Golden Reference Only</label>
           <label className="rl-check"><input type="checkbox" checked={dark} onChange={(event) => setDark(event.target.checked)} />Dark Specimens</label>
+          <label className="rl-picker ui-icon-sort">Sort By<select value={iconSortOrder} onChange={(event) => setIconSortOrder(event.target.value as IconSortOrder)}><option value="catalogue">Catalogue Order</option><option value="newest">Newest Added</option><option value="oldest">Oldest Added</option></select></label>
           <p>{filteredIcons.length} {filteredIcons.length === 1 ? "symbol" : "symbols"} · three scales</p>
           <p className="rl-secondary">Regular-S · 16px<br />Regular-M · 24px<br />Regular-L · 32px</p>
         </aside>
@@ -102,6 +105,7 @@ export function IconsCatalogue({ initialIcon, collection = "icons" }: { initialI
         <aside className="rl-inspector" aria-label="Icon Inspector">
           <p className="rl-eyebrow">SYMBOL INSPECTOR</p><h2>{iconMetadata[icon].label}</h2><code>{icon}</code>
           <div className="rl-enlarged"><AcmIcon name={icon} size={144} /></div><p>{iconMetadata[icon].description}</p>
+          <p className="ui-icon-added-at"><span>Added</span> <time dateTime={iconAddedAt[icon]}>{formatIconAddedAt(iconAddedAt[icon])}</time></p>
           <div className="rl-scale-samples">{iconScales.map((scale, index) => {
             const size = [16, 24, 32][index];
             return <div key={scale}>

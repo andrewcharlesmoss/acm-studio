@@ -41,6 +41,9 @@
 .ui-icons-page .rl-layout { margin-top: .5rem; }
 .ui-icons-page .rl-section-heading { padding: 1.25rem 1.5rem 0; }
 .ui-icons-page .rl-inspector h3 { margin-top: 1.5rem; }
+.ui-icons-page .ui-icon-sort { margin: 1rem 0; }
+.ui-icons-page .ui-icon-added-at { margin: .5rem 0 1rem !important; color: var(--rl-muted); font-size: .8125rem; }
+.ui-icons-page .ui-icon-added-at span { color: var(--rl-ink); font-weight: 600; }
 .ui-icons-page .rl-scale-samples > div { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; gap: 4px 8px; }
 .ui-icons-page .ui-icon-scale-label { display: flex; align-items: baseline; gap: 8px; min-width: 0; white-space: nowrap; }
 .ui-icons-page .ui-icon-scale-label small { margin-left: 0; }

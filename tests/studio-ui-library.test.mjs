@@ -150,6 +150,9 @@ test("shared Icons section keeps ACM artwork and describes usage as catalogue ex
   const icons = read("app/studio/ui/icons-catalogue.tsx");
   assert.match(icons, /from "@acm\/icons"/);
   assert.match(icons, /section="icons"/);
+  assert.match(icons, /iconAddedAt/);
+  assert.match(icons, /Newest Added/);
+  assert.match(icons, /formatIconAddedAt/);
   assert.match(icons, /Ribbon catalogue examples/);
   assert.match(icons, /No Ribbon catalogue examples use this symbol/);
 });

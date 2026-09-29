@@ -104,6 +104,11 @@ it is not an exhaustive inventory of use throughout ACM products.
 The Icons inspector downloads the selected original symbol as SVG at its chosen
 16, 24 or 32px optical size. PNG downloads use the same optical geometry at
 three times the selected pixel dimensions and retain a transparent background.
+The Interface Icons collection keeps catalogue order by default and can sort
+symbols by newest or oldest first. The inspector shows the selected symbol's
+first package commit timestamp in UK local time; the owning `@acm/icons` package
+keeps the complete ISO timestamp with its UTC offset for exact chronological
+sorting.
 
 Styles previews the `@acm/styles` v0.2.0 preset beside the full written
 workspace Style Guide. Hovering or focusing a specimen or setting shows its
