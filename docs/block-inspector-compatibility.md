@@ -25,11 +25,13 @@ blocks, and verify that no source content is silently discarded. WordPress blog
 import remains future work, not a capability supplied by this inspector review.
 
 When a selected block has ACM-only settings, its inspector shows scoped Block
-and Studio tabs. Gutenberg-aligned controls stay under Block; Field,
-Component, Section role/source, and the metadata block additions are grouped
-under Studio. Field and Component open on Studio because their controls are
-entirely ACM-specific. The existing document and pane tabs keep their current
-ownership and behaviour.
+and Studio tabs. Gutenberg-aligned controls stay under Block. Field and
+Component open on Studio because their controls are entirely ACM-specific.
+Section role/source, Reading Time, Post Author, Post Date, Code language,
+Embed card title, and selected container and social-icon controls live under
+Studio. Document Title, Document Subtitle and Cover Image controls stay under
+Block. The existing document and pane tabs keep their current ownership and
+behaviour.
 
 Advanced block settings follow each corresponding core block's declared
 supports. Studio exposes HTML anchor and additional class controls only where
@@ -54,7 +56,7 @@ path without discarding existing content.
 | Button | [Buttons](https://wordpress.org/documentation/article/buttons-block/) | Label, link/new-tab target, title and rel attributes, Fill/Outline appearance, 25/50/75/100% width, text alignment and shared visual settings. | Studio has one Button block, not a nested Buttons container; per-state hover/focus/active styles are not modelled. |
 | Divider | [Separator](https://wordpress.org/documentation/article/separator-block/) | None/Centre/Wide/Full block alignment; Default, wide and dots styles; `hr` or `div` element; palette colour, margin and advanced fields. | Theme-dependent alignment presets are not imported. |
 | Spacer | [Spacer](https://wordpress.org/documentation/article/spacer-block/) | Height, optional width, px/em/rem/vw/vh units, margin and advanced anchor/classes. | Current [Gutenberg controls](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/spacer/controls.js) exclude %, although the documentation still lists it. Gutenberg switches between height and width controls according to parent orientation; Studio exposes both. Flex-child fill controls and drag handles are not modelled. |
-| Group | [Group](https://wordpress.org/documentation/article/group-block/) | None/Wide/Full outer block-width alignment; stack/row/columns inner layout, alignment, independent horizontal and vertical gaps, padding, minimum height/width, Studio responsive stacking, semantic HTML element, ARIA label, HTML anchor, additional CSS classes and shared visual settings. | Gutenberg's background image, sticky positioning, per-instance Additional CSS, allowed-block and template-lock controls are not yet modelled. |
+| Group | [Group](https://wordpress.org/documentation/article/group-block/) | None/Wide/Full outer block-width alignment; stack/row/columns and responsive grid layouts, grid maximum columns and minimum column width in pixels, alignment, independent horizontal and vertical gaps, padding, minimum height/width, Studio responsive stacking, semantic HTML element, ARIA label, HTML anchor, additional CSS classes and shared visual settings. | Gutenberg's background image, sticky positioning, per-instance Additional CSS, allowed-block and template-lock controls are not yet modelled. Gutenberg also permits CSS units for the grid minimum column width; Studio currently stores pixels. |
 | Columns and Column | [Columns](https://wordpress.org/documentation/article/columns-block/) | None/Wide/Full outer block-width alignment; WordPress-ordered layout presets, count, inner content width, vertical alignment, independent horizontal and vertical gaps, Studio responsive stacking, HTML anchor, additional CSS classes and shared visual settings. | WordPress's theme-specific width and style presets, per-instance Additional CSS, allowed-block and template-lock controls are not imported. Columns and each nested Column retain separate settings. |
 | Document Title | [Title](https://wordpress.org/documentation/article/title-block/) | Heading level, post link, new-tab target and rel, text alignment, None/Wide/Full block-width alignment and shared visual settings. | Title content is owned by document metadata. Gutenberg defaults this block to H2, which Studio now follows; its core Title block declares no minimum dimensions or text shadow. |
 | Post Author | Studio composite based on the deprecated [Post Author block](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/post-author/block.json) | Prefix, avatar, alignment and shared visual settings. | Current Gutenberg composes separate Avatar, Author Name and Author Biography blocks. Studio keeps this insertable convenience block because author identity is owned by document metadata; initials replace a profile image. |
@@ -62,7 +64,7 @@ path without discarding existing content.
 | Social Icons | [Social Icons](https://wordpress.org/documentation/article/social-icons/) | LinkedIn and TikTok children; Default, Logos Only and Pill Shape styles; block alignment, justification, orientation, wrapping, icon size, one Gutenberg-style Gap value, text labels and new-tab links; shared foreground/background colours, dimensions, border and Advanced settings. | The supported catalogue intentionally contains only LinkedIn and TikTok. Studio applies parent foreground/background settings to the icon controls and keeps separate horizontal/vertical gaps in the Studio tab. |
 | LinkedIn and TikTok | [Social Icons](https://wordpress.org/documentation/article/social-icons/) | Each icon has a profile URL, text label, link `rel`, HTML anchor and additional CSS classes. | The icons are inserted as children of Social Icons. Studio retains the ACM icon catalogue artwork and does not add other social platforms in this phase. |
 | Document Subtitle, Reading Time | Studio-specific | Content-specific options plus shared visual settings. | No exact Gutenberg core counterpart. |
-| Section | Studio-specific semantic Group | Layout and shared visual settings. | Section role and source metadata are Studio-owned. |
+| Section | Studio-specific semantic Group | Stack, Row, Columns and responsive Grid layout with maximum columns and minimum column width; shared visual settings. | Section role and source metadata are Studio-owned. |
 | Cover Image | [Featured Image](https://wordpress.org/documentation/article/post-featured-image-block/) | None/Left/Centre/Right/Wide/Full block alignment, post link/new-tab/rel, width, height, aspect ratio, scale, focal position, border, radius and shadow. | It displays document cover metadata. Gutenberg's size variants, first-post-image fallback, overlay and duotone remain unsupported. It is not the content-bearing Cover block. |
 | Field | Studio-specific | Content controls. | No exact Gutenberg core counterpart. |
 | Column, Component | Studio-specific nested/system types | Controls appear when their owning structure selects them; neither is offered as a top-level inserter item. | No exact Gutenberg core counterpart for Component; Column maps only inside Columns. |

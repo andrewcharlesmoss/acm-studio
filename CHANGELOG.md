@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added Gutenberg's responsive Grid arrangement to Group and Section blocks, with maximum columns and a minimum column width. Workspace schema v10 reads versions 2–9; template schema v0.9.0 reads v0.1.0–v0.8.0.
 - Added independent horizontal and vertical layout gaps for Group, Columns and Column blocks while retaining legacy scalar gap values as fallbacks. Workspace schema v9 and template schema v0.8.0 retain readers for earlier supported data.
 - Added Gutenberg-style Social Icons variants, block alignment, separate horizontal and vertical spacing, and link `rel` settings; Divider blocks can now use an `hr` or `div` element.
 - Added a searchable, keyboard-dismissible Social Icons picker for adding LinkedIn and TikTok child blocks inside the group in documents and templates.

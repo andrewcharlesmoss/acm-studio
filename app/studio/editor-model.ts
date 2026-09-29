@@ -46,7 +46,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
   documents: StudioDocument[];
@@ -72,7 +72,7 @@ export const blockCatalogue: Array<{
   description: string;
   group: "Text" | "Media" | "Design" | "Widgets" | "Other";
 }> = [
-  { type: "group", label: "Group", description: "Combine blocks into a stack, row or columns.", group: "Design" },
+  { type: "group", label: "Group", description: "Combine blocks in a stack, row, columns or responsive grid.", group: "Design" },
   { type: "columns", label: "Columns", description: "Arrange blocks in adjustable, responsive columns.", group: "Design" },
   { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Design" },
   { type: "paragraph", label: "Paragraph", description: "Start with ordinary text.", group: "Text" },
@@ -131,7 +131,7 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 9,
+  version: 10,
   activeDocumentId: "page-home",
   bin: [],
   categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],

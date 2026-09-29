@@ -1,4 +1,4 @@
-import { listItemText, type ContentBlock, type LayoutOptions, type RichTextRun, type SiteSectionRole, type SocialIconBlock, type TextMark } from "../content/model";
+import { listItemText, type ContentBlock, type LayoutMode, type LayoutOptions, type RichTextRun, type SiteSectionRole, type SocialIconBlock, type TextMark } from "../content/model";
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { hasLayoutOptions } from "../content/layout";
 import { plainTextFromRuns, safeImageSource, safeTextLink } from "../content/rich-text";
@@ -224,6 +224,7 @@ function layoutHtmlAttributes(options: LayoutOptions) {
     options.paddingY !== undefined && ` data-layout-padding-y="${options.paddingY}"`,
     options.contentWidth && ` data-layout-width="${escapeAttribute(options.contentWidth)}"`,
     options.columns !== undefined && ` data-layout-columns="${options.columns}"`,
+    options.minColumnWidth !== undefined && ` data-layout-min-column-width="${options.minColumnWidth}"`,
     options.stackAt && ` data-layout-stack-at="${escapeAttribute(options.stackAt)}"`,
   ].filter(Boolean).join("");
 }
@@ -499,8 +500,8 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
         if ("error" in parsed) return parsed;
         children.push(parsed.block);
       }
-      const layout = (element.className.match(/layout-(stack|row|columns)/)?.[1] ?? "stack") as "stack" | "row" | "columns";
-      const options = parseLayoutOptions(element);
+      const layout = (element.className.match(/layout-(stack|row|columns|grid)/)?.[1] ?? "stack") as LayoutMode;
+      const options = parseLayoutOptions(element, true);
       if (type === "section") return { block: { ...(original.type === "section" ? original : {}), id, type: "section", role: sectionRoleFromData(element.dataset.sectionRole), layout, ...options, children } };
       const semanticTag = element.tagName.toLowerCase();
       return { block: { ...(original.type === "group" ? original : {}), id, type: "group", layout, ...options, children, blockAlign: parsedBlockAlignment(element, original), tagName: ["div", "main", "section", "article", "aside", "header", "footer", "nav"].includes(semanticTag) ? semanticTag as Extract<ContentBlock, { type: "group" }>["tagName"] : undefined, ariaLabel: element.getAttribute("aria-label") || undefined } };
@@ -510,7 +511,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
   }
 }
 
-function parseLayoutOptions(element: HTMLElement): LayoutOptions {
+function parseLayoutOptions(element: HTMLElement, includeGridOptions = false): LayoutOptions {
   const number = (value: string | undefined) => value === undefined ? undefined : Number(value);
   return {
     horizontalAlign: element.dataset.layoutHorizontalAlign as LayoutOptions["horizontalAlign"],
@@ -522,6 +523,7 @@ function parseLayoutOptions(element: HTMLElement): LayoutOptions {
     paddingY: number(element.dataset.layoutPaddingY),
     contentWidth: element.dataset.layoutWidth as LayoutOptions["contentWidth"],
     columns: number(element.dataset.layoutColumns),
+    ...(includeGridOptions ? { minColumnWidth: number(element.dataset.layoutMinColumnWidth) } : {}),
     stackAt: element.dataset.layoutStackAt as LayoutOptions["stackAt"],
   };
 }

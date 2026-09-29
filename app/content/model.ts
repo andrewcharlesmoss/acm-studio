@@ -109,7 +109,7 @@ export type SiteContentRole = "logo" | "title" | "eyebrow" | "status" | "progres
   | "player-name" | "score-value" | "score-label" | "metric-label" | "metric-value"
   | "footer-name" | "copyright" | "social-icon" | "social-action";
 export type ContentFieldControl = "text" | "select";
-export type LayoutMode = "stack" | "row" | "columns";
+export type LayoutMode = "stack" | "row" | "columns" | "grid";
 export type LayoutHorizontalAlignment = "left" | "centre" | "right" | "stretch";
 export type LayoutVerticalAlignment = "top" | "centre" | "bottom" | "stretch";
 export type LayoutContentWidth = "full" | "constrained";
@@ -124,6 +124,7 @@ export type LayoutOptions = {
   paddingY?: number;
   contentWidth?: LayoutContentWidth;
   columns?: number;
+  minColumnWidth?: number;
   stackAt?: LayoutStackAt;
 };
 export type ColumnBlock = { id: string; type: "column"; width?: number; verticalAlign?: LayoutVerticalAlignment; gap?: number; columnGap?: number; rowGap?: number; style?: ParagraphStyle; children: ContentBlock[] };
@@ -170,7 +171,7 @@ export type ContentBlock = (
   | SocialIconBlock
   | ({ id: string; type: "section"; role?: SiteSectionRole; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
   | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource; blockAlign?: BlockAlignment; tagName?: "div" | "main" | "section" | "article" | "aside" | "header" | "footer" | "nav"; ariaLabel?: string } & LayoutOptions)
-  | ({ id: string; type: "columns"; children: ColumnBlock[]; style?: ParagraphStyle; blockAlign?: BlockAlignment } & Omit<LayoutOptions, "columns" | "horizontalAlign">)
+  | ({ id: string; type: "columns"; children: ColumnBlock[]; style?: ParagraphStyle; blockAlign?: BlockAlignment } & Omit<LayoutOptions, "columns" | "horizontalAlign" | "minColumnWidth">)
   | ColumnBlock
   | { id: string; type: "component"; component: SiteComponentName; data?: SiteComponentData; source?: SiteComponentSource; children?: ContentBlock[] }) & { siteRole?: SiteContentRole; visualStyle?: ParagraphStyle };
 
