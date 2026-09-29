@@ -34,11 +34,13 @@ const followingParagraph: Extract<ContentBlock, { type: "paragraph" }> = {
 };
 const initialParagraphs = [precedingParagraph, initialParagraph, followingParagraph];
 type ParagraphSpecimenBlock = Extract<ContentBlock, { type: "paragraph" }>;
+type FontSizeViewMode = "presets" | "custom";
 const copyParagraphs = (paragraphs: ParagraphSpecimenBlock[]) => paragraphs.map(paragraph => structuredClone(paragraph));
 
 export function ParagraphBlockCatalogue() {
   const [paragraphs, setParagraphs] = useState(() => copyParagraphs(initialParagraphs));
   const [activeId, setActiveId] = useState(initialParagraph.id);
+  const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, FontSizeViewMode>>({});
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [resetRevision, setResetRevision] = useState(0);
   const [historyAvailability, setHistoryAvailability] = useState({ canUndo: false, canRedo: false });
@@ -105,6 +107,7 @@ export function ParagraphBlockCatalogue() {
     historyRef.current = { past: [], future: [] };
     setHistoryAvailability({ canUndo: false, canRedo: false });
     setActiveId(initialParagraph.id);
+    setFontSizeViewModes({});
     const resetParagraphs = copyParagraphs(initialParagraphs);
     currentRef.current = resetParagraphs;
     setParagraphs(resetParagraphs);
@@ -156,7 +159,7 @@ export function ParagraphBlockCatalogue() {
           </div>) : <BlockRenderer blocks={paragraphs} variant="studio" showMissingMetadata={false} />}
         </div>
         <aside className="ui-paragraph-inspector" aria-label={`Paragraph ${activeIndex + 1} of ${paragraphs.length} settings`}>
-          <BlockInspector key={`${activeParagraph.id}-${resetRevision}`} block={activeParagraph} onChange={updateInspector} onOpenFiles={() => {}} canOpenFiles={false} fontSizeModeScope="paragraph-library" fontSizeViewModes={{}} onFontSizeViewModeChange={() => {}} />
+          <BlockInspector key={`${activeParagraph.id}-${resetRevision}`} block={activeParagraph} onChange={updateInspector} onOpenFiles={() => {}} canOpenFiles={false} fontSizeModeScope="paragraph-library" fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} />
         </aside>
       </div>
       <p className="ui-paragraph-sample-note">The first paragraph’s line indent supplies the following paragraph’s indentation context. Select any paragraph to edit its text and settings.</p>
