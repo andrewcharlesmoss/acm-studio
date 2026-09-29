@@ -86,6 +86,8 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
   const setCollapsed = onPaneCollapsedChange ?? setLocalCollapsed;
   const selectedColumnParent = selectedBlock?.type === "column" ? findColumnsParent(activeDocument.blocks, selectedBlock.id) : undefined;
   const canSetSticky = selectedBlock?.type === "group" && activeDocument.blocks.some(block => block.id === selectedBlock.id);
+  const selectedDocumentFieldBlockType = selectedDocumentField === "title" ? "document-title" : "document-subtitle";
+  const selectedDocumentFieldInfo = selectedDocumentField ? blockCatalogue.find(item => item.type === selectedDocumentFieldBlockType) : null;
   return (
     <Pane trackClassName="studio-inspector-track" className="studio-inspector" bodyClassName="inspector-scroll" label="Editor Inspector" side="right" width={paneWidth} onWidthChange={onPaneWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed} onCollapsedChange={setCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
       tabs={<PaneTabs id={tabPrefix} label="Editor settings" className="inspector-tabs" tabs={[
@@ -98,9 +100,12 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
         {panel === "document" || panel === "studio" ? (
           <DocumentInspector key={activeDocument.id} panel={panel} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} categories={categories} tagSuggestions={tagSuggestions} onCategorySelectionChange={onCategorySelectionChange} onAddCategory={onAddCategory} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
         ) : panel === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedDocumentField ? (
-          <InspectorAccordionSection className="document-field-inspector" title={`Document ${selectedDocumentField}`}>
-            <p>This field is part of the document. Edit it on the canvas.</p>
-          </InspectorAccordionSection>
+          <div className="block-inspector-settings">
+            <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span><BlockLibraryIcon type={selectedDocumentFieldBlockType} /></span><h2>{selectedDocumentFieldInfo?.label ?? `Document ${selectedDocumentField}`}</h2></div><p className="setting-note">{selectedDocumentFieldInfo?.description}</p></section></div>
+            <InspectorAccordionSection className="document-field-inspector" title={`Document ${selectedDocumentField}`}>
+              <p>This field is part of the document. Edit it on the canvas.</p>
+            </InspectorAccordionSection>
+          </div>
         ) : selectedBlock ? (
           <BlockInspector block={selectedBlock} canSetSticky={canSetSticky} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
         ) : (

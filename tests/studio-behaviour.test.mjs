@@ -497,6 +497,15 @@ test("the selected block summary stays above its inspector tabs", async () => {
   assert.match(source, /block\.type === "paragraph"\s*\? "Start with the basic building block of all narrative\."/);
 });
 
+test("selected document title and subtitle show their block summary in the Block tab", async () => {
+  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  assert.match(source, /selectedDocumentField === "title" \? "document-title" : "document-subtitle"/);
+  assert.match(source, /selectedDocumentFieldInfo\?\.label \?\? `Document \$\{selectedDocumentField\}`/);
+  assert.match(source, /<BlockLibraryIcon type=\{selectedDocumentFieldBlockType\} \/>/);
+  assert.match(source, /selectedDocumentField \? \([\s\S]*?<section className="inspector-block-summary">[\s\S]*?<h2>\{selectedDocumentFieldInfo\?\.label/);
+  assert.match(source, /<p className="setting-note">\{selectedDocumentFieldInfo\?\.description\}<\/p>/);
+});
+
 test("document settings keep WordPress-like fields separate from Studio-specific controls", async () => {
   const [source, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8"),
