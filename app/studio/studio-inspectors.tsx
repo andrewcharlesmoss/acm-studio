@@ -81,6 +81,7 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
   const [localCollapsed, setLocalCollapsed] = useState(false);
+  const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, FontSizeViewMode>>({});
   const collapsed = paneCollapsed ?? localCollapsed;
   const setCollapsed = onPaneCollapsedChange ?? setLocalCollapsed;
   const selectedColumnParent = selectedBlock?.type === "column" ? findColumnsParent(activeDocument.blocks, selectedBlock.id) : undefined;
@@ -100,7 +101,7 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
             <p>This field is part of the document. Edit it on the canvas.</p>
           </InspectorAccordionSection>
         ) : selectedBlock ? (
-          <BlockInspector block={selectedBlock} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
+          <BlockInspector block={selectedBlock} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
@@ -598,10 +599,16 @@ function DocumentStylesInspector({ document }: { document: StudioDocument }) {
   return <div className="inspector-sections"><InspectorAccordionSection title="Styles"><p className="setting-note">Document styles come from the assigned template and explicit block styles. There is no separate document-level style override.</p><div className="inspector-value-row"><span>Document type</span><strong>{document.kind === "post" ? "Post" : "Page"}</strong></div><div className="inspector-value-row"><span>Breakpoint rules</span><strong>Template controlled</strong></div></InspectorAccordionSection></div>;
 }
 
-export function BlockInspector({ block, onChange, onColumnWidthChange, onOpenFiles, canOpenFiles }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {
+type FontSizeViewMode = "presets" | "custom";
+
+function fontSizeModeKey(scope: string, block: ContentBlock) {
+  return JSON.stringify([scope, block.id, block.type]) ?? "";
+}
+
+export function BlockInspector({ block, onChange, onColumnWidthChange, onOpenFiles, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
   const tabPrefix = useId();
   const [selectedTab, setSelectedTab] = useState<{ blockId: string; blockType: ContentBlock["type"]; tab: "block" | "studio" } | null>(null);
-  const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, "presets" | "custom">>({});
+  const selectedFontSizeModeKey = fontSizeModeKey(fontSizeModeScope, block);
   const hasStudioOptions = ["field", "component", "section", "reading-time", "post-author", "post-date", "code", "embed", "spacer", "group", "columns", "social-icons"].includes(block.type);
   const defaultTab: "block" | "studio" = block.type === "field" || block.type === "component" ? "studio" : "block";
   const activeTab = selectedTab?.blockId === block.id && selectedTab.blockType === block.type ? selectedTab.tab : defaultTab;
@@ -631,7 +638,7 @@ export function BlockInspector({ block, onChange, onColumnWidthChange, onOpenFil
       {block.type === "group" ? <LayoutInspector block={block} onChange={onChange} heading="Group" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
       {block.type === "columns" ? <ColumnsInspector block={block} onChange={onChange} /> : null}
       {block.type === "column" ? <ColumnInspector block={block} onChange={onChange} onWidthChange={onColumnWidthChange} /> : null}
-      {["paragraph", "heading", "quote", "list", "table", "code", "button", "footnotes", "group", "section", "columns", "column", "document-title", "document-subtitle", "reading-time", "post-author", "post-date", "social-icons"].includes(block.type) ? <ParagraphInspector key={`${block.id}:${block.type}`} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[`${block.id}:${block.type}`] ?? null} onFontSizeViewModeChange={mode => setFontSizeViewModes(current => ({ ...current, [`${block.id}:${block.type}`]: mode }))} /> : null}
+      {["paragraph", "heading", "quote", "list", "table", "code", "button", "footnotes", "group", "section", "columns", "column", "document-title", "document-subtitle", "reading-time", "post-author", "post-date", "social-icons"].includes(block.type) ? <ParagraphInspector key={`${block.id}:${block.type}`} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
       {advanced && block.type !== "embed" && block.type !== "spacer" && block.type !== "image" && block.type !== "divider" ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advanced} /> : null}
     </>
   );

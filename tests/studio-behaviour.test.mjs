@@ -68,10 +68,17 @@ test("new table blocks start with an editable two-row grid", async () => {
 
 test("custom font size stays selected while its live value changes", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
-  assert.match(source, /const \[fontSizeViewModes, setFontSizeViewModes\] = useState<Record<string, "presets" \| "custom">>\(\{\}\)/);
+  const templateSource = await readFile(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8");
+  assert.match(source, /type FontSizeViewMode = "presets" \| "custom"/);
+  assert.match(source, /function fontSizeModeKey\(scope: string, block: ContentBlock\) \{\s*return JSON\.stringify\(\[scope, block\.id, block\.type\]\)/);
+  assert.match(source, /const \[fontSizeViewModes, setFontSizeViewModes\] = useState<Record<string, FontSizeViewMode>>\(\{\}\)/);
+  assert.match(source, /fontSizeModeScope=\{activeDocument\.id\} fontSizeViewModes=\{fontSizeViewModes\} onFontSizeViewModeChange=\{\(key, mode\) => setFontSizeViewModes\(current => \(\{ \.\.\.current, \[key\]: mode \}\)\)\}/);
   assert.match(source, /fontSizeViewMode\s*\?\s*fontSizeViewMode\s*:\s*style\.fontSizeCustom\s*\?\s*"custom"\s*:\s*"presets"/);
-  assert.match(source, /fontSizeViewMode=\{fontSizeViewModes\[`\$\{block\.id\}:\$\{block\.type\}`\] \?\? null\}/);
-  assert.match(source, /onFontSizeViewModeChange=\{mode => setFontSizeViewModes\(current => \(\{ \.\.\.current, \[`\$\{block\.id\}:\$\{block\.type\}`\]: mode \}\)\)\}/);
+  assert.match(source, /const selectedFontSizeModeKey = fontSizeModeKey\(fontSizeModeScope, block\)/);
+  assert.match(source, /fontSizeViewMode=\{fontSizeViewModes\[selectedFontSizeModeKey\] \?\? null\}/);
+  assert.match(source, /onFontSizeViewModeChange=\{mode => onFontSizeViewModeChange\(selectedFontSizeModeKey, mode\)\}/);
+  assert.match(templateSource, /const \[fontSizeViewModes, setFontSizeViewModes\] = useState<Record<string, "presets" \| "custom">>\(\{\}\)/);
+  assert.match(templateSource, /fontSizeModeScope=\{`\$\{set\.id\}:\$\{target\.id\}`\} fontSizeViewModes=\{fontSizeViewModes\} onFontSizeViewModeChange=\{\(key, mode\) => setFontSizeViewModes\(current => \(\{ \.\.\.current, \[key\]: mode \}\)\)\}/);
   assert.match(source, /onFontSizeViewModeChange\(mode\)/);
   assert.match(source, /onFontSizeViewModeChange\(fontSizeMode === "custom" \? "presets" : "custom"\)/);
   assert.match(source, /const \[sliderDraft, setSliderDraft\] = useState<string \| null>\(null\)/);
