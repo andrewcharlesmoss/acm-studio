@@ -6,7 +6,7 @@ import "../ribbon/ribbon-library.css";
 import "../panes/pane-library.css";
 import "./studio-ui-library.css";
 
-export type StudioUiSection = "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "icons" | "styles";
+export type StudioUiSection = "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "blocks" | "controls" | "icons" | "styles";
 
 const sections: { id: StudioUiSection; label: string; href: string; icon: IconName }[] = [
   { id: "workspace", label: "Workspace", href: "/studio/ui", icon: "layout.columns" },
@@ -14,6 +14,8 @@ const sections: { id: StudioUiSection; label: string; href: string; icon: IconNa
   { id: "ribbon", label: "Ribbon", href: "/studio/ui/ribbon", icon: "layout.columns" },
   { id: "panes", label: "Panes", href: "/studio/ui/panes", icon: "view.pages" },
   { id: "panels", label: "Panels", href: "/studio/ui/panels", icon: "view.pages" },
+  { id: "blocks", label: "Blocks", href: "/studio/ui/blocks", icon: "insert.shapes" },
+  { id: "controls", label: "Controls", href: "/studio/ui/controls", icon: "action.adjust" },
   { id: "icons", label: "Icons", href: "/studio/ui/icons", icon: "insert.shapes" },
   { id: "styles", label: "Styles", href: "/studio/ui/styles", icon: "text.heading" },
 ];

@@ -747,6 +747,9 @@ button, input, textarea, select { font: inherit; }
 .block-visual-style.has-custom-text-colour :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-marker, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { color: inherit; }
 .block-visual-style.has-custom-background :is(pre, .code-highlight, .studio-code-preview) { background: transparent; }
 .block-visual-style a { color: var(--studio-paragraph-link-color, inherit); }
+.block-visual-style a:hover { color: var(--studio-paragraph-link-hover-color, var(--studio-paragraph-link-color, #1f4f88)); filter: var(--studio-paragraph-link-hover-filter, brightness(.8)); }
+.prose .paragraph-content a { color: var(--studio-paragraph-link-color, inherit); }
+.prose .paragraph-content a:hover { color: var(--studio-paragraph-link-hover-color, var(--studio-paragraph-link-color, #1f4f88)); filter: var(--studio-paragraph-link-hover-filter, brightness(.8)); }
 .block-visual-style.has-custom-font-size :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-size: inherit; }
 .block-visual-style.has-custom-font-family :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-family: inherit; }
 .block-visual-style.has-custom-appearance :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-style: inherit; font-weight: inherit; }

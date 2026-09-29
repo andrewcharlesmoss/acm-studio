@@ -7,7 +7,7 @@ const read = (path) => readFileSync(resolve(path), "utf8");
 
 test("Studio UI Library exposes its canonical sections and keeps section routes distinct", () => {
   const shell = read("app/studio/ui/studio-ui-library.tsx");
-  for (const [section, href] of [["workspace", "/studio/ui"], ["ribbon", "/studio/ui/ribbon"], ["panes", "/studio/ui/panes"], ["icons", "/studio/ui/icons"], ["styles", "/studio/ui/styles"]]) {
+  for (const [section, href] of [["workspace", "/studio/ui"], ["ribbon", "/studio/ui/ribbon"], ["panes", "/studio/ui/panes"], ["blocks", "/studio/ui/blocks"], ["controls", "/studio/ui/controls"], ["icons", "/studio/ui/icons"], ["styles", "/studio/ui/styles"]]) {
     assert.match(shell, new RegExp(`id: "${section}"`));
     assert.ok(shell.includes(`href: "${href}"`), href);
   }
@@ -15,6 +15,51 @@ test("Studio UI Library exposes its canonical sections and keeps section routes 
   assert.match(read("app/studio/ribbon/page.tsx"), /redirect\("\/studio\/ui\/ribbon"\)/);
   assert.match(read("app/studio/panes/page.tsx"), /redirect\("\/studio\/ui\/panes"\)/);
   assert.match(read("app/studio/ui/styles/page.tsx"), /StyleGuideSandbox/);
+});
+
+test("Paragraph Block Library uses the definition, real inspector and isolated Studio rendering", () => {
+  const definition = read("app/studio/blocks/paragraph/definition.ts");
+  const specimen = read("app/studio/ui/blocks/paragraph/paragraph-block-catalogue.tsx");
+  const inspector = read("app/studio/studio-inspectors.tsx");
+  assert.match(definition, /paragraphInspectorProfile/);
+  assert.match(definition, /availableBlockTransforms/);
+  assert.match(inspector, /defaults = gutenbergInspectorDefaults\[block\.type\]/);
+  assert.match(inspector, /paragraphInspectorProfile\.controls/);
+  assert.match(specimen, /<ParagraphEditField/);
+  assert.match(specimen, /<BlockInspector/);
+  assert.match(specimen, /<BlockRenderer[^>]+variant="studio"/);
+  assert.match(specimen, /navigationRootRef=\{specimenRef\}/);
+  assert.match(specimen, /paragraphInspectorProfile\.dependencies\.map/);
+  assert.match(specimen, /<section id=\{section\.id\} key=\{section\.id\}>/);
+  assert.match(definition, /href: "\/studio\/ui\/controls#colour-picker"/);
+  assert.match(definition, /href: "#background"/);
+  assert.match(specimen, /Reset Example/);
+  assert.match(specimen, /inspectorSnapshot/);
+  assert.doesNotMatch(specimen, /studioWriteOwnership|localStorage|sessionStorage/);
+  assert.match(read("app/studio/ui/blocks/page.tsx"), /Paragraph entry/);
+});
+
+test("Controls catalogue links to the production shared controls and describes ownership", () => {
+  const page = read("app/studio/ui/controls/controls-catalogue.tsx");
+  const colour = read("app/studio/controls/colour-picker.tsx");
+  const inspectors = read("app/studio/studio-inspectors.tsx");
+  assert.match(page, /<ColourPicker/);
+  assert.match(page, /<CustomFontSizeSetting/);
+  assert.match(page, /<ParagraphLengthSetting/);
+  assert.match(page, /<BoxLengthSetting/);
+  assert.match(page, /<InspectorToolsSection/);
+  assert.match(page, /<InspectorAccordionSection/);
+  assert.match(page, /owner|Owner/);
+  assert.match(page, /consumers|Consumers/);
+  assert.match(page, /id="colour-picker"/);
+  for (const anchor of ["colour-picker", "custom-font-size", "paragraph-length", "box-length", "inspector-tools", "inspector-accordion"]) assert.ok(page.includes(`id="${anchor}"`), anchor);
+  assert.match(page, /href=\{entry\.blockHref\}>Paragraph entry/);
+  assert.match(inspectors, /from "\.\/controls\/colour-picker"/);
+  assert.match(inspectors, /from "\.\/controls\/custom-font-size-setting"/);
+  assert.match(inspectors, /from "\.\/controls\/paragraph-length-setting"/);
+  assert.match(colour, /Escape/);
+  assert.match(colour, /ColourValueSwatch/);
+  assert.match(colour, /disabled/);
 });
 
 test("Workspace composes the real Ribbon and Pane specimens with both sides open by default", () => {
@@ -61,7 +106,7 @@ test("Block Library catalogue previews the exact shared and Studio symbols used 
   assert.match(icons, /Regular-L · 32px/);
   assert.match(templateEditor, /\.\.\.blockCatalogue, templateContentBlock/);
   assert.match(blockSymbols, /group: \{ source: "ACM Icons", symbol: "arrange\.group" \}/);
-  for (const symbol of ["text.paragraph", "text.heading", "text.list-bulleted", "text.quote", "table.cell", "text.code", "insert.image", "document.cover", "account.record"]) {
+  for (const symbol of ["text.paragraph", "text.heading", "text.list-bulleted", "text.quote", "table.cell", "text.code", "insert.image", "document.cover", "account.record", "social.icons"]) {
     assert.ok(blockSymbols.includes(`symbol: "${symbol}"`), symbol);
   }
   assert.match(blockSymbols, /heading: \{ source: "ACM Studio", symbol: "heading-marker" \}/);

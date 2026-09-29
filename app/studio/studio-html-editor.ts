@@ -93,7 +93,7 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
   if (block.siteRole) attributes += ` data-site-role="${escapeAttribute(block.siteRole)}"`;
   const advancedStyle = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : block.visualStyle;
   if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
-    attributes += ` data-html-anchor="${escapeAttribute(advancedStyle?.anchor ?? "")}" data-additional-classes="${escapeAttribute(advancedStyle?.className ?? "")}"`;
+    attributes += ` data-html-anchor="${escapeAttribute(advancedStyle?.anchor ?? "")}" data-additional-classes="${escapeAttribute(advancedStyle?.className ?? "")}" data-additional-css="${escapeAttribute(advancedStyle?.additionalCss ?? "")}"`;
   }
   switch (block.type) {
     case "paragraph":
@@ -300,11 +300,14 @@ function parseElement(element: HTMLElement, original: ContentBlock, originals = 
   const existingStyle = styleKey === "style" ? block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : undefined : block.visualStyle;
   const anchor = element.dataset.htmlAnchor;
   const className = element.dataset.additionalClasses;
+  const additionalCss = element.dataset.additionalCss;
   const nextStyle = { ...(existingStyle ?? {}) };
   if (anchor === undefined || !anchor) delete nextStyle.anchor;
   else nextStyle.anchor = anchor;
   if (className === undefined || !className) delete nextStyle.className;
   else nextStyle.className = className;
+  if (additionalCss === undefined || !additionalCss) delete nextStyle.additionalCss;
+  else nextStyle.additionalCss = additionalCss;
   if (Object.keys(nextStyle).length === 0) {
     if (styleKey === "style") {
       if (block.type === "paragraph" || block.type === "columns" || block.type === "column") delete block.style;

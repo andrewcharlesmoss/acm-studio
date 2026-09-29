@@ -23,6 +23,8 @@ export type ParagraphWeight = "thin" | "extra-light" | "light" | "regular" | "me
 export type ParagraphAppearance = ParagraphWeight | "italic" | `${Exclude<ParagraphWeight, "regular">}-italic`;
 export type ParagraphBorderStyle = "none" | "solid" | "dashed" | "dotted";
 export type ParagraphBackgroundGradient = "sunrise" | "ocean" | "forest" | "violet";
+export type ParagraphBackgroundSize = "cover" | "contain" | "fixed";
+export type ParagraphBackgroundRepeat = "repeat" | "no-repeat";
 export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "arial";
 export type ParagraphTextTransform = "none" | "uppercase" | "lowercase" | "capitalize";
 export type ParagraphTextDecoration = "none" | "underline" | "line-through";
@@ -76,7 +78,14 @@ export type ParagraphStyle = {
   textColor?: string;
   backgroundColor?: string;
   backgroundGradient?: ParagraphBackgroundGradient;
+  backgroundImageMediaId?: string;
+  backgroundSize?: ParagraphBackgroundSize;
+  backgroundRepeat?: ParagraphBackgroundRepeat;
+  backgroundFixedSize?: number;
+  backgroundPositionX?: number;
+  backgroundPositionY?: number;
   linkColor?: string;
+  linkHoverColor?: string;
   padding?: string;
   margin?: string;
   borderStyle?: ParagraphBorderStyle;
@@ -87,6 +96,7 @@ export type ParagraphStyle = {
   borderRadius?: string;
   anchor?: string;
   className?: string;
+  additionalCss?: string;
 };
 
 export type SiteComponentName =

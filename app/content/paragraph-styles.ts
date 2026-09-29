@@ -31,8 +31,113 @@ export function paragraphBackgroundGradientCss(gradient: NonNullable<ParagraphSt
   return PARAGRAPH_BACKGROUND_GRADIENTS[gradient];
 }
 
-export function paragraphStyleToCss(style?: ParagraphStyle): Record<string, string> {
-  if (!style) return {};
+type OpaqueRgb = [red: number, green: number, blue: number];
+
+function parseOpaqueHexColour(value?: string): OpaqueRgb | null {
+  if (!value) return null;
+  const hex = value.trim().match(/^#([\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i)?.[1];
+  if (!hex) return null;
+  if (hex.length === 4 && hex[3].toLowerCase() !== "f") return null;
+  if (hex.length === 8 && hex.slice(6).toLowerCase() !== "ff") return null;
+  const opaqueHex = hex.length === 4 ? hex.slice(0, 3) : hex.length === 8 ? hex.slice(0, 6) : hex;
+  const expanded = opaqueHex.length === 3 ? opaqueHex.split("").map(character => character + character).join("") : opaqueHex;
+  return [0, 2, 4].map(offset => Number.parseInt(expanded.slice(offset, offset + 2), 16)) as OpaqueRgb;
+}
+
+function relativeLuminance([red, green, blue]: OpaqueRgb) {
+  const linear = [red, green, blue].map(channel => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+}
+
+function contrastRatio(first: OpaqueRgb, second: OpaqueRgb) {
+  const luminances = [relativeLuminance(first), relativeLuminance(second)].sort((a, b) => b - a);
+  return (luminances[0] + 0.05) / (luminances[1] + 0.05);
+}
+
+function gradientHasPoorContrast(foreground: OpaqueRgb, gradient: NonNullable<ParagraphStyle["backgroundGradient"]>) {
+  const stopValues = PARAGRAPH_BACKGROUND_GRADIENTS[gradient].match(/#[\da-f]{3,8}\b/gi) ?? [];
+  const stops = stopValues.map(parseOpaqueHexColour);
+  if (stops.length < 2 || stops.some(stop => stop === null)) return null;
+  const colours = stops as OpaqueRgb[];
+  for (let stopIndex = 0; stopIndex < colours.length - 1; stopIndex += 1) {
+    const start = colours[stopIndex];
+    const end = colours[stopIndex + 1];
+    for (let step = 0; step <= 32; step += 1) {
+      const position = step / 32;
+      const sample = start.map((channel, index) => Math.round(channel + (end[index] - channel) * position)) as OpaqueRgb;
+      if (contrastRatio(foreground, sample) < 4.5) return true;
+    }
+  }
+  return false;
+}
+
+/** Returns null when the active background cannot be assessed as an opaque colour. */
+export function paragraphLinkColourHasPoorContrast(colour: string | undefined, style: ParagraphStyle | undefined, defaultBackground = "#FFFFFF"): boolean | null {
+  const foreground = parseOpaqueHexColour(colour);
+  if (!foreground || style?.backgroundImageMediaId) return null;
+  if (style?.backgroundGradient) return gradientHasPoorContrast(foreground, style.backgroundGradient);
+  const background = parseOpaqueHexColour(style?.backgroundColor ?? defaultBackground);
+  return background ? contrastRatio(foreground, background) < 4.5 : null;
+}
+
+// Gutenberg's per-block Additional CSS field accepts declarations, not a
+// selector. Keep Studio on that safe subset: rules, URLs and CSS escapes must
+// not escape the selected block or trigger external resource loads.
+export function parseAdditionalCssDeclarations(source?: string): Record<string, string> {
+  if (!source || source.length > 6000 || /[{}<>\\@]/.test(source) || /\/\*|\*\//.test(source)
+    || /url\s*\(|expression\s*\(|javascript\s*:/i.test(source) || /!\s*important/i.test(source)) return {};
+
+  const declarations: string[] = [];
+  let start = 0;
+  let depth = 0;
+  let quote: "'" | '"' | null = null;
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (quote) {
+      if (character === quote && source[index - 1] !== "\\") quote = null;
+      continue;
+    }
+    if (character === "'" || character === '"') { quote = character; continue; }
+    if (character === "(") depth += 1;
+    else if (character === ")") { depth -= 1; if (depth < 0) return {}; }
+    else if (character === ";" && depth === 0) { declarations.push(source.slice(start, index)); start = index + 1; }
+  }
+  if (quote || depth !== 0) return {};
+  declarations.push(source.slice(start));
+
+  const css: Record<string, string> = {};
+  for (const declaration of declarations) {
+    let colon = -1;
+    let valueQuote: "'" | '"' | null = null;
+    let valueDepth = 0;
+    for (let index = 0; index < declaration.length; index += 1) {
+      const character = declaration[index];
+      if (valueQuote) {
+        if (character === valueQuote && declaration[index - 1] !== "\\") valueQuote = null;
+        continue;
+      }
+      if (character === "'" || character === '"') { valueQuote = character; continue; }
+      if (character === "(") valueDepth += 1;
+      else if (character === ")") valueDepth -= 1;
+      else if (character === ":" && valueDepth === 0) { colon = index; break; }
+    }
+    if (colon < 1) continue;
+    const property = declaration.slice(0, colon).trim();
+    const value = declaration.slice(colon + 1).trim();
+    if (!/^--[a-zA-Z0-9_-]+$/.test(property) && !/^-?[a-zA-Z][a-zA-Z0-9-]*$/.test(property)) continue;
+    if (!value || /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(value)) continue;
+    const reactProperty = property.startsWith("--") ? property : property.toLowerCase() === "colour" ? "color" : property === "float" ? "cssFloat" : property.replace(/^-([a-z])/i, (_match, letter: string) => letter.toUpperCase()).replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase());
+    css[reactProperty] = value;
+  }
+  return css;
+}
+
+export function paragraphStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: string, previousParagraphIndent?: string): Record<string, string> {
+  if (!style && !previousParagraphIndent) return {};
+  style ??= {};
   const css: Record<string, string> = {};
   if (style.fontFamily) css.fontFamily = fontFamilies[style.fontFamily];
   if (!fitTextEnabled(style)) {
@@ -41,21 +146,42 @@ export function paragraphStyleToCss(style?: ParagraphStyle): Record<string, stri
   }
   if (style.appearance) {
     const italic = style.appearance === "italic" || style.appearance.endsWith("-italic");
-    const weight = style.appearance === "italic" ? "regular" : italic ? style.appearance.slice(0, -7) as ParagraphWeight : style.appearance;
+    const weight = (style.appearance === "italic" ? "regular" : italic ? style.appearance.slice(0, -7) : style.appearance) as ParagraphWeight;
     css.fontStyle = italic ? "italic" : "normal";
     css.fontWeight = fontWeights[weight];
   }
   if (style.lineHeight) css.lineHeight = style.lineHeight;
   if (style.letterSpacing) css.letterSpacing = style.letterSpacing;
-  if (style.textIndent) css.textIndent = style.textIndent;
+  if (previousParagraphIndent) css.textIndent = previousParagraphIndent;
   if (style.textColumns && !fitTextEnabled(style)) { css.columnCount = String(style.textColumns); css.columnGap = "1.5em"; }
   if (style.orientation) { css.writingMode = style.orientation; css.textOrientation = "mixed"; }
   if (style.textTransform) css.textTransform = style.textTransform;
   if (style.textDecoration) css.textDecoration = style.textDecoration;
   if (style.textColor) css.color = style.textColor;
   if (style.backgroundColor) css.backgroundColor = style.backgroundColor;
-  if (style.backgroundGradient) css.backgroundImage = paragraphBackgroundGradientCss(style.backgroundGradient);
+  const backgroundLayers = [
+    style.backgroundGradient ? paragraphBackgroundGradientCss(style.backgroundGradient) : undefined,
+    backgroundImageUrl ? `url(${JSON.stringify(backgroundImageUrl)})` : undefined,
+  ].filter((value): value is string => Boolean(value));
+  if (backgroundLayers.length) {
+    const imageSize = style.backgroundSize === "fixed" ? `${style.backgroundFixedSize ?? 200}px auto` : style.backgroundSize ?? "cover";
+    const repeat = style.backgroundRepeat ?? (style.backgroundSize === "fixed" ? "repeat" : "no-repeat");
+    css.backgroundImage = backgroundLayers.join(", ");
+    if (backgroundLayers.length > 1) {
+      css.backgroundSize = `auto, ${imageSize}`;
+      css.backgroundRepeat = `no-repeat, ${repeat}`;
+      css.backgroundPosition = `center, ${style.backgroundPositionX ?? 50}% ${style.backgroundPositionY ?? 50}%`;
+    } else if (backgroundImageUrl) {
+      css.backgroundSize = imageSize;
+      css.backgroundPosition = `${style.backgroundPositionX ?? 50}% ${style.backgroundPositionY ?? 50}%`;
+      css.backgroundRepeat = repeat;
+    }
+  }
   if (style.linkColor) css["--studio-paragraph-link-color"] = style.linkColor;
+  if (style.linkHoverColor) {
+    css["--studio-paragraph-link-hover-color"] = style.linkHoverColor;
+    css["--studio-paragraph-link-hover-filter"] = "none";
+  }
   if (style.padding) css.padding = style.padding;
   if (style.margin) css.margin = style.margin;
   if (style.minHeight) css.minHeight = style.minHeight;
@@ -68,6 +194,7 @@ export function paragraphStyleToCss(style?: ParagraphStyle): Record<string, stri
   if (style.borderRadius) css.borderRadius = style.borderRadius;
   if (style.shadow) css.boxShadow = style.shadow === "soft" ? "0 4px 16px rgb(0 0 0 / 12%)" : style.shadow === "strong" ? "0 12px 32px rgb(0 0 0 / 22%)" : "none";
   if (style.textShadow) css.textShadow = style.textShadow === "soft" ? "0 1px 2px rgb(0 0 0 / 28%)" : style.textShadow === "strong" ? "0 2px 5px rgb(0 0 0 / 40%)" : "none";
+  Object.assign(css, parseAdditionalCssDeclarations(style.additionalCss));
   return css;
 }
 
@@ -77,8 +204,9 @@ export function buttonVisualCss(style?: ParagraphStyle): Record<string, string> 
   return css;
 }
 
-export function paragraphStyleClassName(style?: ParagraphStyle) {
-  return [style?.dropCap && "has-drop-cap", fitTextEnabled(style) && "has-fit-text", style?.className?.trim().replace(/[^a-zA-Z0-9_-]+/g, " ").trim()].filter(Boolean).join(" ");
+export function paragraphStyleClassName(style?: ParagraphStyle, align?: "left" | "centre" | "right") {
+  const dropCapIsAvailable = align !== "centre" && align !== "right";
+  return [style?.dropCap && dropCapIsAvailable && "has-drop-cap", fitTextEnabled(style) && "has-fit-text", style?.className?.trim().replace(/[^a-zA-Z0-9_-]+/g, " ").trim()].filter(Boolean).join(" ");
 }
 
 // Fit text measures horizontal width; keep its setting while vertical text is selected.
@@ -95,7 +223,7 @@ export function visualStyleClassName(style: ParagraphStyle) {
     style.lineHeight && "has-custom-line-height",
     style.letterSpacing && "has-custom-letter-spacing",
     style.textColor && "has-custom-text-colour",
-    (style.backgroundColor || style.backgroundGradient) && "has-custom-background",
+    (style.backgroundColor || style.backgroundGradient || style.backgroundImageMediaId) && "has-custom-background",
     paragraphStyleClassName(style),
   ].filter(Boolean).join(" ");
 }

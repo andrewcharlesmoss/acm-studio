@@ -1,0 +1,4 @@
+.ui-catalogue-card { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-top:1.75rem; padding:1.25rem 1.5rem; border:1px solid var(--rl-line); border-radius:9px; background:#fff; }
+.ui-catalogue-card h2 { margin:.25rem 0; }
+.ui-catalogue-card p { color:var(--rl-muted); }
+.ui-catalogue-card a { display:inline-flex; flex:0 0 auto; align-items:center; gap:.5rem; color:var(--rl-accent); text-decoration:none; }

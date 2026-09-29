@@ -2,6 +2,7 @@ import type { ContentBlock, DocumentDisplayField, DocumentDisplayMode } from "..
 import { createColumnsBlock } from "../content/columns";
 import type { LocallyPublishedArticle } from "../content/local-publishing";
 import type { TemplateAssignment } from "./template-model";
+import { paragraphBlockDefinition } from "./blocks/paragraph/definition";
 
 export type StudioDocumentKind = "post" | "page";
 export type StudioDocumentStatus = "draft" | "pending" | "private" | "scheduled" | "published";
@@ -46,7 +47,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13;
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
   documents: StudioDocument[];
@@ -75,7 +76,7 @@ export const blockCatalogue: Array<{
   { type: "group", label: "Group", description: "Combine blocks in a stack, row, columns or responsive grid.", group: "Design" },
   { type: "columns", label: "Columns", description: "Arrange blocks in adjustable, responsive columns.", group: "Design" },
   { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Design" },
-  { type: "paragraph", label: "Paragraph", description: "Start with ordinary text.", group: "Text" },
+  { type: paragraphBlockDefinition.type, label: paragraphBlockDefinition.label, description: paragraphBlockDefinition.description, group: "Text" },
   { type: "heading", label: "Heading", description: "Introduce a new section.", group: "Text" },
   { type: "list", label: "List", description: "Create an ordered or bullet list.", group: "Text" },
   { type: "quote", label: "Quote", description: "Emphasise a quotation.", group: "Text" },
@@ -131,7 +132,7 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 12,
+  version: 13,
   activeDocumentId: "page-home",
   bin: [],
   categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],
@@ -222,6 +223,7 @@ export function cloneWorkspace(workspace: StudioWorkspace): StudioWorkspace {
 }
 
 export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now()}`): ContentBlock {
+  if (type === "paragraph") return paragraphBlockDefinition.create(id);
   if (type === "social-icons") return { id, type, children: [] };
   if (type === "social-linkedin" || type === "social-tiktok") return { id, type, url: "" };
   if (type === "group") return { id, type, layout: "stack", children: [] };

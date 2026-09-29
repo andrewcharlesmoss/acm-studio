@@ -44,8 +44,16 @@ test("Advanced HTML anchor and class metadata is retained by the HTML source for
   const image = blockToHtml({ id: "image", type: "image", src: "https://example.com/photo.png", alt: "Photo", visualStyle: { anchor: "portrait", className: "rounded-photo" } });
   assert.match(paragraph, /data-html-anchor="about-me"/);
   assert.match(paragraph, /data-additional-classes=""/);
+  assert.match(paragraph, /data-additional-css=""/);
   assert.match(image, /data-html-anchor="portrait"/);
   assert.match(image, /data-additional-classes="rounded-photo"/);
+});
+
+test("Paragraph Additional CSS is retained by the HTML source format and workspace validator", () => {
+  const paragraph = { id: "paragraph", type: "paragraph", text: "Hello", style: { additionalCss: "color: red; padding: 1rem;" } };
+  assert.match(blockToHtml(paragraph), /data-additional-css="color: red; padding: 1rem;"/);
+  assert.equal(validContentBlocks([paragraph]), true);
+  assert.equal(validContentBlocks([{ ...paragraph, style: { additionalCss: "x".repeat(6001) } }]), false);
 });
 
 test("custom font sizes use the same limits in the inspector and workspace validator", () => {
@@ -797,7 +805,7 @@ test("cover images use the same source policy as content images", async () => {
 test("paragraph presentation settings render through the shared Studio and public renderer", () => {
   const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [{
     id: "styled-paragraph", type: "paragraph", text: "Styled paragraph", style: {
-      fontSize: "large", lineHeight: "1.4", padding: "8px 12px", linkColor: "#2f6eb4",
+      fontSize: "large", lineHeight: "1.4", padding: "8px 12px", linkColor: "#2f6eb4", linkHoverColor: "#1e1e1e",
       anchor: "intro", className: "lede",
     },
   }], variant: "studio" }));
@@ -807,6 +815,22 @@ test("paragraph presentation settings render through the shared Studio and publi
   assert.match(html, /line-height:1.4/);
   assert.match(html, /padding:8px 12px/);
   assert.match(html, /--studio-paragraph-link-color:#2f6eb4/);
+  assert.match(html, /--studio-paragraph-link-hover-color:#1e1e1e/);
+  assert.match(html, /--studio-paragraph-link-hover-filter:none/);
+});
+
+test("public Paragraph links consume the block's independent Default and Hover colours", async () => {
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [{
+    id: "public-paragraph", type: "paragraph", text: "Read more", runs: [{ text: "Read more", marks: [{ type: "link", url: "https://example.com" }] }], style: {
+      linkColor: "#2f6eb4", linkHoverColor: "#1e1e1e",
+    },
+  }], variant: "article" }));
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(html, /class="paragraph-content align-left"/);
+  assert.match(html, /--studio-paragraph-link-color:#2f6eb4/);
+  assert.match(html, /--studio-paragraph-link-hover-color:#1e1e1e/);
+  assert.match(styles, /\.prose \.paragraph-content a \{ color: var\(--studio-paragraph-link-color, inherit\); \}/);
+  assert.match(styles, /\.prose \.paragraph-content a:hover \{ color: var\(--studio-paragraph-link-hover-color, var\(--studio-paragraph-link-color, #1f4f88\)\); filter: var\(--studio-paragraph-link-hover-filter, brightness\(\.8\)\); \}/);
 });
 
 test("reading time rounds body words consistently across editor and publication", async () => {

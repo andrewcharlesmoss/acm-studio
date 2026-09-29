@@ -68,11 +68,13 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     }
   }
   collectFootnoteNumbers(blocks);
-  function renderBlock(block: ContentBlock) {
-    const content = renderBlockContent(block);
+  function renderBlock(block: ContentBlock, previousSibling?: ContentBlock) {
+    const previousParagraphIndent = previousSibling?.type === "paragraph" ? previousSibling.style?.textIndent : undefined;
+    const content = renderBlockContent(block, previousParagraphIndent);
     if (!block.visualStyle || block.type === "spacer") return content;
     const style = block.visualStyle;
-    const css = block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style);
+    const backgroundImageUrl = ["quote", "group"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
+    const css = block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
     if (block.type === "social-icons") { delete css.backgroundColor; delete css.backgroundImage; }
     if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
     const coverFrameClass = block.type === "cover-image"
@@ -81,11 +83,12 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     const className = `${visualStyleClassName(style)}${coverFrameClass}`;
     return <div key={block.id} id={paragraphStyleAnchor(style)} className={className} style={css}>{content}</div>;
   }
-  function renderBlockContent(block: ContentBlock) {
+  function renderBlockContent(block: ContentBlock, previousParagraphIndent?: string) {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
         if (block.type === "paragraph") {
-          const className = `${studio ? "block-textarea paragraph-field preview-rich-text " : ""}align-${block.align ?? "left"}${block.blockAlign ? ` align${block.blockAlign}` : ""}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`;
-          const style = paragraphStyleToCss(block.style) as React.CSSProperties;
+          const paragraphClasses = paragraphStyleClassName(block.style, block.align);
+          const className = `${studio ? "block-textarea paragraph-field preview-rich-text " : "paragraph-content "}align-${block.align ?? "left"}${block.blockAlign ? ` align${block.blockAlign}` : ""}${paragraphClasses ? ` ${paragraphClasses}` : ""}`;
+          const style = paragraphStyleToCss(block.style, undefined, previousParagraphIndent) as React.CSSProperties;
           const children = renderText(block.text, block.runs, mediaUrls, footnoteNumbers);
           return fitTextEnabled(block.style)
             ? <FitTextParagraph id={paragraphStyleAnchor(block.style)} className={className} style={style} key={block.id}>{children}</FitTextParagraph>
@@ -199,13 +202,13 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           return links.length ? <nav className={socialIconsBlockClassName(block)} style={{ ...style, "--social-icon-background": block.visualStyle?.backgroundColor, "--social-icon-background-image": block.visualStyle?.backgroundGradient ? paragraphBackgroundGradientCss(block.visualStyle.backgroundGradient) : undefined, "--social-icon-colour": block.visualStyle?.textColor } as React.CSSProperties} aria-label="Social links" key={block.id}><ul style={socialIconsGapStyle(block)}>{links.map(child => <li key={child.id}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;
         }
         if (block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel key={block.id} />;
-        if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child)}</div>)}</section>;
+        if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child, index) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child, index > 0 ? block.children[index - 1] : undefined)}</div>)}</section>;
         if (block.type === "group") {
           const GroupElement = block.tagName ?? "div";
-          return <GroupElement className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} aria-label={block.ariaLabel || undefined} key={block.id}>{block.children.map((child) => renderBlock(child))}</GroupElement>;
+          return <GroupElement className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} aria-label={block.ariaLabel || undefined} key={block.id}>{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined))}</GroupElement>;
         }
         if (block.type === "columns") return <div id={paragraphStyleAnchor(block.style)} className={`content-columns${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={{ ...columnsLayoutStyle(block), ...paragraphStyleToCss(block.style) }} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((column) => renderBlock(column))}</div>;
-        if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`content-column${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...layoutStyleProperties(block), ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }} key={block.id}>{block.children.map((child) => renderBlock(child))}</div>;
+        if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`content-column${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...layoutStyleProperties(block), ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }} key={block.id}>{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined))}</div>;
         if (block.type === "spacer") return <div id={paragraphStyleAnchor(block.visualStyle)} className={`content-spacer${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block), margin: block.visualStyle?.margin }} aria-hidden="true" key={block.id} />;
         if (block.type === "component") return null;
         if (block.type === "divider") {
@@ -219,11 +222,11 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
   }
   return (
     <div className={studio ? "studio-block-preview" : "prose"}>
-      {blocks.map((block) => {
+      {blocks.map((block, index) => {
         if (hideDividers && block.type === "divider") return null;
         return studio
-          ? <div className={`content-block is-${block.type}${contentBlockAlignment(block) ? ` has-block-align-${contentBlockAlignment(block)}` : ""}`} key={block.id} data-preview-block-id={block.id}>{renderBlock(block)}</div>
-          : renderBlock(block);
+          ? <div className={`content-block is-${block.type}${contentBlockAlignment(block) ? ` has-block-align-${contentBlockAlignment(block)}` : ""}`} key={block.id} data-preview-block-id={block.id}>{renderBlock(block, index > 0 ? blocks[index - 1] : undefined)}</div>
+          : renderBlock(block, index > 0 ? blocks[index - 1] : undefined);
       })}
     </div>
   );

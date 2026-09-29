@@ -66,14 +66,18 @@ test("new table blocks start with an editable two-row grid", async () => {
   assert.match(source, /if \(type === "table"\) return \{ id, type, rows: \[\["", "", ""\], \["", "", ""\]\] \};/);
 });
 
-test("custom font size stays selected while its live value changes", async () => {
+test("custom font size stays selected and updates continuously while its slider moves", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const customFontSize = await readFile(new URL("../app/studio/controls/custom-font-size-setting.tsx", import.meta.url), "utf8");
   const templateSource = await readFile(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8");
   assert.match(source, /type FontSizeViewMode = "presets" \| "custom"/);
   assert.match(source, /function fontSizeModeKey\(scope: string, block: ContentBlock\) \{\s*return JSON\.stringify\(\[scope, block\.id, block\.type\]\)/);
   assert.match(source, /const \[fontSizeViewModes, setFontSizeViewModes\] = useState<Record<string, FontSizeViewMode>>\(\{\}\)/);
   assert.match(source, /fontSizeModeScope=\{activeDocument\.id\} fontSizeViewModes=\{fontSizeViewModes\} onFontSizeViewModeChange=\{\(key, mode\) => setFontSizeViewModes\(current => \(\{ \.\.\.current, \[key\]: mode \}\)\)\}/);
   assert.match(source, /fontSizeViewMode\s*\?\s*fontSizeViewMode\s*:\s*style\.fontSizeCustom\s*\?\s*"custom"\s*:\s*"presets"/);
+  assert.match(customFontSize, /const \[unitWhenValueIsEmpty, setUnitWhenValueIsEmpty\] = useState<CustomFontSizeUnit>\("px"\)/);
+  assert.match(customFontSize, /const unit = \(match\?\.\[2\] as CustomFontSizeUnit\) \?\? unitWhenValueIsEmpty/);
+  assert.match(customFontSize, /function selectUnit\(nextUnit: CustomFontSizeUnit\) \{\s*setUnitWhenValueIsEmpty\(nextUnit\)/);
   assert.match(source, /const selectedFontSizeModeKey = fontSizeModeKey\(fontSizeModeScope, block\)/);
   assert.match(source, /fontSizeViewMode=\{fontSizeViewModes\[selectedFontSizeModeKey\] \?\? null\}/);
   assert.match(source, /onFontSizeViewModeChange=\{mode => onFontSizeViewModeChange\(selectedFontSizeModeKey, mode\)\}/);
@@ -81,36 +85,32 @@ test("custom font size stays selected while its live value changes", async () =>
   assert.match(templateSource, /fontSizeModeScope=\{`\$\{set\.id\}:\$\{target\.id\}`\} fontSizeViewModes=\{fontSizeViewModes\} onFontSizeViewModeChange=\{\(key, mode\) => setFontSizeViewModes\(current => \(\{ \.\.\.current, \[key\]: mode \}\)\)\}/);
   assert.match(source, /onFontSizeViewModeChange\(mode\)/);
   assert.match(source, /onFontSizeViewModeChange\(fontSizeMode === "custom" \? "presets" : "custom"\)/);
-  assert.match(source, /const \[sliderDraft, setSliderDraft\] = useState<string \| null>\(null\)/);
-  assert.match(source, /const sliderDraftRef = useRef<string \| null>\(null\)/);
-  assert.match(source, /const sliderDraggingRef = useRef\(false\)/);
-  assert.match(source, /const sliderPointerIdRef = useRef<number \| null>\(null\)/);
-  assert.match(source, /const sliderStartValueRef = useRef<string \| null>\(null\)/);
-  assert.match(source, /function startSliderDrag\(pointerId: number, value: string\) \{\s*if \(sliderDraggingRef\.current\) return;[\s\S]*?sliderStartValueRef\.current = value;\s*sliderDraftRef\.current = null;\s*\}/);
-  assert.match(source, /onPointerDown=\{event => startSliderDrag\(event\.pointerId, event\.currentTarget\.value\)\}/);
-  assert.doesNotMatch(source, /onInteractionStart/);
-  assert.doesNotMatch(source, /setPointerCapture\(event\.pointerId\)/);
-  assert.match(source, /function finishSliderDrag\(input = sliderRef\.current, pointerId\?: number\)/);
-  assert.match(source, /sliderDraftRef\.current = null/);
-  assert.match(source, /const nextValue = sliderDraftRef\.current \?\? input\.value/);
-  assert.match(source, /const changed = nextValue !== sliderStartValueRef\.current/);
-  assert.match(source, /if \(changed\) commit\(nextValue\)/);
-  assert.match(source, /window\.addEventListener\("pointerup", finishPointerInteraction\)/);
-  assert.match(source, /window\.addEventListener\("pointercancel", finishPointerInteraction\)/);
-  assert.match(source, /onPointerUp=\{event => finishSliderDrag\(event\.currentTarget, event\.pointerId\)\}/);
-  assert.match(source, /onLostPointerCapture=\{event => finishSliderDrag\(event\.currentTarget, event\.pointerId\)\}/);
-  assert.match(source, /onChange=\{event => \{ if \(sliderDraggingRef\.current\) \{ sliderDraftRef\.current = event\.currentTarget\.value; setSliderDraft\(event\.currentTarget\.value\); \} else commit\(event\.currentTarget\.value\); \}\}/);
-  assert.match(source, /const sliderMinimum = relativeUnit \? 0\.1 : 1/);
-  assert.match(source, /const sliderMaximum = customFontSizeMaximum\(unit\)/);
-  assert.match(source, /type="range" min=\{sliderMinimum\} max=\{sliderMaximum\}/);
-  assert.match(source, /aria-label="Custom font size slider"[^>]*value=\{sliderValue\}/);
-  assert.doesNotMatch(source, /fontSizeSource/);
+  assert.match(customFontSize, /const \[sliderDraft, setSliderDraft\] = useState<string \| null>\(null\)/);
+  assert.match(customFontSize, /const sliderDraggingRef = useRef\(false\)/);
+  assert.match(customFontSize, /const sliderPointerIdRef = useRef<number \| null>\(null\)/);
+  assert.match(customFontSize, /function startSliderDrag\(pointerId: number\) \{\s*if \(sliderDraggingRef\.current\) return;[\s\S]*?sliderDraggingRef\.current = true;\s*sliderPointerIdRef\.current = pointerId;\s*\}/);
+  assert.match(customFontSize, /onPointerDown=\{event => startSliderDrag\(event\.pointerId\)\}/);
+  assert.doesNotMatch(customFontSize, /onInteractionStart/);
+  assert.doesNotMatch(customFontSize, /setPointerCapture\(event\.pointerId\)/);
+  assert.match(customFontSize, /function finishSliderDrag\(pointerId\?: number\)/);
+  assert.match(customFontSize, /sliderDraggingRef\.current = false;\s*sliderPointerIdRef\.current = null;\s*setSliderDraft\(null\)/);
+  assert.match(customFontSize, /window\.addEventListener\("pointerup", finishPointerInteraction\)/);
+  assert.match(customFontSize, /window\.addEventListener\("pointercancel", finishPointerInteraction\)/);
+  assert.match(customFontSize, /onPointerUp=\{event => finishSliderDrag\(event\.pointerId\)\}/);
+  assert.match(customFontSize, /onLostPointerCapture=\{event => finishSliderDrag\(event\.pointerId\)\}/);
+  assert.match(customFontSize, /onChange=\{event => \{ const nextValue = event\.currentTarget\.value; if \(sliderDraggingRef\.current\) setSliderDraft\(nextValue\); commit\(nextValue\); \}\}/);
+  assert.match(customFontSize, /const sliderMinimum = relativeUnit \? 0\.1 : 1/);
+  assert.match(customFontSize, /const sliderMaximum = customFontSizeMaximum\(unit\)/);
+  assert.match(customFontSize, /type="range" min=\{sliderMinimum\} max=\{sliderMaximum\}/);
+  assert.match(customFontSize, /aria-label="Custom font size slider"[^>]*value=\{sliderValue\}/);
+  assert.doesNotMatch(customFontSize, /fontSizeSource/);
 });
 
 test("shared inspector control defaults follow each Gutenberg block declaration", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const paragraphDefinition = await readFile(new URL("../app/studio/blocks/paragraph/definition.ts", import.meta.url), "utf8");
   for (const declaration of [
-    'paragraph: { typography: ["colour", "size"] }',
+    'paragraph: paragraphInspectorProfile.defaults',
     'heading: { typography: ["colour", "size"] }',
     'quote: { typography: ["colour", "size"], border: ["border", "radius"] }',
     'list: { typography: ["colour", "size"] }',
@@ -126,21 +126,35 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
     'columns: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
     'column: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
   ]) assert.ok(source.includes(declaration), `Missing inspector default declaration: ${declaration}`);
-  assert.match(source, /const typographyOptions: InspectorToolOption\[\] = socialIconsOnly \?/);
-  assert.match(source, /const optionalTypographyOptions = typographyOptions\.filter\(option => !defaultTypography\.has\(option\.id\)\)/);
-  assert.match(source, /const optionalDimensionOptions = dimensionOptions\.filter\(option => !defaultDimensions\.has\(option\.id\)\)/);
-  assert.match(source, /const optionalBorderOptions = borderOptions\.filter\(option => !defaultBorder\.has\(option\.id\)\)/);
+  assert.match(paragraphDefinition, /typography: \["colour", "size"\]/);
+  assert.match(source, /const typographyOptions: InspectorToolOption\[\] = paragraphSpecificOptions \? paragraphOptions\("typography"\)/);
+  assert.match(source, /const scopedTypographyOptions = studioOnly \? typographyOptions\.filter/);
+  assert.match(source, /const optionalTypographyOptions = scopedTypographyOptions\.filter\(option => !defaultTypography\.has\(option\.id\)\)/);
+  assert.match(source, /const optionalDimensionOptions = scopedDimensionOptions\.filter\(option => !defaultDimensions\.has\(option\.id\)\)/);
+  assert.match(source, /const optionalBorderOptions = scopedBorderOptions\.filter\(option => !defaultBorder\.has\(option\.id\)\)/);
   assert.match(source, /const optionalElementOptions = elementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
 });
 
-test("Paragraph omits Gutenberg-disabled Additional CSS class(es) while preserving stored classes", async () => {
+test("Paragraph Advanced matches Gutenberg anchor, class and Additional CSS fields", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const stylesheet = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const advancedFields = source.slice(source.indexOf("function advancedFieldsForBlock"), source.indexOf("function AdvancedFieldsInspector"));
   const advancedInspector = source.slice(source.indexOf("function AdvancedFieldsInspector"), source.indexOf("function ParagraphInspector"));
-  assert.match(advancedFields, /return \{ anchor: true, className: block\.type !== "paragraph" \};/);
+  assert.match(advancedFields, /return \{ anchor: true, className: true, additionalCss: block\.type === "paragraph" \};/);
   assert.match(advancedFields, /if \(\["paragraph", "heading", "quote"/);
-  assert.match(advancedInspector, /fields\.className \? <label><span>Additional CSS class\(es\)<\/span><input value=\{style\.className \?\? ""\}/);
-  assert.match(advancedInspector, /<span>Additional CSS class\(es\)<\/span><input value=\{style\.className \?\? ""\}/);
+  assert.match(advancedInspector, /className=\{block\.type === "paragraph" \? "paragraph-advanced-fields" : undefined\}/);
+  assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: uppercase; \}/);
+  assert.match(advancedInspector, /fields\.className \? <div className="advanced-field"><label htmlFor=\{`\$\{descriptionPrefix\}-class-name`\}><span>Additional CSS class\(es\)<\/span><\/label><input id=\{`\$\{descriptionPrefix\}-class-name`\} aria-describedby=\{`\$\{descriptionPrefix\}-class-name-help`\} value=\{style\.className \?\? ""\}/);
+  assert.match(advancedInspector, /fields\.additionalCss \? <div className="advanced-field"><label htmlFor=\{`\$\{descriptionPrefix\}-additional-css`\}><span>Additional CSS<\/span><\/label><textarea id=\{`\$\{descriptionPrefix\}-additional-css`\} aria-describedby=/);
+  assert.match(advancedInspector, /placeholder=\{block\.type === "paragraph" \? undefined : "section-name"\}/);
+  assert.match(advancedInspector, /placeholder=\{block\.type === "paragraph" \? undefined : "custom-class"\}/);
+  assert.doesNotMatch(advancedInspector, /<textarea[^>]*placeholder=/);
+  assert.match(advancedInspector, /Enter a word or two, without spaces, to make a unique web address just for this block/);
+  assert.match(advancedInspector, /Learn more about anchors/);
+  assert.match(advancedInspector, /Separate multiple classes with spaces\./);
+  assert.match(advancedInspector, /Add your own CSS to customise the appearance of the Paragraph block/);
+  assert.match(advancedInspector, /e\.g\. <code>colour: red;<\/code>/);
+  assert.match(advancedInspector, /Selectors, at-rules, external URLs and/);
   assert.match(advancedInspector, /block\.type === "paragraph" \|\| block\.type === "columns" \|\| block\.type === "column"\) onChange\(\{ \.\.\.block, style:/);
 });
 
@@ -153,7 +167,9 @@ test("minimum dimension controls match mapped Gutenberg block support", async ()
 test("shadow controls match mapped Gutenberg block support", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   assert.match(source, /const coreBlocksWithShadow = \["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"\]/);
-  assert.match(source, /block\.type === "paragraph" \|\| block\.type === "heading" \? \[\{ id: "text-shadow"/);
+  const paragraphDefinition = await readFile(new URL("../app/studio/blocks/paragraph/definition.ts", import.meta.url), "utf8");
+  assert.match(paragraphDefinition, /id: "text-shadow", label: "Text shadow", source: "studio"/);
+  assert.match(source, /block\.type === "heading" \? \[\{ id: "fit-text"/);
 });
 
 test("Cover Image exposes shared border, radius and shadow styling", async () => {
@@ -480,6 +496,54 @@ test("Gutenberg block controls and ACM-only controls stay in their respective in
   assert.doesNotMatch(blockSettings, /Code language|<span>Card title<\/span>/);
   assert.match(studioSettings, /title="Code language"[\s\S]*?Syntax highlighting is an ACM Studio feature/);
   assert.match(studioSettings, /title="Embed card"[\s\S]*?<span>Card title<\/span>/);
+});
+
+test("Paragraph Typography follows Andrew's Gutenberg options and separates Studio-only controls", async () => {
+  const inspector = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const definition = await readFile(new URL("../app/studio/blocks/paragraph/definition.ts", import.meta.url), "utf8");
+  const colourControl = await readFile(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
+  const toolsSection = await readFile(new URL("../app/studio/inspector-tools-section.tsx", import.meta.url), "utf8");
+  assert.match(inspector, /const hasStudioOptions = \["paragraph", "field"/);
+  const paragraphStart = inspector.indexOf("function ParagraphInspector");
+  const paragraphEnd = inspector.indexOf("function CustomFontSizeSetting", paragraphStart);
+  const paragraph = inspector.slice(paragraphStart, paragraphEnd);
+  assert.match(inspector, /<PaneTabs id=\{tabPrefix\}/);
+  assert.match(inspector, /scope="block" fontSizeViewMode=/);
+  assert.match(inspector, /scope="studio" fontSizeViewMode=/);
+  assert.match(paragraph, /const paragraphSpecificOptions = block\.type === "paragraph"/);
+  assert.match(paragraph, /const studioOnly = scope === "studio" && paragraphSpecificOptions/);
+  assert.match(paragraph, /paragraphOptions = \(section: typeof paragraphInspectorProfile\.controls\[number\]\["section"\]\)/);
+  assert.match(paragraph, /paragraphInspectorProfile\.controls\.filter\(option => option\.section === section\)/);
+  assert.match(paragraph, /const scopedTypographyOptions = studioOnly \? typographyOptions\.filter\(option => option\.source === "studio"\) : typographyOptions\.filter\(option => option\.source !== "studio"\)/);
+  assert.match(paragraph, /const scopedDimensionOptions = studioOnly \? dimensionOptions\.filter\(option => option\.source === "studio"\) : dimensionOptions\.filter\(option => option\.source !== "studio"\)/);
+  assert.match(paragraph, /const scopedBorderOptions = studioOnly \? borderOptions\.filter\(option => option\.source === "studio"\) : borderOptions\.filter\(option => option\.source !== "studio"\)/);
+  assert.match(paragraph, /const toolFields: Record<string, \(keyof ParagraphStyle\)\[]> = \{/);
+  assert.match(paragraph, /if \(paragraphSpecificOptions\) for \(const option of paragraphInspectorProfile\.controls\) toolFields\[option\.id\] = \[\.\.\.option\.fields\]/);
+  assert.match(paragraph, /function clearTools\(ids: Iterable<string>\) \{[\s\S]*?delete nextStyle\[field\]/);
+  assert.match(paragraph, /function LinkColourSetting\(/);
+  assert.match(inspector, /paragraphLinkColourHasPoorContrast\(defaultValue, style/);
+  assert.match(inspector, /paragraphLinkColourHasPoorContrast\(hoverValue, style/);
+  assert.match(inspector, /return <PaletteColourSetting label="Link" value=\{defaultValue\} onChange=\{onDefaultChange\} hoverValue=\{hoverValue\}/);
+  assert.match(inspector, /return <ColourPicker label=\{label\} value=\{value\} onChange=\{onChange\} hoverValue=\{hoverValue\}/);
+  assert.match(inspector, /<ColourPicker label="Background colour"/);
+  assert.match(colourControl, /Escape/);
+  assert.match(colourControl, /onHoverChange/);
+  assert.match(colourControl, /ColourValueSwatch/);
+  assert.match(colourControl, /document\.addEventListener\("keydown", dismiss as EventListener\)/);
+  const orderedControls = ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "orientation", "letter-case", "drop-cap", "fit-text", "text-shadow"]
+    .map(id => definition.indexOf(`id: "${id}"`));
+  assert.ok(orderedControls.every(position => position >= 0));
+  assert.deepEqual(orderedControls, [...orderedControls].sort((a, b) => a - b));
+  assert.match(definition, /inventorySections: \[[\s\S]*?id: "background", label: "Background", source: "gutenberg"[\s\S]*?id: "dimensions"[\s\S]*?id: "border"[\s\S]*?id: "elements"[\s\S]*?id: "advanced", label: "Advanced", source: "gutenberg"/);
+  assert.match(toolsSection, /className="inspector-tools-menu-divider" role="separator"/);
+  assert.match(toolsSection, /menuOptions\.map\(option => <button key=\{option\.id\} type="button" disabled=\{option\.disabled\} aria-pressed=\{option\.checked\}/);
+  assert.doesNotMatch(toolsSection, /inspector-tools-menu-subheading/);
+  assert.match(toolsSection, /className="inspector-tools-menu-divider" role="separator"/);
+  assert.match(toolsSection, /className="inspector-tools-menu-options" aria-label="Studio options">\{studioOptions\.map\(option =>[\s\S]*?<StudioSourceBadge \/>/);
+  assert.match(toolsSection, /menuOptions\.map\(option => <button key=\{option\.id\} type="button" disabled=\{option\.disabled\} aria-pressed=\{option\.checked\}/);
+  assert.match(toolsSection, /function InspectorToolsSectionContent\(\{ title, options, visible, canReset, menuOptions, onMenuOptionSelect,/);
+  assert.match(toolsSection, /gutenbergOptions\.map\(option => <button/);
+  assert.match(toolsSection, /Not shown in the current Gutenberg reference/);
 });
 
 test("the selected block summary stays above its inspector tabs", async () => {

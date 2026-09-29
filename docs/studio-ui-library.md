@@ -3,7 +3,7 @@
 ## Purpose and organisation
 
 Open `/studio/ui` from the Studio dashboard or its content and template tools.
-The library has seven sections:
+The library has nine sections:
 
 - **Navigation** — the reusable top-level Application Section Navigation
   component, with an isolated interactive example.
@@ -16,6 +16,11 @@ The library has seven sections:
   and isolated Studio examples.
 - **Panels** — the shared card surface and header slots, demonstrated with
   temporary sample data from `@acm/panel`.
+- **Blocks** — block definitions, inspector capabilities, relationships and
+  isolated editing specimens. Paragraph is the first complete entry at
+  `/studio/ui/blocks/paragraph`.
+- **Controls** — working shared inspector controls with their supported states,
+  ownership and consumers at `/studio/ui/controls`.
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
   specimens at 16, 24 and 32px, with a Block Library collection that shows the
   exact symbols used by each insertable block and the template Content tile.
@@ -25,7 +30,8 @@ The library has seven sections:
 
 Navigation is `/studio/ui/navigation`, the Ribbon section is
 `/studio/ui/ribbon`, Panes is `/studio/ui/panes`, Panels is
-`/studio/ui/panels`, Icons is `/studio/ui/icons`, the Block Library icon
+`/studio/ui/panels`, Blocks is `/studio/ui/blocks`, Controls is
+`/studio/ui/controls`, Icons is `/studio/ui/icons`, the Block Library icon
 collection is `/studio/ui/icons?collection=blocks`, and Styles is
 `/studio/ui/styles`. `/studio/ribbon` and `/studio/panes` remain
 compatible redirects. Studio navigation links to the combined library.
@@ -55,6 +61,30 @@ shows how it composes with the Ribbon and panes.
 
 All fixtures and interactions remain temporary component state. The library
 does not call product APIs, use write ownership or read/write browser storage.
+The Paragraph entry consumes `paragraphBlockDefinition` and its capability
+profile alongside the existing typed content model, validator, transforms and
+renderer. The profile supplies inspector order, Block/Studio classification,
+defaults, reset fields and dependency links; it does not define a second saved
+format. Controls link back to Paragraph, so the definition is the source for
+both sides of the block/control relationship. Its
+specimen uses the real `ParagraphEditField`, `BlockInspector` and Studio
+`BlockRenderer`, with one editable block and local state. Text editing keeps
+native field history; specimen Undo and Redo cover inspector changes only.
+Reset Example restores the temporary sample. The preview includes ordinary
+linked text and adjacent Paragraphs for the existing indentation rule. No real
+document, browser persistence or product write lock is involved.
+
+The Controls section initially documents the shared colour picker, custom
+font-size and Paragraph length controls, plus the existing box-dimension,
+inspector-options and accordion components. The colour picker owns swatch
+geometry, overlapping unset/explicit states, palette selection, popover
+positioning and dismissal. Link contrast stays in the Link adapter; gradient
+selection stays in the Paragraph background adapter. Each entry links back to
+Paragraph and records current consumers. Box dimensions and
+inspector options remain in their existing modules. Design, media, template and
+other catalogue controls are future reuse candidates, not migrated by this
+pilot. Ribbon catalogue specimens remain examples and do not become inspector
+dependencies.
 Ribbon icon usage in the inspector means examples in the Ribbon catalogue only;
 it is not an exhaustive inventory of use throughout ACM products.
 
@@ -110,12 +140,18 @@ npm run styles:source:check
 git diff --check
 ```
 
-In a browser, inspect all six sections, the legacy redirects, section-navigation
+In a browser, inspect all nine sections, the legacy redirects, section-navigation
 selection, Ribbon and Pane
 specimen interactions, icon search/selection/provenance, and the combined
 Workspace with both panes expanded, resized and collapsed. Check keyboard
 navigation and focus, desktop/tablet/mobile widths, and verify narrow preview
 overflow stays inside the Workspace frame while the page itself remains usable.
+For Blocks and Controls, verify the Paragraph Block and Studio tabs, option
+ordering and resets, editable link sample, adjacent-paragraph preview, colour
+Default/Hover values, clear/reset, opaque unset swatches, focus and disabled
+states, popover Escape/outside dismissal and focus restoration. Check touch
+interaction and 200% zoom; the library adapts to narrow layouts without changing
+the production editor's documented workspace arrangement.
 For Styles, check palette, typography, button and layout controls, inherited
 responsive values, property/section/global resets, and contained mobile preview
 scrolling. Check hover, focus and pinned guide references, exact source lines,

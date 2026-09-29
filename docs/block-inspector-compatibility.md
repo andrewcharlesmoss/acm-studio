@@ -24,6 +24,17 @@ realistic WordPress block fixtures, including nested content and unsupported
 blocks, and verify that no source content is silently discarded. WordPress blog
 import remains future work, not a capability supplied by this inspector review.
 
+For the Block Library and shared-controls pilot, the pinned upstream source
+comparison is [Gutenberg v24.1.0-rc.1](https://github.com/WordPress/gutenberg/tree/v24.1.0-rc.1),
+captured on 29 September 2026. This source tag is the repeatable code reference
+for control ownership and colour-indicator geometry; Andrew's supplied editor
+captures remain the direct visual acceptance references for those states.
+Paragraph Background colour/gradient and Advanced anchor, class and Additional
+CSS controls remain in Block, matching the current reference. ACM-only Paragraph
+options — Font family, Orientation, Text shadow, Minimum height, Minimum width
+and Shadow — stay in Studio. Managed background-image controls are not exposed
+for Paragraph in this pilot.
+
 When a selected block has ACM-only settings, its inspector shows scoped Block
 and Studio tabs. Gutenberg-aligned controls stay under Block. Field and
 Component open on Studio because their controls are entirely ACM-specific.
@@ -38,16 +49,18 @@ supports. Studio exposes HTML anchor and additional class controls only where
 the mapped block supports them. Group also exposes its semantic HTML element
 and ARIA label. Individual LinkedIn and TikTok icons keep their own anchor and
 additional class settings.
-Per-instance Additional CSS remains unavailable because Studio has no CSS
-author capability model or scoped-CSS rendering contract. Allowed-block
-selection remains unavailable until it can constrain every nested insertion
-path without discarding existing content.
+Paragraph supports selector-free Additional CSS declarations scoped to that
+block and stored with its typed presentation settings. Arbitrary per-instance
+CSS remains unavailable because Studio has no CSS author capability model or
+scoped-CSS rendering contract. Allowed-block selection remains unavailable
+until it can constrain every nested insertion path without discarding existing
+content.
 
 | Studio block | WordPress reference | Studio inspector support | Remaining difference |
 | --- | --- | --- | --- |
-| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Text alignment; None, Wide and Full block-width alignment; optional Typography, Dimensions, Border and Elements controls with per-section Reset all; preset and custom font sizes in px/em/rem/vw/vh, nine Appearance weights with italic variants, linked axes or separate sides for padding and margin, linked or separate border widths and corner radii, background, line indent, text columns, drop cap, fit text, orientation, text shadow and Advanced HTML anchor. | Gutenberg disables Additional CSS classes for Paragraph, so Studio does too. WordPress theme-defined font size and Appearance presets, theme palette extensions and richer border-style pickers are not yet supported. |
+| Paragraph | [Paragraph](https://wordpress.org/documentation/article/paragraph-block/) | Text alignment; None, Wide and Full block-width alignment; optional Typography, Dimensions, Border and Elements controls with per-section Reset all; preset and custom font sizes in px/em/rem/vw/vh, nine Appearance weights with italic variants, linked axes or separate sides for padding and margin, Gutenberg-shaped Border and Radius controls, background, link Default and Hover colours with low-contrast indicators, line indent, text columns, drop cap, fit text and Advanced HTML anchor, Additional CSS class(es), and Additional CSS. | Match the Paragraph inspector in Andrew's current WordPress editor: Typography's hidden-options menu starts with checked, disabled Colour and Size when no explicit font size is set; when a size is set, Size is replaced by the enabled Reset Size action. Optional controls follow in this order: Appearance, Line height, Letter spacing, Line indent, Columns, Decoration, Letter case, Drop cap and Fit text. Dimensions offers Padding then Margin; Border offers Border then Radius. The Border control groups width, colour and style, while Studio retains their existing typed values. Link Default and Hover colours are independent. A warning appears below the palette and on the Link row below a 4.5:1 contrast ratio. Contrast is checked against an explicit opaque block background, sampled opaque block gradient, or the Studio surface; image and unsupported/translucent colours are not assessed. Font family, Orientation and Text shadow are absent from the Block tab in Andrew's current reference; Minimum height, Minimum width and block Shadow are also ACM-only Paragraph controls. These live in the separate Studio tab with source badges. Gutenberg trunk declares some typography capabilities in other configurations (some experimental or settings-gated); Studio's badge means “not shown in Andrew's current reference”, not “never supported by Gutenberg”. Line indent follows Gutenberg's adjacent-paragraph behaviour. Studio keeps drop cap available independently of theme capability, but suppresses it for aligned paragraphs following Gutenberg's alignment rule. Additional CSS stores declaration text and applies safe, selector-free declarations to that block. Selectors, at-rules, external URLs, CSS escapes and `!important` are not applied. Theme-defined font/colour presets and registered style variations are not imported. |
 | Heading | [Heading](https://wordpress.org/documentation/article/heading-block/) | Level, text alignment, None/Wide/Full block-width alignment, Fit text, orientation, text shadow and shared visual settings. | Theme presets and some toolbar details remain unsupported. |
-| Quote | [Quote](https://wordpress.org/documentation/article/quote-block/) | Attribution, text alignment, None/Left/Right/Wide/Full block alignment, Default or Plain style, minimum height and shared visual settings. | Gutenberg's background images and multi-paragraph quote editing are not modelled. Centre is intentionally absent because the upstream Quote block does not declare it. |
+| Quote | [Quote](https://wordpress.org/documentation/article/quote-block/) | Attribution, text alignment, None/Left/Right/Wide/Full block alignment, Default or Plain style, minimum height and shared visual settings, including managed background images with cover/contain/fixed size, repeat and focal position. | Multi-paragraph quote editing is not modelled. Centre is intentionally absent because the upstream Quote block does not declare it. |
 | List | [List](https://wordpress.org/documentation/article/list-block/) | Bullets or numbers; None/Wide/Full block-width alignment; ordered styles for numbers, letters and Roman numerals; start value, reverse order, inline-formatted item content, item-scoped text formatting and links for top-level Lists, and shared visual settings. Existing plain-string items remain readable. | Nested List Item blocks and indentation are not yet supported. The block HTML editor rejects nested lists instead of flattening them. List items do not yet have per-item inspector settings. Footnotes and inline images are unavailable from the List formatting menu because their insertion handlers currently target whole text blocks. Formatting controls for Lists placed inside container blocks remain unavailable. |
 | Table | [Table](https://wordpress.org/documentation/article/table-block/) | None/Left/Centre/Right/Wide/Full block alignment, per-column Left/Centre/Right content alignment, fixed or adaptive cell widths, header/footer, caption, Default or Stripes style, and shared visual settings. | Cells and the caption remain plain text; WordPress cell-level rich text, links, tag/scope and spanning attributes are not yet supported. |
 | Code | [Code](https://wordpress.org/documentation/article/code-block/) | None/Wide block-width alignment, shared visual settings and shadow. | Language selection and syntax highlighting are Studio additions, kept in the Studio tab. Gutenberg's Code block does not offer Full width or minimum dimensions. |
@@ -56,7 +69,7 @@ path without discarding existing content.
 | Button | [Buttons](https://wordpress.org/documentation/article/buttons-block/) | Label, link/new-tab target, title and rel attributes, Fill/Outline appearance, 25/50/75/100% width, text alignment and shared visual settings. | Studio has one Button block, not a nested Buttons container; per-state hover/focus/active styles are not modelled. |
 | Divider | [Separator](https://wordpress.org/documentation/article/separator-block/) | None/Centre/Wide/Full block alignment; Default, wide and dots styles; `hr` or `div` element; palette colour, margin and advanced fields. | Theme-dependent alignment presets are not imported. |
 | Spacer | [Spacer](https://wordpress.org/documentation/article/spacer-block/) | Height, optional width, px/em/rem/vw/vh units, margin and advanced anchor/classes. | Current [Gutenberg controls](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/spacer/controls.js) exclude %, although the documentation still lists it. Gutenberg switches between height and width controls according to parent orientation; Studio exposes both. Flex-child fill controls and drag handles are not modelled. |
-| Group | [Group](https://wordpress.org/documentation/article/group-block/) | None/Wide/Full outer block-width alignment; stack/row/columns and responsive grid layouts, grid maximum columns and minimum column width in pixels, root-level sticky positioning, alignment, independent horizontal and vertical gaps, padding, minimum height/width, Studio responsive stacking, semantic HTML element, ARIA label, HTML anchor, additional CSS classes and shared visual settings. | Gutenberg's background image, per-instance Additional CSS, allowed-block and template-lock controls are not yet modelled. Gutenberg also permits CSS units for the grid minimum column width; Studio currently stores pixels. |
+| Group | [Group](https://wordpress.org/documentation/article/group-block/) | None/Wide/Full outer block-width alignment; stack/row/columns and responsive grid layouts, grid maximum columns and minimum column width in pixels, root-level sticky positioning, alignment, independent horizontal and vertical gaps, padding, minimum height/width, managed background images with cover/contain/fixed size, repeat and focal position, Studio responsive stacking, semantic HTML element, ARIA label, HTML anchor, additional CSS classes and shared visual settings. | Per-instance Additional CSS, allowed-block and template-lock controls are not yet modelled. Gutenberg also permits CSS units for the grid minimum column width; Studio currently stores pixels. |
 | Columns and Column | [Columns](https://wordpress.org/documentation/article/columns-block/) | None/Wide/Full outer block-width alignment; WordPress-ordered layout presets, count, inner content width, vertical alignment, independent horizontal and vertical gaps, Studio responsive stacking, HTML anchor, additional CSS classes and shared visual settings. | WordPress's theme-specific width and style presets, per-instance Additional CSS, allowed-block and template-lock controls are not imported. Columns and each nested Column retain separate settings. |
 | Document Title | [Title](https://wordpress.org/documentation/article/title-block/) | Heading level, post link, new-tab target and rel, text alignment, None/Wide/Full block-width alignment and shared visual settings. | Title content is owned by document metadata. Gutenberg defaults this block to H2, which Studio now follows; its core Title block declares no minimum dimensions or text shadow. |
 | Post Author | Studio composite based on the deprecated [Post Author block](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/post-author/block.json) | Prefix, avatar, alignment and shared visual settings. | Current Gutenberg composes separate Avatar, Author Name and Author Biography blocks. Studio keeps this insertable convenience block because author identity is owned by document metadata; initials replace a profile image. |
@@ -87,12 +100,13 @@ records and template snapshots keep their previous appearance unless a block
 setting is changed. A WordPress feature in the final column is a compatibility
 gap, not an available control.
 
-Typography options follow the order in the WordPress Typography reference.
-Gutenberg's available controls can vary with the selected block and theme, so
-Studio may expose a supported option such as Font family or Orientation even
-when it does not appear in a particular WordPress site's menu. The inspector's
-options menus appear beside the pane at desktop widths, and their Reset all
-footer remains visible while long option lists scroll.
+Typography options follow the order in Andrew's current WordPress editor.
+Gutenberg's available controls can vary with the selected block, WordPress
+version and active theme. For each block, compare with that editor's visible
+controls; capabilities found only in other Gutenberg configurations belong in
+the block's Studio tab, with the compatibility reason recorded here. The
+inspector's options menus appear beside the pane at desktop widths, and their
+Reset all footer remains visible while long option lists scroll.
 
 Dimensions and Border retain CSS shorthand strings in the current block style
 contract. This preserves existing single-value drafts while allowing two-axis
@@ -110,13 +124,18 @@ controls supported by the mapped block.
 The inspector follows Gutenberg's section order and optional-control menu
 pattern for Typography, Dimensions, Border and Elements. Core default controls
 declared for each mapped block remain visible and are omitted from that
-section's optional-control menu; optional controls stay in the menu. ACM-only
-metadata blocks retain their Studio defaults. A checked menu item shows its
-control. Removing it clears that setting from the block; Reset all clears the
-section's visible settings together. Foreground and background swatches come
-from the executable Style Guide palette. Paragraph line indent and text columns
-use CSS properties, and drop cap uses the first-letter treatment in both
-editing and rendered output.
+section's optional-control menu; optional controls stay in the menu in the
+corresponding Gutenberg order. Where a retained style option has no equivalent
+support in the selected core block, the menu groups it after the Gutenberg
+options under a labelled Studio section with a divider. ACM-only block settings
+remain in that block's Studio tab. ACM-only metadata blocks retain their Studio
+defaults. A checked menu item shows its control. Removing it clears that
+setting from the block; Reset all clears the section's visible settings
+together. Foreground and background swatches come from the executable Style
+Guide palette. Paragraph line indent is stored on its Paragraph and applies to
+the immediately following Paragraph, matching Gutenberg's adjacent-block
+selector. Text columns use CSS columns, and drop cap uses the first-letter
+treatment in both editing and rendered output.
 Fit text measures a Paragraph or Heading at its available width after rendering, then
 updates its size when the text, font or width changes. It fits short text on one
 line and bounds the size between 13px and 120px; longer text wraps at the

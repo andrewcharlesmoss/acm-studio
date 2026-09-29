@@ -5,31 +5,38 @@ import { createPortal } from "react-dom";
 import { StudioIcon } from "./studio-icons";
 import { useInspectorContentDisabled } from "./inspector-accordion";
 
-export type InspectorToolOption = { id: string; label: string };
+export type InspectorToolOption = { id: string; label: string; source?: "gutenberg" | "studio" };
+export type InspectorMenuOption = { id: string; label: string; checked?: boolean; disabled?: boolean };
 
-export function InspectorToolsSection({ title, options, visible, canReset, onToggle, onReset, children }: {
+export function InspectorToolsSection({ title, options, visible, canReset, menuOptions = [], onMenuOptionSelect, onToggle, onReset, children }: {
   title: string;
   options: readonly InspectorToolOption[];
   visible: ReadonlySet<string>;
   canReset?: boolean;
+  menuOptions?: readonly InspectorMenuOption[];
+  onMenuOptionSelect?: (id: string) => void;
   onToggle: (id: string) => void;
   onReset: () => void;
   children: ReactNode;
 }) {
   const disabled = useInspectorContentDisabled();
-  return <InspectorToolsSectionContent key={String(disabled)} title={title} options={options} visible={visible} canReset={canReset ?? (visible.size > 0)} onToggle={onToggle} onReset={onReset} disabled={disabled}>{children}</InspectorToolsSectionContent>;
+  return <InspectorToolsSectionContent key={String(disabled)} title={title} options={options} visible={visible} canReset={canReset ?? (visible.size > 0)} menuOptions={menuOptions} onMenuOptionSelect={onMenuOptionSelect} onToggle={onToggle} onReset={onReset} disabled={disabled}>{children}</InspectorToolsSectionContent>;
 }
 
-function InspectorToolsSectionContent({ title, options, visible, canReset, onToggle, onReset, disabled, children }: {
+function InspectorToolsSectionContent({ title, options, visible, canReset, menuOptions, onMenuOptionSelect, onToggle, onReset, disabled, children }: {
   title: string;
   options: readonly InspectorToolOption[];
   visible: ReadonlySet<string>;
   canReset: boolean;
+  menuOptions: readonly InspectorMenuOption[];
+  onMenuOptionSelect?: (id: string) => void;
   onToggle: (id: string) => void;
   onReset: () => void;
   disabled: boolean;
   children: ReactNode;
 }) {
+  const gutenbergOptions = options.filter(option => option.source !== "studio");
+  const studioOptions = options.filter(option => option.source === "studio");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
   const rootRef = useRef<HTMLElement>(null);
@@ -94,10 +101,21 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, onTog
       <button ref={triggerRef} type="button" className="inspector-tools-trigger" aria-label={`${title} options`} aria-expanded={menuOpen && !disabled} aria-controls={menuId} disabled={disabled} onClick={() => { if (!menuOpen) document.dispatchEvent(new CustomEvent("studio-inspector-tools-open", { detail: menuId })); setMenuOpen(open => !open); }}><StudioIcon name={visible.size ? "more-vertical" : "add"} size={18} /></button>
       {menuOpen && !disabled ? createPortal(<div ref={menuRef} id={menuId} className="inspector-tools-menu" role="group" aria-label={`${title} controls`} style={menuPosition}>
         <div className="inspector-tools-menu-heading"><span className="inspector-tools-menu-title">{title}</span><button type="button" className="inspector-tools-menu-close" aria-label={`Close ${title} options`} onClick={() => { setMenuOpen(false); triggerRef.current?.focus(); }}><StudioIcon name="close" size={16} /></button></div>
-        <div className="inspector-tools-menu-options">{options.map(option => <button key={option.id} type="button" aria-pressed={visible.has(option.id)} onClick={() => onToggle(option.id)}>{option.label}{visible.has(option.id) ? <StudioIcon name="check" size={16} /> : null}</button>)}</div>
+        <div className="inspector-tools-menu-body">
+          {menuOptions.length ? <div className="inspector-tools-menu-options" aria-label="Gutenberg controls">{menuOptions.map(option => <button key={option.id} type="button" disabled={option.disabled} aria-pressed={option.checked} onClick={() => onMenuOptionSelect?.(option.id)}>{option.label}{option.checked ? <StudioIcon name="check" size={16} /> : null}</button>)}</div> : null}
+          {gutenbergOptions.length ? <div className="inspector-tools-menu-options" aria-label="Gutenberg options">{gutenbergOptions.map(option => <button key={option.id} type="button" aria-pressed={visible.has(option.id)} onClick={() => onToggle(option.id)}>{option.label}{visible.has(option.id) ? <StudioIcon name="check" size={16} /> : null}</button>)}</div> : null}
+          {studioOptions.length ? <>
+            {gutenbergOptions.length ? <div className="inspector-tools-menu-divider" role="separator" /> : null}
+            <div className="inspector-tools-menu-options" aria-label="Studio options">{studioOptions.map(option => <button key={option.id} type="button" aria-pressed={visible.has(option.id)} onClick={() => onToggle(option.id)}><span>{option.label}<StudioSourceBadge /></span>{visible.has(option.id) ? <StudioIcon name="check" size={16} /> : null}</button>)}</div>
+          </> : null}
+        </div>
         <button type="button" className="inspector-tools-reset" disabled={!canReset} onClick={() => { onReset(); setMenuOpen(false); triggerRef.current?.focus(); }}>Reset all</button>
       </div>, document.body) : null}
     </div>
     {visible.size ? disabled ? <fieldset className="inspector-tools-content" disabled>{children}</fieldset> : <div className="inspector-tools-content">{children}</div> : null}
   </section>;
+}
+
+export function StudioSourceBadge() {
+  return <span className="studio-source-badge" title="Not shown in the current Gutenberg reference; availability may depend on WordPress settings or the active theme">Studio</span>;
 }

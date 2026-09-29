@@ -4,7 +4,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, ty
 import { createPortal } from "react-dom";
 import { AcmIcon } from "@acm/icons/react";
 import type { ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphAppearance, ParagraphBackgroundGradient, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, SiteSectionRole, SpacerUnit, TextAlignment } from "../content/model";
-import { PARAGRAPH_BACKGROUND_GRADIENTS, fitTextEnabled, paragraphBackgroundGradientCss } from "../content/paragraph-styles";
+import { PARAGRAPH_BACKGROUND_GRADIENTS, fitTextEnabled, paragraphBackgroundGradientCss, paragraphLinkColourHasPoorContrast } from "../content/paragraph-styles";
 import { formatDocumentDate } from "../content/document-metadata";
 import { contentWordCount, readingTimeMinutes } from "../content/reading-time";
 import type { LayoutMode } from "../content/model";
@@ -15,16 +15,19 @@ import { StudioIcon } from "./studio-icons";
 import { BlockLibraryIcon } from "./block-library-icons";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { InspectorAccordionSection } from "./inspector-accordion";
-import { InspectorToolsSection, type InspectorToolOption } from "./inspector-tools-section";
+import { InspectorToolsSection, StudioSourceBadge, type InspectorMenuOption, type InspectorToolOption } from "./inspector-tools-section";
 import { BoxLengthSetting } from "./box-length-setting";
 import { BorderColourControl } from "./border-colour-control";
 import { documentDisplaySource, type FieldUsage } from "./document-fields";
 import { createPasswordProtection } from "../content/password-protection";
 import { COLUMN_LAYOUT_PRESETS, setColumnCount, setColumnsLayout, setColumnWidth } from "../content/columns";
 import { SPACER_SIZE_LIMIT, SPACER_UNITS } from "../content/spacer";
-import { customFontSizeMaximum, normaliseCustomFontSize, type CustomFontSizeUnit } from "../content/font-size";
 import { safeTextLink } from "../content/rich-text";
-import { UNIVERSAL_STYLE_PRESET, type UniversalStylePreset } from "@acm/styles";
+import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
+import { ColourPicker } from "./controls/colour-picker";
+import { CustomFontSizeSetting } from "./controls/custom-font-size-setting";
+import { ParagraphLengthSetting } from "./controls/paragraph-length-setting";
+import { paragraphBlockDefinition, paragraphInspectorProfile } from "./blocks/paragraph/definition";
 
 function blockLabel(type: ContentBlock["type"]) {
   return type.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
@@ -64,6 +67,7 @@ export type StudioInspectorProps = {
   onAddCategory: (name: string, parentId?: string) => void;
   onBlockChange: (block: ContentBlock) => void;
   onOpenFiles: () => void;
+  onOpenBackgroundMedia?: (blockId: string) => void;
   onOpenCoverMediaLibrary?: () => void;
   onRemoveCoverImage?: () => void;
   onPublish: () => void;
@@ -77,7 +81,7 @@ export type StudioInspectorProps = {
   onSaveAsTemplate?: () => void;
 };
 
-export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, inspectorTab, selectedBlock, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onOpenFiles, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
+export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, inspectorTab, selectedBlock, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
   const [localCollapsed, setLocalCollapsed] = useState(false);
@@ -107,7 +111,7 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
             </InspectorAccordionSection>
           </div>
         ) : selectedBlock ? (
-          <BlockInspector block={selectedBlock} canSetSticky={canSetSticky} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} />
+          <BlockInspector block={selectedBlock} canSetSticky={canSetSticky} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? () => onOpenBackgroundMedia(selectedBlock.id) : undefined} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
@@ -611,17 +615,17 @@ function fontSizeModeKey(scope: string, block: ContentBlock) {
   return JSON.stringify([scope, block.id, block.type]) ?? "";
 }
 
-export function BlockInspector({ block, canSetSticky = false, onChange, onColumnWidthChange, onOpenFiles, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; canSetSticky?: boolean; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
+export function BlockInspector({ block, canSetSticky = false, onChange, onColumnWidthChange, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; canSetSticky?: boolean; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; onOpenBackgroundMedia?: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
   const tabPrefix = useId();
   const [selectedTab, setSelectedTab] = useState<{ blockId: string; blockType: ContentBlock["type"]; tab: "block" | "studio" } | null>(null);
   const selectedFontSizeModeKey = fontSizeModeKey(fontSizeModeScope, block);
-  const hasStudioOptions = ["field", "component", "section", "reading-time", "post-author", "post-date", "code", "embed", "spacer", "group", "columns", "social-icons"].includes(block.type);
+  const hasStudioOptions = ["paragraph", "field", "component", "section", "reading-time", "post-author", "post-date", "code", "embed", "spacer", "group", "columns", "social-icons"].includes(block.type);
   const defaultTab: "block" | "studio" = block.type === "field" || block.type === "component" ? "studio" : "block";
   const activeTab = selectedTab?.blockId === block.id && selectedTab.blockType === block.type ? selectedTab.tab : defaultTab;
   const blockInfo = blockCatalogue.find((item) => item.type === block.type);
   const blockName = blockInfo?.label ?? blockLabel(block.type);
   const blockDescription = block.type === "paragraph"
-    ? "Start with the basic building block of all narrative."
+    ? paragraphBlockDefinition.description
     : blockInfo?.description ?? `Configure this ${blockName.toLowerCase()} block.`;
   const alignedBlock = block.type === "heading" || block.type === "document-title" || block.type === "document-subtitle" || block.type === "cover-image" ? block : null;
   const alignment = alignedBlock?.align ?? null;
@@ -649,12 +653,13 @@ export function BlockInspector({ block, canSetSticky = false, onChange, onColumn
       {block.type === "group" ? <LayoutInspector block={block} onChange={onChange} canSetSticky={canSetSticky} heading="Group" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
       {block.type === "columns" ? <ColumnsInspector block={block} onChange={onChange} /> : null}
       {block.type === "column" ? <ColumnInspector block={block} onChange={onChange} onWidthChange={onColumnWidthChange} /> : null}
-      {["paragraph", "heading", "quote", "list", "table", "code", "button", "footnotes", "group", "section", "columns", "column", "document-title", "document-subtitle", "reading-time", "post-author", "post-date", "social-icons"].includes(block.type) ? <ParagraphInspector key={`${block.id}:${block.type}`} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
+      {["paragraph", "heading", "quote", "list", "table", "code", "button", "footnotes", "group", "section", "columns", "column", "document-title", "document-subtitle", "reading-time", "post-author", "post-date", "social-icons"].includes(block.type) ? <ParagraphInspector key={`${block.id}:${block.type}:block`} block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} scope="block" fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
       {advanced && block.type !== "embed" && block.type !== "spacer" && block.type !== "image" && block.type !== "divider" ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advanced} /> : null}
     </>
   );
   const studioSettings = (
     <>
+      {block.type === "paragraph" ? <ParagraphInspector key={`${block.id}:paragraph:studio`} block={block} onChange={onChange} scope="studio" fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
       {block.type === "field" ? <InspectorAccordionSection title="Field"><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>Control</span><select value={block.control} onChange={(event) => onChange({ ...block, control: event.target.value as "text" | "select" })}><option value="text">Text</option><option value="select">Select</option></select></label><label><span>Value</span><input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} /></label>{block.control === "select" ? <label><span>Options</span><input value={(block.options ?? []).join(", ")} onChange={(event) => onChange({ ...block, options: event.target.value.split(",").map((option) => option.trim()).filter(Boolean) })} placeholder="First, Second" /></label> : null}</InspectorAccordionSection> : null}
       {block.type === "component" ? <ComponentInspector block={block} onChange={onChange} /> : null}
       {block.type === "section" ? <InspectorAccordionSection title="Studio section"><label><span>Site role</span><select value={block.role ?? ""} onChange={(event) => onChange({ ...block, role: (event.target.value || undefined) as SiteSectionRole | undefined })}><option value="">None</option>{(["account", "setup", "scorecard", "leaderboard", "share", "hero", "hero-copy", "account-copy", "scorecard-heading", "scorecard-actions", "leaderboard-card", "leaderboard-score", "leaderboard-metrics", "metric", "footer", "footer-brand", "footer-links", "social-link"] as SiteSectionRole[]).map((role) => <option value={role} key={role}>{role}</option>)}</select></label>{block.source ? <><p className="setting-note">Source: {block.source.module} · {block.source.exportName} · {block.source.revision.slice(0, 8)}</p>{canOpenFiles ? <button className="choose-media-button" type="button" onClick={onOpenFiles}>Open source files</button> : null}</> : null}</InspectorAccordionSection> : null}
@@ -681,30 +686,32 @@ export function BlockInspector({ block, canSetSticky = false, onChange, onColumn
   </div>;
 }
 
-type AdvancedFields = { anchor: boolean; className: boolean };
+type AdvancedFields = { anchor: boolean; className: boolean; additionalCss: boolean };
 
 // Match the Gutenberg core blocks represented by Studio. Studio-only blocks
 // without a shared style wrapper do not expose generic Advanced fields.
 function advancedFieldsForBlock(block: ContentBlock): AdvancedFields | null {
   if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
-    return { anchor: true, className: block.type !== "paragraph" };
+    return { anchor: true, className: true, additionalCss: block.type === "paragraph" };
   }
   return null;
 }
 
 function AdvancedFieldsInspector({ block, onChange, fields }: { block: ContentBlock; onChange: (block: ContentBlock) => void; fields: AdvancedFields }) {
+  const descriptionPrefix = useId();
   const style = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style ?? {} : block.visualStyle ?? {};
-  function update(field: "anchor" | "className", value: string) {
+  function update(field: "anchor" | "className" | "additionalCss", value: string) {
     const next = { ...style };
     if (value.trim()) next[field] = value;
     else delete next[field];
     if (block.type === "paragraph" || block.type === "columns" || block.type === "column") onChange({ ...block, style: Object.keys(next).length ? next : undefined } as ContentBlock);
     else onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined } as ContentBlock);
   }
-  return <InspectorAccordionSection title="Advanced">
+  return <InspectorAccordionSection className={block.type === "paragraph" ? "paragraph-advanced-fields" : undefined} title="Advanced">
     {block.type === "group" ? <><label><span>HTML element</span><select value={block.tagName ?? "div"} onChange={(event) => onChange({ ...block, tagName: event.target.value as NonNullable<typeof block.tagName> })}>{["div", "main", "section", "article", "aside", "header", "footer", "nav"].map((tag) => <option value={tag} key={tag}>{tag}</option>)}</select></label><label><span>ARIA label</span><input value={block.ariaLabel ?? ""} onChange={(event) => onChange({ ...block, ariaLabel: event.target.value || undefined })} /></label></> : null}
-    {fields.anchor ? <label><span>HTML anchor</span><input value={style.anchor ?? ""} onChange={(event) => update("anchor", event.target.value)} placeholder="section-name" /></label> : null}
-    {fields.className ? <label><span>Additional CSS class(es)</span><input value={style.className ?? ""} onChange={(event) => update("className", event.target.value)} placeholder="custom-class" /></label> : null}
+    {fields.anchor ? <div className="advanced-field"><label htmlFor={`${descriptionPrefix}-anchor`}><span>HTML anchor</span></label><input id={`${descriptionPrefix}-anchor`} aria-describedby={`${descriptionPrefix}-anchor-help`} value={style.anchor ?? ""} onChange={(event) => update("anchor", event.target.value)} placeholder={block.type === "paragraph" ? undefined : "section-name"} /><p className="setting-note" id={`${descriptionPrefix}-anchor-help`}>Enter a word or two, without spaces, to make a unique web address just for this block, called an “anchor”. Then, you’ll be able to link directly to this section of your page. <a href="https://wordpress.org/documentation/article/page-jumps/">Learn more about anchors <StudioIcon name="external" size={14} /></a></p></div> : null}
+    {fields.className ? <div className="advanced-field"><label htmlFor={`${descriptionPrefix}-class-name`}><span>Additional CSS class(es)</span></label><input id={`${descriptionPrefix}-class-name`} aria-describedby={`${descriptionPrefix}-class-name-help`} value={style.className ?? ""} onChange={(event) => update("className", event.target.value)} placeholder={block.type === "paragraph" ? undefined : "custom-class"} /><p className="setting-note" id={`${descriptionPrefix}-class-name-help`}>Separate multiple classes with spaces.</p></div> : null}
+    {fields.additionalCss ? <div className="advanced-field"><label htmlFor={`${descriptionPrefix}-additional-css`}><span>Additional CSS</span></label><textarea id={`${descriptionPrefix}-additional-css`} aria-describedby={`${descriptionPrefix}-additional-css-help ${descriptionPrefix}-additional-css-limit`} value={style.additionalCss ?? ""} onChange={(event) => update("additionalCss", event.target.value)} maxLength={6000} rows={5} /><p className="setting-note" id={`${descriptionPrefix}-additional-css-help`}>Add your own CSS to customise the appearance of the Paragraph block. You do not need to include a CSS selector, just add the property and value, e.g. <code>colour: red;</code>.</p><p className="setting-note" id={`${descriptionPrefix}-additional-css-limit`}>Studio applies safe declarations to this block. Selectors, at-rules, external URLs and <code>!important</code> are not applied.</p></div> : null}
   </InspectorAccordionSection>;
 }
 
@@ -815,7 +822,7 @@ function DividerInspector({ block, onChange }: { block: Extract<ContentBlock, { 
     <InspectorAccordionSection title="Styles"><label><span>Style</span><select value={block.style ?? "default"} onChange={(event) => onChange({ ...block, style: event.target.value as "default" | "wide" | "dots" })}><option value="default">Default</option><option value="wide">Wide line</option><option value="dots">Dots</option></select></label><label><span>HTML element</span><select value={block.tagName ?? "hr"} onChange={event => onChange({ ...block, tagName: event.target.value as "hr" | "div" })}><option value="hr">Horizontal rule</option><option value="div">Div</option></select></label></InspectorAccordionSection>
     <InspectorAccordionSection title="Colour"><PaletteColourSetting label="Divider colour" value={style.textColor} onChange={(value) => updateVisualStyle({ textColor: value })} /></InspectorAccordionSection>
     <InspectorAccordionSection title="Dimensions"><ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateVisualStyle({ margin: value })} /></InspectorAccordionSection>
-    <AdvancedFieldsInspector block={block} onChange={onChange} fields={{ anchor: true, className: true }} />
+    <AdvancedFieldsInspector block={block} onChange={onChange} fields={{ anchor: true, className: true, additionalCss: false }} />
   </>;
 }
 
@@ -952,7 +959,7 @@ type InspectorControlDefaults = {
 // Core blocks declare these defaults through __experimentalDefaultControls.
 // ACM-only metadata blocks keep Studio's existing starting controls.
 const gutenbergInspectorDefaults: Partial<Record<ContentBlock["type"], InspectorControlDefaults>> = {
-  paragraph: { typography: ["colour", "size"] },
+  paragraph: paragraphInspectorProfile.defaults,
   heading: { typography: ["colour", "size"] },
   quote: { typography: ["colour", "size"], border: ["border", "radius"] },
   list: { typography: ["colour", "size"] },
@@ -973,27 +980,11 @@ const studioInspectorDefaults: InspectorControlDefaults = {
   typography: ["colour", "size", "appearance"],
 };
 
-const styleGuidePaletteRoles: { key: keyof UniversalStylePreset["palette"]; label: string }[] = [
-  { key: "surface", label: "Surface" },
-  { key: "surfaceRaised", label: "Raised surface" },
-  { key: "surfaceSubtle", label: "Subtle surface" },
-  { key: "textPrimary", label: "Primary text" },
-  { key: "textSecondary", label: "Secondary text" },
-  { key: "border", label: "Border" },
-  { key: "accent", label: "Accent" },
-  { key: "onAccent", label: "Text on accent" },
-  { key: "success", label: "Success" },
-  { key: "information", label: "Information" },
-  { key: "alert", label: "Alert" },
-  { key: "warning", label: "Warning" },
-  { key: "rating", label: "Rating" },
-];
-
 function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { type: "paragraph" | "columns" | "column" }> {
   return block.type === "paragraph" || block.type === "columns" || block.type === "column";
 }
 
-function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewModeChange }: { block: StyledBlock; onChange: (block: ContentBlock) => void; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void }) {
+function ParagraphInspector({ block, onChange, onOpenBackgroundMedia, scope = "block", fontSizeViewMode, onFontSizeViewModeChange }: { block: StyledBlock; onChange: (block: ContentBlock) => void; onOpenBackgroundMedia?: () => void; scope?: "block" | "studio"; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void }) {
   const style = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
   const socialIconsOnly = block.type === "social-icons";
   const defaults = gutenbergInspectorDefaults[block.type] ?? studioInspectorDefaults;
@@ -1006,57 +997,74 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
     ? fontSizeViewMode
     : style.fontSizeCustom ? "custom" : "presets";
   const activeBackgroundMode = style.backgroundGradient ? "gradient" : backgroundMode;
-  const typographyOptions: InspectorToolOption[] = socialIconsOnly ? [
+  const paragraphSpecificOptions = block.type === "paragraph";
+  const studioOnly = scope === "studio" && paragraphSpecificOptions;
+  const paragraphOptions = (section: typeof paragraphInspectorProfile.controls[number]["section"]): InspectorToolOption[] => paragraphInspectorProfile.controls.filter(option => option.section === section).map(({ id, label: optionLabel, source }) => ({ id, label: optionLabel, source }));
+  const typographyOptions: InspectorToolOption[] = paragraphSpecificOptions ? paragraphOptions("typography") : socialIconsOnly ? [
     { id: "colour", label: "Colour" }, { id: "size", label: "Size" },
   ] : [
     { id: "colour", label: "Colour" }, { id: "size", label: "Size" },
     { id: "family", label: "Font family" }, { id: "appearance", label: "Appearance" },
     { id: "line-height", label: "Line height" }, { id: "letter-spacing", label: "Letter spacing" },
-    ...(block.type === "paragraph" ? [{ id: "line-indent", label: "Line indent" }] : []),
-    ...(block.type === "paragraph" || block.type === "group" ? [{ id: "columns", label: "Columns" }] : []),
+    ...(block.type === "group" ? [{ id: "columns", label: "Columns" }] : []),
     { id: "decoration", label: "Decoration" },
-    ...(["paragraph", "heading", "button", "footnotes"].includes(block.type) ? [{ id: "orientation", label: "Orientation" }] : []),
+    ...(["heading", "button", "footnotes"].includes(block.type) ? [{ id: "orientation", label: "Orientation" }] : []),
     { id: "letter-case", label: "Letter case" },
-    ...(block.type === "paragraph" ? [{ id: "drop-cap", label: "Drop cap" }] : []),
-    ...(block.type === "paragraph" || block.type === "heading" ? [{ id: "fit-text", label: "Fit text" }] : []),
-    ...(block.type === "paragraph" || block.type === "heading" ? [{ id: "text-shadow", label: "Text shadow" }] : []),
+    ...(block.type === "heading" ? [{ id: "fit-text", label: "Fit text" }, { id: "text-shadow", label: "Text shadow" }] : []),
   ];
-  const dimensionOptions: InspectorToolOption[] = [
+  const dimensionOptions: InspectorToolOption[] = paragraphSpecificOptions ? paragraphOptions("dimensions") : [
     { id: "padding", label: "Padding" },
     ...(!["button", "column"].includes(block.type) ? [{ id: "margin", label: "Margin" }] : []),
-    ...(["quote", "group", "section"].includes(block.type) || style.minHeight ? [{ id: "min-height", label: "Minimum height" }] : []),
-    ...(["group", "section"].includes(block.type) || style.minWidth ? [{ id: "min-width", label: "Minimum width" }] : []),
+    ...(["quote", "group", "section"].includes(block.type) || style.minHeight ? [{ id: "min-height", label: "Minimum height", ...(["quote", "group", "section"].includes(block.type) ? {} : { source: "studio" as const }) }] : []),
+    ...(["group", "section"].includes(block.type) || style.minWidth ? [{ id: "min-width", label: "Minimum width", ...(["group", "section"].includes(block.type) ? {} : { source: "studio" as const }) }] : []),
   ];
   const coreBlocksWithShadow = ["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"];
-  const borderOptions: InspectorToolOption[] = [{ id: "border", label: "Border" }, ...(block.type !== "table" ? [{ id: "radius", label: "Radius" }, ...((coreBlocksWithShadow.includes(block.type) || style.shadow) ? [{ id: "shadow", label: "Shadow" }] : [])] : [])];
-  const elementOptions: InspectorToolOption[] = ["paragraph", "heading", "quote", "list", "footnotes", "group", "columns", "column", "document-title", "post-author", "post-date"].includes(block.type) ? [{ id: "link-colour", label: "Link colour" }] : [];
+  const borderOptions: InspectorToolOption[] = paragraphSpecificOptions ? paragraphOptions("border") : [{ id: "border", label: "Border" }, ...(block.type !== "table" ? [{ id: "radius", label: "Radius" }, ...((coreBlocksWithShadow.includes(block.type) || style.shadow) ? [{ id: "shadow", label: "Shadow", ...(!coreBlocksWithShadow.includes(block.type) ? { source: "studio" as const } : {}) }] : [])] : [])];
+  const elementOptions: InspectorToolOption[] = paragraphSpecificOptions ? paragraphOptions("elements") : ["paragraph", "heading", "quote", "list", "footnotes", "group", "columns", "column", "document-title", "post-author", "post-date"].includes(block.type) ? [{ id: "link-colour", label: "Link colour" }] : [];
   const marginLayout = ["code", "group", "columns"].includes(block.type) ? "vertical" as const : "axes" as const;
   const [typographyUserVisible, setTypographyVisible] = useState(() => new Set<string>());
   const [dimensionsUserVisible, setDimensionsVisible] = useState(() => new Set<string>());
   const [borderUserVisible, setBorderVisible] = useState(() => new Set<string>());
   const [elementsUserVisible, setElementsVisible] = useState(() => new Set<string>());
-  const typographyVisible = new Set([...defaultTypography, ...typographyUserVisible, ...[
+  const scopedTypographyOptions = studioOnly ? typographyOptions.filter(option => option.source === "studio") : typographyOptions.filter(option => option.source !== "studio");
+  const scopedTypographyIds = new Set(scopedTypographyOptions.map(option => option.id));
+  const scopedDimensionOptions = studioOnly ? dimensionOptions.filter(option => option.source === "studio") : dimensionOptions.filter(option => option.source !== "studio");
+  const scopedDimensionIds = new Set(scopedDimensionOptions.map(option => option.id));
+  const scopedBorderOptions = studioOnly ? borderOptions.filter(option => option.source === "studio") : borderOptions.filter(option => option.source !== "studio");
+  const scopedBorderIds = new Set(scopedBorderOptions.map(option => option.id));
+  const typographyVisible = new Set([...(studioOnly ? [] : defaultTypography), ...typographyUserVisible, ...[
     style.textColor && "colour", (style.fontSize || style.fontSizeCustom) && "size", style.appearance && "appearance", style.fontFamily && "family", style.textShadow && "text-shadow",
     style.lineHeight && "line-height", style.letterSpacing && "letter-spacing", style.textIndent && "line-indent",
     style.textColumns && "columns", style.textDecoration && "decoration", style.textTransform && "letter-case", style.dropCap && "drop-cap", style.fitText && "fit-text", style.orientation && "orientation",
-  ].filter((value): value is string => Boolean(value))]);
-  const dimensionsVisible = new Set([...defaultDimensions, ...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin", style.minHeight && "min-height", style.minWidth && "min-width"].filter((value): value is string => Boolean(value))]);
+  ].filter((value): value is string => Boolean(value) && scopedTypographyIds.has(value as string))]);
+  const dimensionsVisible = new Set([...(studioOnly ? [] : defaultDimensions), ...[...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin", style.minHeight && "min-height", style.minWidth && "min-width"].filter((value): value is string => Boolean(value))].filter(id => scopedDimensionIds.has(id))]);
   const borderVisible = new Set([...defaultBorder, ...borderUserVisible, ...[
-    (style.borderStyle || style.borderColor || style.borderWidth) && "border", style.borderRadius && "radius", style.shadow && "shadow",
-  ].filter((value): value is string => Boolean(value))]);
-  const elementsVisible = new Set([...defaultElements, ...elementsUserVisible, ...[style.linkColor && "link-colour"].filter((value): value is string => Boolean(value))]);
-  const optionalTypographyOptions = typographyOptions.filter(option => !defaultTypography.has(option.id));
-  const optionalDimensionOptions = dimensionOptions.filter(option => !defaultDimensions.has(option.id));
-  const optionalBorderOptions = borderOptions.filter(option => !defaultBorder.has(option.id));
+    (style.borderStyle || style.borderColor || style.borderWidth) && "border",
+    style.borderRadius && "radius", style.shadow && "shadow",
+  ].filter((value): value is string => Boolean(value) && scopedBorderIds.has(value as string))]);
+  const elementsVisible = new Set([...defaultElements, ...elementsUserVisible, ...[style.linkColor && "link-colour", style.linkHoverColor && "link-colour"].filter((value): value is string => Boolean(value))]);
+  const dropCapDisabled = block.type === "paragraph" && (block.align === "centre" || block.align === "right");
+  const optionalTypographyOptions = scopedTypographyOptions.filter(option => !defaultTypography.has(option.id));
+  const paragraphHasExplicitFontSize = paragraphSpecificOptions && Boolean(style.fontSize || style.fontSizeCustom);
+  const paragraphMenuOptions: InspectorMenuOption[] = block.type === "paragraph" && !studioOnly ? [
+    { id: "colour", label: "Colour", checked: true, disabled: true },
+    ...(paragraphHasExplicitFontSize
+      ? [{ id: "reset-size", label: "Reset Size" }]
+      : [{ id: "size", label: "Size", checked: true, disabled: true }]),
+  ] : [];
+  const typographyMenuOptions = optionalTypographyOptions;
+  const optionalDimensionOptions = scopedDimensionOptions.filter(option => !defaultDimensions.has(option.id));
+  const optionalBorderOptions = scopedBorderOptions.filter(option => !defaultBorder.has(option.id));
   const optionalElementOptions = elementOptions.filter(option => !defaultElements.has(option.id));
   const toolFields: Record<string, (keyof ParagraphStyle)[]> = {
     colour: ["textColor"], family: ["fontFamily"], size: ["fontSize", "fontSizeCustom"], appearance: ["appearance"], "text-shadow": ["textShadow"],
     "line-height": ["lineHeight"], "letter-spacing": ["letterSpacing"], "line-indent": ["textIndent"], columns: ["textColumns"], decoration: ["textDecoration"],
     "letter-case": ["textTransform"], padding: ["padding"], margin: ["margin"], "min-height": ["minHeight"], "min-width": ["minWidth"],
     "drop-cap": ["dropCap"], "fit-text": ["fitText"], orientation: ["orientation"],
-    border: ["borderColor", "borderStyle", "borderWidth"], radius: ["borderRadius"], shadow: ["shadow"],
-    "link-colour": ["linkColor"],
+    border: ["borderColor", "borderStyle", "borderWidth"], "border-colour": ["borderColor"], "border-style": ["borderStyle"], "border-width": ["borderWidth"], radius: ["borderRadius"], shadow: ["shadow"],
+    "link-colour": ["linkColor", "linkHoverColor"],
   };
+  if (paragraphSpecificOptions) for (const option of paragraphInspectorProfile.controls) toolFields[option.id] = [...option.fields];
   function writeStyle(nextStyle: ParagraphStyle) {
     const updatedStyle = Object.keys(nextStyle).length ? nextStyle : undefined;
     onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
@@ -1123,34 +1131,59 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
     { value: "small", label: "S", accessibleName: "Small" },
     { value: "medium", label: "M", accessibleName: "Medium" },
     { value: "large", label: "L", accessibleName: "Large" },
-    { value: "x-large", label: "XL", accessibleName: "Extra large" },
-    { value: "xx-large", label: "XXL", accessibleName: "Extra extra large" },
+    { value: "x-large", label: "XL", accessibleName: paragraphSpecificOptions ? "Larger" : "Extra large" },
+    { value: "xx-large", label: "XXL", accessibleName: paragraphSpecificOptions ? "XX-Large" : "Extra extra large" },
   ];
   const appearanceWeights = [
     ["thin", "Thin"], ["extra-light", "Extra light"], ["light", "Light"], ["regular", "Regular"],
     ["medium", "Medium"], ["semi-bold", "Semi bold"], ["bold", "Bold"],
     ["extra-bold", "Extra bold"], ["black", "Black"],
   ] as const;
+  if (studioOnly) return <>
+    <InspectorToolsSection title="Typography" options={typographyMenuOptions} visible={typographyVisible} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
+      {typographyVisible.has("family") ? <label><span>Font family<StudioSourceBadge /></span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
+      {typographyVisible.has("orientation") ? <label><span>Orientation<StudioSourceBadge /></span><select value={style.orientation ?? ""} onChange={event => updateStyle("orientation", (event.target.value || undefined) as ParagraphStyle["orientation"])}><option value="">Default</option><option value="horizontal-tb">Horizontal</option><option value="vertical-rl">Vertical</option></select></label> : null}
+      {typographyVisible.has("text-shadow") ? <label><span>Text shadow<StudioSourceBadge /></span><select value={style.textShadow ?? ""} onChange={event => updateStyle("textShadow", (event.target.value || undefined) as ParagraphStyle["textShadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
+    </InspectorToolsSection>
+    {optionalDimensionOptions.length ? <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
+      {dimensionsVisible.has("min-height") ? <ParagraphLengthSetting key={`${block.id}-min-height`} label={<>Minimum height<StudioSourceBadge /></>} value={style.minHeight} min={0} max={4000} onChange={(value) => updateStyle("minHeight", value)} /> : null}
+      {dimensionsVisible.has("min-width") ? <ParagraphLengthSetting key={`${block.id}-min-width`} label={<>Minimum width<StudioSourceBadge /></>} value={style.minWidth} min={0} max={4000} onChange={(value) => updateStyle("minWidth", value)} /> : null}
+    </InspectorToolsSection> : null}
+    {optionalBorderOptions.length ? <InspectorToolsSection title="Border" options={optionalBorderOptions} visible={borderVisible} canReset={Boolean(borderVisible.size)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools(borderVisible); setBorderVisible(new Set()); }}>
+      {borderVisible.has("shadow") ? <label><span>Shadow<StudioSourceBadge /></span><select value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
+    </InspectorToolsSection> : null}
+  </>;
   return <>
-    <InspectorToolsSection title="Typography" options={optionalTypographyOptions} visible={typographyVisible} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
-      {typographyVisible.has("colour") ? <PaletteColourSetting label="Text colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /> : null}
+    <InspectorToolsSection title="Typography" options={typographyMenuOptions} visible={typographyVisible} canReset={optionalTypographyOptions.some(option => typographyVisible.has(option.id))} menuOptions={paragraphMenuOptions} onMenuOptionSelect={id => { if (id === "reset-size") updateFontSize(undefined, "presets"); }} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
+      {typographyVisible.has("colour") ? <PaletteColourSetting label="Colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /> : null}
       {typographyVisible.has("size") ? <fieldset className="paragraph-font-size-setting" disabled={fitTextEnabled(style)}><legend className="visually-hidden">Font size</legend><div className="paragraph-font-size-heading"><span>Font size</span><button type="button" className="paragraph-font-size-mode" aria-label={fontSizeMode === "custom" ? "Use font size presets" : "Use custom font size"} title={fontSizeMode === "custom" ? "Use font size presets" : "Use custom font size"} aria-pressed={fontSizeMode === "custom"} onClick={() => onFontSizeViewModeChange(fontSizeMode === "custom" ? "presets" : "custom")}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button></div>{fontSizeMode === "custom" ? <CustomFontSizeSetting key={`${block.id}-custom-size`} value={style.fontSizeCustom} onChange={value => updateFontSize(value, "custom")} /> : <div role="group" aria-label="Font size presets" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateFontSize(style.fontSize === value ? undefined : value, "presets")}>{label}</button>)}</div>}</fieldset> : null}
-      {typographyVisible.has("family") ? <label><span>Font family</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
+      {typographyVisible.has("family") ? <label><span>Font family{block.type === "paragraph" ? <StudioSourceBadge /> : null}</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
       {typographyVisible.has("appearance") ? <label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option>{appearanceWeights.map(([value, label]) => <option key={value} value={value}>{label}</option>)}{appearanceWeights.map(([value, label]) => <option key={`${value}-italic`} value={value === "regular" ? "italic" : `${value}-italic`}>{label} italic</option>)}</select></label> : null}
       {typographyVisible.has("line-height") ? <label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label> : null}
       {typographyVisible.has("letter-spacing") ? <label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label> : null}
       {typographyVisible.has("line-indent") ? <ParagraphLengthSetting key={`${block.id}-indent`} label="Line indent" value={style.textIndent} min={-100} max={200} onChange={(value) => updateStyle("textIndent", value)} /> : null}
       {typographyVisible.has("columns") ? <label><span>Columns</span><select value={style.textColumns ?? ""} onChange={(event) => updateStyle("textColumns", event.target.value ? Number(event.target.value) : undefined)}><option value="">Default</option>{[1, 2, 3, 4].map(count => <option key={count} value={count}>{count}</option>)}</select></label> : null}
       {typographyVisible.has("decoration") ? <label><span>Decoration</span><select value={style.textDecoration ?? ""} onChange={(event) => updateStyle("textDecoration", (event.target.value || undefined) as ParagraphStyle["textDecoration"])}><option value="">Default</option><option value="none">None</option><option value="underline">Underline</option><option value="line-through">Strikethrough</option></select></label> : null}
-      {typographyVisible.has("orientation") ? <label><span>Orientation</span><select value={style.orientation ?? ""} onChange={event => updateStyle("orientation", (event.target.value || undefined) as ParagraphStyle["orientation"])}><option value="">Default</option><option value="horizontal-tb">Horizontal</option><option value="vertical-rl">Vertical</option></select></label> : null}
+      {typographyVisible.has("orientation") ? <label><span>Orientation{block.type === "paragraph" ? <StudioSourceBadge /> : null}</span><select value={style.orientation ?? ""} onChange={event => updateStyle("orientation", (event.target.value || undefined) as ParagraphStyle["orientation"])}><option value="">Default</option><option value="horizontal-tb">Horizontal</option><option value="vertical-rl">Vertical</option></select></label> : null}
       {typographyVisible.has("letter-case") ? <label><span>Letter case</span><select value={style.textTransform ?? ""} onChange={(event) => updateStyle("textTransform", (event.target.value || undefined) as ParagraphStyle["textTransform"])}><option value="">Default</option><option value="none">Normal</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalise</option></select></label> : null}
-      {typographyVisible.has("drop-cap") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.dropCap)} onChange={event => updateStyle("dropCap", event.target.checked || undefined)} /><span>Drop cap</span></label> : null}
+      {typographyVisible.has("drop-cap") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.dropCap)} disabled={dropCapDisabled} onChange={event => updateStyle("dropCap", event.target.checked || undefined)} /><span>Drop cap{dropCapDisabled ? <small className="inspector-setting-help">Not available for aligned text.</small> : null}</span></label> : null}
       {typographyVisible.has("fit-text") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.fitText)} onChange={event => updateFitText(event.target.checked)} /><span>Fit text{style.fitText && style.orientation === "vertical-rl" ? " (paused for vertical text)" : ""}</span></label> : null}
-      {typographyVisible.has("text-shadow") ? <label><span>Text shadow</span><select value={style.textShadow ?? ""} onChange={event => updateStyle("textShadow", (event.target.value || undefined) as ParagraphStyle["textShadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
+      {typographyVisible.has("text-shadow") ? <label><span>Text shadow{block.type === "paragraph" ? <StudioSourceBadge /> : null}</span><select value={style.textShadow ?? ""} onChange={event => updateStyle("textShadow", (event.target.value || undefined) as ParagraphStyle["textShadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
     </InspectorToolsSection>
     <InspectorAccordionSection className="inspector-panel" title="Background">
       <ParagraphBackgroundControl mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} onModeChange={mode => { setBackgroundMode(mode); if (mode === "colour" && style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
+      {["quote", "group"].includes(block.type) ? <div className="paragraph-background-image-controls">
+        {onOpenBackgroundMedia ? <button type="button" className="choose-media-button" onClick={onOpenBackgroundMedia}>{style.backgroundImageMediaId ? "Replace background image" : "Choose background image"}</button> : null}
+        {style.backgroundImageMediaId ? <>
+          <button type="button" className="paragraph-reset-button" onClick={() => updateStyle("backgroundImageMediaId", undefined)}>Remove background image</button>
+          <label><span>Image size</span><select value={style.backgroundSize ?? "cover"} onChange={event => updateStyle("backgroundSize", event.target.value as ParagraphStyle["backgroundSize"])}><option value="cover">Cover</option><option value="contain">Contain</option><option value="fixed">Fixed size</option></select></label>
+          {style.backgroundSize === "fixed" ? <label><span>Image width ({style.backgroundFixedSize ?? 200}px)</span><input aria-label="Background image width" type="range" min="50" max="2000" step="10" value={style.backgroundFixedSize ?? 200} onChange={event => updateStyle("backgroundFixedSize", Number(event.target.value))} /></label> : null}
+          <label className="checkbox-setting"><input type="checkbox" checked={style.backgroundRepeat ? style.backgroundRepeat === "repeat" : style.backgroundSize === "fixed"} onChange={event => updateStyle("backgroundRepeat", event.target.checked ? "repeat" : "no-repeat")} /><span>Repeat background image</span></label>
+          <label><span>Horizontal focal point ({style.backgroundPositionX ?? 50}%)</span><input aria-label="Background image horizontal focal point" type="range" min="0" max="100" value={style.backgroundPositionX ?? 50} onChange={event => updateStyle("backgroundPositionX", Number(event.target.value))} /></label>
+          <label><span>Vertical focal point ({style.backgroundPositionY ?? 50}%)</span><input aria-label="Background image vertical focal point" type="range" min="0" max="100" value={style.backgroundPositionY ?? 50} onChange={event => updateStyle("backgroundPositionY", Number(event.target.value))} /></label>
+        </> : null}
+      </div> : null}
     </InspectorAccordionSection>
     <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
       {dimensionsVisible.has("padding") ? <BoxLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding} layout="axes" min={0} max={100} onChange={(value) => updateStyle("padding", value)} /> : null}
@@ -1158,220 +1191,50 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
       {dimensionsVisible.has("min-height") ? <ParagraphLengthSetting key={`${block.id}-min-height`} label="Minimum height" value={style.minHeight} min={0} max={4000} onChange={(value) => updateStyle("minHeight", value)} /> : null}
       {dimensionsVisible.has("min-width") ? <ParagraphLengthSetting key={`${block.id}-min-width`} label="Minimum width" value={style.minWidth} min={0} max={4000} onChange={(value) => updateStyle("minWidth", value)} /> : null}
     </InspectorToolsSection>
-    <InspectorToolsSection title="Border" options={optionalBorderOptions} visible={borderVisible} canReset={Boolean(borderVisible.size || style.shadow)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools([...borderVisible, "shadow"]); setBorderVisible(new Set()); }}>
+    <InspectorToolsSection title="Border" options={optionalBorderOptions} visible={borderVisible} canReset={Boolean(borderVisible.size || (!paragraphSpecificOptions && style.shadow))} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools([...borderVisible, ...(!paragraphSpecificOptions ? ["shadow"] : [])]); setBorderVisible(new Set()); }}>
       {borderVisible.has("border") ? <div className="box-border-setting"><div className="box-border-appearance"><BorderColourControl value={style.borderColor} onChange={updateBorderColour} /><label><span>Border style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label></div><BoxLengthSetting key={`${block.id}-border-width`} label="Width" value={style.borderWidth ?? (style.borderStyle && style.borderStyle !== "none" ? "1px" : undefined)} canReset={Boolean(style.borderWidth)} layout="all" allowPercent={false} min={0} max={20} onChange={updateBorderWidth} /></div> : null}
       {borderVisible.has("radius") ? <BoxLengthSetting key={`${block.id}-radius`} label="Radius" value={style.borderRadius} layout="all" corners min={0} max={100} onChange={value => updateStyle("borderRadius", value)} /> : null}
       {borderVisible.has("shadow") ? <label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
     </InspectorToolsSection>
     {elementOptions.length ? <InspectorToolsSection title="Elements" options={optionalElementOptions} visible={elementsVisible} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
-      {elementsVisible.has("link-colour") ? <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} /> : null}
+      {elementsVisible.has("link-colour") ? block.type === "paragraph"
+        ? <LinkColourSetting style={style} defaultValue={style.linkColor} hoverValue={style.linkHoverColor} onDefaultChange={value => updateStyle("linkColor", value)} onHoverChange={value => updateStyle("linkHoverColor", value)} />
+        : <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} /> : null}
     </InspectorToolsSection> : null}
   </>;
 }
 
-function CustomFontSizeSetting({ value, onChange }: { value?: string; onChange: (value: string | undefined) => void }) {
-  const units: CustomFontSizeUnit[] = ["px", "em", "rem", "vw", "vh"];
-  const match = value?.match(/^(\d+(?:\.\d+)?)(px|em|rem|vw|vh)$/);
-  const [unit, setUnit] = useState<CustomFontSizeUnit>((match?.[2] as CustomFontSizeUnit) ?? "px");
-  const [draft, setDraft] = useState<string | null>(null);
-  const [sliderDraft, setSliderDraft] = useState<string | null>(null);
-  const sliderDraftRef = useRef<string | null>(null);
-  const sliderDraggingRef = useRef(false);
-  const sliderPointerIdRef = useRef<number | null>(null);
-  const sliderStartValueRef = useRef<string | null>(null);
-  const sliderRef = useRef<HTMLInputElement>(null);
-  const finishSliderDragRef = useRef<(pointerId?: number) => void>(() => {});
-  const [unitMenuOpen, setUnitMenuOpen] = useState(false);
-  const unitMenuId = useId();
-  const unitTriggerRef = useRef<HTMLButtonElement>(null);
-  const unitMenuRef = useRef<HTMLDivElement>(null);
-  const displayedValue = draft ?? match?.[1] ?? "";
-  const relativeUnit = unit !== "px";
-  const sliderMinimum = relativeUnit ? 0.1 : 1;
-  const sliderMaximum = customFontSizeMaximum(unit);
-  const sliderDisplayedValue = sliderDraft ?? displayedValue;
-  const numericValue = Number(sliderDisplayedValue);
-  const sliderValue = sliderDisplayedValue && Number.isFinite(numericValue) ? Math.max(sliderMinimum, Math.min(numericValue, sliderMaximum)) : relativeUnit ? 1 : 16;
-  function startSliderDrag(pointerId: number, value: string) {
-    if (sliderDraggingRef.current) return;
-    // The range only renders in custom mode. Avoid a parent state update here,
-    // which can interrupt the browser's native range drag as it starts.
-    sliderDraggingRef.current = true;
-    sliderPointerIdRef.current = pointerId;
-    sliderStartValueRef.current = value;
-    sliderDraftRef.current = null;
-  }
-  function commit(next: string, nextUnit = unit) {
-    setDraft(null);
-    if (!next.trim()) { onChange(undefined); return; }
-    const normalised = normaliseCustomFontSize(Number(next), nextUnit);
-    if (normalised) onChange(normalised);
-  }
-  function finishSliderDrag(input = sliderRef.current, pointerId?: number) {
-    if (!input) return;
-    if (!sliderDraggingRef.current) return;
-    if (pointerId !== undefined && sliderPointerIdRef.current !== pointerId) return;
-    const nextValue = sliderDraftRef.current ?? input.value;
-    const changed = nextValue !== sliderStartValueRef.current;
-    sliderDraggingRef.current = false;
-    sliderPointerIdRef.current = null;
-    sliderStartValueRef.current = null;
-    sliderDraftRef.current = null;
-    setSliderDraft(null);
-    if (changed) commit(nextValue);
-  }
-  useLayoutEffect(() => {
-    finishSliderDragRef.current = (pointerId) => finishSliderDrag(sliderRef.current, pointerId);
-  });
-  useEffect(() => {
-    const finishPointerInteraction = (event: PointerEvent) => finishSliderDragRef.current(event.pointerId);
-    window.addEventListener("pointerup", finishPointerInteraction);
-    window.addEventListener("pointercancel", finishPointerInteraction);
-    return () => {
-      window.removeEventListener("pointerup", finishPointerInteraction);
-      window.removeEventListener("pointercancel", finishPointerInteraction);
-    };
-  }, []);
-  useEffect(() => {
-    if (unitMenuOpen) unitMenuRef.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
-  }, [unitMenuOpen]);
-  function closeUnitMenu(restoreFocus = false) {
-    setUnitMenuOpen(false);
-    if (restoreFocus) requestAnimationFrame(() => unitTriggerRef.current?.focus());
-  }
-  function selectUnit(nextUnit: CustomFontSizeUnit) {
-    setUnit(nextUnit);
-    if (displayedValue) commit(displayedValue, nextUnit);
-    closeUnitMenu(true);
-  }
-  return <div className="paragraph-custom-font-size"><div className="paragraph-custom-font-size-input" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeUnitMenu(); }}><input aria-label="Custom font size" type="number" min={sliderMinimum} max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={displayedValue} onChange={event => setDraft(event.target.value)} onBlur={() => { if (draft !== null) commit(draft); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><button ref={unitTriggerRef} className="paragraph-custom-font-size-unit" type="button" aria-label={`Custom font size unit: ${unit}`} aria-haspopup="menu" aria-expanded={unitMenuOpen} aria-controls={unitMenuId} onClick={() => setUnitMenuOpen(open => !open)}>{unit}</button>{unitMenuOpen ? <div ref={unitMenuRef} id={unitMenuId} className="paragraph-custom-font-size-unit-menu" role="menu" tabIndex={-1} aria-label="Custom font size unit" onKeyDown={event => {
-    if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeUnitMenu(true); return; }
-    const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]'));
-    const activeIndex = items.indexOf(event.target as HTMLButtonElement);
-    let nextIndex: number | null = null;
-    if (event.key === "ArrowDown") nextIndex = (activeIndex + 1) % items.length;
-    else if (event.key === "ArrowUp") nextIndex = (activeIndex - 1 + items.length) % items.length;
-    else if (event.key === "Home") nextIndex = 0;
-    else if (event.key === "End") nextIndex = items.length - 1;
-    if (nextIndex !== null && items.length) { event.preventDefault(); items[nextIndex]?.focus(); }
-  }}>{units.map(option => <button className={option === unit ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={option === unit} key={option} onClick={() => selectUnit(option)}><span className="paragraph-custom-font-size-unit-check">{option === unit ? <AcmIcon name="state.selected" scale="Regular-S" size={16} /> : null}</span><span>{option}</span></button>)}</div> : null}</div><input ref={sliderRef} className="paragraph-custom-font-size-slider" aria-label="Custom font size slider" type="range" min={sliderMinimum} max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={sliderValue} onPointerDown={event => startSliderDrag(event.pointerId, event.currentTarget.value)} onPointerUp={event => finishSliderDrag(event.currentTarget, event.pointerId)} onPointerCancel={event => finishSliderDrag(event.currentTarget, event.pointerId)} onLostPointerCapture={event => finishSliderDrag(event.currentTarget, event.pointerId)} onBlur={event => finishSliderDrag(event.currentTarget)} onChange={event => { if (sliderDraggingRef.current) { sliderDraftRef.current = event.currentTarget.value; setSliderDraft(event.currentTarget.value); } else commit(event.currentTarget.value); }} /></div>;
-}
-
-function ParagraphLengthSetting({ label, value, min, max, onChange }: { label: string; value?: string; min: number; max: number; onChange: (value: string | undefined) => void }) {
-  const match = value?.match(/^(-?\d+(?:\.\d+)?)(px|rem|em|%|ch|vw|vh)?$/);
-  const number = match ? Number(match[1]) : 0;
-  const unit = match?.[2] ?? "px";
-  const [draft, setDraft] = useState<string | null>(null);
-  const displayedDraft = draft ?? (match ? match[1] : "");
-  const units = ["px", "rem", "em", "%", "ch", "vw", "vh"];
-  function setNumber(next: number) {
-    if (!Number.isFinite(next)) return;
-    const bounded = Math.max(min, Math.min(max, next));
-    setDraft(null);
-    onChange(bounded === 0 && !value ? undefined : `${bounded}${unit}`);
-  }
-  function commitDraft() {
-    if (draft === null) return;
-    if (draft.trim() === "") {
-      setDraft(null);
-      onChange(undefined);
-      return;
-    }
-    const parsed = Number(draft);
-    if (Number.isFinite(parsed)) setNumber(parsed);
-    else setDraft(null);
-  }
-  const rangeMin = Math.min(min, number);
-  const rangeMax = Math.max(max, number);
-  return <div className="paragraph-length-setting"><span>{label}</span><div className="paragraph-length-controls"><input aria-label={`${label} amount`} type="range" min={rangeMin} max={rangeMax} step="0.1" value={number} onChange={(event) => setNumber(Number(event.target.value))} /><input aria-label={`${label} value`} type="number" min={min} max={max} step="0.1" value={displayedDraft} placeholder="0" onChange={(event) => setDraft(event.target.value)} onBlur={commitDraft} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select aria-label={`${label} unit`} value={unit} onChange={(event) => { const nextUnit = event.target.value; if (match) onChange(`${number}${nextUnit}`); }} disabled={!match}>{units.map((option) => <option key={option} value={option}>{option}</option>)}</select><button type="button" className="paragraph-reset-button" onClick={() => { setDraft(null); onChange(undefined); }} disabled={!value}>Reset</button></div></div>;
-}
 
 function ColourSetting({ label, value, onChange }: { label: string; value?: string; onChange: (value: string | undefined) => void }) {
-  return <div className="inspector-colour-setting"><span>{label}</span><div><label className="inspector-colour-control"><span aria-hidden="true" style={value ? { backgroundColor: value } : undefined} /> <input aria-label={label} type="color" value={value ?? "#1e1e1e"} onChange={(event) => onChange(event.target.value)} /></label><button type="button" onClick={() => onChange(undefined)} disabled={!value}>Reset</button></div></div>;
+  return <div className="inspector-colour-setting"><span>{label}</span><div><label className={`inspector-colour-control${value ? " has-colour" : ""}`}><span aria-hidden="true" style={value ? { backgroundColor: value } : undefined} /> <input aria-label={label} type="color" value={value ?? "#1e1e1e"} onChange={(event) => onChange(event.target.value)} /></label><button type="button" onClick={() => onChange(undefined)} disabled={!value}>Reset</button></div></div>;
 }
 
-function PaletteColourSetting({ label, value, onChange }: { label: string; value?: string; onChange: (value: string | undefined) => void }) {
-  const [open, setOpen] = useState(false);
-  const settingRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const paletteRef = useRef<HTMLDivElement>(null);
-  const paletteId = useId();
-  const [palettePosition, setPalettePosition] = useState({ left: 16, top: 16, width: 280 });
-
-  useLayoutEffect(() => {
-    if (!open) return;
-    function positionPalette() {
-      const trigger = triggerRef.current;
-      const palette = paletteRef.current;
-      if (!trigger || !palette) return;
-      const triggerRect = trigger.getBoundingClientRect();
-      const inspectorLeft = trigger.closest(".studio-inspector")?.getBoundingClientRect().left ?? triggerRect.left;
-      const width = Math.min(280, window.innerWidth - 32);
-      setPalettePosition({
-        left: Math.max(16, inspectorLeft - width - 12),
-        top: Math.max(16, Math.min(triggerRect.top, window.innerHeight - palette.getBoundingClientRect().height - 16)),
-        width,
-      });
-    }
-    positionPalette();
-    window.addEventListener("resize", positionPalette);
-    window.addEventListener("scroll", positionPalette, true);
-    return () => {
-      window.removeEventListener("resize", positionPalette);
-      window.removeEventListener("scroll", positionPalette, true);
-    };
-  }, [open]);
-
-  function closePalette() {
-    setOpen(false);
-    requestAnimationFrame(() => triggerRef.current?.focus());
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setOpen(false);
-      requestAnimationFrame(() => triggerRef.current?.focus());
-    };
-    const handlePointerDown = (event: globalThis.PointerEvent) => {
-      if (event.target instanceof Node && !settingRef.current?.contains(event.target) && !paletteRef.current?.contains(event.target)) setOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("pointerdown", handlePointerDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [open]);
-
-  return <div ref={settingRef} className="inspector-colour-setting paragraph-palette-setting">
-    <span>{label}</span>
-    <div className="paragraph-palette-actions">
-      <button ref={triggerRef} type="button" className={`paragraph-palette-trigger${value ? " has-colour" : ""}`} aria-label={`Choose ${label}`} aria-expanded={open} aria-controls={paletteId} onClick={() => setOpen(current => !current)}>
-        <span aria-hidden="true" style={value ? { backgroundColor: value } : undefined} />
-      </button>
-      <button type="button" onClick={() => onChange(undefined)} disabled={!value}>Reset</button>
-    </div>
-    {open ? createPortal(<div ref={paletteRef} id={paletteId} className="paragraph-colour-palette" role="group" aria-label="Style Guide colour palette" style={palettePosition}>
-      <div className="paragraph-colour-palette-heading"><strong>{label}</strong><button type="button" aria-label={`Close ${label} palette`} title="Close" onClick={closePalette}><StudioIcon name="close" size={16} /></button></div>
-      <StyleGuideColourSwatches value={value} onChange={onChange} />
-      <label className="paragraph-custom-colour"><span>Custom colour</span><input aria-label="Custom text colour" type="color" value={value ?? UNIVERSAL_STYLE_PRESET.palette.textPrimary} onChange={event => onChange(event.target.value)} /></label>
-    </div>, document.body) : null}
-  </div>;
+function LinkColourSetting({ style, defaultValue, hoverValue, onDefaultChange, onHoverChange }: {
+  style: ParagraphStyle;
+  defaultValue?: string;
+  hoverValue?: string;
+  onDefaultChange: (value: string | undefined) => void;
+  onHoverChange: (value: string | undefined) => void;
+}) {
+  const defaultWarning = paragraphLinkColourHasPoorContrast(defaultValue, style, UNIVERSAL_STYLE_PRESET.palette.surface) === true;
+  const hoverWarning = paragraphLinkColourHasPoorContrast(hoverValue, style, UNIVERSAL_STYLE_PRESET.palette.surface) === true;
+  const warningDescriptionId = useId();
+  const warningStates = [defaultWarning && "Default", hoverWarning && "Hover"].filter(Boolean).join(" and ");
+  return <PaletteColourSetting label="Link" value={defaultValue} onChange={onDefaultChange} hoverValue={hoverValue} onHoverChange={onHoverChange} warningStates={warningStates} warningDescriptionId={warningDescriptionId} defaultWarning={defaultWarning} hoverWarning={hoverWarning} />;
 }
 
-function StyleGuideColourSwatches({ value, onChange }: { value?: string; onChange: (value: string) => void }) {
-  return <div className="paragraph-colour-swatches">
-    {styleGuidePaletteRoles.map(({ key, label }) => {
-      const colour = UNIVERSAL_STYLE_PRESET.palette[key];
-      const selected = value?.toLowerCase() === colour.toLowerCase();
-      return <button key={key} type="button" className="paragraph-colour-swatch" aria-label={`${label}, ${colour}`} aria-pressed={selected} title={`${label} — ${colour}`} onClick={() => onChange(colour)}>
-        <span aria-hidden="true" style={{ backgroundColor: colour }} />
-      </button>;
-    })}
-  </div>;
+function PaletteColourSetting({ label, value, onChange, hoverValue, onHoverChange, warningStates, warningDescriptionId, defaultWarning, hoverWarning }: {
+  label: string;
+  value?: string;
+  onChange: (value: string | undefined) => void;
+  hoverValue?: string;
+  onHoverChange?: (value: string | undefined) => void;
+  warningStates?: string;
+  warningDescriptionId?: string;
+  defaultWarning?: boolean;
+  hoverWarning?: boolean;
+}) {
+  return <ColourPicker label={label} value={value} onChange={onChange} hoverValue={hoverValue} onHoverChange={onHoverChange} warningStates={warningStates} descriptionId={warningDescriptionId} defaultWarning={defaultWarning} hoverWarning={hoverWarning} />;
 }
 
 function ParagraphBackgroundControl({ mode, colour, gradient, onModeChange, onColourChange, onGradientChange }: {
@@ -1382,85 +1245,15 @@ function ParagraphBackgroundControl({ mode, colour, gradient, onModeChange, onCo
   onColourChange: (value: string | undefined) => void;
   onGradientChange: (value: ParagraphBackgroundGradient) => void;
 }) {
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const paletteId = useId();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const colourTriggerRef = useRef<HTMLButtonElement>(null);
-  const paletteRef = useRef<HTMLDivElement>(null);
-  const [palettePosition, setPalettePosition] = useState({ left: 16, top: 16, width: 280 });
-
-  useLayoutEffect(() => {
-    if (!paletteOpen) return;
-    function positionPalette() {
-      const trigger = colourTriggerRef.current;
-      const palette = paletteRef.current;
-      if (!trigger || !palette) return;
-      const triggerRect = trigger.getBoundingClientRect();
-      const inspectorLeft = trigger.closest(".studio-inspector")?.getBoundingClientRect().left ?? triggerRect.left;
-      const width = Math.min(280, window.innerWidth - 32);
-      setPalettePosition({
-        left: Math.max(16, inspectorLeft - width - 12),
-        top: Math.max(16, Math.min(triggerRect.top, window.innerHeight - palette.getBoundingClientRect().height - 16)),
-        width,
-      });
-    }
-    positionPalette();
-    window.addEventListener("resize", positionPalette);
-    window.addEventListener("scroll", positionPalette, true);
-    return () => {
-      window.removeEventListener("resize", positionPalette);
-      window.removeEventListener("scroll", positionPalette, true);
-    };
-  }, [paletteOpen]);
-
-  function closePalette() {
-    setPaletteOpen(false);
-    requestAnimationFrame(() => colourTriggerRef.current?.focus());
-  }
-
-  useEffect(() => {
-    if (!paletteOpen) return;
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setPaletteOpen(false);
-      requestAnimationFrame(() => colourTriggerRef.current?.focus());
-    };
-    const handlePointerDown = (event: globalThis.PointerEvent) => {
-      if (event.target instanceof Node && !rootRef.current?.contains(event.target) && !paletteRef.current?.contains(event.target)) setPaletteOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("pointerdown", handlePointerDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [paletteOpen]);
-
-  const selectColourMode = () => {
-    if (mode !== "colour") onModeChange("colour");
-    setPaletteOpen(current => mode === "colour" ? !current : true);
-  };
-  const selectGradientMode = () => {
-    onModeChange("gradient");
-    setPaletteOpen(false);
-  };
-
-  return <div ref={rootRef} className="paragraph-background-control">
-    <div className="paragraph-background-modes" role="group" aria-label="Background type">
-      <button ref={colourTriggerRef} type="button" aria-pressed={mode === "colour"} aria-expanded={paletteOpen} aria-controls={paletteId} className={mode === "colour" ? "is-active" : ""} onClick={selectColourMode}>
+  return <div className="paragraph-background-control">
+    <ColourPicker label="Background colour" value={colour} onChange={onColourChange} clearLabel="Clear background colour" wrapperClassName="paragraph-background-picker" trigger={({ expanded, controls, onClick, close }) => <div className="paragraph-background-modes" role="group" aria-label="Background type">
+      <button type="button" aria-pressed={mode === "colour"} aria-expanded={expanded} aria-controls={controls} className={mode === "colour" ? "is-active" : ""} onClick={() => { onModeChange("colour"); onClick(); }}>
         <span className={`paragraph-background-mode-swatch${colour ? " has-colour" : ""}`} aria-hidden="true" style={colour ? { backgroundColor: colour } : undefined} />Colour
       </button>
-      <button type="button" aria-pressed={mode === "gradient"} className={mode === "gradient" ? "is-active" : ""} onClick={selectGradientMode}>
+      <button type="button" aria-pressed={mode === "gradient"} className={mode === "gradient" ? "is-active" : ""} onClick={() => { onModeChange("gradient"); close(); }}>
         <span className={`paragraph-background-mode-swatch${gradient ? " has-gradient" : ""}`} aria-hidden="true" style={gradient ? { backgroundImage: paragraphBackgroundGradientCss(gradient) } : undefined} />Gradient
       </button>
-    </div>
-    {paletteOpen ? createPortal(<div ref={paletteRef} id={paletteId} className="paragraph-colour-palette" role="group" aria-label="Style Guide background colour palette" style={palettePosition}>
-      <div className="paragraph-colour-palette-heading"><strong>Background colour</strong><button type="button" aria-label="Close Background colour palette" title="Close" onClick={closePalette}><StudioIcon name="close" size={16} /></button></div>
-      <StyleGuideColourSwatches value={colour} onChange={value => onColourChange(value)} />
-      <label className="paragraph-custom-colour"><span>Custom colour</span><input aria-label="Custom background colour" type="color" value={colour ?? UNIVERSAL_STYLE_PRESET.palette.surface} onChange={event => onColourChange(event.target.value)} /></label>
-      <button type="button" className="paragraph-reset-button" disabled={!colour} onClick={() => onColourChange(undefined)}>Clear background colour</button>
-    </div>, document.body) : null}
+    </div>} />
     {mode === "gradient" ? <div className="paragraph-gradient-options" role="group" aria-label="Background gradient">{(Object.entries(PARAGRAPH_BACKGROUND_GRADIENTS) as [ParagraphBackgroundGradient, string][]).map(([name]) => <button key={name} type="button" aria-label={`${name} gradient`} aria-pressed={gradient === name} className={gradient === name ? "is-active" : ""} style={{ backgroundImage: paragraphBackgroundGradientCss(name) }} onClick={() => onGradientChange(name)} />)}</div> : null}
   </div>;
 }
