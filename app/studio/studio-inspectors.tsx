@@ -1087,6 +1087,7 @@ function CustomFontSizeSetting({ value, onChange }: { value?: string; onChange: 
   const [unit, setUnit] = useState<CustomFontSizeUnit>((match?.[2] as CustomFontSizeUnit) ?? "px");
   const [draft, setDraft] = useState<string | null>(null);
   const [sliderDraft, setSliderDraft] = useState<string | null>(null);
+  const sliderDraftRef = useRef<string | null>(null);
   const sliderDraggingRef = useRef(false);
   const sliderPointerIdRef = useRef<number | null>(null);
   const sliderStartValueRef = useRef<string | null>(null);
@@ -1110,6 +1111,7 @@ function CustomFontSizeSetting({ value, onChange }: { value?: string; onChange: 
     sliderDraggingRef.current = true;
     sliderPointerIdRef.current = pointerId;
     sliderStartValueRef.current = value;
+    sliderDraftRef.current = null;
   }
   function commit(next: string, nextUnit = unit) {
     setDraft(null);
@@ -1121,12 +1123,14 @@ function CustomFontSizeSetting({ value, onChange }: { value?: string; onChange: 
     if (!input) return;
     if (!sliderDraggingRef.current) return;
     if (pointerId !== undefined && sliderPointerIdRef.current !== pointerId) return;
-    const changed = input.value !== sliderStartValueRef.current;
+    const nextValue = sliderDraftRef.current ?? input.value;
+    const changed = nextValue !== sliderStartValueRef.current;
     sliderDraggingRef.current = false;
     sliderPointerIdRef.current = null;
     sliderStartValueRef.current = null;
+    sliderDraftRef.current = null;
     setSliderDraft(null);
-    if (changed) commit(input.value);
+    if (changed) commit(nextValue);
   }
   useLayoutEffect(() => {
     finishSliderDragRef.current = (pointerId) => finishSliderDrag(sliderRef.current, pointerId);
@@ -1162,7 +1166,7 @@ function CustomFontSizeSetting({ value, onChange }: { value?: string; onChange: 
     else if (event.key === "Home") nextIndex = 0;
     else if (event.key === "End") nextIndex = items.length - 1;
     if (nextIndex !== null && items.length) { event.preventDefault(); items[nextIndex]?.focus(); }
-  }}>{units.map(option => <button className={option === unit ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={option === unit} key={option} onClick={() => selectUnit(option)}><span className="paragraph-custom-font-size-unit-check">{option === unit ? <AcmIcon name="state.selected" scale="Regular-S" size={16} /> : null}</span><span>{option}</span></button>)}</div> : null}</div><input ref={sliderRef} className="paragraph-custom-font-size-slider" aria-label="Custom font size slider" type="range" min={sliderMinimum} max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={sliderValue} onPointerDown={event => startSliderDrag(event.pointerId, event.currentTarget.value)} onPointerUp={event => finishSliderDrag(event.currentTarget, event.pointerId)} onPointerCancel={event => finishSliderDrag(event.currentTarget, event.pointerId)} onLostPointerCapture={event => finishSliderDrag(event.currentTarget, event.pointerId)} onBlur={event => finishSliderDrag(event.currentTarget)} onChange={event => { if (sliderDraggingRef.current) setSliderDraft(event.currentTarget.value); else commit(event.currentTarget.value); }} /></div>;
+  }}>{units.map(option => <button className={option === unit ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={option === unit} key={option} onClick={() => selectUnit(option)}><span className="paragraph-custom-font-size-unit-check">{option === unit ? <AcmIcon name="state.selected" scale="Regular-S" size={16} /> : null}</span><span>{option}</span></button>)}</div> : null}</div><input ref={sliderRef} className="paragraph-custom-font-size-slider" aria-label="Custom font size slider" type="range" min={sliderMinimum} max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={sliderValue} onPointerDown={event => startSliderDrag(event.pointerId, event.currentTarget.value)} onPointerUp={event => finishSliderDrag(event.currentTarget, event.pointerId)} onPointerCancel={event => finishSliderDrag(event.currentTarget, event.pointerId)} onLostPointerCapture={event => finishSliderDrag(event.currentTarget, event.pointerId)} onBlur={event => finishSliderDrag(event.currentTarget)} onChange={event => { if (sliderDraggingRef.current) { sliderDraftRef.current = event.currentTarget.value; setSliderDraft(event.currentTarget.value); } else commit(event.currentTarget.value); }} /></div>;
 }
 
 function ParagraphLengthSetting({ label, value, min, max, onChange }: { label: string; value?: string; min: number; max: number; onChange: (value: string | undefined) => void }) {
