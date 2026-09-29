@@ -34,7 +34,7 @@ async function compileModule(url) {
 const { BlockRenderer } = await import(await compileModule(new URL("../app/components/content.tsx", import.meta.url)));
 const { safeImageSource } = await import(await compileModule(new URL("../app/content/rich-text.ts", import.meta.url)));
 const { parseLocallyPublishedArticles, restoreLegacyPublicationCover, toLocallyPublishedArticle, validatePostForPublication } = await import(await compileModule(new URL("../app/content/local-publishing.ts", import.meta.url)));
-const { blockToHtml, formatHtml } = await import(await compileModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url)));
+const { blockToHtml, formatHtml, parseHtmlToBlock } = await import(await compileModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url)));
 const { listMarker } = await import(await compileModule(new URL("../app/content/model.ts", import.meta.url)));
 const { validContentBlocks } = await import(await compileModule(new URL("../app/studio/workspace-validation.ts", import.meta.url)));
 const { normaliseCustomFontSize, validCustomFontSize } = await import(await compileModule(new URL("../app/content/font-size.ts", import.meta.url)));
@@ -303,23 +303,132 @@ test("dynamic Gutenberg fields and Group semantics retain their compatibility se
   assert.match(blockToHtml(blocks[3]), /^<nav[^>]*aria-label="Related pages"/);
 });
 
-test("Social Icons wrapping, colours and per-icon advanced settings round-trip to HTML", () => {
+test("Social Icons serialize style, spacing, alignment and per-icon link metadata", () => {
   const block = {
     id: "socials",
     type: "social-icons",
     allowWrap: false,
+    socialStyle: "logos-only",
+    horizontalGap: 12,
+    verticalGap: 20,
+    blockAlign: "center",
+    openInNewTab: true,
     visualStyle: { textColor: "#ffffff", backgroundColor: "#2f6fb0" },
-    children: [{ id: "linkedin", type: "social-linkedin", url: "https://linkedin.com/in/example", visualStyle: { anchor: "linkedin-profile", className: "profile-link" } }],
+    children: [{ id: "linkedin", type: "social-linkedin", url: "https://linkedin.com/in/example", rel: "nofollow", visualStyle: { anchor: "linkedin-profile", className: "profile-link" } }],
   };
   const html = blockToHtml(block);
   assert.equal(validContentBlocks([block]), true);
   assert.equal(validContentBlocks([{ ...block, allowWrap: "false" }]), false);
+  assert.equal(validContentBlocks([{ ...block, socialStyle: "round" }]), false);
+  assert.equal(validContentBlocks([{ ...block, horizontalGap: 121 }]), false);
   assert.match(html, /data-social-wrap="false"/);
+  assert.match(html, /data-social-style="logos-only"/);
+  assert.match(html, /data-social-horizontal-gap="12" data-social-vertical-gap="20"/);
+  assert.match(html, /data-block-align-explicit="true"[^>]*class="aligncenter"/);
+  assert.match(html, /rel="nofollow" data-social-url=/);
   assert.match(html, /data-html-anchor="linkedin-profile" data-additional-classes="profile-link"/);
   const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
   assert.match(rendered, /social-icons-block is-horizontal is-no-wrap/);
+  assert.match(rendered, /is-style-logos-only aligncenter/);
+  assert.match(rendered, /column-gap:12px;row-gap:20px/);
+  assert.match(rendered, /target="_blank" rel="nofollow noopener noreferrer"/);
   assert.match(rendered, /--social-icon-background:#2f6fb0/);
   assert.match(rendered, /--social-icon-colour:#ffffff/);
+});
+
+test("Social Icons block alignment does not override inner icon justification", async () => {
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(styles, /\.social-icons-block\.justify-centre ul \{ justify-content: center; \}/);
+  assert.match(styles, /\.social-icons-block\.justify-right ul \{ justify-content: flex-end; \}/);
+  assert.match(styles, /\.prose \.social-icons-block\.aligncenter \{ margin-inline: auto; width: fit-content; max-width: 100%; \}/);
+  assert.match(styles, /\.prose \.social-icons-block\.alignright \{ margin-left: auto; width: 50%; \}/);
+  assert.doesNotMatch(styles, /\.social-icons-block\.align(?:center|right) ul \{ justify-content:/);
+});
+
+test("Divider preserves its selected semantic element and alignment in preview and HTML", () => {
+  const divider = { id: "section-divider", type: "divider", tagName: "div", style: "wide", blockAlign: "center" };
+  assert.equal(validContentBlocks([divider]), true);
+  assert.equal(validContentBlocks([{ ...divider, tagName: "span" }]), false);
+  const html = blockToHtml(divider);
+  assert.match(html, /^<div[^>]*data-block-type="divider"[^>]*class="is-wide aligncenter"><\/div>$/);
+  const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [divider], variant: "studio" }));
+  const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [divider] }));
+  assert.match(studio, /<div class="content-divider is-wide" role="separator" aria-orientation="horizontal"><\/div>/);
+  assert.match(article, /<div class="content-divider is-wide aligncenter" role="separator" aria-orientation="horizontal"><\/div>/);
+});
+
+test("Social Icons and Divider settings survive the semantic HTML parser round-trip", () => {
+  const previousParser = globalThis.DOMParser;
+  const previousNode = globalThis.Node;
+  const decode = value => value.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  function elementFromMarkup(markup) {
+    const [, tagName, rawAttributes, innerMarkup = ""] = markup.match(/^<([a-z][\w-]*)\b([^>]*)>([\s\S]*)<\/\1>$/i) ?? markup.match(/^<([a-z][\w-]*)\b([^>]*)\s*\/>$/i) ?? [];
+    const attributes = Object.fromEntries([...rawAttributes.matchAll(/([\w:-]+)="([^"]*)"/g)].map((match) => [match[1], decode(match[2])]));
+    const children = tagName.toLowerCase() === "nav" ? [...innerMarkup.matchAll(/<a\b[^>]*>[\s\S]*?<\/a>/gi)].map((match) => elementFromMarkup(match[0])) : [];
+    const element = {
+      nodeType: 1,
+      tagName: tagName.toUpperCase(),
+      className: attributes.class ?? "",
+      dataset: {},
+      children,
+      childNodes: children,
+      textContent: children.length ? children.map((child) => child.textContent).join("") : decode(innerMarkup.replace(/<[^>]+>/g, "")),
+      classList: { contains: (name) => (attributes.class ?? "").split(/\s+/).includes(name) },
+      getAttribute: (name) => attributes[name] ?? null,
+      querySelector: () => null,
+      querySelectorAll: () => [],
+    };
+    for (const [name, value] of Object.entries(attributes)) {
+      if (name.startsWith("data-")) element.dataset[name.slice(5).replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())] = value;
+    }
+    return element;
+  }
+  class MinimalDOMParser {
+    parseFromString(markup) {
+      const root = elementFromMarkup(markup);
+      const elements = [root, ...root.children];
+      return {
+        body: { childNodes: [root] },
+        querySelector: () => null,
+        querySelectorAll: (selector) => selector === "[data-block-id]" ? elements.filter((element) => element.dataset.blockId) : [],
+      };
+    }
+  }
+  try {
+    globalThis.DOMParser = MinimalDOMParser;
+    globalThis.Node = { TEXT_NODE: 3, ELEMENT_NODE: 1 };
+    const social = {
+      id: "socials",
+      type: "social-icons",
+      socialStyle: "pill-shape",
+      horizontalGap: 14,
+      verticalGap: 22,
+      blockAlign: "right",
+      openInNewTab: true,
+      visualStyle: { backgroundColor: "#234567" },
+      children: [{ id: "linkedin", type: "social-linkedin", url: "https://linkedin.com/in/example", label: "Work profile", rel: "nofollow" }],
+    };
+    const parsedSocial = parseHtmlToBlock(blockToHtml(social), social);
+    assert.ok("block" in parsedSocial);
+    assert.equal(parsedSocial.block.socialStyle, "pill-shape");
+    assert.equal(parsedSocial.block.horizontalGap, 14);
+    assert.equal(parsedSocial.block.verticalGap, 22);
+    assert.equal(parsedSocial.block.blockAlign, "right");
+    assert.equal(parsedSocial.block.children[0].rel, "nofollow");
+
+    const divider = { id: "divider", type: "divider", tagName: "div", style: "dots", blockAlign: "center", visualStyle: { textColor: "#123456" } };
+    const parsedDivider = parseHtmlToBlock(blockToHtml(divider), divider);
+    assert.ok("block" in parsedDivider);
+    assert.equal(parsedDivider.block.tagName, "div");
+    assert.equal(parsedDivider.block.blockAlign, "center");
+    assert.equal(parsedDivider.block.style, "dots");
+    assert.equal(parsedDivider.block.visualStyle.textColor, "#123456");
+  } finally {
+    if (previousParser === undefined) delete globalThis.DOMParser;
+    else globalThis.DOMParser = previousParser;
+    if (previousNode === undefined) delete globalThis.Node;
+    else globalThis.Node = previousNode;
+  }
 });
 
 test("Studio preview preserves block order, semantic content and raw whitespace without editable controls", () => {

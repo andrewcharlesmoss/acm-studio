@@ -148,7 +148,8 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.width === undefined || [25, 50, 75, 100].includes(block.width as number));
       case "field": return ["text", "select"].includes(block.control as string) && typeof block.label === "string" && typeof block.value === "string"
         && (block.options === undefined || strings(block.options));
-      case "divider": return block.style === undefined || ["default", "wide", "dots"].includes(block.style as string);
+      case "divider": return (block.style === undefined || ["default", "wide", "dots"].includes(block.style as string))
+        && (block.tagName === undefined || ["hr", "div"].includes(block.tagName as string));
       case "footnotes": return Array.isArray(block.notes) && block.notes.length <= 1000 && block.notes.every((note) => isRecord(note) && typeof note.id === "string" && note.id.length > 0 && note.id.length <= 160 && typeof note.text === "string" && note.text.length <= 10000);
       case "spacer": return validSpacerSize(block.height, block.heightUnit, true) && validSpacerSize(block.width, block.widthUnit);
       case "document-title": return (block.level === undefined || [1, 2, 3, 4, 5, 6].includes(block.level as number))
@@ -169,12 +170,15 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.orientation === undefined || ["horizontal", "vertical"].includes(block.orientation as string))
         && optionalBoolean(block.allowWrap)
         && (block.iconSize === undefined || ["small", "normal", "large"].includes(block.iconSize as string))
+        && (block.socialStyle === undefined || ["default", "logos-only", "pill-shape"].includes(block.socialStyle as string))
+        && [block.horizontalGap, block.verticalGap].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 120))
         && optionalBoolean(block.showLabels) && optionalBoolean(block.openInNewTab)
         && Array.isArray(block.children) && block.children.length <= 100
         && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1, "social-icons"));
       case "social-linkedin":
       case "social-tiktok": return parentType === "social-icons" && typeof block.url === "string" && block.url.length <= 2000
-        && (block.label === undefined || (typeof block.label === "string" && block.label.length <= 160));
+        && (block.label === undefined || (typeof block.label === "string" && block.label.length <= 160))
+        && optionalString(block.rel);
       case "section":
         return ["stack", "row", "columns"].includes(block.layout as string)
           && validLayoutOptions(block)

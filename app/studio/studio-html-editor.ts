@@ -129,7 +129,9 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
     case "embed":
       return `<aside${attributes} data-block-align-explicit="true" data-embed-url="${escapeAttribute(block.url)}"${classAttribute(blockAlignmentClass(block))}><a href="${escapeAttribute(block.url)}">${escapeText(block.title)}</a>${block.caption ? `<p class="embed-caption">${escapeText(block.caption)}</p>` : ""}</aside>`;
     case "divider":
-      return `<hr${attributes} data-block-align-explicit="true"${classAttribute([block.style && block.style !== "default" ? `is-${block.style}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))} />`;
+      return block.tagName === "div"
+        ? `<div${attributes} data-block-align-explicit="true"${classAttribute([block.style && block.style !== "default" ? `is-${block.style}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))}></div>`
+        : `<hr${attributes} data-block-align-explicit="true"${classAttribute([block.style && block.style !== "default" ? `is-${block.style}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))} />`;
     case "footnotes":
       return `<section${attributes} class="article-footnotes"><ol>${block.notes.map(note => `<li id="footnote-${escapeAttribute(note.id)}"><span>${escapeText(note.text)}</span><a data-footnote-back="true" href="#footnote-ref-${escapeAttribute(note.id)}" aria-label="Return to footnote reference">↩</a></li>`).join("")}</ol></section>`;
     case "spacer":
@@ -147,11 +149,11 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
     case "post-date":
       return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-metadata-icon="${block.showIcon !== false}" data-metadata-link="${Boolean(block.isLink)}"></p>`;
     case "social-icons":
-      return `<nav${attributes} aria-label="Social links" data-social-justification="${block.justification ?? "left"}" data-social-orientation="${block.orientation ?? "horizontal"}" data-social-wrap="${block.allowWrap !== false}" data-social-size="${block.iconSize ?? "normal"}" data-social-labels="${Boolean(block.showLabels)}" data-social-new-tab="${Boolean(block.openInNewTab)}">${serialiseChildren(block.children)}</nav>`;
+      return `<nav${attributes} data-block-align-explicit="true" aria-label="Social links" data-social-justification="${block.justification ?? "left"}" data-social-orientation="${block.orientation ?? "horizontal"}" data-social-wrap="${block.allowWrap !== false}" data-social-size="${block.iconSize ?? "normal"}" data-social-style="${block.socialStyle ?? "default"}"${block.horizontalGap === undefined ? "" : ` data-social-horizontal-gap="${block.horizontalGap}"`}${block.verticalGap === undefined ? "" : ` data-social-vertical-gap="${block.verticalGap}"`} data-social-labels="${Boolean(block.showLabels)}" data-social-new-tab="${Boolean(block.openInNewTab)}"${classAttribute(blockAlignmentClass(block))}>${serialiseChildren(block.children)}</nav>`;
     case "social-linkedin":
     case "social-tiktok": {
       const url = safeTextLink(block.url);
-      return `<a${attributes}${url ? ` href="${escapeAttribute(url)}"` : ""} data-social-url="${escapeAttribute(block.url)}">${escapeText(block.label ?? "")}</a>`;
+      return `<a${attributes}${url ? ` href="${escapeAttribute(url)}"` : ""}${block.rel ? ` rel="${escapeAttribute(block.rel)}"` : ""} data-social-url="${escapeAttribute(block.url)}">${escapeText(block.label ?? "")}</a>`;
     }
     case "button":
       return `<p${attributes} data-button-width="${block.width ?? ""}"${classAttribute([`button-block align-${block.align ?? "centre"}`, block.width ? `has-width-${block.width}` : ""].filter(Boolean).join(" "))}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}"${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.opensInNewTab ? ' target="_blank"' : ""}${block.rel || block.opensInNewTab ? ` rel="${escapeAttribute([block.rel, block.opensInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" "))}"` : ""}>${escapeText(block.label)}</a></p>`;
@@ -343,6 +345,11 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
   if (declaredType === "reading-time") return { block: { id, type: "reading-time", prefix: element.dataset.metadataPrefix ?? (original.type === "reading-time" ? original.prefix : "Reading Time:"), presentation: element.dataset.metadataPresentation === "plain" ? "plain" : "badge", align: alignmentFromClass(element) ?? (original.type === "reading-time" ? original.align : undefined) } };
   if (declaredType === "post-author") return { block: { id, type: "post-author", prefix: element.dataset.metadataPrefix ?? (original.type === "post-author" ? original.prefix : "By"), avatar: element.dataset.metadataAvatar !== "false", align: alignmentFromClass(element) ?? (original.type === "post-author" ? original.align : undefined) } };
   if (declaredType === "post-date") return { block: { id, type: "post-date", format: ["long", "short", "iso"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined), isLink: element.dataset.metadataLink === "true" } };
+  if (declaredType === "divider") {
+    const tagName = element.tagName.toLowerCase();
+    if (tagName !== "hr" && tagName !== "div") return { error: "A Divider must use an hr or div element." };
+    return { block: { id, type: "divider", tagName: tagName === "div" ? "div" : undefined, style: element.classList.contains("is-dots") ? "dots" : element.classList.contains("is-wide") ? "wide" : "default", blockAlign: parsedBlockAlignment(element, original) } };
+  }
   if (declaredType === "social-icons") {
     if (element.tagName.toLowerCase() !== "nav") return { error: "Social Icons must use a nav element." };
     const children: SocialIconBlock[] = [];
@@ -355,11 +362,13 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       if (parsed.block.type !== "social-linkedin" && parsed.block.type !== "social-tiktok") return { error: "Social Icons can contain only LinkedIn or TikTok links." };
       children.push(parsed.block);
     }
-    return { block: { ...(original.type === "social-icons" ? { visualStyle: original.visualStyle } : {}), id, type: "social-icons", children, justification: ["left", "centre", "right", "space-between"].includes(element.dataset.socialJustification ?? "") ? element.dataset.socialJustification as Extract<ContentBlock, { type: "social-icons" }>["justification"] : "left", orientation: element.dataset.socialOrientation === "vertical" ? "vertical" : "horizontal", allowWrap: element.dataset.socialWrap !== "false", iconSize: ["small", "normal", "large"].includes(element.dataset.socialSize ?? "") ? element.dataset.socialSize as Extract<ContentBlock, { type: "social-icons" }>["iconSize"] : "normal", showLabels: element.dataset.socialLabels === "true", openInNewTab: element.dataset.socialNewTab === "true" } };
+    const horizontalGap = element.dataset.socialHorizontalGap === undefined ? undefined : Number(element.dataset.socialHorizontalGap);
+    const verticalGap = element.dataset.socialVerticalGap === undefined ? undefined : Number(element.dataset.socialVerticalGap);
+    return { block: { ...(original.type === "social-icons" ? { visualStyle: original.visualStyle } : {}), id, type: "social-icons", children, justification: ["left", "centre", "right", "space-between"].includes(element.dataset.socialJustification ?? "") ? element.dataset.socialJustification as Extract<ContentBlock, { type: "social-icons" }>["justification"] : "left", orientation: element.dataset.socialOrientation === "vertical" ? "vertical" : "horizontal", allowWrap: element.dataset.socialWrap !== "false", iconSize: ["small", "normal", "large"].includes(element.dataset.socialSize ?? "") ? element.dataset.socialSize as Extract<ContentBlock, { type: "social-icons" }>["iconSize"] : "normal", socialStyle: ["default", "logos-only", "pill-shape"].includes(element.dataset.socialStyle ?? "") ? element.dataset.socialStyle as Extract<ContentBlock, { type: "social-icons" }>["socialStyle"] : undefined, horizontalGap, verticalGap, blockAlign: parsedSocialIconsAlignment(element, original), showLabels: element.dataset.socialLabels === "true", openInNewTab: element.dataset.socialNewTab === "true" } };
   }
   if (declaredType === "social-linkedin" || declaredType === "social-tiktok") {
     if (element.tagName.toLowerCase() !== "a") return { error: "Social icons must use link elements." };
-    return { block: { ...(original.type === declaredType ? { visualStyle: original.visualStyle } : {}), id, type: declaredType, url: element.getAttribute("href") ?? element.dataset.socialUrl ?? "", label: element.textContent || undefined } };
+    return { block: { ...(original.type === declaredType ? { visualStyle: original.visualStyle } : {}), id, type: declaredType, url: element.getAttribute("href") ?? element.dataset.socialUrl ?? "", label: element.textContent || undefined, rel: element.getAttribute("rel") || undefined } };
   }
   if (declaredType === "document-title") {
     const level = Number(element.tagName.slice(1));
@@ -533,6 +542,11 @@ function blockAlignmentFromClass(element: HTMLElement) {
 
 function parsedBlockAlignment(element: HTMLElement, original: ContentBlock) {
   return blockAlignmentFromClass(element) ?? (element.dataset.blockAlignExplicit === "true" ? undefined : contentBlockAlignment(original));
+}
+
+function parsedSocialIconsAlignment(element: HTMLElement, original: ContentBlock) {
+  const alignment = parsedBlockAlignment(element, original);
+  return alignment === "left" || alignment === "center" || alignment === "right" ? alignment : undefined;
 }
 
 function parseRuns(element: HTMLElement): RichTextRun[] | undefined {

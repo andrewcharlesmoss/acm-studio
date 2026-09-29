@@ -69,7 +69,7 @@ test("new table blocks start with an editable two-row grid", async () => {
 test("custom font size stays selected while its live value changes", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   assert.match(source, /useState<\{ blockId: string; mode: "presets" \| "custom" \} \| null>/);
-  assert.match(source, /fontSizeViewOverride\?\.blockId === block\.id \? fontSizeViewOverride\.mode : "presets"/);
+  assert.match(source, /fontSizeViewOverride\?\.blockId === block\.id\s*\?\s*fontSizeViewOverride\.mode\s*:\s*style\.fontSizeCustom\s*\?\s*"custom"\s*:\s*"presets"/);
   assert.match(source, /setFontSizeViewOverride\(\{ blockId: block\.id, mode: fontSizeMode === "custom" \? "presets" : "custom" \}\)/);
   assert.match(source, /setFontSizeViewOverride\(mode === "custom" \? \{ blockId: block\.id, mode: "custom" \} : null\)/);
   assert.match(source, /const sliderMinimum = relativeUnit \? 0\.1 : 1/);
@@ -367,6 +367,22 @@ test("post excerpts open in a Gutenberg-style pane beside the inspector", async 
   assert.match(styles, /\.post-document-inspector > \.post-summary-block \{[^}]*display: grid[^}]*gap: 12px[^}]*padding: 14px 18px 18px/);
   assert.match(styles, /\.post-document-inspector \.post-excerpt-trigger \{[^}]*color: var\(--accent-strong\)[^}]*display: inline-flex/);
   assert.match(styles, /\.post-document-inspector \.post-content-summary \{[^}]*display: grid[^}]*gap: 6px/);
+});
+
+test("Gutenberg block controls and ACM-only controls stay in their respective inspector tabs", async () => {
+  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const inspectorStart = source.indexOf("export function BlockInspector");
+  const blockStart = source.indexOf("const blockSettings", inspectorStart);
+  const studioStart = source.indexOf("const studioSettings", blockStart);
+  const tabsStart = source.indexOf("const tabs =", studioStart);
+  const blockSettings = source.slice(blockStart, studioStart);
+  const studioSettings = source.slice(studioStart, tabsStart);
+  assert.match(blockSettings, /title="Social Icons"[\s\S]*?<span>Style<\/span>[\s\S]*?logos-only[\s\S]*?Horizontal gap \(px\)[\s\S]*?Vertical gap \(px\)/);
+  assert.match(blockSettings, /<span>Link rel<\/span>/);
+  assert.match(source, /function DividerInspector[\s\S]*?<span>HTML element<\/span>[\s\S]*?PaletteColourSetting label="Divider colour"/);
+  assert.doesNotMatch(blockSettings, /Code language|<span>Card title<\/span>/);
+  assert.match(studioSettings, /title="Code language"[\s\S]*?Syntax highlighting is an ACM Studio feature/);
+  assert.match(studioSettings, /title="Embed card"[\s\S]*?<span>Card title<\/span>/);
 });
 
 test("document settings keep WordPress-like fields separate from Studio-specific controls", async () => {

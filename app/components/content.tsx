@@ -16,7 +16,7 @@ import { ImageLightbox } from "./image-lightbox";
 import { ArticleMetaIcon } from "./article-meta-icon";
 import { FitTextHeading, FitTextParagraph } from "./fit-text-paragraph";
 import { StudioIcon } from "../studio/studio-icons";
-import { SocialIconView } from "./social-icons";
+import { SocialIconView, socialIconsBlockClassName, socialIconsGapStyle } from "./social-icons";
 
 export function StatusPill({ status }: { status: Project["status"] }) {
   return <span className={`status-pill status-${status.toLowerCase()}`}>{status}</span>;
@@ -191,7 +191,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           const style = paragraphStyleToCss(block.visualStyle);
           delete style.backgroundColor;
           delete style.backgroundImage;
-          return links.length ? <nav className={`social-icons-block is-${block.orientation ?? "horizontal"} ${block.allowWrap === false ? "is-no-wrap" : "is-wrapping"} justify-${block.justification ?? "left"} size-${block.iconSize ?? "normal"}`} style={{ ...style, "--social-icon-background": block.visualStyle?.backgroundColor, "--social-icon-background-image": block.visualStyle?.backgroundGradient ? paragraphBackgroundGradientCss(block.visualStyle.backgroundGradient) : undefined, "--social-icon-colour": block.visualStyle?.textColor } as React.CSSProperties} aria-label="Social links" key={block.id}><ul>{links.map(child => <li key={child.id}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;
+          return links.length ? <nav className={socialIconsBlockClassName(block)} style={{ ...style, "--social-icon-background": block.visualStyle?.backgroundColor, "--social-icon-background-image": block.visualStyle?.backgroundGradient ? paragraphBackgroundGradientCss(block.visualStyle.backgroundGradient) : undefined, "--social-icon-colour": block.visualStyle?.textColor } as React.CSSProperties} aria-label="Social links" key={block.id}><ul style={socialIconsGapStyle(block)}>{links.map(child => <li key={child.id}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;
         }
         if (block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel key={block.id} />;
         if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child)}</div>)}</section>;
@@ -203,7 +203,13 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`content-column${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }} key={block.id}>{block.children.map((child) => renderBlock(child))}</div>;
         if (block.type === "spacer") return <div id={paragraphStyleAnchor(block.visualStyle)} className={`content-spacer${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block), margin: block.visualStyle?.margin }} aria-hidden="true" key={block.id} />;
         if (block.type === "component") return null;
-        if (block.type === "divider") return studio ? <div className={`divider-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><hr className={`content-divider is-${block.style ?? "default"}`} /></div> : <hr className={`content-divider is-${block.style ?? "default"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id} />;
+        if (block.type === "divider") {
+          const DividerElement = block.tagName ?? "hr";
+          const dividerClass = `content-divider is-${block.style ?? "default"}`;
+          const alignment = blockAlignmentClass(block);
+          const divider = <DividerElement className={dividerClass} role={DividerElement === "div" ? "separator" : undefined} aria-orientation={DividerElement === "div" ? "horizontal" : undefined} />;
+          return studio ? <div className={`divider-field${alignment ? ` ${alignment}` : ""}`} key={block.id}>{divider}</div> : <DividerElement className={`${dividerClass}${alignment ? ` ${alignment}` : ""}`} role={DividerElement === "div" ? "separator" : undefined} aria-orientation={DividerElement === "div" ? "horizontal" : undefined} key={block.id} />;
+        }
         return null;
   }
   return (

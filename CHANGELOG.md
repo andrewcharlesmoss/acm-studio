@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added Gutenberg-style Social Icons variants, block alignment, separate horizontal and vertical spacing, and link `rel` settings; Divider blocks can now use an `hr` or `div` element.
 - Added a searchable, keyboard-dismissible Social Icons picker for adding LinkedIn and TikTok child blocks inside the group in documents and templates.
 - Added Gutenberg-compatible Table column-content alignment, Post Title level
   and link settings, Post Date linking, Featured Image sizing/link controls and
@@ -241,6 +242,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Moved ACM-only Code language and Embed card title settings to the Studio inspector tab, keeping Gutenberg-aligned settings in Block.
 - Font size controls now show the preset sizes by default, including blocks that have a saved custom size.
 - Grouped the Social Icons block and its LinkedIn and TikTok choices under Widgets in the block library.
 - Added LinkedIn and TikTok as standalone Widgets choices; inserting either creates its Social Icons parent automatically.

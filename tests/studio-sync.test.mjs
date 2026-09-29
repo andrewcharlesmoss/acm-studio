@@ -116,6 +116,21 @@ test("optional fields compare absence by presence, while present mismatches stil
   assert.equal(sync.applyStudioTransaction(competing, deletion).conflicts.length, 1);
 });
 
+test("Social Icon updates safely remove undefined optional fields during sync", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const base = { blocks: [{ id: "socials", type: "social-icons", children: [{ id: "linkedin", type: "social-linkedin", url: "https://linkedin.com/in/old", label: "Profile", rel: "nofollow" }] }] };
+  const parsed = { blocks: [{ id: "socials", type: "social-icons", children: [{ id: "linkedin", type: "social-linkedin", url: "https://linkedin.com/in/new", label: undefined, rel: undefined }] }] };
+  const transaction = sync.createStudioTransaction(base, parsed, { transactionId: "social-link", clientId: "owner", brokerEpoch: "epoch", baseRevision: 0 });
+  assert.doesNotThrow(() => JSON.stringify(transaction));
+
+  const result = sync.applyStudioTransaction(base, transaction);
+  assert.equal(result.conflicts.length, 0);
+  const updated = result.snapshot.blocks[0].children[0];
+  assert.equal(updated.url, "https://linkedin.com/in/new");
+  assert.equal(Object.hasOwn(updated, "label"), false);
+  assert.equal(Object.hasOwn(updated, "rel"), false);
+});
+
 test("clearing an optional password verifier to null is serialisable across tabs", () => {
   const sync = load("app/studio/studio-sync.ts");
   const base = { documents: [{ id: "post", title: "Post", passwordProtection: { salt: "salt", hash: "hash" } }] };

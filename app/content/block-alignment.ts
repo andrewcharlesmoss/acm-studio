@@ -18,6 +18,7 @@ export const blockAlignmentSupport = {
   columns: widthAlignments,
   "document-title": widthAlignments,
   "cover-image": floatedAlignments,
+  "social-icons": ["left", "center", "right"],
 } satisfies Partial<Record<ContentBlock["type"], readonly BlockAlignment[]>>;
 
 export function blockAlignmentOptions(type: ContentBlock["type"]): readonly BlockAlignment[] {
