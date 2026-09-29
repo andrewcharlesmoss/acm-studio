@@ -72,6 +72,8 @@ export function columnsGridTemplate(columns: readonly Pick<ColumnBlock, "width">
 export function columnsLayoutStyle(options: LayoutOptions & { children: readonly Pick<ColumnBlock, "width">[] }): CSSProperties {
   return {
     "--block-layout-gap": `${options.gap ?? 16}px`,
+    ...(options.columnGap === undefined ? {} : { "--block-layout-column-gap": `${options.columnGap}px` }),
+    ...(options.rowGap === undefined ? {} : { "--block-layout-row-gap": `${options.rowGap}px` }),
     "--block-layout-columns": String(options.children.length),
     "--block-layout-grid-template": columnsGridTemplate(options.children),
     "--block-layout-vertical-align": options.verticalAlign === "centre" ? "center" : options.verticalAlign === "bottom" ? "end" : options.verticalAlign ?? "stretch",

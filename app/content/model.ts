@@ -118,13 +118,15 @@ export type LayoutOptions = {
   horizontalAlign?: LayoutHorizontalAlignment;
   verticalAlign?: LayoutVerticalAlignment;
   gap?: number;
+  columnGap?: number;
+  rowGap?: number;
   paddingX?: number;
   paddingY?: number;
   contentWidth?: LayoutContentWidth;
   columns?: number;
   stackAt?: LayoutStackAt;
 };
-export type ColumnBlock = { id: string; type: "column"; width?: number; verticalAlign?: LayoutVerticalAlignment; style?: ParagraphStyle; children: ContentBlock[] };
+export type ColumnBlock = { id: string; type: "column"; width?: number; verticalAlign?: LayoutVerticalAlignment; gap?: number; columnGap?: number; rowGap?: number; style?: ParagraphStyle; children: ContentBlock[] };
 
 export type DocumentRenderContext = {
   kind: "page" | "post";

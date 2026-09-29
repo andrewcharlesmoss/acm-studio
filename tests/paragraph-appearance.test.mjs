@@ -6,6 +6,9 @@ import ts from "typescript";
 const source = await readFile(new URL("../app/content/paragraph-styles.ts", import.meta.url), "utf8");
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
 const { fitTextEnabled, paragraphStyleToCss, paragraphStyleClassName, visualStyleClassName } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const layoutSource = await readFile(new URL("../app/content/layout.ts", import.meta.url), "utf8");
+const compiledLayout = ts.transpileModule(layoutSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
+const { layoutStyleProperties, validLayoutOptions } = await import(`data:text/javascript;base64,${Buffer.from(compiledLayout).toString("base64")}`);
 
 test("paragraph typography settings render as CSS without changing the text", () => {
   const style = { textIndent: "24px", textColumns: 2, dropCap: true };
@@ -45,6 +48,18 @@ test("axis spacing and separate border sides reach CSS as authored", () => {
   assert.equal(css.borderStyle, "dotted");
   assert.equal(css.borderWidth, "1px 2px 3px 4px");
   assert.equal(css.borderRadius, "4px 8px 12px 16px");
+});
+
+test("layout gap axes render independently and preserve legacy gap fallback", () => {
+  assert.deepEqual(layoutStyleProperties({ gap: 16, columnGap: 32, rowGap: 8 }), {
+    "--block-layout-gap": "16px",
+    "--block-layout-column-gap": "32px",
+    "--block-layout-row-gap": "8px",
+  });
+  assert.deepEqual(layoutStyleProperties({ gap: 16 }), { "--block-layout-gap": "16px" });
+  assert.equal(validLayoutOptions({ gap: 16, columnGap: 32, rowGap: 8 }), true);
+  assert.equal(validLayoutOptions({ columnGap: 121 }), false);
+  assert.equal(validLayoutOptions({ rowGap: -1 }), false);
 });
 
 test("minimum dimensions and text shadow reach CSS", () => {

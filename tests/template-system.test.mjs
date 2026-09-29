@@ -119,8 +119,20 @@ test("legacy template stores migrate to inheritance-aware format without losing 
   const env = environment(); const model = env.load("studio/template-model.ts"); const editor = env.load("studio/editor-model.ts"); const set = model.createTemplateSet();
   delete set.defaults;
   const migrated = model.validateTemplateStore({ version: "0.1.0", sets: [set], assignments: [] });
-  assert.equal(migrated.version, "0.7.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
+  assert.equal(migrated.version, "0.8.0"); assert.deepEqual(plain(migrated.sets[0].defaults), {}); assert.equal(migrated.sets[0].id, set.id);
   assert.deepEqual(plain(editor.createDocumentFromTemplate("post").blocks), []);
+});
+
+test("template v0.7.0 layout gaps validate and migrate without dropping scalar or axis values", () => {
+  const env = environment(); const model = env.load("studio/template-model.ts"); const set = model.createTemplateSet();
+  const group = set.parts[0].nodes.find(node => node.type === "group");
+  group.gap = 16; group.columnGap = 32; group.rowGap = 8;
+  const store = model.validateTemplateStore({ version: "0.7.0", sets: [set], assignments: [] });
+  assert.equal(store.version, "0.8.0");
+  const migratedGroup = store.sets[0].parts[0].nodes.find(node => node.type === "group");
+  assert.equal(migratedGroup.gap, 16);
+  assert.equal(migratedGroup.columnGap, 32);
+  assert.equal(migratedGroup.rowGap, 8);
 });
 
 test("template schemas v0.1.0 through v0.6.0 migrate styles without changing the legacy appearance", () => {
@@ -134,7 +146,7 @@ test("template schemas v0.1.0 through v0.6.0 migrate styles without changing the
     const set = m.createTemplateSet(); set.styles = structuredClone(oldStyles);
     const store = m.validateTemplateStore({ version, sets: [set], assignments: [] });
     const migrated = store.sets[0].styles;
-    assert.equal(store.version, "0.7.0");
+    assert.equal(store.version, "0.8.0");
     assert.equal(migrated.palette.surface, oldStyles.background);
     assert.equal(migrated.palette.textPrimary, oldStyles.text);
     assert.equal(migrated.palette.accent, oldStyles.accent);
@@ -167,7 +179,7 @@ test("legacy styles migrate in template Bin entries and imports normalise packag
   assert.equal(store.bin[1].setSnapshot.styles.typography.body.size.desktop.value, 1.25);
   const imported = packageFixture(env); imported.version = "0.5.0"; imported.set.styles = structuredClone(oldStyles);
   const normalised = p.validateTemplatePackage(imported);
-  assert.equal(normalised.version, "0.7.0");
+  assert.equal(normalised.version, "0.8.0");
   assert.equal(normalised.set.styles.palette.surface, oldStyles.background);
   assert.equal(normalised.set.styles.typography.body.family, "georgia");
 });

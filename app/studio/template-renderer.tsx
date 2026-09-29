@@ -135,7 +135,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       const className = paragraphStyleClassName(node.style);
       result = (!shared ? renderOrdinary?.(node) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle(node), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.map(column => {
         const columnClassName = paragraphStyleClassName(column.style);
-        return <div id={paragraphStyleAnchor(column.style)} className={`template-column${columnClassName ? ` ${columnClassName}` : ""}`} key={column.id} style={{ ...(column.verticalAlign ? { alignSelf: column.verticalAlign === "centre" ? "center" : column.verticalAlign === "bottom" ? "end" : column.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(column.style) }}>{column.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</div>;
+        return <div id={paragraphStyleAnchor(column.style)} className={`template-column${columnClassName ? ` ${columnClassName}` : ""}`} key={column.id} style={{ ...layoutStyleProperties(column), ...(column.verticalAlign ? { alignSelf: column.verticalAlign === "centre" ? "center" : column.verticalAlign === "bottom" ? "end" : column.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(column.style) }}>{column.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</div>;
       })}</div>;
     } else if (node.type === "column") {
       const className = paragraphStyleClassName(node.style);

@@ -361,36 +361,57 @@ test("Social Icons and Divider settings survive the semantic HTML parser round-t
   const previousParser = globalThis.DOMParser;
   const previousNode = globalThis.Node;
   const decode = value => value.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-  function elementFromMarkup(markup) {
-    const [, tagName, rawAttributes, innerMarkup = ""] = markup.match(/^<([a-z][\w-]*)\b([^>]*)>([\s\S]*)<\/\1>$/i) ?? markup.match(/^<([a-z][\w-]*)\b([^>]*)\s*\/>$/i) ?? [];
-    const attributes = Object.fromEntries([...rawAttributes.matchAll(/([\w:-]+)="([^"]*)"/g)].map((match) => [match[1], decode(match[2])]));
-    const children = tagName.toLowerCase() === "nav" ? [...innerMarkup.matchAll(/<a\b[^>]*>[\s\S]*?<\/a>/gi)].map((match) => elementFromMarkup(match[0])) : [];
+  const allElements = [];
+  function makeElement(tagName, attributes) {
     const element = {
       nodeType: 1,
       tagName: tagName.toUpperCase(),
       className: attributes.class ?? "",
       dataset: {},
-      children,
-      childNodes: children,
-      textContent: children.length ? children.map((child) => child.textContent).join("") : decode(innerMarkup.replace(/<[^>]+>/g, "")),
+      children: [],
+      childNodes: [],
       classList: { contains: (name) => (attributes.class ?? "").split(/\s+/).includes(name) },
       getAttribute: (name) => attributes[name] ?? null,
       querySelector: () => null,
-      querySelectorAll: () => [],
+      querySelectorAll: (selector) => {
+        const descendants = [];
+        const visit = (parent) => parent.children.forEach((child) => { descendants.push(child); visit(child); });
+        visit(element);
+        return selector === "[data-block-id]" ? descendants.filter((child) => child.dataset.blockId) : [];
+      },
     };
     for (const [name, value] of Object.entries(attributes)) {
       if (name.startsWith("data-")) element.dataset[name.slice(5).replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())] = value;
     }
+    allElements.push(element);
     return element;
   }
   class MinimalDOMParser {
     parseFromString(markup) {
-      const root = elementFromMarkup(markup);
-      const elements = [root, ...root.children];
+      allElements.length = 0;
+      const body = { children: [], childNodes: [] };
+      const stack = [body];
+      const voidTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+      for (const token of markup.match(/<[^>]+>|[^<]+/g) ?? []) {
+        if (token.startsWith("</")) { stack.pop(); continue; }
+        if (token.startsWith("<")) {
+          const [, tagName, rawAttributes = ""] = token.match(/^<([a-z][\w-]*)\b([^>]*)>$/i) ?? [];
+          if (!tagName) continue;
+          const attributes = Object.fromEntries([...rawAttributes.matchAll(/([\w:-]+)="([^"]*)"/g)].map((match) => [match[1], decode(match[2])]));
+          const element = makeElement(tagName, attributes);
+          stack.at(-1).children.push(element);
+          stack.at(-1).childNodes.push(element);
+          if (!voidTags.has(tagName.toLowerCase()) && !/\/\s*>$/.test(token)) stack.push(element);
+          continue;
+        }
+        const text = { nodeType: 3, textContent: decode(token) };
+        stack.at(-1).childNodes.push(text);
+      }
+      for (const element of allElements) Object.defineProperty(element, "textContent", { get: () => element.childNodes.map((child) => child.textContent).join("") });
       return {
-        body: { childNodes: [root] },
+        body: { childNodes: body.childNodes },
         querySelector: () => null,
-        querySelectorAll: (selector) => selector === "[data-block-id]" ? elements.filter((element) => element.dataset.blockId) : [],
+        querySelectorAll: (selector) => selector === "[data-block-id]" ? allElements.filter((element) => element.dataset.blockId) : [],
       };
     }
   }
@@ -423,6 +444,29 @@ test("Social Icons and Divider settings survive the semantic HTML parser round-t
     assert.equal(parsedDivider.block.blockAlign, "center");
     assert.equal(parsedDivider.block.style, "dots");
     assert.equal(parsedDivider.block.visualStyle.textColor, "#123456");
+
+    const group = { id: "layout-group", type: "group", layout: "row", gap: 12, columnGap: 24, rowGap: 8, children: [] };
+    const groupHtml = blockToHtml(group);
+    assert.match(groupHtml, /data-layout-gap="12" data-layout-column-gap="24" data-layout-row-gap="8"/);
+    const parsedGroup = parseHtmlToBlock(groupHtml, { id: group.id, type: "group", layout: "row", children: [] });
+    assert.ok("block" in parsedGroup);
+    assert.deepEqual([parsedGroup.block.gap, parsedGroup.block.columnGap, parsedGroup.block.rowGap], [12, 24, 8]);
+
+    const columns = { id: "layout-columns", type: "columns", gap: 12, columnGap: 24, rowGap: 8, children: [{ id: "layout-column", type: "column", width: 100, verticalAlign: "bottom", gap: 4, columnGap: 10, rowGap: 6, children: [] }] };
+    const columnsHtml = blockToHtml(columns);
+    assert.match(columnsHtml, /data-block-id="layout-column"[^>]*data-layout-vertical-align="bottom" data-layout-gap="4" data-layout-column-gap="10" data-layout-row-gap="6"/);
+    assert.doesNotMatch(columnsHtml, /data-column-vertical-align=/);
+    const originalColumns = { id: columns.id, type: "columns", children: [{ id: "layout-column", type: "column", width: 100, children: [] }] };
+    const parsedColumns = parseHtmlToBlock(columnsHtml, originalColumns);
+    assert.ok("block" in parsedColumns);
+    assert.deepEqual([parsedColumns.block.gap, parsedColumns.block.columnGap, parsedColumns.block.rowGap], [12, 24, 8]);
+    assert.deepEqual([parsedColumns.block.children[0].gap, parsedColumns.block.children[0].columnGap, parsedColumns.block.children[0].rowGap], [4, 10, 6]);
+    assert.equal(parsedColumns.block.children[0].verticalAlign, "bottom");
+
+    const legacyColumnHtml = columnsHtml.replace('data-layout-vertical-align="bottom"', 'data-column-vertical-align="top"');
+    const parsedLegacyColumn = parseHtmlToBlock(legacyColumnHtml, originalColumns);
+    assert.ok("block" in parsedLegacyColumn);
+    assert.equal(parsedLegacyColumn.block.children[0].verticalAlign, "top");
   } finally {
     if (previousParser === undefined) delete globalThis.DOMParser;
     else globalThis.DOMParser = previousParser;

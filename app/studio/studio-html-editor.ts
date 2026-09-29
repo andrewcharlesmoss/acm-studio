@@ -166,9 +166,9 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<${tag}${attributes} data-block-align-explicit="true"${block.ariaLabel ? ` aria-label="${escapeAttribute(block.ariaLabel)}"` : ""}${layoutHtmlAttributes(block)}${classAttribute([`studio-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${serialiseChildren(block.children)}</${tag}>`;
     }
     case "columns":
-      return `<div${attributes} data-block-align-explicit="true"${layoutHtmlAttributes(block)} data-column-layout="true"${classAttribute([`studio-columns${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.children.map(column => `<div data-block-type="column" data-block-id="${escapeAttribute(column.id)}" data-column-width="${column.width ?? 100 / block.children.length}"${column.verticalAlign ? ` data-column-vertical-align="${column.verticalAlign}"` : ""}${classAttribute(`studio-column${column.style?.className ? ` ${escapeAttribute(column.style.className)}` : ""}`)}>${serialiseChildren(column.children)}</div>`).join("")}</div>`;
+      return `<div${attributes} data-block-align-explicit="true"${layoutHtmlAttributes(block)} data-column-layout="true"${classAttribute([`studio-columns${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.children.map(column => `<div data-block-type="column" data-block-id="${escapeAttribute(column.id)}" data-column-width="${column.width ?? 100 / block.children.length}"${layoutHtmlAttributes(column)}${classAttribute(`studio-column${column.style?.className ? ` ${escapeAttribute(column.style.className)}` : ""}`)}>${serialiseChildren(column.children)}</div>`).join("")}</div>`;
     case "column":
-      return `<div${attributes} data-column-width="${block.width ?? 100}"${block.verticalAlign ? ` data-column-vertical-align="${block.verticalAlign}"` : ""}${classAttribute(`studio-column${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${serialiseChildren(block.children)}</div>`;
+      return `<div${attributes} data-column-width="${block.width ?? 100}"${layoutHtmlAttributes(block)}${classAttribute(`studio-column${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${serialiseChildren(block.children)}</div>`;
     case "component":
       return `<div${attributes}${classAttribute("studio-component")} data-component="${escapeAttribute(block.component)}"${block.source ? ` data-source-module="${escapeAttribute(block.source.module)}" data-source-export="${escapeAttribute(block.source.exportName)}" data-source-revision="${escapeAttribute(block.source.revision)}"` : ""}>${block.children ? serialiseChildren(block.children) : ""}</div>`;
   }
@@ -218,6 +218,8 @@ function layoutHtmlAttributes(options: LayoutOptions) {
     options.horizontalAlign && ` data-layout-horizontal-align="${escapeAttribute(options.horizontalAlign)}"`,
     options.verticalAlign && ` data-layout-vertical-align="${escapeAttribute(options.verticalAlign)}"`,
     options.gap !== undefined && ` data-layout-gap="${options.gap}"`,
+    options.columnGap !== undefined && ` data-layout-column-gap="${options.columnGap}"`,
+    options.rowGap !== undefined && ` data-layout-row-gap="${options.rowGap}"`,
     options.paddingX !== undefined && ` data-layout-padding-x="${options.paddingX}"`,
     options.paddingY !== undefined && ` data-layout-padding-y="${options.paddingY}"`,
     options.contentWidth && ` data-layout-width="${escapeAttribute(options.contentWidth)}"`,
@@ -470,7 +472,8 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
           children.push(parsed.block);
         }
         const width = Number(element.dataset.columnWidth);
-        return { block: { ...(original.type === "column" ? original : { id, type: "column" as const, children: [] }), id, type: "column", width: Number.isFinite(width) ? width : undefined, verticalAlign: element.dataset.columnVerticalAlign as Extract<ContentBlock, { type: "column" }> ["verticalAlign"], children } };
+        const options = parseLayoutOptions(element);
+        return { block: { ...(original.type === "column" ? original : { id, type: "column" as const, children: [] }), id, type: "column", width: Number.isFinite(width) ? width : undefined, verticalAlign: options.verticalAlign ?? element.dataset.columnVerticalAlign as Extract<ContentBlock, { type: "column" }> ["verticalAlign"], gap: options.gap, columnGap: options.columnGap, rowGap: options.rowGap, children } };
       }
       if (type === "group" && element.dataset.component) {
         if (original.type !== "component" || original.component !== element.dataset.component) return { error: "Component blocks are code-backed; edit their supported properties in the inspector." };
@@ -513,6 +516,8 @@ function parseLayoutOptions(element: HTMLElement): LayoutOptions {
     horizontalAlign: element.dataset.layoutHorizontalAlign as LayoutOptions["horizontalAlign"],
     verticalAlign: element.dataset.layoutVerticalAlign as LayoutOptions["verticalAlign"],
     gap: number(element.dataset.layoutGap),
+    columnGap: number(element.dataset.layoutColumnGap),
+    rowGap: number(element.dataset.layoutRowGap),
     paddingX: number(element.dataset.layoutPaddingX),
     paddingY: number(element.dataset.layoutPaddingY),
     contentWidth: element.dataset.layoutWidth as LayoutOptions["contentWidth"],

@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added independent horizontal and vertical layout gaps for Group, Columns and Column blocks while retaining legacy scalar gap values as fallbacks. Workspace schema v9 and template schema v0.8.0 retain readers for earlier supported data.
 - Added Gutenberg-style Social Icons variants, block alignment, separate horizontal and vertical spacing, and link `rel` settings; Divider blocks can now use an `hr` or `div` element.
 - Added a searchable, keyboard-dismissible Social Icons picker for adding LinkedIn and TikTok child blocks inside the group in documents and templates.
 - Added Gutenberg-compatible Table column-content alignment, Post Title level
@@ -13,6 +14,7 @@
   use the filled Gutenberg treatment while retaining original ACM artwork.
 - Matched Gutenberg's custom font-size control with an integrated compact unit
   menu, theme-coloured range slider and px/em/rem/vw/vh units.
+- Fixed custom font-size range dragging so releasing the pointer outside the slider commits the value and keeps custom mode active.
 - Dragged Block Library items now insert at the canvas drop position while keeping the library open for further additions.
 - Added Gutenberg-ordered block alignment menus to every analogous core block that declares alignment support, including Left/Centre/Right floating layouts, Wide/Full widths, typed validation, HTML round-tripping and migration from the Image block's legacy Wide display setting.
 - Added Image block height, Default/Rounded styles and custom, image-file and lightbox link destinations across editing, previews and HTML round-trip.

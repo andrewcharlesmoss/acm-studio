@@ -132,7 +132,7 @@ not empty itself. The Bin is included in full Studio backups.
 
 ## Storage and portable contract
 
-The template-store and JSON package schema is **v0.7.0** (`0.7.0` in JSON).
+The template-store and JSON package schema is **v0.8.0** (`0.8.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -149,7 +149,7 @@ preserve the template's previous rendering. The same conversion is used for
 active sets, Bin entries, imported packages, backups and template snapshots.
 Existing published snapshots keep their original version and captured values;
 later template edits do not change them. Publishing a changed design records a
-v0.7.0 snapshot only through the normal **Update** action.
+v0.8.0 snapshot only through the normal **Update** action.
 
 The explicit shared-editor target supplies template blocks and an inspector.
 Dynamic elements are projected into block-command handles only in memory;
@@ -167,10 +167,10 @@ same library pane as content; selecting an entry opens the editor directly
 without a separate template-library page.
 
 Layout options, Spacer, document metadata and dynamic document-field blocks are
-additive to the existing typed block contract. Workspace data is now version 8,
-with readers for versions 2–7; local publication snapshots and full backups are
+additive to the existing typed block contract. Workspace data is now version 9,
+with readers for versions 2–8; local publication snapshots and full backups are
 version 4, with readers for their earlier versions. Template packages are
-v0.7.0, with readers for v0.1.0–v0.6.0. Each Page/Post template may supply
+v0.8.0, with readers for v0.1.0–v0.7.0. Each Page/Post template may supply
 Author, Category, Tags and Parent page defaults plus display defaults for
 dynamic fields; legacy set-level defaults remain a fallback. Documents record
 explicit value and display overrides, including empty values;

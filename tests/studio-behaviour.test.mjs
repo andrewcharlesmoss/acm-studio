@@ -76,9 +76,12 @@ test("custom font size stays selected while its live value changes", async () =>
   assert.match(source, /onFontSizeViewModeChange\(fontSizeMode === "custom" \? "presets" : "custom"\)/);
   assert.match(source, /const \[sliderDraft, setSliderDraft\] = useState<string \| null>\(null\)/);
   assert.match(source, /const sliderDraggingRef = useRef\(false\)/);
-  assert.match(source, /onPointerDown=\{\(\) => \{ sliderDraggingRef\.current = true; \}\}/);
-  assert.match(source, /onPointerUp=\{event => \{ if \(!sliderDraggingRef\.current\) return; sliderDraggingRef\.current = false; const next = event\.currentTarget\.value; setSliderDraft\(null\); commit\(next\); \}\}/);
-  assert.match(source, /onChange=\{event => \{ if \(sliderDraggingRef\.current\) setSliderDraft\(event\.target\.value\); else commit\(event\.target\.value\); \}\}/);
+  assert.match(source, /onInteractionStart=\{\(\) => onFontSizeViewModeChange\("custom"\)\}/);
+  assert.match(source, /onPointerDown=\{event => \{ sliderDraggingRef\.current = true; event\.currentTarget\.setPointerCapture\(event\.pointerId\); onInteractionStart\(\); \}\}/);
+  assert.match(source, /function finishSliderDrag\(input: HTMLInputElement\)/);
+  assert.match(source, /onPointerUp=\{event => finishSliderDrag\(event\.currentTarget\)\}/);
+  assert.match(source, /onLostPointerCapture=\{event => finishSliderDrag\(event\.currentTarget\)\}/);
+  assert.match(source, /onChange=\{event => \{ if \(sliderDraggingRef\.current\) setSliderDraft\(event\.currentTarget\.value\); else commit\(event\.currentTarget\.value\); \}\}/);
   assert.match(source, /const sliderMinimum = relativeUnit \? 0\.1 : 1/);
   assert.match(source, /const sliderMaximum = customFontSizeMaximum\(unit\)/);
   assert.match(source, /type="range" min=\{sliderMinimum\} max=\{sliderMaximum\}/);

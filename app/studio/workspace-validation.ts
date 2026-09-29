@@ -5,20 +5,8 @@ import { safeMathMLMarkup } from "../content/mathml";
 import { safeImageSource } from "../content/rich-text";
 import { validCustomFontSize } from "../content/font-size";
 import { validSpacerSize } from "../content/spacer";
+import { validLayoutOptions } from "../content/layout";
 import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
-
-const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6] } as const;
-function validLayoutOptions(value: Record<string, unknown>): boolean {
-  const finiteWithin = (candidate: unknown, min: number, max: number) => candidate === undefined || (typeof candidate === "number" && Number.isFinite(candidate) && candidate >= min && candidate <= max);
-  return (value.horizontalAlign === undefined || ["left", "centre", "right", "stretch"].includes(value.horizontalAlign as string))
-    && (value.verticalAlign === undefined || ["top", "centre", "bottom", "stretch"].includes(value.verticalAlign as string))
-    && finiteWithin(value.gap, ...LAYOUT_VALUE_LIMITS.gap)
-    && finiteWithin(value.paddingX, ...LAYOUT_VALUE_LIMITS.padding)
-    && finiteWithin(value.paddingY, ...LAYOUT_VALUE_LIMITS.padding)
-    && (value.contentWidth === undefined || ["full", "constrained"].includes(value.contentWidth as string))
-    && (value.columns === undefined || (typeof value.columns === "number" && Number.isInteger(value.columns) && value.columns >= LAYOUT_VALUE_LIMITS.columns[0] && value.columns <= LAYOUT_VALUE_LIMITS.columns[1]))
-    && (value.stackAt === undefined || ["tablet", "mobile", "never"].includes(value.stackAt as string));
-}
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -200,6 +188,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && Array.isArray(block.children) && block.children.length >= 1 && block.children.length <= 6
         && block.children.every((child) => isRecord(child) && child.type === "column" && validContentBlock(child, ids, depth + 1, "columns"));
       case "column": return parentType === "columns"
+        && validLayoutOptions(block)
         && (block.width === undefined || (typeof block.width === "number" && Number.isFinite(block.width) && block.width >= 5 && block.width <= 100))
         && (block.verticalAlign === undefined || ["top", "centre", "bottom", "stretch"].includes(block.verticalAlign as string))
         && validParagraphStyle(block.style)
@@ -239,7 +228,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -308,12 +297,13 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
     migrated.version = 7;
   }
   if (migrated.version === 7) migrated.version = 8;
+  if (migrated.version === 8) migrated.version = 9;
   return migrated as StudioWorkspace;
 }
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8].includes(value.version as number) || !Array.isArray(value.documents)
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
   const categories = value.categories === undefined && typeof value.version === "number" && value.version < 7 ? [] : value.categories;
   const binnedDocuments = value.bin.map(item => {
@@ -377,7 +367,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       parentId = documentsById.get(parentId)?.parentPageId;
     }
   }
-  return { ...value, version: 8, bin: value.bin, categories } as StudioWorkspace;
+  return { ...value, version: 9, bin: value.bin, categories } as StudioWorkspace;
 }
 
 export function validatePublicationSnapshot(value: unknown): void {
