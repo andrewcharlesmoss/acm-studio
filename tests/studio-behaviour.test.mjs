@@ -85,13 +85,13 @@ test("custom font size stays selected while its live value changes", async () =>
   assert.match(source, /const sliderDraggingRef = useRef\(false\)/);
   assert.match(source, /const sliderPointerIdRef = useRef<number \| null>\(null\)/);
   assert.match(source, /const sliderStartValueRef = useRef<string \| null>\(null\)/);
-  assert.match(source, /onInteractionStart=\{\(\) => onFontSizeViewModeChange\("custom"\)\}/);
-  assert.match(source, /onPointerDown=\{event => \{ if \(!sliderDraggingRef\.current\) \{ sliderDraggingRef\.current = true; sliderPointerIdRef\.current = event\.pointerId; sliderStartValueRef\.current = event\.currentTarget\.value; onInteractionStart\(\); \} \}\}/);
+  assert.match(source, /function startSliderDrag\(pointerId: number, value: string\) \{\s*if \(sliderDraggingRef\.current\) return;[\s\S]*?sliderStartValueRef\.current = value;\s*\}/);
+  assert.match(source, /onPointerDown=\{event => startSliderDrag\(event\.pointerId, event\.currentTarget\.value\)\}/);
+  assert.doesNotMatch(source, /onInteractionStart/);
   assert.doesNotMatch(source, /setPointerCapture\(event\.pointerId\)/);
   assert.match(source, /function finishSliderDrag\(input = sliderRef\.current, pointerId\?: number\)/);
   assert.match(source, /const changed = input\.value !== sliderStartValueRef\.current/);
   assert.match(source, /if \(changed\) commit\(input\.value\)/);
-  assert.match(source, /sliderStartValueRef\.current = event\.currentTarget\.value/);
   assert.match(source, /window\.addEventListener\("pointerup", finishPointerInteraction\)/);
   assert.match(source, /window\.addEventListener\("pointercancel", finishPointerInteraction\)/);
   assert.match(source, /onPointerUp=\{event => finishSliderDrag\(event\.currentTarget, event\.pointerId\)\}/);
