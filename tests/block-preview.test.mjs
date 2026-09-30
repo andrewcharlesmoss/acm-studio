@@ -37,6 +37,7 @@ const { parseLocallyPublishedArticles, restoreLegacyPublicationCover, toLocallyP
 const { blockToHtml, formatHtml, parseHtmlToBlock } = await import(await compileModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url)));
 const { listMarker } = await import(await compileModule(new URL("../app/content/model.ts", import.meta.url)));
 const { validContentBlocks } = await import(await compileModule(new URL("../app/studio/workspace-validation.ts", import.meta.url)));
+const { imageDisplayStyle } = await import(await compileModule(new URL("../app/content/image-style.ts", import.meta.url)));
 const { normaliseCustomFontSize, validCustomFontSize } = await import(await compileModule(new URL("../app/content/font-size.ts", import.meta.url)));
 
 test("Advanced HTML anchor and class metadata is retained by the HTML source format", () => {
@@ -64,6 +65,14 @@ test("custom font sizes use the same limits in the inspector and workspace valid
   assert.equal(validCustomFontSize("401px"), false);
   assert.equal(validCustomFontSize("25vh"), true);
   assert.equal(validCustomFontSize("26vh"), false);
+});
+
+test("Cover Image Fill scale validates and reaches its rendered image and HTML source", () => {
+  const cover = { id: "cover-fill", type: "cover-image", aspectRatio: "wide", scale: "fill", displayWidth: 640, displayHeight: 360 };
+  assert.equal(validContentBlocks([cover]), true);
+  assert.equal(validContentBlocks([{ ...cover, id: "image-fill", type: "image", src: "https://example.com/image.jpg", alt: "Example image" }]), false);
+  assert.equal(imageDisplayStyle(cover).objectFit, "fill");
+  assert.match(blockToHtml(cover), /data-scale="fill"/);
 });
 
 test("ordered lists retain Gutenberg numbering styles through preview and HTML", () => {
@@ -413,7 +422,7 @@ test("Social Icons serialize style, spacing, alignment and per-icon link metadat
   const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
   assert.match(rendered, /social-icons-block is-horizontal is-no-wrap/);
   assert.match(rendered, /is-style-logos-only aligncenter/);
-  assert.match(rendered, /social-icons-block[^\"]*size-huge/);
+  assert.match(rendered, /social-icons-block[^"]*size-huge/);
   assert.match(rendered, /column-gap:12px;row-gap:20px/);
   assert.match(rendered, /target="_blank" rel="nofollow noopener noreferrer"/);
   assert.match(rendered, /--social-icon-background:#2f6fb0/);
@@ -450,7 +459,7 @@ test("Divider preserves its selected semantic element and alignment in preview a
   assert.match(article, /<div class="content-divider is-wide aligncenter" role="separator" aria-orientation="horizontal"><\/div>/);
 });
 
-test("Social Icons and Divider settings survive the semantic HTML parser round-trip", () => {
+test("Social Icons, Divider, Cover Image and layout settings survive the semantic HTML parser round-trip", () => {
   const previousParser = globalThis.DOMParser;
   const previousNode = globalThis.Node;
   const decode = value => value.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
@@ -539,6 +548,11 @@ test("Social Icons and Divider settings survive the semantic HTML parser round-t
     assert.equal(parsedDivider.block.blockAlign, "center");
     assert.equal(parsedDivider.block.style, "dots");
     assert.equal(parsedDivider.block.visualStyle.textColor, "#123456");
+
+    const cover = { id: "cover-fill", type: "cover-image", aspectRatio: "wide", scale: "fill", displayWidth: 640, displayHeight: 360 };
+    const parsedCover = parseHtmlToBlock(blockToHtml(cover), cover);
+    assert.ok("block" in parsedCover);
+    assert.equal(parsedCover.block.scale, "fill");
 
     const group = { id: "layout-group", type: "group", layout: "row", gap: 12, columnGap: 24, rowGap: 8, children: [] };
     const groupHtml = blockToHtml(group);

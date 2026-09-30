@@ -138,7 +138,7 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
   assert.match(source, /const optionalElementOptions = scopedElementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
 });
 
-test("Paragraph Advanced keeps HTML attributes in Block and Additional CSS in Studio", async () => {
+test("Paragraph Advanced keeps the HTML anchor in Block and CSS metadata in Studio", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const stylesheet = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const advancedFields = source.slice(source.indexOf("function advancedFieldsForBlock"), source.indexOf("function AdvancedFieldsInspector"));
@@ -146,12 +146,14 @@ test("Paragraph Advanced keeps HTML attributes in Block and Additional CSS in St
   const inspectorStart = source.indexOf("export function BlockInspector");
   const studioSettings = source.slice(source.indexOf("const studioSettings", inspectorStart), source.indexOf("const tabs =", inspectorStart));
   const paragraph = capabilityProfileFor("paragraph");
-  assert.deepEqual(paragraph.controls.find(control => control.id === "advanced")?.fields, ["anchor", "className"]);
+  assert.deepEqual(paragraph.controls.find(control => control.id === "advanced")?.fields, ["anchor"]);
+  assert.equal(paragraph.controls.find(control => control.id === "class-name")?.source, "studio");
+  assert.deepEqual(paragraph.controls.find(control => control.id === "class-name")?.fields, ["className"]);
   assert.equal(paragraph.controls.find(control => control.id === "additional-css")?.source, "studio");
-  assert.match(advancedFields, /return \{ anchor: true, className: true, additionalCss: false \};/);
-  assert.match(advancedFields, /if \(\["paragraph", "heading", "quote"/);
+  assert.match(advancedFields, /anchor: control\.fields\.some\(field => field\.endsWith\("anchor"\)\)/);
+  assert.match(advancedFields, /className: control\.fields\.some\(field => field\.endsWith\("className"\)\)/);
   assert.match(advancedInspector, /paragraph-advanced-fields/);
-  assert.match(studioSettings, /fields=\{\{ anchor: false, className: false, additionalCss: true \}\}/);
+  assert.match(studioSettings, /fields=\{\{ anchor: false, className: true, additionalCss: true \}\}/);
   assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: uppercase; \}/);
   assert.match(advancedInspector, /fields\.className \? <div className="advanced-field"><label htmlFor=\{`\$\{descriptionPrefix\}-class-name`\}><span>Additional CSS class\(es\)<\/span><\/label><input id=\{`\$\{descriptionPrefix\}-class-name`\} aria-describedby=\{`\$\{descriptionPrefix\}-class-name-help`\} value=\{style\.className \?\? ""\}/);
   assert.match(advancedInspector, /fields\.additionalCss \? <div className="advanced-field"><label htmlFor=\{`\$\{descriptionPrefix\}-additional-css`\}><span>Additional CSS<\/span><\/label><textarea id=\{`\$\{descriptionPrefix\}-additional-css`\} aria-describedby=/);
@@ -180,11 +182,15 @@ test("shadow controls match mapped Gutenberg block support", async () => {
   assert.equal(capabilityProfileFor("paragraph").controls.find(control => control.id === "text-shadow")?.source, "studio");
 });
 
-test("Cover Image exposes shared border, radius and shadow styling", async () => {
+test("Cover Image exposes Gutenberg shared border, radius and shadow styling", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
-  const inspector = source.slice(source.indexOf("function CoverImageInspector"), source.indexOf("function DividerInspector"));
+  const profile = capabilityProfileFor("cover-image");
+  const inspector = source.slice(source.indexOf("const sharedStyleSectionContent"), source.indexOf("const orderedSharedStyleSections"));
   const borderSettings = await readFile(new URL("../app/studio/controls/border-settings.tsx", import.meta.url), "utf8");
-  assert.match(inspector, /title="Border & shadow"><BorderSettings style=\{style\} idPrefix=\{block\.id\} onChange=\{updateVisualStyle\} \/><\/InspectorAccordionSection>/);
+  assert.equal(profile.controls.find(control => control.id === "border")?.source, "gutenberg");
+  assert.equal(profile.controls.find(control => control.id === "radius")?.source, "gutenberg");
+  assert.equal(profile.controls.find(control => control.id === "shadow")?.source, "gutenberg");
+  assert.match(inspector, /border: <InspectorToolsSection title="Border"[\s\S]*?<BorderSettings style=\{style\}/);
   assert.match(borderSettings, /includeRadius/);
   assert.match(borderSettings, /includeShadow/);
   assert.match(borderSettings, /BoxLengthSetting/);
@@ -560,26 +566,24 @@ test("selected document title and subtitle show their block summary in the Block
 });
 
 test("document settings keep WordPress-like fields separate from Studio-specific controls", async () => {
-  const [source, styles] = await Promise.all([
+  const [source, styles, paneComponents] = await Promise.all([
     readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/panes/pane-components.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(source, /activeDocument\.kind === "page" \? "Page" : "Post"/);
-  assert.match(source, /event\.key === "ArrowRight"/);
-  assert.match(source, /event\.key === "ArrowLeft"/);
-  assert.match(source, /event\.key === "Home"/);
-  assert.match(source, /event\.key === "End"/);
-  assert.match(source, /tabIndex=\{activeTabIndex === 0 \? 0 : -1\}/);
-  assert.match(source, /role="tabpanel" aria-labelledby=\{tabId\(inspectorTab\)\}/);
+  for (const key of ["ArrowRight", "ArrowLeft", "Home", "End"]) assert.ok(paneComponents.includes(`case "${key}"`), `${key} tab navigation`);
+  assert.match(paneComponents, /tabIndex=\{active === tab\.id && !tab\.disabled \? 0 : -1\}/);
+  assert.match(paneComponents, /role="tabpanel" id=\{paneTabTarget\(id, tab, "panel"\)\} aria-labelledby=\{paneTabTarget\(id, tab, "tab"\)\}/);
   assert.equal((source.match(/title="Content fields"/g) ?? []).length, 1);
   assert.match(source, /documentControls=\{documentControls\}/);
-  assert.match(source, /inspectorTab === "document" \|\| inspectorTab === "studio" \?[\s\S]*panel=\{inspectorTab\}/);
+  assert.match(source, /panel === "document" \|\| panel === "studio"/);
   assert.match(source, /const isDocumentPanel = panel === "document"/);
   assert.match(source, /<span>Slug<\/span>/);
-  assert.match(source, /title="Categories and tags"/);
+  assert.match(source, /className="post-tags-section inspector-accordion-section"/);
   assert.match(source, /title="Studio template presentation"/);
   assert.match(source, /"Search preview"/);
-  assert.match(styles, /\.inspector-tabs \{[^}]*grid-template-columns: repeat\(4, 1fr\)/);
+  assert.match(styles, /\.inspector-tabs \{[^}]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
 });
 
 test("text block hover controls use shared ACM icons", async () => {

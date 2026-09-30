@@ -173,7 +173,7 @@ export type ContentBlock = (
   | { id: string; type: "spacer"; height: number; heightUnit?: SpacerUnit; width?: number; widthUnit?: SpacerUnit }
   | { id: string; type: "document-title"; align?: TextAlignment; blockAlign?: BlockAlignment; level?: HeadingLevel; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string }
   | { id: string; type: "document-subtitle"; align?: TextAlignment }
-  | { id: string; type: "cover-image"; align?: TextAlignment; blockAlign?: BlockAlignment; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number }
+  | { id: string; type: "cover-image"; align?: TextAlignment; blockAlign?: BlockAlignment; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain" | "fill"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number }
   | { id: string; type: "reading-time"; prefix?: string; presentation?: ReadingTimePresentation; align?: TextAlignment }
   | { id: string; type: "post-author"; prefix?: string; avatar?: boolean; align?: TextAlignment }
   | { id: string; type: "post-date"; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment; isLink?: boolean }

@@ -54,7 +54,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
   const [aspectRatio, setAspectRatio] = useState<"original" | "square" | "portrait" | "landscape" | "wide">("wide");
   const [displayWidth, setDisplayWidth] = useState<number | undefined>(640);
   const [displayHeight, setDisplayHeight] = useState<number | undefined>(360);
-  const [scale, setScale] = useState<"cover" | "contain">("cover");
+  const [scale, setScale] = useState<"cover" | "contain" | "fill">("cover");
   const [focalX, setFocalX] = useState(58);
   const [focalY, setFocalY] = useState(42);
   const [resetRevision, setResetRevision] = useState(0);

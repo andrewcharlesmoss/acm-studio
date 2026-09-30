@@ -2,7 +2,7 @@ import type { ContentBlock } from "./model";
 import { paragraphStyleToCss } from "./paragraph-styles";
 
 type ImageBlock = Extract<ContentBlock, { type: "image" }>;
-type ImagePresentation = Pick<ImageBlock, "aspectRatio" | "scale" | "displayWidth" | "displayHeight" | "focalX" | "focalY"> & Partial<Pick<ImageBlock, "visualStyle" | "imageStyle">>;
+type ImagePresentation = Pick<ImageBlock, "aspectRatio" | "displayWidth" | "displayHeight" | "focalX" | "focalY"> & { scale?: "cover" | "contain" | "fill" } & Partial<Pick<ImageBlock, "visualStyle" | "imageStyle">>;
 
 const ratios: Record<NonNullable<ImageBlock["aspectRatio"]>, string | undefined> = {
   original: undefined,

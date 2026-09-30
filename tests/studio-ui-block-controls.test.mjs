@@ -28,15 +28,19 @@ test("all typed blocks and template Content have complete, ordered pane capabili
   assert.equal(capabilityProfileFor("template-content").defaultTab, "studio");
   assert.equal(capabilityProfileFor("component").defaultTab, "studio");
   assert.equal(capabilityProfileFor("field").defaultTab, "studio");
+  assert.equal(capabilityProfileFor("section").defaultTab, "studio");
   assert.equal(capabilityProfileFor("footnotes").defaultTab, "block");
 
   const paragraph = capabilityProfileFor("paragraph");
-  assert.deepEqual(paragraph.controls.find(control => control.id === "advanced")?.fields, ["anchor", "className"]);
+  assert.deepEqual(paragraph.controls.find(control => control.id === "advanced")?.fields, ["anchor"]);
+  assert.equal(paragraph.controls.find(control => control.id === "class-name")?.source, "studio");
+  assert.deepEqual(paragraph.controls.find(control => control.id === "class-name")?.fields, ["className"]);
   assert.equal(paragraph.controls.find(control => control.id === "additional-css")?.source, "studio");
   assert.deepEqual(paragraph.controls.find(control => control.id === "additional-css")?.resetFields, ["additionalCss"]);
 
   const heading = capabilityProfileFor("heading");
-  assert.deepEqual(heading.sections.map(section => section.id), ["text", "typography", "background", "dimensions", "border", "advanced"]);
+  assert.deepEqual(heading.sections.map(section => section.id), ["text", "typography", "background", "dimensions", "border", "elements", "advanced"]);
+  assert.deepEqual(scopedStyleSectionIds(heading, undefined, "gutenberg"), ["typography", "background", "dimensions", "border", "elements"]);
   assert.equal(heading.controls.find(control => control.id === "block-alignment")?.placement, "canvas");
   assert.equal(heading.sections.some(section => section.id === "canvas"), false);
   const headingPaneControls = heading.controls.filter(control => control.section === "text" && control.placement !== "canvas").map(control => control.id);
@@ -60,17 +64,17 @@ test("all typed blocks and template Content have complete, ordered pane capabili
   assert.ok(imageInspector.indexOf("<ImageDimensionsSetting") < imageInspector.indexOf("<FocalPositionSetting"), "Image dimensions render before focal position");
 
   const columnPaneOrder = columns.controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
-  assert.deepEqual(columnPaneOrder, ["preset", "column-count", "vertical-alignment", "gaps", "content-width"]);
+  assert.deepEqual(columnPaneOrder, ["column-count", "stack-on-mobile"]);
+  const columnsStudioOrder = columns.controls.filter(control => control.source === "studio" && control.section === "layout").map(control => control.id);
+  assert.deepEqual(columnsStudioOrder, ["preset", "vertical-alignment", "gaps", "content-width", "responsive-stack"]);
   assert.deepEqual(columns.controls.find(control => control.id === "column-count")?.fields, ["children"]);
   const columnsInspector = inspectorSource.slice(inspectorSource.indexOf("function ColumnsInspector"), inspectorSource.indexOf("function ColumnInspector"));
-  assert.ok(columnsInspector.indexOf("COLUMN_LAYOUT_PRESETS.map") < columnsInspector.indexOf("<span>Vertical alignment</span>"), "Columns presets render before vertical alignment");
-  assert.ok(columnsInspector.indexOf("COLUMN_LAYOUT_PRESETS.map") < columnsInspector.indexOf("column-count-controls"), "Columns presets render before Add/Remove controls");
-  assert.ok(columnsInspector.indexOf("column-count-controls") < columnsInspector.indexOf("<span>Vertical alignment</span>"), "Columns Add/Remove controls render before vertical alignment");
-  assert.ok(columnsInspector.indexOf("<span>Vertical alignment</span>") < columnsInspector.indexOf('label="Horizontal gap"'), "Columns alignment renders before gaps");
-  assert.ok(columnsInspector.indexOf('label="Vertical gap"') < columnsInspector.indexOf("<span>Content width</span>"), "Columns gaps render before content width");
+  assert.ok(columnsInspector.indexOf("column-count-controls") < columnsInspector.indexOf("Stack on mobile"), "Columns count precedes the Gutenberg stack toggle");
+  assert.ok(columnsInspector.indexOf("Stack on mobile") < columnsInspector.indexOf("function ColumnsStudioInspector"), "Gutenberg stack toggle stays out of the Studio controls");
+  assert.ok(columnsInspector.indexOf("COLUMN_LAYOUT_PRESETS.map") > columnsInspector.indexOf("function ColumnsStudioInspector"), "Column presets belong to the Studio inspector");
 
   const groupPaneOrder = capabilityProfileFor("group").controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
-  assert.deepEqual(groupPaneOrder, ["layout", "sticky", "alignment", "gaps", "padding", "content-width", "columns", "grid"]);
+  assert.deepEqual(groupPaneOrder, ["layout", "sticky", "alignment", "gaps", "padding", "content-width", "columns", "grid", "semantic-element"]);
   const sectionPaneOrder = capabilityProfileFor("section").controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
   assert.deepEqual(sectionPaneOrder, ["layout", "alignment", "gaps", "padding", "content-width", "columns", "grid"]);
   for (const type of ["group", "section"]) {
@@ -96,10 +100,21 @@ test("all typed blocks and template Content have complete, ordered pane capabili
   assert.ok(layoutInspector.indexOf("<span>Content width</span>") < layoutInspector.indexOf("{block.layout === \"columns\""), "Layout content width renders before conditional Columns count");
   assert.ok(layoutInspector.indexOf("{block.layout === \"columns\"") < layoutInspector.indexOf("{block.layout === \"grid\""), "Conditional Columns count renders before grid options");
   const columnPane = capabilityProfileFor("column");
-  assert.deepEqual(columnPane.controls.filter(control => control.source === "gutenberg" && control.section === "layout").map(control => control.id), ["width", "vertical-alignment", "gap"]);
+  assert.deepEqual(columnPane.controls.filter(control => control.source === "gutenberg" && control.section === "layout").map(control => control.id), ["width", "gap"]);
+  assert.equal(columnPane.controls.find(control => control.id === "vertical-alignment")?.source, "studio");
   assert.deepEqual(columnPane.controls.find(control => control.id === "gap")?.fields, ["rowGap", "gap"]);
   const singleColumnInspector = inspectorSource.slice(inspectorSource.indexOf("function ColumnInspector"), inspectorSource.indexOf("function ComponentInspector"));
-  assert.ok(singleColumnInspector.indexOf("<span>Vertical alignment</span>") < singleColumnInspector.indexOf('label="Block gap"'), "Column block gap follows vertical alignment");
+  assert.ok(singleColumnInspector.indexOf('label="Block gap"') < singleColumnInspector.indexOf("<span>Vertical alignment</span>"), "Column vertical alignment remains a Studio option");
+
+  for (const [type, id] of [["quote", "attribution"], ["quote", "text-alignment"], ["list", "list-style"], ["table", "caption"], ["divider", "colour"], ["cover-image", "focal-position"], ["social-linkedin", "profile-url"], ["post-author", "alignment"], ["post-date", "alignment"], ["document-title", "level"]]) {
+    assert.equal(capabilityProfileFor(type).controls.find(control => control.id === id)?.source, "studio", `${type}:${id} is Studio-owned`);
+  }
+  assert.deepEqual(capabilityProfileFor("heading").attributeDefaults, { level: 2 });
+  assert.deepEqual(capabilityProfileFor("table").attributeDefaults, { hasFixedLayout: true });
+  assert.deepEqual(capabilityProfileFor("columns").attributeDefaults, { isStackedOnMobile: true });
+  const socialColours = capabilityProfileFor("social-icons").controls;
+  assert.match(socialColours.find(control => control.id === "colour")?.availableWhen ?? "", /theme supports colours or gradients/);
+  assert.match(socialColours.find(control => control.id === "background")?.availableWhen ?? "", /Logos Only mode/);
   for (const profile of profiles) {
     const paneOrder = [...new Set(profile.controls.filter(control => control.placement !== "canvas").map(control => control.section))];
     assert.deepEqual(profile.sections.map(section => section.id), paneOrder, `${profile.type} pane section order`);
@@ -107,7 +122,7 @@ test("all typed blocks and template Content have complete, ordered pane capabili
 });
 
 test("saved style settings remain visible in Studio when a block profile does not own them", () => {
-  const profile = capabilityProfileFor("list");
+  const profile = capabilityProfileFor("post-author");
   const retained = retainedLegacyStyleControls(profile, { textColor: "#333333", borderColor: "#123456", borderWidth: "3px" });
   assert.deepEqual(retained.map(control => control.id), ["border"]);
   assert.equal(retained[0].source, "studio");
@@ -116,6 +131,8 @@ test("saved style settings remain visible in Studio when a block profile does no
 
   const current = retainedLegacyStyleControls(profile, { textColor: "#333333" });
   assert.deepEqual(current, []);
+
+  assert.deepEqual(retainedLegacyStyleControls(capabilityProfileFor("divider"), { textColor: "#123456" }), [], "a nested profile field still owns its leaf style value");
 });
 
 test("resetting one optional inspector control clears only its owned style fields", () => {
@@ -140,10 +157,16 @@ test("conditional Inspector options declare the setting they depend on", () => {
   }
 
   const images = read("app/studio/studio-inspectors.tsx");
-  assert.match(images, /ratio !== "original" \? <FocalPositionSetting/);
+  assert.match(images, /\(block\.src \|\| block\.mediaId\) && ratio !== "original" && block\.scale !== "contain" \? <FocalPositionSetting/);
+  const coverStudioInspector = images.slice(images.indexOf("function CoverImageStudioInspector"), images.indexOf("function DividerInspector"));
+  assert.match(coverStudioInspector, /\(block\.aspectRatio \?\? "original"\) !== "original" && block\.scale !== "contain" && block\.scale !== "fill" \? <FocalPositionSetting/);
+  assert.doesNotMatch(capabilityProfileFor("cover-image").controls.find(control => control.id === "focal-position")?.availableWhen ?? "", /source is set/);
   assert.match(images, /ManagedBackgroundImageInspector block=\{block\}/);
-  assert.match(images, /fields=\{\{ anchor: false, className: false, additionalCss: true \}\}/);
+  assert.match(images, /fields=\{\{ anchor: false, className: true, additionalCss: true \}\}/);
   assert.match(read("app/studio/controls/image-dimensions-setting.tsx"), /showScale && aspectRatio !== "original"/);
+  assert.match(images, /scaleOptions=\{\["cover", "contain", "fill"\]\}/);
+  assert.match(read("app/studio/workspace-validation.ts"), /case "cover-image"[\s\S]*?\["cover", "contain", "fill"\]/);
+  assert.match(read("app/studio/studio-html-editor.ts"), /element\.dataset\.scale === "fill" \? "fill"/);
 
   const specimen = read("app/studio/ui/blocks/block-specimen-catalogue.tsx");
   assert.match(specimen, /chooseFixtureMedia/);
@@ -161,6 +184,7 @@ test("Studio only mounts shared style groups when the profile owns Studio style 
   const inspector = read("app/studio/studio-inspectors.tsx");
   assert.match(inspector, /hasScopedStyleControls\(profile, "studio"\)/);
   assert.match(inspector, /scopedStyleSectionIds\(profile, style, visibleSource\)/);
+  assert.match(inspector, /background: showBackground \? <InspectorAccordionSection className="inspector-panel" title="Background">/);
 });
 
 test("every reusable Controls entry has a detail route, reset specimen and actual block consumers", () => {

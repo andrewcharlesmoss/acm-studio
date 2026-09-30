@@ -154,7 +154,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
       case "cover-image": return optionalBoolean(block.isLink)
         && (block.linkTarget === undefined || ["_self", "_blank"].includes(block.linkTarget as string)) && optionalString(block.rel)
         && (block.aspectRatio === undefined || ["original", "square", "portrait", "landscape", "wide"].includes(block.aspectRatio as string))
-        && (block.scale === undefined || ["cover", "contain"].includes(block.scale as string))
+        && (block.scale === undefined || ["cover", "contain", "fill"].includes(block.scale as string))
         && [block.displayWidth, block.displayHeight].every((value) => value === undefined || (typeof value === "number" && Number.isInteger(value) && value >= 32 && value <= 2400))
         && [block.focalX, block.focalY].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100));
       case "reading-time": return optionalString(block.prefix)
