@@ -7,6 +7,7 @@
 - Expanded the Blocks library from the Paragraph pilot to all 27 typed block types plus the template Content slot, with profile-driven pane inventories, isolated production-editor specimens, history, reset, nested selection and compatibility notes. Expanded Controls to one grouped page with 12 in-page specimens, compatible direct-route anchors, and shared border, background, typography, image-dimensions, focal-position and preset-number controls between the inspector and catalogue.
 
 ### Changed
+- Gradient control points now use Gutenberg-style bar insertion, draggable handles and separate colour popups with saturation, hue, alpha and Hex/RGB/HSL controls; removed the standalone Add stop button.
 - Background Colour and Gradient use stacked rows and a shared gradient popover with editable stops, opacity, Linear/Radial type, angle controls and Gutenberg’s twelve default presets. Workspace schema v14, publication snapshots v7 and template schema v0.14.0 retain their previous readers and legacy gradient appearances.
 - Renamed the Gutenberg `core/separator` block from Divider to Separator in the editor and library labels while retaining the existing `divider` data type.
 - Removed the nested Studio tab from block inspectors and consolidated block settings into one panel. Gutenberg controls previously classified under Studio now appear with the other block settings; nonessential ACM-only inspector options are hidden, while essential custom-block content fields and existing saved values remain intact.

@@ -203,7 +203,13 @@ to horizontal orientation restores it.
 Background Colour and Gradient use stacked rows in the shared editor/library
 control. The gradient popover follows Gutenberg's colour-stop bar, Linear/Radial
 type selector, linear angle input and dial, and twelve circular default presets.
-Stops support colour, opacity, position, adding and removal (two to twenty stops).
+Stops use a hover/focus plus on the bar, committing a new point only when its
+colour changes. A separate popup supplies saturation/brightness, hue, alpha and
+Hex/RGB/HSL inputs; removal appears only above two points. Dragging moves whole
+percentage steps without crossing neighbours; left/right arrows move ten points.
+There is no separate Add stop, Position or Done control. Studio retains a visible
+close button, Escape focus restoration and a two-to-twenty-point safety bound.
+The picker is implemented in Studio-owned code using ACM icons.
 Custom gradients store bounded, ordered percentage stops with hex colours rather
 than arbitrary CSS. Legacy sunrise, ocean, forest and violet values keep their
 original appearance. Workspace v14, publication v7 and template v0.14.0 readers
@@ -211,4 +217,4 @@ accept previous supported versions; older builds cannot read these new formats.
 
 Reference: [Gutenberg gradient picker](https://github.com/WordPress/gutenberg/tree/trunk/packages/components/src/custom-gradient-picker)
 and [default gradient palette](https://github.com/WordPress/gutenberg/blob/trunk/lib/theme.json),
-inspected on 30 September 2026.
+inspected on 1 October 2026.
