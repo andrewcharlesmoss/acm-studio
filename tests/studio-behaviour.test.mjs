@@ -138,22 +138,25 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
   assert.match(source, /const optionalElementOptions = scopedElementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
 });
 
-test("Paragraph Advanced keeps the HTML anchor in Block and CSS metadata in Studio", async () => {
+test("Paragraph Advanced keeps Gutenberg anchor and class fields and hides ACM CSS declarations", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const stylesheet = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const advancedFields = source.slice(source.indexOf("function advancedFieldsForBlock"), source.indexOf("function AdvancedFieldsInspector"));
   const advancedInspector = source.slice(source.indexOf("function AdvancedFieldsInspector"), source.indexOf("function ParagraphInspector"));
   const inspectorStart = source.indexOf("export function BlockInspector");
-  const studioSettings = source.slice(source.indexOf("const studioSettings", inspectorStart), source.indexOf("const tabs =", inspectorStart));
+  const blockSettings = source.slice(source.indexOf("const blockSettings = (", inspectorStart), source.indexOf("const requiredSettings = (", inspectorStart));
   const paragraph = capabilityProfileFor("paragraph");
   assert.deepEqual(paragraph.controls.find(control => control.id === "advanced")?.fields, ["anchor"]);
-  assert.equal(paragraph.controls.find(control => control.id === "class-name")?.source, "studio");
+  assert.equal(paragraph.controls.find(control => control.id === "class-name")?.source, "gutenberg");
   assert.deepEqual(paragraph.controls.find(control => control.id === "class-name")?.fields, ["className"]);
   assert.equal(paragraph.controls.find(control => control.id === "additional-css")?.source, "studio");
-  assert.match(advancedFields, /anchor: control\.fields\.some\(field => field\.endsWith\("anchor"\)\)/);
-  assert.match(advancedFields, /className: control\.fields\.some\(field => field\.endsWith\("className"\)\)/);
+  assert.match(advancedFields, /const controls = profile\.controls\.filter\(item => item\.section === "advanced" && item\.source === source\)/);
+  assert.match(advancedFields, /const fields = controls\.flatMap\(control => control\.fields\)/);
+  assert.match(advancedFields, /anchor: fields\.some\(field => field\.endsWith\("anchor"\)\)/);
+  assert.match(advancedFields, /className: fields\.some\(field => field\.endsWith\("className"\)\)/);
   assert.match(advancedInspector, /paragraph-advanced-fields/);
-  assert.match(studioSettings, /fields=\{\{ anchor: false, className: true, additionalCss: true \}\}/);
+  assert.match(blockSettings, /<AdvancedFieldsInspector block=\{block\} onChange=\{onChange\} fields=\{advanced\} \/>/);
+  assert.match(blockSettings, /fields=\{advanced\}/);
   assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: uppercase; \}/);
   assert.match(advancedInspector, /fields\.className \? <div className="advanced-field"><label htmlFor=\{`\$\{descriptionPrefix\}-class-name`\}><span>Additional CSS class\(es\)<\/span><\/label><input id=\{`\$\{descriptionPrefix\}-class-name`\} aria-describedby=\{`\$\{descriptionPrefix\}-class-name-help`\} value=\{style\.className \?\? ""\}/);
   assert.match(advancedInspector, /fields\.additionalCss \? <div className="advanced-field"><label htmlFor=\{`\$\{descriptionPrefix\}-additional-css`\}><span>Additional CSS<\/span><\/label><textarea id=\{`\$\{descriptionPrefix\}-additional-css`\} aria-describedby=/);
@@ -179,7 +182,7 @@ test("shadow controls match mapped Gutenberg block support", async () => {
   const shadowTypes = ["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"];
   for (const type of shadowTypes) assert.ok(capabilityProfileFor(type).controls.some(control => control.id === "shadow"), `${type}:shadow`);
   assert.equal(capabilityProfileFor("paragraph").controls.find(control => control.id === "shadow")?.source, "studio");
-  assert.equal(capabilityProfileFor("paragraph").controls.find(control => control.id === "text-shadow")?.source, "studio");
+  assert.equal(capabilityProfileFor("paragraph").controls.find(control => control.id === "text-shadow")?.source, "gutenberg");
 });
 
 test("Cover Image exposes Gutenberg shared border, radius and shadow styling", async () => {
@@ -196,13 +199,12 @@ test("Cover Image exposes Gutenberg shared border, radius and shadow styling", a
   assert.match(borderSettings, /BoxLengthSetting/);
 });
 
-test("block-specific ACM controls have their own inspector tab and document popovers wait for a portal root", async () => {
+test("the block inspector has one settings panel while document tabs and popovers remain", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
-  assert.match(source, /profile\.controls\.some\(control => control\.source === "gutenberg"\)/);
-  assert.match(source, /profile\.controls\.some\(control => control\.source === "studio"\)/);
-  assert.match(source, /\.\.\.\(hasBlockOptions \? \[\{ id: "block", label: "Block" \}\] : \[\]\)/);
-  assert.match(source, /hasStudioOptions \? <PaneTabs/);
-  assert.match(source, /<PaneTabPanel id=\{tabPrefix\} tab="studio"/);
+  const blockInspector = source.slice(source.indexOf("export function BlockInspector"), source.indexOf("type AdvancedFields"));
+  assert.match(source, /<div className="inspector-sections">\{blockSettings\}\{requiredSettings\}<\/div>/);
+  assert.doesNotMatch(blockInspector, /<PaneTabs|<PaneTabPanel|hasStudioOptions|studioSettings|defaultTab/);
+  assert.match(source, /const tabs = \["document", "studio", "block", "styles"\] as const/);
   assert.match(source, /function usePortalRoot\(\)/);
   assert.match(source, /excerptOpen && portalRoot \? createPortal/);
   assert.match(source, /statusOpen && portalRoot \? createPortal/);
@@ -493,33 +495,43 @@ test("post excerpts open in a Gutenberg-style pane beside the inspector", async 
   assert.match(styles, /\.post-document-inspector \.post-content-summary \{[^}]*display: grid[^}]*gap: 6px/);
 });
 
-test("Gutenberg block controls and ACM-only controls stay in their respective inspector tabs", async () => {
+test("Gutenberg controls use the single block inspector and nonessential ACM options stay hidden", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const inspectorStart = source.indexOf("export function BlockInspector");
   const blockStart = source.indexOf("const blockSettings", inspectorStart);
-  const studioStart = source.indexOf("const studioSettings", blockStart);
-  const tabsStart = source.indexOf("const tabs =", studioStart);
-  const blockSettings = source.slice(blockStart, studioStart);
-  const studioSettings = source.slice(studioStart, tabsStart);
+  const requiredStart = source.indexOf("const requiredSettings", blockStart);
+  const blockSettings = source.slice(blockStart, requiredStart);
+  const requiredSettings = source.slice(requiredStart, source.indexOf("return <div className=\"block-inspector-settings\"", requiredStart));
+  const socialLinkSettings = requiredSettings.slice(requiredSettings.indexOf('block.type === "social-linkedin"'), requiredSettings.indexOf('block.type === "embed" ?'));
+  assert.match(source, /const alignedBlock = block\.type === "heading" \|\| block\.type === "document-title" \? block : null/);
   assert.match(blockSettings, /title="Social Icons"[\s\S]*?<span>Style<\/span>[\s\S]*?logos-only[\s\S]*?<span>Gap<\/span>/);
   assert.doesNotMatch(blockSettings, /Horizontal gap \(px\)|Vertical gap \(px\)/);
-  assert.match(blockSettings, /<span>Link rel<\/span>/);
-  assert.match(source, /function DividerInspector[\s\S]*?<span>HTML element<\/span>[\s\S]*?PaletteColourSetting label="Divider colour"/);
-  assert.doesNotMatch(blockSettings, /Code language|<span>Card title<\/span>/);
-  assert.match(studioSettings, /title="Code language"[\s\S]*?Syntax highlighting is an ACM Studio feature/);
-  assert.match(studioSettings, /title="Embed card"[\s\S]*?<span>Card title<\/span>/);
-  assert.match(studioSettings, /title="Studio spacing"[\s\S]*?Horizontal gap \(px\)[\s\S]*?Vertical gap \(px\)/);
+  assert.match(socialLinkSettings, /Profile URL[\s\S]*Text label[\s\S]*Link rel/, "standalone social link attributes share one section with its profile URL");
+  assert.equal((socialLinkSettings.match(/<span>Text label<\/span>/g) ?? []).length, 1, "standalone social links render one editable label field");
+  assert.equal((socialLinkSettings.match(/<span>Link rel<\/span>/g) ?? []).length, 1, "standalone social links render one rel field");
+  assert.doesNotMatch(blockSettings, /Code language|Divider colour|Studio cover options|Studio responsive layout|Studio spacer width/);
+  assert.match(requiredSettings, /<span>Profile URL<\/span>/, "standalone social links remain editable");
+  assert.match(requiredSettings, /<span>Card title<\/span>/, "safe embed card content remains editable");
+  assert.doesNotMatch(requiredSettings, /Studio spacing|Additional CSS declarations|Reading Time|<span>Presentation<\/span>|<span>Prefix<\/span>|document-subtitle/);
+  const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
+  assert.doesNotMatch(dividerInspector, /<span>HTML element<\/span>/, "the ACM hr/div selector is hidden");
+  assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "element")?.source, "studio");
 });
 
-test("Paragraph Typography follows Andrew's Gutenberg options and separates Studio-only controls", async () => {
+test("Paragraph Typography follows Gutenberg options and hides ACM-only controls", async () => {
   const inspector = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const profileSource = await readFile(new URL("../app/studio/blocks/capability-profiles.ts", import.meta.url), "utf8");
   const colourControl = await readFile(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
   const toolsSection = await readFile(new URL("../app/studio/inspector-tools-section.tsx", import.meta.url), "utf8");
-  const blockTypography = capabilityProfileFor("paragraph").controls.filter(control => control.section === "typography" && control.source === "gutenberg").map(control => control.id);
   const studioTypography = capabilityProfileFor("paragraph").controls.filter(control => control.section === "typography" && control.source === "studio").map(control => control.id);
-  assert.deepEqual(blockTypography, ["colour", "size", "appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "letter-case", "drop-cap", "fit-text"]);
-  assert.deepEqual(studioTypography, ["family", "orientation", "text-shadow"]);
+  const enabledBlockTypography = capabilityProfileFor("paragraph").controls.filter(control => control.section === "typography" && control.source === "gutenberg" && control.enabled !== false).map(control => control.id);
+  assert.deepEqual(enabledBlockTypography, ["colour", "size", "appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "letter-case", "drop-cap", "fit-text", "text-shadow"]);
+  assert.deepEqual(studioTypography, []);
+  for (const id of ["family", "orientation"]) {
+    const control = capabilityProfileFor("paragraph").controls.find(item => item.id === id);
+    assert.equal(control?.source, "gutenberg", `${id} is a Gutenberg capability`);
+    assert.equal(control?.enabled, false, `${id} is gated out of the current Gutenberg reference profile`);
+  }
   assert.match(profileSource, /paragraph: paragraphInspectorProfile/);
   assert.match(inspector, /const profile = capabilityProfileFor\(block\.type\)/);
   assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
@@ -527,7 +539,7 @@ test("Paragraph Typography follows Andrew's Gutenberg options and separates Stud
   assert.match(inspector, /function clearTools\(ids: Iterable<string>\) \{\s*const nextStyle = resetInspectorStyleFields\(style, ids, styleControls\)/);
   assert.match(inspector, /<FontSizeAppearanceSetting/);
   assert.match(inspector, /<BackgroundSelection/);
-  assert.match(inspector, /<PaneTabs id=\{tabPrefix\}/);
+  assert.doesNotMatch(inspector.slice(inspector.indexOf("export function BlockInspector"), inspector.indexOf("type AdvancedFields")), /<PaneTabs/);
   assert.match(inspector, /paragraphLinkColourHasPoorContrast\(defaultValue, style/);
   assert.match(inspector, /paragraphLinkColourHasPoorContrast\(hoverValue, style/);
   assert.match(inspector, /return <PaletteColourSetting label="Link" value=\{defaultValue\} onChange=\{onDefaultChange\} hoverValue=\{hoverValue\}/);
@@ -541,14 +553,14 @@ test("Paragraph Typography follows Andrew's Gutenberg options and separates Stud
   assert.match(toolsSection, /gutenbergOptions\.map\(option => <button/);
 });
 
-test("the selected block summary stays above its inspector tabs", async () => {
+test("the selected block summary stays above the single inspector panel", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const inspectorStart = source.indexOf("export function BlockInspector");
   const summaryStart = source.indexOf("className=\"inspector-block-summary\"", inspectorStart);
-  const tabsStart = source.indexOf("<PaneTabs id={tabPrefix}", summaryStart);
+  const settingsStart = source.indexOf("{blockSettings}{requiredSettings}", summaryStart);
   assert.ok(summaryStart > inspectorStart);
-  assert.ok(tabsStart > summaryStart);
-  const summary = source.slice(summaryStart, tabsStart);
+  assert.ok(settingsStart > summaryStart);
+  const summary = source.slice(summaryStart, settingsStart);
   assert.match(summary, /<BlockLibraryIcon type=\{block\.type\} \/>/);
   assert.match(summary, /<h2>\{blockName\}<\/h2>/);
   assert.match(summary, /<p className="setting-note">\{blockDescription\}<\/p>/);

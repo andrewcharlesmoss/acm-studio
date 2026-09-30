@@ -60,7 +60,7 @@ test("Block Library routes use one capability profile and production inspector s
   assert.match(definition, /paragraphInspectorProfile/);
   assert.match(definition, /availableBlockTransforms/);
   assert.match(inspector, /capabilityProfileFor\(block\.type\)/);
-  assert.match(inspector, /retainedLegacyStyleControls\(profile, blockStyle\)/);
+  assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls\(profile, style\)\]/);
   assert.match(inspector, /resetInspectorStyleFields\(style, ids, styleControls\)/);
   assert.match(inspector, /className=\{`advanced-fields-section\$\{block\.type === "paragraph" \? " paragraph-advanced-fields" : ""\}`\}/);
   assert.match(studioStyles, /\.inspector-sections \.advanced-fields-section > h2 \{[^}]*text-transform: none/);

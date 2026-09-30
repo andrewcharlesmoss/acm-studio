@@ -11,7 +11,7 @@ const nonInsertableEntries = [
 const baseEntries = blockCatalogue.map(editorEntry => ({
   type: editorEntry.type,
   label: editorEntry.label,
-  description: editorEntry.type === "paragraph" ? "Ordinary prose with inline formatting, Gutenberg-aligned settings and separate Studio additions." : editorEntry.description,
+  description: editorEntry.type === "paragraph" ? "Ordinary prose with inline formatting and Gutenberg-focused block settings." : editorEntry.description,
   group: editorEntry.group,
   href: editorEntry.type === "paragraph" ? "/studio/ui/blocks/paragraph" : `/studio/ui/blocks/${editorEntry.type}`,
   profile: blockCapabilityProfiles[editorEntry.type],
