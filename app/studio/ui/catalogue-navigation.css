@@ -3,10 +3,10 @@
 .ui-catalogue-navigation-groups { display:grid; gap:1.25rem; }
 .ui-catalogue-navigation-group h3 { margin:0 .65rem .45rem; color:var(--rl-muted); font-size:.8125rem; font-weight:600; }
 .ui-catalogue-navigation-list { display:grid; gap:.2rem; list-style:none; margin:0; padding:0; }
-.ui-catalogue-navigation-list a { display:block; padding:.55rem .65rem; border-radius:5px; color:var(--rl-muted); text-decoration:none; }
-.ui-catalogue-navigation-list a:hover { background:var(--rl-selection); color:var(--rl-ink); }
-.ui-catalogue-navigation-list a:focus-visible { outline:2px solid var(--rl-accent); outline-offset:2px; }
-.ui-catalogue-navigation-list a[aria-current="page"],.ui-catalogue-navigation-list a[aria-current="location"] { background:#e7e7e5; color:var(--rl-ink); font-weight:600; }
+.ui-catalogue-navigation-list a,.ui-catalogue-navigation-list button { display:block; width:100%; padding:.55rem .65rem; border:0; border-radius:5px; background:transparent; color:var(--rl-muted); font:inherit; text-align:left; text-decoration:none; cursor:pointer; }
+.ui-catalogue-navigation-list a:hover,.ui-catalogue-navigation-list button:hover { background:var(--rl-selection); color:var(--rl-ink); }
+.ui-catalogue-navigation-list a:focus-visible,.ui-catalogue-navigation-list button:focus-visible { outline:2px solid var(--rl-accent); outline-offset:2px; }
+.ui-catalogue-navigation-list a[aria-current="page"],.ui-catalogue-navigation-list a[aria-current="location"],.ui-catalogue-navigation-list button[aria-current="location"] { background:#e7e7e5; color:var(--rl-ink); font-weight:600; }
 
 @media (max-width:720px) {
   .ui-catalogue-navigation { position:static; max-height:none; min-height:0; overflow:visible; padding:.8rem 1rem; border-right:0; border-bottom:1px solid var(--rl-line); }

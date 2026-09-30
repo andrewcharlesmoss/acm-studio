@@ -1,6 +1,6 @@
 import { blockLibraryEntries } from "../../blocks/library-catalogue";
 
-export function BlockLibraryNavigation({ active }: { active: "all" | string }) {
+export function BlockLibraryNavigation({ active, onSelect }: { active: "all" | string; onSelect: (type: (typeof blockLibraryEntries)[number]["type"] | null) => void }) {
   const groups = blockLibraryEntries.reduce<Map<string, typeof blockLibraryEntries>>((result, entry) => {
     const entries = result.get(entry.group) ?? [];
     result.set(entry.group, [...entries, entry]);
@@ -11,12 +11,12 @@ export function BlockLibraryNavigation({ active }: { active: "all" | string }) {
     <h2>Block Library</h2>
     <nav aria-label="Block Library">
       <ul className="ui-catalogue-navigation-list">
-        <li><a href="/studio/ui/blocks" aria-current={active === "all" ? "page" : undefined}>All Blocks</a></li>
+        <li><button type="button" aria-current={active === "all" ? "location" : undefined} onClick={() => onSelect(null)}>All Blocks</button></li>
       </ul>
       <div className="ui-catalogue-navigation-groups">{[...groups].map(([group, entries]) => <section className="ui-catalogue-navigation-group" key={group}>
         <h3>{group}</h3>
         <ul className="ui-catalogue-navigation-list">
-          {entries.map((entry) => <li key={entry.type}><a href={entry.href} aria-current={active === entry.type ? "page" : undefined}>{entry.label}</a></li>)}
+          {entries.map((entry) => <li key={entry.type}><button type="button" aria-current={active === entry.type ? "location" : undefined} onClick={() => onSelect(entry.type)}>{entry.label}</button></li>)}
         </ul>
       </section>)}</div>
     </nav>

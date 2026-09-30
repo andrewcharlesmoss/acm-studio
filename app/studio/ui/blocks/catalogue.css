@@ -7,8 +7,10 @@
 .ui-catalogue-card h3 { margin:.25rem 0; font-size:1.05rem; }
 .ui-catalogue-card p { margin:.4rem 0; }
 .ui-catalogue-card p { color:var(--rl-muted); }
-.ui-catalogue-card a { display:inline-flex; flex:0 0 auto; align-items:center; gap:.5rem; color:var(--rl-accent); text-decoration:none; font-weight:600; }
-.ui-catalogue-card a:focus-visible { outline:2px solid #465b78; outline-offset:3px; border-radius:2px; }
+.ui-catalogue-card button { display:inline-flex; flex:0 0 auto; align-items:center; gap:.5rem; padding:0; border:0; background:transparent; color:var(--rl-accent); font:inherit; font-weight:600; text-align:left; cursor:pointer; }
+.ui-catalogue-card button:focus-visible { outline:2px solid #465b78; outline-offset:3px; border-radius:2px; }
+.ui-block-detail-page > .rl-eyebrow button { padding:0; border:0; background:transparent; color:inherit; font:inherit; text-transform:inherit; letter-spacing:inherit; text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+.ui-block-detail-page > .rl-eyebrow button:focus-visible { outline:2px solid #465b78; outline-offset:2px; }
 .ui-block-detail-page { max-width:1440px; margin-inline:auto; padding-bottom:3rem; }
 .ui-block-detail-page > p { max-width:76ch; }
 .ui-block-specimen { margin:1.25rem 0; border:1px solid var(--rl-line); border-radius:9px; background:#fff; overflow:visible; }
@@ -34,7 +36,7 @@
 .ui-block-actions [role=group] { display:flex; }
 .ui-block-actions [aria-pressed=true] { background:#e9e9e6; font-weight:600; }
 .ui-block-actions button:disabled { opacity:.48; cursor:not-allowed; }
-.ui-block-actions button:focus-visible,.ui-block-index a:focus-visible { outline:2px solid #465b78; outline-offset:2px; }
+.ui-block-actions button:focus-visible { outline:2px solid #465b78; outline-offset:2px; }
 .ui-specimen-document-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem 1rem; margin:1rem; padding:.8rem 1rem 1rem; border:1px solid var(--rl-line); border-radius:7px; }
 .ui-specimen-document-fields legend { padding:0 .35rem; font-weight:600; }
 .ui-specimen-document-fields label { display:grid; gap:.3rem; min-width:0; }
