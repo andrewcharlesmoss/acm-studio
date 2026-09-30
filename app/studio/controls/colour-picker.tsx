@@ -44,6 +44,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const hasHoverState = Boolean(onHoverChange);
   const [open, setOpen] = useState(false);
   const [activeState, setActiveState] = useState<"default" | "hover">("default");
+  const [selectedPaletteRoles, setSelectedPaletteRoles] = useState<Partial<Record<"default" | "hover", { key: keyof typeof UNIVERSAL_STYLE_PRESET.palette; value: string }>>>({});
   const [position, setPosition] = useState({ left: 16, top: 16, width: 280 });
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -52,6 +53,24 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const activeValue = activeState === "hover" && hasHoverState ? hoverValue : value;
   const activeChange = activeState === "hover" && hasHoverState ? onHoverChange! : onChange;
   const activeWarning = activeState === "hover" ? hoverWarning : defaultWarning;
+  const savedPaletteRole = selectedPaletteRoles[activeState];
+  const matchingPaletteRoles = paletteRoles.filter(({ key }) => activeValue?.toLowerCase() === UNIVERSAL_STYLE_PRESET.palette[key].toLowerCase());
+  const selectedPaletteRole = savedPaletteRole && savedPaletteRole.value.toLowerCase() === activeValue?.toLowerCase()
+    ? savedPaletteRole.key
+    : matchingPaletteRoles.length === 1 ? matchingPaletteRoles[0].key : undefined;
+
+  function changeActiveColour(nextValue?: string) {
+    setSelectedPaletteRoles(current => {
+      const next = { ...current };
+      delete next[activeState];
+      return next;
+    });
+    activeChange(nextValue);
+  }
+
+  function selectPaletteRole(key: keyof typeof UNIVERSAL_STYLE_PRESET.palette, colour: string) {
+    setSelectedPaletteRoles(current => ({ ...current, [activeState]: { key, value: colour } }));
+  }
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -118,15 +137,16 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <button type="button" disabled={disabled} aria-pressed={activeState === "default"} onClick={() => setActiveState("default")}>Default</button>
         <button type="button" disabled={disabled} aria-pressed={activeState === "hover"} onClick={() => setActiveState("hover")}>Hover</button>
       </div> : null}
-      <ColourSwatches value={activeValue} onChange={activeChange} disabled={disabled} />
-      <label className="paragraph-custom-colour"><span>Custom colour</span><input disabled={disabled} aria-label={`Custom ${label.toLowerCase()} ${hasHoverState ? `${activeState} ` : ""}colour`} type="color" value={activeValue ?? UNIVERSAL_STYLE_PRESET.palette.textPrimary} onChange={event => activeChange(event.target.value)} /></label>
-      {hasHoverState || clearLabel ? <button type="button" className={clearLabel ? "paragraph-reset-button" : "paragraph-colour-clear"} disabled={disabled || !activeValue} onClick={() => activeChange(undefined)}>{clearLabel ?? `Clear ${activeState} colour`}</button> : null}
+      <ColourSwatches value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} disabled={disabled} />
+      <label className="paragraph-custom-colour"><span>Custom colour</span><input disabled={disabled} aria-label={`Custom ${label.toLowerCase()} ${hasHoverState ? `${activeState} ` : ""}colour`} type="color" value={activeValue ?? UNIVERSAL_STYLE_PRESET.palette.textPrimary} onChange={event => changeActiveColour(event.target.value)} /></label>
+      {hasHoverState || clearLabel ? <button type="button" className={clearLabel ? "paragraph-reset-button" : "paragraph-colour-clear"} disabled={disabled || !activeValue} onClick={() => changeActiveColour(undefined)}>{clearLabel ?? `Clear ${activeState} colour`}</button> : null}
       {hasHoverState && activeWarning ? <div className="paragraph-colour-contrast-warning" role="status"><AcmIcon name="state.warning" size={18} /><span>This link colour has poor contrast against the background. Consider increasing contrast.</span></div> : null}
     </div>, document.body) : null}
   </div>;
 }
 
-export function ColourSwatches({ value, onChange, disabled = false }: { value?: string; onChange: (value: string) => void; disabled?: boolean }) {
+// Omit selectedRole for legacy value matching; null explicitly means no palette role is selected.
+export function ColourSwatches({ value, selectedRole, onChange, onSelectRole, disabled = false }: { value?: string; selectedRole?: keyof typeof UNIVERSAL_STYLE_PRESET.palette | null; onChange: (value: string) => void; onSelectRole?: (role: keyof typeof UNIVERSAL_STYLE_PRESET.palette, value: string) => void; disabled?: boolean }) {
   const [hovered, setHovered] = useState<{ label: string; target: HTMLButtonElement; left: number; top: number; placement: "above" | "below" } | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const anchor = hovered?.target;
@@ -157,8 +177,8 @@ export function ColourSwatches({ value, onChange, disabled = false }: { value?: 
 
   return <div className="paragraph-colour-swatches">{paletteRoles.map(({ key, label }) => {
     const colour = UNIVERSAL_STYLE_PRESET.palette[key];
-    const selected = value?.toLowerCase() === colour.toLowerCase();
-    return <button key={key} type="button" disabled={disabled} className="paragraph-colour-swatch" aria-label={`${label}, ${colour}`} aria-pressed={selected} onMouseEnter={event => setHovered({ label, target: event.currentTarget, left: 0, top: 0, placement: "above" })} onMouseLeave={() => setHovered(null)} onFocus={event => setHovered({ label, target: event.currentTarget, left: 0, top: 0, placement: "above" })} onBlur={() => setHovered(null)} onClick={() => onChange(colour)}>
+    const selected = selectedRole === null ? false : selectedRole ? selectedRole === key : value?.toLowerCase() === colour.toLowerCase();
+    return <button key={key} type="button" disabled={disabled} className="paragraph-colour-swatch" aria-label={`${label}, ${colour}`} aria-pressed={selected} onMouseEnter={event => setHovered({ label, target: event.currentTarget, left: 0, top: 0, placement: "above" })} onMouseLeave={() => setHovered(null)} onFocus={event => setHovered({ label, target: event.currentTarget, left: 0, top: 0, placement: "above" })} onBlur={() => setHovered(null)} onClick={() => { onSelectRole?.(key, colour); onChange(colour); }}>
       <span aria-hidden="true" style={{ backgroundColor: colour }} />
     </button>;
   })}{hovered ? createPortal(<div ref={tooltipRef} className={`paragraph-colour-swatch-tooltip${hovered.placement === "below" ? " is-below" : ""}`} role="tooltip" style={{ left: hovered.left, top: hovered.top }}>{hovered.label}</div>, document.body) : null}</div>;
