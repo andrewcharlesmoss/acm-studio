@@ -11,14 +11,14 @@
 .ui-library-content .ui-page-intro > .rl-eyebrow,
 .ui-library-content .ui-ribbon-page > .rl-title > .rl-eyebrow,
 .ui-library-content .ui-pane-page .pl-catalogue > .pl-intro > .pl-eyebrow { text-transform: uppercase; }
-.ui-page-intro h1 { margin: .45rem 0; font-size: clamp(1.65rem, 3vw, 2.2rem); line-height: 1.2; letter-spacing: -.035em; }
-.ui-page-intro > p:last-child { color: var(--rl-muted); font-size: 1rem; }
+.ui-library-content :is(.ui-page-intro, .rl-title, .pl-intro) h1 { margin: .45rem 0; font-size: clamp(1.65rem, 3vw, 2.2rem); font-weight: 600; line-height: 1.2; letter-spacing: -.035em; }
+.ui-page-intro > h1 + p { color: var(--rl-muted); font-size: 1rem; }
 .ui-workspace-page { padding-bottom: 2rem; }
 .ui-workspace-tools { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 0 2rem 1rem; }
 .ui-workspace-tools p { color: var(--rl-muted); font-size: .875rem; }
 .ui-workspace-actions { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
 .ui-workspace-actions button { display: inline-flex; align-items: center; gap: .4rem; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .7rem; background: #fff; color: inherit; }
-.ui-tab-indicator-options { display: flex; align-items: center; gap: .25rem; }
+.ui-tab-indicator-options { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem; }
 .ui-tab-indicator-options > span { color: var(--rl-muted); font-size: .875rem; margin-right: .2rem; }
 .ui-workspace-actions .ui-tab-indicator-options button { min-height: 38px; }
 .ui-workspace-actions .ui-tab-indicator-options button[aria-pressed="true"] { background: var(--rl-selection); border-color: #bdbdb8; font-weight: 600; }
@@ -39,7 +39,7 @@
 .ui-workspace-stage .pane-workspace { border: 0; border-radius: 0; }
 .ui-workspace-caption { margin: .75rem 2rem 0 !important; color: var(--rl-muted); font-size: .875rem; }
 .ui-icons-page .rl-layout { margin-top: .5rem; }
-.ui-icons-page .rl-section-heading { padding: 1.25rem 1.5rem 0; }
+.ui-icons-page .rl-section-heading { padding: 0; }
 .ui-icons-page .rl-inspector h3 { margin-top: 1.5rem; }
 .ui-icons-page .ui-icon-sort { margin: 1rem 0; }
 .ui-icons-page .ui-icon-added-at { margin: .5rem 0 1rem !important; color: var(--rl-muted); font-size: .8125rem; }
@@ -53,11 +53,11 @@
 .ui-icons-page .ui-icon-download:focus-visible { outline: 2px solid #465b78; outline-offset: 2px; }
 .ui-icons-page .ui-icon-download-note { margin: .75rem 0; color: var(--rl-muted); font-size: .8125rem; }
 .ui-icons-page .ui-icon-download-status { min-height: 1.4em; margin: .5rem 0; color: var(--rl-muted); font-size: .8125rem; }
-.ui-ribbon-page > .rl-title { padding-top: 1.5rem; }
-.ui-ribbon-page > .rl-title h1 { font-size: clamp(1.6rem, 2.5vw, 2rem); }
+.ui-ribbon-page > .rl-title { padding: 1.75rem 2rem 1.25rem; }
 .ui-pane-page .pl-catalogue { min-height: 0; background: transparent; font: inherit; color: inherit; }
 .ui-pane-page .pl-header { display: none; }
-.ui-pane-page .pl-intro { padding: 1.5rem 2rem; }
+.ui-pane-page .pl-intro { padding: 1.75rem 2rem 1.25rem; }
+.ui-pane-page .pl-intro > h1 + p { color: var(--rl-muted); }
 .ui-pane-page .pl-sections { padding-inline: 2rem; }
 .ui-navigation-page { padding-bottom: 2rem; }
 .ui-navigation-specimen { margin: 0 2rem; padding: 1.5rem; border: 1px solid var(--rl-line); border-radius: 9px; background: #fff; }
@@ -65,12 +65,13 @@
 .ui-navigation-specimen .ui-section-navigation { margin: 0 0 1.25rem; border: 1px solid var(--rl-line); border-radius: 8px; }
 .ui-navigation-contract { margin: 0; color: var(--rl-muted); font-size: .95rem; }
 @media (max-width: 720px) {
-  .ui-library-header { padding: .85rem 1rem; gap: .8rem; }
+  .ui-library-header { padding: .85rem 1rem; gap: .5rem .8rem; flex-wrap: wrap; }
   .ui-library-header strong { padding-left: .8rem; }
   .ui-library-sections { padding-inline: .5rem; gap: 0; }
   .ui-library-sections a { padding: .8rem .7rem; }
   .ui-library-sections a svg { display: none; }
   .ui-page-intro { padding: 1.25rem 1rem 1rem; }
+  .ui-ribbon-page > .rl-title { padding: 1.25rem 1rem 1rem; }
   .ui-workspace-tools { padding-inline: 1rem; }
   .ui-workspace-actions { width: 100%; justify-content: space-between; }
   .ui-workspace-frame { margin-inline: 1rem; max-width: calc(100% - 2rem); }
@@ -79,4 +80,5 @@
   .ui-pane-page .pl-intro { padding: 1.25rem 1rem; }
   .ui-pane-page .pl-sections { padding-inline: 1rem; }
   .ui-navigation-specimen { margin-inline: 1rem; padding: 1rem; }
+  .ui-ribbon-page .rl-overview-cards { grid-template-columns: minmax(0, 1fr); }
 }

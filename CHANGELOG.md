@@ -252,6 +252,8 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Aligned UI Library headings, content gutters and specimen spacing across its nine sections; tidied Pane toolbars, mobile Ribbon cards, Panels examples and Blocks disclosures.
+- Controls specimens now use production inspector field styling and practical widths, with image previews and compact numeric rows that fit narrow screens. Styles uses readable interface text and stacks its workbench before the desktop columns overflow.
 - The Controls jump menu now highlights the specimen at the current scroll position.
 - Controls specimens use the library's neutral ink accent throughout their controls and labels.
 - Shared inspector reset controls use the standard text colour, including in the UI Library.
@@ -484,6 +486,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Restored the shared Controls group-anchor helper so the catalogue renders after the active-navigation extraction.
 - Made all three Paragraph catalogue examples selectable and editable, moved indentation guidance outside the canvas, collapsed detailed documentation, and narrowed Controls specimens to inspector width with compact state and ownership disclosures.
 - Fixed the Styles section's long written guide content from creating a large blank scroll area below the final specimen.
 - Standardised Studio inspector number fields to a shared 80px width that fits six digits, including font size, paragraph length and box dimensions.

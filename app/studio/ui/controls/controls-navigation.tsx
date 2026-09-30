@@ -1,13 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { studioControlEntries, studioControlGroups } from "../../controls/library-catalogue";
+import { controlGroupId, studioControlEntries, studioControlGroups } from "../../controls/library-catalogue";
 
 const orderedControlEntries = studioControlGroups.flatMap(group => studioControlEntries.filter(entry => entry.group === group));
-
-function controlGroupId(group: string) {
-  return `control-group-${group.toLocaleLowerCase("en-GB")}`;
-}
 
 export function ControlsNavigation() {
   const [activeId, setActiveId] = useState(orderedControlEntries[0]?.id ?? "");

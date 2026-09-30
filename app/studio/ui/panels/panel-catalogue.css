@@ -1,11 +1,12 @@
-.ui-panels-page { display: grid; gap: 24px; }
+.ui-panels-page { display: grid; padding-bottom: 2rem; }
 .ui-panels-specimen { display: grid; gap: 14px; margin-inline: 2rem; }
 .ui-panels-specimen > h2 { margin: 0; font-size: 1.125rem; }
-.ui-panels-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 420px); align-items: start; gap: 16px; min-height: 620px; padding: 16px; border: 1px solid #d7d7d4; border-radius: 14px; background: #f2f2f0; }
-.ui-panels-workspace-content { min-width: 0; min-height: 220px; padding: 20px; border: 1px solid #dededb; border-radius: 12px; background: #fff; }
-.ui-panels-workspace-content h3 { margin: 0; color: #1c1c1e; font-size: 1.5rem; font-weight: 600; }
+.ui-panels-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 420px); align-items: start; gap: 16px; padding: 16px; border: 1px solid #d7d7d4; border-radius: 14px; background: #f2f2f0; }
+.ui-panels-workspace-content { min-width: 0; padding: 20px; border: 1px solid #dededb; border-radius: 12px; background: #fff; }
+.ui-panels-page .ui-panels-workspace-content h3 { margin: 0 0 .35rem; color: #1c1c1e; font-size: 1.125rem; font-weight: 600; }
 .ui-panels-workspace-content p:last-of-type { max-width: 48ch; color: #626262; line-height: 1.5; }
 .ui-panels-eyebrow { margin: 0 0 8px; color: #626262; font-size: .8125rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.ui-panels-page .ui-panels-eyebrow { margin: 0 0 .5rem; }
 .ui-panels-close { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 9px; background: transparent; color: #626262; cursor: pointer; }
 .ui-panels-close svg { width: 20px; height: 20px; }
 .ui-panels-close:hover { background: #f2f2f2; color: #1c1c1e; }

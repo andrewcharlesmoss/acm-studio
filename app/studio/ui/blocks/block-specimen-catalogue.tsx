@@ -159,7 +159,7 @@ function replaceBlock(blocks: ContentBlock[], replacement: ContentBlock): Conten
 }
 
 function specimenLabel(block: ContentBlock): string {
-  if (block.type === "paragraph") return block.text.slice(0, 42) || "Paragraph";
+  if (block.type === "paragraph") return block.text.length > 42 ? `${block.text.slice(0, 42).trimEnd()}…` : block.text || "Paragraph";
   if (block.type === "heading") return block.text || "Heading";
   if (block.type === "column") return "Nested Column";
   if (block.type === "social-linkedin" || block.type === "social-tiktok") return block.label ?? (block.type === "social-linkedin" ? "LinkedIn" : "TikTok");
@@ -340,9 +340,9 @@ export function BlockSpecimenCatalogue({ type }: { type: BlockType }) {
   const previewLabel = type === "template-content" ? "Document body in a template Content slot" : `${entryTitle} preview specimen`;
   return <StudioUiLibrary section="blocks"><div className="ui-blocks-layout">
     <BlockLibraryNavigation active={type} />
-    <main className="ui-blocks-main ui-page-intro ui-block-detail-page">
+    <section className="ui-blocks-main ui-page-intro ui-block-detail-page" aria-labelledby="ui-block-detail-title">
       <p className="rl-eyebrow"><a href="/studio/ui/blocks">Blocks</a> / {entryTitle}</p>
-      <h1>{entryTitle}</h1>
+      <h1 id="ui-block-detail-title">{entryTitle}</h1>
       <p>{entry.description}</p>
       <section className="ui-block-specimen" aria-labelledby="ui-block-specimen-title" ref={specimenRef}>
         <header className="ui-block-specimen-header"><div><p className="rl-eyebrow">Temporary state only</p><h2 id="ui-block-specimen-title">Editable specimen</h2></div><div className="ui-block-actions">
@@ -371,14 +371,14 @@ export function BlockSpecimenCatalogue({ type }: { type: BlockType }) {
         <p className="ui-block-isolation-note">Undo and Redo apply to the temporary block and example document. Editing within text fields keeps the browser’s native text history. This specimen does not access Studio documents, browser storage or the write-ownership lock.</p>
       </section>
 
-      <details id="control-inventory" className="ui-block-inventory ui-block-disclosure"><summary><span>Inspector controls and dependencies</span><small>Control order and Block or Studio ownership</small></summary>
+      <details id="control-inventory" className="ui-block-inventory ui-block-disclosure"><summary><span>Inspector controls and dependencies<small>Control order and Block or Studio ownership</small></span><StudioIcon name="chevron-right" size={16} /></summary>
         <p>These rows come from the capability profile used by the inspector and this catalogue.</p>
         {profile.sections.map(section => <section id={section.id} key={section.id}><h2>{section.label}</h2><ol>{profile.controls.filter(control => control.placement !== "canvas" && control.section === section.id).map(control => <li key={`${control.source}-${control.id}`}><span>{control.label}</span><span>{control.source === "gutenberg" ? "Block" : "Studio"}</span><span>{control.fields.length ? control.fields.join(", ") : control.availableWhen ?? control.dependency ?? "Block setting"}{control.availableWhen ? ` · ${control.availableWhen}` : ""}</span></li>)}</ol></section>)}
         {profile.controls.some(control => control.placement === "canvas") ? <section><h2>Canvas controls</h2><ul>{profile.controls.filter(control => control.placement === "canvas").map(control => <li key={control.id}>{control.label} · {control.fields.join(", ")}</li>)}</ul><p>These controls live in the canvas toolbar, outside the inspector pane.</p></section> : null}
         <h2>Reusable controls</h2><ul>{profile.dependencies.map(dependency => <li key={dependency.id}><a href={dependency.href} title={dependency.purpose}>{dependency.label}</a></li>)}</ul>
       </details>
 
-      <details id="compatibility-notes" className="ui-block-compatibility-notes ui-block-disclosure"><summary><span>Compatibility and supported gaps</span><small>Mapping, theme variation and Studio-specific behaviour</small></summary>
+      <details id="compatibility-notes" className="ui-block-compatibility-notes ui-block-disclosure"><summary><span>Compatibility and supported gaps<small>Mapping, theme variation and Studio-specific behaviour</small></span><StudioIcon name="chevron-right" size={16} /></summary>
         <dl className="ui-block-compatibility"><div><dt>Gutenberg mapping</dt><dd>{profile.mapping}</dd></div><div><dt>Default inspector tab</dt><dd>{profile.defaultTab === "block" ? "Block" : "Studio"}</dd></div><div><dt>Nesting</dt><dd>{profile.nesting}</dd></div><div><dt>Context</dt><dd>{profile.context}</dd></div></dl>
         <p>Reference baseline: <a href="https://github.com/WordPress/gutenberg/tree/e3ac73cd69d472341b66c43cb77be36e838f868e/packages/block-library/src">Gutenberg v24.1.0-rc.1 at the pinned commit</a> and the recorded <a href="/studio/ui/blocks/paragraph#compatibility-notes">block inspector compatibility guide</a>. Gutenberg options can depend on declared block supports and theme settings.</p>
         {Object.keys(profile.attributeDefaults).length ? <p className="ui-block-attribute-defaults">Pinned Gutenberg attribute defaults: {Object.entries(profile.attributeDefaults).map(([field, value]) => `${field}=${String(value)}`).join(", ")}.</p> : null}
@@ -386,6 +386,6 @@ export function BlockSpecimenCatalogue({ type }: { type: BlockType }) {
         {type === "component" ? <p>Components remain inactive because the library does not invoke product integrations.</p> : null}
         {type === "template-content" ? <p>Content is a template projection element, not a typed ContentBlock. This route shows a temporary document body passing through that slot.</p> : null}
       </details>
-    </main>
+    </section>
   </div></StudioUiLibrary>;
 }

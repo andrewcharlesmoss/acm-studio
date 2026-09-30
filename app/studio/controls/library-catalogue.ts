@@ -25,4 +25,7 @@ export const studioControlEntries: StudioControlEntry[] = [
 ];
 
 export const studioControlGroups = ["Colour", "Typography", "Sizing", "Style", "Media", "Inspector"] as const;
+export function controlGroupId(group: string) {
+  return `control-group-${group.toLocaleLowerCase("en-GB")}`;
+}
 export const studioControlEntryById = Object.fromEntries(studioControlEntries.map(entry => [entry.id, entry])) as Record<string, StudioControlEntry | undefined>;

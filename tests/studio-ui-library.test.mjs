@@ -5,6 +5,33 @@ import { resolve } from "node:path";
 
 const read = (path) => readFileSync(resolve(path), "utf8");
 
+test("Controls renders every specimen and resolves its group and navigation anchors", async () => {
+  const { createRequire } = await import("node:module");
+  const { pathToFileURL } = await import("node:url");
+  const { default: ts } = await import("typescript");
+  const { createElement } = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { studioControlEntries, studioControlGroups } = await import("../app/studio/controls/library-catalogue.ts");
+  const require = createRequire(import.meta.url);
+  const dataModule = source => `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
+  const catalogueUrl = pathToFileURL(resolve("app/studio/controls/library-catalogue.ts")).href;
+  const compile = (source, replacements = {}) => dataModule(ts.transpileModule(source, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext } }).outputText
+    .replace(/from "([^"]+)"/g, (match, name) => `from ${JSON.stringify(name.startsWith("react") ? pathToFileURL(require.resolve(name)).href : replacements[name] ?? name)}`));
+  const navigationUrl = compile(read("app/studio/ui/controls/controls-navigation.tsx"), { "../../controls/library-catalogue": catalogueUrl });
+  const wrapperUrl = dataModule("export function StudioUiLibrary({ children }) { return children; }");
+  const specimenUrl = dataModule(`import { createElement } from ${JSON.stringify(pathToFileURL(require.resolve("react")).href)}; export function ControlSpecimen({ entry }) { return createElement("section", { id: entry.id }, entry.title); }`);
+  const { ControlsCatalogue } = await import(compile(read("app/studio/ui/controls/controls-catalogue.tsx"), {
+    "../../controls/library-catalogue": catalogueUrl, "../studio-ui-library": wrapperUrl,
+    "./control-specimen": specimenUrl, "./controls-navigation": navigationUrl,
+  }));
+  const html = renderToStaticMarkup(createElement(ControlsCatalogue));
+  const ids = [...html.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(new Set(ids).size, ids.length, "Group, heading and specimen IDs are unique");
+  for (const [, target] of html.matchAll(/href="#([^"]+)"/g)) assert.ok(ids.includes(target), `Unresolved jump link: ${target}`);
+  for (const entry of studioControlEntries) assert.ok(ids.includes(entry.id), entry.id);
+  assert.equal([...html.matchAll(/class="ui-control-group"/g)].length, studioControlGroups.length);
+});
+
 test("Studio UI Library exposes its canonical sections and keeps section routes distinct", () => {
   const shell = read("app/studio/ui/studio-ui-library.tsx");
   for (const [section, href] of [["workspace", "/studio/ui"], ["ribbon", "/studio/ui/ribbon"], ["panes", "/studio/ui/panes"], ["blocks", "/studio/ui/blocks"], ["controls", "/studio/ui/controls"], ["icons", "/studio/ui/icons"], ["styles", "/studio/ui/styles"]]) {
@@ -148,7 +175,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-group-specimens/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-controls-layout/);
   assert.match(detail, /aria-hidden=\{!visible\.has\("line-height"\) \|\| !showInspectorExample\}/);
-  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-example \.inspector-tools-section \{ min-width:0; min-height:104px; \}/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-example \.inspector-tools-section \{ width:100%; min-width:0; min-height:104px; \}/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-field\.is-hidden \{ visibility:hidden/);
   for (const anchor of ["colour-picker", "custom-font-size", "paragraph-length", "box-length", "inspector-tools", "inspector-accordion"]) assert.ok(metadata.includes(`id: "${anchor}"`), anchor);
   assert.match(inspectors, /from "\.\/controls\/background-selection"/);

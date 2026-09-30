@@ -1,7 +1,7 @@
 .ui-blocks-layout { display:grid; grid-template-columns:220px minmax(0,1fr); align-items:start; min-width:0; }
 .ui-blocks-main { min-width:0; }
 .ui-block-index-group { margin-top:2rem; }
-.ui-block-index-group > h2 { margin:0 1rem .75rem; font-size:1.2rem; }
+.ui-block-index-group > h2 { margin:0 0 .75rem; font-size:1.2rem; }
 .ui-block-index-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
 .ui-catalogue-card { display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; gap:1rem; min-width:0; min-height:180px; padding:1rem 1.1rem; border:1px solid var(--rl-line); border-radius:9px; background:#fff; }
 .ui-catalogue-card h3 { margin:.25rem 0; font-size:1.05rem; }
@@ -11,7 +11,7 @@
 .ui-catalogue-card a:focus-visible { outline:2px solid #465b78; outline-offset:3px; border-radius:2px; }
 .ui-block-detail-page { max-width:1440px; margin-inline:auto; padding-bottom:3rem; }
 .ui-block-detail-page > p { max-width:76ch; }
-.ui-block-specimen { margin:1.25rem 1rem; border:1px solid var(--rl-line); border-radius:9px; background:#fff; overflow:visible; }
+.ui-block-specimen { margin:1.25rem 0; border:1px solid var(--rl-line); border-radius:9px; background:#fff; overflow:visible; }
 .ui-block-specimen-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; padding:1rem 1.25rem; border-bottom:1px solid var(--rl-line); }
 .ui-block-specimen-header h2 { margin:0; font-size:1.15rem; }
 .ui-block-specimen-header .rl-eyebrow { margin:0 0 .2rem; }
@@ -50,9 +50,14 @@
 .ui-block-compatibility > div { min-width:0; }
 .ui-block-compatibility dt { font-weight:600; }
 .ui-block-compatibility dd { margin:.25rem 0 0; overflow-wrap:anywhere; }
-.ui-block-inventory,.ui-block-compatibility-notes { margin:1rem 1.25rem; padding:1rem 1.25rem; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }
+.ui-block-inventory,.ui-block-compatibility-notes { margin:1rem 0; padding:1rem 1.25rem; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }
 .ui-block-disclosure > summary { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.55rem 0; cursor:pointer; font-weight:600; }
 .ui-block-disclosure > summary:focus-visible { outline:2px solid #465b78; outline-offset:3px; }
+.ui-block-disclosure > summary { list-style:none; }
+.ui-block-disclosure > summary::-webkit-details-marker { display:none; }
+.ui-block-disclosure > summary > span { display:grid; gap:.25rem; }
+.ui-block-disclosure > summary svg { flex:0 0 auto; transition:transform .15s ease; }
+.ui-block-disclosure[open] > summary svg { transform:rotate(90deg); }
 .ui-block-inventory > section { margin-top:1rem; }
 .ui-block-inventory h3 { text-transform:capitalize; }
 .ui-block-inventory ol { padding-left:1.5rem; }
@@ -67,13 +72,12 @@
   .ui-blocks-layout { display:block; }
   .ui-blocks-main.ui-page-intro { padding:1.25rem 1rem 1rem; }
   .ui-block-index-grid { grid-template-columns:minmax(0,1fr); gap:.65rem; }
-  .ui-block-index-group > h2 { margin-inline:.5rem; }
   .ui-catalogue-card { min-height:0; padding:1rem; }
-  .ui-block-specimen { margin:1rem .5rem; }
+  .ui-block-specimen { margin:1rem 0; }
   .ui-block-specimen-header { padding:.9rem; }
   .ui-block-canvas { padding:1rem; }
   .ui-specimen-document-fields,.ui-block-compatibility { grid-template-columns:minmax(0,1fr); }
-  .ui-block-inventory,.ui-block-compatibility-notes { margin:.75rem; padding:.85rem; }
+  .ui-block-inventory,.ui-block-compatibility-notes { margin:.75rem 0; padding:.85rem; }
   .ui-block-inventory li { grid-template-columns:minmax(0,1fr) auto; }
   .ui-block-inventory li span:last-child { grid-column:1 / -1; }
 }

@@ -43,6 +43,14 @@ Page-level kickers use uppercase styling across every library section. The
 shared library stylesheet covers the common page intro and the Ribbon and Pane
 intro variants; secondary specimen kickers retain their own wording and style.
 
+Page introductions share heading typography and 32px desktop / 16px mobile
+gutters. Group headings, specimen cards and supporting disclosures align to
+the same content edge. Controls specimens use the production inspector's field
+styling and 13px interface baseline, with ordinary controls shown at practical
+inspector widths. Image-dimension examples scale their preview to fit the
+available space while retaining the configured pixel values. The Styles
+workbench stacks before its three columns exceed the available page width.
+
 ## Ownership boundaries
 
 The library groups reference views without combining package ownership. The
@@ -163,6 +171,9 @@ specimen interactions, icon search/selection/provenance, and the combined
 Workspace with both panes expanded, resized and collapsed. Check keyboard
 navigation and focus, desktop/tablet/mobile widths, and verify narrow preview
 overflow stays inside the Workspace frame while the page itself remains usable.
+Include 320px and 390px mobile, 768px tablet, the 1060px Styles transition and
+1440px desktop widths when reviewing catalogue layout. Compare section
+introductions, card edges, toolbar alignment and expanded disclosure states.
 For Blocks, visit all 28 entries and verify editing, selection, Preview, Reset
 Example, Undo and Redo. Check Block/Studio pane availability, conditional
 controls, retained legacy values, temporary document fields, nested selection,
