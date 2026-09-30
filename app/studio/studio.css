@@ -1144,7 +1144,7 @@
 .box-border-colour > * { min-width: 0; }
 .box-border-swatch { background: #d1cfc7; border: 1px solid #d1cfc7; border-radius: 7px; display: block; height: 38px; overflow: hidden; }
 .inspector-sections .box-border-swatch input[type="color"] { cursor: pointer; height: 38px; opacity: .01; padding: 0; width: 100%; }
-.paragraph-reset-button { background: transparent; border: 0; color: var(--accent); cursor: pointer; font: inherit; padding: 5px; white-space: nowrap; }
+.paragraph-reset-button { background: transparent; border: 0; color: var(--ink); cursor: pointer; font: inherit; padding: 5px; white-space: nowrap; }
 .paragraph-reset-button:disabled { color: var(--muted); cursor: default; opacity: .55; }
 .inspector-colour-setting { align-items: center; display: flex; justify-content: space-between; }
 .inspector-colour-setting > span { align-items: center; color: var(--muted); display: inline-flex; flex-wrap: wrap; font-size: var(--studio-ui-size); font-weight: 620; gap: 6px; }

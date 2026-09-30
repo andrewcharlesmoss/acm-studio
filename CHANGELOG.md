@@ -252,6 +252,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Shared inspector reset controls use the standard text colour, including in the UI Library.
 - Controls ownership and compatibility disclosures now show an ACM chevron that indicates their expandable state.
 - Rechecked mapped block pane ownership against Gutenberg v24.1.0-rc.1 at commit `e3ac73cd69d472341b66c43cb77be36e838f868e`. Moved canvas/toolbar adaptations into Studio, added the default-on Columns mobile toggle and Cover Image Fill scale, restored profile-declared Background controls in the shared inspector, and aligned the live inspector with the capability profiles. Social Icons colour conditions and raw Gutenberg defaults are recorded with the remaining rendered-reference gaps in the compatibility guide.
 - Page-level kickers use consistent uppercase styling across all Studio UI Library sections.

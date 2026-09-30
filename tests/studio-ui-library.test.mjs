@@ -131,6 +131,8 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(studioStyles, /\.box-length-custom \{[^}]*grid-template-columns: var\(--studio-number-field-width\) 70px/);
   assert.match(studioStyles, /\.paragraph-custom-font-size-input input\[type="number"\],\.paragraph-length-controls input\[type="number"\],\.box-length-custom input\[type="number"\] \{ font-family: var\(--studio-ui-font\); font-size: var\(--studio-ui-size\); \}/);
   assert.match(studioStyles, /\.paragraph-custom-font-size-input input\[type="number"\][^}]*width: var\(--studio-number-field-width\)/);
+  assert.match(studioStyles, /\.paragraph-reset-button \{[^}]*color: var\(--ink\)/);
+  assert.match(studioStyles, /\.paragraph-reset-button:disabled \{[^}]*color: var\(--muted\)/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-live \{ width:min\(100%,320px\)/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-group-specimens/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-controls-layout/);
