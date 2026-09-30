@@ -86,7 +86,7 @@ export const blockCatalogue: Array<{
   { type: "embed", label: "Embed", description: "Link to an external resource.", group: "Media" },
   { type: "button", label: "Button", description: "Add a call to action.", group: "Design" },
   { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Design" },
-  { type: "divider", label: "Divider", description: "Separate two sections.", group: "Design" },
+  { type: "divider", label: "Separator", description: "Separate two sections.", group: "Design" },
   { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design" },
   { type: "social-icons", label: "Social Icons", description: "Add links to your social profiles.", group: "Widgets" },
   { type: "social-linkedin", label: "LinkedIn", description: "Link to a LinkedIn profile.", group: "Widgets" },

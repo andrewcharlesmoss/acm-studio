@@ -162,6 +162,7 @@ function specimenLabel(block: ContentBlock): string {
   if (block.type === "paragraph") return block.text.length > 42 ? `${block.text.slice(0, 42).trimEnd()}…` : block.text || "Paragraph";
   if (block.type === "heading") return block.text || "Heading";
   if (block.type === "column") return "Nested Column";
+  if (block.type === "divider") return "Separator";
   if (block.type === "social-linkedin" || block.type === "social-tiktok") return block.label ?? (block.type === "social-linkedin" ? "LinkedIn" : "TikTok");
   return block.type.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 }

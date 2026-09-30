@@ -353,7 +353,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
   if (declaredType === "post-date") return { block: { id, type: "post-date", format: ["long", "short", "iso"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined), isLink: element.dataset.metadataLink === "true" } };
   if (declaredType === "divider") {
     const tagName = element.tagName.toLowerCase();
-    if (tagName !== "hr" && tagName !== "div") return { error: "A Divider must use an hr or div element." };
+    if (tagName !== "hr" && tagName !== "div") return { error: "A Separator must use an hr or div element." };
     return { block: { id, type: "divider", tagName: tagName === "div" ? "div" : undefined, style: element.classList.contains("is-dots") ? "dots" : element.classList.contains("is-wide") ? "wide" : "default", blockAlign: parsedBlockAlignment(element, original) } };
   }
   if (declaredType === "social-icons") {

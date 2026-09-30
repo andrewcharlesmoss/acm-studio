@@ -7,6 +7,7 @@
 - Expanded the Blocks library from the Paragraph pilot to all 27 typed block types plus the template Content slot, with profile-driven pane inventories, isolated production-editor specimens, history, reset, nested selection and compatibility notes. Expanded Controls to one grouped page with 12 in-page specimens, compatible direct-route anchors, and shared border, background, typography, image-dimensions, focal-position and preset-number controls between the inspector and catalogue.
 
 ### Changed
+- Renamed the Gutenberg `core/separator` block from Divider to Separator in the editor and library labels while retaining the existing `divider` data type.
 - Removed the nested Studio tab from block inspectors and consolidated block settings into one panel. Gutenberg controls previously classified under Studio now appear with the other block settings; nonessential ACM-only inspector options are hidden, while essential custom-block content fields and existing saved values remain intact.
 - Paragraph Additional CSS is now available in the Gutenberg-owned Advanced settings, with Gutenberg's help text and the existing safe, selector-free declaration handling.
 - Paragraph inspector now uses Gutenberg's Colour label, reserves blue Studio badges for Paragraph-only options, follows Gutenberg's adjacent-paragraph line indent behaviour, lists Border and Dimensions options in Gutenberg order, disables Drop cap for Gutenberg-incompatible text alignment, and preserves legacy drop-cap preferences when alignment changes. Link colour has separate Default and Hover values. Typography Reset all is enabled only when an optional control is active. Paragraph Advanced includes Gutenberg-style descriptions, uppercase field captions and blank empty fields, plus Additional CSS class(es) and safe, block-scoped Additional CSS declarations with HTML-source round-tripping.
@@ -16,7 +17,7 @@
 - Added root-level sticky positioning for Group blocks in documents and templates, including typed persistence, previews and HTML source round-tripping. Workspace schema v11 reads versions 2–10, local publication snapshots use v5, and template schema v0.10.0 reads v0.1.0–v0.9.0.
 - Added Gutenberg's responsive Grid arrangement to Group and Section blocks, with maximum columns and a minimum column width. Workspace schema v10 reads versions 2–9; template schema v0.9.0 reads v0.1.0–v0.8.0.
 - Added independent horizontal and vertical layout gaps for Group, Columns and Column blocks while retaining legacy scalar gap values as fallbacks. Workspace schema v9 and template schema v0.8.0 retain readers for earlier supported data.
-- Added Gutenberg-style Social Icons variants, block alignment, separate horizontal and vertical spacing, and link `rel` settings; Divider blocks can now use an `hr` or `div` element.
+- Added Gutenberg-style Social Icons variants, block alignment, separate horizontal and vertical spacing, and link `rel` settings; Separator blocks can now use an `hr` or `div` element.
 - Added a searchable, keyboard-dismissible Social Icons picker for adding LinkedIn and TikTok child blocks inside the group in documents and templates.
 - Added Gutenberg-compatible Table column-content alignment, Post Title level
   and link settings, Post Date linking, Featured Image sizing/link controls and
