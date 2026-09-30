@@ -486,6 +486,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Controls catalogue cards keep their width when ownership and compatibility details are expanded.
 - Restored the shared Controls group-anchor helper so the catalogue renders after the active-navigation extraction.
 - Made all three Paragraph catalogue examples selectable and editable, moved indentation guidance outside the canvas, collapsed detailed documentation, and narrowed Controls specimens to inspector width with compact state and ownership disclosures.
 - Fixed the Styles section's long written guide content from creating a large blank scroll area below the final specimen.

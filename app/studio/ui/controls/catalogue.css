@@ -1,6 +1,6 @@
 .ui-controls-layout { --accent:var(--rl-ink); display:grid; grid-template-columns:220px minmax(0,1fr); align-items:start; min-width:0; }
 .ui-controls-main { min-width:0; }
-.ui-controls-page { max-width:1440px; margin-inline:auto; padding-bottom:3rem; }
+.ui-controls-page { width:100%; max-width:1440px; margin-inline:auto; padding-bottom:3rem; }
 .ui-controls-page > p { max-width:76ch; }
 .ui-control-group { scroll-margin-top:1rem; margin:2rem 0; }
 .ui-control-group > h2 { margin:0 0 .75rem; font-size:1.2rem; }
