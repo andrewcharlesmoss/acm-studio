@@ -15,7 +15,7 @@
 .ui-block-specimen-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; padding:1rem 1.25rem; border-bottom:1px solid var(--rl-line); }
 .ui-block-specimen-header h2 { margin:0; font-size:1.15rem; }
 .ui-block-specimen-header .rl-eyebrow { margin:0 0 .2rem; }
-.ui-block-editor-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,360px); min-width:0; }
+.ui-block-editor-layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; min-width:0; }
 .ui-block-canvas { min-width:0; min-height:160px; padding:1.4rem; overflow-x:clip; overflow-wrap:anywhere; }
 .ui-block-canvas.is-content-projection { background:linear-gradient(0deg,#fbfaf8,#fff 36%); }
 .ui-block-editable { min-width:0; outline:1px solid transparent; outline-offset:3px; }
