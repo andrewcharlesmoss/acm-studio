@@ -47,6 +47,7 @@ test("Block Library routes use one capability profile and production inspector s
   assert.match(specimen, /id="compatibility-notes"/);
   assert.match(specimen, /window\.addEventListener\("hashchange", openHashDisclosure\)/);
   assert.match(read("app/studio/ui/blocks/catalogue.css"), /\.ui-block-canvas \{[^}]*overflow-x:clip/);
+  assert.match(read("app/studio/ui/blocks/catalogue.css"), /@media \(max-width:900px\) \{\s*\.ui-block-editor-layout \{ grid-template-columns:minmax\(0,1fr\); \}\s*\.ui-block-inspector \{ border-left:0; border-top:1px solid var\(--rl-line\); \}/);
   assert.match(specimen, /ref=\{specimenRef\}/);
   assert.match(specimen, /profile\.dependencies\.map/);
   assert.match(specimen, /profile\.sections\.map/);

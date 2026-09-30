@@ -58,6 +58,11 @@
 .ui-block-inventory ol { padding-left:1.5rem; }
 .ui-block-inventory li { display:grid; grid-template-columns:minmax(120px,1fr) 90px minmax(180px,1fr); gap:.75rem; padding:.45rem 0; border-bottom:1px solid var(--rl-line); }
 .ui-block-inventory li span:nth-child(2) { color:var(--rl-muted); }
+@media (max-width:900px) {
+  .ui-block-editor-layout { grid-template-columns:minmax(0,1fr); }
+  .ui-block-inspector { border-left:0; border-top:1px solid var(--rl-line); }
+  .ui-block-inspector .inspector-scroll { max-height:none; }
+}
 @media (max-width:720px) {
   .ui-blocks-layout { display:block; }
   .ui-blocks-main.ui-page-intro { padding:1.25rem 1rem 1rem; }
@@ -66,9 +71,6 @@
   .ui-catalogue-card { min-height:0; padding:1rem; }
   .ui-block-specimen { margin:1rem .5rem; }
   .ui-block-specimen-header { padding:.9rem; }
-  .ui-block-editor-layout { grid-template-columns:minmax(0,1fr); }
-  .ui-block-inspector { border-left:0; border-top:1px solid var(--rl-line); }
-  .ui-block-inspector .inspector-scroll { max-height:none; }
   .ui-block-canvas { padding:1rem; }
   .ui-specimen-document-fields,.ui-block-compatibility { grid-template-columns:minmax(0,1fr); }
   .ui-block-inventory,.ui-block-compatibility-notes { margin:.75rem; padding:.85rem; }
