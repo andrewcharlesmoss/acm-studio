@@ -21,7 +21,8 @@
 .ui-block-editable { min-width:0; outline:1px solid transparent; outline-offset:3px; }
 .ui-block-editable:focus-within { outline-color:#929292; }
 .ui-block-editable + .ui-block-editable { margin-top:var(--acm-layout-spacing,24px); }
-.ui-block-inspector { min-width:0; border-left:1px solid var(--rl-line); }
+.ui-block-inspector { min-width:0; border-left:1px solid var(--rl-line); font:var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.ui-block-inspector .inspector-sections > section:not(.inspector-block-summary) h2 { font-size:var(--studio-ui-size); }
 .ui-block-inspector .studio-inspector { width:100%; min-width:0; border:0; }
 .ui-block-inspector .studio-inspector .pane-header { display:none; }
 .ui-block-inspector .inspector-scroll { max-height:700px; }
