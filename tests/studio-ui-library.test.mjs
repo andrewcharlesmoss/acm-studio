@@ -86,6 +86,7 @@ test("Block Library index groups typed blocks, nested/system entries and templat
 
 test("Controls catalogue groups live specimens and preserves direct routes into each anchor", () => {
   const page = read("app/studio/ui/controls/controls-catalogue.tsx");
+  const navigation = read("app/studio/ui/controls/controls-navigation.tsx");
   const detail = read("app/studio/ui/controls/control-specimen.tsx");
   const metadata = read("app/studio/controls/library-catalogue.ts");
   const route = read("app/studio/ui/controls/[id]/page.tsx");
@@ -95,8 +96,15 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   const paragraphLength = read("app/studio/controls/paragraph-length-setting.tsx");
   const studioStyles = read("app/studio/studio.css");
   const globals = read("app/globals.css");
-  assert.match(page, /studioControlGroups\.map/);
-  assert.match(page, /href=\{`#\$\{entry\.id\}`\}/);
+  assert.match(page, /<ControlsNavigation \/>/);
+  assert.match(navigation, /window\.addEventListener\("scroll", scheduleActiveControlUpdate/);
+  assert.match(navigation, /getBoundingClientRect\(\)\.top > marker/);
+  assert.match(navigation, /aria-current=\{activeId === entry\.id \? "location" : undefined\}/);
+  assert.match(navigation, /requestAnimationFrame/);
+  assert.match(navigation, /studioControlGroups\.flatMap\(group => studioControlEntries\.filter\(entry => entry\.group === group\)\)/);
+  assert.match(navigation, /for \(const entry of orderedControlEntries\)/);
+  assert.match(read("app/studio/controls/library-catalogue.ts"), /\["Colour", "Typography", "Sizing", "Style", "Media", "Inspector"\]/);
+  assert.match(navigation, /href=\{`#\$\{entry\.id\}`\}/);
   assert.match(page, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\} \/>/);
   assert.match(detail, /<section id=\{entry\.id\}/);
   assert.match(detail, /<h3 id=\{`control-entry-\$\{entry\.id\}`\}>/);

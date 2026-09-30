@@ -252,6 +252,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- The Controls jump menu now highlights the specimen at the current scroll position.
 - Controls specimens use the library's neutral ink accent throughout their controls and labels.
 - Shared inspector reset controls use the standard text colour, including in the UI Library.
 - Controls ownership and compatibility disclosures now show an ACM chevron that indicates their expandable state.
