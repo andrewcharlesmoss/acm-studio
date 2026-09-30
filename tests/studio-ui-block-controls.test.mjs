@@ -187,7 +187,7 @@ test("Studio only mounts shared style groups when the profile owns Studio style 
   assert.match(inspector, /background: showBackground \? <InspectorAccordionSection className="inspector-panel" title="Background">/);
 });
 
-test("every reusable Controls entry has a detail route, reset specimen and actual block consumers", () => {
+test("every reusable Controls entry has a grouped anchor specimen and compatible direct route", () => {
   assert.equal(studioControlEntries.length, 12);
   assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 12);
   for (const entry of studioControlEntries) {
@@ -198,11 +198,13 @@ test("every reusable Controls entry has a detail route, reset specimen and actua
 
   const route = read("app/studio/ui/controls/[id]/page.tsx");
   const reset = read("app/studio/ui/controls/control-specimen.tsx");
-  const redirects = read("app/studio/ui/controls/legacy-control-hash-redirect.tsx");
+  const catalogue = read("app/studio/ui/controls/controls-catalogue.tsx");
   assert.match(route, /studioControlEntryById\[id\]/);
   assert.match(route, /notFound\(\)/);
+  assert.match(route, /redirect\(`\/studio\/ui\/controls#\$\{encodeURIComponent\(entry\.id\)\}`\)/);
+  assert.match(catalogue, /href=\{`#\$\{entry\.id\}`\}/);
+  assert.match(catalogue, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\} \/>/);
+  assert.match(reset, /<section id=\{entry\.id\}/);
   assert.match(reset, /function resetExample\(\)/);
   assert.match(reset, /Related block specimens/);
-  assert.match(redirects, /window\.location\.replace/);
-  for (const entry of studioControlEntries.slice(0, 6)) assert.ok(redirects.includes("studioControlEntryById[id]"), entry.id);
 });

@@ -1,25 +1,36 @@
 import { studioControlEntries, studioControlGroups } from "../../controls/library-catalogue";
 import { StudioUiLibrary } from "../studio-ui-library";
-import { LegacyControlHashRedirect } from "./legacy-control-hash-redirect";
+import { ControlSpecimen } from "./control-specimen";
+
+function controlGroupId(group: string) {
+  return `control-group-${group.toLocaleLowerCase("en-GB")}`;
+}
 
 export function ControlsCatalogue() {
-  return <StudioUiLibrary section="controls">
-    <LegacyControlHashRedirect />
+  return <StudioUiLibrary section="controls"><div className="ui-controls-layout">
+    <aside className="ui-catalogue-navigation" aria-label="Controls menu">
+      <h2>Jump to</h2>
+      <nav aria-label="Control specimens"><div className="ui-catalogue-navigation-groups">{studioControlGroups.map(group => {
+        const entries = studioControlEntries.filter(entry => entry.group === group);
+        if (!entries.length) return null;
+        return <section className="ui-catalogue-navigation-group" key={group}>
+          <h3><a href={`#${controlGroupId(group)}`}>{group}</a></h3>
+          <ul className="ui-catalogue-navigation-list">{entries.map(entry => <li key={entry.id}><a href={`#${entry.id}`}>{entry.title}</a></li>)}</ul>
+        </section>;
+      })}</div></nav>
+    </aside>
     <main className="ui-controls-main ui-page-intro ui-controls-page">
-      <p className="rl-eyebrow">Reusable editor components</p>
+      <p className="rl-eyebrow">Reusable inspector components</p>
       <h1>Controls</h1>
-      <p>Working control specimens from the Studio editor and inspector. Each entry has isolated example state, its current consumers and compatibility notes.</p>
+      <p>All 12 working control specimens live on this page. Use the grouped jump links to move between examples; each one has isolated state, a reset action and details about its actual consumers.</p>
       {studioControlGroups.map(group => {
         const entries = studioControlEntries.filter(entry => entry.group === group);
         if (!entries.length) return null;
-        return <section className="ui-control-index-group" key={group} aria-labelledby={`control-group-${group.toLowerCase()}`}>
-          <h2 id={`control-group-${group.toLowerCase()}`}>{group}</h2>
-          <div className="ui-control-index-grid">{entries.map(entry => <article className="ui-control-index-card" key={entry.id}>
-            <div><p className="rl-eyebrow">{entry.group}</p><h3>{entry.title}</h3><p>{entry.purpose}</p></div>
-            <a href={`/studio/ui/controls/${entry.id}`}>View specimen <span aria-hidden="true">→</span></a>
-          </article>)}</div>
+        return <section className="ui-control-group" id={controlGroupId(group)} key={group} aria-labelledby={`${controlGroupId(group)}-heading`}>
+          <h2 id={`${controlGroupId(group)}-heading`}>{group}</h2>
+          <div className="ui-control-group-specimens">{entries.map(entry => <ControlSpecimen entry={entry} key={entry.id} />)}</div>
         </section>;
       })}
     </main>
-  </StudioUiLibrary>;
+  </div></StudioUiLibrary>;
 }

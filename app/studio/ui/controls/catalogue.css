@@ -1,6 +1,29 @@
+.ui-controls-layout { display:grid; grid-template-columns:220px minmax(0,1fr); align-items:start; min-width:0; }
 .ui-controls-main { min-width:0; }
 .ui-controls-page { max-width:1440px; margin-inline:auto; padding-bottom:3rem; }
 .ui-controls-page > p { max-width:76ch; }
+.ui-control-group { scroll-margin-top:1rem; margin:2rem 0; }
+.ui-control-group > h2 { margin:0 1.25rem .75rem; font-size:1.2rem; }
+.ui-control-group-specimens { display:grid; grid-template-columns:minmax(0,1fr); gap:.25rem; }
+.ui-control-entry { scroll-margin-top:1rem; min-width:0; margin:1rem 1.25rem 1.5rem; padding:1rem 1.1rem; border:1px solid var(--rl-line); border-radius:9px; background:#fff; }
+.ui-control-entry-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+.ui-control-entry-header .rl-eyebrow { margin:0 0 .25rem; color:var(--rl-muted); }
+.ui-control-entry-header h3 { margin:0 0 .35rem; font-size:1.1rem; }
+.ui-control-entry-header > div > p:last-child { max-width:68ch; margin:.2rem 0 0; color:var(--rl-muted); }
+.ui-control-reset { min-height:40px; display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; gap:.45rem; border:1px solid var(--rl-line); border-radius:6px; padding:.45rem .75rem; background:#fff; color:inherit; font:inherit; }
+.ui-control-reset:focus-visible { outline:2px solid var(--rl-accent); outline-offset:3px; }
+.ui-control-detail-card { margin:1rem 0 .25rem; overflow:visible; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }
+.ui-control-detail-header { padding:.65rem 1rem; border-bottom:1px solid var(--rl-line); background:#faf9f6; }
+.ui-control-detail-header h4 { margin:0; font-size:.9rem; }
+.ui-control-detail-example { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; max-width:760px; margin:1rem; padding:1rem; border:1px solid var(--rl-line); border-radius:7px; background:#f7f6f2; }
+.ui-control-detail-example.is-wide { max-width:none; }
+.ui-control-example-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:1.25rem; }
+.ui-control-detail-example .ui-control-size-example { width:min(100%,520px); }
+.ui-control-detail-example .ui-control-tools-example { max-width:680px; }
+.ui-control-detail-example .ui-control-live { width:min(100%,520px); }
+.ui-control-detail-example .ui-control-state-examples { max-width:400px; }
+.ui-control-detail-example .ui-control-image-dimensions { width:min(100%,720px); }
+.ui-control-detail-note { margin:0; padding:.1rem 1rem 1rem; color:var(--rl-muted); font-size:.875rem; }
 .ui-control-tools-example { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; }
 .ui-control-tools-example .inspector-tools-section { min-width:0; min-height:104px; }
 .ui-control-tools-example .inspector-tools-content,.ui-control-tools-example .ui-control-tools-field { min-width:0; }
@@ -26,35 +49,7 @@
 .ui-control-facts > dl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.75rem; margin:.5rem 0 0; }
 .ui-control-facts dl > div { min-width:0; }
 .ui-control-facts dt { font-size:.875rem; font-weight:600; }
-.ui-control-facts dd { margin:.2rem 0 0; color:var(--rl-muted); }
-.ui-control-index-group { margin:2rem 0; }
-.ui-control-index-group > h2 { margin:0 0 .75rem; font-size:1.2rem; }
-.ui-control-index-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
-.ui-control-index-card { display:flex; min-width:0; min-height:148px; flex-direction:column; justify-content:space-between; gap:1rem; padding:1rem 1.1rem; border:1px solid var(--rl-line); border-radius:9px; background:#fff; }
-.ui-control-index-card .rl-eyebrow { margin:0 0 .3rem; color:var(--rl-muted); }
-.ui-control-index-card h3 { margin:.1rem 0 .4rem; font-size:1.05rem; }
-.ui-control-index-card p:not(.rl-eyebrow) { margin:0; max-width:62ch; color:var(--rl-muted); }
-.ui-control-index-card a,.ui-control-breadcrumbs a { display:inline-flex; width:max-content; align-items:center; gap:.45rem; color:var(--rl-accent); text-decoration:none; font-weight:600; }
-.ui-control-index-card a:focus-visible,.ui-control-breadcrumbs a:focus-visible,.ui-control-reset:focus-visible { outline:2px solid var(--rl-accent); outline-offset:3px; border-radius:2px; }
-.ui-control-detail { max-width:1120px; margin-inline:auto; padding:1.5rem 1.25rem 3rem; }
-.ui-control-breadcrumbs { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem; margin:0 0 1.3rem; color:var(--rl-muted); }
-.ui-control-detail > h1 { margin:.15rem 0 .6rem; }
-.ui-control-detail-intro { max-width:76ch; }
-.ui-control-detail-card { margin:1.5rem 0; overflow:visible; border:1px solid var(--rl-line); border-radius:9px; background:#fff; }
-.ui-control-detail-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; padding:1rem 1.25rem; border-bottom:1px solid var(--rl-line); }
-.ui-control-detail-header .rl-eyebrow { margin:0 0 .2rem; color:var(--rl-muted); }
-.ui-control-detail-header h2 { margin:0; font-size:1.15rem; }
-.ui-control-reset { min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:.45rem; border:1px solid var(--rl-line); border-radius:6px; padding:.45rem .75rem; background:#fff; color:inherit; font:inherit; }
-.ui-control-detail-example { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; max-width:760px; margin:1rem; padding:1rem; border:1px solid var(--rl-line); border-radius:7px; background:#f7f6f2; }
-.ui-control-detail-example.is-wide { max-width:none; }
-.ui-control-example-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:1.25rem; }
-.ui-control-detail-example .ui-control-size-example { width:min(100%,520px); }
-.ui-control-detail-example .ui-control-tools-example { max-width:680px; }
-.ui-control-detail-example .ui-control-live { width:min(100%,520px); }
-.ui-control-detail-example .ui-control-state-examples { max-width:400px; }
-.ui-control-detail-example .ui-control-image-dimensions { width:min(100%,720px); }
-.ui-control-detail-note { margin:0; padding:.1rem 1.25rem 1rem; color:var(--rl-muted); font-size:.875rem; }
-.ui-control-detail .ui-control-facts { margin:0; padding:.2rem 1.25rem 1rem; }
+.ui-control-facts dd { margin:.2rem 0 0; color:var(--rl-muted); overflow-wrap:anywhere; }
 .ui-control-facts dd a { color:var(--rl-accent); }
 .ui-control-image-dimensions { display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,1fr); align-items:start; gap:1rem; }
 .image-dimensions-setting { display:grid; min-width:0; gap:.65rem; margin:0; padding:0; border:0; }
@@ -63,16 +58,16 @@
 .ui-control-image-preview > span,.ui-control-focal-preview > span { padding:.4rem .65rem; border-radius:4px; background:rgba(255,255,255,.82); }
 .ui-control-focal-preview { width:min(100%,520px); min-height:220px; background-size:190% 190%, 180% 180%, 200% 200%; }
 .border-settings-control { display:grid; gap:.75rem; }
-.ui-control-detail .border-settings-control { max-width:520px; }
-.ui-control-detail-example button:focus-visible,.ui-control-detail-example input:focus-visible,.ui-control-detail-example select:focus-visible { outline:2px solid #465b78; outline-offset:2px; }
+.ui-controls-page .border-settings-control { max-width:520px; }
+.ui-control-entry button:focus-visible,.ui-control-entry input:focus-visible,.ui-control-entry select:focus-visible { outline:2px solid #465b78; outline-offset:2px; }
 @media(max-width:720px) {
-  .ui-control-index-grid,.ui-control-example-grid,.ui-control-image-dimensions { grid-template-columns:minmax(0,1fr); }
-  .ui-control-index-card { min-height:0; }
-  .ui-control-detail { padding:1rem .75rem 2rem; }
-  .ui-control-detail-header { padding:.9rem; }
-  .ui-control-detail-example { margin:.75rem; padding:.8rem; }
-  .ui-control-detail .ui-control-facts { padding-inline:.9rem; }
+  .ui-controls-layout { display:block; }
   .ui-controls-main.ui-page-intro { padding:1.25rem 1rem 1rem; }
+  .ui-control-entry { margin:1rem .75rem; padding:.9rem; }
+  .ui-control-entry-header { align-items:flex-start; flex-wrap:wrap; }
+  .ui-control-detail-header { padding:.6rem .8rem; }
+  .ui-control-detail-example { margin:.75rem; padding:.8rem; }
+  .ui-control-example-grid,.ui-control-image-dimensions { grid-template-columns:minmax(0,1fr); }
   .ui-control-tools-example { grid-template-columns:minmax(0,1fr); }
   .ui-control-facts > dl { grid-template-columns:minmax(0,1fr); }
 }

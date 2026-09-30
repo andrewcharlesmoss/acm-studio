@@ -17,7 +17,6 @@ import { ImageDimensionsSetting } from "../../../studio/controls/image-dimension
 import { ParagraphLengthSetting } from "../../../studio/controls/paragraph-length-setting";
 import { PresetNumberSetting } from "../../../studio/controls/preset-number-setting";
 import { StudioIcon } from "../../../studio/studio-icons";
-import { StudioUiLibrary } from "../studio-ui-library";
 
 const blockLinksByControl: Record<string, string[]> = {
   "colour-picker": ["paragraph", "divider"],
@@ -77,11 +76,13 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
     setResetRevision(revision => revision + 1);
   }
 
-  return <StudioUiLibrary section="controls"><main className="ui-control-detail ui-page-intro">
-    <nav className="ui-control-breadcrumbs" aria-label="Breadcrumb"><a href="/studio/ui/controls">Controls</a><span aria-hidden="true">/</span><span aria-current="page">{entry.title}</span></nav>
-    <p className="rl-eyebrow">{entry.group} control</p><h1>{entry.title}</h1><p className="ui-control-detail-intro">{entry.purpose}</p>
-    <section className="ui-control-detail-card" aria-labelledby="control-specimen-heading">
-      <header className="ui-control-detail-header"><div><p className="rl-eyebrow">Live specimen</p><h2 id="control-specimen-heading">Try the control</h2></div><button className="ui-control-reset" type="button" onClick={resetExample}><StudioIcon name="rotate" size={18} />Reset example</button></header>
+  return <section id={entry.id} className="ui-control-entry" aria-labelledby={`control-entry-${entry.id}`}>
+    <header className="ui-control-entry-header">
+      <div><p className="rl-eyebrow">{entry.group} control</p><h3 id={`control-entry-${entry.id}`}>{entry.title}</h3><p className="ui-control-detail-intro">{entry.purpose}</p></div>
+      <button className="ui-control-reset" type="button" onClick={resetExample}><StudioIcon name="rotate" size={18} />Reset example</button>
+    </header>
+    <div className="ui-control-detail-card" aria-labelledby={`control-specimen-${entry.id}`}>
+      <div className="ui-control-detail-header"><h4 id={`control-specimen-${entry.id}`}>Live specimen</h4></div>
       <div key={resetRevision} className={`ui-control-detail-example${entry.id === "border-settings" || entry.id === "image-dimensions" ? " is-wide" : ""}`}>
         {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" /><p>Default: {colour ?? "Unset"} · Hover: {hoverColour ?? "Unset"}</p><button type="button" onClick={() => { setColour(undefined); setHoverColour(undefined); }}>Clear both colours</button></div><div className="ui-control-state-examples"><ColourPicker label="Disabled colour" value="#0088ff" onChange={() => {}} disabled wrapperClassName="ui-control-disabled" /><div className="ui-control-swatch-states" aria-label="Overlapping unset colour swatches"><ColourValueSwatch /><ColourValueSwatch overlap /></div><span>Unset swatches overlap with opaque white centres. The disabled picker cannot be opened.</span></div></div> : null}
         {entry.id === "custom-font-size" ? <div className="ui-control-live ui-control-size-example"><CustomFontSizeSetting value={fontSize} onChange={setFontSize} /><p>Current value: {fontSize ?? "Default"}</p></div> : null}
@@ -97,7 +98,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
         {entry.id === "focal-position" ? <div className="ui-control-live ui-control-size-example"><div className="ui-control-focal-preview" style={{ backgroundPosition: `${focalX}% ${focalY}%` }} aria-hidden="true"><span>Image crop sample</span></div><FocalPositionSetting x={focalX} y={focalY} onXChange={setFocalX} onYChange={setFocalY} /><FocalPositionSetting x={50} y={50} disabled label="Disabled example" onXChange={() => {}} onYChange={() => {}} presentation="range" /><p>Both values are clamped to the 0–100 range.</p></div> : null}
       </div>
       <p className="ui-control-detail-note">Changes stay in this page’s temporary example state and do not edit a document or save block content.</p>
-    </section>
+    </div>
     <details className="ui-control-facts"><summary>Ownership, consumers, relationships and compatibility</summary><dl>
       <div><dt>Ownership</dt><dd>{entry.owner}</dd></div>
       <div><dt>Consumers</dt><dd>{entry.consumers.join("; ")}</dd></div>
@@ -105,5 +106,5 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
       <div><dt>Compatibility</dt><dd>{entry.compatibility}</dd></div>
       <div><dt>Related block specimens</dt><dd>{blockLinks.map((block, index) => <span key={block}>{index ? ", " : ""}<a href={`/studio/ui/blocks/${block}`}>{blockLibraryEntryByType[block as keyof typeof blockLibraryEntryByType]?.label ?? block}</a></span>)}</dd></div>
     </dl></details>
-  </main></StudioUiLibrary>;
+  </section>;
 }

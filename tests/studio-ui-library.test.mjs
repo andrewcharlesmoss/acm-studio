@@ -84,12 +84,11 @@ test("Block Library index groups typed blocks, nested/system entries and templat
   assert.match(read("app/studio/ui/catalogue-navigation.css"), /\.ui-catalogue-navigation-list a\[aria-current="page"\]/);
 });
 
-test("Controls index and detail pages share production components, ownership and legacy hash routing", () => {
+test("Controls catalogue groups live specimens and preserves direct routes into each anchor", () => {
   const page = read("app/studio/ui/controls/controls-catalogue.tsx");
   const detail = read("app/studio/ui/controls/control-specimen.tsx");
   const metadata = read("app/studio/controls/library-catalogue.ts");
   const route = read("app/studio/ui/controls/[id]/page.tsx");
-  const redirect = read("app/studio/ui/controls/legacy-control-hash-redirect.tsx");
   const colour = read("app/studio/controls/colour-picker.tsx");
   const inspectors = read("app/studio/studio-inspectors.tsx");
   const boxLength = read("app/studio/box-length-setting.tsx");
@@ -97,7 +96,11 @@ test("Controls index and detail pages share production components, ownership and
   const studioStyles = read("app/studio/studio.css");
   const globals = read("app/globals.css");
   assert.match(page, /studioControlGroups\.map/);
-  assert.match(page, /href=\{`\/studio\/ui\/controls\/\$\{entry\.id\}`\}/);
+  assert.match(page, /href=\{`#\$\{entry\.id\}`\}/);
+  assert.match(page, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\} \/>/);
+  assert.match(detail, /<section id=\{entry\.id\}/);
+  assert.match(detail, /<h3 id=\{`control-entry-\$\{entry\.id\}`\}>/);
+  assert.match(detail, /<h4 id=\{`control-specimen-\$\{entry\.id\}`\}>/);
   assert.match(detail, /<ColourPicker/);
   assert.match(detail, /<CustomFontSizeSetting/);
   assert.match(detail, /<ParagraphLengthSetting/);
@@ -114,7 +117,7 @@ test("Controls index and detail pages share production components, ownership and
   assert.match(detail, /Reset example/);
   assert.match(route, /studioControlEntryById\[id\]/);
   assert.match(route, /notFound\(\)/);
-  assert.match(redirect, /window\.location\.replace\(`\/studio\/ui\/controls/);
+  assert.match(route, /redirect\(`\/studio\/ui\/controls#\$\{encodeURIComponent\(entry\.id\)\}`\)/);
   assert.match(metadata, /"background-selection"/);
   assert.match(metadata, /"font-size-appearance"/);
   assert.match(metadata, /"image-dimensions"/);
@@ -127,7 +130,8 @@ test("Controls index and detail pages share production components, ownership and
   assert.match(studioStyles, /\.paragraph-custom-font-size-input input\[type="number"\],\.paragraph-length-controls input\[type="number"\],\.box-length-custom input\[type="number"\] \{ font-family: var\(--studio-ui-font\); font-size: var\(--studio-ui-size\); \}/);
   assert.match(studioStyles, /\.paragraph-custom-font-size-input input\[type="number"\][^}]*width: var\(--studio-number-field-width\)/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-live \{ width:min\(100%,320px\)/);
-  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-index-grid/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-group-specimens/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-controls-layout/);
   assert.match(detail, /aria-hidden=\{!visible\.has\("line-height"\) \|\| !showInspectorExample\}/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-example \.inspector-tools-section \{ min-width:0; min-height:104px; \}/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-field\.is-hidden \{ visibility:hidden/);

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { studioControlEntryById } from "../../../controls/library-catalogue";
-import { ControlSpecimen } from "../control-specimen";
 import "../../catalogue-navigation.css";
 import "../catalogue.css";
 
@@ -17,5 +16,5 @@ export default async function StudioUiControlPage({ params }: ControlPageProps) 
   const { id } = await params;
   const entry = studioControlEntryById[id];
   if (!entry) notFound();
-  return <ControlSpecimen entry={entry} />;
+  redirect(`/studio/ui/controls#${encodeURIComponent(entry.id)}`);
 }

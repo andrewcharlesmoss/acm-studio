@@ -20,10 +20,10 @@ The library has nine sections:
   isolated editing specimens. A grouped index covers all 27 typed block types,
   plus the template Content slot. Each entry has a detail route at
   `/studio/ui/blocks/{type}`; Paragraph keeps `/studio/ui/blocks/paragraph`.
-- **Controls** — working shared inspector controls with their supported states,
-  ownership and consumers at `/studio/ui/controls`. A grouped index links to an
-  individual detail page for each control. Recognised legacy
-  `/studio/ui/controls#control-id` links forward to that control's page.
+- **Controls** — all 12 working shared inspector controls with their supported
+  states, ownership and consumers on the grouped `/studio/ui/controls` page.
+  Group and control links jump to in-page specimen anchors. Recognised legacy
+  `/studio/ui/controls/{id}` detail routes redirect to the matching anchor.
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
   specimens at 16, 24 and 32px, with a Block Library collection that shows the
   exact symbols used by each insertable block and the template Content tile.
@@ -82,9 +82,10 @@ The preview uses ordinary linked text, and inspector control inventory,
 relationships and compatibility notes are collapsed disclosures. No specimen
 reads real documents, browser persistence or the product write lock.
 
-The Controls section contains 12 shared controls in grouped index and detail
-pages. It retains the original six specimens and adds border settings, font
-size and Appearance, background colour/gradient, preset number, image
+The Controls section contains 12 shared controls on one grouped page, with
+in-page jump links and isolated specimen state. It retains the original six
+specimens and adds border settings, font size and Appearance, background
+colour/gradient, preset number, image
 dimensions and focal position. The production inspector and specimens share
 the extracted BorderSettings, BackgroundSelection, FontSizeAppearanceSetting,
 ImageDimensionsSetting, FocalPositionSetting and PresetNumberSetting controls.
@@ -93,8 +94,8 @@ swatch geometry, popover positioning and dismissal. Link contrast remains with
 the Link adapter. Each control records consumers, ownership, supported states
 and compatibility in a collapsed disclosure with links to its real block
 consumers. Examples use temporary component state and provide Reset Example and
-disabled states where supported. Legacy recognised hash links continue to
-resolve to their matching control detail pages. Ribbon catalogue specimens
+disabled states where supported. Recognised legacy detail routes redirect to
+the matching control anchor on the grouped page. Ribbon catalogue specimens
 remain examples and are not inspector dependencies.
 Ribbon icon usage in the inspector means examples in the Ribbon catalogue only;
 it is not an exhaustive inventory of use throughout ACM products.
@@ -166,9 +167,10 @@ For Blocks, visit all 28 entries and verify editing, selection, Preview, Reset
 Example, Undo and Redo. Check Block/Studio pane availability, conditional
 controls, retained legacy values, temporary document fields, nested selection,
 local media and the template Content projection. Verify unsupported gaps against
-the compatibility guide. For Controls, visit all 12 detail routes, exercise
+the compatibility guide. For Controls, visit all 12 in-page specimens, exercise
 their values, disabled examples, conditional availability and reset actions,
-and check consumer links and recognised legacy hash redirects. Check palette
+and check consumer links, group/control jump links and compatible legacy detail
+route redirects. Check palette
 popover Escape/outside dismissal and focus restoration. Use desktop, tablet and
 mobile widths, keyboard navigation and 200% zoom; library pages adapt without
 changing the production editor's documented workspace arrangement. Exact
