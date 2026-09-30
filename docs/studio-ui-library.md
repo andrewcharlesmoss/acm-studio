@@ -17,13 +17,13 @@ The library has nine sections:
 - **Panels** — the shared card surface and header slots, demonstrated with
   temporary sample data from `@acm/panel`.
 - **Blocks** — block definitions, inspector capabilities, relationships and
-  isolated editing specimens. A local menu groups fully documented entries by
-  the existing block catalogue categories; Paragraph is the first complete
-  entry at `/studio/ui/blocks/paragraph`.
+  isolated editing specimens. A grouped index covers all 27 typed block types,
+  plus the template Content slot. Each entry has a detail route at
+  `/studio/ui/blocks/{type}`; Paragraph keeps `/studio/ui/blocks/paragraph`.
 - **Controls** — working shared inspector controls with their supported states,
-  ownership and consumers at `/studio/ui/controls`. A sticky grouped side menu
-  links to each same-page entry and follows the visible section; it becomes a
-  horizontally scrollable menu on narrow screens.
+  ownership and consumers at `/studio/ui/controls`. A grouped index links to an
+  individual detail page for each control. Recognised legacy
+  `/studio/ui/controls#control-id` links forward to that control's page.
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
   specimens at 16, 24 and 32px, with a Block Library collection that shows the
   exact symbols used by each insertable block and the template Content tile.
@@ -68,36 +68,34 @@ shows how it composes with the Ribbon and panes.
 
 All fixtures and interactions remain temporary component state. The library
 does not call product APIs, use write ownership or read/write browser storage.
-The Paragraph entry consumes `paragraphBlockDefinition` and its capability
-profile alongside the existing typed content model, validator, transforms and
-renderer. The profile supplies inspector order, Block/Studio classification,
-defaults, reset fields and dependency links; it does not define a second saved
-format. Controls link back to Paragraph, so the definition is the source for
-both sides of the block/control relationship. Its
-specimen uses the real `ParagraphEditField`, `BlockInspector` and Studio
-`BlockRenderer`, with three selectable, editable paragraphs and local state.
-The inspector follows the active paragraph. Specimen Undo and Redo cover local
-text and inspector changes while keyboard undo inside a field keeps the native
-text history. Reset Example restores all three temporary paragraphs. The
-preview includes ordinary linked text and adjacent Paragraphs for the existing
-indentation rule. Identity, relationships, control inventory and compatibility
-notes are collapsed disclosure sections; direct section hashes open their
-containing disclosure. No real document, browser persistence or product write
-lock is involved.
+The shared `blockCapabilityProfiles` registry is the source for the Blocks
+index and detail inventories, and for shared-style inspector ownership,
+defaults, reset fields, conditional settings and dependency links. It does not
+define a second saved format. Block-specific inspectors keep their established
+editing components and data contracts. Each specimen uses production `BlockField`,
+`BlockInspector` and Studio `BlockRenderer` components with temporary,
+selectable examples, local document metadata and an isolated local media
+fixture. Container entries include children; Table shows populated and empty
+states; Footnotes have references; Component remains inactive; Content shows a
+template projection. Undo and Redo cover temporary block and document changes.
+The preview uses ordinary linked text, and inspector control inventory,
+relationships and compatibility notes are collapsed disclosures. No specimen
+reads real documents, browser persistence or the product write lock.
 
-The Controls section initially documents the shared colour picker, custom
-font-size and Paragraph length controls, plus the existing box-dimension,
-inspector-options and accordion components. The colour picker owns swatch
-geometry, overlapping unset/explicit states, palette selection, popover
-positioning and dismissal. Link contrast stays in the Link adapter; gradient
-selection stays in the Paragraph background adapter. Each entry links back to
-Paragraph and records current consumers in a collapsed disclosure. Specimens
-stay within the production inspector's compact control width and include
-interactive reset, disabled, focus and selection states where they apply. Box
-dimensions and inspector options remain in their existing modules. Design,
-media, template and other catalogue controls are future reuse candidates, not
-migrated by this pilot. Ribbon catalogue specimens remain examples and do not
-become inspector dependencies.
+The Controls section contains 12 shared controls in grouped index and detail
+pages. It retains the original six specimens and adds border settings, font
+size and Appearance, background colour/gradient, preset number, image
+dimensions and focal position. The production inspector and specimens share
+the extracted BorderSettings, BackgroundSelection, FontSizeAppearanceSetting,
+ImageDimensionsSetting, FocalPositionSetting and PresetNumberSetting controls.
+Colour-picker ownership includes palette selection, Default/Hover values,
+swatch geometry, popover positioning and dismissal. Link contrast remains with
+the Link adapter. Each control records consumers, ownership, supported states
+and compatibility in a collapsed disclosure with links to its real block
+consumers. Examples use temporary component state and provide Reset Example and
+disabled states where supported. Legacy recognised hash links continue to
+resolve to their matching control detail pages. Ribbon catalogue specimens
+remain examples and are not inspector dependencies.
 Ribbon icon usage in the inspector means examples in the Ribbon catalogue only;
 it is not an exhaustive inventory of use throughout ACM products.
 
@@ -164,12 +162,18 @@ specimen interactions, icon search/selection/provenance, and the combined
 Workspace with both panes expanded, resized and collapsed. Check keyboard
 navigation and focus, desktop/tablet/mobile widths, and verify narrow preview
 overflow stays inside the Workspace frame while the page itself remains usable.
-For Blocks and Controls, verify the Paragraph Block and Studio tabs, option
-ordering and resets, editable link sample, adjacent-paragraph preview, colour
-Default/Hover values, clear/reset, opaque unset swatches, focus and disabled
-states, popover Escape/outside dismissal and focus restoration. Check touch
-interaction and 200% zoom; the library adapts to narrow layouts without changing
-the production editor's documented workspace arrangement.
+For Blocks, visit all 28 entries and verify editing, selection, Preview, Reset
+Example, Undo and Redo. Check Block/Studio pane availability, conditional
+controls, retained legacy values, temporary document fields, nested selection,
+local media and the template Content projection. Verify unsupported gaps against
+the compatibility guide. For Controls, visit all 12 detail routes, exercise
+their values, disabled examples, conditional availability and reset actions,
+and check consumer links and recognised legacy hash redirects. Check palette
+popover Escape/outside dismissal and focus restoration. Use desktop, tablet and
+mobile widths, keyboard navigation and 200% zoom; library pages adapt without
+changing the production editor's documented workspace arrangement. Exact
+Gutenberg pane comparison remains unverified where the pinned source or capture
+is unavailable, as recorded in the compatibility guide.
 For Styles, check palette, typography, button and layout controls, inherited
 responsive values, property/section/global resets, and contained mobile preview
 scrolling. Check hover, focus and pinned guide references, exact source lines,

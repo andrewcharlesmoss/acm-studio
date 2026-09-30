@@ -12,6 +12,7 @@ type BoxLengthSettingProps = {
   corners?: boolean;
   allowPercent?: boolean;
   canReset?: boolean;
+  disabled?: boolean;
   min: number;
   max: number;
   onChange: (value: string | undefined) => void;
@@ -24,7 +25,7 @@ function lengthParts(value: string) {
   return { amount: match ? Number(match[1]) : 0, unit: match?.[2] ?? "px" };
 }
 
-function BoxLengthRow({ label, value, min, max, allowPercent, onChange }: { label: string; value: string; min: number; max: number; allowPercent: boolean; onChange: (value: string) => void }) {
+function BoxLengthRow({ label, value, min, max, allowPercent, onChange, disabled = false }: { label: string; value: string; min: number; max: number; allowPercent: boolean; onChange: (value: string) => void; disabled?: boolean }) {
   const { amount, unit } = lengthParts(value);
   const [customOpen, setCustomOpen] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
@@ -36,13 +37,13 @@ function BoxLengthRow({ label, value, min, max, allowPercent, onChange }: { labe
   }
   return <div className="box-length-row">
     <span className={`box-length-side is-${label.toLowerCase().replaceAll(" ", "-")}`} aria-hidden="true" />
-    <input aria-label={`${label} amount`} type="range" min={min} max={max} step="1" value={Math.max(min, Math.min(max, amount))} onChange={event => onChange(`${event.target.value}${unit}`)} />
-    <button type="button" className="box-length-custom-trigger" aria-label={`${label} custom value`} aria-expanded={customOpen} onClick={() => setCustomOpen(open => !open)}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button>
-    {customOpen ? <div className="box-length-custom"><input aria-label={`${label} value`} type="number" min={min} max={max} step="0.1" value={draft ?? amount} onChange={event => setDraft(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select aria-label={`${label} unit`} value={unit} onChange={event => { const nextAmount = draft === null ? amount : Number(draft); setDraft(null); if (Number.isFinite(nextAmount)) onChange(`${Math.max(min, Math.min(max, nextAmount))}${event.target.value}`); }}>{[...(!allowPercent && unit === "%" ? ["%"] : []), ...units.filter(option => allowPercent || option !== "%")].map(option => <option key={option} value={option}>{option}</option>)}</select></div> : null}
+    <input disabled={disabled} aria-label={`${label} amount`} type="range" min={min} max={max} step="1" value={Math.max(min, Math.min(max, amount))} onChange={event => onChange(`${event.target.value}${unit}`)} />
+    <button disabled={disabled} type="button" className="box-length-custom-trigger" aria-label={`${label} custom value`} aria-expanded={customOpen} onClick={() => setCustomOpen(open => !open)}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button>
+    {customOpen ? <div className="box-length-custom"><input disabled={disabled} aria-label={`${label} value`} type="number" min={min} max={max} step="0.1" value={draft ?? amount} onChange={event => setDraft(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select disabled={disabled} aria-label={`${label} unit`} value={unit} onChange={event => { const nextAmount = draft === null ? amount : Number(draft); setDraft(null); if (Number.isFinite(nextAmount)) onChange(`${Math.max(min, Math.min(max, nextAmount))}${event.target.value}`); }}>{[...(!allowPercent && unit === "%" ? ["%"] : []), ...units.filter(option => allowPercent || option !== "%")].map(option => <option key={option} value={option}>{option}</option>)}</select></div> : null}
   </div>;
 }
 
-export function BoxLengthSetting({ label, value, layout, corners = false, allowPercent = true, canReset = Boolean(value), min, max, onChange }: BoxLengthSettingProps) {
+export function BoxLengthSetting({ label, value, layout, corners = false, allowPercent = true, canReset = Boolean(value), disabled = false, min, max, onChange }: BoxLengthSettingProps) {
   const parts = expandBoxLengths(value);
   const split = layout !== "vertical" && Boolean(value && value.trim().split(/\s+/).length >= (layout === "axes" ? 3 : 2));
   const rows = split
@@ -66,8 +67,8 @@ export function BoxLengthSetting({ label, value, layout, corners = false, allowP
   }
 
   return <div className="box-length-setting">
-    <div className="box-length-heading"><span>{label}</span>{layout !== "vertical" ? <button type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} sides`} title={split ? `Link ${label.toLowerCase()} using the top${layout === "axes" ? " and right" : ""} value${layout === "axes" ? "s" : ""}` : `Edit ${label.toLowerCase()} separately`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={20} /></button> : null}</div>
-    <div className="box-length-rows">{rows.map(({ name, index }) => <BoxLengthRow key={name} label={name} value={parts[index]} min={min} max={max} allowPercent={allowPercent} onChange={next => update(index, next)} />)}</div>
-    {canReset ? <button type="button" className="paragraph-reset-button box-length-reset" onClick={() => onChange(undefined)}>Reset</button> : null}
+    <div className="box-length-heading"><span>{label}</span>{layout !== "vertical" ? <button disabled={disabled} type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} sides`} title={split ? `Link ${label.toLowerCase()} using the top${layout === "axes" ? " and right" : ""} value${layout === "axes" ? "s" : ""}` : `Edit ${label.toLowerCase()} separately`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={20} /></button> : null}</div>
+    <div className="box-length-rows">{rows.map(({ name, index }) => <BoxLengthRow key={name} label={name} value={parts[index]} min={min} max={max} allowPercent={allowPercent} disabled={disabled} onChange={next => update(index, next)} />)}</div>
+    {canReset ? <button disabled={disabled} type="button" className="paragraph-reset-button box-length-reset" onClick={() => onChange(undefined)}>Reset</button> : null}
   </div>;
 }

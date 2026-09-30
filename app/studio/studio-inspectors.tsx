@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { AcmIcon } from "@acm/icons/react";
-import type { ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphAppearance, ParagraphBackgroundGradient, ParagraphBorderStyle, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, SiteSectionRole, SpacerUnit, TextAlignment } from "../content/model";
-import { PARAGRAPH_BACKGROUND_GRADIENTS, fitTextEnabled, paragraphBackgroundGradientCss, paragraphLinkColourHasPoorContrast } from "../content/paragraph-styles";
+import type { ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle, PostDateFormat, ReadingTimePresentation, SiteSectionRole, SpacerUnit, TextAlignment } from "../content/model";
+import { fitTextEnabled, paragraphLinkColourHasPoorContrast } from "../content/paragraph-styles";
 import { formatDocumentDate } from "../content/document-metadata";
 import { contentWordCount, readingTimeMinutes } from "../content/reading-time";
 import type { LayoutMode } from "../content/model";
@@ -17,7 +16,6 @@ import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { InspectorToolsSection, StudioSourceBadge, type InspectorMenuOption, type InspectorToolOption } from "./inspector-tools-section";
 import { BoxLengthSetting } from "./box-length-setting";
-import { BorderColourControl } from "./border-colour-control";
 import { documentDisplaySource, type FieldUsage } from "./document-fields";
 import { createPasswordProtection } from "../content/password-protection";
 import { COLUMN_LAYOUT_PRESETS, setColumnCount, setColumnsLayout, setColumnWidth } from "../content/columns";
@@ -25,9 +23,14 @@ import { SPACER_SIZE_LIMIT, SPACER_UNITS } from "../content/spacer";
 import { safeTextLink } from "../content/rich-text";
 import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
 import { ColourPicker } from "./controls/colour-picker";
-import { CustomFontSizeSetting } from "./controls/custom-font-size-setting";
+import { BackgroundSelection } from "./controls/background-selection";
+import { BorderSettings } from "./controls/border-settings";
+import { FocalPositionSetting } from "./controls/focal-position-setting";
+import { FontSizeAppearanceSetting } from "./controls/font-size-appearance-setting";
+import { ImageDimensionsSetting } from "./controls/image-dimensions-setting";
+import { PresetNumberSetting } from "./controls/preset-number-setting";
 import { ParagraphLengthSetting } from "./controls/paragraph-length-setting";
-import { paragraphBlockDefinition, paragraphInspectorProfile } from "./blocks/paragraph/definition";
+import { capabilityProfileFor, hasScopedStyleControls, resetInspectorStyleFields, retainedLegacyStyleControls, scopedStyleSectionIds } from "./blocks/capability-profiles";
 
 function blockLabel(type: ContentBlock["type"]) {
   return type.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
@@ -619,14 +622,16 @@ export function BlockInspector({ block, canSetSticky = false, onChange, onColumn
   const tabPrefix = useId();
   const [selectedTab, setSelectedTab] = useState<{ blockId: string; blockType: ContentBlock["type"]; tab: "block" | "studio" } | null>(null);
   const selectedFontSizeModeKey = fontSizeModeKey(fontSizeModeScope, block);
-  const hasStudioOptions = ["paragraph", "field", "component", "section", "reading-time", "post-author", "post-date", "code", "embed", "spacer", "group", "columns", "social-icons"].includes(block.type);
-  const defaultTab: "block" | "studio" = block.type === "field" || block.type === "component" ? "studio" : "block";
+  const profile = capabilityProfileFor(block.type);
+  const blockStyle = hasLegacyStyle(block) ? block.style : block.visualStyle;
+  const retainedLegacyControls = retainedLegacyStyleControls(profile, blockStyle);
+  const hasBlockOptions = profile.controls.some(control => control.source === "gutenberg");
+  const hasStudioOptions = profile.controls.some(control => control.source === "studio") || retainedLegacyControls.length > 0;
+  const defaultTab = profile.defaultTab;
   const activeTab = selectedTab?.blockId === block.id && selectedTab.blockType === block.type ? selectedTab.tab : defaultTab;
   const blockInfo = blockCatalogue.find((item) => item.type === block.type);
-  const blockName = blockInfo?.label ?? blockLabel(block.type);
-  const blockDescription = block.type === "paragraph"
-    ? paragraphBlockDefinition.description
-    : blockInfo?.description ?? `Configure this ${blockName.toLowerCase()} block.`;
+  const blockName = blockInfo?.label ?? profile.label ?? blockLabel(block.type);
+  const blockDescription = blockInfo?.description ?? profile.description ?? `Configure this ${blockName.toLowerCase()} block.`;
   const alignedBlock = block.type === "heading" || block.type === "document-title" || block.type === "document-subtitle" || block.type === "cover-image" ? block : null;
   const alignment = alignedBlock?.align ?? null;
   const advanced = advancedFieldsForBlock(block);
@@ -646,20 +651,24 @@ export function BlockInspector({ block, canSetSticky = false, onChange, onColumn
       {block.type === "social-icons" ? <InspectorAccordionSection title="Spacing"><label><span>Gap</span><input type="number" min="0" max="120" value={block.horizontalGap === block.verticalGap ? block.horizontalGap ?? "" : ""} placeholder={block.horizontalGap === block.verticalGap ? "Default" : "Mixed"} onChange={event => { const gap = event.target.value === "" ? undefined : Math.max(0, Math.min(120, Number(event.target.value) || 0)); onChange({ ...block, horizontalGap: gap, verticalGap: gap }); }} /></label></InspectorAccordionSection> : null}
       {block.type === "divider" ? <DividerInspector block={block} onChange={onChange} /> : null}
       {block.type === "spacer" ? <><SpacerInspector block={block} onChange={onChange} /><SpacingAndAdvancedInspector block={block} onChange={onChange} advancedFields={advanced} /></> : null}
-      {block.type === "reading-time" ? <InspectorAccordionSection title="Alignment"><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : null}
       {block.type === "post-author" ? <InspectorAccordionSection title="Alignment"><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : null}
       {block.type === "post-date" ? <InspectorAccordionSection title="Post Date"><label><span>Format</span><select value={block.format ?? "long"} onChange={(event) => onChange({ ...block, format: event.target.value as PostDateFormat })}><option value="long">Long — 2 September 2026</option><option value="short">Short — 02/09/2026</option><option value="iso">ISO — 2026-09-02</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.isLink)} onChange={(event) => onChange({ ...block, isLink: event.target.checked })} /><span>Link to post</span></label><label><span>Alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><p className="setting-note">The value uses Publish date first, then the existing publication date.</p></InspectorAccordionSection> : null}
       {block.type === "section" ? <LayoutInspector block={block} onChange={onChange} heading="Section" note={`This section contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
       {block.type === "group" ? <LayoutInspector block={block} onChange={onChange} canSetSticky={canSetSticky} heading="Group" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : null}
       {block.type === "columns" ? <ColumnsInspector block={block} onChange={onChange} /> : null}
       {block.type === "column" ? <ColumnInspector block={block} onChange={onChange} onWidthChange={onColumnWidthChange} /> : null}
-      {["paragraph", "heading", "quote", "list", "table", "code", "button", "footnotes", "group", "section", "columns", "column", "document-title", "document-subtitle", "reading-time", "post-author", "post-date", "social-icons"].includes(block.type) ? <ParagraphInspector key={`${block.id}:${block.type}:block`} block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} scope="block" fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
+      {profile.sharedStyleInspector ? <ParagraphInspector key={`${block.id}:${block.type}:block`} block={block} onChange={onChange} scope="block" fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
       {advanced && block.type !== "embed" && block.type !== "spacer" && block.type !== "image" && block.type !== "divider" ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advanced} /> : null}
     </>
   );
   const studioSettings = (
     <>
       {block.type === "paragraph" ? <ParagraphInspector key={`${block.id}:paragraph:studio`} block={block} onChange={onChange} scope="studio" fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
+      {block.type === "paragraph" ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={{ anchor: false, className: false, additionalCss: true }} /> : null}
+      {block.type === "quote" || block.type === "group" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} /> : null}
+      {block.type === "document-subtitle" ? <InspectorAccordionSection title="Text"><label><span>Alignment</span><select value={block.align ?? "left"} onChange={event => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : null}
+      {block.type === "reading-time" ? <InspectorAccordionSection title="Alignment"><label><span>Alignment</span><select value={block.align ?? "left"} onChange={event => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : null}
+      {block.type !== "paragraph" && (hasScopedStyleControls(profile, "studio") || retainedLegacyControls.length > 0) ? <ParagraphInspector key={`${block.id}:${block.type}:studio`} block={block} onChange={onChange} scope="studio" fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
       {block.type === "field" ? <InspectorAccordionSection title="Field"><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>Control</span><select value={block.control} onChange={(event) => onChange({ ...block, control: event.target.value as "text" | "select" })}><option value="text">Text</option><option value="select">Select</option></select></label><label><span>Value</span><input value={block.value} onChange={(event) => onChange({ ...block, value: event.target.value })} /></label>{block.control === "select" ? <label><span>Options</span><input value={(block.options ?? []).join(", ")} onChange={(event) => onChange({ ...block, options: event.target.value.split(",").map((option) => option.trim()).filter(Boolean) })} placeholder="First, Second" /></label> : null}</InspectorAccordionSection> : null}
       {block.type === "component" ? <ComponentInspector block={block} onChange={onChange} /> : null}
       {block.type === "section" ? <InspectorAccordionSection title="Studio section"><label><span>Site role</span><select value={block.role ?? ""} onChange={(event) => onChange({ ...block, role: (event.target.value || undefined) as SiteSectionRole | undefined })}><option value="">None</option>{(["account", "setup", "scorecard", "leaderboard", "share", "hero", "hero-copy", "account-copy", "scorecard-heading", "scorecard-actions", "leaderboard-card", "leaderboard-score", "leaderboard-metrics", "metric", "footer", "footer-brand", "footer-links", "social-link"] as SiteSectionRole[]).map((role) => <option value={role} key={role}>{role}</option>)}</select></label>{block.source ? <><p className="setting-note">Source: {block.source.module} · {block.source.exportName} · {block.source.revision.slice(0, 8)}</p>{canOpenFiles ? <button className="choose-media-button" type="button" onClick={onOpenFiles}>Open source files</button> : null}</> : null}</InspectorAccordionSection> : null}
@@ -674,14 +683,17 @@ export function BlockInspector({ block, canSetSticky = false, onChange, onColumn
       {block.type === "embed" ? <InspectorAccordionSection title="Embed card"><label><span>Card title</span><input value={block.title} onChange={(event) => onChange({ ...block, title: event.target.value })} /></label><p className="setting-note">Studio displays safe resource cards instead of fetching provider embeds.</p></InspectorAccordionSection> : null}
     </>
   );
-  const tabs = [{ id: "block", label: "Block" }, { id: "studio", label: "Studio" }];
+  const tabs = [
+    ...(hasBlockOptions ? [{ id: "block", label: "Block" }] : []),
+    ...(hasStudioOptions ? [{ id: "studio", label: "Studio" }] : []),
+  ];
   function selectTab(tab: "block" | "studio") {
     setSelectedTab({ blockId: block.id, blockType: block.type, tab });
   }
   return <div className="block-inspector-settings">
     <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span><BlockLibraryIcon type={block.type} /></span><h2>{blockName}</h2></div><p className="setting-note">{blockDescription}</p></section></div>
     {hasStudioOptions ? <PaneTabs id={tabPrefix} label={`${blockName} settings`} tabs={tabs} active={activeTab} onChange={(tab) => selectTab(tab as "block" | "studio")} /> : null}
-    {hasStudioOptions ? <PaneTabPanel id={tabPrefix} tab="block" active={activeTab} className="block-inspector-tabpanel"><div className="inspector-sections">{blockSettings}</div></PaneTabPanel> : <div className="inspector-sections">{blockSettings}</div>}
+    {hasStudioOptions && hasBlockOptions ? <PaneTabPanel id={tabPrefix} tab="block" active={activeTab} className="block-inspector-tabpanel"><div className="inspector-sections">{blockSettings}</div></PaneTabPanel> : !hasStudioOptions && hasBlockOptions ? <div className="inspector-sections">{blockSettings}</div> : null}
     {hasStudioOptions ? <PaneTabPanel id={tabPrefix} tab="studio" active={activeTab} className="block-inspector-tabpanel"><div className="inspector-sections">{studioSettings}</div></PaneTabPanel> : null}
   </div>;
 }
@@ -692,7 +704,7 @@ type AdvancedFields = { anchor: boolean; className: boolean; additionalCss: bool
 // without a shared style wrapper do not expose generic Advanced fields.
 function advancedFieldsForBlock(block: ContentBlock): AdvancedFields | null {
   if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
-    return { anchor: true, className: true, additionalCss: block.type === "paragraph" };
+    return { anchor: true, className: true, additionalCss: false };
   }
   return null;
 }
@@ -771,13 +783,11 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block:
     </InspectorAccordionSection>
     <InspectorAccordionSection title="Styles"><label><span>Style</span><select value={block.imageStyle ?? "default"} onChange={(event) => onChange({ ...block, imageStyle: event.target.value as NonNullable<typeof block.imageStyle> })}><option value="default">Default</option><option value="rounded">Rounded</option></select></label></InspectorAccordionSection>
     <InspectorAccordionSection title="Dimensions">
-      <label><span>Aspect ratio</span><select value={ratio} onChange={(event) => onChange({ ...block, aspectRatio: event.target.value as typeof block.aspectRatio })}><option value="original">Original</option><option value="square">Square — 1:1</option><option value="portrait">Portrait — 3:4</option><option value="landscape">Landscape — 4:3</option><option value="wide">Wide — 16:9</option></select></label>
-      <label><span>Width (px)</span><input type="number" min="32" max="2400" value={block.displayWidth ?? ""} placeholder="Auto" onChange={(event) => onChange({ ...block, displayWidth: event.target.value ? Math.max(32, Math.min(2400, Number(event.target.value) || 32)) : undefined })} /></label>
-      <label><span>Height (px)</span><input type="number" min="32" max="2400" value={block.displayHeight ?? ""} placeholder="Auto" onChange={(event) => onChange({ ...block, displayHeight: event.target.value ? Math.max(32, Math.min(2400, Number(event.target.value) || 32)) : undefined })} /></label>
-      {ratio !== "original" ? <><label><span>Scale</span><select value={block.scale ?? "cover"} onChange={(event) => onChange({ ...block, scale: event.target.value as "cover" | "contain" })}><option value="cover">Cover</option><option value="contain">Contain</option></select></label><div className="inspector-two-column"><label><span>Focal X (%)</span><input type="number" min="0" max="100" value={block.focalX ?? 50} onChange={(event) => onChange({ ...block, focalX: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} /></label><label><span>Focal Y (%)</span><input type="number" min="0" max="100" value={block.focalY ?? 50} onChange={(event) => onChange({ ...block, focalY: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} /></label></div></> : null}
+      <ImageDimensionsSetting aspectRatio={ratio} displayWidth={block.displayWidth} displayHeight={block.displayHeight} scale={block.scale} onAspectRatioChange={aspectRatio => onChange({ ...block, aspectRatio })} onWidthChange={displayWidth => onChange({ ...block, displayWidth })} onHeightChange={displayHeight => onChange({ ...block, displayHeight })} onScaleChange={scale => onChange({ ...block, scale })} />
+      {ratio !== "original" ? <FocalPositionSetting x={block.focalX} y={block.focalY} onXChange={focalX => onChange({ ...block, focalX })} onYChange={focalY => onChange({ ...block, focalY })} /> : null}
       <ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateVisualStyle({ margin: value })} />
     </InspectorAccordionSection>
-    <InspectorAccordionSection title="Border & shadow"><ColourSetting label="Border colour" value={style.borderColor} onChange={(value) => updateVisualStyle({ borderColor: value })} /><label><span>Border style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateVisualStyle({ borderStyle: event.target.value as ParagraphBorderStyle })}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option></select></label><div className="inspector-two-column"><label><span>Border width</span><input value={style.borderWidth ?? ""} onChange={(event) => updateVisualStyle({ borderWidth: event.target.value })} placeholder="1px" /></label><label><span>Radius</span><input value={style.borderRadius ?? ""} onChange={(event) => updateVisualStyle({ borderRadius: event.target.value })} placeholder="0" /></label></div><label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateVisualStyle({ shadow: (event.target.value || undefined) as ParagraphStyle["shadow"] })}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label></InspectorAccordionSection>
+    <InspectorAccordionSection title="Border & shadow"><BorderSettings style={style} idPrefix={block.id} onChange={updateVisualStyle} /></InspectorAccordionSection>
     <InspectorAccordionSection title="Advanced"><label><span>Title attribute</span><input value={block.title ?? ""} onChange={(event) => onChange({ ...block, title: event.target.value || undefined })} /></label><label><span>HTML anchor</span><input value={style.anchor ?? ""} onChange={(event) => updateVisualStyle({ anchor: event.target.value })} placeholder="section-name" /></label><label><span>Additional CSS class(es)</span><input value={style.className ?? ""} onChange={(event) => updateVisualStyle({ className: event.target.value })} placeholder="custom-class" /></label></InspectorAccordionSection>
   </>;
 }
@@ -790,24 +800,16 @@ function CoverImageInspector({ block, onChange }: { block: Extract<ContentBlock,
     for (const key of Object.keys(next) as (keyof ParagraphStyle)[]) if (!next[key]) delete next[key];
     onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined });
   }
-  function updateBorderColour(value: string | undefined) {
-    updateVisualStyle({ borderColor: value, ...(value ? { borderStyle: style.borderStyle && style.borderStyle !== "none" ? style.borderStyle : "solid" } : {}) });
-  }
-  function updateBorderWidth(value: string) {
-    updateVisualStyle({ borderWidth: value || undefined, ...(value ? { borderStyle: style.borderStyle && style.borderStyle !== "none" ? style.borderStyle : "solid" } : {}) });
-  }
   return <>
     <InspectorAccordionSection title="Link settings">
       <label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.isLink)} onChange={(event) => onChange({ ...block, isLink: event.target.checked })} /><span>Link to post</span></label>
       {block.isLink ? <><label className="checkbox-setting"><input type="checkbox" checked={block.linkTarget === "_blank"} onChange={(event) => onChange({ ...block, linkTarget: event.target.checked ? "_blank" : "_self" })} /><span>Open in new tab</span></label><label><span>Link rel</span><input value={block.rel ?? ""} onChange={(event) => onChange({ ...block, rel: event.target.value || undefined })} placeholder="nofollow sponsored" /></label></> : null}
     </InspectorAccordionSection>
     <InspectorAccordionSection title="Dimensions">
-      <label><span>Aspect ratio</span><select value={ratio} onChange={(event) => onChange({ ...block, aspectRatio: event.target.value as typeof block.aspectRatio })}><option value="original">Original</option><option value="square">Square — 1:1</option><option value="portrait">Portrait — 3:4</option><option value="landscape">Landscape — 4:3</option><option value="wide">Wide — 16:9</option></select></label>
-      <label><span>Width (px)</span><input type="number" min="32" max="2400" value={block.displayWidth ?? ""} placeholder="Auto" onChange={(event) => onChange({ ...block, displayWidth: event.target.value ? Math.max(32, Math.min(2400, Number(event.target.value) || 32)) : undefined })} /></label>
-      <label><span>Height (px)</span><input type="number" min="32" max="2400" value={block.displayHeight ?? ""} placeholder="Auto" onChange={(event) => onChange({ ...block, displayHeight: event.target.value ? Math.max(32, Math.min(2400, Number(event.target.value) || 32)) : undefined })} /></label>
-      {ratio !== "original" ? <><label><span>Scale</span><select value={block.scale ?? "cover"} onChange={(event) => onChange({ ...block, scale: event.target.value as "cover" | "contain" })}><option value="cover">Cover</option><option value="contain">Contain</option></select></label><div className="inspector-two-column"><label><span>Focal X (%)</span><input type="number" min="0" max="100" value={block.focalX ?? 50} onChange={(event) => onChange({ ...block, focalX: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} /></label><label><span>Focal Y (%)</span><input type="number" min="0" max="100" value={block.focalY ?? 50} onChange={(event) => onChange({ ...block, focalY: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} /></label></div></> : null}
+      <ImageDimensionsSetting aspectRatio={ratio} displayWidth={block.displayWidth} displayHeight={block.displayHeight} scale={block.scale} onAspectRatioChange={aspectRatio => onChange({ ...block, aspectRatio })} onWidthChange={displayWidth => onChange({ ...block, displayWidth })} onHeightChange={displayHeight => onChange({ ...block, displayHeight })} onScaleChange={scale => onChange({ ...block, scale })} />
+      {ratio !== "original" ? <FocalPositionSetting x={block.focalX} y={block.focalY} onXChange={focalX => onChange({ ...block, focalX })} onYChange={focalY => onChange({ ...block, focalY })} /> : null}
     </InspectorAccordionSection>
-    <InspectorAccordionSection title="Border & shadow"><ColourSetting label="Border colour" value={style.borderColor} onChange={updateBorderColour} /><label><span>Border style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateVisualStyle({ borderStyle: event.target.value as ParagraphBorderStyle })}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label><div className="inspector-two-column"><label><span>Border width</span><input value={style.borderWidth ?? ""} onChange={(event) => updateBorderWidth(event.target.value)} placeholder="1px" /></label><label><span>Radius</span><input value={style.borderRadius ?? ""} onChange={(event) => updateVisualStyle({ borderRadius: event.target.value })} placeholder="0" /></label></div><label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateVisualStyle({ shadow: (event.target.value || undefined) as ParagraphStyle["shadow"] })}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label></InspectorAccordionSection>
+    <InspectorAccordionSection title="Border & shadow"><BorderSettings style={style} idPrefix={block.id} onChange={updateVisualStyle} /></InspectorAccordionSection>
   </>;
 }
 
@@ -934,12 +936,6 @@ function ColumnInspector({ block, onChange, onWidthChange }: { block: ColumnBloc
   </InspectorAccordionSection>;
 }
 
-function PresetNumberSetting({ label, value, presets, min, max, onChange }: { label: string; value: number | undefined; presets: readonly number[]; min: number; max: number; onChange: (value: number | undefined) => void }) {
-  const isPreset = value !== undefined && presets.includes(value);
-  const customValue = () => { for (let candidate = min; candidate <= max; candidate += 1) if (!presets.includes(candidate)) return candidate; return min; };
-  return <label><span>{label}</span><select value={value === undefined ? "" : isPreset ? String(value) : "custom"} onChange={(event) => { if (event.target.value === "") onChange(undefined); else if (event.target.value === "custom") onChange(value !== undefined && !isPreset ? value : customValue()); else onChange(Number(event.target.value)); }}><option value="">Default</option>{presets.map((preset) => <option value={preset} key={preset}>{preset}px</option>)}<option value="custom">Custom</option></select>{value !== undefined && !isPreset ? <input type="number" min={min} max={max} value={value} onChange={(event) => onChange(Math.min(max, Math.max(min, Number(event.target.value) || min)))} aria-label={`${label} custom value in pixels`} /> : null}</label>;
-}
-
 function ComponentInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "component" }>; onChange: (block: ContentBlock) => void }) {
   const data = block.data ?? {};
   const update = (key: string, value: string) => onChange({ ...block, data: { ...data, [key]: value } });
@@ -949,45 +945,16 @@ function ComponentInspector({ block, onChange }: { block: Extract<ContentBlock, 
 
 type StyledBlock = ContentBlock;
 
-type InspectorControlDefaults = {
-  typography?: readonly string[];
-  dimensions?: readonly string[];
-  border?: readonly string[];
-  elements?: readonly string[];
-};
-
-// Core blocks declare these defaults through __experimentalDefaultControls.
-// ACM-only metadata blocks keep Studio's existing starting controls.
-const gutenbergInspectorDefaults: Partial<Record<ContentBlock["type"], InspectorControlDefaults>> = {
-  paragraph: paragraphInspectorProfile.defaults,
-  heading: { typography: ["colour", "size"] },
-  quote: { typography: ["colour", "size"], border: ["border", "radius"] },
-  list: { typography: ["colour", "size"] },
-  table: { typography: ["colour", "size"], border: ["border"] },
-  code: { typography: ["colour", "size"], border: ["border"] },
-  button: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
-  footnotes: { typography: ["colour", "size"], elements: ["link-colour"] },
-  "document-title": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] },
-  "post-date": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] },
-  "social-icons": { dimensions: ["margin"], border: ["border", "radius"] },
-  group: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
-  section: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
-  columns: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
-  column: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
-};
-
-const studioInspectorDefaults: InspectorControlDefaults = {
-  typography: ["colour", "size", "appearance"],
-};
-
 function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { type: "paragraph" | "columns" | "column" }> {
   return block.type === "paragraph" || block.type === "columns" || block.type === "column";
 }
 
-function ParagraphInspector({ block, onChange, onOpenBackgroundMedia, scope = "block", fontSizeViewMode, onFontSizeViewModeChange }: { block: StyledBlock; onChange: (block: ContentBlock) => void; onOpenBackgroundMedia?: () => void; scope?: "block" | "studio"; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void }) {
+function ParagraphInspector({ block, onChange, scope = "block", fontSizeViewMode, onFontSizeViewModeChange }: { block: StyledBlock; onChange: (block: ContentBlock) => void; scope?: "block" | "studio"; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void }) {
   const style = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
-  const socialIconsOnly = block.type === "social-icons";
-  const defaults = gutenbergInspectorDefaults[block.type] ?? studioInspectorDefaults;
+  const profile = capabilityProfileFor(block.type);
+  const styleControls = [...profile.controls, ...retainedLegacyStyleControls(profile, style)].filter(control => control.fields.length > 0);
+  const optionsFor = (section: "typography" | "dimensions" | "border" | "elements"): InspectorToolOption[] => styleControls.filter(control => control.section === section).map(({ id, label, source }) => ({ id, label, source }));
+  const defaults = profile.defaults;
   const defaultTypography = new Set(defaults.typography ?? []);
   const defaultDimensions = new Set(defaults.dimensions ?? []);
   const defaultBorder = new Set(defaults.border ?? []);
@@ -999,38 +966,21 @@ function ParagraphInspector({ block, onChange, onOpenBackgroundMedia, scope = "b
   const activeBackgroundMode = style.backgroundGradient ? "gradient" : backgroundMode;
   const paragraphSpecificOptions = block.type === "paragraph";
   const studioOnly = scope === "studio" && paragraphSpecificOptions;
-  const paragraphOptions = (section: typeof paragraphInspectorProfile.controls[number]["section"]): InspectorToolOption[] => paragraphInspectorProfile.controls.filter(option => option.section === section).map(({ id, label: optionLabel, source }) => ({ id, label: optionLabel, source }));
-  const typographyOptions: InspectorToolOption[] = paragraphSpecificOptions ? paragraphOptions("typography") : socialIconsOnly ? [
-    { id: "colour", label: "Colour" }, { id: "size", label: "Size" },
-  ] : [
-    { id: "colour", label: "Colour" }, { id: "size", label: "Size" },
-    { id: "family", label: "Font family" }, { id: "appearance", label: "Appearance" },
-    { id: "line-height", label: "Line height" }, { id: "letter-spacing", label: "Letter spacing" },
-    ...(block.type === "group" ? [{ id: "columns", label: "Columns" }] : []),
-    { id: "decoration", label: "Decoration" },
-    ...(["heading", "button", "footnotes"].includes(block.type) ? [{ id: "orientation", label: "Orientation" }] : []),
-    { id: "letter-case", label: "Letter case" },
-    ...(block.type === "heading" ? [{ id: "fit-text", label: "Fit text" }, { id: "text-shadow", label: "Text shadow" }] : []),
-  ];
-  const dimensionOptions: InspectorToolOption[] = paragraphSpecificOptions ? paragraphOptions("dimensions") : [
-    { id: "padding", label: "Padding" },
-    ...(!["button", "column"].includes(block.type) ? [{ id: "margin", label: "Margin" }] : []),
-    ...(["quote", "group", "section"].includes(block.type) || style.minHeight ? [{ id: "min-height", label: "Minimum height", ...(["quote", "group", "section"].includes(block.type) ? {} : { source: "studio" as const }) }] : []),
-    ...(["group", "section"].includes(block.type) || style.minWidth ? [{ id: "min-width", label: "Minimum width", ...(["group", "section"].includes(block.type) ? {} : { source: "studio" as const }) }] : []),
-  ];
-  const coreBlocksWithShadow = ["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"];
-  const borderOptions: InspectorToolOption[] = paragraphSpecificOptions ? paragraphOptions("border") : [{ id: "border", label: "Border" }, ...(block.type !== "table" ? [{ id: "radius", label: "Radius" }, ...((coreBlocksWithShadow.includes(block.type) || style.shadow) ? [{ id: "shadow", label: "Shadow", ...(!coreBlocksWithShadow.includes(block.type) ? { source: "studio" as const } : {}) }] : [])] : [])];
-  const elementOptions: InspectorToolOption[] = paragraphSpecificOptions ? paragraphOptions("elements") : ["paragraph", "heading", "quote", "list", "footnotes", "group", "columns", "column", "document-title", "post-author", "post-date"].includes(block.type) ? [{ id: "link-colour", label: "Link colour" }] : [];
+  const visibleSource = scope === "studio" ? "studio" : "gutenberg";
+  const typographyOptions = optionsFor("typography");
+  const dimensionOptions = optionsFor("dimensions");
+  const borderOptions = optionsFor("border");
+  const elementOptions = optionsFor("elements");
   const marginLayout = ["code", "group", "columns"].includes(block.type) ? "vertical" as const : "axes" as const;
   const [typographyUserVisible, setTypographyVisible] = useState(() => new Set<string>());
   const [dimensionsUserVisible, setDimensionsVisible] = useState(() => new Set<string>());
   const [borderUserVisible, setBorderVisible] = useState(() => new Set<string>());
   const [elementsUserVisible, setElementsVisible] = useState(() => new Set<string>());
-  const scopedTypographyOptions = studioOnly ? typographyOptions.filter(option => option.source === "studio") : typographyOptions.filter(option => option.source !== "studio");
+  const scopedTypographyOptions = typographyOptions.filter(option => (option.source ?? "gutenberg") === visibleSource);
   const scopedTypographyIds = new Set(scopedTypographyOptions.map(option => option.id));
-  const scopedDimensionOptions = studioOnly ? dimensionOptions.filter(option => option.source === "studio") : dimensionOptions.filter(option => option.source !== "studio");
+  const scopedDimensionOptions = dimensionOptions.filter(option => (option.source ?? "gutenberg") === visibleSource);
   const scopedDimensionIds = new Set(scopedDimensionOptions.map(option => option.id));
-  const scopedBorderOptions = studioOnly ? borderOptions.filter(option => option.source === "studio") : borderOptions.filter(option => option.source !== "studio");
+  const scopedBorderOptions = borderOptions.filter(option => (option.source ?? "gutenberg") === visibleSource);
   const scopedBorderIds = new Set(scopedBorderOptions.map(option => option.id));
   const typographyVisible = new Set([...(studioOnly ? [] : defaultTypography), ...typographyUserVisible, ...[
     style.textColor && "colour", (style.fontSize || style.fontSizeCustom) && "size", style.appearance && "appearance", style.fontFamily && "family", style.textShadow && "text-shadow",
@@ -1042,7 +992,9 @@ function ParagraphInspector({ block, onChange, onOpenBackgroundMedia, scope = "b
     (style.borderStyle || style.borderColor || style.borderWidth) && "border",
     style.borderRadius && "radius", style.shadow && "shadow",
   ].filter((value): value is string => Boolean(value) && scopedBorderIds.has(value as string))]);
-  const elementsVisible = new Set([...defaultElements, ...elementsUserVisible, ...[style.linkColor && "link-colour", style.linkHoverColor && "link-colour"].filter((value): value is string => Boolean(value))]);
+  const scopedElementOptions = elementOptions.filter(option => (option.source ?? "gutenberg") === visibleSource);
+  const scopedElementIds = new Set(scopedElementOptions.map(option => option.id));
+  const elementsVisible = new Set([...defaultElements, ...elementsUserVisible, ...[style.linkColor && "link-colour", style.linkHoverColor && "link-colour"].filter((value): value is string => Boolean(value) && scopedElementIds.has(value as string))]);
   const dropCapDisabled = block.type === "paragraph" && (block.align === "centre" || block.align === "right");
   const optionalTypographyOptions = scopedTypographyOptions.filter(option => !defaultTypography.has(option.id));
   const paragraphHasExplicitFontSize = paragraphSpecificOptions && Boolean(style.fontSize || style.fontSizeCustom);
@@ -1055,23 +1007,15 @@ function ParagraphInspector({ block, onChange, onOpenBackgroundMedia, scope = "b
   const typographyMenuOptions = optionalTypographyOptions;
   const optionalDimensionOptions = scopedDimensionOptions.filter(option => !defaultDimensions.has(option.id));
   const optionalBorderOptions = scopedBorderOptions.filter(option => !defaultBorder.has(option.id));
-  const optionalElementOptions = elementOptions.filter(option => !defaultElements.has(option.id));
-  const toolFields: Record<string, (keyof ParagraphStyle)[]> = {
-    colour: ["textColor"], family: ["fontFamily"], size: ["fontSize", "fontSizeCustom"], appearance: ["appearance"], "text-shadow": ["textShadow"],
-    "line-height": ["lineHeight"], "letter-spacing": ["letterSpacing"], "line-indent": ["textIndent"], columns: ["textColumns"], decoration: ["textDecoration"],
-    "letter-case": ["textTransform"], padding: ["padding"], margin: ["margin"], "min-height": ["minHeight"], "min-width": ["minWidth"],
-    "drop-cap": ["dropCap"], "fit-text": ["fitText"], orientation: ["orientation"],
-    border: ["borderColor", "borderStyle", "borderWidth"], "border-colour": ["borderColor"], "border-style": ["borderStyle"], "border-width": ["borderWidth"], radius: ["borderRadius"], shadow: ["shadow"],
-    "link-colour": ["linkColor", "linkHoverColor"],
-  };
-  if (paragraphSpecificOptions) for (const option of paragraphInspectorProfile.controls) toolFields[option.id] = [...option.fields];
+  const optionalElementOptions = scopedElementOptions.filter(option => !defaultElements.has(option.id));
+  const backgroundControl = profile.controls.find(control => control.id === "background");
+  const showBackground = backgroundControl?.source === visibleSource;
   function writeStyle(nextStyle: ParagraphStyle) {
     const updatedStyle = Object.keys(nextStyle).length ? nextStyle : undefined;
     onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
   }
   function clearTools(ids: Iterable<string>) {
-    const nextStyle = { ...style };
-    for (const id of ids) for (const field of toolFields[id] ?? []) delete nextStyle[field];
+    const nextStyle = resetInspectorStyleFields(style, ids, styleControls);
     writeStyle(nextStyle);
   }
   function toggleTool(id: string, visible: Set<string>, setVisible: (value: Set<string>) => void) {
@@ -1111,34 +1055,6 @@ function ParagraphInspector({ block, onChange, onOpenBackgroundMedia, scope = "b
     else delete nextStyle.backgroundGradient;
     writeStyle(nextStyle);
   }
-  function updateBorderWidth(value: string | undefined) {
-    const nextStyle = { ...style };
-    if (value) {
-      nextStyle.borderWidth = value;
-      if (!nextStyle.borderStyle || nextStyle.borderStyle === "none") nextStyle.borderStyle = "solid";
-    } else delete nextStyle.borderWidth;
-    writeStyle(nextStyle);
-  }
-  function updateBorderColour(value: string | undefined) {
-    const nextStyle = { ...style };
-    if (value) {
-      nextStyle.borderColor = value;
-      if (!nextStyle.borderStyle || nextStyle.borderStyle === "none") nextStyle.borderStyle = "solid";
-    } else delete nextStyle.borderColor;
-    writeStyle(nextStyle);
-  }
-  const fontSizes: { value: ParagraphFontSize; label: string; accessibleName: string }[] = [
-    { value: "small", label: "S", accessibleName: "Small" },
-    { value: "medium", label: "M", accessibleName: "Medium" },
-    { value: "large", label: "L", accessibleName: "Large" },
-    { value: "x-large", label: "XL", accessibleName: paragraphSpecificOptions ? "Larger" : "Extra large" },
-    { value: "xx-large", label: "XXL", accessibleName: paragraphSpecificOptions ? "XX-Large" : "Extra extra large" },
-  ];
-  const appearanceWeights = [
-    ["thin", "Thin"], ["extra-light", "Extra light"], ["light", "Light"], ["regular", "Regular"],
-    ["medium", "Medium"], ["semi-bold", "Semi bold"], ["bold", "Bold"],
-    ["extra-bold", "Extra bold"], ["black", "Black"],
-  ] as const;
   if (studioOnly) return <>
     <InspectorToolsSection title="Typography" options={typographyMenuOptions} visible={typographyVisible} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
       {typographyVisible.has("family") ? <label><span>Font family<StudioSourceBadge /></span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
@@ -1153,12 +1069,11 @@ function ParagraphInspector({ block, onChange, onOpenBackgroundMedia, scope = "b
       {borderVisible.has("shadow") ? <label><span>Shadow<StudioSourceBadge /></span><select value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
     </InspectorToolsSection> : null}
   </>;
-  return <>
-    <InspectorToolsSection title="Typography" options={typographyMenuOptions} visible={typographyVisible} canReset={optionalTypographyOptions.some(option => typographyVisible.has(option.id))} menuOptions={paragraphMenuOptions} onMenuOptionSelect={id => { if (id === "reset-size") updateFontSize(undefined, "presets"); }} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
+  const sharedStyleSectionContent: Record<string, ReactNode> = {
+    typography: <InspectorToolsSection title="Typography" options={typographyMenuOptions} visible={typographyVisible} canReset={optionalTypographyOptions.some(option => typographyVisible.has(option.id))} menuOptions={paragraphMenuOptions} onMenuOptionSelect={id => { if (id === "reset-size") updateFontSize(undefined, "presets"); }} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
       {typographyVisible.has("colour") ? <PaletteColourSetting label="Colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /> : null}
-      {typographyVisible.has("size") ? <fieldset className="paragraph-font-size-setting" disabled={fitTextEnabled(style)}><legend className="visually-hidden">Font size</legend><div className="paragraph-font-size-heading"><span>Font size</span><button type="button" className="paragraph-font-size-mode" aria-label={fontSizeMode === "custom" ? "Use font size presets" : "Use custom font size"} title={fontSizeMode === "custom" ? "Use font size presets" : "Use custom font size"} aria-pressed={fontSizeMode === "custom"} onClick={() => onFontSizeViewModeChange(fontSizeMode === "custom" ? "presets" : "custom")}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button></div>{fontSizeMode === "custom" ? <CustomFontSizeSetting key={`${block.id}-custom-size`} value={style.fontSizeCustom} onChange={value => updateFontSize(value, "custom")} /> : <div role="group" aria-label="Font size presets" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={style.fontSize === value} className={style.fontSize === value ? "is-active" : ""} onClick={() => updateFontSize(style.fontSize === value ? undefined : value, "presets")}>{label}</button>)}</div>}</fieldset> : null}
+      {(typographyVisible.has("size") || typographyVisible.has("appearance")) ? <FontSizeAppearanceSetting size={style.fontSize} customSize={style.fontSizeCustom} appearance={style.appearance} mode={fontSizeMode} onModeChange={onFontSizeViewModeChange} onSizeChange={value => updateFontSize(value, "presets")} onCustomSizeChange={value => updateFontSize(value, "custom")} onAppearanceChange={value => updateStyle("appearance", value)} paragraphLabels={paragraphSpecificOptions} showSize={typographyVisible.has("size")} showAppearance={typographyVisible.has("appearance")} disabled={fitTextEnabled(style)} /> : null}
       {typographyVisible.has("family") ? <label><span>Font family{block.type === "paragraph" ? <StudioSourceBadge /> : null}</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
-      {typographyVisible.has("appearance") ? <label><span>Appearance</span><select value={style.appearance ?? ""} onChange={(event) => updateStyle("appearance", (event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option>{appearanceWeights.map(([value, label]) => <option key={value} value={value}>{label}</option>)}{appearanceWeights.map(([value, label]) => <option key={`${value}-italic`} value={value === "regular" ? "italic" : `${value}-italic`}>{label} italic</option>)}</select></label> : null}
       {typographyVisible.has("line-height") ? <label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label> : null}
       {typographyVisible.has("letter-spacing") ? <label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label> : null}
       {typographyVisible.has("line-indent") ? <ParagraphLengthSetting key={`${block.id}-indent`} label="Line indent" value={style.textIndent} min={-100} max={200} onChange={(value) => updateStyle("textIndent", value)} /> : null}
@@ -1169,39 +1084,58 @@ function ParagraphInspector({ block, onChange, onOpenBackgroundMedia, scope = "b
       {typographyVisible.has("drop-cap") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.dropCap)} disabled={dropCapDisabled} onChange={event => updateStyle("dropCap", event.target.checked || undefined)} /><span>Drop cap{dropCapDisabled ? <small className="inspector-setting-help">Not available for aligned text.</small> : null}</span></label> : null}
       {typographyVisible.has("fit-text") ? <label className="checkbox-setting"><input type="checkbox" checked={Boolean(style.fitText)} onChange={event => updateFitText(event.target.checked)} /><span>Fit text{style.fitText && style.orientation === "vertical-rl" ? " (paused for vertical text)" : ""}</span></label> : null}
       {typographyVisible.has("text-shadow") ? <label><span>Text shadow{block.type === "paragraph" ? <StudioSourceBadge /> : null}</span><select value={style.textShadow ?? ""} onChange={event => updateStyle("textShadow", (event.target.value || undefined) as ParagraphStyle["textShadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
-    </InspectorToolsSection>
-    <InspectorAccordionSection className="inspector-panel" title="Background">
-      <ParagraphBackgroundControl mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} onModeChange={mode => { setBackgroundMode(mode); if (mode === "colour" && style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
+    </InspectorToolsSection>,
+    background: showBackground ? <InspectorAccordionSection className="inspector-panel" title="Background">
+      <BackgroundSelection mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} onModeChange={mode => { setBackgroundMode(mode); if (mode === "colour" && style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
-      {["quote", "group"].includes(block.type) ? <div className="paragraph-background-image-controls">
-        {onOpenBackgroundMedia ? <button type="button" className="choose-media-button" onClick={onOpenBackgroundMedia}>{style.backgroundImageMediaId ? "Replace background image" : "Choose background image"}</button> : null}
-        {style.backgroundImageMediaId ? <>
-          <button type="button" className="paragraph-reset-button" onClick={() => updateStyle("backgroundImageMediaId", undefined)}>Remove background image</button>
-          <label><span>Image size</span><select value={style.backgroundSize ?? "cover"} onChange={event => updateStyle("backgroundSize", event.target.value as ParagraphStyle["backgroundSize"])}><option value="cover">Cover</option><option value="contain">Contain</option><option value="fixed">Fixed size</option></select></label>
-          {style.backgroundSize === "fixed" ? <label><span>Image width ({style.backgroundFixedSize ?? 200}px)</span><input aria-label="Background image width" type="range" min="50" max="2000" step="10" value={style.backgroundFixedSize ?? 200} onChange={event => updateStyle("backgroundFixedSize", Number(event.target.value))} /></label> : null}
-          <label className="checkbox-setting"><input type="checkbox" checked={style.backgroundRepeat ? style.backgroundRepeat === "repeat" : style.backgroundSize === "fixed"} onChange={event => updateStyle("backgroundRepeat", event.target.checked ? "repeat" : "no-repeat")} /><span>Repeat background image</span></label>
-          <label><span>Horizontal focal point ({style.backgroundPositionX ?? 50}%)</span><input aria-label="Background image horizontal focal point" type="range" min="0" max="100" value={style.backgroundPositionX ?? 50} onChange={event => updateStyle("backgroundPositionX", Number(event.target.value))} /></label>
-          <label><span>Vertical focal point ({style.backgroundPositionY ?? 50}%)</span><input aria-label="Background image vertical focal point" type="range" min="0" max="100" value={style.backgroundPositionY ?? 50} onChange={event => updateStyle("backgroundPositionY", Number(event.target.value))} /></label>
-        </> : null}
-      </div> : null}
-    </InspectorAccordionSection>
-    <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
+    </InspectorAccordionSection> : null,
+    dimensions: <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
       {dimensionsVisible.has("padding") ? <BoxLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding} layout="axes" min={0} max={100} onChange={(value) => updateStyle("padding", value)} /> : null}
       {dimensionsVisible.has("margin") ? <BoxLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} layout={marginLayout} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
       {dimensionsVisible.has("min-height") ? <ParagraphLengthSetting key={`${block.id}-min-height`} label="Minimum height" value={style.minHeight} min={0} max={4000} onChange={(value) => updateStyle("minHeight", value)} /> : null}
       {dimensionsVisible.has("min-width") ? <ParagraphLengthSetting key={`${block.id}-min-width`} label="Minimum width" value={style.minWidth} min={0} max={4000} onChange={(value) => updateStyle("minWidth", value)} /> : null}
-    </InspectorToolsSection>
-    <InspectorToolsSection title="Border" options={optionalBorderOptions} visible={borderVisible} canReset={Boolean(borderVisible.size || (!paragraphSpecificOptions && style.shadow))} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools([...borderVisible, ...(!paragraphSpecificOptions ? ["shadow"] : [])]); setBorderVisible(new Set()); }}>
-      {borderVisible.has("border") ? <div className="box-border-setting"><div className="box-border-appearance"><BorderColourControl value={style.borderColor} onChange={updateBorderColour} /><label><span>Border style</span><select value={style.borderStyle ?? "none"} onChange={(event) => updateStyle("borderStyle", event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label></div><BoxLengthSetting key={`${block.id}-border-width`} label="Width" value={style.borderWidth ?? (style.borderStyle && style.borderStyle !== "none" ? "1px" : undefined)} canReset={Boolean(style.borderWidth)} layout="all" allowPercent={false} min={0} max={20} onChange={updateBorderWidth} /></div> : null}
+    </InspectorToolsSection>,
+    border: <InspectorToolsSection title="Border" options={optionalBorderOptions} visible={borderVisible} canReset={Boolean(borderVisible.size || (!paragraphSpecificOptions && style.shadow))} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools([...borderVisible, ...(!paragraphSpecificOptions ? ["shadow"] : [])]); setBorderVisible(new Set()); }}>
+      {borderVisible.has("border") ? <BorderSettings style={style} idPrefix={block.id} includeRadius={false} includeShadow={false} onChange={changes => { const nextStyle = { ...style, ...changes }; for (const key of Object.keys(nextStyle) as (keyof ParagraphStyle)[]) if (!nextStyle[key]) delete nextStyle[key]; writeStyle(nextStyle); }} /> : null}
       {borderVisible.has("radius") ? <BoxLengthSetting key={`${block.id}-radius`} label="Radius" value={style.borderRadius} layout="all" corners min={0} max={100} onChange={value => updateStyle("borderRadius", value)} /> : null}
       {borderVisible.has("shadow") ? <label><span>Shadow</span><select value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
-    </InspectorToolsSection>
-    {elementOptions.length ? <InspectorToolsSection title="Elements" options={optionalElementOptions} visible={elementsVisible} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
+    </InspectorToolsSection>,
+    elements: elementOptions.length ? <InspectorToolsSection title="Elements" options={optionalElementOptions} visible={elementsVisible} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
       {elementsVisible.has("link-colour") ? block.type === "paragraph"
         ? <LinkColourSetting style={style} defaultValue={style.linkColor} hoverValue={style.linkHoverColor} onDefaultChange={value => updateStyle("linkColor", value)} onHoverChange={value => updateStyle("linkHoverColor", value)} />
         : <ColourSetting label="Link colour" value={style.linkColor} onChange={(value) => updateStyle("linkColor", value)} /> : null}
-    </InspectorToolsSection> : null}
-  </>;
+    </InspectorToolsSection> : null,
+  };
+  const orderedSharedStyleSections = scopedStyleSectionIds(profile, style, visibleSource)
+    .filter(sectionId => sectionId in sharedStyleSectionContent)
+    .map(sectionId => <Fragment key={sectionId}>{sharedStyleSectionContent[sectionId]}</Fragment>);
+  return <div className="inspector-sections">{orderedSharedStyleSections}</div>;
+}
+
+type ManagedBackgroundImageBlock = Extract<ContentBlock, { type: "quote" | "group" }>;
+
+function ManagedBackgroundImageInspector({ block, onChange, onOpenBackgroundMedia }: {
+  block: ManagedBackgroundImageBlock;
+  onChange: (block: ContentBlock) => void;
+  onOpenBackgroundMedia?: () => void;
+}) {
+  const style = block.visualStyle ?? {};
+  function updateStyle<K extends keyof ParagraphStyle>(field: K, value: ParagraphStyle[K] | undefined) {
+    const next = { ...style };
+    if (value === undefined || value === "") delete next[field];
+    else next[field] = value;
+    onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined });
+  }
+  return <InspectorAccordionSection title="Managed background image">
+    {onOpenBackgroundMedia ? <button type="button" className="choose-media-button" onClick={onOpenBackgroundMedia}>{style.backgroundImageMediaId ? "Replace background image" : "Choose background image"}</button> : null}
+    {style.backgroundImageMediaId ? <>
+      <button type="button" className="paragraph-reset-button" onClick={() => updateStyle("backgroundImageMediaId", undefined)}>Remove background image</button>
+      <label><span>Image size</span><select value={style.backgroundSize ?? "cover"} onChange={event => updateStyle("backgroundSize", event.target.value as ParagraphStyle["backgroundSize"])}><option value="cover">Cover</option><option value="contain">Contain</option><option value="fixed">Fixed size</option></select></label>
+      {style.backgroundSize === "fixed" ? <label><span>Image width ({style.backgroundFixedSize ?? 200}px)</span><input aria-label="Background image width" type="range" min="50" max="2000" step="10" value={style.backgroundFixedSize ?? 200} onChange={event => updateStyle("backgroundFixedSize", Number(event.target.value))} /></label> : null}
+      <label className="checkbox-setting"><input type="checkbox" checked={style.backgroundRepeat ? style.backgroundRepeat === "repeat" : style.backgroundSize === "fixed"} onChange={event => updateStyle("backgroundRepeat", event.target.checked ? "repeat" : "no-repeat")} /><span>Repeat background image</span></label>
+      <FocalPositionSetting x={style.backgroundPositionX} y={style.backgroundPositionY} onXChange={value => updateStyle("backgroundPositionX", value)} onYChange={value => updateStyle("backgroundPositionY", value)} presentation="range" label="Background image focal position" />
+    </> : <p className="setting-note">Choose a local image to set its crop, size and repeat behaviour.</p>}
+  </InspectorAccordionSection>;
 }
 
 
@@ -1235,25 +1169,4 @@ function PaletteColourSetting({ label, value, onChange, hoverValue, onHoverChang
   hoverWarning?: boolean;
 }) {
   return <ColourPicker label={label} value={value} onChange={onChange} hoverValue={hoverValue} onHoverChange={onHoverChange} warningStates={warningStates} descriptionId={warningDescriptionId} defaultWarning={defaultWarning} hoverWarning={hoverWarning} />;
-}
-
-function ParagraphBackgroundControl({ mode, colour, gradient, onModeChange, onColourChange, onGradientChange }: {
-  mode: "colour" | "gradient";
-  colour?: string;
-  gradient?: ParagraphBackgroundGradient;
-  onModeChange: (mode: "colour" | "gradient") => void;
-  onColourChange: (value: string | undefined) => void;
-  onGradientChange: (value: ParagraphBackgroundGradient) => void;
-}) {
-  return <div className="paragraph-background-control">
-    <ColourPicker label="Background colour" value={colour} onChange={onColourChange} clearLabel="Clear background colour" wrapperClassName="paragraph-background-picker" trigger={({ expanded, controls, onClick, close }) => <div className="paragraph-background-modes" role="group" aria-label="Background type">
-      <button type="button" aria-pressed={mode === "colour"} aria-expanded={expanded} aria-controls={controls} className={mode === "colour" ? "is-active" : ""} onClick={() => { onModeChange("colour"); onClick(); }}>
-        <span className={`paragraph-background-mode-swatch${colour ? " has-colour" : ""}`} aria-hidden="true" style={colour ? { backgroundColor: colour } : undefined} />Colour
-      </button>
-      <button type="button" aria-pressed={mode === "gradient"} className={mode === "gradient" ? "is-active" : ""} onClick={() => { onModeChange("gradient"); close(); }}>
-        <span className={`paragraph-background-mode-swatch${gradient ? " has-gradient" : ""}`} aria-hidden="true" style={gradient ? { backgroundImage: paragraphBackgroundGradientCss(gradient) } : undefined} />Gradient
-      </button>
-    </div>} />
-    {mode === "gradient" ? <div className="paragraph-gradient-options" role="group" aria-label="Background gradient">{(Object.entries(PARAGRAPH_BACKGROUND_GRADIENTS) as [ParagraphBackgroundGradient, string][]).map(([name]) => <button key={name} type="button" aria-label={`${name} gradient`} aria-pressed={gradient === name} className={gradient === name ? "is-active" : ""} style={{ backgroundImage: paragraphBackgroundGradientCss(name) }} onClick={() => onGradientChange(name)} />)}</div> : null}
-  </div>;
 }

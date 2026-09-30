@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { ParagraphBlockCatalogue } from "./paragraph-block-catalogue";
+import { BlockSpecimenCatalogue } from "../block-specimen-catalogue";
 import "../../catalogue-navigation.css";
 import "../catalogue.css";
-import "../../controls/catalogue.css";
 
-export const metadata: Metadata = { title: "Paragraph · Studio UI Library", description: "Inspect the Paragraph block definition, real inspector, dependencies and editing example." };
+export const metadata: Metadata = { title: "Paragraph · Studio UI Library", description: "Inspect the Paragraph block profile, production inspector, dependencies and isolated editing example." };
 
-export default function StudioUiParagraphBlockPage() { return <ParagraphBlockCatalogue />; }
+export default function StudioUiParagraphBlockPage() { return <BlockSpecimenCatalogue type="paragraph" />; }

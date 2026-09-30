@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { studioHistoryShortcut, handleStudioHistoryShortcut } from "../app/studio/studio-history-shortcuts.mjs";
 import { moveDesignLayer, reorderDesignLayers } from "../app/studio/design-layer-operations.mjs";
+import { blockCapabilityProfiles, capabilityProfileFor } from "../app/studio/blocks/capability-profiles.ts";
 import {
   addDocumentToWorkspace,
   commitHistory,
@@ -69,6 +70,7 @@ test("new table blocks start with an editable two-row grid", async () => {
 test("custom font size stays selected and updates continuously while its slider moves", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const customFontSize = await readFile(new URL("../app/studio/controls/custom-font-size-setting.tsx", import.meta.url), "utf8");
+  const fontSizeAppearance = await readFile(new URL("../app/studio/controls/font-size-appearance-setting.tsx", import.meta.url), "utf8");
   const templateSource = await readFile(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8");
   assert.match(source, /type FontSizeViewMode = "presets" \| "custom"/);
   assert.match(source, /function fontSizeModeKey\(scope: string, block: ContentBlock\) \{\s*return JSON\.stringify\(\[scope, block\.id, block\.type\]\)/);
@@ -84,7 +86,7 @@ test("custom font size stays selected and updates continuously while its slider 
   assert.match(templateSource, /const \[fontSizeViewModes, setFontSizeViewModes\] = useState<Record<string, "presets" \| "custom">>\(\{\}\)/);
   assert.match(templateSource, /fontSizeModeScope=\{`\$\{set\.id\}:\$\{target\.id\}`\} fontSizeViewModes=\{fontSizeViewModes\} onFontSizeViewModeChange=\{\(key, mode\) => setFontSizeViewModes\(current => \(\{ \.\.\.current, \[key\]: mode \}\)\)\}/);
   assert.match(source, /onFontSizeViewModeChange\(mode\)/);
-  assert.match(source, /onFontSizeViewModeChange\(fontSizeMode === "custom" \? "presets" : "custom"\)/);
+  assert.match(fontSizeAppearance, /onModeChange\(mode === "custom" \? "presets" : "custom"\)/);
   assert.match(customFontSize, /const \[sliderDraft, setSliderDraft\] = useState<string \| null>\(null\)/);
   assert.match(customFontSize, /const sliderDraggingRef = useRef\(false\)/);
   assert.match(customFontSize, /const sliderPointerIdRef = useRef<number \| null>\(null\)/);
@@ -108,41 +110,48 @@ test("custom font size stays selected and updates continuously while its slider 
 
 test("shared inspector control defaults follow each Gutenberg block declaration", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
-  const paragraphDefinition = await readFile(new URL("../app/studio/blocks/paragraph/definition.ts", import.meta.url), "utf8");
-  for (const declaration of [
-    'paragraph: paragraphInspectorProfile.defaults',
-    'heading: { typography: ["colour", "size"] }',
-    'quote: { typography: ["colour", "size"], border: ["border", "radius"] }',
-    'list: { typography: ["colour", "size"] }',
-    'table: { typography: ["colour", "size"], border: ["border"] }',
-    'code: { typography: ["colour", "size"], border: ["border"] }',
-    'button: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
-    'footnotes: { typography: ["colour", "size"], elements: ["link-colour"] }',
-    '"document-title": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] }',
-    '"post-date": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] }',
-    '"social-icons": { dimensions: ["margin"], border: ["border", "radius"] }',
-    'group: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
-    'section: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
-    'columns: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
-    'column: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }',
-  ]) assert.ok(source.includes(declaration), `Missing inspector default declaration: ${declaration}`);
-  assert.match(paragraphDefinition, /typography: \["colour", "size"\]/);
-  assert.match(source, /const typographyOptions: InspectorToolOption\[\] = paragraphSpecificOptions \? paragraphOptions\("typography"\)/);
-  assert.match(source, /const scopedTypographyOptions = studioOnly \? typographyOptions\.filter/);
+  const expectedDefaults = {
+    heading: { typography: ["colour", "size"] },
+    quote: { typography: ["colour", "size"], border: ["border", "radius"] },
+    list: { typography: ["colour", "size"] },
+    table: { typography: ["colour", "size"], border: ["border"] },
+    code: { typography: ["colour", "size"], border: ["border"] },
+    button: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+    footnotes: { typography: ["colour", "size"], elements: ["link-colour"] },
+    "document-title": { typography: ["colour", "size"], elements: ["link-colour"] },
+    "post-date": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] },
+    "social-icons": { dimensions: ["margin"], border: ["border", "radius"] },
+    group: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+    section: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+    columns: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+    column: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+  };
+  for (const [type, expected] of Object.entries(expectedDefaults)) {
+    const profile = blockCapabilityProfiles[type];
+    for (const [section, controls] of Object.entries(expected)) assert.deepEqual(profile.defaults[section], controls, `${type}:${section}`);
+  }
+  assert.deepEqual(capabilityProfileFor("paragraph").defaults.typography, ["colour", "size"]);
+  assert.match(source, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
   assert.match(source, /const optionalTypographyOptions = scopedTypographyOptions\.filter\(option => !defaultTypography\.has\(option\.id\)\)/);
   assert.match(source, /const optionalDimensionOptions = scopedDimensionOptions\.filter\(option => !defaultDimensions\.has\(option\.id\)\)/);
   assert.match(source, /const optionalBorderOptions = scopedBorderOptions\.filter\(option => !defaultBorder\.has\(option\.id\)\)/);
-  assert.match(source, /const optionalElementOptions = elementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
+  assert.match(source, /const optionalElementOptions = scopedElementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
 });
 
-test("Paragraph Advanced matches Gutenberg anchor, class and Additional CSS fields", async () => {
+test("Paragraph Advanced keeps HTML attributes in Block and Additional CSS in Studio", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const stylesheet = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const advancedFields = source.slice(source.indexOf("function advancedFieldsForBlock"), source.indexOf("function AdvancedFieldsInspector"));
   const advancedInspector = source.slice(source.indexOf("function AdvancedFieldsInspector"), source.indexOf("function ParagraphInspector"));
-  assert.match(advancedFields, /return \{ anchor: true, className: true, additionalCss: block\.type === "paragraph" \};/);
+  const inspectorStart = source.indexOf("export function BlockInspector");
+  const studioSettings = source.slice(source.indexOf("const studioSettings", inspectorStart), source.indexOf("const tabs =", inspectorStart));
+  const paragraph = capabilityProfileFor("paragraph");
+  assert.deepEqual(paragraph.controls.find(control => control.id === "advanced")?.fields, ["anchor", "className"]);
+  assert.equal(paragraph.controls.find(control => control.id === "additional-css")?.source, "studio");
+  assert.match(advancedFields, /return \{ anchor: true, className: true, additionalCss: false \};/);
   assert.match(advancedFields, /if \(\["paragraph", "heading", "quote"/);
-  assert.match(advancedInspector, /className=\{block\.type === "paragraph" \? "paragraph-advanced-fields" : undefined\}/);
+  assert.match(advancedInspector, /paragraph-advanced-fields/);
+  assert.match(studioSettings, /fields=\{\{ anchor: false, className: false, additionalCss: true \}\}/);
   assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: uppercase; \}/);
   assert.match(advancedInspector, /fields\.className \? <div className="advanced-field"><label htmlFor=\{`\$\{descriptionPrefix\}-class-name`\}><span>Additional CSS class\(es\)<\/span><\/label><input id=\{`\$\{descriptionPrefix\}-class-name`\} aria-describedby=\{`\$\{descriptionPrefix\}-class-name-help`\} value=\{style\.className \?\? ""\}/);
   assert.match(advancedInspector, /fields\.additionalCss \? <div className="advanced-field"><label htmlFor=\{`\$\{descriptionPrefix\}-additional-css`\}><span>Additional CSS<\/span><\/label><textarea id=\{`\$\{descriptionPrefix\}-additional-css`\} aria-describedby=/);
@@ -159,37 +168,33 @@ test("Paragraph Advanced matches Gutenberg anchor, class and Additional CSS fiel
 });
 
 test("minimum dimension controls match mapped Gutenberg block support", async () => {
-  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
-  assert.match(source, /\["quote", "group", "section"\]\.includes\(block\.type\) \|\| style\.minHeight/);
-  assert.match(source, /\["group", "section"\]\.includes\(block\.type\) \|\| style\.minWidth/);
+  for (const type of ["quote", "group", "section"]) assert.ok(capabilityProfileFor(type).controls.some(control => control.fields.includes("minHeight")), `${type}:minHeight`);
+  for (const type of ["group", "section"]) assert.ok(capabilityProfileFor(type).controls.some(control => control.fields.includes("minWidth")), `${type}:minWidth`);
+  assert.ok(!capabilityProfileFor("heading").controls.some(control => control.fields.includes("minHeight")));
 });
 
 test("shadow controls match mapped Gutenberg block support", async () => {
-  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
-  assert.match(source, /const coreBlocksWithShadow = \["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"\]/);
-  const paragraphDefinition = await readFile(new URL("../app/studio/blocks/paragraph/definition.ts", import.meta.url), "utf8");
-  assert.match(paragraphDefinition, /id: "text-shadow", label: "Text shadow", source: "studio"/);
-  assert.match(source, /block\.type === "heading" \? \[\{ id: "fit-text"/);
+  const shadowTypes = ["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"];
+  for (const type of shadowTypes) assert.ok(capabilityProfileFor(type).controls.some(control => control.id === "shadow"), `${type}:shadow`);
+  assert.equal(capabilityProfileFor("paragraph").controls.find(control => control.id === "shadow")?.source, "studio");
+  assert.equal(capabilityProfileFor("paragraph").controls.find(control => control.id === "text-shadow")?.source, "studio");
 });
 
 test("Cover Image exposes shared border, radius and shadow styling", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const inspector = source.slice(source.indexOf("function CoverImageInspector"), source.indexOf("function DividerInspector"));
-  assert.match(inspector, /const style = block\.visualStyle \?\? \{\}/);
-  assert.match(inspector, /title="Border & shadow"/);
-  assert.match(inspector, /function updateBorderColour\(value: string \| undefined\)/);
-  assert.match(inspector, /updateVisualStyle\(\{ borderColor: value, \.\.\.\(value \? \{ borderStyle: style\.borderStyle && style\.borderStyle !== "none" \? style\.borderStyle : "solid" \} : \{\}\) \}\)/);
-  assert.match(inspector, /function updateBorderWidth\(value: string\)/);
-  assert.match(inspector, /updateVisualStyle\(\{ borderWidth: value \|\| undefined, \.\.\.\(value \? \{ borderStyle: style\.borderStyle && style\.borderStyle !== "none" \? style\.borderStyle : "solid" \} : \{\}\) \}\)/);
-  assert.match(inspector, /onChange=\{updateBorderColour\}/);
-  assert.match(inspector, /updateVisualStyle\(\{ borderStyle: event\.target\.value as ParagraphBorderStyle \}\)/);
-  assert.match(inspector, /updateVisualStyle\(\{ borderRadius: event\.target\.value \}\)/);
-  assert.match(inspector, /updateVisualStyle\(\{ shadow: \(event\.target\.value \|\| undefined\) as ParagraphStyle\["shadow"\] \}\)/);
+  const borderSettings = await readFile(new URL("../app/studio/controls/border-settings.tsx", import.meta.url), "utf8");
+  assert.match(inspector, /title="Border & shadow"><BorderSettings style=\{style\} idPrefix=\{block\.id\} onChange=\{updateVisualStyle\} \/><\/InspectorAccordionSection>/);
+  assert.match(borderSettings, /includeRadius/);
+  assert.match(borderSettings, /includeShadow/);
+  assert.match(borderSettings, /BoxLengthSetting/);
 });
 
 test("block-specific ACM controls have their own inspector tab and document popovers wait for a portal root", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
-  assert.match(source, /label: "Block" }, \{ id: "studio", label: "Studio" \}/);
+  assert.match(source, /profile\.controls\.some\(control => control\.source === "gutenberg"\)/);
+  assert.match(source, /profile\.controls\.some\(control => control\.source === "studio"\)/);
+  assert.match(source, /\.\.\.\(hasBlockOptions \? \[\{ id: "block", label: "Block" \}\] : \[\]\)/);
   assert.match(source, /hasStudioOptions \? <PaneTabs/);
   assert.match(source, /<PaneTabPanel id=\{tabPrefix\} tab="studio"/);
   assert.match(source, /function usePortalRoot\(\)/);
@@ -490,60 +495,44 @@ test("Gutenberg block controls and ACM-only controls stay in their respective in
   const tabsStart = source.indexOf("const tabs =", studioStart);
   const blockSettings = source.slice(blockStart, studioStart);
   const studioSettings = source.slice(studioStart, tabsStart);
-  assert.match(blockSettings, /title="Social Icons"[\s\S]*?<span>Style<\/span>[\s\S]*?logos-only[\s\S]*?Horizontal gap \(px\)[\s\S]*?Vertical gap \(px\)/);
+  assert.match(blockSettings, /title="Social Icons"[\s\S]*?<span>Style<\/span>[\s\S]*?logos-only[\s\S]*?<span>Gap<\/span>/);
+  assert.doesNotMatch(blockSettings, /Horizontal gap \(px\)|Vertical gap \(px\)/);
   assert.match(blockSettings, /<span>Link rel<\/span>/);
   assert.match(source, /function DividerInspector[\s\S]*?<span>HTML element<\/span>[\s\S]*?PaletteColourSetting label="Divider colour"/);
   assert.doesNotMatch(blockSettings, /Code language|<span>Card title<\/span>/);
   assert.match(studioSettings, /title="Code language"[\s\S]*?Syntax highlighting is an ACM Studio feature/);
   assert.match(studioSettings, /title="Embed card"[\s\S]*?<span>Card title<\/span>/);
+  assert.match(studioSettings, /title="Studio spacing"[\s\S]*?Horizontal gap \(px\)[\s\S]*?Vertical gap \(px\)/);
 });
 
 test("Paragraph Typography follows Andrew's Gutenberg options and separates Studio-only controls", async () => {
   const inspector = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
-  const definition = await readFile(new URL("../app/studio/blocks/paragraph/definition.ts", import.meta.url), "utf8");
+  const profileSource = await readFile(new URL("../app/studio/blocks/capability-profiles.ts", import.meta.url), "utf8");
   const colourControl = await readFile(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
   const toolsSection = await readFile(new URL("../app/studio/inspector-tools-section.tsx", import.meta.url), "utf8");
-  assert.match(inspector, /const hasStudioOptions = \["paragraph", "field"/);
-  const paragraphStart = inspector.indexOf("function ParagraphInspector");
-  const paragraphEnd = inspector.indexOf("function CustomFontSizeSetting", paragraphStart);
-  const paragraph = inspector.slice(paragraphStart, paragraphEnd);
+  const blockTypography = capabilityProfileFor("paragraph").controls.filter(control => control.section === "typography" && control.source === "gutenberg").map(control => control.id);
+  const studioTypography = capabilityProfileFor("paragraph").controls.filter(control => control.section === "typography" && control.source === "studio").map(control => control.id);
+  assert.deepEqual(blockTypography, ["colour", "size", "appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "letter-case", "drop-cap", "fit-text"]);
+  assert.deepEqual(studioTypography, ["family", "orientation", "text-shadow"]);
+  assert.match(profileSource, /paragraph: paragraphInspectorProfile/);
+  assert.match(inspector, /const profile = capabilityProfileFor\(block\.type\)/);
+  assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
+  assert.match(inspector, /const scopedTypographyOptions = typographyOptions\.filter\(option => \(option\.source \?\? "gutenberg"\) === visibleSource\)/);
+  assert.match(inspector, /function clearTools\(ids: Iterable<string>\) \{\s*const nextStyle = resetInspectorStyleFields\(style, ids, styleControls\)/);
+  assert.match(inspector, /<FontSizeAppearanceSetting/);
+  assert.match(inspector, /<BackgroundSelection/);
   assert.match(inspector, /<PaneTabs id=\{tabPrefix\}/);
-  assert.match(inspector, /scope="block" fontSizeViewMode=/);
-  assert.match(inspector, /scope="studio" fontSizeViewMode=/);
-  assert.match(paragraph, /const paragraphSpecificOptions = block\.type === "paragraph"/);
-  assert.match(paragraph, /const studioOnly = scope === "studio" && paragraphSpecificOptions/);
-  assert.match(paragraph, /paragraphOptions = \(section: typeof paragraphInspectorProfile\.controls\[number\]\["section"\]\)/);
-  assert.match(paragraph, /paragraphInspectorProfile\.controls\.filter\(option => option\.section === section\)/);
-  assert.match(paragraph, /const scopedTypographyOptions = studioOnly \? typographyOptions\.filter\(option => option\.source === "studio"\) : typographyOptions\.filter\(option => option\.source !== "studio"\)/);
-  assert.match(paragraph, /const scopedDimensionOptions = studioOnly \? dimensionOptions\.filter\(option => option\.source === "studio"\) : dimensionOptions\.filter\(option => option\.source !== "studio"\)/);
-  assert.match(paragraph, /const scopedBorderOptions = studioOnly \? borderOptions\.filter\(option => option\.source === "studio"\) : borderOptions\.filter\(option => option\.source !== "studio"\)/);
-  assert.match(paragraph, /const toolFields: Record<string, \(keyof ParagraphStyle\)\[]> = \{/);
-  assert.match(paragraph, /if \(paragraphSpecificOptions\) for \(const option of paragraphInspectorProfile\.controls\) toolFields\[option\.id\] = \[\.\.\.option\.fields\]/);
-  assert.match(paragraph, /function clearTools\(ids: Iterable<string>\) \{[\s\S]*?delete nextStyle\[field\]/);
-  assert.match(paragraph, /function LinkColourSetting\(/);
   assert.match(inspector, /paragraphLinkColourHasPoorContrast\(defaultValue, style/);
   assert.match(inspector, /paragraphLinkColourHasPoorContrast\(hoverValue, style/);
   assert.match(inspector, /return <PaletteColourSetting label="Link" value=\{defaultValue\} onChange=\{onDefaultChange\} hoverValue=\{hoverValue\}/);
   assert.match(inspector, /return <ColourPicker label=\{label\} value=\{value\} onChange=\{onChange\} hoverValue=\{hoverValue\}/);
-  assert.match(inspector, /<ColourPicker label="Background colour"/);
   assert.match(colourControl, /Escape/);
   assert.match(colourControl, /onHoverChange/);
   assert.match(colourControl, /ColourValueSwatch/);
   assert.match(colourControl, /document\.addEventListener\("keydown", dismiss as EventListener\)/);
-  const orderedControls = ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "orientation", "letter-case", "drop-cap", "fit-text", "text-shadow"]
-    .map(id => definition.indexOf(`id: "${id}"`));
-  assert.ok(orderedControls.every(position => position >= 0));
-  assert.deepEqual(orderedControls, [...orderedControls].sort((a, b) => a - b));
-  assert.match(definition, /inventorySections: \[[\s\S]*?id: "background", label: "Background", source: "gutenberg"[\s\S]*?id: "dimensions"[\s\S]*?id: "border"[\s\S]*?id: "elements"[\s\S]*?id: "advanced", label: "Advanced", source: "gutenberg"/);
   assert.match(toolsSection, /className="inspector-tools-menu-divider" role="separator"/);
-  assert.match(toolsSection, /menuOptions\.map\(option => <button key=\{option\.id\} type="button" disabled=\{option\.disabled\} aria-pressed=\{option\.checked\}/);
-  assert.doesNotMatch(toolsSection, /inspector-tools-menu-subheading/);
-  assert.match(toolsSection, /className="inspector-tools-menu-divider" role="separator"/);
-  assert.match(toolsSection, /className="inspector-tools-menu-options" aria-label="Studio options">\{studioOptions\.map\(option =>[\s\S]*?<StudioSourceBadge \/>/);
-  assert.match(toolsSection, /menuOptions\.map\(option => <button key=\{option\.id\} type="button" disabled=\{option\.disabled\} aria-pressed=\{option\.checked\}/);
-  assert.match(toolsSection, /function InspectorToolsSectionContent\(\{ title, options, visible, canReset, menuOptions, onMenuOptionSelect,/);
+  assert.match(toolsSection, /aria-label="Studio options"/);
   assert.match(toolsSection, /gutenbergOptions\.map\(option => <button/);
-  assert.match(toolsSection, /Not shown in the current Gutenberg reference/);
 });
 
 test("the selected block summary stays above its inspector tabs", async () => {
@@ -558,7 +547,7 @@ test("the selected block summary stays above its inspector tabs", async () => {
   assert.match(summary, /<h2>\{blockName\}<\/h2>/);
   assert.match(summary, /<p className="setting-note">\{blockDescription\}<\/p>/);
   assert.match(source, /blockCatalogue\.find\(\(item\) => item\.type === block\.type\)/);
-  assert.match(source, /block\.type === "paragraph"\s*\? "Start with the basic building block of all narrative\."/);
+  assert.match(source, /blockDescription = blockInfo\?\.description \?\? profile\.description/);
 });
 
 test("selected document title and subtitle show their block summary in the Block tab", async () => {
