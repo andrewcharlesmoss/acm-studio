@@ -252,6 +252,7 @@
   inspectors; the selected date is used when a post is published locally.
 
 ### Changed
+- Controls jump navigation follows the specimen at the viewport midpoint as you scroll.
 - Aligned UI Library headings, content gutters and specimen spacing across its nine sections; tidied Pane toolbars, mobile Ribbon cards, Panels examples and Blocks disclosures.
 - Controls specimens now use production inspector field styling and practical widths, with image previews and compact numeric rows that fit narrow screens. Styles uses readable interface text and stacks its workbench before the desktop columns overflow.
 - The Controls jump menu now highlights the specimen at the current scroll position.

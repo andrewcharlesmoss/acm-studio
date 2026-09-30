@@ -12,7 +12,7 @@ export function ControlsNavigation() {
     let frame = 0;
 
     function updateActiveControl() {
-      const marker = Math.min(220, window.innerHeight * 0.35);
+      const marker = window.innerHeight / 2;
       let nextId = orderedControlEntries[0]?.id ?? "";
 
       for (const entry of orderedControlEntries) {

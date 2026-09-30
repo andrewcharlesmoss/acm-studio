@@ -43,6 +43,10 @@ Page-level kickers use uppercase styling across every library section. The
 shared library stylesheet covers the common page intro and the Ribbon and Pane
 intro variants; secondary specimen kickers retain their own wording and style.
 
+The Controls jump menu tracks the last specimen whose top has reached the
+viewport midpoint. A long card remains active while that midpoint passes
+through it; gaps retain the preceding specimen until the next card arrives.
+
 Page introductions share heading typography and 32px desktop / 16px mobile
 gutters. Group headings, specimen cards and supporting disclosures align to
 the same content edge. Controls specimens use the production inspector's field

@@ -125,6 +125,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   const globals = read("app/globals.css");
   assert.match(page, /<ControlsNavigation \/>/);
   assert.match(navigation, /window\.addEventListener\("scroll", scheduleActiveControlUpdate/);
+  assert.match(navigation, /const marker = window\.innerHeight \/ 2;/);
   assert.match(navigation, /getBoundingClientRect\(\)\.top > marker/);
   assert.match(navigation, /aria-current=\{activeId === entry\.id \? "location" : undefined\}/);
   assert.match(navigation, /requestAnimationFrame/);
