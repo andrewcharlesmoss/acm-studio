@@ -210,12 +210,12 @@ const paragraphControls: InspectorControlProfile[] = [
   makeStyleControl("border"), makeStyleControl("radius"), makeStyleControl("shadow", "studio"), makeStyleControl("link-colour"),
   { ...makeSpecificControl("advanced", "HTML anchor", "advanced"), fields: ["anchor"], resetFields: ["anchor"] },
   { ...makeSpecificControl("class-name", "Additional CSS class(es)", "advanced"), fields: ["className"], resetFields: ["className"] },
-  { ...makeSpecificControl("additional-css", "Additional CSS declarations", "advanced", "studio"), fields: ["additionalCss"], resetFields: ["additionalCss"] },
+  { ...makeSpecificControl("additional-css", "Additional CSS declarations", "advanced"), fields: ["additionalCss"], resetFields: ["additionalCss"] },
 ];
 export const paragraphInspectorProfile: BlockCapabilityProfile = {
   type: "paragraph", label: "Paragraph", mapping: "core/paragraph",
   sections: paraSections,
-  inventorySections: paraSections.map(section => ({ ...section, fields: section.id === "background" ? ["backgroundColor", "backgroundGradient"] : section.id === "advanced" ? ["anchor", "className"] : [] })),
+  inventorySections: paraSections.map(section => ({ ...section, fields: section.id === "background" ? ["backgroundColor", "backgroundGradient"] : section.id === "advanced" ? ["anchor", "className", "additionalCss"] : [] })),
   controls: paragraphControls,
   transforms: [],
   defaults: defaults(["colour", "size"], [], [], []),

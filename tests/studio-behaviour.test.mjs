@@ -138,7 +138,7 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
   assert.match(source, /const optionalElementOptions = scopedElementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
 });
 
-test("Paragraph Advanced keeps Gutenberg anchor and class fields and hides ACM CSS declarations", async () => {
+test("Paragraph Advanced exposes Gutenberg anchor, class and safe CSS fields", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const stylesheet = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const advancedFields = source.slice(source.indexOf("function advancedFieldsForBlock"), source.indexOf("function AdvancedFieldsInspector"));
@@ -149,7 +149,7 @@ test("Paragraph Advanced keeps Gutenberg anchor and class fields and hides ACM C
   assert.deepEqual(paragraph.controls.find(control => control.id === "advanced")?.fields, ["anchor"]);
   assert.equal(paragraph.controls.find(control => control.id === "class-name")?.source, "gutenberg");
   assert.deepEqual(paragraph.controls.find(control => control.id === "class-name")?.fields, ["className"]);
-  assert.equal(paragraph.controls.find(control => control.id === "additional-css")?.source, "studio");
+  assert.equal(paragraph.controls.find(control => control.id === "additional-css")?.source, "gutenberg");
   assert.match(advancedFields, /const controls = profile\.controls\.filter\(item => item\.section === "advanced" && item\.source === source\)/);
   assert.match(advancedFields, /const fields = controls\.flatMap\(control => control\.fields\)/);
   assert.match(advancedFields, /anchor: fields\.some\(field => field\.endsWith\("anchor"\)\)/);
@@ -168,7 +168,7 @@ test("Paragraph Advanced keeps Gutenberg anchor and class fields and hides ACM C
   assert.match(advancedInspector, /Separate multiple classes with spaces\./);
   assert.match(advancedInspector, /Add your own CSS to customise the appearance of the Paragraph block/);
   assert.match(advancedInspector, /e\.g\. <code>colour: red;<\/code>/);
-  assert.match(advancedInspector, /Selectors, at-rules, external URLs and/);
+  assert.doesNotMatch(advancedInspector, /Studio applies safe declarations to this block/);
   assert.match(advancedInspector, /block\.type === "paragraph" \|\| block\.type === "columns" \|\| block\.type === "column"\) onChange\(\{ \.\.\.block, style:/);
 });
 

@@ -31,8 +31,9 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.deepEqual(paragraph.controls.find(control => control.id === "advanced")?.fields, ["anchor"]);
   assert.equal(paragraph.controls.find(control => control.id === "class-name")?.source, "gutenberg");
   assert.deepEqual(paragraph.controls.find(control => control.id === "class-name")?.fields, ["className"]);
-  assert.equal(paragraph.controls.find(control => control.id === "additional-css")?.source, "studio");
+  assert.equal(paragraph.controls.find(control => control.id === "additional-css")?.source, "gutenberg");
   assert.deepEqual(paragraph.controls.find(control => control.id === "additional-css")?.resetFields, ["additionalCss"]);
+  assert.deepEqual(paragraph.inventorySections.find(section => section.id === "advanced")?.fields, ["anchor", "className", "additionalCss"]);
 
   const heading = capabilityProfileFor("heading");
   assert.deepEqual(heading.sections.map(section => section.id), ["text", "typography", "background", "dimensions", "border", "elements", "advanced"]);
