@@ -271,7 +271,15 @@ test("HTML editing reads Spacer dimensions and rejects unsupported units", () =>
   const original = { id: "space", type: "spacer", height: 32, visualStyle: { margin: "12px" } };
   const element = (widthUnit) => ({ tagName: "DIV", dataset: { blockId: "space", spacerHeight: "2", spacerHeightUnit: "em", spacerWidth: "8", spacerWidthUnit: widthUnit }, classList: { contains: () => false } });
   const parsed = __parseElement(element("rem"), original);
-  assert.deepEqual({ ...parsed.block }, { ...original, height: 2, heightUnit: "em", width: 8, widthUnit: "rem" });
+  assert.deepEqual({
+    id: parsed.block.id,
+    type: parsed.block.type,
+    height: parsed.block.height,
+    heightUnit: parsed.block.heightUnit,
+    width: parsed.block.width,
+    widthUnit: parsed.block.widthUnit,
+    visualStyle: { ...parsed.block.visualStyle },
+  }, { ...original, height: 2, heightUnit: "em", width: 8, widthUnit: "rem" });
   const invalid = __parseElement(element("%"), original);
   const { validContentBlocks } = loadModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
   assert.equal(validContentBlocks([invalid.block]), false);
