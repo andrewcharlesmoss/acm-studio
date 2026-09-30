@@ -102,6 +102,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(detail, /<h3 id=\{`control-entry-\$\{entry\.id\}`\}>/);
   assert.match(detail, /<h4 id=\{`control-specimen-\$\{entry\.id\}`\}>/);
   assert.match(detail, /<ColourPicker/);
+  assert.match(detail, /paletteClassName="ui-control-colour-palette"/);
   assert.match(detail, /<CustomFontSizeSetting/);
   assert.match(detail, /<ParagraphLengthSetting/);
   assert.match(detail, /<BoxLengthSetting/);
@@ -134,6 +135,8 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(studioStyles, /\.paragraph-reset-button \{[^}]*color: var\(--ink\)/);
   assert.match(studioStyles, /\.paragraph-reset-button:disabled \{[^}]*color: var\(--muted\)/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-live \{ width:min\(100%,320px\)/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-controls-layout \{ --accent:var\(--rl-ink\)/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-colour-palette \{ --accent:var\(--rl-ink\)/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-group-specimens/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-controls-layout/);
   assert.match(detail, /aria-hidden=\{!visible\.has\("line-height"\) \|\| !showInspectorExample\}/);

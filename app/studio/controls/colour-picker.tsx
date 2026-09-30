@@ -34,12 +34,13 @@ type ColourPickerProps = {
   hoverWarning?: boolean;
   descriptionId?: string;
   wrapperClassName?: string;
+  paletteClassName?: string;
   trigger?: (props: ColourPickerTriggerProps) => ReactNode;
   clearLabel?: string;
   disabled?: boolean;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, descriptionId, wrapperClassName, trigger, clearLabel, disabled = false }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, disabled = false }: ColourPickerProps) {
   const hasHoverState = Boolean(onHoverChange);
   const [open, setOpen] = useState(false);
   const [activeState, setActiveState] = useState<"default" | "hover">("default");
@@ -111,7 +112,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       </button>
       {!hasHoverState && !clearLabel ? <button type="button" aria-label={`Reset ${label} colour`} onClick={() => onChange(undefined)} disabled={disabled || !value}>Reset</button> : null}
     </div>}
-    {open ? createPortal(<div ref={paletteRef} id={paletteId} className="paragraph-colour-palette" role="group" aria-label={`${label} colour palette`} style={position}>
+    {open ? createPortal(<div ref={paletteRef} id={paletteId} className={`paragraph-colour-palette${paletteClassName ? ` ${paletteClassName}` : ""}`} role="group" aria-label={`${label} colour palette`} style={position}>
       <div className="paragraph-colour-palette-heading"><strong>{label}</strong><button type="button" aria-label={`Close ${label} palette`} title="Close" onClick={() => close()}><StudioIcon name="close" size={16} /></button></div>
       {hasHoverState ? <div className="paragraph-colour-state-tabs" role="group" aria-label={`${label} colour state`}>
         <button type="button" disabled={disabled} aria-pressed={activeState === "default"} onClick={() => setActiveState("default")}>Default</button>
