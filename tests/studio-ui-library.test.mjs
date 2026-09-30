@@ -114,6 +114,8 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(detail, /<ImageDimensionsSetting/);
   assert.match(detail, /<FocalPositionSetting/);
   assert.match(detail, /Ownership, consumers, relationships and compatibility/);
+  assert.match(detail, /<StudioIcon name="chevron-right" size=\{16\} \/>/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-facts\[open\] > summary svg \{ transform:rotate\(90deg\); \}/);
   assert.match(detail, /Reset example/);
   assert.match(route, /studioControlEntryById\[id\]/);
   assert.match(route, /notFound\(\)/);

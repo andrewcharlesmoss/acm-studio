@@ -99,7 +99,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
       </div>
       <p className="ui-control-detail-note">Changes stay in this page’s temporary example state and do not edit a document or save block content.</p>
     </div>
-    <details className="ui-control-facts"><summary>Ownership, consumers, relationships and compatibility</summary><dl>
+    <details className="ui-control-facts"><summary><span>Ownership, consumers, relationships and compatibility</span><StudioIcon name="chevron-right" size={16} /></summary><dl>
       <div><dt>Ownership</dt><dd>{entry.owner}</dd></div>
       <div><dt>Consumers</dt><dd>{entry.consumers.join("; ")}</dd></div>
       <div><dt>Supported states</dt><dd>{entry.states}</dd></div>

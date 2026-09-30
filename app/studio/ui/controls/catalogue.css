@@ -44,7 +44,11 @@
 .ui-control-swatch-states .studio-colour-value-swatch:first-child { left:0; z-index:2; }
 .ui-control-swatch-states .studio-colour-value-swatch:last-child { left:16px; z-index:1; }
 .ui-control-facts { margin:.75rem 0 0; }
-.ui-control-facts > summary { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.55rem 0; cursor:pointer; font-weight:600; }
+.ui-control-facts > summary { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.55rem 0; cursor:pointer; font-weight:600; list-style:none; }
+.ui-control-facts > summary::-webkit-details-marker { display:none; }
+.ui-control-facts > summary svg { flex:0 0 auto; transition:transform .15s ease; }
+.ui-control-facts[open] > summary svg { transform:rotate(90deg); }
+.ui-control-facts > summary:hover { color:var(--rl-accent); }
 .ui-control-facts > summary:focus-visible { outline:2px solid #465b78; outline-offset:3px; }
 .ui-control-facts > dl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.75rem; margin:.5rem 0 0; }
 .ui-control-facts dl > div { min-width:0; }
