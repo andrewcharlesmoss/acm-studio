@@ -1,4 +1,6 @@
-import type { ParagraphStyle, ParagraphWeight } from "./model";
+import type { ParagraphStyle, ParagraphWeight, ParagraphGradientPreset } from "./model";
+
+import { validBackgroundGradient } from "./background-gradient";
 
 const fontSizes: Record<NonNullable<ParagraphStyle["fontSize"]>, string> = {
   small: "14px",
@@ -20,7 +22,7 @@ const fontWeights: Record<ParagraphWeight, string> = {
   "semi-bold": "600", bold: "700", "extra-bold": "800", black: "900",
 };
 
-export const PARAGRAPH_BACKGROUND_GRADIENTS: Record<NonNullable<ParagraphStyle["backgroundGradient"]>, string> = {
+export const PARAGRAPH_BACKGROUND_GRADIENTS: Record<ParagraphGradientPreset, string> = {
   sunrise: "linear-gradient(135deg, #fde68a, #fca5a5)",
   ocean: "linear-gradient(135deg, #bae6fd, #a5b4fc)",
   forest: "linear-gradient(135deg, #bbf7d0, #a7f3d0)",
@@ -28,7 +30,10 @@ export const PARAGRAPH_BACKGROUND_GRADIENTS: Record<NonNullable<ParagraphStyle["
 };
 
 export function paragraphBackgroundGradientCss(gradient: NonNullable<ParagraphStyle["backgroundGradient"]>) {
-  return PARAGRAPH_BACKGROUND_GRADIENTS[gradient];
+  if (!validBackgroundGradient(gradient)) return undefined;
+  if (typeof gradient === "string") return PARAGRAPH_BACKGROUND_GRADIENTS[gradient];
+  const stops = gradient.stops.map(stop => `${stop.colour} ${stop.position}%`).join(", ");
+  return gradient.type === "radial" ? `radial-gradient(circle, ${stops})` : `linear-gradient(${gradient.angle}deg, ${stops})`;
 }
 
 type OpaqueRgb = [red: number, green: number, blue: number];
@@ -58,7 +63,7 @@ function contrastRatio(first: OpaqueRgb, second: OpaqueRgb) {
 }
 
 function gradientHasPoorContrast(foreground: OpaqueRgb, gradient: NonNullable<ParagraphStyle["backgroundGradient"]>) {
-  const stopValues = PARAGRAPH_BACKGROUND_GRADIENTS[gradient].match(/#[\da-f]{3,8}\b/gi) ?? [];
+  const stopValues = (paragraphBackgroundGradientCss(gradient) ?? "").match(/#[\da-f]{3,8}\b/gi) ?? [];
   const stops = stopValues.map(parseOpaqueHexColour);
   if (stops.length < 2 || stops.some(stop => stop === null)) return null;
   const colours = stops as OpaqueRgb[];

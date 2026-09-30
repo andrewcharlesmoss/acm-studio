@@ -915,7 +915,7 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
   const fontSizeMode = fontSizeViewMode
     ? fontSizeViewMode
     : style.fontSizeCustom ? "custom" : "presets";
-  const activeBackgroundMode = style.backgroundGradient ? "gradient" : backgroundMode;
+  const activeBackgroundMode = backgroundMode;
   const paragraphSpecificOptions = block.type === "paragraph";
   const visibleSource = "gutenberg";
   const typographyOptions = optionsFor("typography");
@@ -1023,7 +1023,7 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
       {typographyVisible.has("text-shadow") ? <label><span>Text shadow</span><select value={style.textShadow ?? ""} onChange={event => updateStyle("textShadow", (event.target.value || undefined) as ParagraphStyle["textShadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
     </InspectorToolsSection>,
     background: showBackground ? <InspectorAccordionSection className="inspector-panel" title="Background">
-      <BackgroundSelection mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} onModeChange={mode => { setBackgroundMode(mode); if (mode === "colour" && style.backgroundGradient) updateBackground(style.backgroundColor, undefined); }} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
+      <BackgroundSelection mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </InspectorAccordionSection> : null,
     dimensions: <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>

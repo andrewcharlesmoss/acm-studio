@@ -202,7 +202,7 @@ test("v0.12 migrates one exact pre-Content placeholder pair per computed-default
   const migratedSet = migrated.sets[0]; const migratedPage = migratedSet.templates.find(template => template.kind === "page");
   const migratedTitle = migratedPage.nodes.find(node => node.id === title.id);
   const migratedSubtitle = migratedPage.nodes.find(node => node.id === subtitle.id);
-  assert.equal(migrated.version, "0.13.0");
+  assert.equal(migrated.version, "0.14.0");
   assert.deepEqual(plain(migratedTitle), { id: title.id, type: "element", element: "document-title", level: 2, align: "centre", visualStyle: title.visualStyle });
   assert.deepEqual(plain(migratedSubtitle), { id: subtitle.id, type: "element", element: "subtitle", align: "right", visualStyle: { ...subtitle.style, ...subtitle.visualStyle } });
   assert.equal(migratedPage.isDefault, true);
@@ -408,7 +408,7 @@ test("sticky Group position survives template storage and block projection", () 
   assert.equal(blocks[0].position, "sticky");
   assert.deepEqual(plain(templates.templateNodesFromBlocks(blocks)[0]), group);
   const legacyStore = templates.validateTemplateStore({ version: "0.10.0", sets: [set], assignments: [] });
-  assert.equal(legacyStore.version, "0.13.0");
+  assert.equal(legacyStore.version, "0.14.0");
 });
 
 test("dedicated Columns presets follow WordPress order and preserve editable columns", () => {
@@ -752,7 +752,7 @@ test("template and publication image references prevent deletion until removed",
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document, { version: m.TEMPLATE_VERSION, set, templateId: set.templates[1].id });
-  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 6);
+  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 7);
   env.storage.removeItem(m.TEMPLATE_STORAGE_KEY);
   assert.throws(() => store.assertTemplateMediaCanBeDeleted("image-source"), /published template snapshot/);
   publications.unpublishDocumentLocally(document.id);
@@ -989,4 +989,26 @@ test("history routing undoes interleaved content and assignment changes in order
   render(); await h.flush(); let history = render(); history.record("template"); history.record("document");
   history = render(); history.undo(); history.undo(); history.redo(); history.redo();
   assert.deepEqual(calls, ["document undo", "template undo", "template redo", "document redo"]);
+});
+
+
+test("custom background gradients survive template packages and publication snapshots", async () => {
+  const env = environment(); const m = env.load("studio/template-model.ts");
+  const packages = env.load("studio/template-package.ts");
+  const validation = env.load("studio/workspace-validation.ts");
+  const fixture = packageFixture(env); const set = fixture.set;
+  const gradient = { type: "linear", angle: 45, stops: [{ colour: "#FF0000", position: 0 }, { colour: "#0000FF", position: 100 }] };
+  set.templates[0].nodes.push({ id: "custom-gradient", type: "paragraph", text: "Gradient", style: { backgroundGradient: gradient } });
+  const packageValue = packages.validateTemplatePackage(JSON.parse(JSON.stringify({ format: "acm-studio-template-set", version: m.TEMPLATE_VERSION, set, media: fixture.media })));
+  assert.equal(packageValue.version, "0.14.0");
+  assert.deepEqual(plain(packageValue.set.templates[0].nodes.at(-1).style.backgroundGradient), gradient);
+  const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
+  document.blocks.push({ id: "publication-gradient", type: "paragraph", text: "Gradient", style: { backgroundGradient: gradient } });
+  const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
+  publications.publishDocumentLocally(document);
+  const snapshot = JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY));
+  assert.equal(snapshot.version, 7);
+  assert.doesNotThrow(() => validation.validatePublicationSnapshot(snapshot));
+  assert.deepEqual(snapshot.posts[0].blocks.at(-1).style.backgroundGradient, gradient);
+  release();
 });

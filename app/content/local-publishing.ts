@@ -55,7 +55,7 @@ export function restoreLegacyPublicationCover(article: LocallyPublishedArticle, 
 }
 
 type LocalPublicationStore = {
-  version: 2 | 3 | 4 | 5 | 6;
+  version: 2 | 3 | 4 | 5 | 6 | 7;
   posts: LocallyPublishedArticle[];
 };
 
@@ -145,7 +145,7 @@ export function parseLocallyPublishedArticles(serialisedPublications: string | n
   try {
     const publications = JSON.parse(serialisedPublications) as LocalPublicationStore;
     validatePublicationSnapshot(publications);
-    if (![1, 2, 3, 4, 5, 6].includes(publications?.version) || !Array.isArray(publications.posts)) return [];
+    if (![1, 2, 3, 4, 5, 6, 7].includes(publications?.version) || !Array.isArray(publications.posts)) return [];
     return publications.posts.sort((a, b) => Number(Boolean(b.sticky)) - Number(Boolean(a.sticky)) || b.publishedAt.localeCompare(a.publishedAt));
   } catch {
     return [];
@@ -177,7 +177,7 @@ export function publishDocumentLocally(document: StudioDocument, template?: Temp
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
   const article = toLocallyPublishedArticle(document, typeof template === "function" ? template() : template);
   const posts = [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId && item.slug !== article.slug)];
-  const store: LocalPublicationStore = { version: 6, posts };
+  const store: LocalPublicationStore = { version: 7, posts };
   validatePublicationSnapshot(store);
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
   return article;
@@ -186,7 +186,7 @@ export function publishDocumentLocally(document: StudioDocument, template?: Temp
 export function unpublishDocumentLocally(documentId: string) {
   studioWriteOwnership.assertWritable();
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
-  const store: LocalPublicationStore = { version: 6, posts: existing.filter((item) => item.localDocumentId !== documentId) };
+  const store: LocalPublicationStore = { version: 7, posts: existing.filter((item) => item.localDocumentId !== documentId) };
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
 }
 
@@ -202,7 +202,7 @@ export function restoreLocallyPublishedArticle(article: LocallyPublishedArticle)
   if (existing.some((item) => item.localDocumentId !== article.localDocumentId && item.slug === article.slug)) {
     throw new Error(`The address “${article.slug}” is now used by another published post.`);
   }
-  const store: LocalPublicationStore = { version: 6, posts: [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId)] };
+  const store: LocalPublicationStore = { version: 7, posts: [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId)] };
   validatePublicationSnapshot(store);
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
 }

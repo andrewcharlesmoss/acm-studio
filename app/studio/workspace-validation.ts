@@ -1,5 +1,6 @@
 import type { ContentBlock } from "../content/model";
 import { blockAlignmentOptions, contentBlockAlignment } from "../content/block-alignment";
+import { validBackgroundGradient } from "../content/background-gradient";
 import { validBoxLengths } from "../content/box-lengths";
 import { safeMathMLMarkup } from "../content/mathml";
 import { safeImageSource } from "../content/rich-text";
@@ -66,7 +67,7 @@ export function validParagraphStyle(value: unknown) {
     && (value.borderStyle === undefined || ["none", "solid", "dashed", "dotted"].includes(value.borderStyle as string))
     && (value.shadow === undefined || ["none", "soft", "strong"].includes(value.shadow as string))
     && (value.textShadow === undefined || ["none", "soft", "strong"].includes(value.textShadow as string))
-    && (value.backgroundGradient === undefined || ["sunrise", "ocean", "forest", "violet"].includes(value.backgroundGradient as string))
+    && (value.backgroundGradient === undefined || validBackgroundGradient(value.backgroundGradient))
     && optionalMediaId(value.backgroundImageMediaId) && (value.backgroundSize === undefined || ["cover", "contain", "fixed"].includes(value.backgroundSize as string))
     && (value.backgroundRepeat === undefined || ["repeat", "no-repeat"].includes(value.backgroundRepeat as string))
     && (value.backgroundFixedSize === undefined || (typeof value.backgroundFixedSize === "number" && Number.isFinite(value.backgroundFixedSize) && value.backgroundFixedSize >= 50 && value.backgroundFixedSize <= 2000))
@@ -235,7 +236,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -309,12 +310,13 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   if (migrated.version === 10) migrated.version = 11;
   if (migrated.version === 11) migrated.version = 12;
   if (migrated.version === 12) migrated.version = 13;
+  if (migrated.version === 13) migrated.version = 14;
   return migrated as StudioWorkspace;
 }
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].includes(value.version as number) || !Array.isArray(value.documents)
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
   const categories = value.categories === undefined && typeof value.version === "number" && value.version < 7 ? [] : value.categories;
   const binnedDocuments = value.bin.map(item => {
@@ -378,11 +380,11 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       parentId = documentsById.get(parentId)?.parentPageId;
     }
   }
-  return { ...value, version: 13, bin: value.bin, categories } as StudioWorkspace;
+  return { ...value, version: 14, bin: value.bin, categories } as StudioWorkspace;
 }
 
 export function validatePublicationSnapshot(value: unknown): void {
-  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
+  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
   const ids = new Set();
   for (const post of value.posts) {
     if (!isRecord(post) || !["localDocumentId", "slug", "title", "summary", "displayDate", "readingTime"].every((field) => typeof post[field] === "string")

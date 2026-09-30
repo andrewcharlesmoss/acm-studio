@@ -197,3 +197,18 @@ precedence over a chosen font size and text-column count; those settings remain
 stored and reappear when Fit text is turned off. Vertical orientation temporarily
 suspends the horizontal Fit text measurement while keeping its setting; returning
 to horizontal orientation restores it.
+
+### Background gradient contract
+
+Background Colour and Gradient use stacked rows in the shared editor/library
+control. The gradient popover follows Gutenberg's colour-stop bar, Linear/Radial
+type selector, linear angle input and dial, and twelve circular default presets.
+Stops support colour, opacity, position, adding and removal (two to twenty stops).
+Custom gradients store bounded, ordered percentage stops with hex colours rather
+than arbitrary CSS. Legacy sunrise, ocean, forest and violet values keep their
+original appearance. Workspace v14, publication v7 and template v0.14.0 readers
+accept previous supported versions; older builds cannot read these new formats.
+
+Reference: [Gutenberg gradient picker](https://github.com/WordPress/gutenberg/tree/trunk/packages/components/src/custom-gradient-picker)
+and [default gradient palette](https://github.com/WordPress/gutenberg/blob/trunk/lib/theme.json),
+inspected on 30 September 2026.

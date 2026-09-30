@@ -4,8 +4,12 @@ import test from "node:test";
 import ts from "typescript";
 
 const source = await readFile(new URL("../app/content/paragraph-styles.ts", import.meta.url), "utf8");
-const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { fitTextEnabled, paragraphStyleToCss, paragraphStyleClassName, visualStyleClassName, parseAdditionalCssDeclarations, paragraphLinkColourHasPoorContrast } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const gradientSource = await readFile(new URL("../app/content/background-gradient.ts", import.meta.url), "utf8");
+const gradientCompiled = ts.transpileModule(gradientSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
+const gradientUrl = `data:text/javascript;base64,${Buffer.from(gradientCompiled).toString("base64")}`;
+const { validBackgroundGradient, DEFAULT_GRADIENTS } = await import(gradientUrl);
+const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText.replace('"./background-gradient"', JSON.stringify(gradientUrl));
+const { fitTextEnabled, paragraphStyleToCss, paragraphStyleClassName, visualStyleClassName, parseAdditionalCssDeclarations, paragraphLinkColourHasPoorContrast, paragraphBackgroundGradientCss } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
 const layoutSource = await readFile(new URL("../app/content/layout.ts", import.meta.url), "utf8");
 const compiledLayout = ts.transpileModule(layoutSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
 const { layoutStyleProperties, validLayoutOptions } = await import(`data:text/javascript;base64,${Buffer.from(compiledLayout).toString("base64")}`);
@@ -141,4 +145,21 @@ test("minimum dimensions and text shadow reach CSS", () => {
     minWidth: "30ch",
     textShadow: "0 1px 2px rgb(0 0 0 / 28%)",
   });
+});
+
+
+test("custom gradients validate bounded stops and render without arbitrary CSS", () => {
+  const value = { type: "linear", angle: 90, stops: [{ colour: "#FF0000", position: 0 }, { colour: "#0000FF80", position: 100 }] };
+  assert.equal(validBackgroundGradient(value), true);
+  assert.equal(paragraphBackgroundGradientCss(value), "linear-gradient(90deg, #FF0000 0%, #0000FF80 100%)");
+  assert.equal(paragraphBackgroundGradientCss({ ...value, type: "radial" }), "radial-gradient(circle, #FF0000 0%, #0000FF80 100%)");
+  assert.equal(paragraphBackgroundGradientCss("ocean"), "linear-gradient(135deg, #bae6fd, #a5b4fc)");
+  for (const invalid of [null, {}, { ...value, angle: NaN }, { ...value, angle: 361 }, { ...value, type: "url" }, { ...value, stops: [] }, { ...value, stops: [...value.stops].reverse() }, { ...value, stops: [{ colour: "url(https://example.test)", position: 0 }, value.stops[1]] }]) {
+    assert.equal(validBackgroundGradient(invalid), false);
+    assert.equal(paragraphBackgroundGradientCss(invalid), undefined);
+  }
+  assert.equal(DEFAULT_GRADIENTS.length, 12);
+  assert.ok(DEFAULT_GRADIENTS.every(preset => validBackgroundGradient(preset.value)));
+  assert.equal(paragraphLinkColourHasPoorContrast("#FFFFFF", { backgroundGradient: { ...value, stops: [{ colour: "#FFFFFF", position: 0 }, { colour: "#EEEEEE", position: 100 }] } }), true);
+  assert.equal(paragraphLinkColourHasPoorContrast("#FFFFFF", { backgroundGradient: value }), null);
 });

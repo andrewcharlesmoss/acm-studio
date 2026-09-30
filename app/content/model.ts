@@ -22,7 +22,13 @@ export type ParagraphFontSize = "small" | "medium" | "large" | "x-large" | "xx-l
 export type ParagraphWeight = "thin" | "extra-light" | "light" | "regular" | "medium" | "semi-bold" | "bold" | "extra-bold" | "black";
 export type ParagraphAppearance = ParagraphWeight | "italic" | `${Exclude<ParagraphWeight, "regular">}-italic`;
 export type ParagraphBorderStyle = "none" | "solid" | "dashed" | "dotted";
-export type ParagraphBackgroundGradient = "sunrise" | "ocean" | "forest" | "violet";
+export type ParagraphGradientPreset = "sunrise" | "ocean" | "forest" | "violet";
+export type CustomBackgroundGradient = {
+  type: "linear" | "radial";
+  angle: number;
+  stops: { colour: string; position: number }[];
+};
+export type ParagraphBackgroundGradient = ParagraphGradientPreset | CustomBackgroundGradient;
 export type ParagraphBackgroundSize = "cover" | "contain" | "fixed";
 export type ParagraphBackgroundRepeat = "repeat" | "no-repeat";
 export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "arial";
