@@ -1098,6 +1098,7 @@
 .paragraph-font-size-options button { background: white; border: 0; border-right: 1px solid #d1cfc7; color: var(--muted); cursor: pointer; font: inherit; min-height: 40px; }
 .paragraph-font-size-options button:last-child { border-right: 0; }
 .paragraph-font-size-options button.is-active { background: #e8e7e2; color: var(--ink); font-weight: 700; }
+.paragraph-font-size-options button:focus { border-right-color: #d1cfc7 !important; }
 .paragraph-font-size-options button:focus-visible { box-shadow: inset 0 0 0 var(--focus-ring-width) var(--focus-ring-colour); outline: 0; position: relative; z-index: 1; }
 .paragraph-background-modes button:focus-visible, .paragraph-gradient-options button:focus-visible, .paragraph-reset-button:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -2px; position: relative; z-index: 1; }
 .paragraph-background-modes { border: 1px solid #d1cfc7; border-radius: 7px; display: grid; grid-template-columns: 1fr; overflow: hidden; }
