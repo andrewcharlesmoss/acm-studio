@@ -24,8 +24,6 @@
 .ui-control-detail-example .ui-control-state-examples { max-width:400px; }
 .ui-control-detail-example .ui-control-image-dimensions { width:min(100%,720px); }
 .ui-control-detail-note { margin:0; padding:.1rem 1rem 1rem; color:var(--rl-muted); font-size:.875rem; }
-.ui-control-dependency-summary { margin:.55rem 0 .8rem; color:var(--rl-muted); font-size:.875rem; overflow-wrap:anywhere; }
-.ui-control-dependency-summary strong { color:var(--rl-ink); }
 .ui-control-tools-example { display:grid; grid-template-columns:minmax(0,1fr); justify-items:start; gap:.75rem; }
 .ui-control-tools-example .inspector-tools-section { width:100%; min-width:0; min-height:104px; }
 .ui-control-tools-example .inspector-tools-content,.ui-control-tools-example .ui-control-tools-field { min-width:0; }

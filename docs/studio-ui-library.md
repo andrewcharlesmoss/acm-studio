@@ -119,15 +119,14 @@ The Slider foundation owns `--studio-range-accent`, the shared accent and focus
 colour for standard `.studio-range-control` inputs. Pointer hover uses
 `--studio-range-hover-accent`, which falls back to the shared accent until an
 independent hover colour is supplied. Its Controls specimen can temporarily
-preview both colours across standard range examples. The section summary shows
-how many Controls sections inherit it; the disclosure lists those sections and
-external consumers. Consumers retain their native range values, bounds, steps
-and behaviour. Gradient hue and alpha inputs use specialist colour tracks and
-are not consumers of these shared slider colours.
-Each Controls section shows a concise dependency summary beside its specimen;
-the full details sit in the ownership and compatibility disclosure. The
-inventory includes composed dependencies and conditional or transitive slider
-styling, while keeping specialist gradient tracks excluded.
+preview both colours across standard range examples. Its disclosure lists the
+Controls sections that inherit it and external consumers. Consumers retain
+their native range values, bounds, steps and behaviour. Gradient hue and alpha
+inputs use specialist colour tracks and
+are not consumers of these shared slider colours. Each Controls section keeps
+dependency details in its ownership, consumers, dependencies and compatibility
+disclosure. The inventory includes composed dependencies and conditional or
+transitive slider styling, while keeping specialist gradient tracks excluded.
 Its theme palette uses the
 shared ACM semantic colour tokens, with 28px circular swatches, Gutenberg-like
 spacing and selected borders in up to six columns, a 262px desktop popover and

@@ -89,7 +89,6 @@ export function ControlSpecimen({ entry, sliderAccent, sliderHoverAccent, onSlid
       <div><p className="rl-eyebrow">{entry.group} control</p><h3 id={`control-entry-${entry.id}`}>{entry.title}</h3><p className="ui-control-detail-intro">{entry.purpose}</p></div>
       <button className="ui-control-reset" type="button" onClick={resetExample}><StudioIcon name="rotate" size={18} />Reset example</button>
     </header>
-    <p className="ui-control-dependency-summary"><strong>Dependencies:</strong> {dependencies.length ? dependencies.map(dependency => `${dependency.kind === "inherits" ? "Inherits" : "Uses"} ${dependency.label}`).join("; ") : "None documented"}{entry.id === "slider-foundation" ? <span>. Shared by {dependentControls.length} Controls sections and other Studio, Design and Ribbon range examples.</span> : null}</p>
     <div className="ui-control-detail-card" aria-labelledby={`control-specimen-${entry.id}`}>
       <div className="ui-control-detail-header"><h4 id={`control-specimen-${entry.id}`}>Live specimen</h4></div>
       <div key={resetRevision} className={`ui-control-detail-example inspector-sections${entry.id === "border-settings" || entry.id === "image-dimensions" ? " is-wide" : ""}`}>
