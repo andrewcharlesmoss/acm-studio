@@ -499,6 +499,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Changed the colour picker Clear action and gradient angle dial marker to the standard ink colour.
 - Corrected the shared colour picker’s oversized popup, preview and swatches to use compact CSS dimensions rather than Retina screenshot dimensions.
 - Controls catalogue cards keep their width when ownership and compatibility details are expanded.
 - Restored the shared Controls group-anchor helper so the catalogue renders after the active-navigation extraction.
