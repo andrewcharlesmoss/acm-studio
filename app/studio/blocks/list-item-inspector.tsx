@@ -9,6 +9,9 @@ import { FontSizeAppearanceSetting } from "../controls/font-size-appearance-sett
 import { BoxLengthSetting } from "../box-length-setting";
 import { findListBlock, updateListItem } from "../list-structure";
 import { BlockLibraryIcon } from "../block-library-icons";
+import { listItemSupportedStyleFields } from "./capability-profiles";
+
+  const supportedStyleFields = new Set(listItemSupportedStyleFields);
 
 export function ListItemInspector({ block, listId, itemIndex, onChange }: {
   block: ListBlock;
@@ -27,6 +30,7 @@ export function ListItemInspector({ block, listId, itemIndex, onChange }: {
       const currentItem: Exclude<ListItem, string> = typeof current === "string" ? { text: current } : current;
       const nextStyle = { ...(currentItem.style ?? {}) };
       for (const [key, value] of Object.entries(changes) as Array<[keyof ParagraphStyle, ParagraphStyle[keyof ParagraphStyle] | undefined]>) {
+        if (!supportedStyleFields.has(key)) continue;
         if (value === undefined || value === "") delete nextStyle[key];
         else nextStyle[key] = value as never;
       }

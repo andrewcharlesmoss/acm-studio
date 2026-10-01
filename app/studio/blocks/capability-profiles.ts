@@ -18,6 +18,16 @@ export type InspectorControlProfile = {
   availableWhen?: string;
   dependency?: string;
 };
+export type NestedBlockCapabilityProfile = {
+  type: "list-item";
+  parentType: "list";
+  label: string;
+  sections: readonly { id: InspectorSectionId; label: string; source: InspectorSource }[];
+  controls: readonly InspectorControlProfile[];
+  resetFields: readonly string[];
+  unsupported: readonly string[];
+  dependencies: readonly { id: string; label: string; href: string; purpose: string }[];
+};
 export type BlockCapabilityProfile = {
   type: CapabilityBlockType;
   label: string;
@@ -35,6 +45,7 @@ export type BlockCapabilityProfile = {
   context: string;
   inventorySections: readonly { id: string; label: string; source: InspectorSource; fields: readonly string[] }[];
   transforms: readonly { type: string; label: string }[];
+  nestedProfiles?: readonly NestedBlockCapabilityProfile[];
   description?: string;
   intendedUse?: string;
 };
@@ -246,6 +257,7 @@ function makeProfile(type: CapabilityBlockType, label: string, mapping: string, 
   context?: string;
   sharedStyleInspector?: boolean;
   exposeBackgroundControl?: boolean;
+  nestedProfiles?: readonly NestedBlockCapabilityProfile[];
 }): BlockCapabilityProfile {
   const style = options.style ?? {};
   const generic = [
@@ -281,6 +293,7 @@ function makeProfile(type: CapabilityBlockType, label: string, mapping: string, 
     dependencies: dependenciesFor(controls, sharedStyleInspector),
     unsupported: options.unsupported ?? [],
     sharedStyleInspector,
+    ...(options.nestedProfiles?.length ? { nestedProfiles: options.nestedProfiles } : {}),
     nesting: options.nesting ?? "Leaf block.", context: options.context ?? "No additional block context.",
   };
 }
@@ -289,11 +302,47 @@ const block = (section: InspectorSectionId, ...controls: Array<[string, string, 
 const studio = (section: InspectorSectionId, ...controls: Array<[string, string, string?]>) => controls.map(([id, label, condition]) => makeSpecificControl(id, label, section, "studio", condition));
 const advancedBlockTypes = new Set<CapabilityBlockType>(["heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"]);
 
+const listItemControls: InspectorControlProfile[] = [
+  { ...makeSpecificControl("background", "Background", "background"), fields: ["backgroundColor", "backgroundGradient"], resetFields: ["backgroundColor", "backgroundGradient"] },
+  makeStyleControl("size"),
+  makeStyleControl("line-height"),
+  makeStyleControl("padding"),
+  makeStyleControl("margin"),
+  { ...makeStyleControl("link-colour"), label: "Link colour", fields: ["linkColor"], resetFields: ["linkColor"] },
+  { ...makeSpecificControl("advanced", "HTML anchor", "advanced"), fields: ["anchor"], resetFields: ["anchor"] },
+];
+
+export const listItemCapabilityProfile: NestedBlockCapabilityProfile = {
+  type: "list-item",
+  parentType: "list",
+  label: "List Item",
+  sections: [
+    { id: "background", label: "Colour", source: "gutenberg" },
+    { id: "typography", label: "Typography", source: "gutenberg" },
+    { id: "dimensions", label: "Dimensions", source: "gutenberg" },
+    { id: "elements", label: "Elements", source: "gutenberg" },
+    { id: "advanced", label: "Advanced", source: "gutenberg" },
+  ],
+  controls: listItemControls,
+  resetFields: Array.from(new Set(listItemControls.flatMap(control => control.resetFields))),
+  unsupported: ["Block-level indent and outdent controls", "Footnote and inline-image insertion from List Item formatting"],
+  dependencies: [
+    { id: "background-selection", label: "Background selection", href: "/studio/ui/controls#background-selection", purpose: "Shared colour and gradient controls." },
+    { id: "font-size-appearance", label: "Font size and Appearance", href: "/studio/ui/controls#font-size-appearance", purpose: "Shared preset and custom font-size control." },
+    { id: "box-length", label: "Box length", href: "/studio/ui/controls#box-length", purpose: "Shared padding and margin control." },
+    { id: "colour-picker", label: "Colour picker", href: "/studio/ui/controls#colour-picker", purpose: "Shared link-colour picker." },
+  ],
+};
+
+export const listItemSupportedStyleFields = Array.from(new Set(
+  listItemCapabilityProfile.controls.flatMap(control => control.fields),
+));
+
 export const blockCapabilityProfiles: Record<CapabilityBlockType, BlockCapabilityProfile> = {
   paragraph: paragraphInspectorProfile,
   heading: makeProfile("heading", "Heading", "core/heading", { block: block("text", ["text-alignment", "Text alignment"], ["level", "Level"], ["block-alignment", "Block alignment"]), style: { typography: ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "decoration", "orientation", "letter-case", "text-shadow", "fit-text"], dimensions: ["padding", "margin"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"] }, attributeDefaults: { level: 2 }, unsupported: ["Theme font presets", "Theme-dependent colour presets", "Managed Gutenberg background images", "WordPress-specific fit-to-container metrics"] }),
   quote: makeProfile("quote", "Quote", "core/quote", { block: block("text", ["style", "Style"], ["attribution", "Attribution text"], ["text-alignment", "Text alignment"], ["block-alignment", "Block alignment"]), style: { typography: ["colour", "size", "appearance", "line-height", "letter-spacing", "decoration", "letter-case"], dimensions: ["padding", "margin", "min-height"], border: ["border", "radius", "shadow"] }, studioStyle: ["min-height"], defaults: { typography: ["colour", "size"], border: ["border", "radius"] }, unsupported: ["Multi-paragraph quote editing", "Block gap between nested quote paragraphs"] }),
-  list: makeProfile("list", "List", "core/list", { block: block("text", ["list-style", "Bullets or numbers"], ["ordered-style", "Ordered numbering style", "When the list is ordered"], ["start-reverse", "Start value and reverse order", "When the list is ordered"], ["block-alignment", "Block alignment"]), style: { typography: ["colour", "size", "appearance", "line-height", "letter-spacing", "decoration", "letter-case"], dimensions: ["padding", "margin"], border: ["border", "radius"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"] }, unsupported: ["List Item block-level indent and outdent controls", "Footnote and inline-image insertion from List Item formatting", "Formatting controls for Lists inside container blocks"] }),
+  list: makeProfile("list", "List", "core/list", { block: block("text", ["list-style", "Bullets or numbers"], ["ordered-style", "Ordered numbering style", "When the list is ordered"], ["start-reverse", "Start value and reverse order", "When the list is ordered"], ["block-alignment", "Block alignment"]), style: { typography: ["colour", "size", "appearance", "line-height", "letter-spacing", "decoration", "letter-case"], dimensions: ["padding", "margin"], border: ["border", "radius"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"] }, nestedProfiles: [listItemCapabilityProfile], unsupported: ["List Item block-level indent and outdent controls", "Footnote and inline-image insertion from List Item formatting", "Formatting controls for Lists inside container blocks"] }),
   table: makeProfile("table", "Table", "core/table", { block: block("content", ["table-alignment", "Table alignment"], ["column-alignment", "Per-column content alignment"], ["fixed-width", "Fixed or adaptive cell width"], ["header-footer", "Header and footer rows"], ["table-style", "Default or Stripes"], ["caption", "Caption"]), style: { typography: ["colour", "size", "appearance", "line-height"], dimensions: ["padding", "margin"], border: ["border"] }, defaults: { typography: ["colour", "size"], border: ["border"] }, attributeDefaults: { hasFixedLayout: true }, unsupported: ["Rich-text cells", "Cell links", "Header scope and spanning attributes"] }),
   code: makeProfile("code", "Code", "core/code", { block: block("text", ["block-alignment", "None or Wide alignment"]), style: { typography: ["colour", "size", "family", "appearance", "line-height"], dimensions: ["padding", "margin"], border: ["border", "shadow"] }, defaults: { typography: ["colour", "size"], border: ["border"] }, studio: studio("content", ["language", "Language and syntax highlighting"]), unsupported: ["Full block alignment", "Minimum dimensions", "Managed Gutenberg background images"] }),
   image: makeProfile("image", "Image", "core/image", { block: block("media", ["source", "Image source"], ["alternative-text", "Alternative text or decorative state"], ["caption", "Caption"], ["link-destination", "Link destination"], ["image-style", "Default or Rounded"], ["display-dimensions", "Display width and height"], ["aspect-ratio", "Aspect ratio"], ["scale", "Cover or contain"], ["focal-position", "Focal position"], ["block-alignment", "Block alignment"], ["advanced", "Advanced HTML attributes"]), style: { dimensions: ["margin"], border: ["border", "radius", "shadow"] }, unsupported: ["Resolution variants", "Media crop, rotate and flip", "Duotone derivative", "Image file destination without managed media"] }),

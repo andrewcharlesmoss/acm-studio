@@ -57,6 +57,11 @@ and Column keep their distinct contracts. Block-specific content and media
 fields stay in their owning inspectors. Extract a control only when its state
 and behaviour are genuinely shared.
 
+The nested List Item has its own capability profile attached to List, rather
+than being added to the top-level `ContentBlock` inventory. Its profile owns
+the supported style fields used by the inspector and workspace validator, and
+the List catalogue shows its separate control inventory.
+
 The profiles and table below describe Gutenberg-owned pane controls. Gaps that
 depend on missing content structures or media services remain explicit; do not
 add controls that cannot preserve and apply their values.

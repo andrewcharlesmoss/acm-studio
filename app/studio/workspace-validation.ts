@@ -8,6 +8,7 @@ import { validCustomFontSize } from "../content/font-size";
 import { validSpacerSize } from "../content/spacer";
 import { validLayoutOptions } from "../content/layout";
 import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
+import { listItemSupportedStyleFields } from "./blocks/capability-profiles";
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -28,7 +29,7 @@ const optionalSignedParagraphLength = (value: unknown) => value === undefined ||
 const optionalParagraphColour = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^)]*\))$/i.test(value));
 const optionalParagraphAnchor = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-z][a-z0-9_-]*$/i.test(value));
 const optionalParagraphClasses = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-z0-9 _-]*$/i.test(value));
-const listItemStyleFields = new Set(["fontSize", "fontSizeCustom", "lineHeight", "backgroundColor", "backgroundGradient", "linkColor", "padding", "margin", "anchor"]);
+const listItemStyleFields = new Set(listItemSupportedStyleFields);
 const optionalMediaId = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,159}$/.test(value) && !["__proto__", "prototype", "constructor"].includes(value));
 
 function collectBlockIds(blocks: ContentBlock[], ids = new Set<string>()) {

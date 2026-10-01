@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { blockCapabilityProfiles, capabilityProfileFor, hasScopedStyleControls, resetInspectorStyleFields, retainedLegacyStyleControls, scopedStyleSectionIds } from "../app/studio/blocks/capability-profiles.ts";
+import { blockCapabilityProfiles, capabilityProfileFor, hasScopedStyleControls, listItemCapabilityProfile, listItemSupportedStyleFields, resetInspectorStyleFields, retainedLegacyStyleControls, scopedStyleSectionIds } from "../app/studio/blocks/capability-profiles.ts";
 import { studioControlEntries, studioControlEntryById } from "../app/studio/controls/library-catalogue.ts";
 
 const read = path => readFileSync(resolve(path), "utf8");
@@ -215,6 +215,16 @@ test("the block inspector exposes only Gutenberg-owned shared style groups", () 
 
 test("List compatibility records recursive nesting and independent List Item inspection", () => {
   const unsupported = capabilityProfileFor("list").unsupported;
+  const itemProfile = listItemCapabilityProfile;
+  assert.equal(itemProfile.type, "list-item");
+  assert.equal(itemProfile.parentType, "list");
+  assert.equal(capabilityProfileFor("list").nestedProfiles?.[0], itemProfile);
+  assert.ok(itemProfile.sections.every(section => itemProfile.controls.some(control => control.section === section.id)));
+  assert.ok(itemProfile.controls.every(control => control.fields.every(field => control.resetFields.includes(field))));
+  assert.ok(!itemProfile.controls.flatMap(control => control.fields).includes("textColor"));
+  assert.ok(itemProfile.dependencies.every(dependency => studioControlEntryById[dependency.id]));
+  assert.deepEqual([...itemProfile.resetFields].sort(), ["anchor", "backgroundColor", "backgroundGradient", "fontSize", "fontSizeCustom", "lineHeight", "linkColor", "margin", "padding"].sort());
+  assert.deepEqual([...listItemSupportedStyleFields].sort(), [...new Set(itemProfile.controls.flatMap(control => control.fields))].sort());
   assert.ok(!unsupported.includes("Nested List Item blocks"));
   assert.ok(!unsupported.some(item => item.includes("List Item anchor")));
   assert.ok(unsupported.includes("List Item block-level indent and outdent controls"));
@@ -226,6 +236,9 @@ test("List compatibility records recursive nesting and independent List Item ins
   assert.match(compatibility, /The List Item contract does not declare text-colour support/);
   assert.match(compatibility, /Rich-text table cells remain\s+an\s+unsupported typed-model capability/);
   assert.doesNotMatch(compatibility, /Known typed-model gaps remain nested List Items/);
+  assert.match(read("app/studio/blocks/list-item-inspector.tsx"), /new Set\(listItemSupportedStyleFields\)/);
+  assert.match(read("app/studio/workspace-validation.ts"), /new Set\(listItemSupportedStyleFields\)/);
+  assert.match(read("app/studio/ui/blocks/block-specimen-catalogue.tsx"), /profile\.nestedProfiles/);
 });
 
 test("every reusable Controls entry has a grouped anchor specimen and compatible direct route", () => {
