@@ -209,6 +209,21 @@ test("the block inspector exposes only Gutenberg-owned shared style groups", () 
   assert.match(inspector, /background: showBackground \? <InspectorAccordionSection className="inspector-panel" title="Background">/);
 });
 
+test("List compatibility records recursive nesting and the remaining List Item inspector gap", () => {
+  const unsupported = capabilityProfileFor("list").unsupported;
+  assert.ok(!unsupported.includes("Nested List Item blocks"));
+  assert.ok(unsupported.includes("List Item anchor, background colour, gradient, link colour, font size, line height, margin and padding inspector settings"));
+  assert.ok(unsupported.includes("List Item block-level indent and outdent controls"));
+  assert.ok(unsupported.includes("Footnote and inline-image insertion from List Item formatting"));
+
+  const compatibility = read("docs/block-inspector-compatibility.md");
+  assert.match(compatibility, /recursive nested items with Tab\/Shift\+Tab indentation/);
+  assert.match(compatibility, /cannot yet be selected as independent blocks/);
+  assert.match(compatibility, /The List Item contract does not declare text-colour support/);
+  assert.match(compatibility, /Rich-text table cells remain\s+an unsupported typed-model capability/);
+  assert.doesNotMatch(compatibility, /Known typed-model gaps remain nested List Items/);
+});
+
 test("every reusable Controls entry has a grouped anchor specimen and compatible direct route", () => {
   assert.equal(studioControlEntries.length, 12);
   assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 12);
