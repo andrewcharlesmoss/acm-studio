@@ -1,7 +1,7 @@
 export type StudioControlEntry = {
   id: string;
   title: string;
-  group: "Colour" | "Typography" | "Sizing" | "Style" | "Media" | "Inspector";
+  group: "Foundation" | "Colour" | "Typography" | "Sizing" | "Style" | "Media" | "Inspector";
   purpose: string;
   owner: string;
   consumers: string[];
@@ -10,6 +10,7 @@ export type StudioControlEntry = {
 };
 
 export const studioControlEntries: StudioControlEntry[] = [
+  { id: "slider-foundation", title: "Slider", group: "Foundation", purpose: "Set and preview the shared accent colour inherited by Studio range controls.", owner: "ACM Studio shared range styling", consumers: ["Custom font size", "Paragraph length", "Box dimensions", "Focal position", "Background image width", "Design canvas zoom, opacity, edge cleanup and arrowhead size", "Ribbon range specimens"], states: "Shared accent colour, keyboard focus and disabled state; temporary colour preview and reset.", compatibility: "Consumers keep their existing native range values, bounds, steps and behaviour. Gradient hue and alpha controls retain their specialist colour tracks." },
   { id: "colour-picker", title: "Colour picker", group: "Colour", purpose: "Choose a preset or custom colour, including independent Default and Hover values.", owner: "ACM Studio controls", consumers: ["Paragraph text and links", "Separator colour", "Block backgrounds"], states: "Unset and explicit colours, selected swatches, focus, contrast warning, Default/Hover, clear and disabled.", compatibility: "Uses the shared ACM palette and preserves explicit custom colour values." },
   { id: "background-selection", title: "Background colour and gradient", group: "Colour", purpose: "Choose a solid palette colour or edit a linear or radial gradient.", owner: "ACM Studio controls", consumers: ["Paragraph", "Quote", "Group"], states: "Stacked colour and gradient controls, twelve default presets, colour stops, opacity, type, angle and reset.", compatibility: "Preserves legacy gradient names and stores validated custom gradient stops in ParagraphStyle." },
   { id: "custom-font-size", title: "Custom font size", group: "Typography", purpose: "Edit supported custom font-size units with a compact range control.", owner: "ACM Studio controls", consumers: ["Paragraph and shared Typography inspectors"], states: "px, em, rem, vw and vh; numeric entry, unit menu, range adjustment, pointer drag and reset.", compatibility: "Normalises values through the existing custom font-size contract." },
@@ -25,7 +26,7 @@ export const studioControlEntries: StudioControlEntry[] = [
   { id: "inspector-accordion", title: "Accordion section", group: "Inspector", purpose: "Group related inspector settings behind a collapsible section heading.", owner: "ACM Studio inspector", consumers: ["Block, template and document inspector sections"], states: "Expanded and collapsed; semantic disclosure control and contained settings.", compatibility: "The catalogue uses the shared production accordion component." },
 ];
 
-export const studioControlGroups = ["Colour", "Typography", "Sizing", "Style", "Media", "Inspector"] as const;
+export const studioControlGroups = ["Foundation", "Colour", "Typography", "Sizing", "Style", "Media", "Inspector"] as const;
 export function controlGroupId(group: string) {
   return `control-group-${group.toLocaleLowerCase("en-GB")}`;
 }

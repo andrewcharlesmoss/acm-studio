@@ -2,6 +2,7 @@
   --accent: #1e1e1e;
   --accent-soft: #e7e7e5;
   --accent-strong: #1e1e1e;
+  --studio-range-accent: var(--gutenberg-accent);
   --studio-toolbar-active: #e7e7e5;
   background: #ecebe6;
   color: var(--ink);
@@ -1162,8 +1163,8 @@
 .paragraph-custom-font-size-unit-check { align-items: center; display: inline-flex; height: 18px; justify-content: center; width: 18px; }
 .paragraph-custom-font-size-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 /* Shared Gutenberg-style treatment for value sliders; colour spectrum inputs keep their specialist tracks. */
-.studio-range-control[type="range"] { accent-color: var(--gutenberg-accent); appearance: auto; -webkit-appearance: auto; background: transparent; border: 0; cursor: pointer; min-height: 20px; min-width: 0; padding: 0; }
-.studio-range-control:focus-visible { outline: var(--focus-ring-width) solid var(--gutenberg-accent); outline-offset: 3px; }
+.studio-range-control[type="range"] { accent-color: var(--studio-range-accent); appearance: auto; -webkit-appearance: auto; background: transparent; border: 0; cursor: pointer; min-height: 20px; min-width: 0; padding: 0; }
+.studio-range-control:focus-visible { outline: var(--focus-ring-width) solid var(--studio-range-accent); outline-offset: 3px; }
 .studio-range-control:disabled { cursor: not-allowed; opacity: .55; }
 .paragraph-custom-font-size-slider { width: 100%; }
 .paragraph-font-size-options { border: 1px solid #d1cfc7; border-radius: 7px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: hidden; }

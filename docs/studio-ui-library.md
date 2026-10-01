@@ -20,8 +20,9 @@ The library has nine sections:
   isolated editing specimens. A grouped index covers all 27 typed block types,
   plus the template Content slot. Each entry has a detail route at
   `/studio/ui/blocks/{type}`; Paragraph keeps `/studio/ui/blocks/paragraph`.
-- **Controls** — all 12 working shared inspector controls with their supported
-  states, ownership and consumers on the grouped `/studio/ui/controls` page.
+- **Controls** — 13 working inspector controls and a shared Slider foundation,
+  with their supported states, ownership and consumers on the grouped
+  `/studio/ui/controls` page.
   Group and control links jump to in-page specimen anchors. Recognised legacy
   `/studio/ui/controls/{id}` detail routes redirect to the matching anchor.
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
@@ -103,10 +104,10 @@ The preview uses ordinary linked text, and inspector control inventory,
 relationships and compatibility notes are collapsed disclosures. No specimen
 reads real documents, browser persistence or the product write lock.
 
-The Controls section contains 12 shared controls on one grouped page, with
-in-page jump links and isolated specimen state. It retains the original six
-specimens and adds border settings, font size and Appearance, background
-colour/gradient, preset number, image
+The Controls section presents 13 working controls and a standalone Slider
+foundation on one grouped page, with in-page jump links and isolated specimen
+state. It retains the original inspector specimens and adds border settings,
+font size and Appearance, background colour/gradient, preset number, image
 dimensions and focal position. The production inspector and specimens share
 the extracted BorderSettings, BackgroundSelection, FontSizeAppearanceSetting,
 ImageDimensionsSetting, FocalPositionSetting and PresetNumberSetting controls.
@@ -114,6 +115,12 @@ Colour-picker ownership includes palette selection, Default/Hover values,
 swatch geometry, popover positioning and dismissal. Text actions such as Clear
 and the gradient angle dial marker use `--gutenberg-accent` for Gutenberg's
 accent blue, including their reference hover and focus states.
+The Slider foundation owns `--studio-range-accent`, the shared accent and focus
+colour for standard `.studio-range-control` inputs. Its Controls specimen can
+preview a temporary colour across the standard range examples and lists the
+Studio consumers that inherit it. Consumers retain their native range values,
+bounds, steps and behaviour. Gradient hue and alpha inputs use specialist
+colour tracks and are not consumers of this slider accent.
 Its theme palette uses the
 shared ACM semantic colour tokens, with 28px circular swatches, Gutenberg-like
 spacing and selected borders in up to six columns, a 262px desktop popover and

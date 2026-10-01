@@ -35,7 +35,7 @@ const blockLinksByControl: Record<string, string[]> = {
   "inspector-accordion": ["paragraph", "template-content"],
 };
 
-export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
+export function ControlSpecimen({ entry, sliderAccent, onSliderAccentChange }: { entry: StudioControlEntry; sliderAccent: string; onSliderAccentChange: (value: string | null) => void }) {
   const [colour, setColour] = useState<string | undefined>("#374151");
   const [hoverColour, setHoverColour] = useState<string | undefined>("#2563a6");
   const [fontSize, setFontSize] = useState<string | undefined>("1.5rem");
@@ -44,6 +44,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
   const [padding, setPadding] = useState<string | undefined>("24px");
   const [visible, setVisible] = useState(new Set<string>(["line-height"]));
   const [showInspectorExample, setShowInspectorExample] = useState(true);
+  const [sliderExampleValue, setSliderExampleValue] = useState(64);
   const [borderStyle, setBorderStyle] = useState<ParagraphStyle>({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" });
   const [fontPreset, setFontPreset] = useState<ParagraphFontSize | undefined>("large");
   const [fontCustom, setFontCustom] = useState<string | undefined>();
@@ -64,6 +65,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
 
   function resetExample() {
     switch (entry.id) {
+      case "slider-foundation": onSliderAccentChange(null); setSliderExampleValue(64); break;
       case "colour-picker": setColour("#374151"); setHoverColour("#2563a6"); break;
       case "custom-font-size": setFontSize("1.5rem"); break;
       case "line-height": setLineHeight("1.5"); break;
@@ -88,6 +90,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
     <div className="ui-control-detail-card" aria-labelledby={`control-specimen-${entry.id}`}>
       <div className="ui-control-detail-header"><h4 id={`control-specimen-${entry.id}`}>Live specimen</h4></div>
       <div key={resetRevision} className={`ui-control-detail-example inspector-sections${entry.id === "border-settings" || entry.id === "image-dimensions" ? " is-wide" : ""}`}>
+        {entry.id === "slider-foundation" ? <div className="ui-control-slider-foundation"><label htmlFor="ui-slider-foundation-colour">Shared slider accent colour<input id="ui-slider-foundation-colour" type="color" value={sliderAccent} onChange={event => onSliderAccentChange(event.target.value)} /></label><div className="ui-control-slider-example"><label htmlFor="ui-slider-foundation-example">Range example</label><input className="studio-range-control" id="ui-slider-foundation-example" type="range" min="0" max="100" value={sliderExampleValue} onChange={event => setSliderExampleValue(Number(event.target.value))} /></div><p>Preview colour: <code>{sliderAccent.toUpperCase()}</code>. Changing it previews every standard slider on this Controls page; the value is temporary and Reset example restores the default.</p><div><strong>Inherits this style</strong><ul><li><a href="#custom-font-size">Custom font size</a></li><li><a href="#paragraph-length">Paragraph length</a></li><li><a href="#box-length">Box dimensions</a></li><li><a href="#focal-position">Focal position</a></li><li>Background image width in Studio inspectors</li><li>Canvas zoom, object opacity, edge cleanup and arrowhead size in Design</li><li>Range specimens in the Ribbon catalogue</li></ul></div><p>Gradient hue and alpha sliders use specialist colour tracks and are intentionally excluded.</p></div> : null}
         {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" paletteClassName="ui-control-colour-palette" /><p>Default: {colour ?? "Unset"} · Hover: {hoverColour ?? "Unset"}</p><button className="studio-clear-action" type="button" onClick={() => { setColour(undefined); setHoverColour(undefined); }}>Clear both colours</button></div><div className="ui-control-state-examples"><ColourPicker label="Disabled colour" value="#0088ff" onChange={() => {}} disabled wrapperClassName="ui-control-disabled" /><div className="ui-control-swatch-states" aria-label="Overlapping unset colour swatches"><ColourValueSwatch /><ColourValueSwatch overlap /></div><span>Unset swatches overlap with opaque white centres. The disabled picker cannot be opened.</span></div></div> : null}
         {entry.id === "custom-font-size" ? <div className="ui-control-live ui-control-size-example"><CustomFontSizeSetting value={fontSize} onChange={setFontSize} /><p>Current value: {fontSize ?? "Default"}</p></div> : null}
         {entry.id === "paragraph-length" ? <div className="ui-control-live ui-control-size-example"><ParagraphLengthSetting label="Line indent" value={indent} min={-100} max={300} onChange={setIndent} /><p>Current value: {indent ?? "Default"}</p><ParagraphLengthSetting label="Disabled example" value="16px" min={0} max={100} disabled onChange={() => {}} /></div> : null}
