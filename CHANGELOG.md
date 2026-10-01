@@ -7,6 +7,7 @@
 - Expanded the Blocks library from the Paragraph pilot to all 27 typed block types plus the template Content slot, with profile-driven pane inventories, isolated production-editor specimens, history, reset, nested selection and compatibility notes. Expanded Controls to one grouped page with 12 in-page specimens, compatible direct-route anchors, and shared border, background, typography, image-dimensions, focal-position and preset-number controls between the inspector and catalogue.
 
 ### Changed
+- Hovering a mapped row in the Styles guide tables now highlights its matching live preview specimen, completing the two-way preview and guide interaction.
 - The Styles guide and editor now identify normal and hover button text colours explicitly; each colour can be changed per button variant and updates its temporary live preview.
 - Colour and gradient Clear actions and the gradient angle dial marker now follow Gutenberg's accent-blue treatment by default, with their hover and focus feedback retained.
 - Separator background colour and gradient now use the shared Gutenberg-style Background control and render on the separator rule in the editor, preview and public renderer.

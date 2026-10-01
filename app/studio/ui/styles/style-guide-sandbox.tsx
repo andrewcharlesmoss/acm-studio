@@ -108,6 +108,7 @@ export function StyleGuideSandbox() {
   const [buttonRole, setButtonRole] = useState<ButtonRole>("base");
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("settings");
   const [hoveredSourcePath, setHoveredSourcePath] = useState<string | null>(null);
+  const [hoveredGuidePath, setHoveredGuidePath] = useState<string | null>(null);
   const [focusedSourcePath, setFocusedSourcePath] = useState<string | null>(null);
   const [pinnedSourcePath, setPinnedSourcePath] = useState<string | null>(null);
   const [guideQuery, setGuideQuery] = useState("");
@@ -124,8 +125,8 @@ export function StyleGuideSandbox() {
   const guidePathByLine = Object.fromEntries(Object.entries(styleMappings)
     .filter(([path, mapping]) => path === mapping.rowPath)
     .map(([path, mapping]) => [mapping.line, path])) as Record<number, string>;
-  const selectedPreviewPath = previewPathForStylePath(pinnedSourcePath);
-  const activeSourcePath = pinnedSourcePath ?? hoveredSourcePath ?? focusedSourcePath ?? `typography.${role}.size`;
+  const selectedPreviewPath = previewPathForStylePath(hoveredGuidePath ?? pinnedSourcePath);
+  const activeSourcePath = hoveredGuidePath ?? pinnedSourcePath ?? hoveredSourcePath ?? focusedSourcePath ?? `typography.${role}.size`;
   const activeSource = styleMappings[activeSourcePath] ?? styleMappings["typography.body.size"];
   const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @acm/styles token" : displayStyleValue(pathValue(UNIVERSAL_STYLE_PRESET, activeSourcePath), viewport);
   const activeValue = activeSourcePath.startsWith("specimen.") ? "Documented specimen guidance" : displayStyleValue(pathValue(preset, activeSourcePath), viewport);
@@ -137,7 +138,7 @@ export function StyleGuideSandbox() {
   }) : [];
 
   useEffect(() => {
-    if (!hasSourceInteraction.current) return;
+    if (!hasSourceInteraction.current || hoveredGuidePath) return;
     const guides = guideSourceRef.current?.querySelectorAll<HTMLElement>(".sg-guide-document");
     if (!guides?.length) return;
     guideScrollSyncSuspended.current = true;
@@ -160,7 +161,7 @@ export function StyleGuideSandbox() {
       activeGuide?.removeEventListener("scrollend", resumeSync);
       guideScrollSyncSuspended.current = false;
     };
-  }, [activeGuideLine]);
+  }, [activeGuideLine, hoveredGuidePath]);
 
   function sourcePathFromTarget(target: EventTarget | null): string | null {
     return target instanceof Element ? target.closest<HTMLElement>("[data-style-path]")?.dataset.stylePath ?? null : null;
@@ -212,6 +213,20 @@ export function StyleGuideSandbox() {
     setFocusedSourcePath(null);
     setPinnedSourcePath(selectedPath);
     setGuideJumpLine(null);
+  }
+
+  function hoverGuideSource(event: PointerEvent<HTMLDivElement>) {
+    const target = event.target;
+    const path = target instanceof Element
+      ? target.closest<HTMLElement>("[data-guide-style-path]")?.dataset.guideStylePath ?? null
+      : null;
+    hasSourceInteraction.current = false;
+    setHoveredGuidePath(path && styleMappings[path] ? path : null);
+  }
+
+  function clearGuideHover() {
+    hasSourceInteraction.current = false;
+    setHoveredGuidePath(null);
   }
 
   function updateTypography(update: (current: UniversalStylePreset["typography"][TypographyRole]) => UniversalStylePreset["typography"][TypographyRole]) {
@@ -346,7 +361,7 @@ export function StyleGuideSandbox() {
           <div className="sg-preview-heading"><div><p className="rl-eyebrow">LIVE PREVIEW</p><h2>Style specimens</h2></div><span>{viewportRoles.find(item => item.id === viewport)?.label} preview</span></div>
           {/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- This labelled preview region needs focus so keyboard users can scroll contained overflow. */}
           <div className="sg-preview-frame" role="region" tabIndex={0} aria-label="Scrollable style specimen preview" data-viewport={viewport}>
-            <div className="sg-preview acm-universal-style-preset" style={variables} data-source-selected={pinnedSourcePath?.startsWith("layout.") ? "true" : undefined}>
+            <div className="sg-preview acm-universal-style-preset" style={variables} data-source-selected={(hoveredGuidePath ?? pinnedSourcePath)?.startsWith("layout.") ? "true" : undefined}>
               <header className="sg-site-identity"><div className="sg-site-icon" aria-hidden="true">AM</div><div><strong>ACM Studio</strong><span data-style-path="typography.metadata.size" data-source-selected={selectedPreviewPath === "typography.metadata.size" ? "true" : undefined}>Universal style specimen</span></div><nav className="acm-navigation" data-style-path="typography.navigation.size" data-source-selected={selectedPreviewPath === "typography.navigation.size" ? "true" : undefined} aria-label="Example site navigation"><a href="#specimens">Home</a><a href="#colours">About</a><a href="#buttons">Contact</a></nav></header>
               <section id="buttons" className="sg-example-section sg-button-specimens"><h2>Buttons</h2><div>
                 <button data-style-path="buttons.base.background" data-source-selected={selectedPreviewPath === "buttons.base.background" ? "true" : undefined} type="button" className="acm-button"><span data-style-path="typography.button.size" data-source-selected={selectedPreviewPath === "typography.button.size" ? "true" : undefined}>Base button</span></button>
@@ -376,6 +391,8 @@ export function StyleGuideSandbox() {
           pinned={pinnedSourcePath !== null}
           guidePathByLine={guidePathByLine}
           onSelectSource={selectGuideSource}
+          onHoverSource={hoverGuideSource}
+          onClearHover={clearGuideHover}
           guideScrollSyncSuspendedRef={guideScrollSyncSuspended}
           onQueryChange={value => { setGuideQuery(value); setGuideMatchIndex(0); setGuideJumpLine(null); }}
           onMatchChange={direction => {
@@ -442,6 +459,8 @@ type GuideSourcePanelProps = {
   pinned: boolean;
   guidePathByLine: Record<number, string>;
   onSelectSource: (path: string) => void;
+  onHoverSource: (event: PointerEvent<HTMLDivElement>) => void;
+  onClearHover: () => void;
   guideScrollSyncSuspendedRef: { current: boolean };
   onQueryChange: (value: string) => void;
   onMatchChange: (direction: number) => void;
@@ -450,7 +469,7 @@ type GuideSourcePanelProps = {
 
 const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(function GuideSourcePanel({
   activePath, mapping, currentValue, baselineValue, relatedButtonValues, lines, view, onViewChange, sourceRevision, query, matchCount,
-  matchIndex, activeLine, pinned, guidePathByLine, onSelectSource, guideScrollSyncSuspendedRef, onQueryChange, onMatchChange, onClearPin,
+  matchIndex, activeLine, pinned, guidePathByLine, onSelectSource, onHoverSource, onClearHover, guideScrollSyncSuspendedRef, onQueryChange, onMatchChange, onClearPin,
 }, ref) {
   const formattedGuideRef = useRef<HTMLDivElement>(null);
   const markdownGuideRef = useRef<HTMLDivElement>(null);
@@ -496,7 +515,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
         <div><dt>Guide location</dt><dd>Line {mapping.line}</dd></div>
       </dl>
       {relatedButtonValues.length ? <details className="sg-related-values"><summary>All {buttonPathPartsLabel(activePath)} button properties</summary><dl>{relatedButtonValues.map(item => <div key={item.path}><dt>{item.path.split(".").at(-1)}</dt><dd>{item.current}<span>Baseline {item.baseline}</span></dd></div>)}</dl></details> : null}
-      <p className="sg-source-help">Hover or focus a preview item to inspect its rule. Click a mapped guide line, or focus its selection button and press Enter or Space, to select the matching preview item.</p>
+      <p className="sg-source-help">Hover a mapped guide table row to highlight its preview specimen. Hover or focus a preview item to inspect its rule. Click a mapped guide line, or focus its selection button and press Enter or Space, to select the matching preview item.</p>
       <blockquote><code>{mapping.excerpt}</code></blockquote>
       {activePath.startsWith("specimen.") ? <p className="sg-source-note">This is written guidance for the example. It is not a token in the executable preset.</p> : null}
     </section>
@@ -511,6 +530,8 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
     </div>
     <div
       className="sg-guide-views"
+      onPointerOverCapture={onHoverSource}
+      onPointerLeave={onClearHover}
       onWheelCapture={resumeScrollSync}
       onTouchStartCapture={resumeScrollSync}
       onPointerDownCapture={resumeScrollSync}

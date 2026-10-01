@@ -139,7 +139,9 @@ sorting.
 Styles previews the `@acm/styles` v0.2.0 preset beside the full written
 workspace Style Guide. Hovering or focusing a specimen or setting shows its
 baseline, current sandbox value, guide excerpt and exact line; clicking or
-tapping pins the source selection. The guide view records its source commit and
+tapping pins the source selection. Hovering a mapped row in a guide table
+temporarily highlights its matching specimen in the live preview; moving away
+restores any pinned selection. The guide view records its source commit and
 content digest. Its generated line index is bundled with Studio, so the hosted
 page does not read another repository at runtime. After committing a guide
 change, run `npm run styles:source` from the ACM Studio root to refresh that
