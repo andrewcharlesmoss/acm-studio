@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-- Added a standalone Slider foundation to the Controls library, with one shared accent colour, a temporary inherited-colour preview and a visible consumer list.
+- Added a standalone Slider foundation to the Controls library, with shared accent and hover colours, a temporary inherited-colour preview and a visible consumer list.
 - Added a concise dependency summary to each Controls section, with full dependency details in its ownership and compatibility disclosure.
 - Added sorting by the first-added date and time for shared interface icons, with the selected symbol's timestamp shown in UK local time.
 - Expanded the Blocks library from the Paragraph pilot to all 27 typed block types plus the template Content slot, with profile-driven pane inventories, isolated production-editor specimens, history, reset, nested selection and compatibility notes. Expanded Controls to one grouped page with 13 working control specimens plus its standalone Slider foundation, compatible direct-route anchors, and shared border, background, typography, image-dimensions, focal-position and preset-number controls between the inspector and catalogue.

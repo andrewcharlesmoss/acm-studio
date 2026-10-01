@@ -116,12 +116,14 @@ swatch geometry, popover positioning and dismissal. Text actions such as Clear
 and the gradient angle dial marker use `--gutenberg-accent` for Gutenberg's
 accent blue, including their reference hover and focus states.
 The Slider foundation owns `--studio-range-accent`, the shared accent and focus
-colour for standard `.studio-range-control` inputs. Its Controls specimen can
-preview a temporary colour across the standard range examples. The section
-summary shows how many Controls sections inherit it; the disclosure lists
-those sections and external consumers. Consumers retain their native range values,
-bounds, steps and behaviour. Gradient hue and alpha inputs use specialist
-colour tracks and are not consumers of this slider accent.
+colour for standard `.studio-range-control` inputs. Pointer hover uses
+`--studio-range-hover-accent`, which falls back to the shared accent until an
+independent hover colour is supplied. Its Controls specimen can temporarily
+preview both colours across standard range examples. The section summary shows
+how many Controls sections inherit it; the disclosure lists those sections and
+external consumers. Consumers retain their native range values, bounds, steps
+and behaviour. Gradient hue and alpha inputs use specialist colour tracks and
+are not consumers of these shared slider colours.
 Each Controls section shows a concise dependency summary beside its specimen;
 the full details sit in the ownership and compatibility disclosure. The
 inventory includes composed dependencies and conditional or transitive slider
