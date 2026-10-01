@@ -117,13 +117,15 @@ and the gradient angle dial marker use `--gutenberg-accent` for Gutenberg's
 accent blue, including their reference hover and focus states.
 The Slider foundation owns `--studio-range-accent`, the shared accent and focus
 colour for standard `.studio-range-control` inputs. Its Controls specimen can
-preview a temporary colour across the standard range examples and lists the
-Studio consumers that inherit it. Consumers retain their native range values,
+preview a temporary colour across the standard range examples. The section
+summary shows how many Controls sections inherit it; the disclosure lists
+those sections and external consumers. Consumers retain their native range values,
 bounds, steps and behaviour. Gradient hue and alpha inputs use specialist
 colour tracks and are not consumers of this slider accent.
-Each Controls section now shows its shared control dependencies beside the
-specimen. The inventory includes composed dependencies and conditional or
-transitive slider styling, while keeping specialist gradient tracks excluded.
+Each Controls section shows a concise dependency summary beside its specimen;
+the full details sit in the ownership and compatibility disclosure. The
+inventory includes composed dependencies and conditional or transitive slider
+styling, while keeping specialist gradient tracks excluded.
 Its theme palette uses the
 shared ACM semantic colour tokens, with 28px circular swatches, Gutenberg-like
 spacing and selected borders in up to six columns, a 262px desktop popover and

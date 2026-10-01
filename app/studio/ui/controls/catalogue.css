@@ -24,13 +24,8 @@
 .ui-control-detail-example .ui-control-state-examples { max-width:400px; }
 .ui-control-detail-example .ui-control-image-dimensions { width:min(100%,720px); }
 .ui-control-detail-note { margin:0; padding:.1rem 1rem 1rem; color:var(--rl-muted); font-size:.875rem; }
-.ui-control-dependencies { margin:.6rem 0 .8rem; padding:.65rem .8rem; border:1px solid var(--rl-line); border-radius:6px; background:#f7f6f2; font-size:.875rem; }
-.ui-control-dependencies > strong { display:block; margin-bottom:.25rem; }
-.ui-control-dependencies ul { margin:.2rem 0 0; padding-left:1.2rem; }
-.ui-control-dependencies li + li { margin-top:.2rem; }
-.ui-control-dependencies li > span { font-weight:600; }
-.ui-control-dependencies a { color:var(--rl-accent); }
-.ui-control-dependencies p { margin:.2rem 0 0; color:var(--rl-muted); }
+.ui-control-dependency-summary { margin:.55rem 0 .8rem; color:var(--rl-muted); font-size:.875rem; overflow-wrap:anywhere; }
+.ui-control-dependency-summary strong { color:var(--rl-ink); }
 .ui-control-tools-example { display:grid; grid-template-columns:minmax(0,1fr); justify-items:start; gap:.75rem; }
 .ui-control-tools-example .inspector-tools-section { width:100%; min-width:0; min-height:104px; }
 .ui-control-tools-example .inspector-tools-content,.ui-control-tools-example .ui-control-tools-field { min-width:0; }
@@ -69,9 +64,12 @@
 .ui-control-facts > summary:focus-visible { outline:2px solid #465b78; outline-offset:3px; }
 .ui-control-facts > dl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.75rem; margin:.5rem 0 0; }
 .ui-control-facts dl > div { min-width:0; }
+.ui-control-facts dl > .ui-control-fact-dependencies { grid-column:1 / -1; }
 .ui-control-facts dt { font-size:.875rem; font-weight:600; }
 .ui-control-facts dd { margin:.2rem 0 0; color:var(--rl-muted); overflow-wrap:anywhere; }
 .ui-control-facts dd a { color:var(--rl-accent); }
+.ui-control-dependency-list { display:grid; gap:.3rem; margin:0; padding-left:1.2rem; }
+.ui-control-dependency-list a:focus-visible { outline:2px solid var(--rl-accent); outline-offset:2px; }
 .ui-control-image-dimensions { display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,1fr); align-items:start; gap:1rem; }
 .ui-control-image-preview-frame { min-width:0; max-width:100%; overflow:auto; overscroll-behavior:contain; }
 .image-dimensions-setting { display:grid; min-width:0; gap:.65rem; margin:0; padding:0; border:0; }
