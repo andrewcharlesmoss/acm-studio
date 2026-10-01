@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "sourcePath": "workspace-governance/STYLE_GUIDE.md",
-  "sourceRevision": "17b9467caeee0ed0a23051148521dc7b3c2d9c6a",
-  "sourceDigest": "a73ca4b0679f845831985a96a115e34853c4b2c0aaa1f20863af028b521ba30d",
-  "document": "# Workspace style guide\n\n## Scope\n\nThis guide defines the shared writing, editorial and interface baseline for\nprojects in the workspace.\n\nProject and feature guides may extend this guidance with product identity,\nplatform conventions and deliberate exceptions. They must not silently\ncontradict shared accessibility or clarity standards.\n\n## Language and editorial style\n\n- Use British English in visible copy and documentation.\n- Put a space either side of an em dash — like this.\n- Use clear, direct language appropriate to the audience.\n- Address people directly where it helps, focus on what they can do and prefer\n  active voice unless passive voice is genuinely clearer.\n- Use familiar words and simple sentence structures. Avoid unnecessary jargon,\n  idioms, colloquialisms, abbreviations and culturally specific metaphors,\n  especially in content that may be localised.\n- Use common contractions where they make the voice more natural, but avoid\n  awkward, ambiguous or highly colloquial contractions.\n- Preserve the intended meaning, local phrasing and tone when editing existing\n  copy.\n- Do not invent claims, guarantees or product capabilities.\n- Keep product, marketing, documentation and social content appropriate to their\n  different contexts.\n- Use approved product names and terminology consistently.\n- Record deliberate terminology decisions in the relevant project guide.\n\n## Andrew's writing voice\n\nUse these principles when writing original editorial, explanatory, project or\nsocial content in Andrew's name. They describe durable traits observed across\nhis writing, not punctuation or formatting habits tied to one period or format.\n\nFunctional interface copy, safety-critical instructions and content intended\nfor localisation should retain the clarity and accessibility required by their\ncontext. Project guides may define a more specific product voice.\n\n### Core voice\n\n- Write as an observant, informed participant rather than a detached authority\n  or corporate narrator.\n- Begin with something concrete where possible: an experience, result, problem,\n  detail, question or inconsistency that gives the subject a reason to matter.\n- Explain the mechanism or consequence, not only what happened. Support\n  important claims with relevant examples, figures, dates, versions,\n  comparisons or first-hand evidence.\n- Distinguish confirmed facts, reasonable inference, personal opinion and what\n  remains unknown. State a clear judgement once the evidence supports one.\n- Use first person when direct experience establishes useful context or\n  credibility. Address the reader as a capable peer, not a passive audience.\n- Prefer plain, specific language and natural contractions. Retain British and\n  local phrasing where it belongs, without forcing slang or culturally specific\n  language into contexts where it would reduce clarity.\n- Let humour, enthusiasm and irritation emerge from the subject. Keep their\n  intensity proportionate to the evidence and direct criticism towards\n  decisions, systems, products and practices rather than gratuitous personal\n  attacks.\n- Keep paragraphs focused and vary the rhythm naturally. Short sentences or\n  fragments may provide emphasis, but should not become a repeated formula.\n- Finish when the point has landed. End with a useful consequence, return to the\n  opening, a clear judgement or a genuine question rather than a padded summary\n  or automatic request for engagement.\n\n### Proportion and format\n\n- Write concisely by default, but do not confuse brevity with completeness.\n  Longer work should earn its length through original investigation,\n  experimentation, substantial first-hand experience or durable reference\n  value.\n- For technical writing, establish the problem and relevant compatibility\n  constraints, show the method, explain why it works and identify material\n  limitations. Avoid documenting every adjacent possibility when it does not\n  help the reader complete the task.\n- For investigations, move from the triggering observation through evidence to\n  a defensible conclusion. Present the strongest alternative explanation or\n  uncertainty before making a forceful claim.\n- For personal and opinion writing, retain concrete details and chronological\n  movement while connecting the experience to a wider point.\n- Make short posts understandable without requiring an unseen image, video or\n  document to supply essential context.\n- When adapting material for another format, reshape it for that audience and\n  purpose. Avoid publishing near-duplicate versions unless the distinction is\n  deliberate and useful.\n- Date or qualify version-specific guidance where product behaviour is likely to\n  change.\n\n### Editing and preservation\n\n- Preserve Andrew's identity, purpose, meaning, local phrasing and manually\n  chosen character when editing his writing. Improve clarity without flattening\n  it into generic corporate, marketing or AI-generated prose.\n- When asked only to correct spelling, punctuation or grammar, make the lightest\n  mechanical changes necessary and do not rewrite unaffected passages.\n- Do not reproduce the frequency of rhetorical questions, emphatic\n  capitalisation, emojis, ellipses or em dashes from one article or period as if\n  it were a permanent voice requirement.\n- Remove avoidable repetition, excessive scene-setting and conclusions that\n  restate the introduction. Calibrate strong adjectives and headlines to the\n  scale of the demonstrated problem.\n- Avoid formulaic openings and endings, forced jokes, unsupported certainty,\n  generic motivational language and stock phrases associated with corporate or\n  AI-generated writing.\n\n## Inclusive language and examples\n\n- Consider how language may be understood by people with different cultures,\n  identities, abilities and levels of English fluency.\n- Use singular `they` for a person of unspecified gender. Do not assume a\n  person’s gender, pronouns, disability or preferred form of identification.\n- Avoid violent, oppressive or ableist metaphors for technology when a clear,\n  neutral term is available.\n- Describe what happens without assuming that someone sees, hears or performs\n  an interaction in a particular way.\n- Use neutral, descriptive examples and placeholders rather than real personal\n  information. When names are genuinely useful, vary cultures, genders and name\n  structures without relying on stereotypes.\n\n## Naming and capitalisation\n\n- Follow the official product name defined by the relevant project.\n- Do not change a product name’s capitalisation or spelling for convenience.\n- Use sentence case for documentation headings, longer interface headings,\n  descriptions, instructions, help text and body copy.\n- Use title case for short interface labels, including buttons, ribbon tabs,\n  navigation items, menu items and compact feature names.\n- Apply the chosen casing consistently within each product, while preserving\n  official product names and platform-specific conventions.\n- Prefer concise labels that describe the action or state.\n- Do not impose one casing system on every platform or product without evidence.\n\n## Typography\n\n- Use `Inter, \"Helvetica Neue\", \"Helvetica\", \"Arial\", sans-serif` as the\n  shared default interface font stack.\n- Projects inherit this default unless their project guide documents a\n  deliberate product or platform-specific exception.\n- Keep exceptions narrow and document whether they apply to the whole product,\n  a platform, a brand mark or a specific component.\n\n### Web typography baseline\n\n- Keep the root font size at `100%` so relative text sizing respects the\n  browser's font preferences.\n- Use `rem` for text sizes. Use `em` for component details that should scale\n  with their surrounding text, and use `px` where appropriate for thin borders\n  and other fine visual details.\n- Prefer `1.0625rem` for body copy, primary values and important explanations,\n  and `1rem` for form labels, input text, buttons and navigation. These normally\n  render as 17px and 16px respectively.\n- Use `0.875rem` for brief secondary metadata, captions and compact badges.\n  Do not reduce primary information to caption size to make a layout fit.\n- Use a unitless line height, normally around `1.5` for body text. Longer\n  passages may need more space.\n- Use regular, medium and semibold weights deliberately. Avoid thin text and\n  excessive bolding, especially at smaller sizes.\n- Keep readable text sizes on mobile and adapt the layout when text is\n  enlarged. Verify that text and controls remain available at 200% text\n  scaling and relevant narrow widths.\n- These are web defaults. Native applications should follow their platform's\n  typography and accessibility conventions.\n\n## Interface clarity\n\n- Prefer semantic HTML where applicable.\n- Make interactive controls keyboard reachable.\n- Give controls accessible names.\n- Provide visible focus states.\n- Keep accessibility state attributes accurate.\n- Do not rely on colour alone to communicate meaning or status.\n- Maintain readable contrast for text, controls and important indicators.\n- Keep layouts readable and responsive across supported viewport sizes.\n- Preserve usable touch targets and input behaviour where touch interaction\n  applies.\n- Prefer icon-led controls over text-only buttons for familiar, compact or\n  repeated actions when an established, recognisable icon exists. Do not use an\n  icon without an accessible name, visible focus state and a comfortable touch\n  target; retain visible text when the icon would be ambiguous or the action\n  needs additional context or emphasis.\n- Prefer visual legibility over compactness: primary button icons and compact\n  controls should be comfortably prominent at the intended viewing scale. Do\n  not shrink a glyph merely to keep a row dense; adjust spacing or layout\n  first, and compare the rendered icon and target size directly with the\n  reference interface rather than relying on nominal SVG or CSS dimensions.\n- Respect reduced-motion and other user accessibility preferences where the\n  platform supports them.\n\n## Visual consistency\n\n- Reuse established components, patterns and design tokens before introducing\n  one-off styling.\n- Prefer semantic tokens over unexplained literal values.\n- Keep spacing, typography, colour and interaction states internally consistent\n  within each product.\n- Document new shared tokens and explain their role.\n- Keep platform-specific adaptations explicit rather than accidental.\n- Do not copy another company’s branding or imply affiliation.\n\n## Shared product footer\n\nEvery project footer uses the same information architecture while retaining the\nproject's own brand mark, palette and background treatment:\n\n- Place the product mark and name on the left, the copyright in the centre and\n  LinkedIn and Buy Me a Coffee links on the right.\n- Set the copyright text at `17px`.\n- Give every link an accessible name, and open external links in a new tab with\n  `rel=\"noopener noreferrer\"`.\n- On narrow screens, stack and centre the three areas while preserving a\n  readable order.\n\n## Shared colour palettes\n\nThese palettes were captured from ColorSlurp on 5 August 2026. Hex values are\nuppercase to match the source reference.\n\nThey are shared reference colours, not a requirement to replace established\nproduct tokens. Prefer an existing semantic token when implementing a component\nuntil a shared token is deliberately agreed.\n\n### Core neutrals\n\nThe neutral foundation for surfaces, text and high-contrast states.\n\n| Name | Hex | Intended role |\n| --- | --- | --- |\n| Off-white | `#F2F2F7` | Soft light surface or primary text on dark surfaces |\n| Off-black | `#1C1C1E` | Primary text on light surfaces or a deep dark surface |\n\nFor standard interface text, use `#1C1C1E` on light backgrounds and\n`#F2F2F7` on dark backgrounds. Check the resulting contrast whenever text is\nplaced over a colour, image, gradient or translucent surface.\n\n### Apple system colours\n\nThe complete Apple system-colour reference shown in ColorSlurp. The SwiftUI\nAPI names are included because they are useful search terms when comparing\nplatform conventions. Values are recorded as hex rather than RGB for easier\nuse in web styles.\n\n| Name | SwiftUI API | Default (light) | Default (dark) | Increased contrast (light) | Increased contrast (dark) |\n| --- | --- | --- | --- | --- | --- |\n| Red | `red` | `#FF383C` | `#FF4245` | `#E9152D` | `#FF6165` |\n| Orange | `orange` | `#FF8D28` | `#FF9230` | `#C55300` | `#FFA056` |\n| Yellow | `yellow` | `#FFCC00` | `#FFD600` | `#A16A00` | `#FEDF43` |\n| Green | `green` | `#34C759` | `#30D158` | `#008932` | `#4AD968` |\n| Mint | `mint` | `#00C8B3` | `#00DACB` | `#008575` | `#54DFCB` |\n| Teal | `teal` | `#00C3D0` | `#00D2E0` | `#008194` | `#3BDDEC` |\n| Cyan | `cyan` | `#00C0E8` | `#3CD3FE` | `#007EAE` | `#6DD9FF` |\n| Blue | `blue` | `#0088FF` | `#0091FF` | `#1E6EF4` | `#5CB8FF` |\n| Indigo | `indigo` | `#6155F5` | `#6D7AFF` | `#564ADE` | `#A7AAFF` |\n| Purple | `purple` | `#CB30E0` | `#DB34F2` | `#B02FC2` | `#EA8DFF` |\n| Pink | `pink` | `#FF2D55` | `#FF375F` | `#E7124D` | `#FF8AC4` |\n| Brown | `brown` | `#AC7F5E` | `#B78A66` | `#956D51` | `#DBA679` |\n\n### iOS and iPadOS system grey colours\n\nThe platform grey scale, including the UIKit API names and appearance-specific\nvariants. These values are also useful references for borders, dividers,\nsecondary text and layered neutral surfaces.\n\n| Name | UIKit API | Default (light) | Default (dark) | Increased contrast (light) | Increased contrast (dark) |\n| --- | --- | --- | --- | --- | --- |\n| Gray | `systemGray` | `#8E8E93` | `#8E8E93` | `#6C6C70` | `#AEAEB2` |\n| Gray (2) | `systemGray2` | `#AEAEB2` | `#636366` | `#8E8E93` | `#7C7C80` |\n| Gray (3) | `systemGray3` | `#C7C7CC` | `#48484A` | `#AEAEB2` | `#545456` |\n| Gray (4) | `systemGray4` | `#D1D1D6` | `#3A3A3C` | `#BCBCC0` | `#444446` |\n| Gray (5) | `systemGray5` | `#E5E5EA` | `#2C2C2E` | `#D8D8DC` | `#363638` |\n| Gray (6) | `systemGray6` | `#F2F2F7` | `#1C1C1E` | `#EBEBF0` | `#242426` |\n\n## Executable universal style tokens\n\nThis guide defines the universal policy. The versioned @acm/styles package\n(v0.2.0) is the executable source for the values in these tables. Project\nexceptions remain documented by the project that owns them. Responsive\ntypography inherits the desktop value on tablet and mobile until an explicit\noverride is stored.\n\n### Semantic colour tokens\n\nThe first column gives the matching property path in `@acm/styles`. Studio\nuses these paths to connect a rendered specimen or setting to this source row.\n\n| Preset path | CSS custom property | Default | Role |\n| --- | --- | --- | --- |\n| palette.surface | --acm-color-surface | #FFFFFF | Main content surface |\n| palette.surfaceRaised | --acm-color-surface-raised | #FFFFFF | Raised surface |\n| palette.surfaceSubtle | --acm-color-surface-subtle | #F2F2F7 | Subtle neutral surface |\n| palette.textPrimary | --acm-color-text-primary | #1C1C1E | Primary text |\n| palette.textSecondary | --acm-color-text-secondary | #636366 | Secondary text |\n| palette.border | --acm-color-border | #D1D1D6 | Borders and dividers |\n| palette.accent | --acm-color-accent | #0088FF | Accent and information |\n| palette.onAccent | --acm-color-on-accent | #FFFFFF | Text on the accent colour |\n| palette.success | --acm-color-success | #34C759 | Successful state |\n| palette.information | --acm-color-information | #0088FF | Informational state |\n| palette.alert | --acm-color-alert | #FF383C | Alert state |\n| palette.warning | --acm-color-warning | #FF8D28 | Warning state |\n| palette.rating | --acm-color-rating | #FFCC00 | Rating state |\n\n### Typography baseline\n\nFont sizes use the listed rem values at the browser's default root size. Each\nrow is the executable baseline for that role. The shared family is Inter with\nthe system sans fallback stack. Responsive values inherit the desktop value on\ntablet and mobile until an explicit override is supplied.\n\n| Preset path | Family | Size | Weight | Style | Line height | Letter spacing | Transform |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |\n| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |\n| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |\n| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |\n| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |\n| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |\n| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |\n| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |\n| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |\n| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |\n\nTypography presets may set family, weight, normal or italic style, size, line\nheight, letter spacing and text transform. Values must use the bounded units\nand ranges validated by @acm/styles.\n\n### Button and layout tokens\n\n| Preset path | Background | Foreground | Border | Border width | Hover background | Hover foreground |\n| --- | --- | --- | --- | --- | --- | --- |\n| buttons.base | #0088FF | #FFFFFF | #0088FF | 1px | #1E6EF4 | #FFFFFF |\n| buttons.secondary | #F2F2F7 | #1C1C1E | #D1D1D6 | 1px | #E5E5EA | #1C1C1E |\n| buttons.outline | #FFFFFF | #0088FF | #0088FF | 1px | #EAF3FF | #1C1C1E |\n\n| Preset path | CSS custom property | Default |\n| --- | --- | --- |\n| layout.spacing | --acm-layout-spacing | 24px |\n| layout.contentWidth | --acm-layout-content-width | 1040px |\n| layout.radius | --acm-layout-radius | 8px |\n| layout.borderWidth | --acm-layout-border-width | 1px |\n\n### Text specimen guidance\n\nThese presentation examples illustrate shared writing and semantic structure.\nThey are not additional executable values in `@acm/styles`.\n\n| Specimen | Guidance |\n| --- | --- |\n| `specimen.link` | Distinguish links from surrounding text with the accent colour and an underline; retain a visible keyboard focus state. |\n| `specimen.unordered-list` | Use a semantic unordered list when item order does not matter. |\n| `specimen.ordered-list` | Use a semantic ordered list when sequence matters. |\n| `specimen.quote` | Use a semantic quotation and identify its attribution separately when one is available. |\n\n## Design principles\n\nApply these principles where they improve the product, while retaining each\nproject’s own identity and platform conventions.\n\n- **Purpose:** make something meaningful and focus on the outcome that matters\n  most to the person using it.\n- **Agency:** keep people informed and in control; make exploration, cancellation\n  and recovery from mistakes easy.\n- **Responsibility:** act in people’s interests through privacy, safety,\n  transparency and data minimisation.\n- **Familiarity:** build on patterns people already understand and apply them\n  consistently.\n- **Flexibility:** adapt to different people, contexts, devices, input methods\n  and accessibility needs.\n- **Simplicity:** remove what is unnecessary, establish hierarchy and communicate\n  directly; simplicity is not minimalism for its own sake.\n- **Craft:** care about details, test in the real interface and maintain quality\n  after release.\n- **Delight:** make the experience human through purposeful, appropriate moments\n  of character rather than decoration that distracts from the task.\n\n## Assets\n\n- Use approved imagery, icons, logos and fonts.\n- Keep editable source assets separate from generated or packaged output.\n- Record provenance, licences, modifications and unresolved rights questions\n  for externally sourced or generated assets.\n- Preserve required licence and attribution notices.\n- Do not use an asset in production merely because it is technically available.\n\n## Blog cover images\n\n- Create blog cover images at exactly `1920×1080` pixels.\n- Keep covers simple and editorial. Vary the palette, subject, mood and\n  composition between posts, and ensure a cover does not repeat an image used\n  within its article.\n- Store a post's working assets in a folder named\n  `YYYY-MM-DD-post-title`, using the publication date followed by a lowercase,\n  hyphen-separated version of the post title — for example,\n  `2025-11-13-enable-dark-mode`.\n- Review the cover against the article's existing imagery before publishing.\n\n## Verification\n\n- Verify visual changes in the rendered interface.\n- Check affected appearance modes, responsive states and input methods.\n- Include keyboard and assistive-technology considerations where relevant.\n- Treat tests and source inspection as supporting evidence, not a substitute for\n  rendered behaviour.\n- Report visual states or platforms that could not be checked.\n\n## Project extensions\n\nProject-level style guides should define, where relevant:\n\n- Product identity and approved naming.\n- Brand colours and semantic design tokens.\n- Typography and type hierarchy.\n- Logo and imagery rules.\n- Product-specific tone of voice.\n- Component and interaction patterns.\n- Light/dark or platform-specific behaviour.\n- Accessibility decisions specific to the product.\n- Asset and licensing references.\n\n## Reference\n\nThe editorial guidance above is informed by the [Apple Style Guide](https://support.apple.com/en-gb/guide/applestyleguide/welcome/web).\nApple’s guide uses US English conventions; the British English and local\nproduct rules in this workspace guide remain authoritative.\n\nThe interface and design principles are informed by Apple’s [Design principles](https://developer.apple.com/design/human-interface-guidelines/design-principles),\n[Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility),\n[Typography](https://developer.apple.com/design/human-interface-guidelines/typography),\n[Color](https://developer.apple.com/design/human-interface-guidelines/color),\n[Writing](https://developer.apple.com/design/human-interface-guidelines/writing)\nand [Layout](https://developer.apple.com/design/human-interface-guidelines/layout)\nguidance.\n",
+  "sourceRevision": "137d2b2bac84226d911b2a399244e44ff3230cf9",
+  "sourceDigest": "88fa79c1d1e2683421461ac9dcd51548376af9b7b576a509f7cda03a7e8a91aa",
+  "document": "# Workspace style guide\n\n## Scope\n\nThis guide defines the shared writing, editorial and interface baseline for\nprojects in the workspace.\n\nProject and feature guides may extend this guidance with product identity,\nplatform conventions and deliberate exceptions. They must not silently\ncontradict shared accessibility or clarity standards.\n\n## Language and editorial style\n\n- Use British English in visible copy and documentation.\n- Put a space either side of an em dash — like this.\n- Use clear, direct language appropriate to the audience.\n- Address people directly where it helps, focus on what they can do and prefer\n  active voice unless passive voice is genuinely clearer.\n- Use familiar words and simple sentence structures. Avoid unnecessary jargon,\n  idioms, colloquialisms, abbreviations and culturally specific metaphors,\n  especially in content that may be localised.\n- Use common contractions where they make the voice more natural, but avoid\n  awkward, ambiguous or highly colloquial contractions.\n- Preserve the intended meaning, local phrasing and tone when editing existing\n  copy.\n- Do not invent claims, guarantees or product capabilities.\n- Keep product, marketing, documentation and social content appropriate to their\n  different contexts.\n- Use approved product names and terminology consistently.\n- Record deliberate terminology decisions in the relevant project guide.\n\n## Andrew's writing voice\n\nUse these principles when writing original editorial, explanatory, project or\nsocial content in Andrew's name. They describe durable traits observed across\nhis writing, not punctuation or formatting habits tied to one period or format.\n\nFunctional interface copy, safety-critical instructions and content intended\nfor localisation should retain the clarity and accessibility required by their\ncontext. Project guides may define a more specific product voice.\n\n### Core voice\n\n- Write as an observant, informed participant rather than a detached authority\n  or corporate narrator.\n- Begin with something concrete where possible: an experience, result, problem,\n  detail, question or inconsistency that gives the subject a reason to matter.\n- Explain the mechanism or consequence, not only what happened. Support\n  important claims with relevant examples, figures, dates, versions,\n  comparisons or first-hand evidence.\n- Distinguish confirmed facts, reasonable inference, personal opinion and what\n  remains unknown. State a clear judgement once the evidence supports one.\n- Use first person when direct experience establishes useful context or\n  credibility. Address the reader as a capable peer, not a passive audience.\n- Prefer plain, specific language and natural contractions. Retain British and\n  local phrasing where it belongs, without forcing slang or culturally specific\n  language into contexts where it would reduce clarity.\n- Let humour, enthusiasm and irritation emerge from the subject. Keep their\n  intensity proportionate to the evidence and direct criticism towards\n  decisions, systems, products and practices rather than gratuitous personal\n  attacks.\n- Keep paragraphs focused and vary the rhythm naturally. Short sentences or\n  fragments may provide emphasis, but should not become a repeated formula.\n- Finish when the point has landed. End with a useful consequence, return to the\n  opening, a clear judgement or a genuine question rather than a padded summary\n  or automatic request for engagement.\n\n### Proportion and format\n\n- Write concisely by default, but do not confuse brevity with completeness.\n  Longer work should earn its length through original investigation,\n  experimentation, substantial first-hand experience or durable reference\n  value.\n- For technical writing, establish the problem and relevant compatibility\n  constraints, show the method, explain why it works and identify material\n  limitations. Avoid documenting every adjacent possibility when it does not\n  help the reader complete the task.\n- For investigations, move from the triggering observation through evidence to\n  a defensible conclusion. Present the strongest alternative explanation or\n  uncertainty before making a forceful claim.\n- For personal and opinion writing, retain concrete details and chronological\n  movement while connecting the experience to a wider point.\n- Make short posts understandable without requiring an unseen image, video or\n  document to supply essential context.\n- When adapting material for another format, reshape it for that audience and\n  purpose. Avoid publishing near-duplicate versions unless the distinction is\n  deliberate and useful.\n- Date or qualify version-specific guidance where product behaviour is likely to\n  change.\n\n### Editing and preservation\n\n- Preserve Andrew's identity, purpose, meaning, local phrasing and manually\n  chosen character when editing his writing. Improve clarity without flattening\n  it into generic corporate, marketing or AI-generated prose.\n- When asked only to correct spelling, punctuation or grammar, make the lightest\n  mechanical changes necessary and do not rewrite unaffected passages.\n- Do not reproduce the frequency of rhetorical questions, emphatic\n  capitalisation, emojis, ellipses or em dashes from one article or period as if\n  it were a permanent voice requirement.\n- Remove avoidable repetition, excessive scene-setting and conclusions that\n  restate the introduction. Calibrate strong adjectives and headlines to the\n  scale of the demonstrated problem.\n- Avoid formulaic openings and endings, forced jokes, unsupported certainty,\n  generic motivational language and stock phrases associated with corporate or\n  AI-generated writing.\n\n## Inclusive language and examples\n\n- Consider how language may be understood by people with different cultures,\n  identities, abilities and levels of English fluency.\n- Use singular `they` for a person of unspecified gender. Do not assume a\n  person’s gender, pronouns, disability or preferred form of identification.\n- Avoid violent, oppressive or ableist metaphors for technology when a clear,\n  neutral term is available.\n- Describe what happens without assuming that someone sees, hears or performs\n  an interaction in a particular way.\n- Use neutral, descriptive examples and placeholders rather than real personal\n  information. When names are genuinely useful, vary cultures, genders and name\n  structures without relying on stereotypes.\n\n## Naming and capitalisation\n\n- Follow the official product name defined by the relevant project.\n- Do not change a product name’s capitalisation or spelling for convenience.\n- Use sentence case for documentation headings, longer interface headings,\n  descriptions, instructions, help text and body copy.\n- Use title case for short interface labels, including buttons, ribbon tabs,\n  navigation items, menu items and compact feature names.\n- Apply the chosen casing consistently within each product, while preserving\n  official product names and platform-specific conventions.\n- Prefer concise labels that describe the action or state.\n- Do not impose one casing system on every platform or product without evidence.\n\n## Typography\n\n- Use `Inter, \"Helvetica Neue\", \"Helvetica\", \"Arial\", sans-serif` as the\n  shared default interface font stack.\n- Projects inherit this default unless their project guide documents a\n  deliberate product or platform-specific exception.\n- Keep exceptions narrow and document whether they apply to the whole product,\n  a platform, a brand mark or a specific component.\n\n### Web typography baseline\n\n- Keep the root font size at `100%` so relative text sizing respects the\n  browser's font preferences.\n- Use `rem` for text sizes. Use `em` for component details that should scale\n  with their surrounding text, and use `px` where appropriate for thin borders\n  and other fine visual details.\n- Prefer `1.0625rem` for body copy, primary values and important explanations,\n  and `1rem` for form labels, input text, buttons and navigation. These normally\n  render as 17px and 16px respectively.\n- Use `0.875rem` for brief secondary metadata, captions and compact badges.\n  Do not reduce primary information to caption size to make a layout fit.\n- Use a unitless line height, normally around `1.5` for body text. Longer\n  passages may need more space.\n- Use regular, medium and semibold weights deliberately. Avoid thin text and\n  excessive bolding, especially at smaller sizes.\n- Keep readable text sizes on mobile and adapt the layout when text is\n  enlarged. Verify that text and controls remain available at 200% text\n  scaling and relevant narrow widths.\n- These are web defaults. Native applications should follow their platform's\n  typography and accessibility conventions.\n\n## Interface clarity\n\n- Prefer semantic HTML where applicable.\n- Make interactive controls keyboard reachable.\n- Give controls accessible names.\n- Provide visible focus states.\n- Keep accessibility state attributes accurate.\n- Do not rely on colour alone to communicate meaning or status.\n- When a product names a reference interface, follow its default button and\n  action-control colours and interaction treatments, including hover, focus\n  and disabled states, unless the user or product explicitly specifies an\n  exception. ACM Studio uses WordPress Gutenberg as its reference.\n- Maintain readable contrast for text, controls and important indicators.\n- Keep layouts readable and responsive across supported viewport sizes.\n- Preserve usable touch targets and input behaviour where touch interaction\n  applies.\n- Prefer icon-led controls over text-only buttons for familiar, compact or\n  repeated actions when an established, recognisable icon exists. Do not use an\n  icon without an accessible name, visible focus state and a comfortable touch\n  target; retain visible text when the icon would be ambiguous or the action\n  needs additional context or emphasis.\n- Prefer visual legibility over compactness: primary button icons and compact\n  controls should be comfortably prominent at the intended viewing scale. Do\n  not shrink a glyph merely to keep a row dense; adjust spacing or layout\n  first, and compare the rendered icon and target size directly with the\n  reference interface rather than relying on nominal SVG or CSS dimensions.\n- Respect reduced-motion and other user accessibility preferences where the\n  platform supports them.\n\n## Visual consistency\n\n- Reuse established components, patterns and design tokens before introducing\n  one-off styling.\n- Prefer semantic tokens over unexplained literal values.\n- Keep spacing, typography, colour and interaction states internally consistent\n  within each product.\n- Document new shared tokens and explain their role.\n- Keep platform-specific adaptations explicit rather than accidental.\n- Do not copy another company’s branding or imply affiliation.\n\n## Shared product footer\n\nEvery project footer uses the same information architecture while retaining the\nproject's own brand mark, palette and background treatment:\n\n- Place the product mark and name on the left, the copyright in the centre and\n  LinkedIn and Buy Me a Coffee links on the right.\n- Set the copyright text at `17px`.\n- Give every link an accessible name, and open external links in a new tab with\n  `rel=\"noopener noreferrer\"`.\n- On narrow screens, stack and centre the three areas while preserving a\n  readable order.\n\n## Shared colour palettes\n\nThese palettes were captured from ColorSlurp on 5 August 2026. Hex values are\nuppercase to match the source reference.\n\nThey are shared reference colours, not a requirement to replace established\nproduct tokens. Prefer an existing semantic token when implementing a component\nuntil a shared token is deliberately agreed.\n\n### Core neutrals\n\nThe neutral foundation for surfaces, text and high-contrast states.\n\n| Name | Hex | Intended role |\n| --- | --- | --- |\n| Off-white | `#F2F2F7` | Soft light surface or primary text on dark surfaces |\n| Off-black | `#1C1C1E` | Primary text on light surfaces or a deep dark surface |\n\nFor standard interface text, use `#1C1C1E` on light backgrounds and\n`#F2F2F7` on dark backgrounds. Check the resulting contrast whenever text is\nplaced over a colour, image, gradient or translucent surface.\n\n### Apple system colours\n\nThe complete Apple system-colour reference shown in ColorSlurp. The SwiftUI\nAPI names are included because they are useful search terms when comparing\nplatform conventions. Values are recorded as hex rather than RGB for easier\nuse in web styles.\n\n| Name | SwiftUI API | Default (light) | Default (dark) | Increased contrast (light) | Increased contrast (dark) |\n| --- | --- | --- | --- | --- | --- |\n| Red | `red` | `#FF383C` | `#FF4245` | `#E9152D` | `#FF6165` |\n| Orange | `orange` | `#FF8D28` | `#FF9230` | `#C55300` | `#FFA056` |\n| Yellow | `yellow` | `#FFCC00` | `#FFD600` | `#A16A00` | `#FEDF43` |\n| Green | `green` | `#34C759` | `#30D158` | `#008932` | `#4AD968` |\n| Mint | `mint` | `#00C8B3` | `#00DACB` | `#008575` | `#54DFCB` |\n| Teal | `teal` | `#00C3D0` | `#00D2E0` | `#008194` | `#3BDDEC` |\n| Cyan | `cyan` | `#00C0E8` | `#3CD3FE` | `#007EAE` | `#6DD9FF` |\n| Blue | `blue` | `#0088FF` | `#0091FF` | `#1E6EF4` | `#5CB8FF` |\n| Indigo | `indigo` | `#6155F5` | `#6D7AFF` | `#564ADE` | `#A7AAFF` |\n| Purple | `purple` | `#CB30E0` | `#DB34F2` | `#B02FC2` | `#EA8DFF` |\n| Pink | `pink` | `#FF2D55` | `#FF375F` | `#E7124D` | `#FF8AC4` |\n| Brown | `brown` | `#AC7F5E` | `#B78A66` | `#956D51` | `#DBA679` |\n\n### iOS and iPadOS system grey colours\n\nThe platform grey scale, including the UIKit API names and appearance-specific\nvariants. These values are also useful references for borders, dividers,\nsecondary text and layered neutral surfaces.\n\n| Name | UIKit API | Default (light) | Default (dark) | Increased contrast (light) | Increased contrast (dark) |\n| --- | --- | --- | --- | --- | --- |\n| Gray | `systemGray` | `#8E8E93` | `#8E8E93` | `#6C6C70` | `#AEAEB2` |\n| Gray (2) | `systemGray2` | `#AEAEB2` | `#636366` | `#8E8E93` | `#7C7C80` |\n| Gray (3) | `systemGray3` | `#C7C7CC` | `#48484A` | `#AEAEB2` | `#545456` |\n| Gray (4) | `systemGray4` | `#D1D1D6` | `#3A3A3C` | `#BCBCC0` | `#444446` |\n| Gray (5) | `systemGray5` | `#E5E5EA` | `#2C2C2E` | `#D8D8DC` | `#363638` |\n| Gray (6) | `systemGray6` | `#F2F2F7` | `#1C1C1E` | `#EBEBF0` | `#242426` |\n\n## Executable universal style tokens\n\nThis guide defines the universal policy. The versioned @acm/styles package\n(v0.2.0) is the executable source for the values in these tables. Project\nexceptions remain documented by the project that owns them. Responsive\ntypography inherits the desktop value on tablet and mobile until an explicit\noverride is stored.\n\n### Semantic colour tokens\n\nThe first column gives the matching property path in `@acm/styles`. Studio\nuses these paths to connect a rendered specimen or setting to this source row.\n\n| Preset path | CSS custom property | Default | Role |\n| --- | --- | --- | --- |\n| palette.surface | --acm-color-surface | #FFFFFF | Main content surface |\n| palette.surfaceRaised | --acm-color-surface-raised | #FFFFFF | Raised surface |\n| palette.surfaceSubtle | --acm-color-surface-subtle | #F2F2F7 | Subtle neutral surface |\n| palette.textPrimary | --acm-color-text-primary | #1C1C1E | Primary text |\n| palette.textSecondary | --acm-color-text-secondary | #636366 | Secondary text |\n| palette.border | --acm-color-border | #D1D1D6 | Borders and dividers |\n| palette.accent | --acm-color-accent | #0088FF | Accent and information |\n| palette.onAccent | --acm-color-on-accent | #FFFFFF | Text on the accent colour |\n| palette.success | --acm-color-success | #34C759 | Successful state |\n| palette.information | --acm-color-information | #0088FF | Informational state |\n| palette.alert | --acm-color-alert | #FF383C | Alert state |\n| palette.warning | --acm-color-warning | #FF8D28 | Warning state |\n| palette.rating | --acm-color-rating | #FFCC00 | Rating state |\n\n### Typography baseline\n\nFont sizes use the listed rem values at the browser's default root size. Each\nrow is the executable baseline for that role. The shared family is Inter with\nthe system sans fallback stack. Responsive values inherit the desktop value on\ntablet and mobile until an explicit override is supplied.\n\n| Preset path | Family | Size | Weight | Style | Line height | Letter spacing | Transform |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |\n| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |\n| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |\n| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |\n| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |\n| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |\n| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |\n| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |\n| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |\n| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |\n\nTypography presets may set family, weight, normal or italic style, size, line\nheight, letter spacing and text transform. Values must use the bounded units\nand ranges validated by @acm/styles.\n\n### Button and layout tokens\n\n| Preset path | Background | Foreground | Border | Border width | Hover background | Hover foreground |\n| --- | --- | --- | --- | --- | --- | --- |\n| buttons.base | #0088FF | #FFFFFF | #0088FF | 1px | #1E6EF4 | #FFFFFF |\n| buttons.secondary | #F2F2F7 | #1C1C1E | #D1D1D6 | 1px | #E5E5EA | #1C1C1E |\n| buttons.outline | #FFFFFF | #0088FF | #0088FF | 1px | #EAF3FF | #1C1C1E |\n\n| Preset path | CSS custom property | Default |\n| --- | --- | --- |\n| layout.spacing | --acm-layout-spacing | 24px |\n| layout.contentWidth | --acm-layout-content-width | 1040px |\n| layout.radius | --acm-layout-radius | 8px |\n| layout.borderWidth | --acm-layout-border-width | 1px |\n\n### Text specimen guidance\n\nThese presentation examples illustrate shared writing and semantic structure.\nThey are not additional executable values in `@acm/styles`.\n\n| Specimen | Guidance |\n| --- | --- |\n| `specimen.link` | Distinguish links from surrounding text with the accent colour and an underline; retain a visible keyboard focus state. |\n| `specimen.unordered-list` | Use a semantic unordered list when item order does not matter. |\n| `specimen.ordered-list` | Use a semantic ordered list when sequence matters. |\n| `specimen.quote` | Use a semantic quotation and identify its attribution separately when one is available. |\n\n## Design principles\n\nApply these principles where they improve the product, while retaining each\nproject’s own identity and platform conventions.\n\n- **Purpose:** make something meaningful and focus on the outcome that matters\n  most to the person using it.\n- **Agency:** keep people informed and in control; make exploration, cancellation\n  and recovery from mistakes easy.\n- **Responsibility:** act in people’s interests through privacy, safety,\n  transparency and data minimisation.\n- **Familiarity:** build on patterns people already understand and apply them\n  consistently.\n- **Flexibility:** adapt to different people, contexts, devices, input methods\n  and accessibility needs.\n- **Simplicity:** remove what is unnecessary, establish hierarchy and communicate\n  directly; simplicity is not minimalism for its own sake.\n- **Craft:** care about details, test in the real interface and maintain quality\n  after release.\n- **Delight:** make the experience human through purposeful, appropriate moments\n  of character rather than decoration that distracts from the task.\n\n## Assets\n\n- Use approved imagery, icons, logos and fonts.\n- Keep editable source assets separate from generated or packaged output.\n- Record provenance, licences, modifications and unresolved rights questions\n  for externally sourced or generated assets.\n- Preserve required licence and attribution notices.\n- Do not use an asset in production merely because it is technically available.\n\n## Blog cover images\n\n- Create blog cover images at exactly `1920×1080` pixels.\n- Keep covers simple and editorial. Vary the palette, subject, mood and\n  composition between posts, and ensure a cover does not repeat an image used\n  within its article.\n- Store a post's working assets in a folder named\n  `YYYY-MM-DD-post-title`, using the publication date followed by a lowercase,\n  hyphen-separated version of the post title — for example,\n  `2025-11-13-enable-dark-mode`.\n- Review the cover against the article's existing imagery before publishing.\n\n## Verification\n\n- Verify visual changes in the rendered interface.\n- Check affected appearance modes, responsive states and input methods.\n- Include keyboard and assistive-technology considerations where relevant.\n- Treat tests and source inspection as supporting evidence, not a substitute for\n  rendered behaviour.\n- Report visual states or platforms that could not be checked.\n\n## Project extensions\n\nProject-level style guides should define, where relevant:\n\n- Product identity and approved naming.\n- Brand colours and semantic design tokens.\n- Typography and type hierarchy.\n- Logo and imagery rules.\n- Product-specific tone of voice.\n- Component and interaction patterns.\n- Light/dark or platform-specific behaviour.\n- Accessibility decisions specific to the product.\n- Asset and licensing references.\n\n## Reference\n\nThe editorial guidance above is informed by the [Apple Style Guide](https://support.apple.com/en-gb/guide/applestyleguide/welcome/web).\nApple’s guide uses US English conventions; the British English and local\nproduct rules in this workspace guide remain authoritative.\n\nThe interface and design principles are informed by Apple’s [Design principles](https://developer.apple.com/design/human-interface-guidelines/design-principles),\n[Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility),\n[Typography](https://developer.apple.com/design/human-interface-guidelines/typography),\n[Color](https://developer.apple.com/design/human-interface-guidelines/color),\n[Writing](https://developer.apple.com/design/human-interface-guidelines/writing)\nand [Layout](https://developer.apple.com/design/human-interface-guidelines/layout)\nguidance.\n",
   "headings": [
     {
       "level": 1,
@@ -68,1358 +68,1358 @@
     {
       "level": 2,
       "text": "Visual consistency",
-      "line": 191
+      "line": 195
     },
     {
       "level": 2,
       "text": "Shared product footer",
-      "line": 202
+      "line": 206
     },
     {
       "level": 2,
       "text": "Shared colour palettes",
-      "line": 215
+      "line": 219
     },
     {
       "level": 3,
       "text": "Core neutrals",
-      "line": 224
+      "line": 228
     },
     {
       "level": 3,
       "text": "Apple system colours",
-      "line": 237
+      "line": 241
     },
     {
       "level": 3,
       "text": "iOS and iPadOS system grey colours",
-      "line": 259
+      "line": 263
     },
     {
       "level": 2,
       "text": "Executable universal style tokens",
-      "line": 274
+      "line": 278
     },
     {
       "level": 3,
       "text": "Semantic colour tokens",
-      "line": 282
+      "line": 286
     },
     {
       "level": 3,
       "text": "Typography baseline",
-      "line": 303
+      "line": 307
     },
     {
       "level": 3,
       "text": "Button and layout tokens",
-      "line": 327
+      "line": 331
     },
     {
       "level": 3,
       "text": "Text specimen guidance",
-      "line": 342
+      "line": 346
     },
     {
       "level": 2,
       "text": "Design principles",
-      "line": 354
+      "line": 358
     },
     {
       "level": 2,
       "text": "Assets",
-      "line": 376
+      "line": 380
     },
     {
       "level": 2,
       "text": "Blog cover images",
-      "line": 385
+      "line": 389
     },
     {
       "level": 2,
       "text": "Verification",
-      "line": 397
+      "line": 401
     },
     {
       "level": 2,
       "text": "Project extensions",
-      "line": 406
+      "line": 410
     },
     {
       "level": 2,
       "text": "Reference",
-      "line": 420
+      "line": 424
     }
   ],
   "mappings": {
     "palette.surface": {
-      "line": 289,
+      "line": 293,
       "excerpt": "| palette.surface | --acm-color-surface | #FFFFFF | Main content surface |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.surface"
     },
     "palette.surfaceRaised": {
-      "line": 290,
+      "line": 294,
       "excerpt": "| palette.surfaceRaised | --acm-color-surface-raised | #FFFFFF | Raised surface |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.surfaceRaised"
     },
     "palette.surfaceSubtle": {
-      "line": 291,
+      "line": 295,
       "excerpt": "| palette.surfaceSubtle | --acm-color-surface-subtle | #F2F2F7 | Subtle neutral surface |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.surfaceSubtle"
     },
     "palette.textPrimary": {
-      "line": 292,
+      "line": 296,
       "excerpt": "| palette.textPrimary | --acm-color-text-primary | #1C1C1E | Primary text |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.textPrimary"
     },
     "palette.textSecondary": {
-      "line": 293,
+      "line": 297,
       "excerpt": "| palette.textSecondary | --acm-color-text-secondary | #636366 | Secondary text |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.textSecondary"
     },
     "palette.border": {
-      "line": 294,
+      "line": 298,
       "excerpt": "| palette.border | --acm-color-border | #D1D1D6 | Borders and dividers |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.border"
     },
     "palette.accent": {
-      "line": 295,
+      "line": 299,
       "excerpt": "| palette.accent | --acm-color-accent | #0088FF | Accent and information |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.accent"
     },
     "palette.onAccent": {
-      "line": 296,
+      "line": 300,
       "excerpt": "| palette.onAccent | --acm-color-on-accent | #FFFFFF | Text on the accent colour |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.onAccent"
     },
     "palette.success": {
-      "line": 297,
+      "line": 301,
       "excerpt": "| palette.success | --acm-color-success | #34C759 | Successful state |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.success"
     },
     "palette.information": {
-      "line": 298,
+      "line": 302,
       "excerpt": "| palette.information | --acm-color-information | #0088FF | Informational state |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.information"
     },
     "palette.alert": {
-      "line": 299,
+      "line": 303,
       "excerpt": "| palette.alert | --acm-color-alert | #FF383C | Alert state |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.alert"
     },
     "palette.warning": {
-      "line": 300,
+      "line": 304,
       "excerpt": "| palette.warning | --acm-color-warning | #FF8D28 | Warning state |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.warning"
     },
     "palette.rating": {
-      "line": 301,
+      "line": 305,
       "excerpt": "| palette.rating | --acm-color-rating | #FFCC00 | Rating state |",
       "heading": "Semantic colour tokens",
       "rowPath": "palette.rating"
     },
     "typography.body": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.family": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.weight": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.style": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.size": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.size.desktop": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.size.desktop.value": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.size.desktop.unit": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.lineHeight": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.lineHeight.desktop": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.lineHeight.desktop.value": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.lineHeight.desktop.unit": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.letterSpacing": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.letterSpacing.desktop": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.letterSpacing.desktop.value": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.letterSpacing.desktop.unit": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.body.transform": {
-      "line": 312,
+      "line": 316,
       "excerpt": "| typography.body | Inter | 1.0625rem | 400 | normal | 1.5 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.body"
     },
     "typography.h1": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.family": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.weight": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.style": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.size": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.size.desktop": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.size.desktop.value": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.size.desktop.unit": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.lineHeight": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.lineHeight.desktop": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.lineHeight.desktop.value": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.lineHeight.desktop.unit": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.letterSpacing": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.letterSpacing.desktop": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.letterSpacing.desktop.value": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.letterSpacing.desktop.unit": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h1.transform": {
-      "line": 313,
+      "line": 317,
       "excerpt": "| typography.h1 | Inter | 2rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h1"
     },
     "typography.h2": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.family": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.weight": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.style": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.size": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.size.desktop": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.size.desktop.value": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.size.desktop.unit": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.lineHeight": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.lineHeight.desktop": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.lineHeight.desktop.value": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.lineHeight.desktop.unit": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.letterSpacing": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.letterSpacing.desktop": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.letterSpacing.desktop.value": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.letterSpacing.desktop.unit": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h2.transform": {
-      "line": 314,
+      "line": 318,
       "excerpt": "| typography.h2 | Inter | 1.75rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h2"
     },
     "typography.h3": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.family": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.weight": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.style": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.size": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.size.desktop": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.size.desktop.value": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.size.desktop.unit": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.lineHeight": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.lineHeight.desktop": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.lineHeight.desktop.value": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.lineHeight.desktop.unit": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.letterSpacing": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.letterSpacing.desktop": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.letterSpacing.desktop.value": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.letterSpacing.desktop.unit": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h3.transform": {
-      "line": 315,
+      "line": 319,
       "excerpt": "| typography.h3 | Inter | 1.5rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h3"
     },
     "typography.h4": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.family": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.weight": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.style": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.size": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.size.desktop": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.size.desktop.value": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.size.desktop.unit": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.lineHeight": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.lineHeight.desktop": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.lineHeight.desktop.value": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.lineHeight.desktop.unit": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.letterSpacing": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.letterSpacing.desktop": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.letterSpacing.desktop.value": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.letterSpacing.desktop.unit": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h4.transform": {
-      "line": 316,
+      "line": 320,
       "excerpt": "| typography.h4 | Inter | 1.375rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h4"
     },
     "typography.h5": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.family": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.weight": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.style": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.size": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.size.desktop": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.size.desktop.value": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.size.desktop.unit": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.lineHeight": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.lineHeight.desktop": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.lineHeight.desktop.value": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.lineHeight.desktop.unit": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.letterSpacing": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.letterSpacing.desktop": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.letterSpacing.desktop.value": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.letterSpacing.desktop.unit": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h5.transform": {
-      "line": 317,
+      "line": 321,
       "excerpt": "| typography.h5 | Inter | 1.25rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h5"
     },
     "typography.h6": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.family": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.weight": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.style": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.size": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.size.desktop": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.size.desktop.value": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.size.desktop.unit": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.lineHeight": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.lineHeight.desktop": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.lineHeight.desktop.value": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.lineHeight.desktop.unit": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.letterSpacing": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.letterSpacing.desktop": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.letterSpacing.desktop.value": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.letterSpacing.desktop.unit": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.h6.transform": {
-      "line": 318,
+      "line": 322,
       "excerpt": "| typography.h6 | Inter | 1.125rem | 700 | normal | 1.2 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.h6"
     },
     "typography.button": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.family": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.weight": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.style": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.size": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.size.desktop": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.size.desktop.value": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.size.desktop.unit": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.lineHeight": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.lineHeight.desktop": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.lineHeight.desktop.value": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.lineHeight.desktop.unit": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.letterSpacing": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.letterSpacing.desktop": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.letterSpacing.desktop.value": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.letterSpacing.desktop.unit": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.button.transform": {
-      "line": 319,
+      "line": 323,
       "excerpt": "| typography.button | Inter | 1rem | 600 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.button"
     },
     "typography.navigation": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.family": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.weight": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.style": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.size": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.size.desktop": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.size.desktop.value": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.size.desktop.unit": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.lineHeight": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.lineHeight.desktop": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.lineHeight.desktop.value": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.lineHeight.desktop.unit": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.letterSpacing": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.letterSpacing.desktop": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.letterSpacing.desktop.value": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.letterSpacing.desktop.unit": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.navigation.transform": {
-      "line": 320,
+      "line": 324,
       "excerpt": "| typography.navigation | Inter | 1rem | 500 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.navigation"
     },
     "typography.metadata": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.family": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.weight": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.style": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.size": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.size.desktop": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.size.desktop.value": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.size.desktop.unit": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.lineHeight": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.lineHeight.desktop": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.lineHeight.desktop.value": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.lineHeight.desktop.unit": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.letterSpacing": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.letterSpacing.desktop": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.letterSpacing.desktop.value": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.letterSpacing.desktop.unit": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "typography.metadata.transform": {
-      "line": 321,
+      "line": 325,
       "excerpt": "| typography.metadata | Inter | 0.875rem | 400 | normal | 1.4 | 0em | none |",
       "heading": "Typography baseline",
       "rowPath": "typography.metadata"
     },
     "buttons.base": {
-      "line": 331,
+      "line": 335,
       "excerpt": "| buttons.base | #0088FF | #FFFFFF | #0088FF | 1px | #1E6EF4 | #FFFFFF |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.base"
     },
     "buttons.base.background": {
-      "line": 331,
+      "line": 335,
       "excerpt": "| buttons.base | #0088FF | #FFFFFF | #0088FF | 1px | #1E6EF4 | #FFFFFF |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.base"
     },
     "buttons.base.foreground": {
-      "line": 331,
+      "line": 335,
       "excerpt": "| buttons.base | #0088FF | #FFFFFF | #0088FF | 1px | #1E6EF4 | #FFFFFF |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.base"
     },
     "buttons.base.border": {
-      "line": 331,
+      "line": 335,
       "excerpt": "| buttons.base | #0088FF | #FFFFFF | #0088FF | 1px | #1E6EF4 | #FFFFFF |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.base"
     },
     "buttons.base.borderWidth": {
-      "line": 331,
+      "line": 335,
       "excerpt": "| buttons.base | #0088FF | #FFFFFF | #0088FF | 1px | #1E6EF4 | #FFFFFF |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.base"
     },
     "buttons.base.hoverBackground": {
-      "line": 331,
+      "line": 335,
       "excerpt": "| buttons.base | #0088FF | #FFFFFF | #0088FF | 1px | #1E6EF4 | #FFFFFF |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.base"
     },
     "buttons.base.hoverForeground": {
-      "line": 331,
+      "line": 335,
       "excerpt": "| buttons.base | #0088FF | #FFFFFF | #0088FF | 1px | #1E6EF4 | #FFFFFF |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.base"
     },
     "buttons.secondary": {
-      "line": 332,
+      "line": 336,
       "excerpt": "| buttons.secondary | #F2F2F7 | #1C1C1E | #D1D1D6 | 1px | #E5E5EA | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.secondary"
     },
     "buttons.secondary.background": {
-      "line": 332,
+      "line": 336,
       "excerpt": "| buttons.secondary | #F2F2F7 | #1C1C1E | #D1D1D6 | 1px | #E5E5EA | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.secondary"
     },
     "buttons.secondary.foreground": {
-      "line": 332,
+      "line": 336,
       "excerpt": "| buttons.secondary | #F2F2F7 | #1C1C1E | #D1D1D6 | 1px | #E5E5EA | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.secondary"
     },
     "buttons.secondary.border": {
-      "line": 332,
+      "line": 336,
       "excerpt": "| buttons.secondary | #F2F2F7 | #1C1C1E | #D1D1D6 | 1px | #E5E5EA | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.secondary"
     },
     "buttons.secondary.borderWidth": {
-      "line": 332,
+      "line": 336,
       "excerpt": "| buttons.secondary | #F2F2F7 | #1C1C1E | #D1D1D6 | 1px | #E5E5EA | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.secondary"
     },
     "buttons.secondary.hoverBackground": {
-      "line": 332,
+      "line": 336,
       "excerpt": "| buttons.secondary | #F2F2F7 | #1C1C1E | #D1D1D6 | 1px | #E5E5EA | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.secondary"
     },
     "buttons.secondary.hoverForeground": {
-      "line": 332,
+      "line": 336,
       "excerpt": "| buttons.secondary | #F2F2F7 | #1C1C1E | #D1D1D6 | 1px | #E5E5EA | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.secondary"
     },
     "buttons.outline": {
-      "line": 333,
+      "line": 337,
       "excerpt": "| buttons.outline | #FFFFFF | #0088FF | #0088FF | 1px | #EAF3FF | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.outline"
     },
     "buttons.outline.background": {
-      "line": 333,
+      "line": 337,
       "excerpt": "| buttons.outline | #FFFFFF | #0088FF | #0088FF | 1px | #EAF3FF | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.outline"
     },
     "buttons.outline.foreground": {
-      "line": 333,
+      "line": 337,
       "excerpt": "| buttons.outline | #FFFFFF | #0088FF | #0088FF | 1px | #EAF3FF | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.outline"
     },
     "buttons.outline.border": {
-      "line": 333,
+      "line": 337,
       "excerpt": "| buttons.outline | #FFFFFF | #0088FF | #0088FF | 1px | #EAF3FF | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.outline"
     },
     "buttons.outline.borderWidth": {
-      "line": 333,
+      "line": 337,
       "excerpt": "| buttons.outline | #FFFFFF | #0088FF | #0088FF | 1px | #EAF3FF | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.outline"
     },
     "buttons.outline.hoverBackground": {
-      "line": 333,
+      "line": 337,
       "excerpt": "| buttons.outline | #FFFFFF | #0088FF | #0088FF | 1px | #EAF3FF | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.outline"
     },
     "buttons.outline.hoverForeground": {
-      "line": 333,
+      "line": 337,
       "excerpt": "| buttons.outline | #FFFFFF | #0088FF | #0088FF | 1px | #EAF3FF | #1C1C1E |",
       "heading": "Button and layout tokens",
       "rowPath": "buttons.outline"
     },
     "layout.spacing": {
-      "line": 337,
+      "line": 341,
       "excerpt": "| layout.spacing | --acm-layout-spacing | 24px |",
       "heading": "Button and layout tokens",
       "rowPath": "layout.spacing"
     },
     "layout.contentWidth": {
-      "line": 338,
+      "line": 342,
       "excerpt": "| layout.contentWidth | --acm-layout-content-width | 1040px |",
       "heading": "Button and layout tokens",
       "rowPath": "layout.contentWidth"
     },
     "layout.radius": {
-      "line": 339,
+      "line": 343,
       "excerpt": "| layout.radius | --acm-layout-radius | 8px |",
       "heading": "Button and layout tokens",
       "rowPath": "layout.radius"
     },
     "layout.borderWidth": {
-      "line": 340,
+      "line": 344,
       "excerpt": "| layout.borderWidth | --acm-layout-border-width | 1px |",
       "heading": "Button and layout tokens",
       "rowPath": "layout.borderWidth"
     },
     "specimen.link": {
-      "line": 349,
+      "line": 353,
       "excerpt": "| `specimen.link` | Distinguish links from surrounding text with the accent colour and an underline; retain a visible keyboard focus state. |",
       "heading": "Text specimen guidance",
       "rowPath": "specimen.link"
     },
     "specimen.unordered-list": {
-      "line": 350,
+      "line": 354,
       "excerpt": "| `specimen.unordered-list` | Use a semantic unordered list when item order does not matter. |",
       "heading": "Text specimen guidance",
       "rowPath": "specimen.unordered-list"
     },
     "specimen.ordered-list": {
-      "line": 351,
+      "line": 355,
       "excerpt": "| `specimen.ordered-list` | Use a semantic ordered list when sequence matters. |",
       "heading": "Text specimen guidance",
       "rowPath": "specimen.ordered-list"
     },
     "specimen.quote": {
-      "line": 352,
+      "line": 356,
       "excerpt": "| `specimen.quote` | Use a semantic quotation and identify its attribution separately when one is available. |",
       "heading": "Text specimen guidance",
       "rowPath": "specimen.quote"

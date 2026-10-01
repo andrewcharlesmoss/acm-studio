@@ -1,4 +1,4 @@
-.ui-controls-layout { --accent:var(--rl-ink); display:grid; grid-template-columns:220px minmax(0,1fr); align-items:start; min-width:0; }
+.ui-controls-layout { --accent:var(--gutenberg-accent); display:grid; grid-template-columns:220px minmax(0,1fr); align-items:start; min-width:0; }
 .ui-controls-main { min-width:0; }
 .ui-controls-page { width:100%; max-width:1440px; margin-inline:auto; padding-bottom:3rem; }
 .ui-controls-page > p { max-width:76ch; }
@@ -36,7 +36,7 @@
 .ui-control-live > p,.ui-control-size-example > p { margin:.5rem 0 0; color:var(--rl-muted); font-size:.875rem; }
 .ui-control-live > button { margin-top:.5rem; }
 .ui-control-colour-live .paragraph-palette-setting { width:100%; }
-.ui-control-colour-palette { --accent:var(--rl-ink); }
+.ui-control-colour-palette { --accent:var(--gutenberg-accent); }
 .ui-control-state-examples { display:grid; justify-items:start; gap:.75rem; min-width:0; }
 .ui-control-state-examples > span { max-width:320px; color:var(--rl-muted); font-size:.875rem; }
 .ui-control-disabled { opacity:.6; }

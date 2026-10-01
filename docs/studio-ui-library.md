@@ -112,8 +112,8 @@ the extracted BorderSettings, BackgroundSelection, FontSizeAppearanceSetting,
 ImageDimensionsSetting, FocalPositionSetting and PresetNumberSetting controls.
 Colour-picker ownership includes palette selection, Default/Hover values,
 swatch geometry, popover positioning and dismissal. Text actions such as Clear
-and neutral markers such as the gradient angle dial dot use the standard ink
-colour token. Reserve the accent colour for active, selected and focus states.
+and the gradient angle dial marker use `--gutenberg-accent` for Gutenberg's
+accent blue, including their reference hover and focus states.
 Its theme palette uses the
 shared ACM semantic colour tokens, with 28px circular swatches, Gutenberg-like
 spacing and selected borders in up to six columns, a 262px desktop popover and

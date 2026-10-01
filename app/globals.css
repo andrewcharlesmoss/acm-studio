@@ -9,6 +9,7 @@
   --panel: #fbfaf7;
   --accent: #3158c9;
   --accent-soft: #dfe6fa;
+  --gutenberg-accent: #3858e9;
   /* Shared neutral keyboard focus ring: inset so adjacent labels and controls stay clear. */
   --focus-ring-colour: rgba(92, 94, 92, 0.82);
   --focus-ring-width: 2px;

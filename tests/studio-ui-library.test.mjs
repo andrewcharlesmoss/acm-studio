@@ -166,9 +166,12 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(colourPicker, /activeValue \? <button type="button" className="paragraph-colour-clear" disabled=\{disabled\} onClick=\{\(\) => changeActiveColour\(undefined\)\}>Clear<\/button> : null/);
   const gradientPicker = read("app/studio/controls/gradient-picker.tsx");
   assert.match(gradientPicker, /\{value \? <div className="paragraph-gradient-footer"><button type="button" onClick=/);
-  assert.match(studioStyles, /\.paragraph-gradient-footer button \{ border-radius: 4px; color: var\(--ink\); \}/);
-  assert.match(studioStyles, /\.paragraph-gradient-footer button:hover, \.paragraph-colour-clear:hover:not\(:disabled\) \{ background: var\(--accent-soft\); color: var\(--accent\); \}/);
-  assert.match(studioStyles, /\.paragraph-gradient-footer button:focus-visible \{ outline: var\(--focus-ring-width\) solid var\(--focus-ring-colour\)/);
+  assert.match(read("app/globals.css"), /--gutenberg-accent: #3858e9/);
+  assert.match(studioStyles, /\.paragraph-gradient-footer button \{ border-radius: 4px; color: var\(--gutenberg-accent\); \}/);
+  assert.match(studioStyles, /\.paragraph-gradient-footer button:hover, \.paragraph-colour-clear:hover:not\(:disabled\) \{ background: var\(--accent-soft\); color: var\(--gutenberg-accent\); \}/);
+  assert.match(studioStyles, /\.paragraph-gradient-footer button:focus-visible \{ outline: var\(--focus-ring-width\) solid var\(--gutenberg-accent\)/);
+  assert.match(studioStyles, /\.paragraph-gradient-angle-dial span::after \{[^}]*background: var\(--gutenberg-accent\)/);
+  assert.match(studioStyles, /\.paragraph-colour-clear \{[^}]*color: var\(--gutenberg-accent\)/);
   assert.match(studioStyles, /\.paragraph-colour-preview-card \{[^}]*width: max-content; min-width: min\(148px, 100%\); max-width: 100%/);
   assert.match(studioStyles, /\.paragraph-colour-preview \{[^}]*height: 64px/);
   assert.match(colourPicker, /Math\.floor\(\(swatchGridWidth \+ 12\) \/ 40\)/);
@@ -208,8 +211,8 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(studioStyles, /\.paragraph-reset-button \{[^}]*color: var\(--ink\)/);
   assert.match(studioStyles, /\.paragraph-reset-button:disabled \{[^}]*color: var\(--muted\)/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-live \{ width:min\(100%,320px\)/);
-  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-controls-layout \{ --accent:var\(--rl-ink\)/);
-  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-colour-palette \{ --accent:var\(--rl-ink\)/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-controls-layout \{ --accent:var\(--gutenberg-accent\)/);
+  assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-colour-palette \{ --accent:var\(--gutenberg-accent\)/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-group-specimens/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-controls-layout/);
   assert.match(detail, /aria-hidden=\{!visible\.has\("line-height"\) \|\| !showInspectorExample\}/);
