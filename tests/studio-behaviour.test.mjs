@@ -580,6 +580,24 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   assert.match(toolsSection, /gutenbergOptions\.map\(option => <button/);
 });
 
+test("Background colour row exposes Gutenberg-style reset and contrast actions only when applicable", async () => {
+  const backgroundControl = await readFile(new URL("../app/studio/controls/background-selection.tsx", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(backgroundControl, /\{colour \? <button type="button" className="paragraph-background-reset-button"/);
+  assert.match(backgroundControl, /aria-label="Reset background colour"/);
+  assert.match(backgroundControl, /name="action\.remove"/);
+  assert.match(backgroundControl, /\{lowContrast \? <button type="button" className="paragraph-background-contrast-button"/);
+  assert.match(backgroundControl, /assessTextContrast && colour && !hasBackgroundImage/);
+  assert.match(backgroundControl, /paragraphTextColourHasPoorContrast\(textColour \?\? UNIVERSAL_STYLE_PRESET\.palette\.textPrimary, colour, fontSize, fontWeight\)/);
+  assert.match(backgroundControl, /aria-expanded=\{showContrastHelp\}/);
+  assert.match(backgroundControl, /role="status" hidden=\{!showContrastHelp\}/);
+  assert.match(styles, /\.paragraph-background-option-actions button:hover/);
+  assert.match(styles, /\.paragraph-background-option-actions button:focus-visible/);
+  const inspector = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  assert.match(inspector, /const contrastStyle = block\.type === "button" && interactionState !== "default" \? \{ \.\.\.baseVisualStyle, \.\.\.style \} : style/);
+  assert.match(inspector, /assessTextContrast=\{\["paragraph", "heading"/);
+});
+
 test("the selected block summary stays above the single inspector panel", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const inspectorStart = source.indexOf("export function BlockInspector");

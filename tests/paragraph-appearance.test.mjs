@@ -9,7 +9,7 @@ const gradientCompiled = ts.transpileModule(gradientSource, { compilerOptions: {
 const gradientUrl = `data:text/javascript;base64,${Buffer.from(gradientCompiled).toString("base64")}`;
 const { validBackgroundGradient, DEFAULT_GRADIENTS } = await import(gradientUrl);
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText.replace('"./background-gradient"', JSON.stringify(gradientUrl));
-const { fitTextEnabled, paragraphStyleToCss, paragraphStyleClassName, visualStyleClassName, parseAdditionalCssDeclarations, paragraphLinkColourHasPoorContrast, paragraphBackgroundGradientCss, buttonVisualCss, buttonInteractionClassName, buttonInteractionLayoutCss } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const { fitTextEnabled, paragraphStyleToCss, paragraphStyleClassName, visualStyleClassName, parseAdditionalCssDeclarations, paragraphLinkColourHasPoorContrast, paragraphTextColourHasPoorContrast, paragraphBackgroundGradientCss, buttonVisualCss, buttonInteractionClassName, buttonInteractionLayoutCss } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
 const layoutSource = await readFile(new URL("../app/content/layout.ts", import.meta.url), "utf8");
 const compiledLayout = ts.transpileModule(layoutSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
 const { layoutStyleProperties, validLayoutOptions } = await import(`data:text/javascript;base64,${Buffer.from(compiledLayout).toString("base64")}`);
@@ -71,6 +71,16 @@ test("Paragraph Link colour contrast warns only when an opaque foreground is bel
   assert.equal(paragraphLinkColourHasPoorContrast("#1C1C1E", { backgroundGradient: "ocean" }), false);
   assert.equal(paragraphLinkColourHasPoorContrast("rgba(255, 56, 60, 1)", undefined), null);
   assert.equal(paragraphLinkColourHasPoorContrast("#FF383C", { backgroundImageMediaId: "media-1" }), null);
+});
+
+test("Background text contrast follows WCAG AA thresholds and accounts for large text", () => {
+  assert.equal(paragraphTextColourHasPoorContrast("#ffffff", "#777777"), true);
+  assert.equal(paragraphTextColourHasPoorContrast("#ffffff", "#777777", "30px"), false);
+  assert.equal(paragraphTextColourHasPoorContrast("#ffffff", "#777777", "20px", "bold"), false);
+  assert.equal(paragraphTextColourHasPoorContrast("#ffffff", "#777777", "1.5rem", "regular"), false);
+  assert.equal(paragraphTextColourHasPoorContrast("#ffffff", "#777777", "20px", "semi-bold"), true);
+  assert.equal(paragraphTextColourHasPoorContrast("rgba(255, 255, 255, 1)", "#777777"), null);
+  assert.equal(paragraphTextColourHasPoorContrast("#1C1C1E", undefined), null);
 });
 
 test("Additional CSS applies safe scoped declarations and ignores selectors or external resources", () => {

@@ -62,6 +62,37 @@ function contrastRatio(first: OpaqueRgb, second: OpaqueRgb) {
   return (luminances[0] + 0.05) / (luminances[1] + 0.05);
 }
 
+function contrastFontSizePixels(value?: string) {
+  if (!value) return 16;
+  const match = value.trim().toLowerCase().match(/^([\d.]+)(px|rem|em|pt)?$/);
+  if (!match) return 16;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return 16;
+  if (match[2] === "rem" || match[2] === "em") return amount * 16;
+  if (match[2] === "pt") return amount * (96 / 72);
+  return amount;
+}
+
+function contrastFontWeightValue(value?: number | string) {
+  if (typeof value === "number") return value;
+  if (!value) return 400;
+  const namedWeights: Record<string, number> = {
+    thin: 100, "extra-light": 200, light: 300, regular: 400, medium: 500,
+    "semi-bold": 600, bold: 700, "extra-bold": 800, black: 900,
+  };
+  return namedWeights[value] ?? (Number(value) || 400);
+}
+
+/** Returns null when either colour cannot be assessed as an opaque hex value. */
+export function paragraphTextColourHasPoorContrast(textColour: string | undefined, backgroundColour: string | undefined, fontSize?: string, fontWeight?: number | string): boolean | null {
+  const foreground = parseOpaqueHexColour(textColour);
+  const background = parseOpaqueHexColour(backgroundColour);
+  if (!foreground || !background) return null;
+  const pixels = contrastFontSizePixels(fontSize);
+  const largeText = pixels >= 24 || (pixels >= 18.66 && contrastFontWeightValue(fontWeight) >= 700);
+  return contrastRatio(foreground, background) < (largeText ? 3 : 4.5);
+}
+
 function gradientHasPoorContrast(foreground: OpaqueRgb, gradient: NonNullable<ParagraphStyle["backgroundGradient"]>) {
   const stopValues = (paragraphBackgroundGradientCss(gradient) ?? "").match(/#[\da-f]{3,8}\b/gi) ?? [];
   const stops = stopValues.map(parseOpaqueHexColour);

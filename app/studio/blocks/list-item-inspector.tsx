@@ -58,7 +58,7 @@ export function ListItemInspector({ block, listId, itemIndex, onChange }: {
     <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span><BlockLibraryIcon type="list" /></span><h2>List Item</h2></div><p className="setting-note">Style the selected item in this List.</p></section></div>
     <div className="inspector-sections">
       <InspectorAccordionSection title="Colour">
-        <BackgroundSelection mode={backgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
+        <BackgroundSelection mode={backgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} textColour={style.textColor} fontSize={style.fontSizeCustom ?? ({ small: "14px", medium: "16px", large: "20px", "x-large": "24px", "xx-large": "32px" } as const)[style.fontSize ?? "medium"]} fontWeight={style.appearance?.replace(/-italic$/, "")} assessTextContrast onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
       </InspectorAccordionSection>
       <InspectorAccordionSection title="Typography">
         <FontSizeAppearanceSetting size={style.fontSize} customSize={style.fontSizeCustom} mode={fontSizeMode} onModeChange={setFontSizeMode} onSizeChange={value => updateFontSize(value, "presets")} onCustomSizeChange={value => updateFontSize(value, "custom")} onAppearanceChange={() => {}} showAppearance={false} />

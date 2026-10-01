@@ -945,9 +945,14 @@ function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { t
 }
 
 function ParagraphInspector({ block, interactionState = "default", onChange, fontSizeViewMode, onFontSizeViewModeChange }: { block: StyledBlock; interactionState?: ButtonInteractionState | "default"; onChange: (block: ContentBlock) => void; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void }) {
+  const baseVisualStyle = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
   const style: ParagraphStyle = block.type === "button" && interactionState !== "default"
     ? block.interactionStyles?.[interactionState] ?? {}
-    : hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
+    : baseVisualStyle;
+  const contrastStyle = block.type === "button" && interactionState !== "default" ? { ...baseVisualStyle, ...style } : style;
+  const contrastFontSize = contrastStyle.fontSizeCustom
+    ?? (contrastStyle.fontSize ? ({ small: "14px", medium: "16px", large: "20px", "x-large": "24px", "xx-large": "32px" } as const)[contrastStyle.fontSize] : undefined)
+    ?? (block.type === "heading" ? ({ 1: "40px", 2: "30px", 3: "23px", 4: "20px", 5: "18px", 6: "16px" } as const)[block.level ?? 2] : undefined);
   const buttonWidth = block.type === "button"
     ? interactionState === "default" ? block.width : block.interactionStyles?.[interactionState]?.width
     : undefined;
@@ -1088,7 +1093,7 @@ function ParagraphInspector({ block, interactionState = "default", onChange, fon
       {typographyVisible.has("text-shadow") ? <label><span>Text shadow</span><select value={style.textShadow ?? ""} onChange={event => updateStyle("textShadow", (event.target.value || undefined) as ParagraphStyle["textShadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
     </InspectorToolsSection>,
     background: showBackground ? <InspectorAccordionSection className="inspector-panel" title="Background">
-      <BackgroundSelection mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
+      <BackgroundSelection mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} textColour={contrastStyle.textColor} fontSize={contrastFontSize} fontWeight={contrastStyle.appearance?.replace(/-italic$/, "")} assessTextContrast={["paragraph", "heading", "quote", "list", "table", "button"].includes(block.type)} hasBackgroundImage={Boolean(style.backgroundImageMediaId)} onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </InspectorAccordionSection> : null,
     dimensions: <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
