@@ -135,7 +135,7 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
     list: { typography: ["colour", "size"] },
     table: { typography: ["colour", "size"], border: ["border"] },
     code: { typography: ["colour", "size"], border: ["border"] },
-    button: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+    button: { typography: ["colour", "size"], dimensions: ["padding", "width"], border: ["border", "radius"] },
     footnotes: { typography: ["colour", "size"], elements: ["link-colour"] },
     "document-title": { typography: ["colour", "size"], elements: ["link-colour"] },
     "post-date": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] },
@@ -185,7 +185,7 @@ test("Paragraph Advanced exposes Gutenberg anchor, class and safe CSS fields", a
   assert.match(advancedInspector, /Enter a word or two, without spaces, to make a unique web address just for this block/);
   assert.match(advancedInspector, /Learn more about anchors/);
   assert.match(advancedInspector, /Separate multiple classes with spaces\./);
-  assert.match(advancedInspector, /Add your own CSS to customise the appearance of the Paragraph block/);
+  assert.match(advancedInspector, /Add your own CSS to customise the appearance of the \{blockName\} block/);
   assert.match(advancedInspector, /e\.g\. <code>colour: red;<\/code>/);
   assert.doesNotMatch(advancedInspector, /Studio applies safe declarations to this block/);
   assert.match(advancedInspector, /block\.type === "paragraph" \|\| block\.type === "columns" \|\| block\.type === "column"\) onChange\(\{ \.\.\.block, style:/);
@@ -558,7 +558,7 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   assert.match(inspector, /const profile = capabilityProfileFor\(block\.type\)/);
   assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
   assert.match(inspector, /const scopedTypographyOptions = typographyOptions\.filter\(option => \(option\.source \?\? "gutenberg"\) === visibleSource\)/);
-  assert.match(inspector, /function clearTools\(ids: Iterable<string>\) \{\s*const nextStyle = resetInspectorStyleFields\(style, ids, styleControls\)/);
+  assert.match(inspector, /function clearTools\(ids: Iterable<string>\) \{\s*const selectedIds = \[\.\.\.ids\];\s*const nextStyle = resetInspectorStyleFields\(style, selectedIds, styleControls\)/);
   assert.match(inspector, /<FontSizeAppearanceSetting/);
   assert.match(inspector, /<BackgroundSelection/);
   assert.doesNotMatch(inspector.slice(inspector.indexOf("export function BlockInspector"), inspector.indexOf("type AdvancedFields")), /<PaneTabs/);

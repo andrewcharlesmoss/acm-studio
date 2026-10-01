@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../content/model";
+import type { ButtonInteractionState, ButtonWidth, ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../content/model";
 import { fitTextEnabled, paragraphLinkColourHasPoorContrast } from "../content/paragraph-styles";
 import { formatDocumentDate } from "../content/document-metadata";
 import { contentWordCount, readingTimeMinutes } from "../content/reading-time";
@@ -71,6 +71,7 @@ export type StudioInspectorProps = {
   onCategorySelectionChange: (categoryIds: string[]) => void;
   onAddCategory: (name: string, parentId?: string) => void;
   onBlockChange: (block: ContentBlock) => void;
+  onButtonPreviewChange?: (preview: { blockId: string; state: ButtonInteractionState } | null) => void;
   onOpenFiles: () => void;
   onOpenBackgroundMedia?: (blockId: string) => void;
   onOpenCoverMediaLibrary?: () => void;
@@ -86,7 +87,7 @@ export type StudioInspectorProps = {
   onSaveAsTemplate?: () => void;
 };
 
-export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, inspectorTab, selectedBlock, selectedListItem = null, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
+export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, inspectorTab, selectedBlock, selectedListItem = null, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onButtonPreviewChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
   const [localCollapsed, setLocalCollapsed] = useState(false);
@@ -117,7 +118,7 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
             </InspectorAccordionSection>
           </div>
         ) : selectedBlock ? (
-          <BlockInspector block={selectedBlock} selectedListItem={selectedListItem?.blockId === selectedBlock.id ? selectedListItem : null} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? () => onOpenBackgroundMedia(selectedBlock.id) : undefined} canOpenFiles={canOpenFiles} />
+          <BlockInspector key={selectedBlock.id} block={selectedBlock} selectedListItem={selectedListItem?.blockId === selectedBlock.id ? selectedListItem : null} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onButtonPreviewChange={onButtonPreviewChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? () => onOpenBackgroundMedia(selectedBlock.id) : undefined} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
@@ -621,7 +622,13 @@ function fontSizeModeKey(scope: string, block: ContentBlock) {
   return JSON.stringify([scope, block.id, block.type]) ?? "";
 }
 
-export function BlockInspector({ block, selectedListItem = null, canSetSticky = false, spacerOrientation = "vertical", onChange, onColumnWidthChange, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; selectedListItem?: ListItemSelection | null; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; onOpenBackgroundMedia?: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
+export function BlockInspector({ block, selectedListItem = null, canSetSticky = false, spacerOrientation = "vertical", onChange, onButtonPreviewChange, onColumnWidthChange, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; selectedListItem?: ListItemSelection | null; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; onChange: (block: ContentBlock) => void; onButtonPreviewChange?: (preview: { blockId: string; state: ButtonInteractionState } | null) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; onOpenBackgroundMedia?: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
+  const [buttonState, setButtonState] = useState<ButtonInteractionState | "default">("default");
+  const [showButtonStatePreview, setShowButtonStatePreview] = useState(true);
+  useEffect(() => {
+    onButtonPreviewChange?.(block.type === "button" && buttonState !== "default" && showButtonStatePreview ? { blockId: block.id, state: buttonState } : null);
+    return () => onButtonPreviewChange?.(null);
+  }, [block.id, block.type, buttonState, showButtonStatePreview, onButtonPreviewChange]);
   const selectedFontSizeModeKey = fontSizeModeKey(fontSizeModeScope, block);
   const profile = capabilityProfileFor(block.type);
   const blockInfo = blockCatalogue.find((item) => item.type === block.type);
@@ -638,10 +645,10 @@ export function BlockInspector({ block, selectedListItem = null, canSetSticky = 
       {block.type === "quote" ? <InspectorAccordionSection title="Quote"><label><span>Style</span><select value={block.quoteStyle ?? "default"} onChange={(event) => onChange({ ...block, quoteStyle: event.target.value as "default" | "plain" })}><option value="default">Default</option><option value="plain">Plain</option></select></label><label><span>Attribution</span><input value={block.attribution ?? ""} onChange={(event) => onChange({ ...block, attribution: event.target.value })} placeholder="Optional name" /></label><label><span>Text alignment</span><select value={block.align ?? "left"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : null}
       {block.type === "list" ? <InspectorAccordionSection title="List"><label><span>List type</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "ordered" | "unordered" })}><option value="unordered">Bullets</option><option value="ordered">Numbers</option></select></label>{block.style === "ordered" ? <><label><span>List style</span><select value={block.marker ?? "1"} onChange={(event) => onChange({ ...block, marker: event.target.value as "1" | "A" | "a" | "I" | "i" })}><option value="1">Numbers</option><option value="A">Uppercase letters</option><option value="a">Lowercase letters</option><option value="I">Uppercase Roman numerals</option><option value="i">Lowercase Roman numerals</option></select></label><label><span>Start at</span><input type="number" min="1" max="100000" value={block.start ?? (block.reversed ? Math.max(1, block.items.length) : 1)} onChange={(event) => onChange({ ...block, start: Math.max(1, Math.min(100000, Number(event.target.value) || 1)) })} /></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.reversed)} onChange={(event) => onChange({ ...block, reversed: event.target.checked })} /><span>Reverse numbering</span></label></> : null}<p className="setting-note">Edit each item directly in the canvas.</p></InspectorAccordionSection> : null}
       {block.type === "table" ? <><InspectorAccordionSection title="Table"><label className="checkbox-setting"><input type="checkbox" checked={block.fixedWidth !== false} onChange={(event) => onChange({ ...block, fixedWidth: event.target.checked })} /><span>Fixed width table cells</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.hasHeader)} onChange={(event) => onChange({ ...block, hasHeader: event.target.checked })} /><span>Header row</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.hasFooter)} onChange={(event) => onChange({ ...block, hasFooter: event.target.checked })} /><span>Footer row</span></label><label><span>Caption</span><input value={block.caption ?? ""} onChange={(event) => onChange({ ...block, caption: event.target.value || undefined })} /></label><p className="setting-note">Select a cell, then use the table toolbar menu to add or remove rows and columns.</p></InspectorAccordionSection><InspectorAccordionSection title="Styles"><label><span>Table style</span><select value={block.tableStyle ?? "default"} onChange={(event) => onChange({ ...block, tableStyle: event.target.value as "default" | "stripes" })}><option value="default">Default</option><option value="stripes">Stripes</option></select></label></InspectorAccordionSection></> : null}
-      {block.type === "image" ? <ImageInspector block={block} onChange={onChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} /> : null}
+      {block.type === "image" ? <ImageInspector block={block} onChange={onChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} advancedFields={advanced} /> : null}
       {block.type === "cover-image" ? <CoverImageInspector block={block} onChange={onChange} /> : null}
       {block.type === "embed" ? <><InspectorAccordionSection title={<>Embed</>}><label><span>URL</span><input type="url" value={block.url} onChange={(event) => onChange({ ...block, url: event.target.value })} /></label><label><span>Caption</span><input value={block.caption ?? ""} onChange={(event) => onChange({ ...block, caption: event.target.value || undefined })} /></label></InspectorAccordionSection><SpacingAndAdvancedInspector block={block} onChange={onChange} advancedFields={advanced} /></> : null}
-      {block.type === "button" ? <InspectorAccordionSection title={<>Button</>}><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>URL</span><input value={block.url} onChange={(event) => onChange({ ...block, url: event.target.value })} /></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.opensInNewTab)} onChange={(event) => onChange({ ...block, opensInNewTab: event.target.checked })} /><span>Open in new tab</span></label><label><span>Style</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "primary" | "secondary" })}><option value="primary">Fill</option><option value="secondary">Outline</option></select></label><label><span>Width</span><select value={block.width ?? ""} onChange={(event) => onChange({ ...block, width: event.target.value ? Number(event.target.value) as 25 | 50 | 75 | 100 : undefined })}><option value="">Auto</option><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option></select></label><label><span>Text alignment</span><select value={block.align ?? "centre"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><label><span>Title attribute</span><input value={block.title ?? ""} onChange={(event) => onChange({ ...block, title: event.target.value || undefined })} /></label><label><span>Link rel</span><input value={block.rel ?? ""} onChange={(event) => onChange({ ...block, rel: event.target.value || undefined })} placeholder="nofollow sponsored" /></label></InspectorAccordionSection> : null}
+      {block.type === "button" ? <InspectorAccordionSection title="Button"><label><span>Label</span><input value={block.label} onChange={(event) => onChange({ ...block, label: event.target.value })} /></label><label><span>URL</span><input value={block.url} onChange={(event) => onChange({ ...block, url: event.target.value })} /></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.opensInNewTab)} onChange={(event) => onChange({ ...block, opensInNewTab: event.target.checked })} /><span>Open in new tab</span></label><label><span>Style</span><select value={block.style} onChange={(event) => onChange({ ...block, style: event.target.value as "primary" | "secondary" })}><option value="primary">Fill</option><option value="secondary">Outline</option></select></label><label><span>Text alignment</span><select value={block.align ?? "centre"} onChange={(event) => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><label><span>Title attribute</span><input value={block.title ?? ""} onChange={(event) => onChange({ ...block, title: event.target.value || undefined })} /></label><label><span>Link rel</span><input value={block.rel ?? ""} onChange={(event) => onChange({ ...block, rel: event.target.value || undefined })} placeholder="nofollow sponsored" /></label></InspectorAccordionSection> : null}
       {block.type === "social-icons" ? <InspectorAccordionSection title="Social Icons"><p className="setting-note">Use the plus button in the block to add LinkedIn or TikTok. Select an icon to edit its link.</p><label><span>Style</span><select value={block.socialStyle ?? "default"} onChange={event => onChange({ ...block, socialStyle: event.target.value as NonNullable<typeof block.socialStyle> })}><option value="default">Default</option><option value="logos-only">Logos Only</option><option value="pill-shape">Pill Shape</option></select></label><label><span>Justification</span><select value={block.justification ?? "left"} onChange={event => onChange({ ...block, justification: event.target.value as NonNullable<typeof block.justification> })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option><option value="space-between">Space between</option></select></label><label><span>Orientation</span><select value={block.orientation ?? "horizontal"} onChange={event => onChange({ ...block, orientation: event.target.value as NonNullable<typeof block.orientation> })}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={block.allowWrap !== false} onChange={event => onChange({ ...block, allowWrap: event.target.checked })} /><span>Allow to wrap</span></label><label><span>Icon size</span><select value={block.iconSize ?? "normal"} onChange={event => onChange({ ...block, iconSize: event.target.value as NonNullable<typeof block.iconSize> })}><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option><option value="huge">Huge</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.showLabels)} onChange={event => onChange({ ...block, showLabels: event.target.checked })} /><span>Show text labels</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.openInNewTab)} onChange={event => onChange({ ...block, openInNewTab: event.target.checked })} /><span>Open links in a new tab</span></label></InspectorAccordionSection> : null}
       {block.type === "social-icons" ? <InspectorAccordionSection title="Spacing"><label><span>Gap</span><input type="number" min="0" max="120" value={block.horizontalGap === block.verticalGap ? block.horizontalGap ?? "" : ""} placeholder={block.horizontalGap === block.verticalGap ? "Default" : "Mixed"} onChange={event => { const gap = event.target.value === "" ? undefined : Math.max(0, Math.min(120, Number(event.target.value) || 0)); onChange({ ...block, horizontalGap: gap, verticalGap: gap }); }} /></label></InspectorAccordionSection> : null}
       {block.type === "divider" ? <DividerInspector block={block} onChange={onChange} /> : null}
@@ -654,7 +661,7 @@ export function BlockInspector({ block, selectedListItem = null, canSetSticky = 
       {block.type === "columns" ? <ColumnsInspector block={block} onChange={onChange} /> : null}
       {block.type === "column" ? <ColumnInspector block={block} onChange={onChange} onWidthChange={onColumnWidthChange} /> : null}
       {block.type === "group" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} /> : null}
-      {profile.sharedStyleInspector ? <ParagraphInspector key={`${block.id}:${block.type}:block`} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
+      {profile.sharedStyleInspector ? <ParagraphInspector key={`${block.id}:${block.type}:${block.type === "button" ? buttonState : "default"}:block`} block={block} interactionState={block.type === "button" ? buttonState : "default"} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} /> : null}
       {advanced && block.type !== "embed" && block.type !== "spacer" && block.type !== "image" && block.type !== "divider" ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advanced} /> : null}
     </>
   );
@@ -668,7 +675,7 @@ export function BlockInspector({ block, selectedListItem = null, canSetSticky = 
     </>
   );
   return <div className="block-inspector-settings">
-    <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span><BlockLibraryIcon type={block.type} /></span><h2>{blockName}</h2></div><p className="setting-note">{blockDescription}</p></section></div>
+    <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span><BlockLibraryIcon type={block.type} /></span><h2>{blockName}</h2></div>{block.type === "button" ? <div className="inspector-button-state-controls"><label><span>State</span><select aria-label="Button state" value={buttonState} onChange={event => setButtonState(event.target.value as ButtonInteractionState | "default")}><option value="default">Default</option><option value="hover">Hover</option><option value="focus">Focus</option><option value="active">Active</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={showButtonStatePreview} disabled={buttonState === "default"} onChange={event => setShowButtonStatePreview(event.target.checked)} /><span>Show state on canvas</span></label></div> : null}<p className="setting-note">{blockDescription}</p></section></div>
     <div className="inspector-sections">{blockSettings}{requiredSettings}</div>
   </div>;
 }
@@ -692,6 +699,7 @@ function advancedFieldsForBlock(block: ContentBlock, source: "gutenberg" | "stud
 function AdvancedFieldsInspector({ block, onChange, fields }: { block: ContentBlock; onChange: (block: ContentBlock) => void; fields: AdvancedFields }) {
   const descriptionPrefix = useId();
   const style = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style ?? {} : block.visualStyle ?? {};
+  const blockName = blockCatalogue.find(entry => entry.type === block.type)?.label ?? capabilityProfileFor(block.type).label;
   function update(field: "anchor" | "className" | "additionalCss", value: string) {
     const next = { ...style };
     if (value.trim()) next[field] = value;
@@ -703,7 +711,7 @@ function AdvancedFieldsInspector({ block, onChange, fields }: { block: ContentBl
     {block.type === "group" ? <><label><span>HTML element</span><select value={block.tagName ?? "div"} onChange={(event) => onChange({ ...block, tagName: event.target.value as NonNullable<typeof block.tagName> })}>{["div", "main", "section", "article", "aside", "header", "footer", "nav"].map((tag) => <option value={tag} key={tag}>{tag}</option>)}</select></label><label><span>ARIA label</span><input value={block.ariaLabel ?? ""} onChange={(event) => onChange({ ...block, ariaLabel: event.target.value || undefined })} /></label></> : null}
     {fields.anchor ? <div className="advanced-field"><label htmlFor={`${descriptionPrefix}-anchor`}><span>HTML anchor</span></label><input id={`${descriptionPrefix}-anchor`} aria-describedby={`${descriptionPrefix}-anchor-help`} value={style.anchor ?? ""} onChange={(event) => update("anchor", event.target.value)} placeholder={block.type === "paragraph" ? undefined : "section-name"} /><p className="setting-note" id={`${descriptionPrefix}-anchor-help`}>Enter a word or two, without spaces, to make a unique web address just for this block, called an “anchor”. Then, you’ll be able to link directly to this section of your page. <a href="https://wordpress.org/documentation/article/page-jumps/">Learn more about anchors <StudioIcon name="external" size={14} /></a></p></div> : null}
     {fields.className ? <div className="advanced-field"><label htmlFor={`${descriptionPrefix}-class-name`}><span>Additional CSS class(es)</span></label><input id={`${descriptionPrefix}-class-name`} aria-describedby={`${descriptionPrefix}-class-name-help`} value={style.className ?? ""} onChange={(event) => update("className", event.target.value)} placeholder={block.type === "paragraph" ? undefined : "custom-class"} /><p className="setting-note" id={`${descriptionPrefix}-class-name-help`}>Separate multiple classes with spaces.</p></div> : null}
-    {fields.additionalCss ? <div className="advanced-field"><label htmlFor={`${descriptionPrefix}-additional-css`}><span>Additional CSS</span></label><textarea id={`${descriptionPrefix}-additional-css`} aria-describedby={`${descriptionPrefix}-additional-css-help`} value={style.additionalCss ?? ""} onChange={(event) => update("additionalCss", event.target.value)} maxLength={6000} rows={5} /><p className="setting-note" id={`${descriptionPrefix}-additional-css-help`}>Add your own CSS to customise the appearance of the Paragraph block. You do not need to include a CSS selector, just add the property and value, e.g. <code>colour: red;</code>.</p></div> : null}
+    {fields.additionalCss ? <div className="advanced-field"><label htmlFor={`${descriptionPrefix}-additional-css`}><span>Additional CSS</span></label><textarea id={`${descriptionPrefix}-additional-css`} aria-describedby={`${descriptionPrefix}-additional-css-help`} value={style.additionalCss ?? ""} onChange={(event) => update("additionalCss", event.target.value)} maxLength={6000} rows={5} /><p className="setting-note" id={`${descriptionPrefix}-additional-css-help`}>Add your own CSS to customise the appearance of the {blockName} block. You do not need to include a CSS selector, just add the property and value, e.g. <code>colour: red;</code>.</p></div> : null}
   </InspectorAccordionSection>;
 }
 
@@ -747,7 +755,7 @@ function SpacerInspector({ block, orientation, onChange, advancedFields }: { blo
   </>;
 }
 
-function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {
+function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFields }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean; advancedFields: AdvancedFields | null }) {
   const ratio = block.aspectRatio ?? "original";
   const linkDestination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
   const style = block.visualStyle ?? {};
@@ -774,7 +782,8 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block:
       <ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateVisualStyle({ margin: value })} />
     </InspectorAccordionSection>
     <InspectorAccordionSection title="Border & shadow"><BorderSettings style={style} idPrefix={block.id} onChange={updateVisualStyle} /></InspectorAccordionSection>
-    <InspectorAccordionSection title="Advanced"><label><span>Title attribute</span><input value={block.title ?? ""} onChange={(event) => onChange({ ...block, title: event.target.value || undefined })} /></label><label><span>HTML anchor</span><input value={style.anchor ?? ""} onChange={(event) => updateVisualStyle({ anchor: event.target.value })} placeholder="section-name" /></label><label><span>Additional CSS class(es)</span><input value={style.className ?? ""} onChange={(event) => updateVisualStyle({ className: event.target.value })} placeholder="custom-class" /></label></InspectorAccordionSection>
+    <InspectorAccordionSection title="Advanced"><label><span>Title attribute</span><input value={block.title ?? ""} onChange={(event) => onChange({ ...block, title: event.target.value || undefined })} /></label></InspectorAccordionSection>
+    {advancedFields ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advancedFields} /> : null}
   </>;
 }
 
@@ -935,8 +944,13 @@ function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { t
   return block.type === "paragraph" || block.type === "columns" || block.type === "column";
 }
 
-function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewModeChange }: { block: StyledBlock; onChange: (block: ContentBlock) => void; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void }) {
-  const style = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
+function ParagraphInspector({ block, interactionState = "default", onChange, fontSizeViewMode, onFontSizeViewModeChange }: { block: StyledBlock; interactionState?: ButtonInteractionState | "default"; onChange: (block: ContentBlock) => void; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void }) {
+  const style: ParagraphStyle = block.type === "button" && interactionState !== "default"
+    ? block.interactionStyles?.[interactionState] ?? {}
+    : hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
+  const buttonWidth = block.type === "button"
+    ? interactionState === "default" ? block.width : block.interactionStyles?.[interactionState]?.width
+    : undefined;
   const profile = capabilityProfileFor(block.type);
   const styleControls = [...profile.controls, ...retainedLegacyStyleControls(profile, style)].filter(control => control.fields.length > 0);
   const optionsFor = (section: "typography" | "dimensions" | "border" | "elements"): InspectorToolOption[] => styleControls.filter(control => control.enabled !== false && control.section === section).map(({ id, label, source }) => ({ id, label, source }));
@@ -972,7 +986,7 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
     style.lineHeight && "line-height", style.letterSpacing && "letter-spacing", style.textIndent && "line-indent",
     style.textColumns && "columns", style.textDecoration && "decoration", style.textTransform && "letter-case", style.dropCap && "drop-cap", style.fitText && "fit-text", style.orientation && "orientation",
   ].filter((value): value is string => Boolean(value) && scopedTypographyIds.has(value as string))]);
-  const dimensionsVisible = new Set([...defaultDimensions, ...[...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin", style.minHeight && "min-height", style.minWidth && "min-width"].filter((value): value is string => Boolean(value))].filter(id => scopedDimensionIds.has(id))]);
+  const dimensionsVisible = new Set([...defaultDimensions, ...[...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin", style.minHeight && "min-height", style.minWidth && "min-width", block.type === "button" && buttonWidth && "width"].filter((value): value is string => Boolean(value))].filter(id => scopedDimensionIds.has(id))]);
   const borderVisible = new Set([...defaultBorder, ...borderUserVisible, ...[
     (style.borderStyle || style.borderColor || style.borderWidth) && "border",
     style.borderRadius && "radius", style.shadow && "shadow",
@@ -997,11 +1011,28 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
   const showBackground = backgroundControl?.source === visibleSource;
   function writeStyle(nextStyle: ParagraphStyle) {
     const updatedStyle = Object.keys(nextStyle).length ? nextStyle : undefined;
-    onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
+    if (block.type === "button" && interactionState !== "default") {
+      const interactionStyles = { ...(block.interactionStyles ?? {}) };
+      if (updatedStyle) interactionStyles[interactionState] = updatedStyle;
+      else delete interactionStyles[interactionState];
+      onChange({ ...block, interactionStyles: Object.keys(interactionStyles).length ? interactionStyles : undefined });
+    } else onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
   }
   function clearTools(ids: Iterable<string>) {
-    const nextStyle = resetInspectorStyleFields(style, ids, styleControls);
-    writeStyle(nextStyle);
+    const selectedIds = [...ids];
+    const nextStyle = resetInspectorStyleFields(style, selectedIds, styleControls);
+    if (block.type !== "button") {
+      writeStyle(nextStyle);
+      return;
+    }
+    const interactionStyles = { ...(block.interactionStyles ?? {}) };
+    if (interactionState === "default") {
+      onChange({ ...block, width: selectedIds.includes("width") ? undefined : block.width, visualStyle: Object.keys(nextStyle).length ? nextStyle : undefined });
+      return;
+    }
+    if (Object.keys(nextStyle).length) interactionStyles[interactionState] = nextStyle;
+    else delete interactionStyles[interactionState];
+    onChange({ ...block, interactionStyles: Object.keys(interactionStyles).length ? interactionStyles : undefined });
   }
   function toggleTool(id: string, visible: Set<string>, setVisible: (value: Set<string>) => void) {
     const next = new Set(visible);
@@ -1010,7 +1041,7 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
     setVisible(next);
   }
   function updateStyle<K extends keyof ParagraphStyle>(field: K, value: ParagraphStyle[K] | undefined) {
-    const nextStyle = { ...style };
+    const nextStyle: ParagraphStyle = { ...style };
     if (value === undefined || value === "") delete nextStyle[field];
     else nextStyle[field] = value;
     writeStyle(nextStyle);
@@ -1061,6 +1092,19 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </InspectorAccordionSection> : null,
     dimensions: <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible); setDimensionsVisible(new Set()); }}>
+      {block.type === "button" && dimensionsVisible.has("width") ? <label><span>Width</span><select aria-label="Button width" value={buttonWidth ?? ""} onChange={event => {
+        const width = event.target.value ? Number(event.target.value) as ButtonWidth : undefined;
+        if (interactionState === "default") onChange({ ...block, width });
+        else {
+          const interactionStyles = { ...(block.interactionStyles ?? {}) };
+          const nextStateStyle = { ...(interactionStyles[interactionState] ?? {}) };
+          if (width) nextStateStyle.width = width;
+          else delete nextStateStyle.width;
+          if (Object.keys(nextStateStyle).length) interactionStyles[interactionState] = nextStateStyle;
+          else delete interactionStyles[interactionState];
+          onChange({ ...block, interactionStyles: Object.keys(interactionStyles).length ? interactionStyles : undefined });
+        }
+      }}><option value="">Auto</option><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option></select></label> : null}
       {dimensionsVisible.has("padding") ? <BoxLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding} layout="axes" min={0} max={100} onChange={(value) => updateStyle("padding", value)} /> : null}
       {dimensionsVisible.has("margin") ? <BoxLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} layout={marginLayout} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
       {dimensionsVisible.has("min-height") ? <ParagraphLengthSetting key={`${block.id}-min-height`} label="Minimum height" value={style.minHeight} min={0} max={4000} onChange={(value) => updateStyle("minHeight", value)} /> : null}

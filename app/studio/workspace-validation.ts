@@ -89,6 +89,21 @@ export function validParagraphStyle(value: unknown) {
     && (value.additionalCss === undefined || (typeof value.additionalCss === "string" && value.additionalCss.length <= 6000));
 }
 
+const buttonInteractionStyleFields = new Set([
+  "fontFamily", "fontSize", "fontSizeCustom", "appearance", "textTransform", "textDecoration", "lineHeight", "letterSpacing",
+  "textColor", "backgroundColor", "backgroundGradient", "padding", "margin", "width", "borderStyle", "borderWidth", "borderColor", "borderRadius", "shadow",
+]);
+
+export function validButtonInteractionStyles(value: unknown) {
+  if (value === undefined) return true;
+  if (!isRecord(value) || Object.keys(value).some(state => !["hover", "focus", "active"].includes(state))) return false;
+  return Object.values(value).every(style => isRecord(style)
+    && Object.keys(style).length > 0
+    && Object.keys(style).every(field => buttonInteractionStyleFields.has(field))
+    && (style.width === undefined || [25, 50, 75, 100].includes(style.width as number))
+    && validParagraphStyle(style));
+}
+
 export function validListItemStyle(value: unknown) {
   return validParagraphStyle(value) && (value === undefined || (isRecord(value) && Object.keys(value).every(field => listItemStyleFields.has(field))));
 }
@@ -150,7 +165,8 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
       case "embed": return typeof block.url === "string" && typeof block.title === "string" && (block.caption === undefined || typeof block.caption === "string");
       case "button": return typeof block.label === "string" && typeof block.url === "string" && ["primary", "secondary"].includes(block.style as string) && optionalBoolean(block.opensInNewTab)
         && optionalString(block.title) && optionalString(block.rel)
-        && (block.width === undefined || [25, 50, 75, 100].includes(block.width as number));
+        && (block.width === undefined || [25, 50, 75, 100].includes(block.width as number))
+        && validButtonInteractionStyles(block.interactionStyles);
       case "field": return ["text", "select"].includes(block.control as string) && typeof block.label === "string" && typeof block.value === "string"
         && (block.options === undefined || strings(block.options));
       case "divider": return (block.style === undefined || ["default", "wide", "dots"].includes(block.style as string))

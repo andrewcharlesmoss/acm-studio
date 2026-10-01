@@ -2,9 +2,9 @@ import { Fragment, type ReactNode } from "react";
 import katex from "katex";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
-import { listItemText, listMarker, normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
+import { listItemText, listMarker, normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ButtonInteractionState, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { safeMathMLMarkup } from "../content/mathml";
-import { buttonVisualCss, fitTextEnabled, listItemTextStyle, paragraphBackgroundGradientCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
+import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, listItemTextStyle, paragraphBackgroundGradientCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../content/spacer";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
@@ -58,7 +58,7 @@ export function ArticleRow({ article, passwordProtected = false }: { article: Ar
   );
 }
 
-export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical" }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation }) {
+export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null }) {
   const studio = variant === "studio";
   const footnoteNumbers = new Map<string, number>();
   let nextFootnoteNumber = 1;
@@ -76,7 +76,12 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     if (!block.visualStyle || block.type === "spacer") return content;
     const style = block.visualStyle;
     const backgroundImageUrl = ["quote", "group"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
-    const css = block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
+    const css = block.type === "button" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
+    if (block.type === "image") {
+      // Image border controls are applied directly to the image frame below;
+      // keep only wrapper-level styles here to avoid drawing the frame twice.
+      for (const property of ["borderStyle", "borderWidth", "borderColor", "borderRadius", "boxShadow"]) delete css[property];
+    }
     if (block.type === "social-icons" || block.type === "divider") { delete css.backgroundColor; delete css.backgroundImage; }
     if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
     const coverFrameClass = block.type === "cover-image"
@@ -142,13 +147,17 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
             {block.caption ? <p className="embed-caption">{block.caption}</p> : null}
           </aside>
         );
-        if (block.type === "button") return (
-          <p className={`${studio ? "button-field" : "button-block"} align-${block.align ?? "centre"}${block.width ? ` has-width-${block.width}` : ""}`} key={block.id}>
+        if (block.type === "button") {
+          const buttonPreviewState = buttonPreview?.blockId === block.id ? buttonPreview.state : undefined;
+          const interactionClassName = buttonInteractionClassName(block.interactionStyles, buttonPreviewState);
+          return (
+          <p className={`${studio ? "button-field" : "button-block"} align-${block.align ?? "centre"}${block.width ? ` has-width-${block.width}` : ""} ${interactionClassName}`} style={buttonInteractionLayoutCss(block.interactionStyles) as React.CSSProperties} key={block.id}>
             {/* Link relationships are normalised from typed settings above. */}
             {/* eslint-disable-next-line react/jsx-no-target-blank */}
-            {blockUrl ? <a className={`content-button is-${block.style}`} style={buttonVisualCss(block.visualStyle)} href={blockUrl} title={block.title} target={block.opensInNewTab ? "_blank" : undefined} rel={[block.rel, block.opensInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{block.label}</a> : <span className={`content-button is-${block.style}`} style={buttonVisualCss(block.visualStyle)}>{block.label}</span>}
+            {blockUrl ? <a className={["content-button", `is-${block.style}`, interactionClassName].filter(Boolean).join(" ")} style={buttonVisualCss(block.visualStyle, block.interactionStyles)} href={blockUrl} title={block.title} target={block.opensInNewTab ? "_blank" : undefined} rel={[block.rel, block.opensInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{block.label}</a> : <span className={["content-button", `is-${block.style}`, interactionClassName].filter(Boolean).join(" ")} style={buttonVisualCss(block.visualStyle, block.interactionStyles)}>{block.label}</span>}
           </p>
-        );
+          );
+        }
         if (block.type === "field") return <label className="content-field" key={block.id}><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled><option>{block.value}</option></select> : <input value={block.value} readOnly />}</label>;
         if (block.type === "document-title") {
           if (!document || !documentFieldVisible(document, "title")) return null;
@@ -201,7 +210,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         }
         if (block.type === "columns") return <div id={paragraphStyleAnchor(block.style)} className={`content-columns${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={{ ...columnsLayoutStyle(block), ...paragraphStyleToCss(block.style) }} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((column) => renderBlock(column))}</div>;
         if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`content-column${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...layoutStyleProperties(block), ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }} key={block.id}>{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined))}</div>;
-        if (block.type === "spacer") return <div id={paragraphStyleAnchor(block.visualStyle)} className={`content-spacer${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block, spacerOrientation), margin: block.visualStyle?.margin }} aria-hidden="true" key={block.id} />;
+        if (block.type === "spacer") return <div id={paragraphStyleAnchor(block.visualStyle)} className={`content-spacer${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block, spacerOrientation), ...paragraphStyleToCss(block.visualStyle) }} aria-hidden="true" key={block.id} />;
         if (block.type === "component") return null;
         if (block.type === "divider") {
           const DividerElement = block.tagName ?? "hr";

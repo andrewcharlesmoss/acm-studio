@@ -987,9 +987,69 @@
 .button-field.has-width-75 { width: 75%; }
 .button-field.has-width-100 { width: 100%; }
 .button-field[class*="has-width-"] .content-button { box-sizing: border-box; width: 100%; }
-.content-button { border-radius: 7px; display: inline-block; font-family: var(--studio-ui-font); font-size: 13px; font-weight: 650; line-height: 1.55; padding: 10px 15px; text-decoration: none; }
-.content-button.is-primary { background: var(--ink); color: white; }
-.content-button.is-secondary { background: #e7e6e0; color: var(--ink); }
+.button-field.has-button-hover-width:has(> .content-button:hover), .button-field.is-button-state-preview-hover.has-button-hover-width { width: var(--button-hover-width); }
+.button-field.has-button-focus-width:has(> .content-button:focus, > .content-button:focus-visible), .button-field.is-button-state-preview-focus.has-button-focus-width { width: var(--button-focus-width); }
+.button-field.has-button-active-width:has(> .content-button:active), .button-field.is-button-state-preview-active.has-button-active-width { width: var(--button-active-width); }
+.button-field.has-button-hover-width:has(> .content-button:hover) > .content-button, .button-field.is-button-state-preview-hover.has-button-hover-width > .content-button,
+.button-field.has-button-focus-width:has(> .content-button:focus, > .content-button:focus-visible) > .content-button, .button-field.is-button-state-preview-focus.has-button-focus-width > .content-button,
+.button-field.has-button-active-width:has(> .content-button:active) > .content-button, .button-field.is-button-state-preview-active.has-button-active-width > .content-button { box-sizing: border-box; width: 100%; }
+.content-button { background-color: var(--button-base-background-color, transparent); background-image: var(--button-base-background-image, none); border-color: var(--button-base-border-color, currentColor); border-radius: var(--button-base-border-radius, 7px); border-style: var(--button-base-border-style, none); border-width: var(--button-base-border-width, 0); box-shadow: var(--button-base-box-shadow, none); color: var(--button-base-color, inherit); display: inline-block; font-family: var(--button-base-font-family, var(--studio-ui-font)); font-size: var(--button-base-font-size, 13px); font-style: var(--button-base-font-style, normal); font-weight: var(--button-base-font-weight, 650); letter-spacing: var(--button-base-letter-spacing, normal); line-height: var(--button-base-line-height, 1.55); padding: var(--button-base-padding, 10px 15px); text-decoration: var(--button-base-text-decoration, none); text-transform: var(--button-base-text-transform, none); }
+.content-button.is-primary { background-color: var(--button-base-background-color, var(--ink)); color: var(--button-base-color, white); }
+.content-button.is-secondary { background-color: var(--button-base-background-color, #e7e6e0); color: var(--button-base-color, var(--ink)); }
+.content-button.has-button-interaction-styles.has-button-hover-color:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-color { color: var(--button-hover-color); }
+.content-button.has-button-interaction-styles.has-button-hover-background-color:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-background-color { background-color: var(--button-hover-background-color); }
+.content-button.has-button-interaction-styles.has-button-hover-background-image:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-background-image { background-image: var(--button-hover-background-image); }
+.content-button.has-button-interaction-styles.has-button-hover-font-family:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-font-family { font-family: var(--button-hover-font-family); }
+.content-button.has-button-interaction-styles.has-button-hover-font-size:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-font-size { font-size: var(--button-hover-font-size); }
+.content-button.has-button-interaction-styles.has-button-hover-font-style:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-font-style { font-style: var(--button-hover-font-style); }
+.content-button.has-button-interaction-styles.has-button-hover-font-weight:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-font-weight { font-weight: var(--button-hover-font-weight); }
+.content-button.has-button-interaction-styles.has-button-hover-line-height:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-line-height { line-height: var(--button-hover-line-height); }
+.content-button.has-button-interaction-styles.has-button-hover-letter-spacing:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-letter-spacing { letter-spacing: var(--button-hover-letter-spacing); }
+.content-button.has-button-interaction-styles.has-button-hover-text-transform:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-text-transform { text-transform: var(--button-hover-text-transform); }
+.content-button.has-button-interaction-styles.has-button-hover-text-decoration:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-text-decoration { text-decoration: var(--button-hover-text-decoration); }
+.content-button.has-button-interaction-styles.has-button-hover-padding:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-padding { padding: var(--button-hover-padding); }
+.content-button.has-button-interaction-styles.has-button-hover-margin:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-margin { margin: var(--button-hover-margin); }
+.content-button.has-button-interaction-styles.has-button-hover-border-color:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-border-color { border-color: var(--button-hover-border-color); }
+.content-button.has-button-interaction-styles.has-button-hover-border-style:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-border-style { border-style: var(--button-hover-border-style); }
+.content-button.has-button-interaction-styles.has-button-hover-border-width:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-border-width { border-width: var(--button-hover-border-width); }
+.content-button.has-button-interaction-styles.has-button-hover-border-radius:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-border-radius { border-radius: var(--button-hover-border-radius); }
+.content-button.has-button-interaction-styles.has-button-hover-box-shadow:hover, .content-button.has-button-interaction-styles.is-button-state-preview-hover.has-button-hover-box-shadow { box-shadow: var(--button-hover-box-shadow); }
+.content-button.has-button-interaction-styles.has-button-focus-color:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-color { color: var(--button-focus-color); }
+.content-button.has-button-interaction-styles.has-button-focus-background-color:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-background-color { background-color: var(--button-focus-background-color); }
+.content-button.has-button-interaction-styles.has-button-focus-background-image:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-background-image { background-image: var(--button-focus-background-image); }
+.content-button.has-button-interaction-styles.has-button-focus-font-family:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-font-family { font-family: var(--button-focus-font-family); }
+.content-button.has-button-interaction-styles.has-button-focus-font-size:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-font-size { font-size: var(--button-focus-font-size); }
+.content-button.has-button-interaction-styles.has-button-focus-font-style:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-font-style { font-style: var(--button-focus-font-style); }
+.content-button.has-button-interaction-styles.has-button-focus-font-weight:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-font-weight { font-weight: var(--button-focus-font-weight); }
+.content-button.has-button-interaction-styles.has-button-focus-line-height:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-line-height { line-height: var(--button-focus-line-height); }
+.content-button.has-button-interaction-styles.has-button-focus-letter-spacing:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-letter-spacing { letter-spacing: var(--button-focus-letter-spacing); }
+.content-button.has-button-interaction-styles.has-button-focus-text-transform:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-text-transform { text-transform: var(--button-focus-text-transform); }
+.content-button.has-button-interaction-styles.has-button-focus-text-decoration:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-text-decoration { text-decoration: var(--button-focus-text-decoration); }
+.content-button.has-button-interaction-styles.has-button-focus-padding:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-padding { padding: var(--button-focus-padding); }
+.content-button.has-button-interaction-styles.has-button-focus-margin:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-margin { margin: var(--button-focus-margin); }
+.content-button.has-button-interaction-styles.has-button-focus-border-color:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-border-color { border-color: var(--button-focus-border-color); }
+.content-button.has-button-interaction-styles.has-button-focus-border-style:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-border-style { border-style: var(--button-focus-border-style); }
+.content-button.has-button-interaction-styles.has-button-focus-border-width:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-border-width { border-width: var(--button-focus-border-width); }
+.content-button.has-button-interaction-styles.has-button-focus-border-radius:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-border-radius { border-radius: var(--button-focus-border-radius); }
+.content-button.has-button-interaction-styles.has-button-focus-box-shadow:is(:focus, :focus-visible), .content-button.has-button-interaction-styles.is-button-state-preview-focus.has-button-focus-box-shadow { box-shadow: var(--button-focus-box-shadow); }
+.content-button.has-button-interaction-styles.has-button-active-color:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-color { color: var(--button-active-color); }
+.content-button.has-button-interaction-styles.has-button-active-background-color:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-background-color { background-color: var(--button-active-background-color); }
+.content-button.has-button-interaction-styles.has-button-active-background-image:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-background-image { background-image: var(--button-active-background-image); }
+.content-button.has-button-interaction-styles.has-button-active-font-family:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-font-family { font-family: var(--button-active-font-family); }
+.content-button.has-button-interaction-styles.has-button-active-font-size:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-font-size { font-size: var(--button-active-font-size); }
+.content-button.has-button-interaction-styles.has-button-active-font-style:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-font-style { font-style: var(--button-active-font-style); }
+.content-button.has-button-interaction-styles.has-button-active-font-weight:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-font-weight { font-weight: var(--button-active-font-weight); }
+.content-button.has-button-interaction-styles.has-button-active-line-height:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-line-height { line-height: var(--button-active-line-height); }
+.content-button.has-button-interaction-styles.has-button-active-letter-spacing:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-letter-spacing { letter-spacing: var(--button-active-letter-spacing); }
+.content-button.has-button-interaction-styles.has-button-active-text-transform:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-text-transform { text-transform: var(--button-active-text-transform); }
+.content-button.has-button-interaction-styles.has-button-active-text-decoration:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-text-decoration { text-decoration: var(--button-active-text-decoration); }
+.content-button.has-button-interaction-styles.has-button-active-padding:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-padding { padding: var(--button-active-padding); }
+.content-button.has-button-interaction-styles.has-button-active-margin:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-margin { margin: var(--button-active-margin); }
+.content-button.has-button-interaction-styles.has-button-active-border-color:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-border-color { border-color: var(--button-active-border-color); }
+.content-button.has-button-interaction-styles.has-button-active-border-style:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-border-style { border-style: var(--button-active-border-style); }
+.content-button.has-button-interaction-styles.has-button-active-border-width:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-border-width { border-width: var(--button-active-border-width); }
+.content-button.has-button-interaction-styles.has-button-active-border-radius:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-border-radius { border-radius: var(--button-active-border-radius); }
+.content-button.has-button-interaction-styles.has-button-active-box-shadow:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-box-shadow { box-shadow: var(--button-active-box-shadow); }
 .divider-field { padding: 16px 0; }
 .divider-field .content-divider, .content-divider { border: 0; border-top: 1px solid var(--line); display: block; margin: 0; }
 .content-divider.is-wide { border-top-width: 3px; }
@@ -1032,6 +1092,10 @@
 .inspector-block-summary-heading > span { align-items: center; display: inline-flex; flex: 0 0 24px; justify-content: center; }
 .inspector-sections .inspector-block-summary h2 { font-size: 16px; font-weight: 700; letter-spacing: normal; margin: 0; text-transform: none; }
 .inspector-block-summary .setting-note { margin: 0; }
+.inspector-button-state-controls { display: grid; gap: 10px; margin: 16px 0; }
+.inspector-button-state-controls > label:first-child { display: grid; gap: 6px; }
+.inspector-button-state-controls select { box-sizing: border-box; min-height: 38px; width: 100%; }
+.inspector-button-state-controls .checkbox-setting { margin: 0; }
 .inspector-accordion-section > h2 { margin: 0; }
 .inspector-sections .advanced-fields-section > h2 { letter-spacing: normal; text-transform: none; }
 .inspector-accordion-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: flex-start; letter-spacing: inherit; padding: 0; text-align: left; text-transform: inherit; width: 100%; }
@@ -1479,16 +1543,17 @@
 .paragraph-background-picker.inspector-colour-setting .paragraph-background-modes > button + button { border-top: 1px solid #d1cfc7; }
 .paragraph-background-picker.inspector-colour-setting .paragraph-background-modes > button:hover { background: #f0f0f0; }
 
-.paragraph-theme-colour-palette { font: var(--studio-ui-size)/1.4 var(--studio-ui-font); gap: 18px; }
-.paragraph-colour-preview-card { justify-self: center; width: min(260px, 100%); border: 1px solid #b9b9b9; border-radius: 4px; overflow: hidden; }
-.paragraph-colour-preview { border: 0; border-bottom: 1px solid #b9b9b9; background: repeating-conic-gradient(#eee 0% 25%, white 0% 50%) 0 / 12px 12px; cursor: pointer; display: block; height: 120px; width: 100%; }
-.paragraph-colour-preview-card > div { padding: 12px 16px; display: grid; gap: 4px; }
+.paragraph-theme-colour-palette { font: 16px/1.5 var(--studio-ui-font); gap: 24px; padding: 24px; }
+.paragraph-colour-preview-card { justify-self: center; width: min(284px, 100%); border: 1px solid #b9b9b9; border-radius: 4px; overflow: hidden; }
+.paragraph-colour-preview { border: 0; border-bottom: 1px solid #b9b9b9; background: repeating-conic-gradient(#eee 0% 25%, white 0% 50%) 0 / 12px 12px; cursor: pointer; display: block; height: 128px; width: 100%; }
+.paragraph-colour-preview-card > div { align-content: center; box-sizing: border-box; display: grid; gap: 4px; min-height: 124px; padding: 20px 24px; }
 .paragraph-colour-preview-card span { overflow-wrap: anywhere; }
 .paragraph-colour-preview-value { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .paragraph-colour-theme-heading { font: 600 var(--studio-ui-size)/1.4 var(--studio-ui-font); }
-.paragraph-theme-colour-palette > .paragraph-colour-swatches { grid-template-columns: repeat(var(--colour-swatch-columns, 6), minmax(0, 1fr)); gap: 12px; }
-.paragraph-theme-colour-palette .paragraph-colour-swatch { height: var(--colour-swatch-size, 48px); width: var(--colour-swatch-size, 48px); min-width: var(--colour-swatch-size, 48px); padding: 2px; }
-.paragraph-theme-colour-palette .paragraph-colour-swatch > span { height: calc(var(--colour-swatch-size, 48px) - 4px); width: calc(var(--colour-swatch-size, 48px) - 4px); }
+.paragraph-theme-colour-palette > .paragraph-colour-swatches { grid-template-columns: repeat(var(--colour-swatch-columns, 6), minmax(0, 1fr)); gap: 24px; }
+.paragraph-theme-colour-palette .paragraph-colour-swatch { height: var(--colour-swatch-size, 56px); width: var(--colour-swatch-size, 56px); min-width: var(--colour-swatch-size, 56px); padding: 0; }
+.paragraph-theme-colour-palette .paragraph-colour-swatch > span { height: var(--colour-swatch-size, 56px); width: var(--colour-swatch-size, 56px); }
+.paragraph-theme-colour-palette .paragraph-colour-swatch > span { border-width: 2px; }
 .paragraph-colour-swatch > span { align-items: center; display: flex; justify-content: center; }
 .paragraph-custom-colour-popup { z-index: 90; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .paragraph-colour-preview:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -3px; }

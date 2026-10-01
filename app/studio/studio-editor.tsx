@@ -1,6 +1,6 @@
 "use client";
 
-import { listText, type ContentBlock, type ListItemSelection } from "../content/model";
+import { listText, type ButtonInteractionState, type ContentBlock, type ListItemSelection } from "../content/model";
 import { StudioCanvas, type StudioCanvasProps } from "./studio-canvas";
 import { StudioInspector, type StudioInspectorProps } from "./studio-inspectors";
 import type { StudioDocument } from "./editor-model";
@@ -27,14 +27,15 @@ export type StudioEditorProps = {
 
 export function StudioEditor({ target, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, canvas, inspector }: StudioEditorProps) {
   const [selectedListItem, setSelectedListItem] = useState<ListItemSelection | null>(null);
+  const [buttonPreview, setButtonPreview] = useState<{ blockId: string; state: ButtonInteractionState } | null>(null);
   const previewDocument = canvas.activeDocument ?? inspector?.activeDocument;
   // A template has its own persistence and inspector; the document supplies
   // representative content only. This transient projection feeds block tools.
   const activeDocument = target && previewDocument ? { ...previewDocument, id: target.id, blocks: target.blocks } : previewDocument;
   if (!activeDocument) return null;
   return <>
-    <StudioCanvas key={activeDocument.id} {...canvas} onSelectBlock={blockId => { setSelectedListItem(null); canvas.onSelectBlock(blockId); }} onSelectListItem={selection => { setSelectedListItem(selection); }} targetLabel={target?.kind} allowHtmlEditing={!target} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} writable={writable} activeDocument={activeDocument} />
-    {target ? typeof target.inspector === "function" ? target.inspector(selectedListItem) : target.inspector : inspector ? <StudioInspector {...inspector} selectedListItem={selectedListItem} activeDocument={inspector.activeDocument ?? activeDocument} /> : null}
+    <StudioCanvas key={activeDocument.id} {...canvas} buttonPreview={buttonPreview} onSelectBlock={blockId => { setSelectedListItem(null); setButtonPreview(null); canvas.onSelectBlock(blockId); }} onSelectListItem={selection => { setSelectedListItem(selection); }} targetLabel={target?.kind} allowHtmlEditing={!target} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} writable={writable} activeDocument={activeDocument} />
+    {target ? typeof target.inspector === "function" ? target.inspector(selectedListItem) : target.inspector : inspector ? <StudioInspector {...inspector} selectedListItem={selectedListItem} activeDocument={inspector.activeDocument ?? activeDocument} onButtonPreviewChange={setButtonPreview} /> : null}
   </>;
 }
 

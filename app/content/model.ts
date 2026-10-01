@@ -130,6 +130,13 @@ export type ParagraphStyle = {
   additionalCss?: string;
 };
 
+export type ButtonInteractionState = "hover" | "focus" | "active";
+export type ButtonInteractionStyle = Pick<ParagraphStyle,
+  | "fontFamily" | "fontSize" | "fontSizeCustom" | "appearance" | "textTransform" | "textDecoration"
+  | "lineHeight" | "letterSpacing" | "textColor" | "backgroundColor" | "backgroundGradient"
+  | "padding" | "margin" | "borderStyle" | "borderWidth" | "borderColor" | "borderRadius" | "shadow"
+> & { width?: ButtonWidth };
+
 export type SiteComponentName =
   | "mini-golf-account"
   | "mini-golf-setup"
@@ -199,7 +206,7 @@ export type ContentBlock = (
   | { id: string; type: "embed"; url: string; title: string; caption?: string; blockAlign?: BlockAlignment }
   | { id: string; type: "divider"; style?: "default" | "wide" | "dots"; tagName?: "hr" | "div"; blockAlign?: BlockAlignment }
   | { id: string; type: "footnotes"; notes: Footnote[] }
-  | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary"; opensInNewTab?: boolean; align?: TextAlignment; width?: ButtonWidth; title?: string; rel?: string }
+  | { id: string; type: "button"; label: string; url: string; style: "primary" | "secondary"; opensInNewTab?: boolean; align?: TextAlignment; width?: ButtonWidth; title?: string; rel?: string; interactionStyles?: Partial<Record<ButtonInteractionState, ButtonInteractionStyle>> }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
   | { id: string; type: "spacer"; height: number; heightUnit?: SpacerUnit; width?: number; widthUnit?: SpacerUnit }
   | { id: string; type: "document-title"; align?: TextAlignment; blockAlign?: BlockAlignment; level?: HeadingLevel; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string }

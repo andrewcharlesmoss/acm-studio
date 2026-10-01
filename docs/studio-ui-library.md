@@ -111,8 +111,11 @@ dimensions and focal position. The production inspector and specimens share
 the extracted BorderSettings, BackgroundSelection, FontSizeAppearanceSetting,
 ImageDimensionsSetting, FocalPositionSetting and PresetNumberSetting controls.
 Colour-picker ownership includes palette selection, Default/Hover values,
-swatch geometry, popover positioning and dismissal. Link contrast remains with
-the Link adapter. Each control records consumers, ownership, supported states
+swatch geometry, popover positioning and dismissal. Its theme palette uses the
+shared ACM semantic colour tokens, with 56px circular swatches, Gutenberg-like
+spacing and selected borders in up to six columns, a 520px desktop popover and
+a 284px preview card. Link contrast remains with the
+Link adapter. Each control records consumers, ownership, supported states
 and compatibility in a collapsed disclosure with links to its real block
 consumers. Examples use temporary component state and provide Reset Example and
 disabled states where supported. Recognised legacy detail routes redirect to

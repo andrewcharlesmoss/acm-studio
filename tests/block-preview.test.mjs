@@ -40,6 +40,23 @@ const { validContentBlocks } = await import(await compileModule(new URL("../app/
 const { imageDisplayStyle } = await import(await compileModule(new URL("../app/content/image-style.ts", import.meta.url)));
 const { normaliseCustomFontSize, validCustomFontSize } = await import(await compileModule(new URL("../app/content/font-size.ts", import.meta.url)));
 const { spacerDimensions, spacerOrientationFor } = await import(await compileModule(new URL("../app/content/spacer.ts", import.meta.url)));
+const { capabilityProfileFor } = await import(await compileModule(new URL("../app/studio/blocks/capability-profiles.ts", import.meta.url)));
+
+test("Button width and Advanced CSS are exposed through shared profile sections", () => {
+  const profile = capabilityProfileFor("button");
+  const width = profile.controls.find(control => control.id === "width");
+  const advanced = profile.controls.find(control => control.id === "advanced");
+  assert.equal(width.section, "dimensions");
+  assert.ok(profile.defaults.dimensions.includes("width"));
+  assert.ok(advanced.fields.includes("visualStyle.additionalCss"));
+  const cssCapableCoreBlocks = ["heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "columns", "column", "footnotes", "social-icons", "document-title", "cover-image", "post-date", "post-author"];
+  for (const type of cssCapableCoreBlocks) {
+    assert.ok(capabilityProfileFor(type).controls.find(control => control.id === "advanced")?.fields.some(field => field.endsWith("additionalCss")), `${type} exposes its mapped Additional CSS field`);
+  }
+  for (const type of ["social-linkedin", "social-tiktok"]) {
+    assert.equal(capabilityProfileFor(type).controls.find(control => control.id === "advanced")?.fields.some(field => field.endsWith("additionalCss")), false, `${type} does not claim the Gutenberg Additional CSS field`);
+  }
+});
 
 test("Advanced HTML anchor and class metadata is retained by the HTML source format", () => {
   const paragraph = blockToHtml({ id: "paragraph", type: "paragraph", text: "Hello", style: { anchor: "about-me" } });
@@ -288,6 +305,30 @@ test("ordered list settings, divider styles and button target reach the rendered
   assert.match(blockToHtml(blocks[1]), /class="is-dots"/);
   assert.match(blockToHtml(blocks[2]), /data-button-width="75" class="button-block align-right has-width-75"/);
   assert.match(blockToHtml(blocks[2]), /title="Visit Example" target="_blank" rel="nofollow noopener noreferrer"/);
+});
+
+test("Button interaction styles render on the selected state and survive HTML serialisation", () => {
+  const block = {
+    id: "stateful-button", type: "button", label: "Continue", url: "/continue", style: "primary",
+    visualStyle: { textColor: "#111111", backgroundColor: "#eeeeee" },
+    interactionStyles: { hover: { textColor: "#ffffff", backgroundColor: "#123456", width: 50, margin: "8px" }, focus: { borderStyle: "solid", borderWidth: "2px", borderColor: "#456789" } },
+  };
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio", buttonPreview: { blockId: block.id, state: "hover" } }));
+  assert.match(html, /class="content-button is-primary has-button-interaction-styles[^\"]*has-button-hover-width[^\"]*has-button-focus-border-color[^\"]*is-button-state-preview-hover"/);
+  for (const declaration of ["--button-base-color:#111111", "--button-base-background-color:#eeeeee", "--button-hover-color:#ffffff", "--button-hover-background-color:#123456", "--button-hover-background-image:none", "--button-focus-border-style:solid", "--button-focus-border-width:2px", "--button-focus-border-color:#456789"]) assert.ok(html.includes(declaration), `expected rendered style ${declaration}`);
+  assert.match(html, /class="button-field[^\"]*has-button-hover-width[^\"]*is-button-state-preview-hover" style="--button-hover-width:50%"/);
+  assert.match(html, /--button-hover-margin:8px/);
+  assert.match(blockToHtml(block), /data-button-interaction-styles="\{&quot;hover&quot;:/);
+});
+
+test("Additional CSS reaches mapped visual targets for Image and Spacer", () => {
+  const blocks = [
+    { id: "image-css", type: "image", src: "https://example.com/photo.png", alt: "Photo", visualStyle: { additionalCss: "outline: 2px solid red;" } },
+    { id: "spacer-css", type: "spacer", height: 32, visualStyle: { additionalCss: "opacity: 0.5;" } },
+  ];
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio" }));
+  assert.match(html, /class="block-visual-style" style="outline:2px solid red"/);
+  assert.match(html, /class="content-spacer" style="height:32px;width:100%;opacity:0.5"/);
 });
 
 test("image display settings and decorative text reach both renderers", () => {
@@ -603,7 +644,12 @@ test("Social Icons, Divider, Cover Image and layout settings survive the semanti
       childNodes: [],
       classList: { contains: (name) => (attributes.class ?? "").split(/\s+/).includes(name) },
       getAttribute: (name) => attributes[name] ?? null,
-      querySelector: () => null,
+      querySelector: (selector) => {
+        const descendants = [];
+        const visit = (parent) => parent.children.forEach((child) => { descendants.push(child); visit(child); });
+        visit(element);
+        return descendants.find((child) => child.tagName.toLowerCase() === selector.toLowerCase()) ?? null;
+      },
       querySelectorAll: (selector) => {
         const descendants = [];
         const visit = (parent) => parent.children.forEach((child) => { descendants.push(child); visit(child); });
@@ -682,6 +728,11 @@ test("Social Icons, Divider, Cover Image and layout settings survive the semanti
     const parsedCover = parseHtmlToBlock(blockToHtml(cover), cover);
     assert.ok("block" in parsedCover);
     assert.equal(parsedCover.block.scale, "fill");
+
+    const button = { id: "stateful-button", type: "button", label: "Continue", url: "/continue", style: "primary", interactionStyles: { hover: { textColor: "#ffffff", backgroundColor: "#123456" }, focus: { borderStyle: "solid", borderWidth: "2px", borderColor: "#456789" } } };
+    const parsedButton = parseHtmlToBlock(blockToHtml(button), button);
+    assert.ok("block" in parsedButton);
+    assert.deepEqual(parsedButton.block.interactionStyles, button.interactionStyles);
 
     const group = { id: "layout-group", type: "group", layout: "row", gap: 12, columnGap: 24, rowGap: 8, children: [] };
     const groupHtml = blockToHtml(group);

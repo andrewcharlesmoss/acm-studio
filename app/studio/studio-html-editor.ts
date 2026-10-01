@@ -2,7 +2,7 @@ import { listItemText, type ContentBlock, type LayoutMode, type LayoutOptions, t
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { hasLayoutOptions } from "../content/layout";
 import { plainTextFromRuns, safeImageSource, safeTextLink } from "../content/rich-text";
-import { validContentBlocks, validListItemStyle } from "./workspace-validation";
+import { validButtonInteractionStyles, validContentBlocks, validListItemStyle } from "./workspace-validation";
 import { paragraphStyleToCss } from "../content/paragraph-styles";
 
 /**
@@ -154,7 +154,7 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<a${attributes}${url ? ` href="${escapeAttribute(url)}"` : ""}${block.rel ? ` rel="${escapeAttribute(block.rel)}"` : ""} data-social-url="${escapeAttribute(block.url)}">${escapeText(block.label ?? "")}</a>`;
     }
     case "button":
-      return `<p${attributes} data-button-width="${block.width ?? ""}"${classAttribute([`button-block align-${block.align ?? "centre"}`, block.width ? `has-width-${block.width}` : ""].filter(Boolean).join(" "))}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}"${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.opensInNewTab ? ' target="_blank"' : ""}${block.rel || block.opensInNewTab ? ` rel="${escapeAttribute([block.rel, block.opensInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" "))}"` : ""}>${escapeText(block.label)}</a></p>`;
+      return `<p${attributes} data-button-width="${block.width ?? ""}"${block.interactionStyles ? ` data-button-interaction-styles="${escapeAttribute(JSON.stringify(block.interactionStyles))}"` : ""}${classAttribute([`button-block align-${block.align ?? "centre"}`, block.width ? `has-width-${block.width}` : ""].filter(Boolean).join(" "))}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}"${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.opensInNewTab ? ' target="_blank"' : ""}${block.rel || block.opensInNewTab ? ` rel="${escapeAttribute([block.rel, block.opensInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" "))}"` : ""}>${escapeText(block.label)}</a></p>`;
     case "field":
       return `<label${attributes}><span>${escapeText(block.label)}</span>${block.control === "select" ? `<select>${(block.options?.length ? block.options : [block.value]).map((option) => `<option${option === block.value ? " selected" : ""}>${escapeText(option)}</option>`).join("")}</select>` : `<input value="${escapeAttribute(block.value)}" />`}</label>`;
     case "section":
@@ -404,7 +404,13 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       const link = element.querySelector("a");
       if (link?.classList.contains("content-button")) {
         const width = Number(element.dataset.buttonWidth);
-        return { block: { id, type: "button", label: link.textContent ?? "", url: safeTextLink(link.getAttribute("href") ?? "") || "#", style: link.classList.contains("is-secondary") ? "secondary" : "primary", opensInNewTab: link.getAttribute("target") === "_blank" || undefined, align: alignmentFromClass(element), width: [25, 50, 75, 100].includes(width) ? width as 25 | 50 | 75 | 100 : undefined, title: link.getAttribute("title") || undefined, rel: link.getAttribute("rel")?.replace(/(?:^|\s)(?:noopener|noreferrer)(?=\s|$)/g, " ").trim() || undefined } };
+        let interactionStyles: unknown;
+        if (element.dataset.buttonInteractionStyles) {
+          try { interactionStyles = JSON.parse(element.dataset.buttonInteractionStyles); }
+          catch { return { error: "Button interaction styles could not be parsed." }; }
+          if (!validButtonInteractionStyles(interactionStyles)) return { error: "Button interaction styles are invalid." };
+        }
+        return { block: { id, type: "button", label: link.textContent ?? "", url: safeTextLink(link.getAttribute("href") ?? "") || "#", style: link.classList.contains("is-secondary") ? "secondary" : "primary", opensInNewTab: link.getAttribute("target") === "_blank" || undefined, align: alignmentFromClass(element), width: [25, 50, 75, 100].includes(width) ? width as 25 | 50 | 75 | 100 : undefined, title: link.getAttribute("title") || undefined, rel: link.getAttribute("rel")?.replace(/(?:^|\s)(?:noopener|noreferrer)(?=\s|$)/g, " ").trim() || undefined, interactionStyles: interactionStyles as Extract<ContentBlock, { type: "button" }>["interactionStyles"] } };
       }
       const runs = parseRuns(element);
       return { block: { ...preserveParagraphStyle(original, id), type: "paragraph", text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element) ?? (element.dataset.alignExplicit === "true" ? undefined : original.type === "paragraph" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original) } };

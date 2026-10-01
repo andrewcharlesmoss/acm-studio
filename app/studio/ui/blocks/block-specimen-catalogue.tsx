@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ContentBlock, RichTextRun, SocialIconBlock } from "../../../content/model";
+import type { ButtonInteractionState, ContentBlock, RichTextRun, SocialIconBlock } from "../../../content/model";
 import { spacerOrientationFor } from "../../../content/spacer";
 import { BlockRenderer } from "../../../components/content";
 import { createBlock, type InsertableBlockType, type StudioDocument } from "../../editor-model";
@@ -234,6 +234,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
   const historyRef = useRef<SpecimenSnapshot>({ past: [], future: [] });
   const [selectedId, setSelectedId] = useState(fixture.selectedId);
   const [selectedListItem, setSelectedListItem] = useState<{ blockId: string; listId: string; itemIndex: number } | null>(null);
+  const [buttonPreview, setButtonPreview] = useState<{ blockId: string; state: ButtonInteractionState } | null>(null);
   const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, "presets" | "custom">>({});
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [resetRevision, setResetRevision] = useState(0);
@@ -348,6 +349,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
     historyRef.current = { past: [], future: [] };
     setSelectedId(fixture.selectedId);
     setSelectedListItem(null);
+    setButtonPreview(null);
     setFontSizeViewModes({});
     setHistoryAvailability({ canUndo: false, canRedo: false });
     setResetRevision(revision => revision + 1);
@@ -391,15 +393,15 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
           <div className={`ui-block-canvas${type === "template-content" ? " is-content-projection" : ""}`} aria-label={mode === "edit" ? editLabel : previewLabel}>
             {mode === "edit" ? data.blocks.map(block => block.type === "component"
               ? <div className="ui-component-inactive" key={block.id} data-studio-block-id={block.id}><BlockLibraryIcon type="component" /><div><strong>{block.component.replace("mini-golf-", "Mini Golf ")}</strong><p>Inactive integration specimen</p><p>{Object.values(block.data ?? {}).filter(value => typeof value === "string").join(" · ")}</p></div></div>
-              : <div key={`${block.id}-${resetRevision}`} className="ui-block-editable"><BlockField block={block} rootBlocks={data.blocks} spacerOrientation={spacerOrientationFor(data.blocks, block.id)} document={data.document} selectedBlockId={selectedId} mediaUrl={block.type === "image" && block.mediaId ? mediaUrls[block.mediaId] : undefined} mediaUrls={mediaUrls} coverImageUrl={mediaUrls["library-local-image"]} onTableCellFocus={() => setSelectedId(block.id)} onTextSelection={() => { setSelectedListItem(null); setSelectedId(block.id); }} onListItemSelection={(list, itemIndex) => { setSelectedId(block.id); setSelectedListItem({ blockId: block.id, listId: list.id, itemIndex }); }} onLinkActivate={() => {}} onChange={next => updateBlock(next, true)} onOpenNestedInserter={addNestedParagraph} onInsertNestedBlock={(childType, parentId) => { if (childType === "social-linkedin" || childType === "social-tiktok") { const parent = allBlocks(dataRef.current.blocks).find(item => item.id === parentId); if (parent?.type === "social-icons") { const nextChild: SocialIconBlock = { id: `added-${childType}-${Date.now()}`, type: childType, url: "", label: childType === "social-linkedin" ? "LinkedIn" : "TikTok" }; updateBlock({ ...parent, children: [...parent.children, nextChild] }); } } }} /></div>)
+              : <div key={`${block.id}-${resetRevision}`} className="ui-block-editable"><BlockField block={block} rootBlocks={data.blocks} spacerOrientation={spacerOrientationFor(data.blocks, block.id)} document={data.document} selectedBlockId={selectedId} buttonPreview={buttonPreview} mediaUrl={block.type === "image" && block.mediaId ? mediaUrls[block.mediaId] : undefined} mediaUrls={mediaUrls} coverImageUrl={mediaUrls["library-local-image"]} onTableCellFocus={() => setSelectedId(block.id)} onTextSelection={() => { setSelectedListItem(null); setSelectedId(block.id); }} onListItemSelection={(list, itemIndex) => { setSelectedId(block.id); setSelectedListItem({ blockId: block.id, listId: list.id, itemIndex }); }} onLinkActivate={() => {}} onChange={next => updateBlock(next, true)} onOpenNestedInserter={addNestedParagraph} onInsertNestedBlock={(childType, parentId) => { if (childType === "social-linkedin" || childType === "social-tiktok") { const parent = allBlocks(dataRef.current.blocks).find(item => item.id === parentId); if (parent?.type === "social-icons") { const nextChild: SocialIconBlock = { id: `added-${childType}-${Date.now()}`, type: childType, url: "", label: childType === "social-linkedin" ? "LinkedIn" : "TikTok" }; updateBlock({ ...parent, children: [...parent.children, nextChild] }); } } }} /></div>)
               : type === "component"
                 ? <div className="ui-component-inactive" data-studio-block-id={data.blocks[0]?.id}><BlockLibraryIcon type="component" /><div><strong>{data.blocks[0]?.type === "component" ? data.blocks[0].component.replace("mini-golf-", "Mini Golf ") : "Component"}</strong><p>Inactive integration specimen</p><p>{data.blocks[0]?.type === "component" ? Object.values(data.blocks[0].data ?? {}).filter(value => typeof value === "string").join(" · ") : ""}</p></div></div>
                 : type === "template-content" && exampleTemplateSet.templates.find(template => template.kind === data.document.kind)
                   ? <TemplateSurface set={exampleTemplateSet}><TemplateNodes set={exampleTemplateSet} document={data.document} nodes={exampleTemplateSet.templates.find(template => template.kind === data.document.kind)!.nodes} mediaUrls={mediaUrls} templatePreview /></TemplateSurface>
-                : <BlockRenderer blocks={data.blocks} mediaUrls={mediaUrls} variant="studio" showMissingMetadata={false} document={data.document} />}
+                : <BlockRenderer blocks={data.blocks} mediaUrls={mediaUrls} variant="studio" showMissingMetadata={false} document={data.document} buttonPreview={buttonPreview} />}
             {type === "template-content" ? <p className="ui-template-projection-note">Edit the temporary document body above. Preview renders that body through the production template Content slot.</p> : null}
           </div>
-          {inspectorBlock ? <aside className="ui-block-inspector" aria-label={`${specimenLabel(inspectorBlock)} settings`}><BlockInspector key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} onChange={next => updateBlock(next)} onOpenFiles={chooseFixtureMedia} canOpenFiles={inspectorBlock.type === "image"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} /></aside> : null}
+          {inspectorBlock ? <aside className="ui-block-inspector" aria-label={`${specimenLabel(inspectorBlock)} settings`}><BlockInspector key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} onChange={next => updateBlock(next)} onButtonPreviewChange={setButtonPreview} onOpenFiles={chooseFixtureMedia} canOpenFiles={inspectorBlock.type === "image"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} /></aside> : null}
         </div>
         <p className="ui-block-sample-note">{fixture.note}</p>
         <p className="ui-block-isolation-note">Undo and Redo apply to the temporary block and example document. Editing within text fields keeps the browser’s native text history. This specimen does not access Studio documents, browser storage or the write-ownership lock.</p>

@@ -9,7 +9,7 @@ const gradientCompiled = ts.transpileModule(gradientSource, { compilerOptions: {
 const gradientUrl = `data:text/javascript;base64,${Buffer.from(gradientCompiled).toString("base64")}`;
 const { validBackgroundGradient, DEFAULT_GRADIENTS } = await import(gradientUrl);
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText.replace('"./background-gradient"', JSON.stringify(gradientUrl));
-const { fitTextEnabled, paragraphStyleToCss, paragraphStyleClassName, visualStyleClassName, parseAdditionalCssDeclarations, paragraphLinkColourHasPoorContrast, paragraphBackgroundGradientCss } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const { fitTextEnabled, paragraphStyleToCss, paragraphStyleClassName, visualStyleClassName, parseAdditionalCssDeclarations, paragraphLinkColourHasPoorContrast, paragraphBackgroundGradientCss, buttonVisualCss, buttonInteractionClassName, buttonInteractionLayoutCss } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
 const layoutSource = await readFile(new URL("../app/content/layout.ts", import.meta.url), "utf8");
 const compiledLayout = ts.transpileModule(layoutSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
 const { layoutStyleProperties, validLayoutOptions } = await import(`data:text/javascript;base64,${Buffer.from(compiledLayout).toString("base64")}`);
@@ -28,6 +28,29 @@ test("paragraph typography settings render as CSS without changing the text", ()
   assert.equal(paragraphStyleClassName({ fitText: true }), "has-fit-text");
   assert.equal(paragraphStyleToCss({ fitText: true, fontSize: "xx-large" }).fontSize, undefined);
   assert.match(visualStyleClassName({ fitText: true }), /has-fit-text/);
+});
+
+test("Button interaction styles keep base values as fallbacks and expose state-specific CSS", () => {
+  const interactionStyles = {
+    hover: { textColor: "#ffffff", backgroundColor: "#123456", fontSizeCustom: "18px", padding: "12px 20px", margin: "8px", width: 50 },
+    focus: { borderStyle: "solid", borderWidth: "2px", borderColor: "#456789" },
+  };
+  const css = buttonVisualCss({ textColor: "#111111", backgroundColor: "#eeeeee" }, interactionStyles);
+  assert.equal(css.color, undefined);
+  assert.equal(css.backgroundColor, undefined);
+  assert.equal(css["--button-base-color"], "#111111");
+  assert.equal(css["--button-base-background-color"], "#eeeeee");
+  assert.equal(css["--button-hover-color"], "#ffffff");
+  assert.equal(css["--button-hover-background-color"], "#123456");
+  assert.equal(css["--button-hover-background-image"], "none");
+  assert.equal(css["--button-hover-font-size"], "18px");
+  assert.equal(css["--button-hover-padding"], "12px 20px");
+  assert.equal(css["--button-hover-margin"], "8px");
+  assert.equal(css["--button-hover-width"], "50%");
+  assert.deepEqual(buttonInteractionLayoutCss(interactionStyles), { "--button-hover-width": "50%" });
+  assert.equal(css["--button-focus-border-width"], "2px");
+  assert.match(buttonInteractionClassName(interactionStyles), /has-button-focus-border-width/);
+  assert.match(buttonInteractionClassName(interactionStyles, "hover"), /is-button-state-preview-hover/);
 });
 
 test("Paragraph link colours keep Default and Hover independent and preserve legacy hover styling", () => {

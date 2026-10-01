@@ -53,7 +53,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const [open, setOpen] = useState(false);
   const [activeState, setActiveState] = useState<"default" | "hover">("default");
   const [selectedPaletteRoles, setSelectedPaletteRoles] = useState<Partial<Record<"default" | "hover", { key: keyof typeof UNIVERSAL_STYLE_PRESET.palette; value: string }>>>({});
-  const [position, setPosition] = useState({ left: 16, top: 16, width: 500, swatchSize: 48, swatchColumns: 6 });
+  const [position, setPosition] = useState({ left: 16, top: 16, width: 520, swatchSize: 56, swatchColumns: 6 });
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const paletteRef = useRef<HTMLDivElement>(null);
@@ -91,10 +91,10 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       if (!anchor || !palette) return;
       const anchorRect = anchor.getBoundingClientRect();
       const inspectorLeft = anchor.closest(".studio-inspector")?.getBoundingClientRect().left ?? anchorRect.left;
-      const width = Math.min(500, window.innerWidth - 32);
-      const swatchGridWidth = width - 26;
-      const swatchColumns = Math.max(3, Math.min(6, Math.floor((swatchGridWidth + 12) / 44)));
-      const swatchSize = Math.min(52, (swatchGridWidth - (swatchColumns - 1) * 12) / swatchColumns);
+      const width = Math.min(520, window.innerWidth - 32);
+      const swatchGridWidth = width - 50;
+      const swatchColumns = Math.max(3, Math.min(6, Math.floor((swatchGridWidth + 24) / 80)));
+      const swatchSize = Math.min(56, (swatchGridWidth - (swatchColumns - 1) * 24) / swatchColumns);
       setPosition({
         left: Math.max(16, Math.min(inspectorLeft - width - 12, window.innerWidth - width - 16)),
         top: Math.max(16, Math.min(anchorRect.top, window.innerHeight - palette.getBoundingClientRect().height - 16)),

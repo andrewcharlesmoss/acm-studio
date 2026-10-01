@@ -1,4 +1,4 @@
-import type { ParagraphStyle, ParagraphWeight, ParagraphGradientPreset } from "./model";
+import type { ButtonInteractionState, ButtonInteractionStyle, ParagraphStyle, ParagraphWeight, ParagraphGradientPreset } from "./model";
 
 import { validBackgroundGradient } from "./background-gradient";
 
@@ -213,9 +213,60 @@ export function listItemTextStyle(style?: ParagraphStyle): Record<string, string
   });
 }
 
-export function buttonVisualCss(style?: ParagraphStyle): Record<string, string> {
+const buttonInteractionProperties = new Set([
+  "fontFamily", "fontSize", "fontStyle", "fontWeight", "lineHeight", "letterSpacing", "textTransform", "textDecoration",
+  "color", "backgroundColor", "backgroundImage", "padding", "margin", "width", "borderStyle", "borderWidth", "borderColor", "borderRadius", "boxShadow",
+]);
+
+function buttonStateCss(style: ButtonInteractionStyle): Record<string, string> {
+  const css = paragraphStyleToCss(style);
+  if (style.width) css.width = `${style.width}%`;
+  if (style.backgroundColor && !style.backgroundGradient) css.backgroundImage = "none";
+  if (style.borderStyle === "none") css.borderStyle = "none";
+  return Object.fromEntries(Object.entries(css).filter(([property]) => buttonInteractionProperties.has(property)));
+}
+
+function buttonStatePropertyName(property: string) {
+  return property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`);
+}
+
+export function buttonInteractionClassName(styles?: Partial<Record<ButtonInteractionState, ButtonInteractionStyle>>, previewState?: ButtonInteractionState): string {
+  if (!styles || !Object.values(styles).some(style => style && Object.keys(buttonStateCss(style)).length > 0)) return "";
+  const classes = ["has-button-interaction-styles"];
+  for (const state of ["hover", "focus", "active"] as const) {
+    const style = styles[state];
+    if (!style) continue;
+    for (const property of Object.keys(buttonStateCss(style))) classes.push(`has-button-${state}-${buttonStatePropertyName(property)}`);
+  }
+  if (previewState && styles[previewState] && Object.keys(buttonStateCss(styles[previewState])).length) classes.push(`is-button-state-preview-${previewState}`);
+  return classes.join(" ");
+}
+
+export function buttonVisualCss(style?: ParagraphStyle, interactionStyles?: Partial<Record<ButtonInteractionState, ButtonInteractionStyle>>): Record<string, string> {
   const css = paragraphStyleToCss(style);
   delete css.margin;
+  if (!interactionStyles) return css;
+
+  for (const state of ["hover", "focus", "active"] as const) {
+    const stateStyle = interactionStyles[state];
+    if (!stateStyle) continue;
+    for (const [property, value] of Object.entries(buttonStateCss(stateStyle))) {
+      if (css[property] !== undefined) {
+        css[`--button-base-${buttonStatePropertyName(property)}`] = css[property];
+        delete css[property];
+      }
+      css[`--button-${state}-${buttonStatePropertyName(property)}`] = value;
+    }
+  }
+  return css;
+}
+
+export function buttonInteractionLayoutCss(styles?: Partial<Record<ButtonInteractionState, ButtonInteractionStyle>>): Record<string, string> {
+  const css: Record<string, string> = {};
+  for (const state of ["hover", "focus", "active"] as const) {
+    const width = styles?.[state]?.width;
+    if (width) css[`--button-${state}-width`] = `${width}%`;
+  }
   return css;
 }
 

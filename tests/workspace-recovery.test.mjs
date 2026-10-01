@@ -315,6 +315,22 @@ test("Quote and Group background image settings pass workspace validation", () =
   assert.equal(validation.validParagraphStyle({ linkHoverColor: "not-a-colour" }), false);
 });
 
+test("Button interaction styles validate only supported Gutenberg state properties", () => {
+  const block = {
+    id: "button-state", type: "button", label: "Continue", url: "/continue", style: "primary",
+    interactionStyles: {
+      hover: { backgroundColor: "#123456", textColor: "#ffffff", width: 50, margin: "8px" },
+      focus: { borderStyle: "solid", borderWidth: "2px", borderColor: "#456789" },
+      active: { backgroundGradient: { type: "linear", angle: 90, stops: [{ colour: "#123456", position: 0 }, { colour: "#abcdef", position: 100 }] } },
+    },
+  };
+  assert.equal(validation.validContentBlocks([block]), true);
+  assert.equal(validation.validContentBlocks([{ ...block, interactionStyles: { visited: { textColor: "#fff" } } }]), false);
+  assert.equal(validation.validContentBlocks([{ ...block, interactionStyles: { hover: { anchor: "unsafe-state-field" } } }]), false);
+  assert.equal(validation.validContentBlocks([{ ...block, interactionStyles: { focus: { textColor: "not-a-colour" } } }]), false);
+  assert.equal(validation.validContentBlocks([{ ...block, interactionStyles: { hover: { width: 33 } } }]), false);
+});
+
 for (const [name, corrupt] of [
   ["missing blocks", (backup) => { delete backup.workspace.documents[0].blocks; }],
   ["invalid block", (backup) => { backup.workspace.documents[0].blocks = [{ id: "bad", type: "table", rows: [null] }]; }],
