@@ -12,6 +12,7 @@ import { columnsLayoutStyle } from "../content/columns";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { imageDisplayStyle } from "../content/image-style";
+import { dividerRuleStyle } from "../content/divider-style";
 import { ImageLightbox } from "./image-lightbox";
 import { ArticleMetaIcon } from "./article-meta-icon";
 import { FitTextHeading, FitTextParagraph } from "./fit-text-paragraph";
@@ -75,7 +76,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     const style = block.visualStyle;
     const backgroundImageUrl = ["quote", "group"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
     const css = block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
-    if (block.type === "social-icons") { delete css.backgroundColor; delete css.backgroundImage; }
+    if (block.type === "social-icons" || block.type === "divider") { delete css.backgroundColor; delete css.backgroundImage; }
     if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
     const coverFrameClass = block.type === "cover-image"
       ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`
@@ -215,8 +216,9 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           const DividerElement = block.tagName ?? "hr";
           const dividerClass = `content-divider is-${block.style ?? "default"}`;
           const alignment = blockAlignmentClass(block);
-          const divider = <DividerElement className={dividerClass} role={DividerElement === "div" ? "separator" : undefined} aria-orientation={DividerElement === "div" ? "horizontal" : undefined} />;
-          return studio ? <div className={`divider-field${alignment ? ` ${alignment}` : ""}`} key={block.id}>{divider}</div> : <DividerElement className={`${dividerClass}${alignment ? ` ${alignment}` : ""}`} role={DividerElement === "div" ? "separator" : undefined} aria-orientation={DividerElement === "div" ? "horizontal" : undefined} key={block.id} />;
+          const ruleStyle = dividerRuleStyle(block.visualStyle, block.style) as React.CSSProperties;
+          const divider = <DividerElement className={dividerClass} style={ruleStyle} role={DividerElement === "div" ? "separator" : undefined} aria-orientation={DividerElement === "div" ? "horizontal" : undefined} />;
+          return studio ? <div className={`divider-field${alignment ? ` ${alignment}` : ""}`} key={block.id}>{divider}</div> : <DividerElement className={`${dividerClass}${alignment ? ` ${alignment}` : ""}`} style={ruleStyle} role={DividerElement === "div" ? "separator" : undefined} aria-orientation={DividerElement === "div" ? "horizontal" : undefined} key={block.id} />;
         }
         return null;
   }

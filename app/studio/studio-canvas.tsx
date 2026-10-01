@@ -9,6 +9,7 @@ import { ArticleMetaIcon } from "../components/article-meta-icon";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { imageDisplayStyle } from "../content/image-style";
+import { dividerRuleStyle } from "../content/divider-style";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeMathMLMarkup } from "../content/mathml";
 import { buttonVisualCss, fitTextEnabled, paragraphBackgroundGradientCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
@@ -1343,7 +1344,7 @@ export function BlockField(props: BlockFieldProps) {
   const style = block.visualStyle;
   const backgroundImageUrl = ["quote", "group"].includes(block.type) && style.backgroundImageMediaId ? props.mediaUrls?.[style.backgroundImageMediaId] : undefined;
   const css = block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
-  if (block.type === "social-icons") { delete css.backgroundColor; delete css.backgroundImage; }
+  if (block.type === "social-icons" || block.type === "divider") { delete css.backgroundColor; delete css.backgroundImage; }
   if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
   const coverFrameClass = block.type === "cover-image"
     ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`
@@ -1429,7 +1430,7 @@ function BlockFieldContent({ block, rootBlocks = [block], document, templatePlac
   if (block.type === "section" || block.type === "group") { const Group = block.type === "section" ? "section" : block.tagName ?? "div"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}${block.type === "group" && blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined} aria-label={block.type === "group" ? block.ariaLabel || undefined : undefined}>{block.children.map((child, index) => <div className="studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}><BlockField block={child} rootBlocks={rootBlocks} document={document} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} previousParagraphIndent={indentFromPreviousParagraph(block.children, index)} pendingColumnsLayoutBlockId={pendingColumnsLayoutBlockId} onColumnsLayoutSelected={onColumnsLayoutSelected} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} mediaUrl={child.type === "image" && child.mediaId ? mediaUrl : undefined} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onOpenNestedInserter={onOpenNestedInserter} writable={writable} onInsertNestedBlock={onInsertNestedBlock} onChange={(next) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) })} /></div>)}<button type="button" className="nested-add-block" onClick={() => onOpenNestedInserter?.(block.id)}><StudioIcon name="add" size={16} /> Add block</button></Group>; }
   const divider = block.type === "divider" ? block : undefined;
   const DividerElement = divider?.tagName ?? "hr";
-  return <div className={`divider-field${divider && blockAlignmentClass(divider) ? ` ${blockAlignmentClass(divider)}` : ""}`}><DividerElement className={`content-divider is-${divider?.style ?? "default"}`} role={DividerElement === "div" ? "separator" : undefined} aria-orientation={DividerElement === "div" ? "horizontal" : undefined} /></div>;
+  return <div className={`divider-field${divider && blockAlignmentClass(divider) ? ` ${blockAlignmentClass(divider)}` : ""}`}><DividerElement className={`content-divider is-${divider?.style ?? "default"}`} style={dividerRuleStyle(divider?.visualStyle, divider?.style) as React.CSSProperties} role={DividerElement === "div" ? "separator" : undefined} aria-orientation={DividerElement === "div" ? "horizontal" : undefined} /></div>;
 }
 
 function CodeEditor({ value, language, className, onChange }: { value: string; language?: string; className?: string; onChange: (value: string) => void }) {

@@ -459,6 +459,31 @@ test("Divider preserves its selected semantic element and alignment in preview a
   assert.match(article, /<div class="content-divider is-wide aligncenter" role="separator" aria-orientation="horizontal"><\/div>/);
 });
 
+test("Separator background colour and gradient style the editable, studio and public rule", async () => {
+  const solid = { id: "solid-separator", type: "divider", visualStyle: { backgroundColor: "#123456" } };
+  const solidMarkup = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [solid], variant: "studio" }));
+  assert.match(solidMarkup, /<hr class="content-divider is-default" style="color:#123456;border-top-color:#123456"\/>/);
+  assert.doesNotMatch(solidMarkup, /<div[^>]*style="[^"]*background-color:#123456/);
+
+  const gradient = { id: "gradient-separator", type: "divider", style: "wide", visualStyle: { backgroundGradient: { type: "linear", angle: 90, stops: [{ colour: "#123456", position: 0 }, { colour: "#ABCDEF", position: 100 }] } } };
+  const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [gradient], variant: "studio" }));
+  const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [gradient] }));
+  assert.match(studio, /<hr class="content-divider is-wide" style="background-image:linear-gradient\(90deg, #123456 0%, #ABCDEF 100%\);border:0;height:3px"\/>/);
+  assert.match(article, /<hr class="content-divider is-wide" style="background-image:linear-gradient\(90deg, #123456 0%, #ABCDEF 100%\);border:0;height:3px"\/>/);
+
+  const { BlockField } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const renderEditable = block => renderToStaticMarkup(createElement(BlockField, {
+    block,
+    document: { id: "separator-post", kind: "post", status: "draft", title: "Separator", blocks: [block] },
+    onTableCellFocus() {},
+    onTextSelection() {},
+    onLinkActivate() {},
+    onChange() {},
+  }));
+  assert.match(renderEditable(solid), /<hr class="content-divider is-default" style="color:#123456;border-top-color:#123456"\/>/);
+  assert.match(renderEditable(gradient), /<hr class="content-divider is-wide" style="background-image:linear-gradient\(90deg, #123456 0%, #ABCDEF 100%\);border:0;height:3px"\/>/);
+});
+
 test("Social Icons, Divider, Cover Image and layout settings survive the semantic HTML parser round-trip", () => {
   const previousParser = globalThis.DOMParser;
   const previousNode = globalThis.Node;

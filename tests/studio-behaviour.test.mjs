@@ -516,6 +516,9 @@ test("Gutenberg controls use the single block inspector and nonessential ACM opt
   const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
   assert.doesNotMatch(dividerInspector, /<span>HTML element<\/span>/, "the ACM hr/div selector is hidden");
   assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "element")?.source, "studio");
+  assert.deepEqual(capabilityProfileFor("divider").controls.find(control => control.id === "background")?.fields, ["backgroundColor", "backgroundGradient"]);
+  assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "background")?.source, "gutenberg");
+  assert.deepEqual(capabilityProfileFor("divider").sections.map(section => [section.id, section.label]), [["layout", "Styles"], ["background", "Background"], ["dimensions", "Dimensions"], ["advanced", "Advanced"]]);
 });
 
 test("Paragraph Typography follows Gutenberg options and hides ACM-only controls", async () => {

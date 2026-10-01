@@ -772,13 +772,26 @@ function CoverImageInspector({ block, onChange }: { block: Extract<ContentBlock,
 
 function DividerInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "divider" }>; onChange: (block: ContentBlock) => void }) {
   const style = block.visualStyle ?? {};
+  const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");
   function updateVisualStyle(changes: Partial<ParagraphStyle>) {
     const next = { ...style, ...changes };
     for (const key of Object.keys(next) as (keyof ParagraphStyle)[]) if (!next[key]) delete next[key];
     onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined });
   }
+  function updateBackground(backgroundColor: string | undefined, backgroundGradient: ParagraphBackgroundGradient | undefined) {
+    const next = { ...style };
+    if (backgroundColor) next.backgroundColor = backgroundColor;
+    else delete next.backgroundColor;
+    if (backgroundGradient) next.backgroundGradient = backgroundGradient;
+    else delete next.backgroundGradient;
+    onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined });
+  }
   return <>
     <InspectorAccordionSection title="Styles"><label><span>Style</span><select value={block.style ?? "default"} onChange={(event) => onChange({ ...block, style: event.target.value as "default" | "wide" | "dots" })}><option value="default">Default</option><option value="wide">Wide line</option><option value="dots">Dots</option></select></label></InspectorAccordionSection>
+    <InspectorAccordionSection className="inspector-panel" title="Background">
+      <BackgroundSelection mode={backgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
+      {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(undefined, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
+    </InspectorAccordionSection>
     <InspectorAccordionSection title="Dimensions"><ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateVisualStyle({ margin: value })} /></InspectorAccordionSection>
     <AdvancedFieldsInspector block={block} onChange={onChange} fields={{ anchor: true, className: true, additionalCss: false }} />
   </>;
