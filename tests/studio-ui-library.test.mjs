@@ -97,7 +97,7 @@ test("Block Library routes use one capability profile and production inspector s
   assert.match(specimen, /Undo and Redo apply to the temporary block and example document/);
   assert.match(specimen, /className="ui-block-sample-note"/);
   assert.doesNotMatch(specimen, /studioWriteOwnership|localStorage|sessionStorage/);
-  assert.match(read("app/studio/ui/blocks/page.tsx"), /blockLibraryEntries\.reduce/);
+  assert.match(read("app/studio/ui/blocks/page.tsx"), /<BlockLibraryCatalogue initialType=\{null\} \/>/);
 });
 
 test("Block Library index groups typed blocks, nested/system entries and template Content", () => {
@@ -111,12 +111,12 @@ test("Block Library index groups typed blocks, nested/system entries and templat
   assert.match(profile, /"template-content"/);
   assert.match(profile, /controlFieldsByBlock/);
   assert.match(navigation, /aria-label="Block Library"/);
-  assert.match(navigation, /aria-current=\{active === "all" \? "page" : undefined\}/);
-  assert.match(navigation, /aria-current=\{active === entry\.type \? "page" : undefined\}/);
-  assert.match(index, /<BlockLibraryNavigation active="all" \/>/);
-  assert.match(index, /blockLibraryEntries\.reduce/);
-  assert.match(index, /entries\.map/);
-  assert.match(paragraph, /BlockSpecimenCatalogue type="paragraph"/);
+  assert.match(navigation, /aria-current=\{active === "all" \? "location" : undefined\}/);
+  assert.match(navigation, /aria-current=\{active === entry\.type \? "location" : undefined\}/);
+  assert.match(read("app/studio/ui/blocks/block-specimen-catalogue.tsx"), /<BlockLibraryNavigation active=\{selectedType \?\? "all"\} onSelect=\{selectType\} \/>/);
+  assert.match(catalogue, /const baseEntries = blockCatalogue\.map/);
+  assert.match(index, /<BlockLibraryCatalogue initialType=\{null\} \/>/);
+  assert.match(paragraph, /<BlockLibraryCatalogue initialType="paragraph" \/>/);
   assert.match(catalogue, /type: "column"/);
   assert.match(catalogue, /type: "footnotes"/);
   assert.match(catalogue, /type: "component"/);
@@ -240,8 +240,9 @@ test("Application Section Navigation is generic, route-ready and exposed in Work
 
 test("shared Icons section keeps ACM artwork and describes usage as catalogue examples", () => {
   const icons = read("app/studio/ui/icons-catalogue.tsx");
+  const page = read("app/studio/ui/icons/page.tsx");
   assert.match(icons, /from "@acm\/icons"/);
-  assert.match(icons, /section="icons"/);
+  assert.match(page, /<StudioUiSectionHost section="icons">/);
   assert.match(icons, /iconAddedAt/);
   assert.match(icons, /Newest Added/);
   assert.match(icons, /formatIconAddedAt/);
