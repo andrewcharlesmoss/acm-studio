@@ -44,6 +44,31 @@ test("the source bundle generator reports stale line references without writing"
   assert.doesNotThrow(() => execFileSync("node", ["scripts/generate-style-guide-source.mjs", "--check"], { cwd: root, stdio: "pipe" }));
 });
 
+test("button normal and hover text colours are documented and editable in the Styles preview", () => {
+  const guide = source.document;
+  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
+  const presetStyles = fs.readFileSync(path.join(projects, "acm-styles/src/styles.css"), "utf8");
+
+  assert.match(guide, /\| Preset path \| Background \| Text colour \| Border \| Border width \| Hover background \| Hover text colour \|/);
+  assert.match(guide, /Each button variant has separately editable text colours for its normal and\s+hover states\./);
+  for (const role of ["base", "secondary", "outline"]) {
+    assert.match(guide, new RegExp(`\\| buttons\\.${role} \\|`));
+    assert.match(component, new RegExp(`\\{ id: "${role}", label: "${role[0].toUpperCase()}${role.slice(1)}" \\}`));
+  }
+  assert.match(component, /\["foreground", "Text colour"\]/);
+  assert.match(component, /\["hoverForeground", "Hover text colour"\]/);
+  assert.match(component, /stylePath=\{`buttons\.\$\{buttonRole\}\.\$\{key\}`\}/);
+  assert.match(component, /onChange=\{value => updateButton\(key, value\)\}/);
+  assert.match(component, /buttons: \{ \.\.\.current\.buttons, \[buttonRole\]: \{ \.\.\.current\.buttons\[buttonRole\], \[key\]: value \} \}/);
+  assert.match(component, /style=\{variables\}/);
+  assert.match(presetStyles, /color:\s*var\(--acm-button-base-foreground/);
+  assert.match(presetStyles, /:is\(button, \.acm-button\):hover\s*\{[^}]*color:\s*var\(--acm-button-base-hover-foreground/);
+  assert.match(styles, /\.sg-preview \.acm-button-secondary:hover\s*\{[^}]*color:\s*var\(--acm-button-secondary-hover-foreground\)/);
+  assert.match(styles, /\.sg-preview \.acm-button-outline:hover\s*\{[^}]*color:\s*var\(--acm-button-outline-hover-foreground\)/);
+  assert.match(component, /aria-label=\{`Reset \$\{label\}`\}/);
+});
+
 test("the source viewer remains read-only and does not use browser storage", () => {
   const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
   assert.doesNotMatch(component, /localStorage|sessionStorage|indexedDB/);
@@ -72,18 +97,18 @@ test("the written guide defaults to formatted Markdown with an accessible source
   assert.match(component, /aria-label="Written guide format"/);
   assert.match(component, />Formatted<\/button>/);
   assert.match(component, />Markdown source<\/button>/);
-  assert.match(component, /<FormattedGuideDocument lines=\{lines\} query=\{query\} activeLine=\{activeLine\}/);
+  assert.match(component, /<FormattedGuideDocument\s+ref=\{formattedGuideRef\}\s+lines=\{lines\}\s+query=\{query\}\s+activeLine=\{activeLine\}/);
   assert.match(component, /aria-label="Full Style Guide Markdown source with line numbers"/);
-  assert.match(component, /sg-guide-line-\$\{row\.line\}/);
+  assert.match(component, /sg-guide-(?:formatted|markdown)-line-\$\{(?:row\.line|lineNumber)\}/);
   assert.match(component, /<table><thead>/);
   assert.match(component, /<List>\{block\.items\.map/);
-  assert.match(component, /\}, \[activeGuideLine, guideView\]\);/);
+  assert.match(component, /\}, \[activeGuideLine\]\);/);
   assert.match(component, /block\.lines\.some\(item => item\.line === activeLine\)/);
   assert.match(component, /item\.continuations\.some\(continuation => continuation\.line === activeLine\)/);
   assert.match(component, /aria-current=\{activeLine === row\.line \? "location" : undefined\}/);
   assert.match(styles, /\.sg-guide-view-switch button\[aria-pressed="true"\]/);
   assert.match(styles, /\.sg-formatted-table th, \.sg-formatted-table td/);
-  assert.match(component, /className="sg-guide-document sg-guide-markdown"/);
+  assert.match(component, /className=\{`sg-guide-document sg-guide-markdown/);
   assert.match(styles, /\.sg-guide-markdown ol \{/);
   assert.doesNotMatch(styles, /\.sg-guide-document ol \{/);
 });

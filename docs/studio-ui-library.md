@@ -147,6 +147,10 @@ bundle; `npm run styles:source:check` verifies it without writing files.
 Responsive typography, semantic colour, button and layout controls change only
 the current React state. Reset All restores the package default; the page does
 not publish a global baseline or save project settings.
+The Buttons panel exposes Base, Secondary and Outline variants. Each variant
+has independently editable normal text colour and hover text colour, and both
+values update the matching live preview button. These edits remain temporary
+Styles sandbox state.
 The font picker offers Inter and the individual fallback families from the
 shared stack: Helvetica Neue, Helvetica, Arial and generic sans-serif. Older
 System Sans and Georgia preset values remain valid for compatibility but are
