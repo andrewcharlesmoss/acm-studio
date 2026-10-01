@@ -571,6 +571,10 @@ test("local publication captures nested body/template media and does not consult
 test("renderer shares structure/styles and dynamic content, preserves ordinary overrides, and escapes links/text", () => {
   const env = environment(); const m = env.load("studio/template-model.ts"); const renderer = env.load("studio/template-renderer.tsx");
   const set = m.createTemplateSet(); const doc = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0]);
+  set.templates[0].nodes.push(
+    { id: "row-with-spacer", type: "group", layout: "row", children: [{ id: "horizontal-spacer", type: "spacer", height: 48, heightUnit: "px", width: 240, widthUnit: "px" }] },
+    { id: "stack-with-spacer", type: "group", layout: "stack", children: [{ id: "vertical-spacer", type: "spacer", height: 48, heightUnit: "px", width: 240, widthUnit: "px" }] },
+  );
   set.styles.typography.body.size.tablet = { value: 20, unit: "px" };
   assert.equal(Object.keys(renderer.templateStyleProperties(set.styles)).some(name => name.startsWith("--acm-type-")), false, "responsive typography stays in the media-aware preset stylesheet");
   set.identity.name = "<script>unsafe</script>";
@@ -583,6 +587,8 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   assert.match(html, /@media \(max-width: 1024px\)/);
   assert.match(html, /--acm-type-body-size:20px/);
   assert.match(html, /template-header/); assert.match(html, /template-footer/); assert.match(html, /--template-font-size:1.0625rem/); assert.match(html, /color:#ff0000/); assert.match(html, /Shared note/); assert.match(html, /&lt;script&gt;/); assert.doesNotMatch(html, /<script>/);
+  assert.match(html, /class="content-spacer" style="height:auto;width:240px"/);
+  assert.match(html, /class="content-spacer" style="height:48px;width:100%"/);
   assert.match(html, /id="columns-anchor" class="template-columns authored-columns"/);
   assert.match(html, /color:#123456/); assert.match(html, /background-color:#eeeeee/); assert.match(html, /padding:12px/); assert.match(html, /border-width:2px/);
   assert.match(html, /id="column-anchor" class="template-column authored-column"/); assert.match(html, /background-color:#dddddd/); assert.match(html, /padding:8px/); assert.match(html, /Styled column/);
@@ -608,6 +614,19 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   assert.match(emptyEdit, /Add a publication date in Document settings/);
   const emptyPreview = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { ...snapshot, templateId: set.templates.find(template => template.kind === "post").id }, document: emptyPost }));
   assert.doesNotMatch(emptyPreview, /Add an author in Document settings|Add a publication date in Document settings/);
+});
+
+test("template ordinary render callbacks receive the containing Row orientation", () => {
+  const env = environment(); const m = env.load("studio/template-model.ts"); const renderer = env.load("studio/template-renderer.tsx");
+  const set = m.createTemplateSet(); const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0]);
+  const nodes = [{ id: "row", type: "group", layout: "row", children: [{ id: "row-spacer", type: "spacer", height: 48, heightUnit: "px", width: 240, widthUnit: "px" }] }];
+  const orientations = [];
+  renderToStaticMarkup(createElement(renderer.TemplateNodes, { set, document, nodes, renderOrdinary: (node, spacerOrientation) => {
+    if (node.type !== "spacer") return null;
+    orientations.push(spacerOrientation);
+    return createElement("span", { "data-spacer-orientation": spacerOrientation });
+  } }));
+  assert.deepEqual(orientations, ["horizontal"]);
 });
 
 test("stale asynchronous imports cannot write after ownership is reacquired", async () => {

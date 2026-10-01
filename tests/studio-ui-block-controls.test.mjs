@@ -171,6 +171,31 @@ test("conditional Inspector options declare the setting they depend on", () => {
   assert.match(specimen, /"library-local-image-two"/);
 });
 
+test("Spacer size is a single Gutenberg-owned parent-aware control", () => {
+  const spacer = capabilityProfileFor("spacer");
+  const size = spacer.controls.find(control => control.id === "size");
+  assert.equal(size?.source, "gutenberg");
+  assert.deepEqual(size?.fields, ["height", "heightUnit", "width", "widthUnit"]);
+  assert.deepEqual(size?.resetFields, size?.fields);
+  assert.match(size?.label ?? "", /Height or width according to parent orientation/);
+  assert.equal(spacer.controls.some(control => control.id === "width" && control.source === "studio"), false);
+  assert.deepEqual(spacer.unsupported, ["Flex-child fill and drag handle"]);
+
+  const inspector = read("app/studio/studio-inspectors.tsx");
+  assert.match(inspector, /spacerOrientation=\{selectedSpacerOrientation\}/);
+  assert.match(inspector, /const dimension = orientation === "horizontal" \? "width" : "height"/);
+  assert.match(inspector, /const label = orientation === "horizontal" \? "Width" : "Height"/);
+  assert.match(inspector, /defaultWidthByUnit: Record<SpacerUnit, number> = \{ px: 100/);
+
+  const canvas = read("app/studio/studio-canvas.tsx");
+  assert.match(canvas, /spacerOrientation=\{spacerOrientationForChildren\(block\)\}/);
+  assert.match(canvas, /spacerDimensions\(block, spacerOrientation\)/);
+  const templateInspector = read("app/studio/template-inspector.tsx");
+  assert.match(templateInspector, /spacerOrientation=\{selectedSpacerOrientation\}/);
+  const specimen = read("app/studio/ui/blocks/block-specimen-catalogue.tsx");
+  assert.match(specimen, /spacerOrientation=\{spacerOrientationFor\(data\.blocks, inspectorBlock\.id\)\}/);
+});
+
 test("the block inspector exposes only Gutenberg-owned shared style groups", () => {
   assert.equal(hasScopedStyleControls(capabilityProfileFor("paragraph"), "gutenberg"), true);
   assert.equal(hasScopedStyleControls(capabilityProfileFor("document-subtitle"), "gutenberg"), false);

@@ -18,7 +18,7 @@ import { BoxLengthSetting } from "./box-length-setting";
 import { documentDisplaySource, type FieldUsage } from "./document-fields";
 import { createPasswordProtection } from "../content/password-protection";
 import { setColumnCount, setColumnWidth } from "../content/columns";
-import { SPACER_SIZE_LIMIT, SPACER_UNITS } from "../content/spacer";
+import { SPACER_SIZE_LIMIT, SPACER_UNITS, spacerOrientationFor, type SpacerOrientation } from "../content/spacer";
 import { safeTextLink } from "../content/rich-text";
 import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
 import { ColourPicker } from "./controls/colour-picker";
@@ -91,6 +91,7 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
   const collapsed = paneCollapsed ?? localCollapsed;
   const setCollapsed = onPaneCollapsedChange ?? setLocalCollapsed;
   const selectedColumnParent = selectedBlock?.type === "column" ? findColumnsParent(activeDocument.blocks, selectedBlock.id) : undefined;
+  const selectedSpacerOrientation = selectedBlock?.type === "spacer" ? spacerOrientationFor(activeDocument.blocks, selectedBlock.id) : "vertical";
   const canSetSticky = selectedBlock?.type === "group" && activeDocument.blocks.some(block => block.id === selectedBlock.id);
   const selectedDocumentFieldBlockType = selectedDocumentField === "title" ? "document-title" : "document-subtitle";
   const selectedDocumentFieldInfo = selectedDocumentField ? blockCatalogue.find(item => item.type === selectedDocumentFieldBlockType) : null;
@@ -113,7 +114,7 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
             </InspectorAccordionSection>
           </div>
         ) : selectedBlock ? (
-          <BlockInspector block={selectedBlock} canSetSticky={canSetSticky} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? () => onOpenBackgroundMedia(selectedBlock.id) : undefined} canOpenFiles={canOpenFiles} />
+          <BlockInspector block={selectedBlock} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? () => onOpenBackgroundMedia(selectedBlock.id) : undefined} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
@@ -617,7 +618,7 @@ function fontSizeModeKey(scope: string, block: ContentBlock) {
   return JSON.stringify([scope, block.id, block.type]) ?? "";
 }
 
-export function BlockInspector({ block, canSetSticky = false, onChange, onColumnWidthChange, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; canSetSticky?: boolean; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; onOpenBackgroundMedia?: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
+export function BlockInspector({ block, canSetSticky = false, spacerOrientation = "vertical", onChange, onColumnWidthChange, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; onOpenBackgroundMedia?: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
   const selectedFontSizeModeKey = fontSizeModeKey(fontSizeModeScope, block);
   const profile = capabilityProfileFor(block.type);
   const blockInfo = blockCatalogue.find((item) => item.type === block.type);
@@ -640,7 +641,7 @@ export function BlockInspector({ block, canSetSticky = false, onChange, onColumn
       {block.type === "social-icons" ? <InspectorAccordionSection title="Social Icons"><p className="setting-note">Use the plus button in the block to add LinkedIn or TikTok. Select an icon to edit its link.</p><label><span>Style</span><select value={block.socialStyle ?? "default"} onChange={event => onChange({ ...block, socialStyle: event.target.value as NonNullable<typeof block.socialStyle> })}><option value="default">Default</option><option value="logos-only">Logos Only</option><option value="pill-shape">Pill Shape</option></select></label><label><span>Justification</span><select value={block.justification ?? "left"} onChange={event => onChange({ ...block, justification: event.target.value as NonNullable<typeof block.justification> })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option><option value="space-between">Space between</option></select></label><label><span>Orientation</span><select value={block.orientation ?? "horizontal"} onChange={event => onChange({ ...block, orientation: event.target.value as NonNullable<typeof block.orientation> })}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={block.allowWrap !== false} onChange={event => onChange({ ...block, allowWrap: event.target.checked })} /><span>Allow to wrap</span></label><label><span>Icon size</span><select value={block.iconSize ?? "normal"} onChange={event => onChange({ ...block, iconSize: event.target.value as NonNullable<typeof block.iconSize> })}><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option><option value="huge">Huge</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.showLabels)} onChange={event => onChange({ ...block, showLabels: event.target.checked })} /><span>Show text labels</span></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.openInNewTab)} onChange={event => onChange({ ...block, openInNewTab: event.target.checked })} /><span>Open links in a new tab</span></label></InspectorAccordionSection> : null}
       {block.type === "social-icons" ? <InspectorAccordionSection title="Spacing"><label><span>Gap</span><input type="number" min="0" max="120" value={block.horizontalGap === block.verticalGap ? block.horizontalGap ?? "" : ""} placeholder={block.horizontalGap === block.verticalGap ? "Default" : "Mixed"} onChange={event => { const gap = event.target.value === "" ? undefined : Math.max(0, Math.min(120, Number(event.target.value) || 0)); onChange({ ...block, horizontalGap: gap, verticalGap: gap }); }} /></label></InspectorAccordionSection> : null}
       {block.type === "divider" ? <DividerInspector block={block} onChange={onChange} /> : null}
-      {block.type === "spacer" ? <><SpacerInspector block={block} onChange={onChange} /><SpacingAndAdvancedInspector block={block} onChange={onChange} advancedFields={advanced} /></> : null}
+      {block.type === "spacer" ? <SpacerInspector block={block} orientation={spacerOrientation} onChange={onChange} advancedFields={advanced} /> : null}
       {block.type === "post-date" ? <InspectorAccordionSection title="Post Date"><label><span>Format</span><select value={block.format ?? "long"} onChange={(event) => onChange({ ...block, format: event.target.value as PostDateFormat })}><option value="long">Long — 2 September 2026</option><option value="short">Short — 02/09/2026</option><option value="iso">ISO — 2026-09-02</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={Boolean(block.isLink)} onChange={(event) => onChange({ ...block, isLink: event.target.checked })} /><span>Link to post</span></label><p className="setting-note">The value uses Publish date first, then the existing publication date.</p></InspectorAccordionSection> : null}
       {block.type === "post-author" ? <InspectorAccordionSection title="Post Author"><label><span>Alignment</span><select value={block.align ?? "left"} onChange={event => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label><p className="setting-note">The author value is edited in Document settings.</p></InspectorAccordionSection> : null}
       {block.type === "post-date" ? <InspectorAccordionSection title="Post Date alignment"><label><span>Alignment</span><select value={block.align ?? "left"} onChange={event => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : null}
@@ -720,10 +721,26 @@ function SpacingAndAdvancedInspector({ block, onChange, advancedFields }: { bloc
   </>;
 }
 
-function SpacerInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "spacer" }>; onChange: (block: ContentBlock) => void }) {
+function SpacerInspector({ block, orientation, onChange, advancedFields }: { block: Extract<ContentBlock, { type: "spacer" }>; orientation: SpacerOrientation; onChange: (block: ContentBlock) => void; advancedFields: AdvancedFields | null }) {
   const defaultHeightByUnit: Record<SpacerUnit, number> = { px: 32, em: 2, rem: 2, vw: 10, vh: 10 };
+  const defaultWidthByUnit: Record<SpacerUnit, number> = { px: 100, em: 2, rem: 2, vw: 10, vh: 10 };
   const unitOptions = SPACER_UNITS.map((unit) => <option value={unit} key={unit}>{unit}</option>);
-  return <InspectorAccordionSection title="Spacer"><div className="inspector-two-column"><label><span>Height</span><input type="number" min="0" max={SPACER_SIZE_LIMIT} step="any" value={block.height} onChange={(event) => onChange({ ...block, height: Math.max(0, Math.min(SPACER_SIZE_LIMIT, Number(event.target.value) || 0)) })} /></label><label><span>Height unit</span><select value={block.heightUnit ?? "px"} onChange={(event) => { const unit = event.target.value as SpacerUnit; onChange({ ...block, height: defaultHeightByUnit[unit], heightUnit: unit === "px" ? undefined : unit }); }}>{unitOptions}</select></label></div><p className="setting-note">Spacer blocks add empty space without adding screen-reader content.</p></InspectorAccordionSection>;
+  const dimension = orientation === "horizontal" ? "width" : "height";
+  const unitField = orientation === "horizontal" ? "widthUnit" : "heightUnit";
+  const label = orientation === "horizontal" ? "Width" : "Height";
+  const unit = block[unitField] ?? "px";
+  const value = orientation === "horizontal" ? block.width ?? 100 : block.height;
+  return <>
+    <InspectorAccordionSection title="Dimensions">
+      <div className="inspector-two-column">
+        <label><span>{label}</span><input aria-label={label} type="number" min="0" max={SPACER_SIZE_LIMIT} step="any" value={value} onChange={(event) => onChange({ ...block, [dimension]: Math.max(0, Math.min(SPACER_SIZE_LIMIT, Number(event.target.value) || 0)) })} /></label>
+        <label><span>{label} unit</span><select aria-label={`${label} unit`} value={unit} onChange={(event) => { const nextUnit = event.target.value as SpacerUnit; const defaults = orientation === "horizontal" ? defaultWidthByUnit : defaultHeightByUnit; onChange({ ...block, [dimension]: defaults[nextUnit], [unitField]: nextUnit === "px" ? undefined : nextUnit }); }}>{unitOptions}</select></label>
+      </div>
+      <ParagraphLengthSetting label="Margin" value={block.visualStyle?.margin} min={-100} max={200} onChange={value => { const visualStyle = { ...(block.visualStyle ?? {}) }; if (value) visualStyle.margin = value; else delete visualStyle.margin; onChange({ ...block, visualStyle: Object.keys(visualStyle).length ? visualStyle : undefined }); }} />
+      <p className="setting-note">Spacer blocks add empty space without adding screen-reader content.</p>
+    </InspectorAccordionSection>
+    {advancedFields ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advancedFields} /> : null}
+  </>;
 }
 
 function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean }) {

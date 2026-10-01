@@ -7,6 +7,7 @@ import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from ".
 import { columnsLayoutStyle } from "../content/columns";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import type { ContentBlock } from "../content/model";
+import type { SpacerOrientation } from "../content/spacer";
 import type { StudioDocument } from "./editor-model";
 import type { SiteStyles, TemplateNode, TemplatePart, TemplateSet, TemplateSnapshot } from "./template-model";
 import { StudioIcon } from "./studio-icons";
@@ -111,7 +112,7 @@ export type TemplateRenderContext = {
   onRemoveCoverImage?: () => void;
   onRemoveCoverBlock?: () => void;
   onEditPart?: (id: string) => void;
-  renderOrdinary?: (node: TemplateNode) => ReactNode;
+  renderOrdinary?: (node: TemplateNode, spacerOrientation: SpacerOrientation) => ReactNode;
   decorate?: (node: TemplateNode, result: ReactNode) => ReactNode;
 };
 
@@ -119,29 +120,30 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
   const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
-  function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false): ReactNode {
+  function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false, spacerOrientation: SpacerOrientation = "vertical"): ReactNode {
     if (++rendered > 10000 || depth > 16) return <p role="alert">Template expansion limit reached.</p>;
     let result: ReactNode;
     if (node.type === "part") {
       const part = set.parts.find(p => p.id === node.partId);
       if (!part || ancestors.has(part.id)) return <p role="alert">This shared part is unavailable.</p>;
       result = <TemplatePartRegion part={part} onEditPart={onEditPart}>
-        {part.nodes.map(child => <div key={child.id}>{render(child, new Set([...ancestors, part.id]), depth + 1, true)}</div>)}
+        {part.nodes.map(child => <div key={child.id}>{render(child, new Set([...ancestors, part.id]), depth + 1, true, "vertical")}</div>)}
       </TemplatePartRegion>;
     } else if (node.type === "group" || node.type === "section") {
       const Group = node.type === "section" ? "section" : "div";
       const backgroundImageUrl = node.type === "group" && node.visualStyle?.backgroundImageMediaId ? mediaUrls[node.visualStyle.backgroundImageMediaId] : undefined;
       const style = node.type === "group" ? node.visualStyle : undefined;
-      result = <Group id={paragraphStyleAnchor(style)} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</Group>;
+      const childSpacerOrientation = node.layout === "row" ? "horizontal" : "vertical";
+      result = <Group id={paragraphStyleAnchor(style)} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation)}</div>)}</Group>;
     } else if (node.type === "columns") {
       const className = paragraphStyleClassName(node.style);
-      result = (!shared ? renderOrdinary?.(node) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle(node), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.map(column => {
+      result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle(node), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.map(column => {
         const columnClassName = paragraphStyleClassName(column.style);
-        return <div id={paragraphStyleAnchor(column.style)} className={`template-column${columnClassName ? ` ${columnClassName}` : ""}`} key={column.id} style={{ ...layoutStyleProperties(column), ...(column.verticalAlign ? { alignSelf: column.verticalAlign === "centre" ? "center" : column.verticalAlign === "bottom" ? "end" : column.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(column.style) }}>{column.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</div>;
+        return <div id={paragraphStyleAnchor(column.style)} className={`template-column${columnClassName ? ` ${columnClassName}` : ""}`} key={column.id} style={{ ...layoutStyleProperties(column), ...(column.verticalAlign ? { alignSelf: column.verticalAlign === "centre" ? "center" : column.verticalAlign === "bottom" ? "end" : column.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(column.style) }}>{column.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared, "vertical")}</div>)}</div>;
       })}</div>;
     } else if (node.type === "column") {
       const className = paragraphStyleClassName(node.style);
-      result = <div id={paragraphStyleAnchor(node.style)} className={`template-column${className ? ` ${className}` : ""}`} style={{ ...(node.verticalAlign ? { alignSelf: node.verticalAlign === "centre" ? "center" : node.verticalAlign === "bottom" ? "end" : node.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(node.style) }}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared)}</div>)}</div>;
+      result = <div id={paragraphStyleAnchor(node.style)} className={`template-column${className ? ` ${className}` : ""}`} style={{ ...(node.verticalAlign ? { alignSelf: node.verticalAlign === "centre" ? "center" : node.verticalAlign === "bottom" ? "end" : node.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(node.style) }}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared, "vertical")}</div>)}</div>;
     } else if (node.type === "element") {
       const align = node.align === "centre" ? "center" : node.align;
       const fieldVisualStyle = node.element === "document-title" ? node.visualStyle
@@ -205,7 +207,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       const field = node.element === "document-title" ? "title" : node.element === "subtitle" ? "subtitle" : null;
       const isSelectedDocumentField = editingDocument && field !== null && selectedDocumentField === field;
       result = <div className={`template-element template-${node.element}${isSelectedDocumentField ? " is-document-field-selected" : ""}`} data-template-element={node.element} data-document-field={field ?? undefined} onPointerDown={editingDocument && field ? () => onFocusDocumentField?.(field) : undefined} style={{ textAlign: align }}>{element}</div>;
-    } else result = (!shared ? renderOrdinary?.(node) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} />;
+    } else result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} spacerOrientation={spacerOrientation} />;
     return (!shared ? decorate?.(node, result) : undefined) ?? result;
   }
   return <>{nodes.map(node => <div className="template-node" key={node.id} style={node.type === "group" && node.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : undefined}>{render(node, new Set(), 0)}</div>)}</>;

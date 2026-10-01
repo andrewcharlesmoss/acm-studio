@@ -5,7 +5,7 @@ import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text"
 import { listItemText, listMarker, normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { safeMathMLMarkup } from "../content/mathml";
 import { buttonVisualCss, fitTextEnabled, paragraphBackgroundGradientCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
-import { spacerDimensions } from "../content/spacer";
+import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../content/spacer";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { columnsLayoutStyle } from "../content/columns";
@@ -58,7 +58,7 @@ export function ArticleRow({ article, passwordProtected = false }: { article: Ar
   );
 }
 
-export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, document, readingTimeBlocks, showMissingMetadata = variant === "studio" }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean }) {
+export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical" }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation }) {
   const studio = variant === "studio";
   const footnoteNumbers = new Map<string, number>();
   let nextFootnoteNumber = 1;
@@ -69,9 +69,9 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     }
   }
   collectFootnoteNumbers(blocks);
-  function renderBlock(block: ContentBlock, previousSibling?: ContentBlock) {
+  function renderBlock(block: ContentBlock, previousSibling?: ContentBlock, blockSpacerOrientation = spacerOrientation) {
     const previousParagraphIndent = previousSibling?.type === "paragraph" ? previousSibling.style?.textIndent : undefined;
-    const content = renderBlockContent(block, previousParagraphIndent);
+    const content = renderBlockContent(block, previousParagraphIndent, blockSpacerOrientation);
     if (!block.visualStyle || block.type === "spacer") return content;
     const style = block.visualStyle;
     const backgroundImageUrl = ["quote", "group"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
@@ -84,7 +84,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     const className = `${visualStyleClassName(style)}${coverFrameClass}`;
     return <div key={block.id} id={paragraphStyleAnchor(style)} className={className} style={css}>{content}</div>;
   }
-  function renderBlockContent(block: ContentBlock, previousParagraphIndent?: string) {
+  function renderBlockContent(block: ContentBlock, previousParagraphIndent?: string, spacerOrientation: SpacerOrientation = "vertical") {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
         if (block.type === "paragraph") {
           const paragraphClasses = paragraphStyleClassName(block.style, block.align);
@@ -203,14 +203,14 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           return links.length ? <nav className={socialIconsBlockClassName(block)} style={{ ...style, "--social-icon-background": block.visualStyle?.backgroundColor, "--social-icon-background-image": block.visualStyle?.backgroundGradient ? paragraphBackgroundGradientCss(block.visualStyle.backgroundGradient) : undefined, "--social-icon-colour": block.visualStyle?.textColor } as React.CSSProperties} aria-label="Social links" key={block.id}><ul style={socialIconsGapStyle(block)}>{links.map(child => <li key={child.id}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;
         }
         if (block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel key={block.id} />;
-        if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child, index) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child, index > 0 ? block.children[index - 1] : undefined)}</div>)}</section>;
+        if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child, index) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child, index > 0 ? block.children[index - 1] : undefined, spacerOrientationForChildren(block))}</div>)}</section>;
         if (block.type === "group") {
           const GroupElement = block.tagName ?? "div";
-          return <GroupElement className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} aria-label={block.ariaLabel || undefined} key={block.id}>{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined))}</GroupElement>;
+          return <GroupElement className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} aria-label={block.ariaLabel || undefined} key={block.id}>{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined, spacerOrientationForChildren(block)))}</GroupElement>;
         }
         if (block.type === "columns") return <div id={paragraphStyleAnchor(block.style)} className={`content-columns${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={{ ...columnsLayoutStyle(block), ...paragraphStyleToCss(block.style) }} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((column) => renderBlock(column))}</div>;
         if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`content-column${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...layoutStyleProperties(block), ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }} key={block.id}>{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined))}</div>;
-        if (block.type === "spacer") return <div id={paragraphStyleAnchor(block.visualStyle)} className={`content-spacer${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block), margin: block.visualStyle?.margin }} aria-hidden="true" key={block.id} />;
+        if (block.type === "spacer") return <div id={paragraphStyleAnchor(block.visualStyle)} className={`content-spacer${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block, spacerOrientation), margin: block.visualStyle?.margin }} aria-hidden="true" key={block.id} />;
         if (block.type === "component") return null;
         if (block.type === "divider") {
           const DividerElement = block.tagName ?? "hr";

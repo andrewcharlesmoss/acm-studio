@@ -39,6 +39,7 @@ const { listMarker } = await import(await compileModule(new URL("../app/content/
 const { validContentBlocks } = await import(await compileModule(new URL("../app/studio/workspace-validation.ts", import.meta.url)));
 const { imageDisplayStyle } = await import(await compileModule(new URL("../app/content/image-style.ts", import.meta.url)));
 const { normaliseCustomFontSize, validCustomFontSize } = await import(await compileModule(new URL("../app/content/font-size.ts", import.meta.url)));
+const { spacerDimensions, spacerOrientationFor } = await import(await compileModule(new URL("../app/content/spacer.ts", import.meta.url)));
 
 test("Advanced HTML anchor and class metadata is retained by the HTML source format", () => {
   const paragraph = blockToHtml({ id: "paragraph", type: "paragraph", text: "Hello", style: { anchor: "about-me" } });
@@ -252,12 +253,33 @@ test("Spacer dimensions and Embed spacing render in both views and survive HTML 
   ];
   for (const variant of ["studio", "article"]) {
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
-    assert.match(html, /id="section-gap" class="content-spacer custom-gap" style="height:2em;width:8rem;margin:12px"/);
+    assert.match(html, /id="section-gap" class="content-spacer custom-gap" style="height:2em;width:100%;margin:12px"/);
     assert.match(html, /id="reference-card" class="block-visual-style" style="margin:20px"/);
     assert.match(html, /<p class="embed-caption">A useful &lt;resource&gt;<\/p>/);
   }
   assert.match(blockToHtml(blocks[0]), /data-spacer-height="2" data-spacer-height-unit="em" data-spacer-width="8" data-spacer-width-unit="rem"/);
   assert.match(blockToHtml(blocks[1]), /<a href="https:\/\/example.com\/resource">Resource<\/a><p class="embed-caption">A useful &lt;resource&gt;<\/p>/);
+});
+
+test("Spacer uses the immediate Row parent to expose and render its horizontal axis", () => {
+  const blocks = [
+    { id: "vertical", type: "spacer", height: 48 },
+    { id: "row", type: "group", layout: "row", children: [
+      { id: "horizontal", type: "spacer", height: 48, width: 240, widthUnit: "px" },
+      { id: "nested-stack", type: "section", layout: "stack", children: [{ id: "nested-vertical", type: "spacer", height: 24 }] },
+    ] },
+  ];
+  assert.equal(spacerOrientationFor(blocks, "vertical"), "vertical");
+  assert.equal(spacerOrientationFor(blocks, "horizontal"), "horizontal");
+  assert.equal(spacerOrientationFor(blocks, "nested-vertical"), "vertical");
+  assert.deepEqual(spacerDimensions(blocks[0]), { height: "48px", width: "100%" });
+  assert.deepEqual(spacerDimensions({ id: "missing-width", type: "spacer", height: 48 }, "horizontal"), { height: "auto", width: "100px" });
+  assert.deepEqual(spacerDimensions(blocks[1].children[0], "horizontal"), { height: "auto", width: "240px" });
+
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio" }));
+  assert.match(html, /class="content-spacer" style="height:48px;width:100%"/);
+  assert.match(html, /class="content-group layout-row[^"]*"[^>]*>.*?class="content-spacer" style="height:auto;width:240px"/);
+  assert.match(html, /class="content-section layout-stack"[^>]*>.*?class="content-spacer" style="height:24px;width:100%"/);
 });
 
 test("Embed captions contribute to generated publication summaries", () => {
