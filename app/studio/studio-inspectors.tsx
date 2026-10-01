@@ -692,7 +692,7 @@ function advancedFieldsForBlock(block: ContentBlock, source: "gutenberg" | "stud
   return {
     anchor: fields.some(field => field.endsWith("anchor")),
     className: fields.some(field => field.endsWith("className")),
-    additionalCss: fields.includes("additionalCss"),
+    additionalCss: fields.some(field => field.endsWith("additionalCss")),
   };
 }
 
@@ -823,7 +823,7 @@ function DividerInspector({ block, onChange }: { block: Extract<ContentBlock, { 
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(undefined, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </InspectorAccordionSection>
     <InspectorAccordionSection title="Dimensions"><ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateVisualStyle({ margin: value })} /></InspectorAccordionSection>
-    <AdvancedFieldsInspector block={block} onChange={onChange} fields={{ anchor: true, className: true, additionalCss: false }} />
+    <AdvancedFieldsInspector block={block} onChange={onChange} fields={{ anchor: true, className: true, additionalCss: true }} />
   </>;
 }
 

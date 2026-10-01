@@ -157,7 +157,7 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
   assert.match(source, /const optionalElementOptions = scopedElementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
 });
 
-test("Paragraph Advanced exposes Gutenberg anchor, class and safe CSS fields", async () => {
+test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped paths", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
   const stylesheet = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const advancedFields = source.slice(source.indexOf("function advancedFieldsForBlock"), source.indexOf("function AdvancedFieldsInspector"));
@@ -173,6 +173,11 @@ test("Paragraph Advanced exposes Gutenberg anchor, class and safe CSS fields", a
   assert.match(advancedFields, /const fields = controls\.flatMap\(control => control\.fields\)/);
   assert.match(advancedFields, /anchor: fields\.some\(field => field\.endsWith\("anchor"\)\)/);
   assert.match(advancedFields, /className: fields\.some\(field => field\.endsWith\("className"\)\)/);
+  assert.match(advancedFields, /additionalCss: fields\.some\(field => field\.endsWith\("additionalCss"\)\)/);
+  const heading = capabilityProfileFor("heading");
+  assert.ok(heading.controls.find(control => control.id === "advanced")?.fields.some(field => field.endsWith("additionalCss")));
+  const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
+  assert.match(dividerInspector, /fields=\{\{ anchor: true, className: true, additionalCss: true \}\}/);
   assert.match(advancedInspector, /paragraph-advanced-fields/);
   assert.match(blockSettings, /<AdvancedFieldsInspector block=\{block\} onChange=\{onChange\} fields=\{advanced\} \/>/);
   assert.match(blockSettings, /fields=\{advanced\}/);
