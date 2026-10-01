@@ -8,6 +8,7 @@ import { ControlsNavigation } from "./controls-navigation";
 export function ControlsCatalogue() {
   const [sliderAccent, setSliderAccent] = useState<string | null>(null);
   const [sliderHoverAccent, setSliderHoverAccent] = useState<string | null>(null);
+  const [sliderPressAccent, setSliderPressAccent] = useState<string | null>(null);
   const [sliderDefaultAccent, setSliderDefaultAccent] = useState("#3858e9");
   const layoutRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -19,6 +20,7 @@ export function ControlsCatalogue() {
   const layoutStyle = {
     "--studio-range-accent": sliderAccent ?? sliderDefaultAccent,
     ...(sliderHoverAccent ? { "--studio-range-hover-accent": sliderHoverAccent } : {}),
+    ...(sliderPressAccent ? { "--studio-range-pressed-accent": sliderPressAccent } : {}),
   } as CSSProperties;
   return <div ref={layoutRef} className="ui-controls-layout" style={layoutStyle}>
     <ControlsNavigation />
@@ -31,7 +33,7 @@ export function ControlsCatalogue() {
         if (!entries.length) return null;
         return <section className="ui-control-group" id={controlGroupId(group)} key={group} aria-labelledby={`${controlGroupId(group)}-heading`}>
           <h2 id={`${controlGroupId(group)}-heading`}>{group}</h2>
-          <div className="ui-control-group-specimens">{entries.map(entry => <ControlSpecimen entry={entry} key={entry.id} sliderAccent={sliderAccent ?? sliderDefaultAccent} sliderHoverAccent={sliderHoverAccent ?? sliderAccent ?? sliderDefaultAccent} onSliderAccentChange={setSliderAccent} onSliderHoverAccentChange={setSliderHoverAccent} />)}</div>
+          <div className="ui-control-group-specimens">{entries.map(entry => <ControlSpecimen entry={entry} key={entry.id} sliderAccent={sliderAccent ?? sliderDefaultAccent} sliderHoverAccent={sliderHoverAccent ?? sliderAccent ?? sliderDefaultAccent} sliderPressAccent={sliderPressAccent ?? sliderHoverAccent ?? sliderAccent ?? sliderDefaultAccent} onSliderAccentChange={setSliderAccent} onSliderHoverAccentChange={setSliderHoverAccent} onSliderPressAccentChange={setSliderPressAccent} />)}</div>
         </section>;
       })}
     </section>

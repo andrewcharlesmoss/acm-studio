@@ -36,7 +36,7 @@
 .ui-control-live > p,.ui-control-size-example > p { margin:.5rem 0 0; color:var(--rl-muted); font-size:.875rem; }
 .ui-control-live > button { margin-top:.5rem; }
 .ui-control-slider-foundation { display:grid; gap:.85rem; max-width:560px; }
-.ui-control-slider-foundation-colours { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.75rem; }
+.ui-control-slider-foundation-colours { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:.75rem; }
 .ui-control-slider-foundation-colours > label { display:grid; gap:.4rem; font-weight:600; }
 .ui-control-slider-foundation input[type="color"] { width:64px; min-height:40px; padding:3px; }
 .ui-control-slider-example { display:grid; gap:.35rem; }

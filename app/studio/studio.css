@@ -1165,6 +1165,7 @@
 /* Shared Gutenberg-style treatment for value sliders; colour spectrum inputs keep their specialist tracks. */
 .studio-range-control[type="range"] { accent-color: var(--studio-range-accent, var(--gutenberg-accent)); appearance: auto; -webkit-appearance: auto; background: transparent; border: 0; cursor: pointer; min-height: 20px; min-width: 0; padding: 0; }
 @media (hover: hover) and (pointer: fine) { .studio-range-control[type="range"]:not(:disabled):hover { accent-color: var(--studio-range-hover-accent, var(--studio-range-accent)); } }
+.studio-range-control[type="range"]:not(:disabled):active { accent-color: var(--studio-range-pressed-accent, var(--studio-range-hover-accent, var(--studio-range-accent))); }
 .studio-range-control:focus-visible { outline: var(--focus-ring-width) solid var(--studio-range-accent, var(--gutenberg-accent)); outline-offset: 3px; }
 .studio-range-control:disabled { cursor: not-allowed; opacity: .55; }
 .paragraph-custom-font-size-slider { width: 100%; }
