@@ -1221,7 +1221,10 @@
 .paragraph-gradient-footer button, .paragraph-gradient-remove { font: inherit; border: 0; background: transparent; padding: 6px; cursor: pointer; }
 .paragraph-gradient-remove { color: var(--accent); }
 .paragraph-gradient-footer button { border-radius: 4px; color: var(--gutenberg-accent); }
-.paragraph-gradient-footer button:hover, .paragraph-colour-clear:hover:not(:disabled) { background: var(--accent-soft); color: var(--gutenberg-accent); }
+.studio-clear-action { isolation: isolate; position: relative; }
+.studio-clear-action::before { position: absolute; z-index: -1; inset: -8px -12px; border-radius: 6px; background: transparent; content: ""; pointer-events: none; }
+.studio-clear-action:hover:not(:disabled) { background: transparent; border-color: transparent; color: var(--gutenberg-accent); }
+.studio-clear-action:hover:not(:disabled)::before { background: var(--accent-soft); }
 .paragraph-gradient-footer button:focus-visible { outline: var(--focus-ring-width) solid var(--gutenberg-accent); outline-offset: var(--focus-ring-offset); }
 .paragraph-gradient-stop-popover { z-index: 1200; max-height: calc(100dvh - 32px); overflow-y: auto; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .paragraph-gradient-stop-popover .paragraph-colour-palette-heading { justify-content: flex-end; margin-bottom: 8px; }

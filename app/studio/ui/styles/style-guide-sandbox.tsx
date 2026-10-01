@@ -509,7 +509,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
       <span title={sourceRevision}>Revision {sourceRevision.slice(0, 7)}</span>
     </div>
     <section className="sg-source-detail" aria-label="Selected style source">
-      <div className="sg-source-detail-heading"><div><p className="rl-eyebrow">{mapping.heading}</p><h3>{activePath}</h3></div>{pinned ? <button type="button" onClick={onClearPin}>Clear selection</button> : <span>Hover or focus a style</span>}</div>
+      <div className="sg-source-detail-heading"><div><p className="rl-eyebrow">{mapping.heading}</p><h3>{activePath}</h3></div>{pinned ? <button className="studio-clear-action" type="button" onClick={onClearPin}>Clear selection</button> : <span>Hover or focus a style</span>}</div>
       <dl>
         <div><dt>Universal baseline</dt><dd>{baselineValue}</dd></div>
         <div><dt>Preview value</dt><dd>{currentValue}</dd></div>
