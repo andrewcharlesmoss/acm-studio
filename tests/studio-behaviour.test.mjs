@@ -774,13 +774,14 @@ test("closing List View clears cross-highlighting on toggle, Preview, Code and u
 });
 
 
-test("between-block inserters stay in the reserved gap without margin collapse", () => {
+test("between-block and drag insertion cues stay centred in the reserved gap", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(css, /\.block-position \{ display: flow-root; position: relative; \}/);
   assert.match(css, /\.block-position \+ \.block-position \.canvas-block \{ margin-top: var\(--studio-block-gap\); \}/);
   assert.match(css, /\.block-position \+ \.block-position \.between-blocks \{ top: calc\(\(var\(--studio-block-gap\) \/ 2\) - 15px\); \}/);
-  assert.match(css, /\.block-position \+ \.block-position \.drop-indicator \{ top: 13px; \}/);
+  assert.match(css, /\.block-position \+ \.block-position \.drop-indicator \{ top: calc\(\(var\(--studio-block-gap\) \/ 2\) - 1\.5px\); \}/);
+  assert.match(css, /\.block-position:has\(\+ \.block-position \.canvas-block\.is-selected\) \+ \.block-position \.drop-indicator:not\(\.is-after\) \{ top: calc\(\(var\(--studio-block-gap\) \/ 2\) - 20\.5px\); \}/);
   assert.match(canvas, /function dragInsertionIndex\(event: DragEvent<HTMLDivElement>, index: number\)/);
   assert.match(canvas, /const target = insertionIndex > from \? insertionIndex - 1 : insertionIndex/);
   assert.match(canvas, /onDragOver=\{\(event\) => handleBlockDragOver\(event, index\)\}/);
