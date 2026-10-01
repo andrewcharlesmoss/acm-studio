@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
 import { AcmIcon } from "@acm/icons/react";
 import { GradientStopColour } from "./gradient-stop-colour";
@@ -53,7 +53,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const [open, setOpen] = useState(false);
   const [activeState, setActiveState] = useState<"default" | "hover">("default");
   const [selectedPaletteRoles, setSelectedPaletteRoles] = useState<Partial<Record<"default" | "hover", { key: keyof typeof UNIVERSAL_STYLE_PRESET.palette; value: string }>>>({});
-  const [position, setPosition] = useState({ left: 16, top: 16, width: 280 });
+  const [position, setPosition] = useState({ left: 16, top: 16, width: 500, swatchSize: 48, swatchColumns: 6 });
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const paletteRef = useRef<HTMLDivElement>(null);
@@ -91,11 +91,16 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       if (!anchor || !palette) return;
       const anchorRect = anchor.getBoundingClientRect();
       const inspectorLeft = anchor.closest(".studio-inspector")?.getBoundingClientRect().left ?? anchorRect.left;
-      const width = Math.min(280, window.innerWidth - 32);
+      const width = Math.min(500, window.innerWidth - 32);
+      const swatchGridWidth = width - 26;
+      const swatchColumns = Math.max(3, Math.min(6, Math.floor((swatchGridWidth + 12) / 44)));
+      const swatchSize = Math.min(52, (swatchGridWidth - (swatchColumns - 1) * 12) / swatchColumns);
       setPosition({
         left: Math.max(16, Math.min(inspectorLeft - width - 12, window.innerWidth - width - 16)),
         top: Math.max(16, Math.min(anchorRect.top, window.innerHeight - palette.getBoundingClientRect().height - 16)),
         width,
+        swatchSize,
+        swatchColumns,
       });
     }
     positionPalette();
@@ -162,7 +167,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       </button>
       {!hasHoverState && !clearLabel ? <button type="button" aria-label={`Reset ${label} colour`} onClick={() => onChange(undefined)} disabled={disabled || !value}>Reset</button> : null}
     </div>}
-    {open ? createPortal(<div ref={paletteRef} id={paletteId} className={`paragraph-colour-palette paragraph-theme-colour-palette${paletteClassName ? ` ${paletteClassName}` : ""}`} role="dialog" aria-label={`${colourLabel} palette`} style={position}>
+    {open ? createPortal(<div ref={paletteRef} id={paletteId} className={`paragraph-colour-palette paragraph-theme-colour-palette${paletteClassName ? ` ${paletteClassName}` : ""}`} role="dialog" aria-label={`${colourLabel} palette`} style={{ left: position.left, top: position.top, width: position.width, "--colour-swatch-size": `${position.swatchSize}px`, "--colour-swatch-columns": position.swatchColumns } as CSSProperties}>
       <div className="paragraph-colour-palette-heading"><strong>{label}</strong><button ref={closeRef} type="button" aria-label={`Close ${label} palette`} title="Close" onClick={() => close()}><StudioIcon name="close" size={16} /></button></div>
       {hasHoverState ? <div className="paragraph-colour-state-tabs" role="group" aria-label={`${label} colour state`}>
         <button type="button" disabled={disabled} aria-pressed={activeState === "default"} onClick={() => { setActiveState("default"); setCustomOpen(false); }}>Default</button>

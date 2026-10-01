@@ -152,6 +152,16 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(detail, /<h4 id=\{`control-specimen-\$\{entry\.id\}`\}>/);
   assert.match(detail, /<ColourPicker/);
   assert.match(detail, /paletteClassName="ui-control-colour-palette"/);
+  const colourPicker = read("app/studio/controls/colour-picker.tsx");
+  assert.match(colourPicker, /Math\.min\(500, window\.innerWidth - 32\)/);
+  assert.match(colourPicker, /--colour-swatch-size/);
+  assert.match(colourPicker, /--colour-swatch-columns/);
+  assert.match(colourPicker, /Math\.max\(3, Math\.min\(6,/);
+  assert.match(colourPicker, /paragraph-colour-preview-card/);
+  assert.match(colourPicker, /paragraph-colour-theme-heading/);
+  assert.match(colourPicker, /paragraph-colour-clear/);
+  assert.match(studioStyles, /\.paragraph-colour-preview \{[^}]*height: 120px/);
+  assert.match(studioStyles, /\.paragraph-theme-colour-palette \.paragraph-colour-swatch \{[^}]*var\(--colour-swatch-size/);
   assert.match(detail, /<CustomFontSizeSetting/);
   assert.match(detail, /<ParagraphLengthSetting/);
   assert.match(detail, /<BoxLengthSetting/);
