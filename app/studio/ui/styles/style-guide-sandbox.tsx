@@ -126,7 +126,8 @@ export function StyleGuideSandbox() {
     .filter(([path, mapping]) => path === mapping.rowPath)
     .map(([path, mapping]) => [mapping.line, path])) as Record<number, string>;
   const selectedPreviewPath = previewPathForStylePath(hoveredGuidePath ?? pinnedSourcePath);
-  const activeSourcePath = hoveredGuidePath ?? pinnedSourcePath ?? hoveredSourcePath ?? focusedSourcePath ?? `typography.${role}.size`;
+  const hoveredPreviewPath = hoveredGuidePath ? previewPathForStylePath(hoveredGuidePath) : null;
+  const activeSourcePath = hoveredPreviewPath ?? hoveredGuidePath ?? pinnedSourcePath ?? hoveredSourcePath ?? focusedSourcePath ?? `typography.${role}.size`;
   const activeSource = styleMappings[activeSourcePath] ?? styleMappings["typography.body.size"];
   const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @acm/styles token" : displayStyleValue(pathValue(UNIVERSAL_STYLE_PRESET, activeSourcePath), viewport);
   const activeValue = activeSourcePath.startsWith("specimen.") ? "Documented specimen guidance" : displayStyleValue(pathValue(preset, activeSourcePath), viewport);
