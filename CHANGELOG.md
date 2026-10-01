@@ -12,7 +12,7 @@
 - Colour palettes now use a Gutenberg-style preview card, six-column theme swatches with selected checkmarks, Clear and a custom Hex/RGB/HSL colour popup shared with the gradient controls.
 - Gradient control points now use Gutenberg-style bar insertion, draggable handles and separate colour popups with saturation, hue, alpha and Hex/RGB/HSL controls; removed the standalone Add stop button.
 - Background Colour and Gradient use stacked rows and a shared gradient popover with editable stops, opacity, Linear/Radial type, angle controls and Gutenberg’s twelve default presets. Workspace schema v14, publication snapshots v7 and template schema v0.14.0 retain their previous readers and legacy gradient appearances.
-- The shared colour picker now matches Gutenberg’s 56px swatches, stronger selected borders, spacing and preview-card proportions while retaining ACM’s semantic theme colours.
+- The shared colour picker now matches Gutenberg’s 28px swatches, stronger selected borders, spacing and preview-card proportions while retaining ACM’s semantic theme colours.
 - Renamed the Gutenberg `core/separator` block from Divider to Separator in the editor and library labels while retaining the existing `divider` data type.
 - Removed the nested Studio tab from block inspectors and consolidated block settings into one panel. Gutenberg controls previously classified under Studio now appear with the other block settings; nonessential ACM-only inspector options are hidden, while essential custom-block content fields and existing saved values remain intact.
 - Paragraph Additional CSS is now available in the Gutenberg-owned Advanced settings, with Gutenberg's help text and the existing safe, selector-free declaration handling.
@@ -499,6 +499,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Corrected the shared colour picker’s oversized popup, preview and swatches to use compact CSS dimensions rather than Retina screenshot dimensions.
 - Controls catalogue cards keep their width when ownership and compatibility details are expanded.
 - Restored the shared Controls group-anchor helper so the catalogue renders after the active-navigation extraction.
 - Made all three Paragraph catalogue examples selectable and editable, moved indentation guidance outside the canvas, collapsed detailed documentation, and narrowed Controls specimens to inspector width with compact state and ownership disclosures.
