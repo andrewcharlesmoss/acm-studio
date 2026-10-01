@@ -1200,6 +1200,7 @@
 .paragraph-gradient-bar.is-unset { opacity: .4; }
 .paragraph-gradient-track { position: absolute; inset: 0 24px; }
 .paragraph-gradient-stop, .paragraph-gradient-insert { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; border: 2px solid white; border-radius: 50%; padding: 0; box-shadow: 0 0 2px #0008; cursor: ew-resize; touch-action: none; }
+.paragraph-gradient-stop:hover:not(:active) { cursor: pointer; }
 .paragraph-gradient-stop::after, .paragraph-gradient-insert::after { content: ""; position: absolute; inset: -8px; }
 .paragraph-gradient-insert { width: 24px; height: 24px; border: 0; background: white; color: #1e1e1e; display: grid; place-items: center; cursor: pointer; }
 .paragraph-gradient-insert.is-keyboard-only { opacity: 0; pointer-events: none; }

@@ -502,6 +502,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Gradient stop handles now show a pointer cursor on hover.
 - Kept the written Style Guide table stable while hovering typography rows by showing the row's representative size value instead of the full preset object.
 - Changed the colour picker Clear action and gradient angle dial marker to the standard ink colour.
 - Corrected the shared colour picker’s oversized popup, preview and swatches to use compact CSS dimensions rather than Retina screenshot dimensions.
