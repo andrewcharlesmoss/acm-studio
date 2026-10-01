@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { controlGroupId, studioControlEntries, studioControlGroups } from "../../controls/library-catalogue";
+import { deriveSliderStateColour } from "../../controls/range-colours";
 import { ControlSpecimen } from "./control-specimen";
 import { ControlsNavigation } from "./controls-navigation";
 
@@ -17,10 +18,13 @@ export function ControlsCatalogue() {
     const accent = style.getPropertyValue("--studio-range-accent").trim() || style.getPropertyValue("--gutenberg-accent").trim();
     if (/^#[\da-f]{6}$/i.test(accent)) setSliderDefaultAccent(accent);
   }, []);
+  const effectiveSliderAccent = sliderAccent ?? sliderDefaultAccent;
+  const effectiveSliderHoverAccent = sliderHoverAccent ?? deriveSliderStateColour(effectiveSliderAccent);
+  const effectiveSliderPressAccent = sliderPressAccent ?? deriveSliderStateColour(effectiveSliderHoverAccent);
   const layoutStyle = {
-    "--studio-range-accent": sliderAccent ?? sliderDefaultAccent,
-    ...(sliderHoverAccent ? { "--studio-range-hover-accent": sliderHoverAccent } : {}),
-    ...(sliderPressAccent ? { "--studio-range-pressed-accent": sliderPressAccent } : {}),
+    "--studio-range-accent": effectiveSliderAccent,
+    "--studio-range-hover-accent": effectiveSliderHoverAccent,
+    "--studio-range-pressed-accent": effectiveSliderPressAccent,
   } as CSSProperties;
   return <div ref={layoutRef} className="ui-controls-layout" style={layoutStyle}>
     <ControlsNavigation />
@@ -33,7 +37,7 @@ export function ControlsCatalogue() {
         if (!entries.length) return null;
         return <section className="ui-control-group" id={controlGroupId(group)} key={group} aria-labelledby={`${controlGroupId(group)}-heading`}>
           <h2 id={`${controlGroupId(group)}-heading`}>{group}</h2>
-          <div className="ui-control-group-specimens">{entries.map(entry => <ControlSpecimen entry={entry} key={entry.id} sliderAccent={sliderAccent ?? sliderDefaultAccent} sliderHoverAccent={sliderHoverAccent ?? sliderAccent ?? sliderDefaultAccent} sliderPressAccent={sliderPressAccent ?? sliderHoverAccent ?? sliderAccent ?? sliderDefaultAccent} onSliderAccentChange={setSliderAccent} onSliderHoverAccentChange={setSliderHoverAccent} onSliderPressAccentChange={setSliderPressAccent} />)}</div>
+          <div className="ui-control-group-specimens">{entries.map(entry => <ControlSpecimen entry={entry} key={entry.id} sliderAccent={effectiveSliderAccent} sliderHoverAccent={effectiveSliderHoverAccent} sliderPressAccent={effectiveSliderPressAccent} onSliderAccentChange={setSliderAccent} onSliderHoverAccentChange={setSliderHoverAccent} onSliderPressAccentChange={setSliderPressAccent} />)}</div>
         </section>;
       })}
     </section>

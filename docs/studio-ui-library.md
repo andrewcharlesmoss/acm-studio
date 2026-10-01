@@ -117,11 +117,12 @@ and the gradient angle dial marker use `--gutenberg-accent` for Gutenberg's
 accent blue, including their reference hover and focus states.
 The Slider foundation owns `--studio-range-accent`, the shared accent and focus
 colour for standard `.studio-range-control` inputs. Pointer hover uses
-`--studio-range-hover-accent`, which falls back to the shared accent until an
-independent hover colour is supplied. While a range is being pressed or dragged,
-`--studio-range-pressed-accent` applies; it falls back to the hover colour until
-an independent pressed colour is supplied. Its Controls specimen can temporarily
-preview all three colours across standard range examples. Its disclosure lists the
+`--studio-range-hover-accent`, which defaults to a 12% darker shade of the shared
+accent. While a range is being pressed or dragged, `--studio-range-pressed-accent`
+defaults to a further 12% darker shade of the hover colour. Either state colour
+can be overridden independently. Its Controls specimen previews all three
+effective colours, and Reset example restores the accent plus both derived
+defaults. Its disclosure lists the
 Controls sections that inherit it and external consumers. Consumers retain
 their native range values, bounds, steps and behaviour. Gradient hue and alpha
 inputs use specialist colour tracks and
