@@ -12,7 +12,7 @@ import { imageDisplayStyle } from "../content/image-style";
 import { dividerRuleStyle } from "../content/divider-style";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeMathMLMarkup } from "../content/mathml";
-import { buttonVisualCss, fitTextEnabled, paragraphBackgroundGradientCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
+import { buttonVisualCss, fitTextEnabled, listItemTextStyle, paragraphBackgroundGradientCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../content/spacer";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
 import { BlockLibraryIcon } from "./block-library-icons";
@@ -30,7 +30,7 @@ import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from ".
 import { COLUMN_LAYOUT_PRESETS, columnsLayoutStyle, setColumnsLayout } from "../content/columns";
 import { blockAlignmentClass, blockAlignmentOptions, contentBlockAlignment } from "../content/block-alignment";
 import { findBlockById } from "./studio-command-operations.mjs";
-import { findListBlock, indentListItem, outdentListItem, removeListItem, replaceListItems, updateListItem } from "./list-structure";
+import { findListBlock, indentListItem, listItemAfterSplit, outdentListItem, removeListItem, replaceListItems, updateListItem } from "./list-structure";
 
 function StudioHoverIcon({ name, size = 24, vertical = false }: { name: IconName; size?: number; vertical?: boolean }) {
   return <AcmIcon className={vertical ? "studio-hover-icon is-vertical" : "studio-hover-icon"} name={name} scale="Regular-M" size={size} />;
@@ -173,6 +173,7 @@ export type StudioCanvasProps = {
   onAddFootnote?: (blockId: string, selection: TextSelection, text: string) => void;
   onRemoveCoverImage: () => void;
   onSelectBlock: (blockId: string) => void;
+  onSelectListItem?: (selection: { blockId: string; listId: string; itemIndex: number }) => void;
   onClearBlockSelection: () => void;
   onSetDragOverIndex: (index: number | null) => void;
   onMoveBlockTo: (from: number, to: number) => void;
@@ -189,7 +190,7 @@ export type StudioCanvasProps = {
   onSetInserterQuery: (query: string) => void;
 };
 
-export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onOpenInlineImage, onAddFootnote, onRemoveCoverImage, onSelectBlock, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onInsertBlock, onInsertBlockAt, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onOpenInlineImage, onAddFootnote, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onMoveBlock, onDuplicateBlock, onRemoveBlock, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onInsertBlock, onInsertBlockAt, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const draggingIndexRef = useRef<number | null>(null);
   const crossBlockSelectionRef = useRef<{ pointerId: number; blockIdentity: Element; blockId: string; start: Range; last: Range; active: boolean } | null>(null);
   const textSelectionsRef = useRef<Record<string, TextSelection | null>>({});
@@ -986,7 +987,7 @@ export function StudioCanvas({ allowHtmlEditing = true, targetLabel, toolbarCont
                         {htmlEditor.error ? <p className="html-editor-error" role="alert">{htmlEditor.error}</p> : null}
                         <div className="html-editor-actions"><button type="button" onClick={() => setHtmlEditor(null)}>Cancel</button><button className="html-editor-apply" type="submit">Apply</button></div>
                       </form> : null}
-                      {htmlEditor?.blockId === block.id ? null : presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField, onSplitParagraphs }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} previousParagraphIndent={indentFromPreviousParagraph(activeDocument.blocks, index)} pendingColumnsLayoutBlockId={pendingColumnsLayoutBlockId} onColumnsLayoutSelected={onColumnsLayoutSelected} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaBlockUrls} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onListItemSelection={(list, itemIndex, selection) => { const next = { listId: list.id, itemIndex }; setActiveListItems((current) => current[block.id]?.listId === list.id && current[block.id]?.itemIndex === itemIndex ? current : { ...current, [block.id]: next }); setTextSelection(block.id, selection, itemIndex, list.id); }} onListItemLinkActivate={(list, itemIndex, selection) => { if (block.type === "list") openLinkEditor(block, selection, "preview", itemIndex, list.id); }} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onOpenNestedInserter={(parentId) => openInserter(null, undefined, parentId)} writable={writable} onInsertNestedBlock={(type, parentId) => { if (writable) onInsertBlock(type, parentId); }} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
+                      {htmlEditor?.blockId === block.id ? null : presentation?.renderBlock?.({ document: activeDocument, block, mode: "edit", selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onSelectListItem, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField, onSplitParagraphs }) ?? <BlockField block={block} rootBlocks={activeDocument.blocks} document={activeDocument} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} previousParagraphIndent={indentFromPreviousParagraph(activeDocument.blocks, index)} pendingColumnsLayoutBlockId={pendingColumnsLayoutBlockId} onColumnsLayoutSelected={onColumnsLayoutSelected} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaBlockUrls} mediaUrl={block.type === "image" && block.mediaId ? mediaBlockUrls[block.mediaId] : undefined} onTableCellFocus={(rowIndex, columnIndex) => setTableCellSelections((current) => ({ ...current, [block.id]: { rowIndex, columnIndex } }))} onTextSelection={(selection) => setTextSelection(block.id, selection)} onLinkActivate={(selection) => { if (isEditableTextBlock(block)) openLinkEditor(block, selection, "preview"); }} onListItemSelection={(list, itemIndex, selection) => { const next = { listId: list.id, itemIndex }; setActiveListItems((current) => current[block.id]?.listId === list.id && current[block.id]?.itemIndex === itemIndex ? current : { ...current, [block.id]: next }); setTextSelection(block.id, selection, itemIndex, list.id); onSelectBlock(block.id); onSelectListItem?.({ blockId: block.id, listId: list.id, itemIndex }); }} onListItemLinkActivate={(list, itemIndex, selection) => { if (block.type === "list") openLinkEditor(block, selection, "preview", itemIndex, list.id); }} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onOpenNestedInserter={(parentId) => openInserter(null, undefined, parentId)} writable={writable} onInsertNestedBlock={(type, parentId) => { if (writable) onInsertBlock(type, parentId); }} onChange={(next) => onUpdateBlock(block.id, () => next)} />}
                   </article>
                 </div>
               ))}
@@ -2097,9 +2098,10 @@ function ListField({ block, mediaUrls, onSelectionChange, onLinkActivate, onChan
 
   function itemWithText(item: ListItem, text: string, runs: RichTextRun[]): ListItem {
     const children = typeof item === "string" ? undefined : item.children;
+    const style = typeof item === "string" ? undefined : item.style;
     const formattedRuns = runs.some(run => run.marks?.length) ? runs : undefined;
-    return formattedRuns?.length || children?.length
-      ? { text, ...(formattedRuns ? { runs: formattedRuns } : {}), ...(children ? { children } : {}) }
+    return formattedRuns?.length || children?.length || style
+      ? { text, ...(formattedRuns ? { runs: formattedRuns } : {}), ...(children ? { children } : {}), ...(style ? { style } : {}) }
       : text;
   }
 
@@ -2113,13 +2115,14 @@ function ListField({ block, mediaUrls, onSelectionChange, onLinkActivate, onChan
       {items.map((item, index) => {
         const children = typeof item === "string" ? [] : item.children ?? [];
         const label = `${list.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}${depth ? `, level ${depth + 1}` : ""}`;
-        return <div className="list-field-row" key={`${list.id}-item-${index}`}>
+        const itemStyle = typeof item === "string" ? undefined : item.style;
+        return <div id={paragraphStyleAnchor(itemStyle)} className={`list-field-row${paragraphStyleClassName(itemStyle) ? ` ${paragraphStyleClassName(itemStyle)}` : ""}`} style={paragraphStyleToCss(itemStyle) as React.CSSProperties} key={`${list.id}-item-${index}`}>
           <span className="list-field-marker" aria-hidden="true">{list.style === "ordered" ? listMarker(list, index) : "•"}</span>
           <div className="list-field-item-content">
-            <RichTextEditor className="list-item-editor" data-studio-block-id={block.id} data-list-context-id={list.id} data-list-item-index={index} text={listItemText(item)} runs={typeof item === "string" ? undefined : item.runs} mediaUrls={mediaUrls} onChange={(text, runs) => updateItem(list, index, text, runs)} onSelectionChange={(selection) => onSelectionChange?.(list, index, selection)} onLinkActivate={(selection) => onLinkActivate?.(list, index, selection)} onSplitParagraph={(beforeRuns, afterRuns) => {
+            <RichTextEditor className="list-item-editor" style={listItemTextStyle(itemStyle) as React.CSSProperties} data-studio-block-id={block.id} data-list-context-id={list.id} data-list-item-index={index} text={listItemText(item)} runs={typeof item === "string" ? undefined : item.runs} mediaUrls={mediaUrls} onChange={(text, runs) => updateItem(list, index, text, runs)} onFocus={() => onSelectionChange?.(list, index, null)} onSelectionChange={(selection) => onSelectionChange?.(list, index, selection)} onLinkActivate={(selection) => onLinkActivate?.(list, index, selection)} onSplitParagraph={(beforeRuns, afterRuns) => {
               const nextItems = [...items];
               nextItems[index] = itemWithText(item, plainTextFromRuns(beforeRuns), beforeRuns);
-              nextItems.splice(index + 1, 0, itemWithText("", plainTextFromRuns(afterRuns), afterRuns));
+              nextItems.splice(index + 1, 0, listItemAfterSplit(item, plainTextFromRuns(afterRuns), afterRuns));
               onChange(replaceListItems(block, list.id, nextItems));
               focusItem(list.id, index + 1);
               return null;

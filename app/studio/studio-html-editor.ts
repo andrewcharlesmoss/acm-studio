@@ -1,8 +1,9 @@
-import { listItemText, type ContentBlock, type LayoutMode, type LayoutOptions, type ListItem, type RichTextRun, type SiteSectionRole, type SocialIconBlock, type TextMark } from "../content/model";
+import { listItemText, type ContentBlock, type LayoutMode, type LayoutOptions, type ListItem, type ParagraphStyle, type RichTextRun, type SiteSectionRole, type SocialIconBlock, type TextMark } from "../content/model";
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { hasLayoutOptions } from "../content/layout";
 import { plainTextFromRuns, safeImageSource, safeTextLink } from "../content/rich-text";
-import { validContentBlocks } from "./workspace-validation";
+import { validContentBlocks, validListItemStyle } from "./workspace-validation";
+import { paragraphStyleToCss } from "../content/paragraph-styles";
 
 /**
  * Serialises a typed block to the small, semantic HTML surface exposed by
@@ -180,7 +181,11 @@ function serialiseList(block: Extract<ContentBlock, { type: "list" }>, attribute
   const items = block.items.map((item: ListItem) => {
     const text = typeof item === "string" ? escapeText(item) : runsToHtml(item.runs, listItemText(item));
     const nested = typeof item === "string" ? "" : item.children?.map(child => serialiseList(child)).join("") ?? "";
-    return `<li>${text}${nested}</li>`;
+    const style = typeof item === "string" ? undefined : item.style;
+    const css = paragraphStyleToCss(style);
+    const inlineStyle = Object.entries(css).map(([property, value]) => `${property.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}:${value}`).join(";");
+    const attributes = style ? `${style.anchor ? ` id="${escapeAttribute(style.anchor)}"` : ""}${inlineStyle ? ` style="${escapeAttribute(inlineStyle)}"` : ""} data-list-item-style="${escapeAttribute(JSON.stringify(style))}"` : "";
+    return `<li${attributes}>${text}${nested}</li>`;
   }).join("");
   return `<${tag}${attributes} data-block-align-explicit="true"${block.style === "ordered" && block.marker && block.marker !== "1" ? ` type="${block.marker}"` : ""}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}${classAttribute(blockAlignmentClass(block))}>${items}</${tag}>`;
 }
@@ -577,8 +582,19 @@ function parseListElement(element: HTMLElement, id: string, original?: ContentBl
       if ("error" in parsed || parsed.block.type !== "list") return "error" in parsed ? parsed : { error: "Nested list markup is invalid." };
       children.push(parsed.block);
     }
-    items.push(children.length || runs?.some(run => run.marks?.length)
-      ? { text, runs, children: children.length ? children : undefined }
+    let itemStyle: ParagraphStyle | undefined;
+    const encodedStyle = item.getAttribute("data-list-item-style");
+    if (encodedStyle) {
+      try {
+        const parsedStyle: unknown = JSON.parse(encodedStyle);
+        if (!validListItemStyle(parsedStyle)) return { error: "List Item style settings are invalid." };
+        itemStyle = parsedStyle as ParagraphStyle;
+      } catch {
+        return { error: "List Item style settings are invalid." };
+      }
+    } else if (item.id && validListItemStyle({ anchor: item.id })) itemStyle = { anchor: item.id };
+    items.push(children.length || runs?.some(run => run.marks?.length) || itemStyle
+      ? { text, runs, children: children.length ? children : undefined, ...(itemStyle ? { style: itemStyle } : {}) }
       : text);
   }
   const startValue = ordered && element.hasAttribute("start") ? Number(element.getAttribute("start")) : undefined;

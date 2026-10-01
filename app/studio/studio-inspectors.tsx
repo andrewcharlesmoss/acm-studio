@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../content/model";
+import type { ColumnBlock, ContentBlock, DocumentDisplayField, HeadingLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../content/model";
 import { fitTextEnabled, paragraphLinkColourHasPoorContrast } from "../content/paragraph-styles";
 import { formatDocumentDate } from "../content/document-metadata";
 import { contentWordCount, readingTimeMinutes } from "../content/reading-time";
@@ -30,6 +30,7 @@ import { ImageDimensionsSetting } from "./controls/image-dimensions-setting";
 import { PresetNumberSetting } from "./controls/preset-number-setting";
 import { ParagraphLengthSetting } from "./controls/paragraph-length-setting";
 import { capabilityProfileFor, resetInspectorStyleFields, retainedLegacyStyleControls, scopedStyleSectionIds } from "./blocks/capability-profiles";
+import { ListItemInspector } from "./blocks/list-item-inspector";
 
 function blockLabel(type: ContentBlock["type"]) {
   return type.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
@@ -53,6 +54,7 @@ export type StudioInspectorProps = {
   documentControls?: ReactNode;
   inspectorTab: "document" | "studio" | "block" | "styles";
   selectedBlock: ContentBlock | null;
+  selectedListItem?: ListItemSelection | null;
   selectedDocumentField?: "title" | "subtitle" | null;
   activeDocument: StudioDocument;
   categories: StudioCategory[];
@@ -83,7 +85,7 @@ export type StudioInspectorProps = {
   onSaveAsTemplate?: () => void;
 };
 
-export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, inspectorTab, selectedBlock, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
+export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, inspectorTab, selectedBlock, selectedListItem = null, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
   const [localCollapsed, setLocalCollapsed] = useState(false);
@@ -114,7 +116,7 @@ export function StudioInspector({ paneWidth = 300, onPaneWidthChange, paneCollap
             </InspectorAccordionSection>
           </div>
         ) : selectedBlock ? (
-          <BlockInspector block={selectedBlock} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? () => onOpenBackgroundMedia(selectedBlock.id) : undefined} canOpenFiles={canOpenFiles} />
+          <BlockInspector block={selectedBlock} selectedListItem={selectedListItem?.blockId === selectedBlock.id ? selectedListItem : null} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? () => onOpenBackgroundMedia(selectedBlock.id) : undefined} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
@@ -618,12 +620,13 @@ function fontSizeModeKey(scope: string, block: ContentBlock) {
   return JSON.stringify([scope, block.id, block.type]) ?? "";
 }
 
-export function BlockInspector({ block, canSetSticky = false, spacerOrientation = "vertical", onChange, onColumnWidthChange, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; onOpenBackgroundMedia?: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
+export function BlockInspector({ block, selectedListItem = null, canSetSticky = false, spacerOrientation = "vertical", onChange, onColumnWidthChange, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { block: ContentBlock; selectedListItem?: ListItemSelection | null; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; onChange: (block: ContentBlock) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onOpenFiles: () => void; onOpenBackgroundMedia?: () => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
   const selectedFontSizeModeKey = fontSizeModeKey(fontSizeModeScope, block);
   const profile = capabilityProfileFor(block.type);
   const blockInfo = blockCatalogue.find((item) => item.type === block.type);
   const blockName = blockInfo?.label ?? profile.label ?? blockLabel(block.type);
   const blockDescription = blockInfo?.description ?? profile.description ?? `Configure this ${blockName.toLowerCase()} block.`;
+  if (block.type === "list" && selectedListItem?.blockId === block.id) return <ListItemInspector key={`${selectedListItem.listId}-${selectedListItem.itemIndex}`} block={block} listId={selectedListItem.listId} itemIndex={selectedListItem.itemIndex} onChange={onChange} />;
   const alignedBlock = block.type === "heading" || block.type === "document-title" ? block : null;
   const alignment = alignedBlock?.align ?? null;
   const advanced = advancedFieldsForBlock(block, "gutenberg");

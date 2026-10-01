@@ -1,6 +1,16 @@
-import { listNumber, type ListBlock, type ListItem } from "../content/model";
+import { listNumber, type ListBlock, type ListItem, type RichTextRun } from "../content/model";
 
 type ListItemUpdate = (item: ListItem) => ListItem;
+
+export function listItemAfterSplit(item: ListItem, text: string, runs: RichTextRun[]): ListItem {
+  const formattedRuns = runs.some(run => run.marks?.length) ? runs : undefined;
+  const sourceStyle = typeof item === "string" ? undefined : item.style;
+  const style = sourceStyle ? { ...sourceStyle } : undefined;
+  if (style) delete style.anchor;
+  return formattedRuns?.length || (style && Object.keys(style).length)
+    ? { text, ...(formattedRuns ? { runs: formattedRuns } : {}), ...(style && Object.keys(style).length ? { style } : {}) }
+    : text;
+}
 
 function mapList(list: ListBlock, targetId: string, update: (list: ListBlock) => ListBlock): ListBlock {
   if (list.id === targetId) return update(list);

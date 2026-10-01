@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ContentBlock, RichTextRun } from "../content/model";
+import type { ContentBlock, ListItemSelection, RichTextRun } from "../content/model";
 import type { StudioDocument } from "./editor-model";
 
 export type StudioPresentationContext = {
@@ -12,6 +12,7 @@ export type StudioPresentationContext = {
   selectedBlockId?: string | null;
   hoveredBlockId?: string | null;
   onTableCellFocus?: (blockId: string, rowIndex: number, columnIndex: number) => void;
+  onSelectListItem?: (selection: ListItemSelection) => void;
   onSelectBlock?: (blockId: string) => void;
   onUpdateBlock?: (blockId: string, update: (block: ContentBlock) => ContentBlock) => void;
   onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null;

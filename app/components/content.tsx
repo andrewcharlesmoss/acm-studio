@@ -4,7 +4,7 @@ import { highlightCode } from "../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
 import { listItemText, listMarker, normaliseTableColumnWidths, normaliseTableRowHeights, type Article, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type Project, type RichTextRun, type TextMark } from "../content/model";
 import { safeMathMLMarkup } from "../content/mathml";
-import { buttonVisualCss, fitTextEnabled, paragraphBackgroundGradientCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
+import { buttonVisualCss, fitTextEnabled, listItemTextStyle, paragraphBackgroundGradientCss, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../content/spacer";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../content/layout";
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
@@ -229,9 +229,12 @@ function renderListBlock(block: Extract<ContentBlock, { type: "list" }>, studio:
   const items = block.items.map((item, index) => {
     const content = typeof item === "string" ? item : renderText(listItemText(item), item.runs, mediaUrls, footnoteNumbers);
     const nestedLists = typeof item === "string" ? null : item.children?.map(child => renderListBlock(child, studio, mediaUrls, footnoteNumbers));
+    const itemStyle = typeof item === "string" ? undefined : item.style;
+    const itemPresentation = { id: paragraphStyleAnchor(itemStyle), className: paragraphStyleClassName(itemStyle) || undefined, style: paragraphStyleToCss(itemStyle) as React.CSSProperties };
+    const itemTextStyle = listItemTextStyle(itemStyle) as React.CSSProperties;
     return studio
-      ? <li className="list-field-row" key={`${block.id}-${index}`}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? listMarker(block, index) : "•"}</span><span className="list-item-text">{content}</span>{nestedLists}</li>
-      : <li key={`${block.id}-${index}`}>{content}{nestedLists}</li>;
+      ? <li {...itemPresentation} className={`list-field-row${itemPresentation.className ? ` ${itemPresentation.className}` : ""}`} key={`${block.id}-${index}`}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? listMarker(block, index) : "•"}</span><span className="list-item-text" style={itemTextStyle}>{content}</span>{nestedLists}</li>
+      : <li {...itemPresentation} key={`${block.id}-${index}`}>{itemStyle ? <span style={itemTextStyle}>{content}</span> : content}{nestedLists}</li>;
   });
   return block.style === "ordered"
     ? <ol className={[studio ? "list-field-preview" : "", blockAlignmentClass(block)].filter(Boolean).join(" ") || undefined} type={block.marker} start={block.start} reversed={block.reversed || undefined} key={block.id}>{items}</ol>

@@ -14,7 +14,7 @@ async function compileModule(url) {
   return `data:text/javascript;base64,${Buffer.from(output).toString("base64")}`;
 }
 
-const { indentListItem, outdentListItem, updateListItem } = await import(await compileModule(new URL("../app/studio/list-structure.ts", import.meta.url)));
+const { indentListItem, listItemAfterSplit, outdentListItem, updateListItem } = await import(await compileModule(new URL("../app/studio/list-structure.ts", import.meta.url)));
 
 const list = (items, id = "root", style = "unordered") => ({ id, type: "list", style, items });
 
@@ -32,6 +32,13 @@ test("List item editing updates nested content without replacing sibling lists",
 test("typing into an empty List creates its first editable item", () => {
   const updated = updateListItem(list([]), "root", 0, item => `${item}First item`);
   assert.deepEqual(updated.items, ["First item"]);
+});
+
+test("splitting a List Item keeps its appearance but does not duplicate its HTML anchor", () => {
+  const original = { text: "First second", style: { anchor: "unique-link", backgroundColor: "#fff", fontSize: "large" } };
+  const next = listItemAfterSplit(original, "second", [{ text: "second" }]);
+  assert.deepEqual(next, { text: "second", style: { backgroundColor: "#fff", fontSize: "large" } });
+  assert.equal(original.style.anchor, "unique-link", "the source item keeps its anchor");
 });
 
 test("text transforms retain nested List text and inline formatting", async () => {

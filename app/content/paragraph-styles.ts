@@ -203,6 +203,16 @@ export function paragraphStyleToCss(style?: ParagraphStyle, backgroundImageUrl?:
   return css;
 }
 
+export function listItemTextStyle(style?: ParagraphStyle): Record<string, string> {
+  if (!style) return {};
+  return paragraphStyleToCss({
+    fontSize: style.fontSize,
+    fontSizeCustom: style.fontSizeCustom,
+    lineHeight: style.lineHeight,
+    linkColor: style.linkColor,
+  });
+}
+
 export function buttonVisualCss(style?: ParagraphStyle): Record<string, string> {
   const css = paragraphStyleToCss(style);
   delete css.margin;

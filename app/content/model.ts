@@ -14,7 +14,8 @@ export type TextMark = InlineTextMark
   | { type: "inline-image"; mediaId?: string; src?: string; alt: string; width?: number }
   | { type: "footnote"; id: string };
 export type RichTextRun = { text: string; marks?: TextMark[] };
-export type ListItem = string | { text: string; runs?: RichTextRun[]; children?: ListBlock[] };
+export type ListItem = string | { text: string; runs?: RichTextRun[]; children?: ListBlock[]; style?: ParagraphStyle };
+export type ListItemSelection = { blockId: string; listId: string; itemIndex: number };
 export type ListBlock = { id: string; type: "list"; style: "ordered" | "unordered"; items: ListItem[]; marker?: OrderedListMarker; start?: number; reversed?: boolean; blockAlign?: BlockAlignment };
 export function listItemText(item: ListItem): string { return typeof item === "string" ? item : item.text; }
 export function listText(items: ListItem[]): string {

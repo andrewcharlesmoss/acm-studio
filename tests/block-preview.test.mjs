@@ -93,18 +93,21 @@ test("ordered lists retain Gutenberg numbering styles through preview and HTML",
 
 test("nested Lists render, validate and round-trip through the semantic HTML source", async () => {
   const block = { id: "parent-list", type: "list", style: "ordered", marker: "A", start: 2, items: [
-    { text: "Parent item", runs: [{ text: "Parent " }, { text: "item", marks: ["bold"] }], children: [{ id: "child-list", type: "list", style: "unordered", items: ["Nested item"] }] },
+    { text: "Parent item", runs: [{ text: "Parent " }, { text: "item", marks: ["bold"] }], style: { anchor: "parent-item", backgroundColor: "#eaf3ff", backgroundGradient: { type: "linear", angle: 135, stops: [{ colour: "#a7d8ff", position: 0 }, { colour: "#c99bef", position: 100 }] }, fontSizeCustom: "22px", lineHeight: "1.4", linkColor: "#2563a6", padding: "8px 12px", margin: "4px" }, children: [{ id: "child-list", type: "list", style: "unordered", items: ["Nested item"] }] },
     "Sibling item",
   ] };
   assert.equal(validContentBlocks([block]), true);
+  assert.equal(validContentBlocks([{ ...block, items: [{ text: "Unsupported colour", style: { textColor: "#000000" } }] }]), false, "List Item does not declare text-colour support");
   assert.equal(validContentBlocks([{ ...block, items: [{ text: "Parent", children: [{ ...block, id: "parent-list" }] }] }]), false, "nested IDs must remain unique");
   const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
   const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block] }));
   assert.match(studio, /<ol[^>]*type="A"[^>]*start="2"/);
   assert.match(studio, /<ul class="list-field-preview"><li class="list-field-row"><span class="list-field-marker" aria-hidden="true">•<\/span><span class="list-item-text">Nested item<\/span><\/li><\/ul>/);
   assert.match(article, /<ul><li>Nested item<\/li><\/ul>/);
+  assert.match(article, /<li id="parent-item" style="font-size:22px;line-height:1\.4;background-color:#eaf3ff;background-image:linear-gradient\(135deg, [^;]+;--studio-paragraph-link-color:#2563a6;padding:8px 12px;margin:4px"/);
   const html = blockToHtml(block);
   assert.match(html, /data-block-id="child-list"/);
+  assert.match(html, /data-list-item-style="\{&quot;anchor&quot;:&quot;parent-item&quot;/);
   assert.match(html, /<strong>item<\/strong>/);
 
   const previousParser = globalThis.DOMParser;

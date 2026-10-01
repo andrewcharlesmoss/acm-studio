@@ -28,6 +28,7 @@ const optionalSignedParagraphLength = (value: unknown) => value === undefined ||
 const optionalParagraphColour = (value: unknown) => value === undefined || (typeof value === "string" && /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^)]*\))$/i.test(value));
 const optionalParagraphAnchor = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-z][a-z0-9_-]*$/i.test(value));
 const optionalParagraphClasses = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-z0-9 _-]*$/i.test(value));
+const listItemStyleFields = new Set(["fontSize", "fontSizeCustom", "lineHeight", "backgroundColor", "backgroundGradient", "linkColor", "padding", "margin", "anchor"]);
 const optionalMediaId = (value: unknown) => value === undefined || (typeof value === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,159}$/.test(value) && !["__proto__", "prototype", "constructor"].includes(value));
 
 function collectBlockIds(blocks: ContentBlock[], ids = new Set<string>()) {
@@ -85,6 +86,10 @@ export function validParagraphStyle(value: unknown) {
     && validBoxLengths(value.padding) && validBoxLengths(value.margin, true) && validBoxLengths(value.borderWidth) && validBoxLengths(value.borderRadius)
     && optionalParagraphColour(value.borderColor) && optionalParagraphAnchor(value.anchor) && optionalParagraphClasses(value.className)
     && (value.additionalCss === undefined || (typeof value.additionalCss === "string" && value.additionalCss.length <= 6000));
+}
+
+export function validListItemStyle(value: unknown) {
+  return validParagraphStyle(value) && (value === undefined || (isRecord(value) && Object.keys(value).every(field => listItemStyleFields.has(field))));
 }
 
 function validRuns(value: unknown) {
@@ -217,7 +222,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
 
 function validListItem(item: unknown, ids: Set<string>, depth: number): boolean {
   if (typeof item === "string") return true;
-  if (!isRecord(item) || typeof item.text !== "string" || !validRuns(item.runs)) return false;
+  if (!isRecord(item) || typeof item.text !== "string" || !validRuns(item.runs) || !validListItemStyle(item.style)) return false;
   if (item.children === undefined) return true;
   return Array.isArray(item.children) && item.children.length > 0
     && item.children.every(child => isRecord(child) && child.type === "list" && validContentBlock(child, ids, depth + 1, "list-item"));
