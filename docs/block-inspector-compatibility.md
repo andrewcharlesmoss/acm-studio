@@ -218,3 +218,16 @@ accept previous supported versions; older builds cannot read these new formats.
 Reference: [Gutenberg gradient picker](https://github.com/WordPress/gutenberg/tree/trunk/packages/components/src/custom-gradient-picker)
 and [default gradient palette](https://github.com/WordPress/gutenberg/blob/trunk/lib/theme.json),
 inspected on 1 October 2026.
+
+### Colour palette interaction
+
+The shared colour picker uses a preview card showing the current colour, its ACM
+palette role and actual `--acm-color-*` token when applicable. Theme swatches use
+six columns, tooltips and a contrasting selected checkmark; clicking a selected
+swatch clears it. Clear also removes the active colour. The preview opens the
+Studio-owned saturation/brightness, hue and Hex/RGB/HSL surface. Solid colours
+remain opaque six-digit hex values; gradient points retain alpha support. Link
+Default and Hover remain independent and preserve their contrast warnings.
+Each popup has a visible close control and Escape restores its opener.
+
+Reference: [Gutenberg colour palette](https://github.com/WordPress/gutenberg/blob/trunk/packages/components/src/color-palette/index.tsx), inspected on 1 October 2026.
