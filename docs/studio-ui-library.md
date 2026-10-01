@@ -121,6 +121,9 @@ preview a temporary colour across the standard range examples and lists the
 Studio consumers that inherit it. Consumers retain their native range values,
 bounds, steps and behaviour. Gradient hue and alpha inputs use specialist
 colour tracks and are not consumers of this slider accent.
+Each Controls section now shows its shared control dependencies beside the
+specimen. The inventory includes composed dependencies and conditional or
+transitive slider styling, while keeping specialist gradient tracks excluded.
 Its theme palette uses the
 shared ACM semantic colour tokens, with 28px circular swatches, Gutenberg-like
 spacing and selected borders in up to six columns, a 262px desktop popover and

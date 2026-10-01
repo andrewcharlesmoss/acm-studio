@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ParagraphAppearance, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle } from "../../../content/model";
 import { blockLibraryEntryByType } from "../../blocks/library-catalogue";
-import type { StudioControlEntry } from "../../controls/library-catalogue";
+import { studioControlEntries, type StudioControlEntry } from "../../controls/library-catalogue";
 import { BoxLengthSetting } from "../../../studio/box-length-setting";
 import { InspectorAccordionSection } from "../../../studio/inspector-accordion";
 import { InspectorToolsSection } from "../../../studio/inspector-tools-section";
@@ -62,6 +62,8 @@ export function ControlSpecimen({ entry, sliderAccent, onSliderAccentChange }: {
   const [focalY, setFocalY] = useState(42);
   const [resetRevision, setResetRevision] = useState(0);
   const blockLinks = blockLinksByControl[entry.id] ?? [];
+  const dependencies = entry.dependencies ?? [];
+  const dependentControls = studioControlEntries.filter(control => control.dependencies?.some(dependency => dependency.kind === "inherits" && dependency.entryId === entry.id));
 
   function resetExample() {
     switch (entry.id) {
@@ -87,10 +89,14 @@ export function ControlSpecimen({ entry, sliderAccent, onSliderAccentChange }: {
       <div><p className="rl-eyebrow">{entry.group} control</p><h3 id={`control-entry-${entry.id}`}>{entry.title}</h3><p className="ui-control-detail-intro">{entry.purpose}</p></div>
       <button className="ui-control-reset" type="button" onClick={resetExample}><StudioIcon name="rotate" size={18} />Reset example</button>
     </header>
+    <div className="ui-control-dependencies" role="group" aria-label="Section dependencies">
+      <strong>Dependencies</strong>
+      {dependencies.length ? <ul>{dependencies.map((dependency, index) => <li key={`${dependency.label}-${index}`}><span>{dependency.kind === "inherits" ? "Inherits" : "Uses"}</span> {dependency.entryId ? <a href={`#${dependency.entryId}`}>{dependency.label}</a> : dependency.label}: {dependency.detail}</li>)}</ul> : <p>No shared control dependencies documented.</p>}
+    </div>
     <div className="ui-control-detail-card" aria-labelledby={`control-specimen-${entry.id}`}>
       <div className="ui-control-detail-header"><h4 id={`control-specimen-${entry.id}`}>Live specimen</h4></div>
       <div key={resetRevision} className={`ui-control-detail-example inspector-sections${entry.id === "border-settings" || entry.id === "image-dimensions" ? " is-wide" : ""}`}>
-        {entry.id === "slider-foundation" ? <div className="ui-control-slider-foundation"><label htmlFor="ui-slider-foundation-colour">Shared slider accent colour<input id="ui-slider-foundation-colour" type="color" value={sliderAccent} onChange={event => onSliderAccentChange(event.target.value)} /></label><div className="ui-control-slider-example"><label htmlFor="ui-slider-foundation-example">Range example</label><input className="studio-range-control" id="ui-slider-foundation-example" type="range" min="0" max="100" value={sliderExampleValue} onChange={event => setSliderExampleValue(Number(event.target.value))} /></div><p>Preview colour: <code>{sliderAccent.toUpperCase()}</code>. Changing it previews every standard slider on this Controls page; the value is temporary and Reset example restores the default.</p><div><strong>Inherits this style</strong><ul><li><a href="#custom-font-size">Custom font size</a></li><li><a href="#paragraph-length">Paragraph length</a></li><li><a href="#box-length">Box dimensions</a></li><li><a href="#focal-position">Focal position</a></li><li>Background image width in Studio inspectors</li><li>Canvas zoom, object opacity, edge cleanup and arrowhead size in Design</li><li>Range specimens in the Ribbon catalogue</li></ul></div><p>Gradient hue and alpha sliders use specialist colour tracks and are intentionally excluded.</p></div> : null}
+        {entry.id === "slider-foundation" ? <div className="ui-control-slider-foundation"><label htmlFor="ui-slider-foundation-colour">Shared slider accent colour<input id="ui-slider-foundation-colour" type="color" value={sliderAccent} onChange={event => onSliderAccentChange(event.target.value)} /></label><div className="ui-control-slider-example"><label htmlFor="ui-slider-foundation-example">Range example</label><input className="studio-range-control" id="ui-slider-foundation-example" type="range" min="0" max="100" value={sliderExampleValue} onChange={event => setSliderExampleValue(Number(event.target.value))} /></div><p>Preview colour: <code>{sliderAccent.toUpperCase()}</code>. Changing it previews every standard slider on this Controls page; the value is temporary and Reset example restores the default.</p><div><strong>Controls inheriting this style</strong><ul>{dependentControls.map(control => <li key={control.id}><a href={`#${control.id}`}>{control.title}</a></li>)}{entry.consumers.map(consumer => <li key={consumer}>{consumer}</li>)}</ul></div><p>Gradient hue and alpha sliders use specialist colour tracks and are intentionally excluded.</p></div> : null}
         {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" paletteClassName="ui-control-colour-palette" /><p>Default: {colour ?? "Unset"} · Hover: {hoverColour ?? "Unset"}</p><button className="studio-clear-action" type="button" onClick={() => { setColour(undefined); setHoverColour(undefined); }}>Clear both colours</button></div><div className="ui-control-state-examples"><ColourPicker label="Disabled colour" value="#0088ff" onChange={() => {}} disabled wrapperClassName="ui-control-disabled" /><div className="ui-control-swatch-states" aria-label="Overlapping unset colour swatches"><ColourValueSwatch /><ColourValueSwatch overlap /></div><span>Unset swatches overlap with opaque white centres. The disabled picker cannot be opened.</span></div></div> : null}
         {entry.id === "custom-font-size" ? <div className="ui-control-live ui-control-size-example"><CustomFontSizeSetting value={fontSize} onChange={setFontSize} /><p>Current value: {fontSize ?? "Default"}</p></div> : null}
         {entry.id === "paragraph-length" ? <div className="ui-control-live ui-control-size-example"><ParagraphLengthSetting label="Line indent" value={indent} min={-100} max={300} onChange={setIndent} /><p>Current value: {indent ?? "Default"}</p><ParagraphLengthSetting label="Disabled example" value="16px" min={0} max={100} disabled onChange={() => {}} /></div> : null}
