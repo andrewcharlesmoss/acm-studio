@@ -106,7 +106,8 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   for (const [type, id] of [["quote", "attribution"], ["quote", "text-alignment"], ["list", "list-style"], ["table", "caption"], ["social-linkedin", "profile-url"], ["post-author", "alignment"], ["post-date", "alignment"], ["document-title", "level"], ["columns", "vertical-alignment"], ["column", "vertical-alignment"]]) {
     assert.equal(capabilityProfileFor(type).controls.find(control => control.id === id)?.source, "gutenberg", `${type}:${id} is available in the unified Block inspector`);
   }
-  for (const [type, id] of [["divider", "colour"], ["cover-image", "focal-position"]]) assert.equal(capabilityProfileFor(type).controls.find(control => control.id === id)?.source, "studio", `${type}:${id} remains documented as a hidden ACM option`);
+  assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "divider-style")?.source, "gutenberg", "Separator style is part of the Gutenberg-owned Block pane");
+  assert.equal(capabilityProfileFor("cover-image").controls.find(control => control.id === "focal-position")?.source, "studio", "Cover Image focal position remains a documented ACM option");
   assert.deepEqual(capabilityProfileFor("heading").attributeDefaults, { level: 2 });
   assert.deepEqual(capabilityProfileFor("table").attributeDefaults, { hasFixedLayout: true });
   assert.deepEqual(capabilityProfileFor("columns").attributeDefaults, { isStackedOnMobile: true });
@@ -130,7 +131,10 @@ test("saved style settings remain visible in Studio when a block profile does no
   const current = retainedLegacyStyleControls(profile, { textColor: "#333333" });
   assert.deepEqual(current, []);
 
-  assert.deepEqual(retainedLegacyStyleControls(capabilityProfileFor("divider"), { textColor: "#123456" }), [], "a nested profile field still owns its leaf style value");
+  const retainedDividerColour = retainedLegacyStyleControls(capabilityProfileFor("divider"), { textColor: "#123456" });
+  assert.deepEqual(retainedDividerColour.map(control => control.id), ["colour"], "an unowned saved text colour remains available as a legacy Studio control");
+  assert.equal(retainedDividerColour[0].source, "studio");
+  assert.deepEqual(retainedDividerColour[0].fields, ["textColor"]);
 });
 
 test("resetting one optional inspector control clears only its owned style fields", () => {
@@ -236,10 +240,12 @@ test("every reusable Controls entry has a grouped anchor specimen and compatible
   const route = read("app/studio/ui/controls/[id]/page.tsx");
   const reset = read("app/studio/ui/controls/control-specimen.tsx");
   const catalogue = read("app/studio/ui/controls/controls-catalogue.tsx");
+  const navigation = read("app/studio/ui/controls/controls-navigation.tsx");
   assert.match(route, /studioControlEntryById\[id\]/);
   assert.match(route, /notFound\(\)/);
   assert.match(route, /redirect\(`\/studio\/ui\/controls#\$\{encodeURIComponent\(entry\.id\)\}`\)/);
-  assert.match(catalogue, /href=\{`#\$\{entry\.id\}`\}/);
+  assert.match(catalogue, /id=\{controlGroupId\(group\)\}/);
+  assert.match(navigation, /href=\{`#\$\{entry\.id\}`\}/);
   assert.match(catalogue, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\} \/>/);
   assert.match(reset, /<section id=\{entry\.id\}/);
   assert.match(reset, /function resetExample\(\)/);
