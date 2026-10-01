@@ -34,6 +34,7 @@ function collectBlockIds(blocks: ContentBlock[], ids = new Set<string>()) {
   for (const block of blocks) {
     ids.add(block.id);
     if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "social-icons") collectBlockIds(block.children ?? [], ids);
+    if (block.type === "list") for (const item of block.items) if (typeof item !== "string") for (const child of item.children ?? []) collectBlockIds([child], ids);
   }
   return ids;
 }
@@ -52,6 +53,7 @@ function withUniqueBlockIds(block: ContentBlock, ids: Set<string>): ContentBlock
     const children = (block.children ?? []).map(child => withUniqueBlockIds(child, ids));
     return block.type === "columns" ? { ...block, id, children: children as Extract<ContentBlock, { type: "column" }>[] } : { ...block, id, children } as ContentBlock;
   }
+  if (block.type === "list") return { ...block, id, items: block.items.map(item => typeof item === "string" ? item : { ...item, children: item.children?.map(child => withUniqueBlockIds(child, ids) as Extract<ContentBlock, { type: "list" }>) }) };
   return { ...block, id };
 }
 
@@ -115,7 +117,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
       case "quote": return typeof block.text === "string" && validRuns(block.runs) && optionalString(block.attribution)
         && (block.quoteStyle === undefined || ["default", "plain"].includes(block.quoteStyle as string));
       case "list": return ["ordered", "unordered"].includes(block.style as string) && Array.isArray(block.items)
-        && block.items.every((item) => typeof item === "string" || (isRecord(item) && typeof item.text === "string" && validRuns(item.runs)))
+        && block.items.every((item) => validListItem(item, ids, depth))
         && (block.marker === undefined || ["1", "A", "a", "I", "i"].includes(block.marker as string))
         && (block.start === undefined || (typeof block.start === "number" && Number.isInteger(block.start) && block.start >= 1 && block.start <= 100000))
         && optionalBoolean(block.reversed);
@@ -213,6 +215,14 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
     }
 }
 
+function validListItem(item: unknown, ids: Set<string>, depth: number): boolean {
+  if (typeof item === "string") return true;
+  if (!isRecord(item) || typeof item.text !== "string" || !validRuns(item.runs)) return false;
+  if (item.children === undefined) return true;
+  return Array.isArray(item.children) && item.children.length > 0
+    && item.children.every(child => isRecord(child) && child.type === "list" && validContentBlock(child, ids, depth + 1, "list-item"));
+}
+
 export function validContentBlocks(value: unknown): value is ContentBlock[] {
   if (!Array.isArray(value)) return false;
   const ids = new Set<string>();
@@ -227,6 +237,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
         }
       }
       if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "social-icons") && block.children && !collectFootnoteIds(block.children)) return false;
+      if (block.type === "list" && !block.items.every(item => typeof item === "string" || (item.children ?? []).every(child => collectFootnoteIds([child])))) return false;
     }
     return true;
   }

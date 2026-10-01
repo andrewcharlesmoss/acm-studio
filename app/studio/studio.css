@@ -856,6 +856,9 @@
 .list-field { padding-left: 26px; }
 .list-field-editor, .list-field-preview { display: grid; gap: 5px; grid-template-columns: max-content minmax(0, 1fr); list-style: none; padding: 0; }
 .list-field-row { align-items: start; display: grid; gap: 6px; grid-column: 1 / -1; grid-template-columns: max-content minmax(0, 1fr); grid-template-columns: subgrid; }
+.list-field-item-content { min-width: 0; }
+.list-field-nested { margin-top: 4px; }
+.list-field-editor.is-nested { margin: 0; }
 .list-field-marker { color: var(--ink); font-size: 16px; line-height: 1.55; min-width: 24px; padding-right: 3px; text-align: right; }
 .list-field-row textarea, .list-item-editor, .list-item-text { background: transparent; border: 0; color: var(--ink); display: block; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; min-height: 28px; outline: 0; overflow: hidden; overflow-wrap: anywhere; padding: 0; resize: none; white-space: pre-wrap; width: 100%; }
 /* The table frame owns its only outer edge, including the selected state.

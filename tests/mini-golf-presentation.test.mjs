@@ -308,7 +308,10 @@ test("HTML editing retains ordered list marker styles and validates persisted va
     getAttribute: (name) => name === "type" ? marker : null,
     hasAttribute: (name) => name === "type",
     querySelectorAll: () => [],
-    children: [{ tagName: "LI", textContent: "First", childNodes: [{ nodeType: 3, textContent: "First" }] }],
+    children: [{
+      tagName: "LI", textContent: "First", children: [], childNodes: [{ nodeType: 3, textContent: "First" }],
+      cloneNode: () => ({ tagName: "LI", textContent: "First", children: [], childNodes: [{ nodeType: 3, textContent: "First" }] }),
+    }],
   });
   for (const marker of ["1", "A", "a", "I", "i"]) {
     const parsed = __parseElement(element(marker), original);

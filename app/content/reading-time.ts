@@ -1,4 +1,4 @@
-import { listItemText, type ContentBlock } from "./model";
+import { listText, type ContentBlock } from "./model";
 
 /** Editorial estimate: 220 words per minute, rounded up to at least one minute. */
 export function readingTimeMinutes(blocks: ContentBlock[]): number {
@@ -16,7 +16,7 @@ function readingTimeText(blocks: ContentBlock[]): string {
       case "paragraph":
       case "heading": return block.text;
       case "quote": return `${block.text} ${block.attribution ?? ""}`;
-      case "list": return block.items.map(listItemText).join(" ");
+      case "list": return listText(block.items);
       case "table": return block.rows.flat().join(" ");
       case "code": return block.code;
       case "button": return block.label;

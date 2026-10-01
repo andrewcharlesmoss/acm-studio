@@ -1,4 +1,4 @@
-import { listItemText, type ContentBlock, type LayoutMode, type LayoutOptions, type RichTextRun, type SiteSectionRole, type SocialIconBlock, type TextMark } from "../content/model";
+import { listItemText, type ContentBlock, type LayoutMode, type LayoutOptions, type ListItem, type RichTextRun, type SiteSectionRole, type SocialIconBlock, type TextMark } from "../content/model";
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { hasLayoutOptions } from "../content/layout";
 import { plainTextFromRuns, safeImageSource, safeTextLink } from "../content/rich-text";
@@ -102,10 +102,7 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       return `<h${block.level}${attributes} data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}</h${block.level}>`;
     case "quote":
       return `<blockquote${attributes} data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block), block.quoteStyle === "plain" ? "is-style-plain" : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}${block.attribution ? `<cite>${escapeText(block.attribution)}</cite>` : ""}</blockquote>`;
-    case "list": {
-      const tag = block.style === "ordered" ? "ol" : "ul";
-      return `<${tag}${attributes} data-block-align-explicit="true"${block.style === "ordered" && block.marker && block.marker !== "1" ? ` type="${block.marker}"` : ""}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}${classAttribute(blockAlignmentClass(block))}>${block.items.map((item) => `<li>${typeof item === "string" ? escapeText(item) : runsToHtml(item.runs, listItemText(item))}</li>`).join("")}</${tag}>`;
-    }
+    case "list": return serialiseList(block, attributes);
     case "table": {
       const rows = block.rows.length ? block.rows : [[""]];
       const headerRows = block.hasHeader ? 1 : 0;
@@ -178,6 +175,16 @@ function serialiseChildren(children: ContentBlock[]) {
   return children.map((child) => serialiseBlock(child, ` data-block-type="${escapeAttribute(child.type)}" data-block-id="${escapeAttribute(child.id)}"`)).join("");
 }
 
+function serialiseList(block: Extract<ContentBlock, { type: "list" }>, attributes = ` data-block-type="list" data-block-id="${escapeAttribute(block.id)}"`): string {
+  const tag = block.style === "ordered" ? "ol" : "ul";
+  const items = block.items.map((item: ListItem) => {
+    const text = typeof item === "string" ? escapeText(item) : runsToHtml(item.runs, listItemText(item));
+    const nested = typeof item === "string" ? "" : item.children?.map(child => serialiseList(child)).join("") ?? "";
+    return `<li>${text}${nested}</li>`;
+  }).join("");
+  return `<${tag}${attributes} data-block-align-explicit="true"${block.style === "ordered" && block.marker && block.marker !== "1" ? ` type="${block.marker}"` : ""}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}${classAttribute(blockAlignmentClass(block))}>${items}</${tag}>`;
+}
+
 function runsToHtml(runs: RichTextRun[] | undefined, text: string) {
   if (!runs?.length) return escapeText(text);
   return runs.map((run) => {
@@ -245,6 +252,7 @@ export function collectBlockIds(block: ContentBlock): string[] {
   if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "social-icons") return [block.id, ...block.children.flatMap(collectBlockIds)];
   if (block.type === "columns") return [block.id, ...block.children.flatMap(collectBlockIds)];
   if (block.type === "component") return [block.id, ...(block.children?.flatMap(collectBlockIds) ?? [])];
+  if (block.type === "list") return [block.id, ...block.items.flatMap(item => typeof item === "string" ? [] : item.children?.flatMap(collectBlockIds) ?? [])];
   return [block.id];
 }
 
@@ -400,18 +408,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       { const runs = parseRuns(element); return { block: { id, type: "heading", level: Number(element.tagName.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6, text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element), blockAlign: parsedBlockAlignment(element, original) } }; }
     case "blockquote":
       { const runs = parseRuns(element); return { block: { id, type: "quote", text: runs ? plainTextFromRuns(runs) : textContent.replace(element.querySelector("cite")?.textContent ?? "", "").trim(), runs, attribution: element.querySelector("cite")?.textContent || undefined, align: alignmentFromClass(element), blockAlign: parsedBlockAlignment(element, original), quoteStyle: element.classList.contains("is-style-plain") ? "plain" : undefined } }; }
-    case "ul": case "ol": {
-      if ([...element.querySelectorAll("ul, ol")].length) return { error: "Nested lists are not yet supported by this editor." };
-      const items = [...element.children].filter((child) => child.tagName.toLowerCase() === "li").map((child) => {
-        const runs = parseRuns(child as HTMLElement);
-        const text = runs ? plainTextFromRuns(runs) : child.textContent ?? "";
-        return runs?.some((run) => run.marks?.length) ? { text, runs } : text;
-      });
-      const ordered = element.tagName.toLowerCase() === "ol";
-      const marker = element.getAttribute("type");
-      if (ordered && marker && !["1", "A", "a", "I", "i"].includes(marker)) return { error: "This ordered-list style is not supported." };
-      return { block: { id, type: "list", style: ordered ? "ordered" : "unordered", items, marker: ordered && marker && ["1", "A", "a", "I", "i"].includes(marker) ? marker as "1" | "A" | "a" | "I" | "i" : undefined, start: ordered && element.hasAttribute("start") ? (Number(element.getAttribute("start")) || undefined) : undefined, reversed: ordered && element.hasAttribute("reversed") || undefined, blockAlign: parsedBlockAlignment(element, original) } };
-    }
+    case "ul": case "ol": return parseListElement(element, id, original);
     case "table":
       return parseTable(element, id, original);
     case "pre":
@@ -557,6 +554,36 @@ function parsedBlockAlignment(element: HTMLElement, original: ContentBlock) {
 function parsedSocialIconsAlignment(element: HTMLElement, original: ContentBlock) {
   const alignment = parsedBlockAlignment(element, original);
   return alignment === "left" || alignment === "center" || alignment === "right" ? alignment : undefined;
+}
+
+function parseListElement(element: HTMLElement, id: string, original?: ContentBlock): HtmlParseResult {
+  const ordered = element.tagName.toLowerCase() === "ol";
+  const marker = element.getAttribute("type");
+  if (ordered && marker && !["1", "A", "a", "I", "i"].includes(marker)) return { error: "This ordered-list style is not supported." };
+  const items: import("../content/model").ListItem[] = [];
+  for (const child of [...element.children]) {
+    if (child.tagName.toLowerCase() !== "li") return { error: "Lists can contain only list items." };
+    const item = child as HTMLElement;
+    const nestedElements = [...item.children].filter(node => ["ul", "ol"].includes(node.tagName.toLowerCase())) as HTMLElement[];
+    const textElement = item.cloneNode(true) as HTMLElement;
+    [...textElement.children].filter(node => ["ul", "ol"].includes(node.tagName.toLowerCase())).forEach(node => node.remove());
+    const runs = parseRuns(textElement);
+    const text = runs ? plainTextFromRuns(runs) : textElement.textContent ?? "";
+    const children: import("../content/model").ListBlock[] = [];
+    for (const nested of nestedElements) {
+      const nestedType = nested.dataset.blockType;
+      if (nestedType && nestedType !== "list") return { error: "Nested lists must use list block markup." };
+      const parsed = parseListElement(nested, nested.dataset.blockId || crypto.randomUUID());
+      if ("error" in parsed || parsed.block.type !== "list") return "error" in parsed ? parsed : { error: "Nested list markup is invalid." };
+      children.push(parsed.block);
+    }
+    items.push(children.length || runs?.some(run => run.marks?.length)
+      ? { text, runs, children: children.length ? children : undefined }
+      : text);
+  }
+  const startValue = ordered && element.hasAttribute("start") ? Number(element.getAttribute("start")) : undefined;
+  if (startValue !== undefined && (!Number.isInteger(startValue) || startValue < 1 || startValue > 100000)) return { error: "The ordered-list start value is invalid." };
+  return { block: { id, type: "list", style: ordered ? "ordered" : "unordered", items, marker: ordered && marker ? marker as "1" | "A" | "a" | "I" | "i" : undefined, start: startValue, reversed: ordered && element.hasAttribute("reversed") || undefined, blockAlign: original ? parsedBlockAlignment(element, original) : blockAlignmentFromClass(element) } };
 }
 
 function parseRuns(element: HTMLElement): RichTextRun[] | undefined {

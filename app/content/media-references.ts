@@ -9,6 +9,10 @@ export function contentMediaIds(blocks: ContentBlock[]): string[] {
     const nestedMediaIds = (block.type === "group" || block.type === "section" || block.type === "columns" || block.type === "column" || block.type === "component") && block.children
       ? contentMediaIds(block.children)
       : [];
-    return [...inlineMediaIds, ...blockMediaIds, ...backgroundMediaIds, ...nestedMediaIds];
+    const listMediaIds = block.type === "list" ? block.items.flatMap(item => typeof item === "string" ? [] : [
+      ...(item.runs ?? []).flatMap(run => (run.marks ?? []).flatMap(mark => typeof mark !== "string" && mark.type === "inline-image" && mark.mediaId ? [mark.mediaId] : [])),
+      ...contentMediaIds(item.children ?? []),
+    ]) : [];
+    return [...inlineMediaIds, ...blockMediaIds, ...backgroundMediaIds, ...nestedMediaIds, ...listMediaIds];
   });
 }

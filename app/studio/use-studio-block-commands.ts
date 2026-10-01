@@ -1,6 +1,6 @@
 "use client";
 
-import type { ColumnBlock, ContentBlock, RichTextRun } from "../content/model";
+import type { ColumnBlock, ContentBlock, ListBlock, RichTextRun } from "../content/model";
 import { normaliseTextRuns } from "../content/rich-text";
 import { createBlock, type InsertableBlockType, type StudioDocument } from "./editor-model";
 import {
@@ -157,8 +157,14 @@ export function useStudioBlockCommands({
       if (next.type === "columns") return { ...next, children: next.children.map(column => assignIds(column) as ColumnBlock) };
       if (next.type === "section" || next.type === "group" || next.type === "column" || next.type === "social-icons") return { ...next, children: next.children.map(assignIds) };
       if (next.type === "component" && next.children) return { ...next, children: next.children.map(assignIds) };
+      if (next.type === "list") return { ...next, items: next.items.map(item => typeof item === "string" ? item : { ...item, children: item.children?.map(duplicateList) }) };
       return next;
     };
+    function duplicateList(list: ListBlock): ListBlock {
+      const id = createUniqueId("list");
+      ids.push(id);
+      return { ...list, id, items: list.items.map(item => typeof item === "string" ? item : { ...item, children: item.children?.map(duplicateList) }) };
+    }
     const remapped = assignIds(copy);
     // Use the precomputed immutable copy in the state update. React may replay
     // updater functions in Strict Mode; generating IDs inside that updater can
@@ -175,8 +181,12 @@ export function useStudioBlockCommands({
       if (next.type === "columns") return { ...next, children: next.children.map(column => remap(column) as ColumnBlock) };
       if (next.type === "section" || next.type === "group" || next.type === "column" || next.type === "social-icons") return { ...next, children: next.children.map(remap) } as ContentBlock;
       if (next.type === "component" && next.children) return { ...next, children: next.children.map(remap) };
+      if (next.type === "list") return { ...next, items: next.items.map(item => typeof item === "string" ? item : { ...item, children: item.children?.map(remapList) }) };
       return next;
     };
+    function remapList(list: ListBlock): ListBlock {
+      return { ...list, id: createUniqueId("list"), items: list.items.map(item => typeof item === "string" ? item : { ...item, children: item.children?.map(remapList) }) };
+    }
     const remapped = remap(source);
     // The operation receives a stable copy so replaying the updater cannot
     // consume another set of generated IDs.

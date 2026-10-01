@@ -57,6 +57,25 @@ test("nested blocks support lookup, update, removal and deep duplication", () =>
   assert.equal(findBlockById(removeNestedBlockById(updated, "table").blocks, "table"), null);
 });
 
+test("duplicating a List assigns fresh IDs to every nested List", () => {
+  let nextId = 0;
+  const source = { ...document(), blocks: [{ id: "list-root", type: "list", style: "unordered", items: [
+    { text: "Parent", children: [{ id: "list-child", type: "list", style: "ordered", items: [
+      { text: "Nested parent", children: [{ id: "list-grandchild", type: "list", style: "unordered", items: ["Deep item"] }] },
+    ] }] },
+  ] }] };
+  const duplicated = duplicateBlockAt(source, 0, type => `${type}-${++nextId}`);
+  const ids = [];
+  function collect(list) {
+    ids.push(list.id);
+    for (const item of list.items) if (typeof item !== "string") for (const child of item.children ?? []) collect(child);
+  }
+  collect(duplicated.blocks[1]);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.notDeepEqual(ids, ["list-root", "list-child", "list-grandchild"]);
+  assert.deepEqual(duplicated.blocks[1].items[0].children[0].items[0].children[0].items, ["Deep item"]);
+});
+
 test("new code blocks start empty for the editor placeholder", async () => {
   const source = await readFile(new URL("../app/studio/editor-model.ts", import.meta.url), "utf8");
   assert.match(source, /if \(type === "code"\) return \{ id, type, language: "text", code: "" \};/);
@@ -1580,8 +1599,9 @@ test("list items split their rich text on Return without a permanent Add item co
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
   assert.match(listField, /onSplitParagraph=\{\(beforeRuns, afterRuns\) =>/);
-  assert.match(listField, /nextItems\.splice\(index \+ 1, 0, afterRuns/);
-  assert.match(listField, /requestAnimationFrame\(\(\) =>/);
+  assert.match(listField, /nextItems\.splice\(index \+ 1, 0, itemWithText\("", plainTextFromRuns\(afterRuns\), afterRuns\)\)/);
+  assert.match(listField, /replaceListItems\(block, list\.id, nextItems\)/);
+  assert.match(listField, /focusItem\(list\.id, index \+ 1\)/);
   assert.doesNotMatch(listField, /Add item/);
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.doesNotMatch(css, /\.list-item-add\s*\{/);
@@ -1590,9 +1610,10 @@ test("list items split their rich text on Return without a permanent Add item co
 test("Backspace removes an empty list item and keeps text editing intact", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
-  assert.match(listField, /event\.key === "Backspace" && !event\.shiftKey && listItemText\(item\)\.length === 0 && items\.length > 1/);
-  assert.match(listField, /event\.preventDefault\(\); removeItem\(index, index - 1\)/);
-  assert.match(listField, /focusItem\(Math\.min\(Math\.max\(focusIndex, 0\)/);
+  assert.match(listField, /event\.key === "Backspace" && !event\.shiftKey && listItemText\(item\)\.length === 0/);
+  assert.match(listField, /removeListItem\(block, list\.id, index\)/);
+  assert.match(listField, /focusItem\(list\.id, Math\.max\(0, index - 1\)\)/);
+  assert.match(listField, /depth > 0 && items\.length === 1/);
   assert.doesNotMatch(listField, /list-item-remove/);
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.doesNotMatch(css, /\.list-field-row textarea:focus\s*\{/);

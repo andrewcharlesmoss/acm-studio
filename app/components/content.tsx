@@ -66,6 +66,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     for (const block of source) {
       if (block.type === "footnotes") block.notes.forEach((note) => footnoteNumbers.set(note.id, nextFootnoteNumber++));
       if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") && block.children) collectFootnoteNumbers(block.children);
+      if (block.type === "list") block.items.forEach(item => { if (typeof item !== "string") collectFootnoteNumbers(item.children ?? []); });
     }
   }
   collectFootnoteNumbers(blocks);
@@ -110,17 +111,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
             </figure>
           );
         }
-        if (block.type === "list") {
-          const items = block.items.map((item, index) => {
-            const content = typeof item === "string" ? item : renderText(listItemText(item), item.runs, mediaUrls, footnoteNumbers);
-            return studio
-              ? <li className="list-field-row" key={index}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? listMarker(block, index) : "•"}</span><span className="list-item-text">{content}</span></li>
-              : <li key={index}>{content}</li>;
-          });
-          return block.style === "ordered"
-            ? <ol className={[studio ? "list-field-preview" : "", blockAlignmentClass(block)].filter(Boolean).join(" ") || undefined} type={block.marker} start={block.start} reversed={block.reversed || undefined} key={block.id}>{items}</ol>
-            : <ul className={[studio ? "list-field-preview" : "", blockAlignmentClass(block)].filter(Boolean).join(" ") || undefined} key={block.id}>{items}</ul>;
-        }
+        if (block.type === "list") return renderListBlock(block, studio, mediaUrls, footnoteNumbers);
         if (block.type === "table") return <ContentTable block={block} key={block.id} />;
         if (block.type === "code") {
           const highlighted = highlightCode(block.code, block.language);
@@ -232,6 +223,19 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
       })}
     </div>
   );
+}
+
+function renderListBlock(block: Extract<ContentBlock, { type: "list" }>, studio: boolean, mediaUrls: Record<string, string>, footnoteNumbers: Map<string, number>): React.ReactNode {
+  const items = block.items.map((item, index) => {
+    const content = typeof item === "string" ? item : renderText(listItemText(item), item.runs, mediaUrls, footnoteNumbers);
+    const nestedLists = typeof item === "string" ? null : item.children?.map(child => renderListBlock(child, studio, mediaUrls, footnoteNumbers));
+    return studio
+      ? <li className="list-field-row" key={`${block.id}-${index}`}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? listMarker(block, index) : "•"}</span><span className="list-item-text">{content}</span>{nestedLists}</li>
+      : <li key={`${block.id}-${index}`}>{content}{nestedLists}</li>;
+  });
+  return block.style === "ordered"
+    ? <ol className={[studio ? "list-field-preview" : "", blockAlignmentClass(block)].filter(Boolean).join(" ") || undefined} type={block.marker} start={block.start} reversed={block.reversed || undefined} key={block.id}>{items}</ol>
+    : <ul className={[studio ? "list-field-preview" : "", blockAlignmentClass(block)].filter(Boolean).join(" ") || undefined} key={block.id}>{items}</ul>;
 }
 
 function ContentTable({ block }: { block: Extract<ContentBlock, { type: "table" }> }) {

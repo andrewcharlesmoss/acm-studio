@@ -45,9 +45,13 @@ export function findBlockById(blocks, blockId) {
 }
 
 export function duplicateNestedBlockById(document, blockId, createBlockId) {
+  function duplicateList(list) {
+    return { ...list, id: createBlockId("list"), items: list.items.map((item) => typeof item === "string" ? item : { ...item, ...(item.children ? { children: item.children.map(duplicateList) } : {}) }) };
+  }
   function duplicate(block) {
     const copy = { ...clone(block), id: createBlockId(block.type) };
     if (Array.isArray(copy.children)) copy.children = copy.children.map(duplicate);
+    if (copy.type === "list") copy.items = copy.items.map((item) => typeof item === "string" ? item : { ...item, ...(item.children ? { children: item.children.map(duplicateList) } : {}) });
     return copy;
   }
   function insert(blocks) {
@@ -80,9 +84,13 @@ export function moveBlockAt(document, from, to) {
 export function duplicateBlockAt(document, blockIndex, createBlockId) {
   const source = document.blocks[blockIndex];
   if (!source) return document;
+  function duplicateList(list) {
+    return { ...list, id: createBlockId("list"), items: list.items.map((item) => typeof item === "string" ? item : { ...item, ...(item.children ? { children: item.children.map(duplicateList) } : {}) }) };
+  }
   function duplicate(block) {
     const copy = { ...clone(block), id: createBlockId(block.type) };
     if (Array.isArray(copy.children)) copy.children = copy.children.map(duplicate);
+    if (copy.type === "list") copy.items = copy.items.map((item) => typeof item === "string" ? item : { ...item, ...(item.children ? { children: item.children.map(duplicateList) } : {}) });
     return copy;
   }
   const copy = duplicate(source);
@@ -94,9 +102,13 @@ export function removeBlockById(document, blockId) {
 }
 
 export function duplicateDocumentWithIds(document, createDocumentId, createBlockId) {
+  function duplicateList(list) {
+    return { ...list, id: createBlockId("list"), items: list.items.map((item) => typeof item === "string" ? item : { ...item, ...(item.children ? { children: item.children.map(duplicateList) } : {}) }) };
+  }
   function duplicate(block) {
     const copy = { ...clone(block), id: createBlockId(block.type) };
     if (Array.isArray(copy.children)) copy.children = copy.children.map(duplicate);
+    if (copy.type === "list") copy.items = copy.items.map((item) => typeof item === "string" ? item : { ...item, ...(item.children ? { children: item.children.map(duplicateList) } : {}) });
     return copy;
   }
   return {

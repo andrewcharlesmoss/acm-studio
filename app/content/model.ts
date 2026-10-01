@@ -14,8 +14,32 @@ export type TextMark = InlineTextMark
   | { type: "inline-image"; mediaId?: string; src?: string; alt: string; width?: number }
   | { type: "footnote"; id: string };
 export type RichTextRun = { text: string; marks?: TextMark[] };
-export type ListItem = string | { text: string; runs?: RichTextRun[] };
+export type ListItem = string | { text: string; runs?: RichTextRun[]; children?: ListBlock[] };
+export type ListBlock = { id: string; type: "list"; style: "ordered" | "unordered"; items: ListItem[]; marker?: OrderedListMarker; start?: number; reversed?: boolean; blockAlign?: BlockAlignment };
 export function listItemText(item: ListItem): string { return typeof item === "string" ? item : item.text; }
+export function listText(items: ListItem[]): string {
+  return items.map(item => `${listItemText(item)}${typeof item === "string" ? "" : ` ${item.children?.map(list => listText(list.items)).join(" ") ?? ""}`}`).join(" ").trim();
+}
+export function listTextLines(items: ListItem[]): string[] {
+  return items.flatMap(item => [listItemText(item), ...(typeof item === "string" ? [] : item.children?.flatMap(list => listTextLines(list.items)) ?? [])]);
+}
+export function listTextRuns(items: ListItem[]): RichTextRun[] {
+  const output: RichTextRun[] = [];
+  function appendItems(currentItems: ListItem[]) {
+    currentItems.forEach((item, index) => {
+      if (index > 0) output.push({ text: "\n" });
+      const text = listItemText(item);
+      const runs = typeof item === "string" ? undefined : item.runs;
+      output.push(...(runs?.length ? runs : [{ text }]));
+      if (typeof item !== "string") for (const child of item.children ?? []) {
+        output.push({ text: "\n" });
+        appendItems(child.items);
+      }
+    });
+  }
+  appendItems(items);
+  return output;
+}
 export type OrderedListMarker = "1" | "A" | "a" | "I" | "i";
 export type Footnote = { id: string; text: string };
 export type ParagraphFontSize = "small" | "medium" | "large" | "x-large" | "xx-large";
@@ -167,7 +191,7 @@ export type ContentBlock = (
   | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment; style?: ParagraphStyle }
   | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment }
   | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; attribution?: string; align?: TextAlignment; blockAlign?: BlockAlignment; quoteStyle?: "default" | "plain" }
-  | { id: string; type: "list"; style: "ordered" | "unordered"; items: ListItem[]; marker?: OrderedListMarker; start?: number; reversed?: boolean; blockAlign?: BlockAlignment }
+  | ListBlock
   | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; columnWidths?: number[]; rowHeights?: number[]; columnAlignments?: TextAlignment[]; blockAlign?: BlockAlignment }
   | { id: string; type: "code"; language?: string; code: string; blockAlign?: BlockAlignment }
   | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean; blockAlign?: BlockAlignment; decorative?: boolean; title?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number; linkUrl?: string; linkDestination?: "none" | "custom" | "media" | "lightbox"; opensInNewTab?: boolean; imageStyle?: "default" | "rounded" }
