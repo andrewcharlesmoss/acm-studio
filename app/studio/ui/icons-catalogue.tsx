@@ -7,7 +7,6 @@ import { AcmStudioIcon } from "../acm-studio-icons";
 import { blockCatalogue, templateContentBlock, type BlockLibraryItemType } from "../editor-model";
 import { BlockLibraryIconSample, blockLibrarySymbol } from "../block-library-icons";
 import { commandInventory } from "../ribbon/catalogue-model";
-import { StudioUiLibrary } from "./studio-ui-library";
 import { createIconPng, createIconSvg, downloadIconFile } from "./icon-download.mjs";
 import { KeyboardCatalogue } from "./keyboard-catalogue";
 import { formatIconAddedAt, sortIconsByAddedAt, type IconSortOrder } from "./icon-sort";
@@ -43,8 +42,7 @@ export function IconsCatalogue({ initialIcon, collection = "icons" }: { initialI
     }
   }
 
-  return <StudioUiLibrary section="icons">
-    <section className="ui-icons-page" aria-labelledby="ui-icons-title">
+  return <section className="ui-icons-page" aria-labelledby="ui-icons-title">
       <div className="ui-page-intro">
         <p className="rl-eyebrow">Shared ACM Foundation</p>
         <h1 id="ui-icons-title">Symbols for websites, videos and more.</h1>
@@ -125,6 +123,5 @@ export function IconsCatalogue({ initialIcon, collection = "icons" }: { initialI
           <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>acm-icons/masters/{icon}.svg</code><p>Three editable scale groups. ACM icon specification v0.9.0.</p></details>
         </aside>
       </div>}
-    </section>
-  </StudioUiLibrary>;
+    </section>;
 }

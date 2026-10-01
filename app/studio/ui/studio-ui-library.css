@@ -3,9 +3,14 @@
 .ui-library-header a { display: inline-flex; align-items: center; gap: .65rem; color: inherit; text-decoration: none; }
 .ui-library-header strong { padding-left: 1.5rem; border-left: 1px solid var(--rl-line); font-weight: 600; }
 .ui-library-sections { display: flex; gap: .5rem; padding: 0 2rem; border-bottom: 1px solid var(--rl-line); overflow-x: auto; }
-.ui-library-sections a { display: flex; flex: 0 0 auto; align-items: center; gap: .6rem; padding: .85rem 1rem; border: 0; border-bottom: 3px solid transparent; color: var(--rl-muted); text-decoration: none; }
-.ui-library-sections a:hover { color: var(--rl-ink); background: var(--rl-selection); }
-.ui-library-sections a[aria-current="page"] { color: var(--rl-ink); border-bottom-color: var(--rl-accent); }
+.ui-library-sections button { display: flex; flex: 0 0 auto; align-items: center; gap: .6rem; padding: .85rem 1rem; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--rl-muted); font: inherit; cursor: pointer; }
+.ui-library-sections button:hover { color: var(--rl-ink); background: var(--rl-selection); }
+.ui-library-sections button[aria-selected="true"] { color: var(--rl-ink); border-bottom-color: var(--rl-accent); }
+.ui-library-sections button:focus-visible { outline: 2px solid var(--rl-accent); outline-offset: -2px; }
+.ui-section-loading { min-height: 12rem; margin: 0; padding: 2rem; color: var(--rl-muted); }
+.ui-section-error { min-height: 12rem; padding: 2rem; color: var(--rl-muted); }
+.ui-section-error button { min-height: 40px; border: 1px solid var(--rl-line); border-radius: 6px; padding: .5rem .75rem; background: #fff; color: var(--rl-ink); font: inherit; cursor: pointer; }
+.ui-section-error button:focus-visible { outline: 2px solid var(--rl-accent); outline-offset: 2px; }
 .ui-library-content { min-width: 0; }
 .ui-page-intro { padding: 1.75rem 2rem 1.25rem; }
 .ui-library-content .ui-page-intro > .rl-eyebrow,
@@ -68,8 +73,8 @@
   .ui-library-header { padding: .85rem 1rem; gap: .5rem .8rem; flex-wrap: wrap; }
   .ui-library-header strong { padding-left: .8rem; }
   .ui-library-sections { padding-inline: .5rem; gap: 0; }
-  .ui-library-sections a { padding: .8rem .7rem; }
-  .ui-library-sections a svg { display: none; }
+  .ui-library-sections button { padding: .8rem .7rem; }
+  .ui-library-sections button svg { display: none; }
   .ui-page-intro { padding: 1.25rem 1rem 1rem; }
   .ui-ribbon-page > .rl-title { padding: 1.25rem 1rem 1rem; }
   .ui-workspace-tools { padding-inline: 1rem; }

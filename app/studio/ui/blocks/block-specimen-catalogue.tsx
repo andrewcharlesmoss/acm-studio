@@ -12,7 +12,6 @@ import { blockLibraryEntries, blockLibraryEntryByType } from "../../blocks/libra
 import { createTemplateSet, type TemplateNode, type TemplateSet } from "../../template-model";
 import { TemplateNodes, TemplateSurface } from "../../template-renderer";
 import { BlockLibraryNavigation } from "./block-library-navigation";
-import { StudioUiLibrary } from "../studio-ui-library";
 
 type SpecimenData = { blocks: ContentBlock[]; document: StudioDocument };
 type SpecimenSnapshot = { past: SpecimenData[]; future: SpecimenData[]; lastEdit?: { key: string; at: number } };
@@ -195,9 +194,9 @@ const exampleTemplateSet = createStableExampleTemplateSet();
 
 export function BlockLibraryCatalogue({ initialType }: { initialType: BlockType | null }) {
   const [selectedType, setSelectedType] = useState<BlockType | null>(initialType);
-  const initialRouteType = useRef(initialType);
+  const [initialRouteType, setInitialRouteType] = useState(initialType);
   const selectType = useCallback((type: BlockType | null) => {
-    initialRouteType.current = null;
+    setInitialRouteType(null);
     setSelectedType(type);
   }, []);
   const groups = blockLibraryEntries.reduce<Map<string, typeof blockLibraryEntries>>((result, entry) => {
@@ -206,16 +205,16 @@ export function BlockLibraryCatalogue({ initialType }: { initialType: BlockType 
     return result;
   }, new Map());
 
-  return <StudioUiLibrary section="blocks"><div className="ui-blocks-layout">
+  return <div className="ui-blocks-layout">
     <BlockLibraryNavigation active={selectedType ?? "all"} onSelect={selectType} />
     {selectedType
-      ? <BlockSpecimenDetail key={selectedType} type={selectedType} onBack={() => selectType(null)} handleInitialHash={initialRouteType.current === selectedType} />
+      ? <BlockSpecimenDetail key={selectedType} type={selectedType} onBack={() => selectType(null)} handleInitialHash={initialRouteType === selectedType} />
       : <section className="ui-blocks-main ui-page-intro" aria-labelledby="ui-blocks-title">
         <p className="rl-eyebrow">Block Library</p><h1 id="ui-blocks-title">Blocks</h1>
         <p>Choose a block from the menu to inspect its editable specimen, controls and compatibility notes.</p>
         {[...groups].map(([group, entries]) => <section className="ui-block-index-group" key={group}><h2>{group}</h2><div className="ui-block-index-grid">{entries.map((entry) => <article className="ui-catalogue-card" key={entry.type}><div><p className="rl-eyebrow">{entry.type === "template-content" ? "Template element" : entry.profile.mapping}</p><h3>{entry.label}</h3><p>{entry.description}</p></div><button type="button" onClick={() => selectType(entry.type)}>Open {entry.label} <span aria-hidden="true">→</span></button></article>)}</div></section>)}
       </section>}
-  </div></StudioUiLibrary>;
+  </div>;
 }
 
 function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockType; onBack: () => void; handleInitialHash: boolean }) {

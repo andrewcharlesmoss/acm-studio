@@ -3,14 +3,12 @@
 import { useState } from "react";
 import { PanelCard } from "@acm/panel";
 import { AcmStudioIcon } from "../../acm-studio-icons";
-import { StudioUiLibrary } from "../studio-ui-library";
 
 export function PanelCatalogue() {
   const [open, setOpen] = useState(true);
   const [notice, setNotice] = useState("");
 
   return (
-    <StudioUiLibrary section="panels">
       <section className="ui-panels-page" aria-labelledby="ui-panels-title">
         <header className="ui-page-intro">
           <p className="rl-eyebrow">Reusable application component</p>
@@ -47,6 +45,5 @@ export function PanelCatalogue() {
           <p className="ui-panels-contract">Close and action handlers in this specimen use temporary page state. Consumers keep application data, permissions, commands, placement and resizing in their own project.</p>
         </section>
       </section>
-    </StudioUiLibrary>
   );
 }

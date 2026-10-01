@@ -9,7 +9,6 @@ import { RibbonPreview } from "../ribbon/ribbon-preview";
 import { skeletonExample } from "../ribbon/catalogue-model";
 import { initialDemo } from "../ribbon/demo-state";
 import { ApplicationSectionNavigation } from "./application-section-navigation";
-import { StudioUiLibrary } from "./studio-ui-library";
 
 export function WorkspaceCatalogue() {
   const [tab, setTab] = useState(skeletonExample.initialTab);
@@ -23,8 +22,7 @@ export function WorkspaceCatalogue() {
     setRevision((value) => value + 1);
   }
 
-  return <StudioUiLibrary section="workspace">
-    <section className="ui-workspace-page" aria-labelledby="ui-workspace-title">
+  return <section className="ui-workspace-page" aria-labelledby="ui-workspace-title">
       <div className="ui-page-intro">
         <p className="rl-eyebrow">Studio UI / Composition</p>
         <h1 id="ui-workspace-title">Application navigation, Ribbon and panes.</h1>
@@ -51,6 +49,5 @@ export function WorkspaceCatalogue() {
         </div>
       </div>
       <p className="ui-workspace-caption">The workspace preview scrolls horizontally when its full structure does not fit. Changes stay in this example only.</p>
-    </section>
-  </StudioUiLibrary>;
+    </section>;
 }

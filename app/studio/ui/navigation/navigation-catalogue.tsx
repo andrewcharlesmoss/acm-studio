@@ -1,11 +1,9 @@
 "use client";
 
 import { ApplicationSectionNavigation } from "../application-section-navigation";
-import { StudioUiLibrary } from "../studio-ui-library";
 
 export function NavigationCatalogue() {
-  return <StudioUiLibrary section="navigation">
-    <section className="ui-navigation-page" aria-labelledby="ui-navigation-title">
+  return <section className="ui-navigation-page" aria-labelledby="ui-navigation-title">
       <header className="ui-page-intro">
         <p className="rl-eyebrow">Reusable application component</p>
         <h1 id="ui-navigation-title">Application Section Navigation</h1>
@@ -16,6 +14,5 @@ export function NavigationCatalogue() {
         <ApplicationSectionNavigation initialActiveId="accounts" preventNavigation />
         <p className="ui-navigation-contract">Consumers provide section labels and routes, control the active section when needed, and keep permissions and page content in their own application.</p>
       </section>
-    </section>
-  </StudioUiLibrary>;
+    </section>;
 }

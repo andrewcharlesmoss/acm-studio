@@ -1,10 +1,9 @@
 import { controlGroupId, studioControlEntries, studioControlGroups } from "../../controls/library-catalogue";
-import { StudioUiLibrary } from "../studio-ui-library";
 import { ControlSpecimen } from "./control-specimen";
 import { ControlsNavigation } from "./controls-navigation";
 
 export function ControlsCatalogue() {
-  return <StudioUiLibrary section="controls"><div className="ui-controls-layout">
+  return <div className="ui-controls-layout">
     <ControlsNavigation />
     <section className="ui-controls-main ui-page-intro ui-controls-page" aria-labelledby="ui-controls-title">
       <p className="rl-eyebrow">Reusable inspector components</p>
@@ -19,5 +18,5 @@ export function ControlsCatalogue() {
         </section>;
       })}
     </section>
-  </div></StudioUiLibrary>;
+  </div>;
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { PanelCatalogue } from "./panel-catalogue";
-import "@acm/panel/styles.css";
-import "./panel-catalogue.css";
+import { StudioUiSectionHost } from "../studio-ui-section-host";
 
 export const metadata: Metadata = {
   title: "Panels · Studio UI Library",
@@ -9,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function StudioUiPanelsPage() {
-  return <PanelCatalogue />;
+  return <StudioUiSectionHost section="panels"><PanelCatalogue /></StudioUiSectionHost>;
 }

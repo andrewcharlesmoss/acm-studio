@@ -17,7 +17,6 @@ import {
   type UniversalStylePreset,
 } from "@acm/styles";
 import type { CSSProperties } from "react";
-import { StudioUiLibrary } from "../studio-ui-library";
 import styleGuideSource from "./style-guide-source.json";
 import "../style-guide.css";
 
@@ -284,8 +283,7 @@ export function StyleGuideSandbox() {
   const activeTypography = preset.typography[role];
   const matchingFamilies = fontFamilies.filter(font => font.name.toLowerCase().includes(fontQuery.toLowerCase()));
 
-  return <StudioUiLibrary section="styles">
-    <section className="sg-page" aria-labelledby="sg-page-title">
+  return <section className="sg-page" aria-labelledby="sg-page-title">
       <header className="ui-page-intro sg-intro">
         <p className="rl-eyebrow">Universal ACM Foundation</p>
         <h1 id="sg-page-title">Style Guide</h1>
@@ -390,8 +388,7 @@ export function StyleGuideSandbox() {
           onClearPin={() => setPinnedSourcePath(null)}
         />
       </div>
-    </section>
-  </StudioUiLibrary>;
+    </section>;
 }
 
 function ColourControl({ stylePath, label, value, onChange, onReset }: { stylePath: string; label: string; value: string; onChange: (value: string) => void; onReset: () => void }) {

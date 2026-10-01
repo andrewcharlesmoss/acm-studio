@@ -32,13 +32,26 @@ test("Controls renders every specimen and resolves its group and navigation anch
   assert.equal([...html.matchAll(/class="ui-control-group"/g)].length, studioControlGroups.length);
 });
 
-test("Studio UI Library exposes its canonical sections and keeps section routes distinct", () => {
+test("Studio UI Library uses accessible in-place tabs and retains section entry routes", () => {
   const shell = read("app/studio/ui/studio-ui-library.tsx");
-  for (const [section, href] of [["workspace", "/studio/ui"], ["ribbon", "/studio/ui/ribbon"], ["panes", "/studio/ui/panes"], ["blocks", "/studio/ui/blocks"], ["controls", "/studio/ui/controls"], ["icons", "/studio/ui/icons"], ["styles", "/studio/ui/styles"]]) {
+  const host = read("app/studio/ui/studio-ui-section-host.tsx");
+  for (const section of ["workspace", "navigation", "ribbon", "panes", "panels", "blocks", "controls", "icons", "styles"]) {
     assert.match(shell, new RegExp(`id: "${section}"`));
-    assert.ok(shell.includes(`href: "${href}"`), href);
+    assert.match(host, new RegExp(`${section}: \\(\\) => import\\(`), `${section} is lazy-loaded`);
   }
-  assert.match(shell, /aria-current=\{section === item\.id \? "page" : undefined\}/);
+  assert.match(shell, /role="tablist"/);
+  assert.match(shell, /role="tab"/);
+  assert.match(shell, /aria-selected=\{activeSection === item\.id\}/);
+  assert.match(shell, /event\.key === "ArrowRight"/);
+  assert.match(shell, /event\.key === "ArrowLeft"/);
+  assert.match(shell, /event\.key === "Home"/);
+  assert.match(shell, /event\.key === "End"/);
+  assert.match(host, /activeSection === section \? children/);
+  assert.match(host, /class SectionLoadErrorBoundary/);
+  assert.match(host, /role="alert"/);
+  for (const route of ["app/studio/ui/page.tsx", "app/studio/ui/navigation/page.tsx", "app/studio/ui/ribbon/page.tsx", "app/studio/ui/panes/page.tsx", "app/studio/ui/panels/page.tsx", "app/studio/ui/blocks/page.tsx", "app/studio/ui/blocks/paragraph/page.tsx", "app/studio/ui/controls/page.tsx", "app/studio/ui/icons/page.tsx", "app/studio/ui/styles/page.tsx"]) {
+    assert.match(read(route), /StudioUiSectionHost/, route);
+  }
   assert.match(read("app/studio/ribbon/page.tsx"), /redirect\("\/studio\/ui\/ribbon"\)/);
   assert.match(read("app/studio/panes/page.tsx"), /redirect\("\/studio\/ui\/panes"\)/);
   assert.match(read("app/studio/ui/styles/page.tsx"), /StyleGuideSandbox/);

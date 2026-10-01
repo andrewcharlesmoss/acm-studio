@@ -39,6 +39,15 @@ collection is `/studio/ui/icons?collection=blocks`, and Styles is
 `/studio/ui/styles`. `/studio/ribbon` and `/studio/panes` remain
 compatible redirects. Studio navigation links to the combined library.
 
+The top section bar is an in-page tab set. Selecting a section replaces the
+content without changing the current URL; arrow keys move between tabs, and
+Home/End select the first/last section. Existing section, block detail, icon
+collection and control URLs remain direct entry points. Reloading a direct URL
+opens its original section. Section catalogue state is temporary and resets
+when its component is unmounted while switching sections.
+Lazy-loaded sections show a loading status and a local error message with a
+reload action if their code cannot be loaded.
+
 Page-level kickers use uppercase styling across every library section. The
 shared library stylesheet covers the common page intro and the Ribbon and Pane
 intro variants; secondary specimen kickers retain their own wording and style.
