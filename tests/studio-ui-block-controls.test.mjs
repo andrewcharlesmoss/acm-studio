@@ -223,6 +223,9 @@ test("List compatibility records recursive nesting and independent List Item ins
   assert.ok(itemProfile.controls.every(control => control.fields.every(field => control.resetFields.includes(field))));
   assert.ok(!itemProfile.controls.flatMap(control => control.fields).includes("textColor"));
   assert.ok(itemProfile.dependencies.every(dependency => studioControlEntryById[dependency.id]));
+  const lineHeightControl = itemProfile.controls.find(control => control.id === "line-height");
+  assert.ok(lineHeightControl);
+  assert.ok(itemProfile.dependencies.some(dependency => dependency.id === lineHeightControl.id));
   assert.deepEqual([...itemProfile.resetFields].sort(), ["anchor", "backgroundColor", "backgroundGradient", "fontSize", "fontSizeCustom", "lineHeight", "linkColor", "margin", "padding"].sort());
   assert.deepEqual([...listItemSupportedStyleFields].sort(), [...new Set(itemProfile.controls.flatMap(control => control.fields))].sort());
   assert.ok(!unsupported.includes("Nested List Item blocks"));
@@ -242,8 +245,8 @@ test("List compatibility records recursive nesting and independent List Item ins
 });
 
 test("every reusable Controls entry has a grouped anchor specimen and compatible direct route", () => {
-  assert.equal(studioControlEntries.length, 12);
-  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 12);
+  assert.equal(studioControlEntries.length, 13);
+  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 13);
   for (const entry of studioControlEntries) {
     assert.equal(studioControlEntryById[entry.id], entry);
     assert.ok(entry.purpose && entry.owner && entry.consumers.length && entry.states && entry.compatibility, entry.id);
@@ -263,4 +266,16 @@ test("every reusable Controls entry has a grouped anchor specimen and compatible
   assert.match(reset, /<section id=\{entry\.id\}/);
   assert.match(reset, /function resetExample\(\)/);
   assert.match(reset, /Related block specimens/);
+});
+
+test("shared line-height setting is used by block and List Item inspectors", () => {
+  const setting = read("app/studio/controls/line-height-setting.tsx");
+  const inspector = read("app/studio/studio-inspectors.tsx");
+  const listItemInspector = read("app/studio/blocks/list-item-inspector.tsx");
+  assert.match(setting, /inputMode="decimal"/);
+  assert.match(setting, /placeholder="Default"/);
+  assert.match(setting, /onChange\(event\.target\.value \|\| undefined\)/);
+  assert.match(inspector, /<LineHeightSetting value=\{style\.lineHeight\}/);
+  assert.match(listItemInspector, /<LineHeightSetting value=\{style\.lineHeight\}/);
+  assert.doesNotMatch(listItemInspector, /style\.lineHeight.*input/);
 });

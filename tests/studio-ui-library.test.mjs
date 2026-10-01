@@ -201,9 +201,10 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(detail, /aria-hidden=\{!visible\.has\("line-height"\) \|\| !showInspectorExample\}/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-example \.inspector-tools-section \{ width:100%; min-width:0; min-height:104px; \}/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-tools-field\.is-hidden \{ visibility:hidden/);
-  for (const anchor of ["colour-picker", "custom-font-size", "paragraph-length", "box-length", "inspector-tools", "inspector-accordion"]) assert.ok(metadata.includes(`id: "${anchor}"`), anchor);
+  for (const anchor of ["colour-picker", "custom-font-size", "line-height", "paragraph-length", "box-length", "inspector-tools", "inspector-accordion"]) assert.ok(metadata.includes(`id: "${anchor}"`), anchor);
   assert.match(inspectors, /from "\.\/controls\/background-selection"/);
   assert.match(inspectors, /from "\.\/controls\/font-size-appearance-setting"/);
+  assert.match(inspectors, /from "\.\/controls\/line-height-setting"/);
   assert.match(inspectors, /from "\.\/controls\/preset-number-setting"/);
   assert.match(inspectors, /from "\.\/controls\/image-dimensions-setting"/);
   assert.match(inspectors, /from "\.\/controls\/focal-position-setting"/);

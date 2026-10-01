@@ -23,6 +23,7 @@ import { safeTextLink } from "../content/rich-text";
 import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
 import { ColourPicker } from "./controls/colour-picker";
 import { BackgroundSelection } from "./controls/background-selection";
+import { LineHeightSetting } from "./controls/line-height-setting";
 import { BorderSettings } from "./controls/border-settings";
 import { FocalPositionSetting } from "./controls/focal-position-setting";
 import { FontSizeAppearanceSetting } from "./controls/font-size-appearance-setting";
@@ -1044,7 +1045,7 @@ function ParagraphInspector({ block, onChange, fontSizeViewMode, onFontSizeViewM
       {typographyVisible.has("colour") ? <PaletteColourSetting label="Colour" value={style.textColor} onChange={(value) => updateStyle("textColor", value)} /> : null}
       {(typographyVisible.has("size") || typographyVisible.has("appearance")) ? <FontSizeAppearanceSetting size={style.fontSize} customSize={style.fontSizeCustom} appearance={style.appearance} mode={fontSizeMode} onModeChange={onFontSizeViewModeChange} onSizeChange={value => updateFontSize(value, "presets")} onCustomSizeChange={value => updateFontSize(value, "custom")} onAppearanceChange={value => updateStyle("appearance", value)} paragraphLabels={paragraphSpecificOptions} showSize={typographyVisible.has("size")} showAppearance={typographyVisible.has("appearance")} disabled={fitTextEnabled(style)} /> : null}
       {typographyVisible.has("family") ? <label><span>Font family</span><select value={style.fontFamily ?? ""} onChange={(event) => updateStyle("fontFamily", (event.target.value || undefined) as ParagraphStyle["fontFamily"])}><option value="">Default</option><option value="inter">Inter</option><option value="helvetica-neue">Helvetica Neue</option><option value="helvetica">Helvetica</option><option value="arial">Arial</option></select></label> : null}
-      {typographyVisible.has("line-height") ? <label><span>Line height</span><input value={style.lineHeight ?? ""} onChange={(event) => updateStyle("lineHeight", event.target.value)} placeholder="1.5" inputMode="decimal" /></label> : null}
+      {typographyVisible.has("line-height") ? <LineHeightSetting value={style.lineHeight} onChange={value => updateStyle("lineHeight", value)} /> : null}
       {typographyVisible.has("letter-spacing") ? <label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label> : null}
       {typographyVisible.has("line-indent") ? <ParagraphLengthSetting key={`${block.id}-indent`} label="Line indent" value={style.textIndent} min={-100} max={200} onChange={(value) => updateStyle("textIndent", value)} /> : null}
       {typographyVisible.has("columns") ? <label><span>Columns</span><select value={style.textColumns ?? ""} onChange={(event) => updateStyle("textColumns", event.target.value ? Number(event.target.value) : undefined)}><option value="">Default</option>{[1, 2, 3, 4].map(count => <option key={count} value={count}>{count}</option>)}</select></label> : null}

@@ -8,7 +8,7 @@ export function ControlsCatalogue() {
     <section className="ui-controls-main ui-page-intro ui-controls-page" aria-labelledby="ui-controls-title">
       <p className="rl-eyebrow">Reusable inspector components</p>
       <h1 id="ui-controls-title">Controls</h1>
-      <p>All 12 working control specimens live on this page. Use the grouped jump links to move between examples; each one has isolated state, a reset action and details about its actual consumers.</p>
+      <p>All 13 working control specimens live on this page. Use the grouped jump links to move between examples; each one has isolated state, a reset action and details about its actual consumers.</p>
       {studioControlGroups.map(group => {
         const entries = studioControlEntries.filter(entry => entry.group === group);
         if (!entries.length) return null;

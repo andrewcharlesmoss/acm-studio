@@ -6,6 +6,7 @@ import { InspectorAccordionSection } from "../inspector-accordion";
 import { BackgroundSelection } from "../controls/background-selection";
 import { ColourPicker } from "../controls/colour-picker";
 import { FontSizeAppearanceSetting } from "../controls/font-size-appearance-setting";
+import { LineHeightSetting } from "../controls/line-height-setting";
 import { BoxLengthSetting } from "../box-length-setting";
 import { findListBlock, updateListItem } from "../list-structure";
 import { BlockLibraryIcon } from "../block-library-icons";
@@ -61,7 +62,7 @@ export function ListItemInspector({ block, listId, itemIndex, onChange }: {
       </InspectorAccordionSection>
       <InspectorAccordionSection title="Typography">
         <FontSizeAppearanceSetting size={style.fontSize} customSize={style.fontSizeCustom} mode={fontSizeMode} onModeChange={setFontSizeMode} onSizeChange={value => updateFontSize(value, "presets")} onCustomSizeChange={value => updateFontSize(value, "custom")} onAppearanceChange={() => {}} showAppearance={false} />
-        <label><span>Line height</span><input type="text" inputMode="decimal" value={style.lineHeight ?? ""} onChange={event => { const value = event.target.value; if (!value || /^(?:0|\d+(?:\.\d+)?(?:px|em|rem|%|ch|vw|vh)?)$/.test(value)) updateStyle("lineHeight", value || undefined); }} placeholder="Default" aria-label="Line height" /></label>
+        <LineHeightSetting value={style.lineHeight} onChange={value => updateStyle("lineHeight", value)} />
       </InspectorAccordionSection>
       <InspectorAccordionSection title="Dimensions">
         <BoxLengthSetting label="Padding" value={style.padding} layout="axes" min={0} max={100} onChange={value => updateStyle("padding", value)} />

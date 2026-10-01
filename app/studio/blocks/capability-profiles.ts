@@ -176,6 +176,7 @@ const menuDependencies = [
   { id: "background-selection", label: "Background selection", href: "/studio/ui/controls/background-selection", purpose: "Choose a solid colour or gradient." },
   { id: "custom-font-size", label: "Custom font size", href: "/studio/ui/controls/custom-font-size", purpose: "Choose a preset or custom size and unit." },
   { id: "font-size-appearance", label: "Font size and Appearance", href: "/studio/ui/controls/font-size-appearance", purpose: "Choose font size and appearance." },
+  { id: "line-height", label: "Line height", href: "/studio/ui/controls#line-height", purpose: "Set or clear text line height." },
   { id: "box-length", label: "Box dimensions", href: "/studio/ui/controls/box-length", purpose: "Set linked or separate dimensions." },
   { id: "paragraph-length", label: "Paragraph length", href: "/studio/ui/controls/paragraph-length", purpose: "Edit text indent and other compact numeric values." },
   { id: "preset-number", label: "Preset number", href: "/studio/ui/controls/preset-number", purpose: "Choose a common pixel value or enter a custom value." },
@@ -193,6 +194,7 @@ function dependenciesFor(controls: readonly InspectorControlProfile[], includeIn
   if (ids.has("colour") || ids.has("link-colour") || ids.has("colour")) required.add("colour-picker");
   if (ids.has("background")) required.add("background-selection");
   if (ids.has("size")) { required.add("custom-font-size"); required.add("font-size-appearance"); }
+  if (ids.has("line-height")) required.add("line-height");
   if (["padding", "margin", "border", "radius"].some(id => ids.has(id))) required.add("box-length");
   if (ids.has("line-indent") || ids.has("paragraph-length")) required.add("paragraph-length");
   if (["gaps", "grid", "width", "height", "preset", "axis-gaps"].some(id => ids.has(id))) required.add("preset-number");
@@ -329,6 +331,7 @@ export const listItemCapabilityProfile: NestedBlockCapabilityProfile = {
   dependencies: [
     { id: "background-selection", label: "Background selection", href: "/studio/ui/controls#background-selection", purpose: "Shared colour and gradient controls." },
     { id: "font-size-appearance", label: "Font size and Appearance", href: "/studio/ui/controls#font-size-appearance", purpose: "Shared preset and custom font-size control." },
+    { id: "line-height", label: "Line height", href: "/studio/ui/controls#line-height", purpose: "Shared text line-height control." },
     { id: "box-length", label: "Box length", href: "/studio/ui/controls#box-length", purpose: "Shared padding and margin control." },
     { id: "colour-picker", label: "Colour picker", href: "/studio/ui/controls#colour-picker", purpose: "Shared link-colour picker." },
   ],

@@ -13,6 +13,7 @@ import { ColourPicker, ColourValueSwatch } from "../../../studio/controls/colour
 import { CustomFontSizeSetting } from "../../../studio/controls/custom-font-size-setting";
 import { FocalPositionSetting } from "../../../studio/controls/focal-position-setting";
 import { FontSizeAppearanceSetting } from "../../../studio/controls/font-size-appearance-setting";
+import { LineHeightSetting } from "../../../studio/controls/line-height-setting";
 import { ImageDimensionsSetting } from "../../../studio/controls/image-dimensions-setting";
 import { ParagraphLengthSetting } from "../../../studio/controls/paragraph-length-setting";
 import { PresetNumberSetting } from "../../../studio/controls/preset-number-setting";
@@ -23,6 +24,7 @@ const blockLinksByControl: Record<string, string[]> = {
   "background-selection": ["paragraph", "quote", "group"],
   "custom-font-size": ["paragraph", "heading"],
   "font-size-appearance": ["paragraph", "heading"],
+  "line-height": ["paragraph", "list"],
   "paragraph-length": ["paragraph", "divider"],
   "box-length": ["paragraph", "group", "columns"],
   "preset-number": ["columns", "column", "group"],
@@ -37,6 +39,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
   const [colour, setColour] = useState<string | undefined>("#374151");
   const [hoverColour, setHoverColour] = useState<string | undefined>("#2563a6");
   const [fontSize, setFontSize] = useState<string | undefined>("1.5rem");
+  const [lineHeight, setLineHeight] = useState<string | undefined>("1.5");
   const [indent, setIndent] = useState<string | undefined>("24px");
   const [padding, setPadding] = useState<string | undefined>("24px");
   const [visible, setVisible] = useState(new Set<string>(["line-height"]));
@@ -63,6 +66,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
     switch (entry.id) {
       case "colour-picker": setColour("#374151"); setHoverColour("#2563a6"); break;
       case "custom-font-size": setFontSize("1.5rem"); break;
+      case "line-height": setLineHeight("1.5"); break;
       case "paragraph-length": setIndent("24px"); break;
       case "box-length": setPadding("24px"); break;
       case "inspector-tools": setVisible(new Set(["line-height"])); setShowInspectorExample(true); break;
@@ -92,6 +96,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry }) {
         {entry.id === "inspector-accordion" ? <div className="ui-control-live"><InspectorAccordionSection title="Example settings"><p>This content belongs to the open section. Use the disclosure heading to collapse or reopen it.</p><label>Example value <input type="text" defaultValue="Temporary value" /></label></InspectorAccordionSection></div> : null}
         {entry.id === "border-settings" ? <div className="ui-control-live ui-control-size-example"><BorderSettings style={borderStyle} idPrefix="catalogue" onChange={changes => setBorderStyle(current => ({ ...current, ...changes }))} /><p>Border state: {borderStyle.borderStyle ?? "Default"} · {borderStyle.borderWidth ?? "No width"}</p><BorderSettings style={borderStyle} idPrefix="catalogue-disabled" disabled onChange={() => {}} /></div> : null}
         {entry.id === "font-size-appearance" ? <div className="ui-control-live ui-control-size-example"><FontSizeAppearanceSetting size={fontPreset} customSize={fontCustom} appearance={appearance} mode={fontMode} onModeChange={setFontMode} onSizeChange={setFontPreset} onCustomSizeChange={setFontCustom} onAppearanceChange={setAppearance} /><FontSizeAppearanceSetting size="medium" appearance="regular" mode="presets" disabled onModeChange={() => {}} onSizeChange={() => {}} onCustomSizeChange={() => {}} onAppearanceChange={() => {}} /><p>Disabled Typography example shown beneath the working specimen.</p></div> : null}
+        {entry.id === "line-height" ? <div className="ui-control-live ui-control-size-example"><LineHeightSetting value={lineHeight} onChange={setLineHeight} /><p>Current value: {lineHeight ?? "Default"}</p><LineHeightSetting value="1.25" disabled onChange={() => {}} label="Disabled example" /></div> : null}
         {entry.id === "background-selection" ? <div className="ui-control-live ui-control-size-example"><BackgroundSelection mode={backgroundMode} colour={backgroundColour} gradient={backgroundGradient} onModeChange={setBackgroundMode} onColourChange={setBackgroundColour} onGradientChange={setBackgroundGradient} /><BackgroundSelection mode="colour" colour="#e5e7eb" disabled onModeChange={() => {}} onColourChange={() => {}} onGradientChange={() => {}} /><p>Use Gradient to edit colour stops, type and angle or choose a preset. Colour opens the shared palette. Reset returns to the ocean gradient example.</p></div> : null}
         {entry.id === "preset-number" ? <div className="ui-control-live ui-control-size-example"><PresetNumberSetting label="Column gap" value={presetNumber} presets={[0, 8, 16, 24, 32, 48]} min={0} max={160} onChange={setPresetNumber} /><p>Current value: {presetNumber === undefined ? "Default" : `${presetNumber}px`}</p><PresetNumberSetting label="Disabled example" value={16} presets={[8, 16, 24]} min={0} max={120} disabled onChange={() => {}} /></div> : null}
         {entry.id === "image-dimensions" ? <div className="ui-control-size-example ui-control-image-dimensions"><ImageDimensionsSetting aspectRatio={aspectRatio} displayWidth={displayWidth} displayHeight={displayHeight} scale={scale} onAspectRatioChange={setAspectRatio} onWidthChange={setDisplayWidth} onHeightChange={setDisplayHeight} onScaleChange={setScale} /><div className="ui-control-image-preview-frame"><div className="ui-control-image-preview" style={{ width: "100%", aspectRatio: displayHeight ? `${displayWidth ?? 640} / ${displayHeight}` : aspectRatio === "original" ? "16 / 9" : aspectRatio === "square" ? "1 / 1" : aspectRatio === "portrait" ? "3 / 4" : aspectRatio === "landscape" ? "4 / 3" : "16 / 9", maxWidth: displayWidth ?? 640, height: "auto", backgroundSize: scale, backgroundPosition: `${focalX}% ${focalY}%` }} role="img" aria-label="Local abstract image preview"><span>Local media preview</span></div></div><ImageDimensionsSetting aspectRatio="wide" disabled onAspectRatioChange={() => {}} onWidthChange={() => {}} onHeightChange={() => {}} onScaleChange={() => {}} /></div> : null}
