@@ -125,6 +125,25 @@ test("custom font size stays selected and updates continuously while its slider 
   assert.match(customFontSize, /type="range" min=\{sliderMinimum\} max=\{sliderMaximum\}/);
   assert.match(customFontSize, /aria-label="Custom font size slider"[^>]*value=\{sliderValue\}/);
   assert.doesNotMatch(customFontSize, /fontSizeSource/);
+  const styles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(customFontSize, /className="studio-range-control paragraph-custom-font-size-slider"/);
+  assert.match(styles, /\.studio-range-control\[type="range"\] \{ accent-color: var\(--gutenberg-accent\); appearance: auto; -webkit-appearance: auto;/);
+  assert.match(styles, /\.studio-range-control:focus-visible \{ outline: var\(--focus-ring-width\) solid var\(--gutenberg-accent\);/);
+});
+
+test("Studio range controls share the Gutenberg-accented slider style", async () => {
+  const controls = [
+    "../app/studio/box-length-setting.tsx",
+    "../app/studio/controls/focal-position-setting.tsx",
+    "../app/studio/controls/paragraph-length-setting.tsx",
+    "../app/studio/design-editor.tsx",
+    "../app/studio/ribbon/ribbon-preview.tsx",
+    "../app/studio/studio-inspectors.tsx",
+  ];
+  for (const path of controls) {
+    const source = await readFile(new URL(path, import.meta.url), "utf8");
+    assert.match(source, /studio-range-control/, `${path} should use the shared slider style`);
+  }
 });
 
 test("shared inspector control defaults follow each Gutenberg block declaration", async () => {

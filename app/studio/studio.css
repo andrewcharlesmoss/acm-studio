@@ -1161,7 +1161,11 @@
 .paragraph-custom-font-size-unit-menu button:hover, .paragraph-custom-font-size-unit-menu button:focus-visible { background: #eeece7; outline: 0; }
 .paragraph-custom-font-size-unit-check { align-items: center; display: inline-flex; height: 18px; justify-content: center; width: 18px; }
 .paragraph-custom-font-size-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.inspector-sections .paragraph-custom-font-size-slider { accent-color: var(--accent); background: transparent; border: 0; min-width: 0; padding: 0; width: 100%; }
+/* Shared Gutenberg-style treatment for value sliders; colour spectrum inputs keep their specialist tracks. */
+.studio-range-control[type="range"] { accent-color: var(--gutenberg-accent); appearance: auto; -webkit-appearance: auto; background: transparent; border: 0; cursor: pointer; min-height: 20px; min-width: 0; padding: 0; }
+.studio-range-control:focus-visible { outline: var(--focus-ring-width) solid var(--gutenberg-accent); outline-offset: 3px; }
+.studio-range-control:disabled { cursor: not-allowed; opacity: .55; }
+.paragraph-custom-font-size-slider { width: 100%; }
 .paragraph-font-size-options { border: 1px solid #d1cfc7; border-radius: 7px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: hidden; }
 .paragraph-font-size-options button { background: white; border: 0; border-right: 1px solid #d1cfc7; color: var(--muted); cursor: pointer; font: inherit; min-height: 40px; }
 .paragraph-font-size-options button:last-child { border-right: 0; }
@@ -1241,7 +1245,6 @@
 
 .paragraph-length-setting { display: grid; gap: 7px; min-width: 0; }
 .paragraph-length-controls { align-items: center; display: grid; gap: 8px; grid-template-columns: minmax(60px, 1fr) var(--studio-number-field-width) 68px auto; }
-.inspector-sections .paragraph-length-controls input[type="range"] { accent-color: var(--accent); background: transparent; border: 0; min-width: 0; padding: 0; }
 .paragraph-length-controls input[type="number"] { min-width: 0; padding: 7px 6px; width: var(--studio-number-field-width); }
 .inspector-sections .paragraph-length-controls select { min-width: 0; padding: 7px 6px; }
 .box-length-setting { display: grid; gap: 8px; min-width: 0; }
@@ -1259,7 +1262,6 @@
 .box-length-side.is-right, .box-length-side.is-top-right, .box-length-side.is-bottom-right { border-right-color: var(--ink); }
 .box-length-side.is-bottom, .box-length-side.is-bottom-right, .box-length-side.is-bottom-left { border-bottom-color: var(--ink); }
 .box-length-side.is-left, .box-length-side.is-top-left, .box-length-side.is-bottom-left { border-left-color: var(--ink); }
-.inspector-sections .box-length-row input[type="range"] { accent-color: var(--ink); background: transparent; border: 0; min-width: 0; padding: 0; }
 .box-length-custom { display: grid; gap: 6px; grid-column: 2 / -1; grid-template-columns: var(--studio-number-field-width) 70px; }
 .box-length-custom > * { min-width: 0; }
 .box-length-custom input[type="number"] { width: var(--studio-number-field-width); }
