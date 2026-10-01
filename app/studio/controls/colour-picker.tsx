@@ -179,7 +179,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       </div>
       <strong className="paragraph-colour-theme-heading">THEME</strong>
       <ColourSwatches value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={() => changeActiveColour(undefined)} disabled={disabled} />
-      <button type="button" className="paragraph-colour-clear" disabled={disabled || !activeValue} onClick={() => changeActiveColour(undefined)}>Clear</button>
+      {activeValue ? <button type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</button> : null}
       {customOpen && !disabled ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
         <div className="paragraph-colour-palette-heading"><strong>Custom colour</strong><button ref={customCloseRef} type="button" aria-label="Close custom colour picker" onClick={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}><StudioIcon name="close" size={16} /></button></div>
         <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={false} />

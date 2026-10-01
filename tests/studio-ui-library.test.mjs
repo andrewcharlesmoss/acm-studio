@@ -163,6 +163,12 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(colourPicker, /paragraph-colour-preview-card/);
   assert.match(colourPicker, /paragraph-colour-theme-heading/);
   assert.match(colourPicker, /paragraph-colour-clear/);
+  assert.match(colourPicker, /activeValue \? <button type="button" className="paragraph-colour-clear" disabled=\{disabled\} onClick=\{\(\) => changeActiveColour\(undefined\)\}>Clear<\/button> : null/);
+  const gradientPicker = read("app/studio/controls/gradient-picker.tsx");
+  assert.match(gradientPicker, /\{value \? <div className="paragraph-gradient-footer"><button type="button" onClick=/);
+  assert.match(studioStyles, /\.paragraph-gradient-footer button \{ border-radius: 4px; color: var\(--ink\); \}/);
+  assert.match(studioStyles, /\.paragraph-gradient-footer button:hover, \.paragraph-colour-clear:hover:not\(:disabled\) \{ background: var\(--accent-soft\); color: var\(--accent\); \}/);
+  assert.match(studioStyles, /\.paragraph-gradient-footer button:focus-visible \{ outline: var\(--focus-ring-width\) solid var\(--focus-ring-colour\)/);
   assert.match(studioStyles, /\.paragraph-colour-preview-card \{[^}]*width: max-content; min-width: min\(148px, 100%\); max-width: 100%/);
   assert.match(studioStyles, /\.paragraph-colour-preview \{[^}]*height: 64px/);
   assert.match(colourPicker, /Math\.floor\(\(swatchGridWidth \+ 12\) \/ 40\)/);
