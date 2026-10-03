@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type UIEvent } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useReducer, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type UIEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import {
   createUniversalStylePreset,
@@ -18,6 +18,8 @@ import {
 } from "@acm/styles";
 import type { CSSProperties } from "react";
 import styleGuideSource from "./style-guide-source.json";
+import { createStylePresetHistory, stylePresetHistoryReducer } from "./style-preset-history";
+import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs";
 import "../style-guide.css";
 
 type Panel = "palette" | "typography" | "buttons" | "layout";
@@ -100,7 +102,24 @@ function previewPathForStylePath(path: string | null): string | null {
 }
 
 export function StyleGuideSandbox() {
-  const [preset, setPreset] = useState(() => createUniversalStylePreset());
+  const [history, dispatchHistory] = useReducer(stylePresetHistoryReducer, undefined, () => createStylePresetHistory(createUniversalStylePreset()));
+  const preset = history.present;
+  const pageRef = useRef<HTMLElement>(null);
+  const undo = useCallback(() => dispatchHistory({ type: "undo" }), []);
+  const redo = useCallback(() => dispatchHistory({ type: "redo" }), []);
+  const endEdit = useCallback(() => dispatchHistory({ type: "end-edit" }), []);
+  function setPreset(update: UniversalStylePreset | ((current: UniversalStylePreset) => UniversalStylePreset), editKey?: string) {
+    dispatchHistory({ type: "change", update: typeof update === "function" ? update : () => update, editKey });
+  }
+
+  useEffect(() => {
+    const page = pageRef.current;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!event.isComposing) handleStudioHistoryShortcut(event, navigator.platform, undo, redo);
+    };
+    page?.addEventListener("keydown", handleKeyDown);
+    return () => page?.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
   const [viewport, setViewport] = useState<StyleViewport>("desktop");
   const [panel, setPanel] = useState<Panel>("typography");
   const [role, setRole] = useState<TypographyRole>("body");
@@ -230,20 +249,20 @@ export function StyleGuideSandbox() {
     setHoveredGuidePath(null);
   }
 
-  function updateTypography(update: (current: UniversalStylePreset["typography"][TypographyRole]) => UniversalStylePreset["typography"][TypographyRole]) {
+  function updateTypography(update: (current: UniversalStylePreset["typography"][TypographyRole]) => UniversalStylePreset["typography"][TypographyRole], editKey?: string) {
     setPreset(current => {
       const next = copyPreset(current);
       next.typography[role] = update(next.typography[role]);
       return next;
-    });
+    }, editKey);
   }
 
-  function updateMetric(metricName: MetricName, update: (metric: Metric) => Metric) {
+  function updateMetric(metricName: MetricName, update: (metric: Metric) => Metric, continuous = false) {
     updateTypography(current => {
       const responsive = current[metricName] as ResponsiveValue<Metric>;
       const resolved = resolveUniversalStyleValue(responsive, viewport).value;
       return { ...current, [metricName]: { ...responsive, [viewport]: update({ ...resolved }) } } as UniversalStylePreset["typography"][TypographyRole];
-    });
+    }, continuous ? `typography.${role}.${metricName}.${viewport}` : undefined);
   }
 
   function resetTypographyProperty(property: "family" | "weight" | "style" | "transform") {
@@ -288,26 +307,32 @@ export function StyleGuideSandbox() {
     hasSourceInteraction.current = false;
   }
 
-  function setPaletteColour(key: keyof UniversalStylePreset["palette"], value: string) {
-    setPreset(current => ({ ...current, palette: { ...current.palette, [key]: value } }));
+  function setPaletteColour(key: keyof UniversalStylePreset["palette"], value: string, continuous = true) {
+    setPreset(current => ({ ...current, palette: { ...current.palette, [key]: value } }), continuous ? `palette.${key}` : undefined);
   }
 
-  function updateButton(key: keyof ButtonStyle, value: string | number) {
-    setPreset(current => ({ ...current, buttons: { ...current.buttons, [buttonRole]: { ...current.buttons[buttonRole], [key]: value } } }));
+  function updateButton(key: keyof ButtonStyle, value: string | number, continuous = true) {
+    setPreset(current => ({ ...current, buttons: { ...current.buttons, [buttonRole]: { ...current.buttons[buttonRole], [key]: value } } }), continuous ? `buttons.${buttonRole}.${key}` : undefined);
   }
 
   const activeTypography = preset.typography[role];
   const matchingFamilies = fontFamilies.filter(font => font.name.toLowerCase().includes(fontQuery.toLowerCase()));
 
-  return <section className="sg-page" aria-labelledby="sg-page-title">
+  return <section ref={pageRef} className="sg-page" aria-labelledby="sg-page-title" onFocusCapture={endEdit} onBlurCapture={endEdit}>
       <header className="ui-page-intro sg-intro">
         <p className="rl-eyebrow">Universal ACM Foundation</p>
         <h1 id="sg-page-title">Style Guide</h1>
         <p>Compare the universal rules, their source in the written guide and a live specimen.</p>
       </header>
       <div className="sg-toolbar">
-        <div className="sg-viewports" role="group" aria-label="Preview size">
-          {viewportRoles.map(item => <button type="button" key={item.id} aria-pressed={viewport === item.id} onClick={() => setViewport(item.id)}>{item.label}</button>)}
+        <div className="sg-toolbar-controls">
+          <div className="sg-history" role="group" aria-label="Style preview history">
+            <button type="button" aria-label="Undo style change" title="Undo (⌘Z / Ctrl+Z)" disabled={!history.past.length} onClick={undo}><AcmIcon name="action.undo" size={20} /></button>
+            <button type="button" aria-label="Redo style change" title="Redo (⌘⇧Z / Ctrl+Y)" disabled={!history.future.length} onClick={redo}><AcmIcon name="action.redo" size={20} /></button>
+          </div>
+          <div className="sg-viewports" role="group" aria-label="Preview size">
+            {viewportRoles.map(item => <button type="button" key={item.id} aria-pressed={viewport === item.id} onClick={() => setViewport(item.id)}>{item.label}</button>)}
+          </div>
         </div>
         <div className="sg-toolbar-actions">
           <span className="sg-sandbox-note">Preview sandbox — changes are not saved or applied to projects.</span>
@@ -333,7 +358,7 @@ export function StyleGuideSandbox() {
           </nav>
           <div className="sg-setting-content">
             <div className="sg-setting-heading"><div><p className="rl-eyebrow">ACM UNIVERSAL STYLE</p><h3>{panel === "palette" ? "Colours" : panel === "typography" ? "Typography" : panel === "buttons" ? "Buttons" : "Layout"}</h3></div><button type="button" className="sg-reset-section" onClick={resetSection}>Reset section</button></div>
-            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting"><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} /><code>{preset.palette[key]}</code><button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, UNIVERSAL_STYLE_PRESET.palette[key])}>Reset</button></div>)}</div> : null}
+            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting"><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} /><code>{preset.palette[key]}</code><button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, UNIVERSAL_STYLE_PRESET.palette[key], false)}>Reset</button></div>)}</div> : null}
             {panel === "typography" ? <>
               <div className="sg-role-list" role="group" aria-label="Typography role">
                 {typographyRoles.map(item => <button type="button" key={item.id} aria-pressed={role === item.id} onClick={() => setRole(item.id)}>{item.label}</button>)}
@@ -353,9 +378,9 @@ export function StyleGuideSandbox() {
             </> : null}
             {panel === "buttons" ? <>
               <div className="sg-role-list" role="group" aria-label="Button variant">{buttonRoles.map(item => <button data-style-path={`buttons.${item.id}.background`} type="button" key={item.id} aria-pressed={buttonRole === item.id} onClick={() => setButtonRole(item.id)}>{item.label}</button>)}</div>
-              <div className="sg-button-settings">{([ ["background", "Background colour"], ["foreground", "Text colour"], ["border", "Border colour"], ["hoverBackground", "Hover background colour"], ["hoverForeground", "Hover text colour"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} stylePath={`buttons.${buttonRole}.${key}`} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, UNIVERSAL_STYLE_PRESET.buttons[buttonRole][key])} />)}<label className="sg-button-border-width">Border width (px)<input data-style-path={`buttons.${buttonRole}.borderWidth`} type="number" min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /></label></div>
+              <div className="sg-button-settings">{([ ["background", "Background colour"], ["foreground", "Text colour"], ["border", "Border colour"], ["hoverBackground", "Hover background colour"], ["hoverForeground", "Hover text colour"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} stylePath={`buttons.${buttonRole}.${key}`} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, UNIVERSAL_STYLE_PRESET.buttons[buttonRole][key], false)} />)}<label className="sg-button-border-width">Border width (px)<input data-style-path={`buttons.${buttonRole}.borderWidth`} type="number" min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /></label></div>
             </> : null}
-            {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><label htmlFor={`sg-layout-${key}`}>{label}</label><div><input data-style-path={`layout.${key}`} id={`sg-layout-${key}`} type="number" min={min} max={max} step={1} value={preset.layout[key]} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } })); }} /><span>px</span><button data-style-path={`layout.${key}`} type="button" aria-label={`Reset ${label}`} onClick={() => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: UNIVERSAL_STYLE_PRESET.layout[key] } }))}>Reset</button></div></div>)}</div> : null}
+            {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><label htmlFor={`sg-layout-${key}`}>{label}</label><div><input data-style-path={`layout.${key}`} id={`sg-layout-${key}`} type="number" min={min} max={max} step={1} value={preset.layout[key]} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } }), `layout.${key}`); }} /><span>px</span><button data-style-path={`layout.${key}`} type="button" aria-label={`Reset ${label}`} onClick={() => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: UNIVERSAL_STYLE_PRESET.layout[key] } }))}>Reset</button></div></div>)}</div> : null}
           </div>
         </aside>
         <section className="sg-preview-panel" aria-label="Live style preview">
@@ -417,7 +442,7 @@ function TypographyControls({ role, viewport, value, search, matchingFamilies, o
   role: TypographyRole; viewport: StyleViewport; value: UniversalStylePreset["typography"][TypographyRole]; search: string;
   matchingFamilies: { id: FontFamily; name: string }[]; onSearch: (value: string) => void;
   onChange: (update: (current: UniversalStylePreset["typography"][TypographyRole]) => UniversalStylePreset["typography"][TypographyRole]) => void;
-  onMetricChange: (name: MetricName, update: (value: Metric) => Metric) => void;
+  onMetricChange: (name: MetricName, update: (value: Metric) => Metric, continuous?: boolean) => void;
   onResetProperty: (property: "family" | "weight" | "style" | "transform") => void;
   onResetMetric: (name: MetricName) => void;
 }) {
@@ -429,14 +454,14 @@ function TypographyControls({ role, viewport, value, search, matchingFamilies, o
       {([ ["font", "Font"], ["style", "Style"], ["size", "Size"] ] as const).map(([id, label]) => <button type="button" key={id} aria-pressed={tab === id} className={tab === id ? "is-active" : ""} onClick={() => setTab(id)}>{label}</button>)}
     </div>
     {tab === "font" ? <section className="sg-editor-panel"><label>Search fonts<input data-style-path={`typography.${role}.family`} type="search" value={search} placeholder="Search font stack" onChange={event => onSearch(event.target.value)} /></label><div className="sg-font-picker" role="group" aria-label="Font stack family">{matchingFamilies.map(font => <button data-style-path={`typography.${role}.family`} type="button" key={font.id} aria-pressed={value.family === font.id} onClick={() => onChange(current => ({ ...current, family: font.id }))}>{font.name}</button>)}{!matchingFamilies.length ? <p>No font stack families match.</p> : null}</div><button data-style-path={`typography.${role}.family`} type="button" className="sg-inline-reset" onClick={() => onResetProperty("family")}>Reset font family</button><p>Inter upright and italic are bundled. Fallback fonts are supplied by your system.</p></section> : null}
-    {tab === "style" ? <section className="sg-editor-panel"><label>Weight<select data-style-path={`typography.${role}.weight`} value={value.weight} onChange={event => onChange(current => ({ ...current, weight: Number(event.target.value) }))}>{Array.from({ length: 9 }, (_, index) => (index + 1) * 100).map(weight => <option value={weight} key={weight}>{weight}{weight === 400 ? " · Regular" : weight === 700 ? " · Bold" : ""}</option>)}</select></label><button data-style-path={`typography.${role}.style`} type="button" className="sg-italic-toggle" aria-pressed={value.style === "italic"} onClick={() => onChange(current => ({ ...current, style: current.style === "italic" ? "normal" : "italic" }))}>Italic</button><label>Text transform<select data-style-path={`typography.${role}.transform`} value={value.transform} onChange={event => onChange(current => ({ ...current, transform: event.target.value as typeof current.transform }))}><option value="none">None</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalize</option></select></label><button data-style-path={`typography.${role}.weight`} type="button" className="sg-inline-reset" onClick={() => { onResetProperty("weight"); onResetProperty("style"); onResetProperty("transform"); }}>Reset style</button></section> : null}
+    {tab === "style" ? <section className="sg-editor-panel"><label>Weight<select data-style-path={`typography.${role}.weight`} value={value.weight} onChange={event => onChange(current => ({ ...current, weight: Number(event.target.value) }))}>{Array.from({ length: 9 }, (_, index) => (index + 1) * 100).map(weight => <option value={weight} key={weight}>{weight}{weight === 400 ? " · Regular" : weight === 700 ? " · Bold" : ""}</option>)}</select></label><button data-style-path={`typography.${role}.style`} type="button" className="sg-italic-toggle" aria-pressed={value.style === "italic"} onClick={() => onChange(current => ({ ...current, style: current.style === "italic" ? "normal" : "italic" }))}>Italic</button><label>Text transform<select data-style-path={`typography.${role}.transform`} value={value.transform} onChange={event => onChange(current => ({ ...current, transform: event.target.value as typeof current.transform }))}><option value="none">None</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalize</option></select></label><button data-style-path={`typography.${role}.weight`} type="button" className="sg-inline-reset" onClick={() => onChange(current => ({ ...current, weight: baselineTypography(role).weight, style: baselineTypography(role).style, transform: baselineTypography(role).transform }))}>Reset style</button></section> : null}
     {tab === "size" ? <section className="sg-editor-panel sg-metric-panel">{metricDetails.map(detail => {
       const item = resolved(detail.id);
       const unitOptions = detail.units;
       const [min, max] = metricBounds(detail.id, item.value.unit);
       return <div className="sg-metric-control" key={detail.id}>
         <div className="sg-metric-title"><strong>{detail.label}</strong><button data-style-path={`typography.${role}.${detail.id}`} type="button" aria-label={`Reset ${roleName} ${detail.label.toLowerCase()}`} onClick={() => onResetMetric(detail.id)}>Reset</button></div>
-        <div className="sg-metric-inputs"><input data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} value for ${viewport}`} type="number" min={min} max={max} step={detail.step} value={item.value.value} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) onMetricChange(detail.id, current => ({ ...current, value: formatNumber(number) }) as Metric); }} /><select data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} unit`} value={item.value.unit} onChange={event => onMetricChange(detail.id, current => { const oldUnit = current.unit; const nextUnit = event.target.value; const relativeUnits = detail.id !== "lineHeight"; const factor = relativeUnits && oldUnit !== nextUnit ? oldUnit === "px" ? 1 / 16 : nextUnit === "px" ? 16 : 1 : 1; return { ...current, value: formatNumber(current.value * factor), unit: nextUnit } as Metric; })}>{unitOptions.map(unit => <option value={unit} key={unit}>{unit === "number" ? "unitless" : unit}</option>)}</select></div>
+        <div className="sg-metric-inputs"><input data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} value for ${viewport}`} type="number" min={min} max={max} step={detail.step} value={item.value.value} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) onMetricChange(detail.id, current => ({ ...current, value: formatNumber(number) }) as Metric, true); }} /><select data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} unit`} value={item.value.unit} onChange={event => onMetricChange(detail.id, current => { const oldUnit = current.unit; const nextUnit = event.target.value; const relativeUnits = detail.id !== "lineHeight"; const factor = relativeUnits && oldUnit !== nextUnit ? oldUnit === "px" ? 1 / 16 : nextUnit === "px" ? 16 : 1 : 1; return { ...current, value: formatNumber(current.value * factor), unit: nextUnit } as Metric; })}>{unitOptions.map(unit => <option value={unit} key={unit}>{unit === "number" ? "unitless" : unit}</option>)}</select></div>
         <p className="sg-inheritance">{item.inherited ? `Inherited from ${item.inheritedFrom}` : `Set for ${viewport}`}</p>
       </div>;
     })}</section> : null}

@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+
+- Undo and Redo in the Styles sandbox, with platform shortcuts and temporary history for colour, typography, button, layout and reset actions.
 - Added a standalone Slider foundation to the Controls library, with shared accent, derived hover and pressed colours, independent temporary overrides and a visible consumer list.
 - Added dependency and consumer details to each Controls section's ownership and compatibility disclosure.
 - Added sorting by the first-added date and time for shared interface icons, with the selected symbol's timestamp shown in UK local time.

@@ -165,6 +165,14 @@ bundle; `npm run styles:source:check` verifies it without writing files.
 Responsive typography, semantic colour, button and layout controls change only
 the current React state. Reset All restores the package default; the page does
 not publish a global baseline or save project settings.
+Undo and Redo restore up to 60 temporary preset changes across colours,
+typography (including viewport overrides), buttons and layout. Property,
+section and Reset All actions are undoable. Continuous colour or number edits
+share one history step until focus changes; a new edit after Undo clears Redo.
+Preview sizes, panel selection, searches and guide navigation are outside style
+history. Command+Z/Command+Shift+Z on macOS and Ctrl+Z/Ctrl+Y (or Ctrl+Shift+Z)
+on Windows/Linux work while focus is on this page; editable fields keep native
+text history. Reloading or leaving Styles discards the temporary history.
 The Buttons panel exposes Base, Secondary and Outline variants. Each variant
 has independently editable normal text colour and hover text colour, and both
 values update the matching live preview button. These edits remain temporary
