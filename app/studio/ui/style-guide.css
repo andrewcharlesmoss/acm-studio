@@ -161,13 +161,7 @@
 .sg-formatted-table th, .sg-formatted-table td { min-width: 6rem; border: 1px solid var(--rl-line); padding: .45rem .55rem; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
 .sg-formatted-table th { background: #f3f3f1; font-weight: 600; }
 .sg-formatted-table tr.is-current-row { background: #fff1b8; }
-/* Source selection remains visible independently of the user's focus preference. */
-.sg-preview [data-source-selected="true"], .sg-preview[data-source-selected="true"] { position: relative; }
-.sg-preview [data-source-selected="true"]::before, .sg-preview[data-source-selected="true"]::before { content: ""; position: absolute; pointer-events: none; inset-inline-start: -7px; top: 50%; width: 3px; height: 1em; max-height: 24px; background: var(--studio-range-accent, #3858e9); transform: translateY(-50%); }
-.sg-preview .sg-swatch[data-source-selected="true"]::before { inset-inline-start: 4px; }
-.sg-preview[data-source-selected="true"]::before { inset-inline-start: 5px; top: 16px; transform: none; }
 @media (forced-colors: active) {
-  .sg-preview [data-source-selected="true"]::before, .sg-preview[data-source-selected="true"]::before { background: Highlight; forced-color-adjust: none; }
   html[data-studio-focus-mode] .sg-page :is(.sg-guide-markdown li, .sg-guide-formatted [data-guide-style-path]):focus-within:not(:has([data-guide-style-path]:focus-within)) { outline: 2px solid Highlight !important; outline-offset: 2px !important; }
 }
 .sg-guide-hidden-anchor { display: block; width: 1px; height: 1px; overflow: hidden; }

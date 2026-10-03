@@ -156,10 +156,10 @@ Styles previews the `@acm/styles` v0.2.0 preset beside the full written
 workspace Style Guide. Hovering or focusing a specimen or setting shows its
 baseline, current sandbox value, guide excerpt and exact line; clicking or
 tapping pins the source selection. Hovering a mapped row in a guide table
-temporarily highlights its matching specimen in the live preview; moving away
-restores any pinned selection. Preview source selections use a small blue side
-marker, separate from the shared grey focus outline. Focus Outline controls
-focus indicators; source selection markers remain visible in every mode.
+temporarily shows its matching rule in the source details; moving away restores
+any pinned selection in the source details and written guide. Preview
+specimens have no additional selection outline or marker. Focus Outline controls
+their shared grey focus indicators.
 Mapped guide lines use the same focus tokens, with system colours retained in
 forced-colours mode. The guide view records its source commit and
 content digest. Its generated line index is bundled with Studio, so the hosted

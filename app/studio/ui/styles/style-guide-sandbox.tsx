@@ -541,7 +541,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
         <div><dt>Guide location</dt><dd>Line {mapping.line}</dd></div>
       </dl>
       {relatedButtonValues.length ? <details className="sg-related-values"><summary>All {buttonPathPartsLabel(activePath)} button properties</summary><dl>{relatedButtonValues.map(item => <div key={item.path}><dt>{item.path.split(".").at(-1)}</dt><dd>{item.current}<span>Baseline {item.baseline}</span></dd></div>)}</dl></details> : null}
-      <p className="sg-source-help">Hover a mapped guide table row to highlight its preview specimen. Hover or focus a preview item to inspect its rule. Click a mapped guide line, or focus its selection button and press Enter or Space, to select the matching preview item.</p>
+      <p className="sg-source-help">Hover a mapped guide table row or preview item to inspect its rule. Focus a preview item to inspect its rule, or click a mapped guide line to pin its source details. Guide selection buttons also support Enter and Space.</p>
       <blockquote><code>{mapping.excerpt}</code></blockquote>
       {activePath.startsWith("specimen.") ? <p className="sg-source-note">This is written guidance for the example. It is not a token in the executable preset.</p> : null}
     </section>

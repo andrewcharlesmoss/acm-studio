@@ -12,8 +12,8 @@
 
 ### Changed
 
-- Styles source selections use a side marker so they do not compete with the shared Focus Outline preference; mapped guide lines use the shared focus colours.
-- Hovering a mapped row in the Styles guide tables now highlights its matching live preview specimen, completing the two-way preview and guide interaction.
+- Styles specimens use only the shared Focus Outline indicator, without an additional selection outline or marker; mapped guide lines use the shared focus colours.
+- Hovering a mapped row in the Styles guide tables now shows its matching source details, completing the two-way preview and guide interaction.
 - The Styles guide and editor now identify normal and hover button text colours explicitly; each colour can be changed per button variant and updates its temporary live preview.
 - Colour and gradient Clear actions and the gradient angle dial marker now follow Gutenberg's accent-blue treatment by default, with their hover and focus feedback retained.
 - Separator background colour and gradient now use the shared Gutenberg-style Background control and render on the separator rule in the editor, preview and public renderer.
