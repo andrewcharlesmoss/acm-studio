@@ -53,6 +53,14 @@ test("Button interaction styles keep base values as fallbacks and expose state-s
   assert.match(buttonInteractionClassName(interactionStyles, "hover"), /is-button-state-preview-hover/);
 });
 
+test("Button explicit border removal overrides the Outline default and remains the state fallback", () => {
+  assert.equal(buttonVisualCss({ borderStyle: "none" }).borderStyle, "none");
+  const css = buttonVisualCss({ borderStyle: "none" }, { hover: { borderStyle: "solid", borderWidth: "3px" } });
+  assert.equal(css.borderStyle, undefined);
+  assert.equal(css["--button-base-border-style"], "none");
+  assert.equal(css["--button-hover-border-style"], "solid");
+});
+
 test("Paragraph link colours keep Default and Hover independent and preserve legacy hover styling", () => {
   assert.deepEqual(paragraphStyleToCss({ linkColor: "#2f6eb4", linkHoverColor: "#1e1e1e" }), {
     "--studio-paragraph-link-color": "#2f6eb4",

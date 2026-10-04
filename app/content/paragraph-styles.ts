@@ -276,6 +276,7 @@ export function buttonInteractionClassName(styles?: Partial<Record<ButtonInterac
 export function buttonVisualCss(style?: ParagraphStyle, interactionStyles?: Partial<Record<ButtonInteractionState, ButtonInteractionStyle>>): Record<string, string> {
   const css = paragraphStyleToCss(style);
   delete css.margin;
+  if (style?.borderStyle === "none") css.borderStyle = "none";
   if (!interactionStyles) return css;
 
   for (const state of ["hover", "focus", "active"] as const) {
