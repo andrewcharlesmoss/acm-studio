@@ -21,6 +21,14 @@ export function anchoredMenuPosition({ anchor, width, height, viewportWidth, vie
 
 /** Resize/scroll tracking is shared by canvas and Library consumers. */
 export function watchAnchoredMenu(anchor, popup, align, onPosition) {
+  let frame = null;
+  let stopped = false;
+  function schedule() {
+    if (stopped || frame !== null) return;
+    // Size constraints can resize the observed popup. Apply them on the next
+    // frame rather than writing layout during ResizeObserver delivery.
+    frame = window.requestAnimationFrame(() => { frame = null; if (!stopped) place(); });
+  }
   function place() {
     const viewport = window.visualViewport;
     const viewportWidth = viewport?.width ?? window.innerWidth;
@@ -40,18 +48,20 @@ export function watchAnchoredMenu(anchor, popup, align, onPosition) {
     onPosition(position);
   }
   place();
-  const observer = new ResizeObserver(place);
+  const observer = new ResizeObserver(schedule);
   observer.observe(anchor);
   observer.observe(popup);
-  window.addEventListener("resize", place);
-  window.addEventListener("scroll", place, true);
-  window.visualViewport?.addEventListener("resize", place);
-  window.visualViewport?.addEventListener("scroll", place);
+  window.addEventListener("resize", schedule);
+  window.addEventListener("scroll", schedule, true);
+  window.visualViewport?.addEventListener("resize", schedule);
+  window.visualViewport?.addEventListener("scroll", schedule);
   return () => {
+    stopped = true;
+    if (frame !== null) window.cancelAnimationFrame(frame);
     observer.disconnect();
-    window.removeEventListener("resize", place);
-    window.removeEventListener("scroll", place, true);
-    window.visualViewport?.removeEventListener("resize", place);
-    window.visualViewport?.removeEventListener("scroll", place);
+    window.removeEventListener("resize", schedule);
+    window.removeEventListener("scroll", schedule, true);
+    window.visualViewport?.removeEventListener("resize", schedule);
+    window.visualViewport?.removeEventListener("scroll", schedule);
   };
 }

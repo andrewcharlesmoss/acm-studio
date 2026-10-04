@@ -42,7 +42,10 @@ test("open menus track anchor/popup resizing and scrolling with complete listene
   const heights = [];
   const popup = { style: { set maxHeight(value) { heights.push(value); }, get maxHeight() { return heights.at(-1); } }, scrollHeight: 360, getBoundingClientRect: () => ({ width: 176, height: 360 }) };
   const positions = [];
-  globalThis.window = { innerWidth: 1280, innerHeight: 900, visualViewport, addEventListener: (name, callback) => events.set(name, callback), removeEventListener: (name, callback) => { if (events.get(name) === callback) events.delete(name); } };
+  const frames = new Map();
+  let frameId = 0;
+  const flush = () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(callback => callback()); };
+  globalThis.window = { innerWidth: 1280, innerHeight: 900, visualViewport, requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; }, cancelAnimationFrame: id => frames.delete(id), addEventListener: (name, callback) => events.set(name, callback), removeEventListener: (name, callback) => { if (events.get(name) === callback) events.delete(name); } };
   globalThis.ResizeObserver = class { constructor(callback) { resize = callback; } observe(element) { observed.push(element); } disconnect() { disconnected = true; } };
   try {
     const stop = watchAnchoredMenu(anchor, popup, "start", position => positions.push(position));
@@ -51,6 +54,9 @@ test("open menus track anchor/popup resizing and scrolling with complete listene
     visualViewport.width = 390; visualViewport.height = 844;
     anchorBounds = { left: 288, right: 318, top: 780, bottom: 810 };
     resize(); events.get("resize")(); events.get("scroll")();
+    assert.equal(positions.length, 1, "observer delivery must not synchronously write popup layout");
+    assert.equal(frames.size, 1, "resize and scrolling share one scheduled frame");
+    flush();
     assert.equal(positions.at(-1).left, 206);
     assert.equal(positions.at(-1).top, 412);
     assert.equal(popup.style.maxWidth, "374px");
@@ -59,9 +65,15 @@ test("open menus track anchor/popup resizing and scrolling with complete listene
     visualViewport.offsetLeft = 20; visualViewport.offsetTop = 30;
     visualViewport.width = 350; visualViewport.height = 450;
     visualEvents.get("resize")(); visualEvents.get("scroll")();
+    flush();
     assert.ok(positions.at(-1).left >= 28 && positions.at(-1).left + 176 <= 362);
     assert.ok(positions.at(-1).top + 360 <= 472);
+    resize();
+    assert.equal(frames.size, 1);
     stop();
+    assert.equal(frames.size, 0, "unmount cancels pending placement");
+    resize();
+    assert.equal(frames.size, 0, "queued observer delivery after unmount is ignored");
     assert.equal(disconnected, true);
     assert.equal(events.size, 0);
     assert.equal(visualEvents.size, 0);
