@@ -200,7 +200,7 @@ export type ContentBlock = (
   | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment }
   | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; attribution?: string; align?: TextAlignment; blockAlign?: BlockAlignment; quoteStyle?: "default" | "plain" }
   | ListBlock
-  | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; columnWidths?: number[]; rowHeights?: number[]; columnAlignments?: TextAlignment[]; blockAlign?: BlockAlignment }
+  | { id: string; type: "table"; rows: string[][]; hasHeader?: boolean; hasFooter?: boolean; headerRowCount?: number; footerRowCount?: number; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; columnWidths?: number[]; rowHeights?: number[]; columnAlignments?: TextAlignment[]; blockAlign?: BlockAlignment }
   | { id: string; type: "code"; language?: string; code: string; blockAlign?: BlockAlignment }
   | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; wide?: boolean; blockAlign?: BlockAlignment; decorative?: boolean; title?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number; linkUrl?: string; linkDestination?: "none" | "custom" | "media" | "lightbox"; opensInNewTab?: boolean; imageStyle?: "default" | "rounded" }
   | { id: string; type: "embed"; url: string; title: string; caption?: string; blockAlign?: BlockAlignment }
