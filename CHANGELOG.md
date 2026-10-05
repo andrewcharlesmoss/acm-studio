@@ -41,7 +41,8 @@
 
 ### Changed
 
-- The shared Elements tools menu now labels the link-colour option as Link, and active Reset all actions use Gutenberg's blue accent across block inspectors.
+- Active Reset all actions in every block inspector now use the shared `@acm/styles` accent colour.
+- The shared Elements tools menu now labels the link-colour option as Link.
 
 - Styles specimens use only the shared Focus Outline indicator, without an additional selection outline or marker; mapped guide lines use the shared focus colours.
 

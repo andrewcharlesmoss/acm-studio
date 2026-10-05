@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { watchInspectorPopover } from "./panes/inspector-popover-position";
 import { StudioIcon } from "./studio-icons";
@@ -46,6 +47,7 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, alway
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState({ left: 16, top: 16, width: 240 });
+  const menuStyle = { ...menuPosition, "--acm-color-accent": UNIVERSAL_STYLE_PRESET.palette.accent } as CSSProperties;
 
   useLayoutEffect(() => {
     if (!menuOpen || disabled) return;
@@ -83,7 +85,7 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, alway
     <div className="inspector-tools-heading">
       <h2>{title}</h2>
       <button ref={triggerRef} type="button" className="inspector-tools-trigger" aria-label={`${title} options`} aria-expanded={menuOpen && !disabled} aria-controls={menuId} disabled={disabled} onClick={() => { if (!menuOpen) document.dispatchEvent(new CustomEvent("studio-inspector-tools-open", { detail: menuId })); setMenuOpen(open => !open); }}><StudioIcon name={visible.size ? "more-vertical" : "add"} size={18} /></button>
-      {menuOpen && !disabled ? createPortal(<div ref={menuRef} id={menuId} className="inspector-tools-menu" role="group" aria-label={`${title} controls`} style={menuPosition}>
+      {menuOpen && !disabled ? createPortal(<div ref={menuRef} id={menuId} className="inspector-tools-menu" role="group" aria-label={`${title} controls`} style={menuStyle}>
         <div className="inspector-tools-menu-heading"><span className="inspector-tools-menu-title">{title}</span><button type="button" className="inspector-tools-menu-close" aria-label={`Close ${title} options`} onClick={() => { setMenuOpen(false); triggerRef.current?.focus(); }}><StudioIcon name="close" size={16} /></button></div>
         <div className="inspector-tools-menu-body">
           {menuOptions.length ? <div className="inspector-tools-menu-options" aria-label="Visible controls">{menuOptions.map(option => <button key={option.id} type="button" disabled={option.disabled} aria-pressed={option.checked} onClick={() => onMenuOptionSelect?.(option.id)}>{option.label}{option.checked ? <StudioIcon name="check" size={16} /> : null}</button>)}</div> : null}
