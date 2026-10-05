@@ -40,8 +40,6 @@ export function ProjectLocalLinksProvider({ children }: { children: ReactNode })
 export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
   const { local, snapshot, refreshSnapshot } = useContext(LocalProjectsContext);
   const [opening, setOpening] = useState(false);
-  if (id === "acm-studio") return <div className="dashboard-local-project"><a className="dashboard-card-link" href="/studio">Open Studio</a></div>;
-  if (!local) return null;
   const project = snapshot?.projects.find(project => project.id === id);
   const statusLabels: Record<LocalProject["status"], string> = {
     running: "Local server running", stopped: "Local server stopped",
@@ -52,6 +50,11 @@ export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
   };
   const status = !snapshot ? "Checking local server…" : !snapshot.available ? "Project Ports unavailable"
     : project ? statusLabels[project.status] : statusLabels.unconfigured;
+  if (id === "acm-studio") return <div className="dashboard-local-project">
+    <a className="dashboard-card-link" href="/studio">Open Studio</a>
+    {local ? <small role="status">{status}</small> : null}
+  </div>;
+  if (!local) return null;
   async function openLocal() {
     setOpening(true);
     try {

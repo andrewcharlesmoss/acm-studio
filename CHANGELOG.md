@@ -561,6 +561,8 @@
 
 ### Fixed
 
+- ACM Studio’s homepage card now displays its local server status from Project Ports beneath Open Studio, matching the other site cards.
+
 - Local website discovery no longer labels an unconfigured service as stopped merely because its definition has a URL template.
 
 - Footnotes in the Blocks Library now share the editor’s document numbering context, so references and editable notes show matching numbers in Edit and Preview.
