@@ -3079,3 +3079,20 @@ Verifier reviewed the schema, projections and final rendering ownership.
   claimed.
 - Reset Example restored the memory-only fixture and Undo/Redo state before
   closing the temporary browser tab. Focus Outline remained Off.
+
+## 5 October 2026 — Final full-suite check
+
+- `npm test` completed the production build and canonical Style Guide source
+  check. The full suite reports 1,585 passing and three failing tests out of
+  1,588.
+- The first run also exposed one stale isolated renderer fixture after the
+  shared Footnote-numbering hook extraction. It now supplies an empty number
+  map because the Image/Table/Embed caption cases contain no Footnote objects;
+  the production path continues to use the real context hook. Independent
+  review accepted the fixture boundary, and `tests/inline-image-ui.test.mjs`
+  passes 12/12.
+- The three remaining failures are pre-existing deferred presentation
+  expectations: Design neutral colours, Design snapping-guide colour and Block
+  Library icon colour. Their tests expect older CSS values; no product styling
+  was changed to silence them. The rest of the full suite passes, but this
+  failed run does not certify whole-editor parity.
