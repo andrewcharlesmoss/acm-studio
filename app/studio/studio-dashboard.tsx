@@ -1,4 +1,5 @@
 import { studioProjects, type StudioProject, type StudioProjectLink } from "./project-registry";
+import { ProjectLocalLink, ProjectLocalLinksProvider } from "./project-local-links";
 import { AcmIcon } from "@acm/icons/react";
 import { StudioIcon } from "./studio-icons";
 
@@ -28,6 +29,7 @@ function ProjectCard({ project }: { project: StudioProject }) {
         </div>)}
       </div> : project.links.length ? <ProjectLinks links={project.links} context={project.name} /> : <span className="dashboard-card-link is-muted">Connection pending</span>}
     </div>
+    <ProjectLocalLink id={project.id} name={project.name} />
   </article>;
 }
 
@@ -51,9 +53,9 @@ export function StudioDashboard() {
 
         <section className="dashboard-section" aria-labelledby="sites-title">
           <div className="dashboard-section-heading"><div><p className="eyebrow">Site registry</p><h2 id="sites-title">Your sites</h2></div><p>Your sites, in alphabetical order. Production and identified staging sites are grouped together.</p></div>
-          <div className="dashboard-site-grid">
+          <ProjectLocalLinksProvider><div className="dashboard-site-grid">
             {studioProjects.map(project => <ProjectCard project={project} key={project.id} />)}
-          </div>
+          </div></ProjectLocalLinksProvider>
         </section>
 
         <section className="dashboard-section dashboard-tools" aria-labelledby="tools-title">

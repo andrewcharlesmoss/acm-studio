@@ -1950,3 +1950,8 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .rich-text-language-popover { box-sizing: border-box; display: grid; gap: 12px; overflow: auto; padding: 16px; width: 300px; }
 .rich-text-language-popover form, .rich-text-language-popover label { display: grid; gap: 8px; }
 .rich-text-language-popover p { margin: 0; }
+
+.dashboard-local-project { border-top: 1px solid var(--acm-color-border); display: flex; flex-direction: column; gap: 4px; margin-top: 12px; padding-top: 8px; }
+.dashboard-local-project small { color: var(--muted); font-size: var(--studio-ui-size, 13px); }
+.dashboard-local-open { background: none; border: 0; cursor: pointer; padding: 0; text-align: left; }
+.dashboard-local-open:disabled { color: var(--muted); cursor: not-allowed; }

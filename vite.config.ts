@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
 import { codexHistoryBridge } from "./scripts/codex-history-bridge.mjs";
+import { projectPortsBridge } from "./scripts/project-ports-bridge.mjs";
 import { siteSettingsBridge } from "./scripts/site-settings-bridge.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
@@ -58,6 +59,7 @@ export default defineConfig(async () => {
     plugins: [
       codexHistoryBridge(),
       siteSettingsBridge(),
+      projectPortsBridge(),
       vinext(),
       sites(),
       cloudflare({

@@ -287,3 +287,16 @@ A new writer must load the current persisted snapshot before enabling edits.
 Restore uses its scoped permit, drains existing media work and keeps editing
 paused until reload or a complete rollback. Preserve read-only browsing and
 exports when another tab owns editing.
+
+## Project Ports local navigation
+
+The homepage discovers local website addresses through the dev-only
+`/__studio/local-projects` bridge. It sends only the existing Project Ports
+`snapshot` request to the user-owned Unix socket and exposes approved project
+IDs, availability and validated localhost URLs. It never starts, stops or
+reconfigures services, and does not expose commands, logs, paths or environment
+values. Discovery refreshes every 15 seconds while visible and on window focus;
+opening rechecks the current port. Multiple running web addresses require a
+choice in Project Ports. No registry-file fallback guesses running state.
+The bridge is absent from production builds; ACM Studio itself retains its
+relative `/studio` link on every host.

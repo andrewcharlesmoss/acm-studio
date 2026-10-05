@@ -26,7 +26,6 @@ const projects: StudioProject[] = [
   { id: "acm-studio", name: "ACM Studio", description: "Content, templates, files and publishing tools across ACM projects.", kind: "Website", links: [
     { label: "Edit Site" },
     visitSite("https://acm-studio.andrewcharlesmoss.chatgpt.site"),
-    { label: "Open Studio", href: "/studio" },
   ] },
   { id: "andrew-moss", name: "Andrew Moss", description: "Personal site, writing, videos and work history.", kind: "Website", links: [{ label: "Edit Site" }, visitSite("https://andrewmoss.me/")] },
   { id: "habit-tracker", name: "Habit Tracker", description: "Daily habits, progress and notes in a local-first tracker.", kind: "Website", links: [], environments: [
