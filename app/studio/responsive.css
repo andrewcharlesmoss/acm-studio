@@ -98,7 +98,6 @@
   .dashboard-section { padding: 54px 0; }
   .dashboard-section-heading { margin-bottom: 26px; }
   .dashboard-site-grid, .dashboard-tool-grid { grid-template-columns: 1fr; }
-  .dashboard-site-card { min-height: 210px; }
   .dashboard-boundary { padding-top: 54px; }
   .dashboard-shell .studio-header .studio-actions .button-secondary { display: none; }
 }

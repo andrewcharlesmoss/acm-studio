@@ -16,9 +16,11 @@ function ProjectCard({ project }: { project: StudioProject }) {
     <div className="dashboard-card-topline"><span className="dashboard-site-mark" aria-hidden="true">{project.name.slice(0, 1)}</span><span className="dashboard-status dashboard-status-pending">{project.kind}</span></div>
     <h3>{project.name}</h3><p>{project.description}</p>
     <div className="dashboard-project-actions">
-      {project.environments ? project.environments.map(environment => <div className="dashboard-project-environment" key={environment.id}>
-        <strong>{environment.name}</strong><ProjectLinks links={environment.links} context={`${project.name} — ${environment.name}`} />
-      </div>) : project.links.length ? <ProjectLinks links={project.links} context={project.name} /> : <span className="dashboard-card-link is-muted">Connection pending</span>}
+      {project.environments ? <div className={`dashboard-project-environments${project.environments.length > 1 ? " has-staging" : ""}`}>
+        {project.environments.map(environment => <div className="dashboard-project-environment" key={environment.id}>
+          <strong>{environment.name}</strong><ProjectLinks links={environment.links} context={`${project.name} — ${environment.name}`} />
+        </div>)}
+      </div> : project.links.length ? <ProjectLinks links={project.links} context={project.name} /> : <span className="dashboard-card-link is-muted">Connection pending</span>}
     </div>
   </article>;
 }
