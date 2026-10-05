@@ -740,17 +740,6 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .canvas-block.is-selected > .canvas-block-toolbar, .studio-nested-block[data-studio-selected="true"] > .canvas-block-toolbar { opacity: 1; transform: translateY(calc(-100% - 9px)); visibility: visible; }
 .canvas-block-toolbar > span { border-left: 1px solid var(--studio-toolbar-divider); border-right: 1px solid var(--studio-toolbar-divider); font-size: var(--studio-ui-size); font-weight: 700; letter-spacing: .04em; margin: 0 4px; padding: 4px 8px; text-transform: uppercase; }
 .canvas-block-toolbar > div { align-items: center; display: flex; }
-.heading-level-control { position: relative; }
-.heading-level-button { align-items: center; display: inline-flex !important; gap: 4px; justify-content: center; min-width: 62px; padding: 0 6px !important; white-space: nowrap; width: 62px !important; }
-.heading-level-button strong { flex: 0 0 auto; font-size: 17px; line-height: 1; }
-.heading-level-button > svg { color: var(--muted); }
-.heading-level-menu { background: white; border: 1px solid #cbc9c1; border-radius: 8px; box-shadow: 0 10px 22px rgba(27, 28, 29, .18); color: var(--ink); display: grid !important; gap: 2px; left: -4px; padding: 6px; position: absolute; top: calc(100% + 8px); width: 170px; z-index: 12; }
-.heading-level-menu::before { background: white; border-left: 1px solid #cbc9c1; border-top: 1px solid #cbc9c1; content: ""; height: 9px; left: 17px; position: absolute; top: -5px; transform: rotate(45deg); width: 9px; }
-.heading-level-menu button { align-items: center; background: transparent !important; border-radius: 5px !important; color: var(--ink) !important; display: grid !important; gap: 9px !important; grid-template-columns: 32px 1fr; height: 34px !important; padding: 0 8px !important; text-align: left; width: 100% !important; }
-.heading-level-menu button:hover, .heading-level-menu button.is-active { background: #e7e7e5 !important; color: #1e1e1e !important; }
-.heading-level-menu button strong { font-size: 14px; }
-.heading-level-menu button > :first-child { justify-self: center; }
-.heading-level-menu button span { font-size: var(--studio-ui-size); }
 .table-control { position: relative; }
 .table-control-button { align-items: center; display: inline-flex !important; justify-content: center; }
 .table-control-button.is-active { background: var(--studio-toolbar-active) !important; color: var(--accent-strong) !important; }

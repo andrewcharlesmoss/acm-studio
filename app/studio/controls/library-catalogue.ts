@@ -55,7 +55,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     owner: "ACM Studio controls", consumers: ["Heading inspector"],
     dependencies: [{ kind: "uses", label: "@acm/icons heading marks", detail: "Supplies the shared H1–H6 artwork." }],
     states: "H1–H6, selected level, keyboard focus and disabled.",
-    compatibility: "Changes the existing heading level. Selecting the active level keeps it selected; the canvas toolbar also provides level selection.",
+    compatibility: "Changes the existing heading level. Selecting the active level keeps it selected; the canvas toolbar’s Transform to menu also offers H1–H6.",
   },
   {
     id: "toggle", title: "Toggle", group: "Foundation",

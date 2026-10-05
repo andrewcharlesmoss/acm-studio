@@ -21,7 +21,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   heading: {
     context: "The semantic level determines the default heading size. Inline formatting and alignment are canvas actions.",
-    notes: ["Heading level is in the block summary and canvas toolbar, outside the Content accordion.", "A new Heading does not expose image selection in Background; a saved background image exposes its detail controls.", "Font family, writing orientation and text shadow are unavailable in the captured theme configuration."],
+    notes: ["Heading level is in the block summary; use Transform to in the canvas toolbar to choose H1–H6, outside the Content accordion.", "A new Heading does not expose image selection in Background; a saved background image exposes its detail controls.", "Font family, writing orientation and text shadow are unavailable in the captured theme configuration."],
     insertionDefaults: "New Headings use H2 unless another level is selected.",
   },
   list: {
