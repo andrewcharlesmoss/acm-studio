@@ -2476,3 +2476,111 @@ No whole-block parity or goal completion is claimed.
 - The wider goal remains active. Remaining accepted-context gaps, highest-impact
   defects, final full-suite classification and a coherent implementation commit
   remain outstanding. Work stays local; no push, publication or deployment.
+
+
+## Template delegate and caption acceptance — 5 October 2026
+
+- The previous status turn made no implementation progress. This continuation
+  closed the pending Template cohort before investigating the current suite.
+  TemplateSurface cancelled every link during capture, before RichTextEditor
+  could select the anchor. Its unchanged navigation guard now runs on bubbling:
+  rich fields activate their Link preview first; static Edit links remain
+  non-navigating and Preview links retain normal behaviour.
+- Template generic fields use the canonical Canvas delegate with authored roots,
+  current owner callbacks and unchanged-source refusal. Sample documents remain
+  presentation context. Root/nested List and Table formatting, captions and Row
+  Spacer orientation use the same contract. The read-only end appender is now
+  disabled and its focus/change/key handlers refuse unavailable ownership.
+- Actual native evidence confirms root second List Bold with Undo/Redo, nested
+  second List Italic, fourth root/nested Table cell Bold, caption-only links,
+  direct caption-anchor activation after a cell focus, Escape focus return,
+  static Preview retention, disabled read-only insertion and static read-only
+  fields. Caption popups fit the recorded 768px viewport and 390px viewport at
+  200% Template zoom; viewport and zoom were restored. Evidence:
+  `/private/tmp/acm-template-delegate-browser.json`,
+  `/private/tmp/acm-template-delegate-caption.png` and
+  `/private/tmp/acm-template-delegate-mobile-200.png`.
+- Final related tests pass 191/191 after four old label expectations, an omitted
+  real Embed helper and an obsolete Template-local callback assertion were
+  corrected. The replacement Template test integrates the actual TemplateEditor,
+  StudioCanvas delegate and list-boundary operation, proving stale refusal and
+  sample immutability. Mini Golf coverage remains present. Log:
+  `/private/tmp/acm-parity-test-harness-focused.log`. The end-appender focused
+  regression passes 23/23; current typecheck and scoped Template lint pass.
+- Independent read-only review accepted the bounded source changes, four test
+  migrations and saved native evidence with no blocking finding. This closes the
+  caption diagnostic and delegated formatting acceptance in these contexts.
+  Mounted writer persistence/reload/export and wider control contexts remain
+  unverified; no claim of complete editor parity or deployment is made.
+
+## Current suite classification and reduced motion — 5 October 2026
+
+- The current full `npm test` run completed: production build and style-source
+  index passed; 1534 tests comprised 1507 passing and 27 failing. Authoritative
+  log: `/private/tmp/acm-editor-parity-current-full-suite.log`. This is the
+  complete run before the following harness and CSS corrections; it has not
+  been relabelled as a current all-pass result or rerun repeatedly.
+- Six failures were stale caption/delegate harnesses closed above. A read-only
+  Explorer classified the remaining 21 individually: 17 stale owner/API/selector
+  assertions, one real reduced-motion defect, and three visual-policy differences.
+  Stale checks now follow the shared Pane, catalogue icon adapter, List boundary
+  operations, focus preference and current insertion handlers. Document counts
+  execute the actual appender calculations for blank, whitespace and typed text.
+- The genuine defect was CSS specificity: `.block-inserter.pane` overrode the
+  lower-specificity reduced-motion selector. The reduced-motion rule now matches
+  the actual Pane selector. Four regression cases check production Pane classes,
+  cascade specificity, immediate reduced-motion dismissal and exclusion of
+  descendant/entry/cancelled exit events. Existing normal entry/exit is retained.
+- Focused current owner-contract checks pass 194/194. The migrated behaviour and
+  motion run passes 151/154 with only these deliberately unresolved visual
+  differences still failing: Design accent/focus tokens, Design guide colour,
+  and Library icon grey versus ink. Their assertions were preserved; they are
+  deferred under the goal's lower-priority visual direction, not waived.
+  Logs: `/private/tmp/acm-parity-current-owner-contracts.log` and
+  `/private/tmp/acm-parity-owner-migration-focused.log`.
+- Current production build passes:
+  `/private/tmp/acm-block-library-motion-build.log`. Scoped migration lint is
+  clean excluding inline-image-ui's five existing harness findings; the combined
+  lint log records those findings. These are not a clean whole-repository lint
+  result. Diff check passes. Independent read-only review accepts the bounded
+  motion fix and 17 migrations with no blocking finding. Its two test-hardening
+  suggestions now assert CSS source order and require both navigation-order
+  targets to exist; their focused acceptance is recorded separately.
+- The real browser rendered `pane block-inserter`, normal entry animation,
+  corrected reduced-motion CSSOM rule and successful repeat-trigger dismissal.
+  Its reduced-motion media query was false; the available API cannot emulate
+  that preference, so native reduced-motion/OS validation remains unverified.
+  Screenshot: `/private/tmp/acm-block-library-motion-browser.jpg`.
+- The complete inventory remains 977 records. Existing accepted controls were
+  not reopened for unrelated visual work. Broader property/input/persistence
+  acceptance and the coherent implementation commit remain open. Work is local;
+  no push, publication or deployment occurred.
+
+## Main caption persistence — 5 October 2026
+
+- The mounted Main editor reported Local workspace ready after hydration. The
+  earlier Connection lost state is not a current approval blocker. A full reload
+  briefly renders the initial unavailable state before loading the owner-held
+  snapshot; the saved workspace and named copy remained available afterwards.
+- Actual Duplicate created a separate draft, renamed through the editor to
+  “Parity verification — local test” (slug `untitled-post-copy`). Only that copy
+  received a Table cell marker and caption link. The three original Untitled
+  posts remain present. The original first post was restored as the active
+  document, with no caption and four blank Table cells. The named copy remains
+  available for bounded continuation; nothing was published or permanently deleted.
+- Shared Link Apply created only the caption anchor. Direct activation opened
+  Link options, Escape dismissed it, and Preview retained the exact caption
+  and destination. Full reload followed by selecting the named copy retained
+  the saved caption, destination and direct Link options behaviour. The Code
+  editor retained a caption anchor with the exact text and destination. This
+  verifies Code serialisation, not a downloaded export. The Code editor was exited without applying an HTML mutation.
+- Browser evidence: `/private/tmp/acm-caption-persistence-browser.json` and
+  `/private/tmp/acm-caption-persistence-browser.jpg`. Independent read-only
+  review accepted the bounded result and inspected the screenshot; the reload,
+  Preview and Code sequence relies on the Builder's recorded native replay,
+  rather than an independent replay. Template mounted persistence, downloaded
+  export and the wider control/context matrix remain open. Inventory outcomes
+  stay Partial; this is not whole-editor acceptance.
+- The two motion/navigation test-hardening changes separately pass 5/5 in
+  `/private/tmp/acm-parity-motion-hardening-focused.log` and were independently
+  accepted. No full-suite rerun was added for this browser check.
