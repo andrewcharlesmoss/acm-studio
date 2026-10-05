@@ -47,6 +47,8 @@
 
 ### Changed
 
+- Radius settings now show a value and unit field beside the slider in both linked and individual corner modes, matching the Gutenberg layout.
+
 - Removed the duplicate Heading level dropdown from the canvas toolbar; H1–H6 changes remain available in the “Transform to” menu.
 
 - The shared Border width slider now reaches 100, while retaining a larger range when an existing width exceeds 100.

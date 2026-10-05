@@ -136,7 +136,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Edit linked or separate sides, axes and corners.",
     owner: "ACM Studio controls", consumers: ["Shared padding and margin", "Border width and radius through Border settings"],
     dependencies: [{ kind: "uses", label: "SpacingRangeControl", detail: "Preset mode directly composes the segmented spacing range. Continuous mode uses native ranges. It shares this implementation with Spacing slider without composing LayoutSpacingSetting." }, rangeDependency],
-    states: "Linked/split values, units, preset/custom modes, numeric entry, keyboard focus, disabled and reset.",
+    states: "Linked/split values, units, preset/custom modes, numeric entry, direct radius fields beside each corner slider, keyboard focus, disabled and reset.",
     compatibility: "Expands and serialises supported CSS shorthand lengths. Supported custom lengths remain stored until explicitly edited.",
   },
   {
@@ -174,7 +174,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     id: "border-settings", title: "Border settings", group: "Style",
     purpose: "Set border colour, style, width and optional radius or shadow as a group.",
     owner: "ACM Studio controls", consumers: ["Blocks with enabled shared Border settings", "Image", "Featured Image"],
-    dependencies: [{ kind: "uses", label: "Box dimensions", entryId: "box-length", detail: "Sets optional radius." }, { kind: "uses", label: "Colour picker", entryId: "colour-picker", detail: "Border colour and style share the pane-owned palette." }, rangeDependency],
+    dependencies: [{ kind: "uses", label: "Box dimensions", entryId: "box-length", detail: "Sets optional radius with a visible value, unit and slider for all corners or each individual corner, using @acm/icons corner indicators." }, { kind: "uses", label: "Colour picker", entryId: "colour-picker", detail: "Border colour and style share the pane-owned palette." }, rangeDependency],
     states: "Unset/explicit colour, None/Solid/Dashed/Dotted, linked width and slider, four widths around a box diagram, mixed linked widths, optional radius/shadow, disabled and section reset.",
     compatibility: "Writes existing ParagraphStyle fields. Widths use CSS shorthand; switching between linked and split views preserves values until a width is edited. Mixed linked widths display Mixed. Colour and style apply to all sides, unlike Gutenberg's independent side colours/styles. Entering colour or width activates Solid when style is absent or None. The owning inspector supplies reset and history.",
   },
