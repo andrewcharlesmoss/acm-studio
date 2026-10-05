@@ -51,7 +51,7 @@
 
 - Paragraph Border options no longer include the ACM-only block Shadow control; shadow values remain available on blocks that support them.
 
-- Enlarged the Border width number-field spinner hit area so its up/down controls are easier to use.
+- Border width number fields no longer show native spinners, matching Gutenberg while retaining numeric entry.
 
 - Newly inserted Heading blocks start empty and show the grey “Heading” editing placeholder; the prompt is not saved as block text.
 
