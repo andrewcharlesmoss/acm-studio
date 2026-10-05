@@ -53,6 +53,8 @@
 
 - Border width number fields no longer show native spinners, matching Gutenberg while retaining numeric entry.
 
+- Border width fields use a compact, consistent width when editing sides separately.
+
 - Newly inserted Heading blocks start empty and show the grey “Heading” editing placeholder; the prompt is not saved as block text.
 
 - Shared Border controls now use compact joined inputs, a linked width slider and a box diagram for separate sides. Linking preserves mixed widths; colour and style remain shared across all sides.

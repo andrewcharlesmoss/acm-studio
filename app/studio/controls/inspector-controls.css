@@ -41,6 +41,7 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .studio-border-width.is-split .studio-border-input.is-right { grid-area: 2 / 3 / 3 / 5; }
 .studio-border-width.is-split .studio-border-input.is-bottom { grid-area: 3 / 2 / 4 / 4; }
 .studio-border-width.is-split .studio-border-input.is-left { grid-area: 2 / 1 / 3 / 3; }
+.studio-border-width.is-split .studio-border-input { justify-self: center; max-width: 100%; width: var(--border-input-width); }
 .studio-border-width.is-split .studio-border-link { grid-area: 1 / 4 / 2 / 5; justify-self: end; }
 .studio-border-diagram { border: 8px solid #e0e0e0; box-sizing: border-box; inset: 20px 16%; pointer-events: none; position: absolute; }
 .studio-border-width > .studio-range-control[type="range"] { appearance: none; -webkit-appearance: none; background: transparent; border: 0; height: 40px; min-width: 0; padding: 0; width: 100%; }
