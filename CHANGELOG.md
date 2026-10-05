@@ -561,6 +561,8 @@
 
 ### Fixed
 
+- Running site cards identify their current local server address and port from Project Ports.
+
 - ACM Studio’s homepage card now displays its local server status from Project Ports beneath Open Studio, matching the other site cards.
 
 - Local website discovery no longer labels an unconfigured service as stopped merely because its definition has a URL template.

@@ -48,8 +48,15 @@ export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
     failed: "Local server failed", conflict: "Local port conflict",
     review: "Local service needs review", unavailable: "Local website address unavailable",
   };
+  let runningAddress = "";
+  if (project?.status === "running" && project.href) {
+    try {
+      const url = new URL(project.href);
+      runningAddress = `${url.host}${url.pathname === "/" ? "" : url.pathname}`;
+    } catch { /* Keep the existing status if an address is unavailable. */ }
+  }
   const status = !snapshot ? "Checking local server…" : !snapshot.available ? "Project Ports unavailable"
-    : project ? statusLabels[project.status] : statusLabels.unconfigured;
+    : project ? `${statusLabels[project.status]}${runningAddress ? ` — ${runningAddress}` : ""}` : statusLabels.unconfigured;
   if (id === "acm-studio") return <div className="dashboard-local-project">
     <a className="dashboard-card-link" href="/studio">Open Studio</a>
     {local ? <small role="status">{status}</small> : null}
