@@ -47,6 +47,8 @@
 
 ### Changed
 
+- Shared Border controls now use compact joined inputs, a linked width slider and a box diagram for separate sides. Linking preserves mixed widths; colour and style remain shared across all sides.
+
 - Templates now use one integrated Content Studio workspace, including template set management. Old template-editor links redirect while retaining the selected set and template.
 
 - The homepage lists actual sites in one alphabetical card grid with equal prominence. ACM Account, Habit Tracker, Loquafy and Mini Golf show their identified Production and Staging sites together. Shared libraries and projects without a hosted site remain in their existing tools.

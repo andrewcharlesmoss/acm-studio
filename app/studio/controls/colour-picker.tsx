@@ -42,9 +42,10 @@ type ColourPickerProps = {
   trigger?: (props: ColourPickerTriggerProps) => ReactNode;
   clearLabel?: string;
   disabled?: boolean;
+  additionalControls?: ReactNode;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, disabled = false }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, disabled = false, additionalControls }: ColourPickerProps) {
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
   const [customOpen, setCustomOpen] = useState(false);
@@ -145,6 +146,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       <strong className="paragraph-colour-theme-heading">THEME</strong>
       <ColourSwatches value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={() => changeActiveColour(undefined)} disabled={disabled} />
       {activeValue ? <button type="button" className="paragraph-colour-clear studio-clear-action" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</button> : null}
+      {additionalControls}
       {customOpen && !disabled ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
         <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={false} />

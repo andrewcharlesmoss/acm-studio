@@ -60,6 +60,16 @@ existing stored fontFamily contract and render in Edit, Preview and export.
 
 ### Reused controls and ownership
 
+Shared Border settings use a joined colour/width/unit input with a slider and
+link toggle. Separate widths sit around a box diagram. Returning to the linked
+view preserves differing widths and shows Mixed until a width is edited.
+Colour and style live in the shared colour palette and apply to every side;
+ACM's existing contract stores one colour/style and CSS shorthand widths.
+Independent side colours and styles from Gutenberg's
+[BorderBoxControl](https://developer.wordpress.org/block-editor/reference-guides/components/border-box-control/)
+remain outside that contract. All BorderSettings consumers and the Controls
+specimen share this presentation; Radius retains its existing corner controls.
+
 Block pane settings are composed from shared control modules where the data
 contract and interaction match. `ParagraphInspector` supplies shared
 typography, background, dimensions, border and element settings to supported

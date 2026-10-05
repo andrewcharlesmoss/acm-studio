@@ -174,9 +174,9 @@ export const studioControlEntries: StudioControlEntry[] = [
     id: "border-settings", title: "Border settings", group: "Style",
     purpose: "Set border colour, style, width and optional radius or shadow as a group.",
     owner: "ACM Studio controls", consumers: ["Blocks with enabled shared Border settings", "Image", "Featured Image"],
-    dependencies: [{ kind: "uses", label: "Box dimensions", entryId: "box-length", detail: "Sets width and radius." }, { kind: "uses", label: "Colour picker", entryId: "colour-picker", detail: "Used directly for compact border colour. Non-compact mode composes BorderColourControl instead." }, rangeDependency],
-    states: "Unset/explicit colour, None/Solid/Dashed/Dotted, linked/split measurements, optional radius/shadow, disabled and reset.",
-    compatibility: "Writes existing ParagraphStyle fields. Entering colour or width activates Solid when style is absent or None. The legacy text colour field exists in non-compact mode; the compact catalogue specimen uses the picker.",
+    dependencies: [{ kind: "uses", label: "Box dimensions", entryId: "box-length", detail: "Sets optional radius." }, { kind: "uses", label: "Colour picker", entryId: "colour-picker", detail: "Border colour and style share the pane-owned palette." }, rangeDependency],
+    states: "Unset/explicit colour, None/Solid/Dashed/Dotted, linked width and slider, four widths around a box diagram, mixed linked widths, optional radius/shadow, disabled and section reset.",
+    compatibility: "Writes existing ParagraphStyle fields. Widths use CSS shorthand; switching between linked and split views preserves values until a width is edited. Mixed linked widths display Mixed. Colour and style apply to all sides, unlike Gutenberg's independent side colours/styles. Entering colour or width activates Solid when style is absent or None. The owning inspector supplies reset and history.",
   },
   {
     id: "inspector-tools", title: "Inspector options and reset", group: "Inspector",
