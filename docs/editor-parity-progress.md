@@ -3056,3 +3056,26 @@ Verifier reviewed the schema, projections and final rendering ownership.
   claimed.
 - Reset Example restores the original numbered note and disables Undo/Redo;
   the temporary tab was closed. Product documents and preferences were untouched.
+
+## 5 October 2026 — Group variation controls
+
+- Baseline `6d746fa`. Native Group Library specimen interaction exercised Group,
+  Row, Stack and Grid from the inspector. The empty Group's inline chooser and
+  inspector reported the same selected option for every choice. The other
+  child-bearing Row specimen kept both child IDs and its layout unchanged.
+- Undo changed Grid back to Stack and Redo restored Grid in both chooser and
+  inspector. Reset Example restored Group and disabled Undo. No product
+  document or preference changed.
+- Existing `tests/group-layout-selection.test.mjs` passes 3/3. Its actual
+  BlockField callback retains the same empty children array across all four
+  variations, makes no insertion request and preserves either open or closed
+  block-menu state. Native screenshot:
+  `/private/tmp/acm-group-variation-controls.png`.
+- Four Group variation rows in the 551-record atomic action inventory gain
+  Partial evidence. The separate 426-row block-control totals remain 319
+  Unverified and 50 Partial; all 977 record identities remain intact. A native
+  child-bearing Group mutation, other owners, round-trip, responsive/200% zoom
+  and alternate input contexts remain open. No whole-block acceptance is
+  claimed.
+- Reset Example restored the memory-only fixture and Undo/Redo state before
+  closing the temporary browser tab. Focus Outline remained Off.
