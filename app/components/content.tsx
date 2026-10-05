@@ -240,7 +240,7 @@ function renderListBlock(block: Extract<ContentBlock, { type: "list" }>, studio:
     const itemPresentation = { id: paragraphStyleAnchor(itemStyle), className: paragraphStyleClassName(itemStyle) || undefined, style: paragraphStyleToCss(itemStyle) as React.CSSProperties };
     const itemTextStyle = listItemTextStyle(itemStyle) as React.CSSProperties;
     return studio
-      ? <li {...itemPresentation} className={`list-field-row${itemPresentation.className ? ` ${itemPresentation.className}` : ""}`} key={`${block.id}-${index}`}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? listMarker(block, index) : "•"}</span><div className="list-field-item-content"><span className="list-item-text" style={itemTextStyle}>{content}</span>{nestedLists}</div></li>
+      ? <li {...itemPresentation} className={`list-field-row${itemStyle ? ` ${visualStyleClassName(itemStyle)}` : ""}`} key={`${block.id}-${index}`}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? listMarker(block, index) : "•"}</span><div className="list-field-item-content"><span className="list-item-text" style={itemTextStyle}>{content}</span>{nestedLists}</div></li>
       : <li {...itemPresentation} key={`${block.id}-${index}`}>{itemStyle ? <span style={itemTextStyle}>{content}</span> : content}{nestedLists}</li>;
   });
   return block.style === "ordered"

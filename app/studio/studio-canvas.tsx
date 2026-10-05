@@ -3863,7 +3863,7 @@ function ListField({ htmlEditorBlockId, renderBlockControls, selectedBlockId, ho
         const children = typeof item === "string" ? [] : item.children ?? [];
         const label = `${list.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}${depth ? `, level ${depth + 1}` : ""}`;
         const itemStyle = typeof item === "string" ? undefined : item.style;
-        return <div id={paragraphStyleAnchor(itemStyle)} className={`list-field-row${paragraphStyleClassName(itemStyle) ? ` ${paragraphStyleClassName(itemStyle)}` : ""}`} style={paragraphStyleToCss(itemStyle) as React.CSSProperties} key={`${list.id}-item-${index}`}>
+        return <div id={paragraphStyleAnchor(itemStyle)} className={`list-field-row${itemStyle ? ` ${visualStyleClassName(itemStyle)}` : ""}`} style={paragraphStyleToCss(itemStyle) as React.CSSProperties} key={`${list.id}-item-${index}`}>
           <span className="list-field-marker" aria-hidden="true">{list.style === "ordered" ? listMarker(list, index) : "•"}</span>
           <div className="list-field-item-content">
             <RichTextEditor key={JSON.stringify([block.id, list.id, list.items.length, compositionRevision])} className="list-item-editor" style={listItemTextStyle(itemStyle) as React.CSSProperties} data-studio-block-id={list.id} data-list-context-id={list.id} data-list-item-index={index} text={listItemText(item)} runs={typeof item === "string" ? undefined : item.runs} mediaUrls={mediaUrls} onChange={(text, runs) => updateItem(list, index, text, runs)} onFocus={() => selectItem(list, index)} onSelectionChange={(selection) => selectItem(list, index, selection)} onLinkActivate={(selection) => onLinkActivate?.(list, index, selection)} onSplitParagraph={(beforeRuns, afterRuns) => {

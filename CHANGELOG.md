@@ -553,6 +553,8 @@
 
 ### Fixed
 
+- List and List Item typography now reaches their bullets/numbers and nested text consistently in Edit and Preview, while preserving item overrides and reset/history.
+
 - Code blocks show authored backgrounds in Edit and Preview and resize after typography changes, reset and Undo/Redo.
 
 - Preserve Template Group semantic elements, ARIA labels and width alignment, Columns alignment and Section visual styles through editing, saving, packages and rendering.

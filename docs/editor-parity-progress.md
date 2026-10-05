@@ -2855,3 +2855,47 @@ Verifier reviewed the schema, projections and final rendering ownership.
   modes remain unverified. This repair does not certify whole-Code or
   whole-editor parity. Inventory now records 353 Unverified and 16 Partial
   block-control rows; the accepted and excluded rows remain unchanged.
+
+## 5 October 2026 — List appearance inheritance
+
+- Baseline `a2b1772`, local branch `codex/panel-library`. Explorer compared the
+  exact Gutenberg `e3ac73cd69d472341b66c43cb77be36e838f868e` List Item
+  definition, edit/save implementations and List stylesheet. Gutenberg places
+  item typography on `li`; marker inheritance follows from that structure.
+  This is pinned source evidence, not a Gutenberg runtime comparison.
+- Studio item rows now consume the existing `visualStyleClassName` in Edit
+  and Studio Preview. Shared typography inheritance includes the actual
+  List Item editor, and explicit line height reaches the marker. Unstyled
+  defaults and public native `li` markup remain unchanged. No new controls,
+  icons, stored fields, mutation, history or write-ownership paths were added.
+- Before repair, a selected 32px red item retained a 16px ink-coloured marker;
+  nested unstyled items also stayed at the default. After repair, item text
+  and ordered marker both measured 32px red with 64px line height. Nested
+  unstyled bullets/text inherited those values; a nested custom 20px blue
+  override measured 40px line height. Unrelated root siblings remained 16px
+  ink with 24.8px line height. All five rows matched in Edit and Preview.
+- Item Typography Reset all removed only the parent item overrides: the nested
+  20px blue override survived, while unstyled descendants returned to defaults.
+  Undo restored parent inheritance and Redo restored the reset state. Parent
+  List colour/preset-size/line-height settings then applied identically to all
+  nested marker/text rows. Decimal, upper/lowercase letter and Roman marker
+  formats retained the expected numbering from Start 3.
+- Preview typography also matched at 768px and 390px viewport overrides;
+  the override was cleared afterwards. Actual browser 200% zoom, public native
+  marker rendering, persistent reload/export and remaining input/units are
+  unverified. These are bounded appearance checks, not whole-List acceptance.
+- Focused checks pass 97/97 in `/private/tmp/acm-list-appearance-focused.log`.
+  Build/typecheck pass in `acm-list-appearance-build.log` and
+  `acm-list-appearance-typecheck.log`. New-test/renderer lint has zero errors
+  and two pre-existing image warnings in `acm-list-appearance-lint.log`.
+  Canvas lint retains baseline errors; comparison logs are
+  `acm-list-appearance-canvas-lint.log` and
+  `acm-list-appearance-canvas-baseline-lint.log`. The full suite was not rerun.
+- Native replay used the memory-only List Library fixture. Screenshot:
+  `/private/tmp/acm-list-appearance-browser.png`. Reset Example restored the
+  default marker typography and cleared specimen history before closing the
+  temporary tab. Independent Verifier reviewed
+  the diff, tests and supplied native evidence; its browser provider returned
+  no available browsers, so independent native replay was unavailable.
+- Six rows move to Partial: List and List Item colour, size and line height.
+  The inventory now has 347 Unverified and 22 Partial block-control records.
