@@ -96,3 +96,6 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .box-length-setting.is-spacing:has(input:disabled) .box-length-indicator { opacity: .5; }
 
 .box-length-mixed { color: var(--muted); font-size: var(--studio-ui-size); grid-column: 2; grid-row: 2; }
+
+.box-length-setting.is-spacing .box-length-row.is-custom-spacing { grid-template-columns: 24px minmax(0, calc(5ch + 54px)) minmax(0, 1fr) 40px; }
+.box-length-setting.is-spacing .box-length-row.is-custom-spacing > .studio-range-control { min-width: 0; width: 100%; }

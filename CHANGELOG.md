@@ -587,6 +587,8 @@
 
 ### Fixed
 
+- Custom padding and margin values retain a continuous slider beside the compact value field.
+
 - Padding and margin sliders retain their view while dragging, use eight preset positions, and preserve side values when switching between axis and individual controls.
 
 - Running site cards identify their current local server address and port from Project Ports.
