@@ -1,5 +1,5 @@
 import { studioProjects, type StudioProject, type StudioProjectLink } from "./project-registry";
-import { ProjectLocalLink, ProjectLocalLinksProvider } from "./project-local-links";
+import { ProjectLocalLink, ProjectLocalLinksProvider, ProjectLocalStatus } from "./project-local-links";
 import { AcmIcon } from "@acm/icons/react";
 import { StudioIcon } from "./studio-icons";
 
@@ -19,17 +19,24 @@ function ProjectLinks({ links, context }: { links: StudioProjectLink[]; context:
 }
 
 function ProjectCard({ project }: { project: StudioProject }) {
+  const environments = project.environments ?? [{
+    id: `${project.id}-production`,
+    name: "Production",
+    links: project.links,
+  }];
+
   return <article className="dashboard-site-card" data-project-id={project.id}>
     <div className="dashboard-card-topline"><span className="dashboard-site-mark" aria-hidden="true">{project.name.slice(0, 1)}</span><span className="dashboard-status dashboard-status-pending">{project.kind}</span></div>
     <h3>{project.name}</h3><p>{project.description}</p>
     <div className="dashboard-project-actions">
-      {project.environments ? <div className={`dashboard-project-environments${project.environments.length > 1 ? " has-staging" : ""}`}>
-        {project.environments.map(environment => <div className="dashboard-project-environment" key={environment.id}>
+      <div className="dashboard-project-environments">
+        <ProjectLocalLink id={project.id} name={project.name} />
+        {environments.map(environment => <div className="dashboard-project-environment" key={environment.id}>
           <strong>{environment.name}</strong><ProjectLinks links={environment.links} context={`${project.name} — ${environment.name}`} />
         </div>)}
-      </div> : project.links.length ? <ProjectLinks links={project.links} context={project.name} /> : <span className="dashboard-card-link is-muted">Connection pending</span>}
+      </div>
+      <ProjectLocalStatus id={project.id} />
     </div>
-    <ProjectLocalLink id={project.id} name={project.name} />
   </article>;
 }
 
@@ -52,7 +59,7 @@ export function StudioDashboard() {
         </section>
 
         <section className="dashboard-section" aria-labelledby="sites-title">
-          <div className="dashboard-section-heading"><div><p className="eyebrow">Site registry</p><h2 id="sites-title">Your sites</h2></div><p>Your sites, in alphabetical order. Production and identified staging sites are grouped together.</p></div>
+          <div className="dashboard-section-heading"><div><p className="eyebrow">Site registry</p><h2 id="sites-title">Your sites</h2></div><p>Your sites, in alphabetical order, with Local, Staging and Production grouped together where available.</p></div>
           <ProjectLocalLinksProvider><div className="dashboard-site-grid">
             {studioProjects.map(project => <ProjectCard project={project} key={project.id} />)}
           </div></ProjectLocalLinksProvider>

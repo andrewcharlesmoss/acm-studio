@@ -5,6 +5,13 @@ import { StudioIcon } from "./studio-icons";
 
 type LocalProject = { id: string; status: "running" | "stopped" | "multiple" | "unconfigured" | "starting" | "stopping" | "failed" | "conflict" | "review" | "unavailable"; href?: string };
 type LocalSnapshot = { available: boolean; projects: LocalProject[] };
+const statusLabels: Record<LocalProject["status"], string> = {
+  running: "Local server running", stopped: "Local server stopped",
+  unconfigured: "Local server not configured", multiple: "Multiple servers — choose in Project Ports",
+  starting: "Local server starting", stopping: "Local server stopping",
+  failed: "Local server failed", conflict: "Local port conflict",
+  review: "Local service needs review", unavailable: "Local website address unavailable",
+};
 
 async function readLocalProjects(signal?: AbortSignal): Promise<LocalSnapshot> {
   const response = await fetch("/__studio/local-projects", {
@@ -16,6 +23,18 @@ async function readLocalProjects(signal?: AbortSignal): Promise<LocalSnapshot> {
 }
 
 const LocalProjectsContext = createContext<{ local: boolean; snapshot: LocalSnapshot | null; refreshSnapshot: (snapshot: LocalSnapshot) => void }>({ local: false, snapshot: null, refreshSnapshot: () => {} });
+
+function localStatus(snapshot: LocalSnapshot | null, project: LocalProject | undefined) {
+  if (!snapshot) return "Checking local server…";
+  if (!snapshot.available) return "Project Ports unavailable";
+  if (!project) return statusLabels.unconfigured;
+  if (project.status !== "running" || !project.href) return statusLabels[project.status];
+  try {
+    const url = new URL(project.href);
+    const address = `${url.host}${url.pathname === "/" ? "" : url.pathname}`;
+    return `${statusLabels.running} — ${address}`;
+  } catch { return statusLabels[project.status]; }
+}
 
 export function ProjectLocalLinksProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<LocalSnapshot | null>(null);
@@ -41,27 +60,8 @@ export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
   const { local, snapshot, refreshSnapshot } = useContext(LocalProjectsContext);
   const [opening, setOpening] = useState(false);
   const project = snapshot?.projects.find(project => project.id === id);
-  const statusLabels: Record<LocalProject["status"], string> = {
-    running: "Local server running", stopped: "Local server stopped",
-    unconfigured: "Local server not configured", multiple: "Multiple servers — choose in Project Ports",
-    starting: "Local server starting", stopping: "Local server stopping",
-    failed: "Local server failed", conflict: "Local port conflict",
-    review: "Local service needs review", unavailable: "Local website address unavailable",
-  };
-  let runningAddress = "";
-  if (project?.status === "running" && project.href) {
-    try {
-      const url = new URL(project.href);
-      runningAddress = `${url.host}${url.pathname === "/" ? "" : url.pathname}`;
-    } catch { /* Keep the existing status if an address is unavailable. */ }
-  }
-  const status = !snapshot ? "Checking local server…" : !snapshot.available ? "Project Ports unavailable"
-    : project ? `${statusLabels[project.status]}${runningAddress ? ` — ${runningAddress}` : ""}` : statusLabels.unconfigured;
-  if (id === "acm-studio") return <div className="dashboard-local-project">
-    <a className="dashboard-card-link" href="/studio">Open Studio</a>
-    {local ? <small role="status">{status}</small> : null}
-  </div>;
-  if (!local) return null;
+  const canVisit = Boolean(local && snapshot?.available && project?.status === "running");
+  const editHref = local && id === "acm-studio" ? "/studio" : undefined;
   async function openLocal() {
     setOpening(true);
     try {
@@ -74,8 +74,20 @@ export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
     } catch { refreshSnapshot({ available: false, projects: [] }); }
     finally { setOpening(false); }
   }
-  return <div className="dashboard-local-project">
-    <button type="button" className="dashboard-card-link dashboard-local-open" disabled={opening || project?.status !== "running" || !snapshot?.available} onClick={() => void openLocal()} aria-label={`Open local site — ${name}`} title={`Open local site — ${name}`}><StudioIcon name="external" size={20} /><span>{opening ? "Opening…" : "Open local"}</span></button>
-    <small role="status">{status}</small>
+  const editName = `Edit Site — ${name} — Local${editHref ? "" : " — not available yet"}`;
+  const visitName = `Visit Site — ${name} — Local${canVisit ? "" : " — local server unavailable"}`;
+  return <div className="dashboard-project-environment dashboard-local-environment">
+    <strong>Local</strong>
+    <div className="dashboard-project-links">
+      {editHref ? <a className="dashboard-card-link is-icon-only" href={editHref} aria-label={editName} title={editName}><StudioIcon name="pencil" size={20} /></a>
+        : <button className="dashboard-card-link is-icon-only is-unavailable" type="button" disabled aria-label={editName} title={editName}><StudioIcon name="pencil" size={20} /></button>}
+      <button type="button" className="dashboard-card-link is-icon-only dashboard-local-open" disabled={opening || !canVisit} onClick={() => void openLocal()} aria-label={visitName} title={visitName}><StudioIcon name="external" size={20} /></button>
+    </div>
   </div>;
+}
+
+export function ProjectLocalStatus({ id }: { id: string }) {
+  const { local, snapshot } = useContext(LocalProjectsContext);
+  const project = snapshot?.projects.find(project => project.id === id);
+  return <small className="dashboard-local-status" role="status">{local ? localStatus(snapshot, project) : "Open ACM Studio on localhost to access local sites."}</small>;
 }

@@ -1,3 +1,7 @@
+@media (max-width: 1220px) {
+  .dashboard-site-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 900px) {
   .hero { min-height: 520px; padding-top: 74px; }
   .hero-bottom { align-items: flex-start; flex-direction: column; margin-left: 18%; }
@@ -19,7 +23,6 @@
   .media-entries.is-grid { grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); }
   .backup-grid { grid-template-columns: 1fr; }
   .backup-panel { min-height: 480px; }
-  .dashboard-site-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-intro, .dashboard-section-heading, .dashboard-boundary { gap: 28px; grid-template-columns: 1fr; }
 }
 
