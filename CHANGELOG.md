@@ -47,6 +47,8 @@
 
 ### Changed
 
+- The shared Border width slider now reaches 100, while retaining a larger range when an existing width exceeds 100.
+
 - Paragraph Border options no longer include the ACM-only block Shadow control; shadow values remain available on blocks that support them.
 
 - Enlarged the Border width number-field spinner hit area so its up/down controls are easier to use.
