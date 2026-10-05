@@ -47,6 +47,8 @@
 
 ### Changed
 
+- Dimensions now use vertical/horizontal spacing rows, inline custom measurements and shared catalogue side indicators. Padding and margin resets live in the Dimensions options menu instead of separate row buttons.
+
 - Radius settings now show a value and unit field beside the slider in both linked and individual corner modes, matching the Gutenberg layout.
 
 - Removed the duplicate Heading level dropdown from the canvas toolbar; H1–H6 changes remain available in the “Transform to” menu.
@@ -582,6 +584,8 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+
+- Padding and margin sliders retain their view while dragging, use eight preset positions, and preserve side values when switching between axis and individual controls.
 
 - Running site cards identify their current local server address and port from Project Ports.
 

@@ -133,15 +133,15 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "box-length", title: "Box dimensions", group: "Sizing",
-    purpose: "Edit linked or separate sides, axes and corners.",
+    purpose: "Edit paired vertical/horizontal spacing, individual sides and radius corners.",
     owner: "ACM Studio controls", consumers: ["Shared padding and margin", "Border width and radius through Border settings"],
     dependencies: [{ kind: "uses", label: "SpacingRangeControl", detail: "Preset mode directly composes the segmented spacing range. Continuous mode uses native ranges. It shares this implementation with Spacing slider without composing LayoutSpacingSetting." }, rangeDependency],
     states: "Linked/split values, units, preset/custom modes, numeric entry, direct radius fields beside each corner slider, keyboard focus, disabled and reset.",
-    compatibility: "Expands and serialises supported CSS shorthand lengths. Supported custom lengths remain stored until explicitly edited.",
+    compatibility: "Expands and serialises supported CSS shorthand lengths. Spacing view switches preserve values; editing an axis updates its two sides. Custom measurements use inline value/unit fields. Supported custom lengths remain stored until explicitly edited.",
   },
   {
     id: "layout-spacing", title: "Spacing slider", group: "Sizing",
-    purpose: "Choose spacing from a segmented preset scale or enter a custom pixel value.",
+    purpose: "Choose spacing from eight preset positions or enter a custom pixel value.",
     owner: "ACM Studio controls",
     consumers: ["Group and template Content layout gaps", "Section axis gaps and padding", "Columns axis gaps", "Column block gap", "Social Icons axis gaps", "Shared padding and margin use the same SpacingRangeControl through Box dimensions"],
     dependencies: [{ kind: "uses", label: "SpacingRangeControl", detail: "Provides the segmented track, keyboard stepping and custom value mode; also used directly by Box dimensions." }, rangeDependency],

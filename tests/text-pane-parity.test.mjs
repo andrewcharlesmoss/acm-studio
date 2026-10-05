@@ -167,7 +167,7 @@ test("shared toggles retain native keyboard/disabled semantics and style choices
 function box(value, layout, state = null) {
   const writes = [], stateChanges = [];
   const { BoxLengthSetting } = load("app/studio/box-length-setting.tsx", {
-    react: { useState: () => [state, next => stateChanges.push(next)] },
+    react: { useState: initial => [state ?? (typeof initial === "function" ? initial() : initial), next => stateChanges.push(next)] },
     "@acm/icons/react": { AcmIcon() {} }, "./studio-icons": { StudioIcon() {} },
   });
   const tree = BoxLengthSetting({ label: "Margin", value, layout, min: -100, max: 200, onChange: value => writes.push(value) });
@@ -187,13 +187,26 @@ test("unlinking untouched spacing changes UI only; Code exposes independent Top/
   const axes = box("1rem 8px", "axes"); axes.rows[0].props.onChange(undefined); assert.equal(axes.writes.at(-1), "0px 8px");
 });
 
+test("axis views retain unequal sides until edited and never rewrite values on linking", () => {
+  const initial = box("16px 24px", "all");
+  assert.deepEqual(initial.rows.map(row => row.props.label), ["Vertical", "Horizontal"]);
+  initial.rows[0].props.onChange("32px");
+  assert.equal(initial.writes.at(-1), "32px 24px");
+  const mixed = box("32px 24px 48px", "all", false);
+  assert.equal(mixed.rows[0].props.mixed, true);
+  nodes(mixed.tree).find(node => node.type === "button").props.onClick();
+  assert.deepEqual(mixed.writes, []);
+  mixed.rows[0].props.onChange("16px");
+  assert.equal(mixed.writes.at(-1), "16px 24px");
+});
+
 test("blank custom measurement clears rather than storing an explicit zero; explicit zero remains valid", () => {
   for (const draft of ["", "0"]) {
     const setup = box("8px", "all"); let index = 0; let renderDraft = draft;
     const writes = [];
     const source = readFileSync("app/studio/box-length-setting.tsx", "utf8").replace("function BoxLengthRow(", "export function BoxLengthRow(");
     const exports = {};
-    vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, require: id => id === "react" ? { useState: () => [index++ === 0 ? true : renderDraft, () => {}] } : id === "../content/box-lengths" ? {} : id === "@acm/icons/react" ? {} : id.startsWith(".") ? {} : require(id) });
+    vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, require: id => id === "react" ? { useId: () => "test-box-value", useState: () => [index++ === 0 ? true : renderDraft, () => {}] } : id === "../content/box-lengths" ? {} : id === "@acm/icons/react" ? {} : id.startsWith(".") ? {} : require(id) });
     const row = exports.BoxLengthRow({ label: "All", settingLabel: "Padding", value: "8px", min: 0, max: 160, allowPercent: true, onChange: value => writes.push(value) });
     nodes(row).find(node => node.type === "input" && node.props.type === "number").props.onBlur();
     assert.deepEqual(writes, [draft === "" ? undefined : "0px"]);

@@ -15,14 +15,16 @@ vm.runInNewContext(source, { exports, require });
 const { SpacingRangeControl } = exports;
 const presets = [0, 8, 16, 24, 32, 48, 64, 96];
 
-test("spacing range distinguishes Default from an explicit zero and maps preset positions", () => {
+test("spacing range has eight Gutenberg-style positions and supports every step in both directions", () => {
   const changed = [];
   const input = SpacingRangeControl({ label: "Padding", presets, onChange: value => changed.push(value) });
   assert.equal(input.props.value, 0);
   assert.equal(input.props["aria-valuetext"], "Default");
-  for (let index = 0; index <= presets.length; index++) input.props.onChange({ target: { value: String(index) } });
-  assert.deepEqual(changed, [undefined, ...presets]);
-  assert.equal(SpacingRangeControl({ label: "Padding", value: 0, presets, onChange() {} }).props.value, 1);
+  for (let index = 0; index < presets.length; index++) input.props.onChange({ target: { value: String(index) } });
+  assert.deepEqual(changed, presets);
+  for (let index = presets.length - 1; index >= 0; index--) input.props.onChange({ target: { value: String(index) } });
+  assert.deepEqual(changed.slice(presets.length), [...presets].reverse());
+  assert.equal(SpacingRangeControl({ label: "Padding", value: 0, presets, onChange() {} }).props.value, 0);
 });
 
 test("opening a range preserves a custom measurement and announces its actual value", () => {
@@ -39,7 +41,7 @@ test("spacing ranges expose their keyboard bounds and disabled state", () => {
   assert.equal(input.type, "input");
   assert.equal(input.props.type, "range");
   assert.equal(input.props.min, 0);
-  assert.equal(input.props.max, presets.length);
+  assert.equal(input.props.max, presets.length - 1);
   assert.equal(input.props.step, 1);
   assert.equal(input.props.disabled, true);
 });

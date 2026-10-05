@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
-import { expandBoxLengths } from "../content/box-lengths";
+import { compactBoxLengths, expandBoxLengths } from "../content/box-lengths";
 import { SpacingRangeControl } from "./controls/spacing-range-control";
 import { StudioIcon } from "./studio-icons";
 
@@ -29,6 +29,11 @@ const cornerIcons = {
   "Bottom left": "layout.corner-bottom-left",
 } as const;
 
+const sideIcons = {
+  All: "layout.sides-all", Vertical: "layout.sides-vertical", Horizontal: "layout.sides-horizontal",
+  Top: "layout.side-top", Bottom: "layout.side-bottom", Left: "layout.side-left", Right: "layout.side-right",
+} as const;
+
 const units = ["px", "em", "rem", "%", "vw", "vh", "ch"] as const;
 
 function lengthParts(value: string) {
@@ -36,10 +41,12 @@ function lengthParts(value: string) {
   return { amount: match ? Number(match[1]) : 0, unit: match?.[2] ?? "px" };
 }
 
-function BoxLengthRow({ label, settingLabel, value, min, max, allowPercent, onChange, presets, compact = false, corners = false, disabled = false }: { label: string; settingLabel: string; value: string; min: number; max: number; allowPercent: boolean; onChange: (value: string | undefined) => void; presets?: readonly number[]; compact?: boolean; corners?: boolean; disabled?: boolean }) {
+function BoxLengthRow({ label, settingLabel, value, min, max, allowPercent, onChange, presets, compact = false, corners = false, mixed = false, disabled = false }: { label: string; settingLabel: string; value: string; min: number; max: number; allowPercent: boolean; onChange: (value: string | undefined) => void; presets?: readonly number[]; compact?: boolean; corners?: boolean; mixed?: boolean; disabled?: boolean }) {
   const { amount, unit } = lengthParts(value);
+  const customId = useId();
   const cornerIcon = cornerIcons[label as keyof typeof cornerIcons];
   const [customOpen, setCustomOpen] = useState(() => Boolean(presets && value && (unit !== "px" || !presets.includes(amount))));
+  const sideIcon = sideIcons[label as keyof typeof sideIcons];
   const [draft, setDraft] = useState<string | null>(null);
   function commit() {
     if (draft === null) return;
@@ -48,44 +55,47 @@ function BoxLengthRow({ label, settingLabel, value, min, max, allowPercent, onCh
     setDraft(null);
     if (Number.isFinite(parsed)) onChange(`${Math.max(min, Math.min(max, parsed))}${unit}`);
   }
+  const inline = compact || corners || customOpen;
   return <div className={`box-length-row${compact ? " is-compact" : ""}`}>
-    {corners ? <span className={`box-length-corner${cornerIcon ? " is-single" : ""}`} aria-hidden="true"><AcmIcon name="layout.corners" scale="Regular-M" size={24} />{cornerIcon ? <AcmIcon className="box-length-active-corner" name={cornerIcon} scale="Regular-M" size={24} /> : null}</span> : !compact ? <span className={`box-length-side is-${label.toLowerCase().replaceAll(" ", "-")}`} aria-hidden="true" /> : null}
-    {compact || corners ? <label className="box-length-inline-value"><span className="visually-hidden">{label} value</span><input disabled={disabled} aria-label={`${settingLabel} ${label} value`} type="number" min={min} max={max} step="any" value={draft ?? (value ? amount : "")} placeholder="" onChange={event => setDraft(event.target.value)} onBlur={() => { if (draft === "") { setDraft(null); onChange(undefined); } else commit(); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select disabled={disabled} aria-label={`${settingLabel} ${label} unit`} value={unit} onChange={event => { const nextAmount = draft === null ? amount : Number(draft); setDraft(null); if (Number.isFinite(nextAmount)) onChange(`${Math.max(min, Math.min(max, nextAmount))}${event.target.value}`); }}>{[...(!allowPercent && unit === "%" ? ["%"] : []), ...units.filter(option => allowPercent || option !== "%")].map(option => <option key={option} value={option}>{option}</option>)}</select></label> : null}
-    {presets ? <SpacingRangeControl disabled={disabled} label={`${settingLabel} ${label} amount`} value={value ? amount : undefined} valueText={value ? `${amount} ${unit}${unit !== "px" || !presets.includes(amount) ? ", custom value" : ""}` : "Default"} presets={presets} onChange={next => onChange(next === undefined ? undefined : `${next}px`)} /> : <input className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} type="range" min={min} max={max} step="1" value={Math.max(min, Math.min(max, amount))} onChange={event => onChange(`${event.target.value}${unit}`)} />}
-    {!compact && !corners ? <button disabled={disabled} type="button" className="box-length-custom-trigger" aria-label={`${settingLabel} ${label} custom value`} aria-expanded={customOpen} onClick={() => setCustomOpen(open => !open)}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button> : null}
-    {customOpen && !corners ? <div className="box-length-custom"><input disabled={disabled} aria-label={`${settingLabel} ${label} value`} type="number" min={min} max={max} step="0.1" value={draft ?? (value ? amount : "")} onChange={event => setDraft(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select disabled={disabled} aria-label={`${settingLabel} ${label} unit`} value={unit} onChange={event => { const nextAmount = draft === null ? amount : Number(draft); setDraft(null); if (Number.isFinite(nextAmount)) onChange(`${Math.max(min, Math.min(max, nextAmount))}${event.target.value}`); }}>{[...(!allowPercent && unit === "%" ? ["%"] : []), ...units.filter(option => allowPercent || option !== "%")].map(option => <option key={option} value={option}>{option}</option>)}</select></div> : null}
+    {corners ? <span className={`box-length-corner${cornerIcon ? " is-single" : ""}`} aria-hidden="true"><AcmIcon name="layout.corners" scale="Regular-M" size={24} />{cornerIcon ? <AcmIcon className="box-length-active-corner" name={cornerIcon} scale="Regular-M" size={24} /> : null}</span> : !compact ? <span className={`box-length-indicator${label !== "All" ? " is-single" : ""}`} aria-hidden="true"><AcmIcon name="layout.sides-all" scale="Regular-M" size={24} />{label !== "All" && sideIcon ? <AcmIcon name={sideIcon} className="box-length-active-side" scale="Regular-M" size={24} /> : null}</span> : null}
+    {inline ? <label className="box-length-inline-value" id={customId}><span className="visually-hidden">{label} value</span><input disabled={disabled} aria-label={`${settingLabel} ${label} value`} type="number" min={min} max={max} step="any" value={draft ?? (!mixed && value ? amount : "")} placeholder={mixed ? "Mixed" : ""} onChange={event => setDraft(event.target.value)} onBlur={() => { if (draft === "") { setDraft(null); onChange(undefined); } else commit(); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select disabled={disabled} aria-label={`${settingLabel} ${label} unit`} value={unit} onChange={event => { const nextAmount = draft === null ? amount : Number(draft); setDraft(null); if (Number.isFinite(nextAmount)) onChange(`${Math.max(min, Math.min(max, nextAmount))}${event.target.value}`); }}>{[...(!allowPercent && unit === "%" ? ["%"] : []), ...units.filter(option => allowPercent || option !== "%")].map(option => <option key={option} value={option}>{option}</option>)}</select></label> : null}
+    {!inline ? presets ? <SpacingRangeControl disabled={disabled} label={`${settingLabel} ${label} amount`} value={value ? amount : undefined} valueText={mixed ? "Mixed" : value ? `${amount} ${unit}${unit !== "px" || !presets.includes(amount) ? ", custom value" : ""}` : "Default"} presets={presets} onChange={next => onChange(next === undefined ? undefined : `${next}px`)} /> : <input className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} type="range" min={min} max={max} step="1" value={Math.max(min, Math.min(max, amount))} onChange={event => onChange(`${event.target.value}${unit}`)} /> : corners || compact ? <input className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} type="range" min={min} max={max} step="1" value={Math.max(min, Math.min(max, amount))} onChange={event => onChange(`${event.target.value}${unit}`)} /> : null}
+    {!compact && !corners ? <button disabled={disabled} type="button" className="box-length-custom-trigger" aria-label={`${settingLabel} ${label} custom value`} aria-controls={customOpen ? customId : undefined} aria-expanded={customOpen} aria-pressed={customOpen} title={customOpen ? `Use ${settingLabel.toLowerCase()} ${label.toLowerCase()} presets` : `Set custom ${settingLabel.toLowerCase()} ${label.toLowerCase()}`} onClick={() => setCustomOpen(open => !open)}><AcmIcon name="action.adjust" scale="Regular-M" size={24} /></button> : null}
+    {mixed && !inline ? <span className="box-length-mixed" aria-hidden="true">Mixed</span> : null}
   </div>;
 }
 
-export function BoxLengthSetting({ label, value, layout, corners = false, presets, compact = false, leadingControl, allowPercent = true, canReset = !corners && Boolean(value), disabled = false, min, max, onChange }: BoxLengthSettingProps) {
+export function BoxLengthSetting({ label, value, layout, corners = false, presets, compact = false, leadingControl, allowPercent = true, canReset = !corners && !presets && Boolean(value), disabled = false, min, max, onChange }: BoxLengthSettingProps) {
   const parts = expandBoxLengths(value);
-  const [splitOverride, setSplitOverride] = useState<boolean | null>(null);
-  const split = splitOverride ?? Boolean(value && (layout === "vertical" ? parts[0] !== parts[2] : value.trim().split(/\s+/).length >= (layout === "axes" ? 3 : 2)));
+  const spacing = !corners && !compact;
+  // View changes never rewrite stored dimensions. Keep the rows stable during a drag.
+  const [split, setSplit] = useState(() => Boolean(value && (corners
+    ? value.trim().split(/\s+/).length > 1
+    : parts[0] !== parts[2] || (layout !== "vertical" && parts[1] !== parts[3]))));
   const rows = split
-    ? layout === "vertical" ? [{ name: "Top", index: 0 }, { name: "Bottom", index: 2 }] : corners ? [{ name: "Top left", index: 0 }, { name: "Top right", index: 1 }, { name: "Bottom left", index: 3 }, { name: "Bottom right", index: 2 }] : ["Top", "Right", "Bottom", "Left"].map((name, index) => ({ name, index }))
-    : layout === "axes" ? [{ name: "Vertical", index: 0 }, { name: "Horizontal", index: 1 }] : layout === "vertical" ? [{ name: "Vertical", index: 0 }] : [{ name: "All", index: 0 }];
+    ? layout === "vertical" ? [{ name: "Top", indices: [0] }, { name: "Bottom", indices: [2] }]
+      : corners ? [{ name: "Top left", indices: [0] }, { name: "Top right", indices: [1] }, { name: "Bottom left", indices: [3] }, { name: "Bottom right", indices: [2] }]
+        : [{ name: "Top", indices: [0] }, { name: "Bottom", indices: [2] }, { name: "Left", indices: [3] }, { name: "Right", indices: [1] }]
+    : spacing ? layout === "vertical" ? [{ name: "Vertical", indices: [0, 2] }]
+      : [{ name: "Vertical", indices: [0, 2] }, { name: "Horizontal", indices: [1, 3] }]
+      : [{ name: "All", indices: [0, 1, 2, 3] }];
 
-  function update(index: number, next: string | undefined) {
-    if (next === undefined && !split && layout === "all") { onChange(undefined); return; }
-    const nextValue = next ?? "0px";
+  function update(indices: number[], next: string | undefined) {
+    if (next === undefined && indices.length === 4) { onChange(undefined); return; }
     const updated = [...parts];
-    if (split) updated[index] = nextValue;
-    else if (layout === "axes") {
-      if (index === 0) updated[0] = updated[2] = nextValue;
-      else updated[1] = updated[3] = nextValue;
-    } else if (layout === "vertical") updated[0] = updated[2] = nextValue;
-    else updated.fill(nextValue);
-    onChange(split ? updated.join(" ") : layout === "axes" ? `${updated[0]} ${updated[1]}` : layout === "vertical" ? updated.join(" ") : updated[0]);
+    for (const index of indices) updated[index] = next ?? "0px";
+    onChange(compactBoxLengths(updated));
   }
 
   function toggleSides() {
-    setSplitOverride(!split);
-    if (split && value) onChange(layout === "axes" ? `${parts[0]} ${parts[1]}` : layout === "vertical" ? `${parts[0]} ${parts[1]} ${parts[0]} ${parts[3]}` : parts[0]);
+    setSplit(!split);
+    // Radius retains its existing link behaviour; spacing only changes view.
+    if (corners && split && value) onChange(parts[0]);
   }
 
-  return <div className={`box-length-setting${compact && !split ? " is-compact" : ""}${corners ? " is-radius" : ""}`}>
-    <div className="box-length-heading"><span>{label}</span>{<button disabled={disabled} type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} ${corners ? "corners" : "sides"}`} title={split ? `Link ${label.toLowerCase()} using the top${layout === "axes" ? " and right" : ""} value${layout === "axes" ? "s" : ""}` : `Edit ${label.toLowerCase()} separately`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={corners ? 24 : 20} /></button>}</div>
-    <div className="box-length-rows">{compact ? leadingControl : null}{rows.map(({ name, index }) => <BoxLengthRow key={name} label={name} settingLabel={label} value={value ? parts[index] : ""} presets={presets} compact={compact && !split} corners={corners} min={min} max={max} allowPercent={allowPercent} disabled={disabled} onChange={next => update(index, next)} />)}</div>
+  return <div className={`box-length-setting${compact && !split ? " is-compact" : ""}${corners ? " is-radius" : spacing ? " is-spacing" : ""}`}>
+    <div className="box-length-heading"><span>{label}</span>{<button disabled={disabled} type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} ${corners ? "corners" : "sides"}`} title={split ? `Link ${label.toLowerCase()} ${corners ? "corners" : "axes"}` : `Edit ${label.toLowerCase()} separately`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button>}</div>
+    <div className="box-length-rows">{compact ? leadingControl : null}{rows.map(({ name, indices }) => <BoxLengthRow key={name} label={name} settingLabel={label} value={value ? parts[indices[0]] : ""} mixed={indices.some(index => parts[index] !== parts[indices[0]])} presets={presets} compact={compact && !split} corners={corners} min={min} max={max} allowPercent={allowPercent} disabled={disabled} onChange={next => update(indices, next)} />)}</div>
     {canReset ? <button disabled={disabled} type="button" className="paragraph-reset-button box-length-reset" onClick={() => onChange(undefined)}>Reset</button> : null}
   </div>;
 }

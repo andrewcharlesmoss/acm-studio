@@ -80,3 +80,19 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .box-length-corner.is-single > svg:first-child { color: #ccc; }
 .box-length-corner > .box-length-active-corner { color: #1e1e1e; }
 .box-length-setting.is-radius:has(input:disabled) .box-length-corner { opacity: .5; }
+
+/* Shared padding/margin rows follow the same axis and side layout. */
+.box-length-setting.is-spacing .box-length-rows { gap: 8px; }
+.box-length-indicator { display: grid; height: 24px; width: 24px; }
+.box-length-indicator > svg { grid-area: 1 / 1; color: var(--ink); }
+.box-length-indicator.is-single > svg:first-child { color: #ccc; }
+.box-length-setting.is-spacing .box-length-inline-value { min-width: 0; width: 100%; }
+.inspector-sections .box-length-setting.is-spacing .box-length-inline-value input[type="number"] { flex: 1 1 0; min-width: 0; width: 0; padding: 0 10px; }
+.box-length-setting.is-spacing .box-length-inline-value input[type="number"] { appearance: textfield; }
+.box-length-setting.is-spacing input[type="number"]::-webkit-inner-spin-button,
+.box-length-setting.is-spacing input[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.box-length-custom-trigger:hover, .box-length-heading button:hover { background: #f0f0f0; }
+.box-length-custom-trigger[aria-pressed="true"] { background: #f0f0f0; }
+.box-length-setting.is-spacing:has(input:disabled) .box-length-indicator { opacity: .5; }
+
+.box-length-mixed { color: var(--muted); font-size: var(--studio-ui-size); grid-column: 2; grid-row: 2; }
