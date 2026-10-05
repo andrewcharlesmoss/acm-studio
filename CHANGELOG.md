@@ -47,6 +47,8 @@
 
 ### Changed
 
+- Padding and margin custom fields now fit five digits plus their unit instead of stretching across the pane.
+
 - Dimensions now use vertical/horizontal spacing rows, inline custom measurements and shared catalogue side indicators. Padding and margin resets live in the Dimensions options menu instead of separate row buttons.
 
 - Radius settings now show a value and unit field beside the slider in both linked and individual corner modes, matching the Gutenberg layout.

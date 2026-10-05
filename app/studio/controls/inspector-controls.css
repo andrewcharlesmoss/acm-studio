@@ -86,7 +86,7 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .box-length-indicator { display: grid; height: 24px; width: 24px; }
 .box-length-indicator > svg { grid-area: 1 / 1; color: var(--ink); }
 .box-length-indicator.is-single > svg:first-child { color: #ccc; }
-.box-length-setting.is-spacing .box-length-inline-value { min-width: 0; width: 100%; }
+.box-length-setting.is-spacing .box-length-inline-value { box-sizing: border-box; max-width: 100%; min-width: 0; width: calc(5ch + 54px); }
 .inspector-sections .box-length-setting.is-spacing .box-length-inline-value input[type="number"] { flex: 1 1 0; min-width: 0; width: 0; padding: 0 10px; }
 .box-length-setting.is-spacing .box-length-inline-value input[type="number"] { appearance: textfield; }
 .box-length-setting.is-spacing input[type="number"]::-webkit-inner-spin-button,
