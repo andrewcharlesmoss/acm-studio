@@ -10,9 +10,10 @@ the end, and defer lower-priority visual differences. The current
 29 catalogue entries, additional editing contexts and control metadata, with
 source owners and explicit evidence limits.
 
-The next behavioural fixes are caret Link insertion/editing and external List
-boundaries. Previously accepted internal List operations, selection, Column
-drop and formatting cohorts remain accepted within their recorded scope.
+Caret Link insertion/editing and external List boundaries now have bounded
+accepted results below. The remaining work is the unverified control/context
+matrix and persistence evidence. Previously accepted internal List operations,
+selection, Column drop and formatting cohorts remain accepted within their recorded scope.
 Minor icon colours, Design neutral colours and spacing remain deferred.
 
 Independent review of the partial behaviour-test owner migration accepted it
@@ -1951,3 +1952,527 @@ restored the caret before the authored break and subsequent typing lost it.
   evidence remain open. Full List parity and the wider inventory are incomplete.
   Coherent commit isolation of earlier dependencies remains owed; no push,
   promotion or deployment has occurred.
+
+## Link caret insertion, editing and shared form — 4 October 2026
+
+- Canvas now inserts linked text at an unlinked caret and edits the contiguous
+  existing link at a linked caret. The typed `text-link.ts` operations preserve
+  unchanged ordinary marks and inline objects, refuse unsafe replacement of
+  objects and avoid a history entry for an unchanged link. Positive-length
+  legacy Footnote, Math and Inline Image runs are preserved; zero-length legacy
+  runs remain refused until a dedicated migration can retain their metadata.
+- Link edit and preview use the existing shared anchored popover. The form
+  captures its actual rich field, owner, document, runs and block snapshot;
+  stale updates and deferred focus restoration remain guarded. Escape, repeat
+  trigger dismissal and Cancel restore the captured caret. Switching from a
+  blank Math form uses the existing cleanup and selection-rebase contract.
+  Draft Text input retains focus while typing. The independent blue input
+  border has been removed so the shared Focus Outline preference applies.
+- Published primary reference: WordPress format-library v5.39.0,
+  https://app.unpkg.com/@wordpress/format-library@5.39.0/files/build-module/link/inline.mjs.
+  This corroborates caret insertion, existing-link extent and new-tab behaviour;
+  it is not proof of exact offsets in the pinned Gutenberg v24.1.0-rc.1 commit
+  `e3ac73cd69d472341b66c43cb77be36e838f868e`, whose Link source retrieval remained
+  unavailable during this bounded pass.
+- Main focused checks: 48/48 passing across text-link, rich-text-form-selection,
+  Language and Inline Image UI. Independent read-only Verifier accepted the
+  bounded fix and independently ran 37/37 Link, form-selection and caret
+  observation checks. Typecheck, production build and scoped helper/test lint
+  pass. Logs: `/private/tmp/acm-rich-link-focused.log`,
+  `/private/tmp/acm-rich-link-typecheck.log`,
+  `/private/tmp/acm-rich-link-build.log` and
+  `/private/tmp/acm-rich-link-lint.log`.
+- Native memory-only `/studio/ui/selection` fixture: paragraph caret insertion,
+  existing-link URL editing, new-tab attributes, Command+Z/Command+Shift+Z,
+  Escape and repeat-trigger dismissal passed. Table-cell and Quote-citation
+  insertion preserved the surrounding fields and restored focus to the actual
+  edited field. The popup remained within 768 × 1024 and 390 × 844 viewports;
+  the intentional horizontally scrolling editor layout was retained. Focus
+  Outline Off showed no visible input ring or independent blue border.
+  Screenshot `/private/tmp/acm-rich-link-popup.png` was saved and inspected.
+  No persisted user document was edited.
+- Mounted Template/Mini Golf, saved reload/export, actual ownership refusal,
+  OS IME, 200% zoom and the exact pinned boundary comparison remain unverified.
+  The full suite was not rerun; its previously recorded failures remain open,
+  with the next full run reserved for the end of the broader goal. External
+  List joining remains the next behavioural priority.
+- This fix remains local and uncommitted with earlier dependency cohorts.
+  Coherent source commit isolation remains owed; the inventory baseline is
+  committed separately as `8550f3f`. No push, promotion or deployment occurred.
+
+## List final Delete into neighbouring blocks — 4 October 2026
+
+- Retrieved the pinned Gutenberg `use-merge.js` and List `transforms.js` through
+  the browser at commit `e3ac73cd69d472341b66c43cb77be36e838f868e`.
+  Source captures: `/private/tmp/acm-pinned-list-use-merge.js` and
+  `/private/tmp/acm-pinned-list-transforms.js`. Final Delete walks out of nested
+  items and appends following List items or transformed Paragraph/Heading lines
+  into the outer List. The first press does not concatenate boundary text.
+  The previous priority narrative suggesting first-root Backspace should join
+  a preceding Paragraph was not established; accepted extraction is retained.
+- `list-sibling-boundary.ts` supplies the typed proposal through the existing
+  canonical `exitList` command. It targets the exact deepest terminal line,
+  edits the outer List's actual siblings and retains the original inner caret.
+  Virtual empty roots materialise their existing editable line before appending.
+  Following text retains rich marks and typed objects; per-item style retains
+  its anchor once. List marker settings adopt the surviving outer owner.
+- Notes, names, site roles, hidden/locked removal targets, conflicting removed
+  wrapper appearance and unsupported text alignment are refused where their
+  ownership cannot be represented. Zero-length legacy objects remain protected.
+  Reader validity, Footnote reconciliation, parent capabilities, descendant
+  locks and exact document freshness still gate the complete history mutation.
+- Existing Canvas/Template/Mini Golf adapters forward the targeted List ID.
+  Independent review caught the Mini Golf presentation fallback dropping that
+  argument and the virtual-root edge; both were corrected by the same Builder
+  and independently accepted. The memory-only selection specimen now forwards
+  the canonical List command and includes an external nested-List target.
+- Main focused checks: 117/117 passing across sibling, internal and root List
+  boundaries. Independent read-only review: 72/72 passing across sibling/root
+  checks. Final typecheck, scoped helper/test lint, production build and diff
+  check pass. An overlapping output-cleanup attempt failed with `ENOTEMPTY`;
+  after the preceding build handle completed, the final build succeeded.
+  Logs: `/private/tmp/acm-list-sibling-focused.log`,
+  `/private/tmp/acm-list-sibling-typecheck.log`,
+  `/private/tmp/acm-list-sibling-lint.log` and
+  `/private/tmp/acm-list-sibling-build.log`.
+- Native disposable `/studio/ui/selection` fixture: root List append, external
+  Paragraph append, deepest nested append to the outer List and original caret
+  restoration passed. Command+Z restores the separate Lists; Command+Shift+Z
+  restores the join. Edit and Preview retain the resulting nested tree and show
+  the appended Paragraph once. At 390 × 844, deepest nested append also passed
+  and the deliberate horizontally scrolling editor was retained. Screenshot
+  `/private/tmp/acm-list-sibling-browser.png` was saved and inspected; Preview
+  screenshot is `/private/tmp/acm-list-sibling-preview.png`.
+- Saved reload/export, mounted Template/Mini Golf, actual ownership refusal,
+  OS IME, tablet/200% and remaining control rows are still open. No full suite
+  was rerun in this cohort; earlier failures remain open for classification.
+  Source commit isolation remains owed with earlier uncommitted dependencies.
+  No push, promotion or deployment occurred.
+
+
+## Template Content insertion and nested presentation — 4 October 2026
+
+- The remaining-failure Explorer identified one confirmed behavioural defect:
+  Page/Post catalogues advertised Content, but both inserter filters excluded it.
+  An explicit Template-only capability now routes root and supported Group,
+  Section and Column insertions through the canonical template-node proposal.
+  Ordinary documents, Mini Golf and Header/Footer parts retain their exclusions.
+- Proposals validate the target, sibling boundary, parent capabilities, locks,
+  duplicate IDs and at-most-one Content rule before acceptance. A rejected save
+  does not select the proposal or add history. Current nodes reject repeated
+  stale callbacks. Removal remains optional and recoverable; duplicating a
+  slot or an ancestor containing it is refused.
+- Root and nested slots reuse TemplateContentSlot and TemplateContentLayout.
+  Layout classes, constrained-width attributes, appearance, background media
+  and alignment follow the existing Template renderer. Nested controls use the
+  canonical Canvas toolbar. An editor-only named focusable Content layout keeps
+  pointer focus from selecting its ancestor. Columns retain TemplateNodes in
+  read-only and Preview modes, so nested Content remains visible.
+- Main and independent focused checks: 40/40 passing, zero cancellations. Two
+  affected behaviour checks pass. Typecheck, focused helper/specimen/test lint,
+  production build and diff check pass. Full TemplateEditor SSR initially hit
+  an existing inspector import cycle in the data-URL test loader; those cases
+  were replaced by execution of the actual presentation callback for both modes
+  and writable states, plus production BlockField/TemplateNodes rendering.
+  These tests do not establish whole mounted-editor coverage.
+- Native memory-only Template specimen: root/Column insertion, removal and
+  Command+Z/Command+Shift+Z recovery passed; nested Group insertion and selected
+  toolbar visibility passed. Read-only and Preview retain one nested Content
+  slot. The disposable fixture adds Page/Post/part targets and isolated history;
+  persisted user documents were not edited. Screenshot:
+  /private/tmp/acm-template-content-browser.png.
+- Logs: /private/tmp/acm-template-content-focused.log,
+  /private/tmp/acm-template-content-affected.log,
+  /private/tmp/acm-template-content-typecheck.log,
+  /private/tmp/acm-template-content-lint.log and
+  /private/tmp/acm-template-content-build.log.
+- Actual Content library drag, saved reload/export, real ownership denial and
+  this cohort's responsive/200% matrix remain unverified. The neutral Template
+  Preview policy conflict and lower-priority visual differences remain open.
+  No full suite was rerun; source commit isolation remains owed with earlier
+  uncommitted dependency cohorts. No push, promotion or deployment occurred.
+
+
+## Broken control repairs — 5 October 2026
+
+This is a bounded behavioural repair batch within the active parity goal.
+The baseline remains Gutenberg v24.1.0-rc.1 at
+`e3ac73cd69d472341b66c43cb77be36e838f868e`. The workspace Style Guide
+and project instructions are unversioned sources, read on 4 October 2026.
+The remaining-failure Explorer identified these defects; the main agent was
+sole Builder and template_content_verifier independently reviewed each cohort.
+No whole-block parity or goal completion is claimed.
+
+### Embed fallback conversion
+
+- Convert to link now preserves ID, name, note, locks and site role. Rich caption
+  runs, formatting, inline objects and note references remain intact. Appearance
+  moves to the canonical Paragraph-owned style through the existing transform.
+  Wide/full alignment remains; float alignments unsupported by Paragraph are
+  intentionally removed. Unsafe URLs, restricted parents and stale sources are
+  refused before mutation; acceptance requests the existing source-match guard.
+- Main and independent focused execution: 21/21. The affected inspector source
+  assertion passes. Native disposable specimen conversion, Undo, Redo and
+  Edit/Preview retain title link, caption, HTML anchor and margin. Screenshot:
+  /private/tmp/acm-embed-link-browser.png.
+- HTML serialization is checked in Node. Browser-only HTML parsing, persistence
+  reload, nested conversion and mounted Template/Mini Golf conversion are not
+  established by those checks. The exact pinned upstream Embed source was not
+  retrievable, so this is an ACM preservation-contract repair.
+
+### Social Icons Logos Only
+
+- Both service colours now consume the shared colour variable before their
+  existing brand fallback. The redundant CSS override hiding labels is removed;
+  the existing SocialIconView and showLabels flag own visibility in all styles.
+  Logos Only keeps its transparent background.
+- Main and independent focused execution: 4/4. Native Edit/Preview confirms both
+  selected colours and visible labels; disabling labels removes them, Undo
+  restores them and Redo removes them again. Clear restores the LinkedIn/TikTok
+  brand colours. Screenshot: /private/tmp/acm-social-controls-browser.png.
+- Current upstream primary references support variation-independent labels and
+  custom icon colours: Gutenberg social-links/style.scss and WordPress
+  social-link.php. These moving sources do not establish exact pinned parity.
+  Requested tablet/mobile overrides did not change the actual browser viewport
+  (innerWidth stayed 1280); responsive and 200% acceptance remain unverified.
+
+### Metadata visibility, typography and unsupported control
+
+- Author, Date and Reading Time in Edit now use the same documentFieldVisible
+  policy as Preview without deleting authored blocks. Custom line height uses
+  the established shared metadata inheritance selectors, including the badge.
+- Author's unsupported Block link-colour control and default are removed.
+  Saved values remain recoverable through retained legacy styling; Date's
+  working link-colour control remains. The inventory now has 401 profile records.
+- Main targeted execution: 3/3. Independent metadata-name execution: 7/7,
+  including those three cases and four existing metadata cases. Native shared
+  Line height controls for all three blocks compute 40px at 16px text with a 2.5
+  setting in Edit and Preview. Visibility states have actual production SSR
+  coverage; browser visibility changes, history, reset and reload remain open.
+
+### Code and Field read-only affordances
+
+- Code and text Field use native read-only attributes; select Field is disabled.
+  Each actual change callback also guards writable. Code keeps selection, copy
+  and scroll. The persistence/write-ownership contract is unchanged.
+- Main and independent focused execution: 8/8. Mounted native input interaction
+  and actual ownership-loss transitions remain unverified.
+
+### Batch checks and remaining work
+
+- Final production build, typecheck, focused lint and diff check pass. Logs:
+  /private/tmp/acm-current-controls-build.log,
+  /private/tmp/acm-current-controls-typecheck.log,
+  /private/tmp/acm-current-controls-lint.log,
+  /private/tmp/acm-embed-link-focused.log,
+  /private/tmp/acm-embed-link-behaviour.log,
+  /private/tmp/acm-social-controls-focused.log,
+  /private/tmp/acm-metadata-controls-focused.log and
+  /private/tmp/acm-readonly-fields-focused.log.
+- This batch used focused checks only. Accepted List/Table/formatting/icon cohorts
+  were not re-audited. The full suite remains reserved for the final integration
+  pass. Lower-priority visual differences, remaining inventory contexts and the
+  Template Preview policy question stay open.
+- Source commit isolation remains owed across the earlier uncommitted dependency
+  cohorts and unrelated dirty files; this batch is not represented as a verified
+  standalone source commit. No push, promotion or deployment occurred.
+
+## Publication visibility preservation — 5 October 2026
+
+- Route: read-only Explorer, main-agent sole Builder, separate read-only
+  Verifier. Governing sources remain the unversioned workspace/project
+  instructions and Style Guide recorded above; this is a local ACM content
+  persistence repair, not an additional upstream parity claim.
+- Explorer confirmed that publishing dropped document-field visibility, so
+  hidden Author, Date and Reading Time reappeared after the publication reader
+  and both page render paths. The repair freezes all six existing display fields
+  from the exact selected template snapshot plus explicit document overrides.
+  It preserves authored blocks and values, while retaining intentional removal
+  of private editorial metadata from published blocks.
+- Publication writers now use envelope 18 and retain readers for 1–17. Existing
+  snapshots without visibility keep Show defaults without consulting a live
+  draft or template. Inline-object version floors remain unchanged. A shared
+  validator owns the existing workspace, template and publication visibility
+  contract. Both page paths consume one publication-document projection.
+- Main focused regression execution: 16/16. Actual owned publish, saved JSON,
+  actual publication reader and production page presentation branches cover
+  all six hidden/shown fields with and without a template, exact selected
+  template inheritance, document overrides, Update, older envelopes 1–17,
+  malformed policy rejection without overwrites, Unpublish and Bin restore.
+  The page harness withholds hooks/effects: it is not a mounted browser reload.
+- Independent review accepted the source and ran 13/13 initial focused cases.
+  Three further invalid-draft fixtures were then added without changing the
+  implementation. Related publication, backup, template and ownership checks
+  passed 46/47 initially; the unsupported-version fixture still used newly
+  supported 18. Changing only that boundary fixture to unsupported 19 gives
+  1/1 on its targeted rerun. Existing output-version assertions now expect 18;
+  old input-version fixtures remain intact.
+- Final production build, typecheck and diff check pass. Scoped lint passes.
+  Logs: /private/tmp/acm-publication-display-tests.log,
+  /private/tmp/acm-publication-display-contracts.log,
+  /private/tmp/acm-publication-display-ownership.log,
+  /private/tmp/acm-publication-display-build.log,
+  /private/tmp/acm-publication-display-typecheck.log and
+  /private/tmp/acm-publication-display-lint.log.
+- Mounted fresh article loading, native visibility/history/reset interaction,
+  browser storage reload and responsive acceptance remain open. No full-suite
+  run, push or deployment occurred. Source commit isolation remains owed across
+  the earlier uncommitted dependency cohorts; this repair does not certify the
+  wider inventory or complete the goal.
+
+## Column width owner repair — 5 October 2026
+
+- Route: read-only Explorer, main-agent sole Builder, independent read-only
+  Verifier. Governing unversioned instruction and Style Guide sources remain
+  the recorded baseline. This is a local content-owner repair; it does not
+  claim additional Gutenberg coverage.
+- Explorer confirmed that Main and Mini Golf replaced the selected Column with
+  its parent Columns after a Width edit, duplicating identities and invalidating
+  the content graph. An explicit parent-width command now replaces the actual
+  parent, rejects a changed or missing parent and switched document, validates
+  the full graph and retains insertion restrictions and existing lock checks.
+- Parent lookup is shared by Main, Template and Library. Width redistribution
+  reserves the existing reader minimum of 5% for every sibling; the control's
+  maximum uses the same column-count rule. Missing/single-child parent width
+  editing remains unavailable. The Library now uses the real command with
+  temporary history and its documentation no longer describes Width as disabled.
+- Focused regression execution: 11/11. Actual Main/Mini Golf configuration
+  callbacks, the inspector's parent callback, nested/restricted content, finite
+  limits, stale graphs, unchanged-history cases, whole-parent Undo/Redo, workspace
+  reader and Mini Golf portable-page JSON round trips, and the actual read-only
+  workspace commit guard are covered. Existing proportional Columns HTML
+  rendering and identity round trip: 1/1 on a targeted execution.
+- Native Library input changes 62%/38% to 25%/75%, retaining both paragraph
+  texts. Visible Undo/Redo and Command+Z/Command+Shift+Z with specimen focus
+  restore both states. Edit and Preview compute the same 1:3 ratio. Screenshot:
+  /private/tmp/acm-column-width-edit.png. Library state is memory-only; this is
+  not proof of Main/Mini Golf browser persistence reload.
+- Independent review initially passed 10/10 and returned the single-column
+  Library availability and trailing-whitespace corrections to the same Builder.
+  Independent correction review accepted both changes and ran the new Library
+  regression 1/1, giving 11 independently executed cases without rerunning
+  accepted cases. Final production build, typecheck and scoped lint pass;
+  the touched inspector still has three existing accessibility lint findings,
+  confirmed against the pre-change snapshot. No new inspector lint finding.
+  Diff check passes. Logs: /private/tmp/acm-column-width-tests.log,
+  /private/tmp/acm-column-width-html.log, /private/tmp/acm-column-width-build.log,
+  /private/tmp/acm-column-width-typecheck.log, /private/tmp/acm-column-width-lint.log
+  and /private/tmp/acm-column-width-lint-baseline.log.
+- The subsequent Columns layout/count cohort below repairs the invalid Top CSS
+  mapping and unrestricted count reduction. Main/Mini Golf native ownership/reload,
+  responsive/200% acceptance, remaining matrix contexts and source commit
+  isolation remain open. No full-suite run, push, publication or deployment.
+
+## Columns alignment and guarded count — 5 October 2026
+
+- Route: Explorer, main-agent sole Builder, independent read-only Verifier.
+  The shared layout mapper translates stored Top to CSS `start`; Columns,
+  Group and Section retain their saved values and reuse that mapper.
+- Count changes now use the canonical parent command in Main, Mini Golf,
+  Template and the memory-only Library. Reductions preserve content order and
+  metadata, and refuse moves into a restricted destination or removal/movement
+  of locked blocks. The pane explains a refused reduction. Stale parents,
+  switched documents and invalid resulting graphs are rejected. Additions
+  allocate identities once. Template Width also uses the canonical guard.
+- New focused checks: 11/11, independently repeated 11/11. Related Column
+  Width regressions: 11/11. The production build completed; scoped lint produced
+  no diagnostics. The typecheck log contains no diagnostics; its process exit
+  result was lost during output truncation and is not recorded as confirmed.
+  Final diff check passes. No full-suite run for this cohort.
+- Native Columns measurements confirm Top, Centre, Bottom and Stretch in Edit
+  and Preview with unequal-height contents. A restricted reduction is disabled
+  with an explanation; an allowed reduction preserves both paragraphs, and
+  Undo/Redo restores the column count. Evidence:
+  `/private/tmp/acm-columns-layout-alignments.json`,
+  `/private/tmp/acm-columns-top-edit.png` and
+  `/private/tmp/acm-columns-restricted-count.png`.
+- Independent review accepted the source and supplied browser evidence. HTML
+  checks cover serialisation only. Mounted Main/Mini Golf/Template reload and
+  ownership transitions, Group/Section native rendering, responsive/200% checks,
+  remaining inventory contexts and source commit isolation remain open. This
+  bounded acceptance does not certify the wider inventory or complete the goal.
+
+## Featured Image source and dimensions — 5 October 2026
+
+- Explorer → main-agent sole Builder → independent read-only Verifier accepted
+  the shared safe source resolver and image presentation. Managed images now
+  appear in ordinary Preview; resolved Edit images own their dimensions instead
+  of inheriting the empty placeholder's fixed ratio. Template images reuse both
+  contracts. Missing sources and hidden document fields retain their policy.
+- New focused checks: 15/15, independently repeated. Related frame checks: 4/4.
+  Typecheck and production build pass. Scoped lint retains the same seven
+  pre-existing Canvas errors, with no new error. Diff check passes. No full suite.
+- Native memory-only Library evidence covers all five aspect ratios with Auto
+  height, explicit dimensions, Cover/Contain/Fill, link safety and Undo/Redo.
+  At 768px and 390px the image and inspector controls remain contained. Auto
+  width follows the available box; the specimen's existing Preview selection
+  border accounts for its 2px width difference. Evidence:
+  `/private/tmp/acm-featured-image-browser.json`,
+  `/private/tmp/acm-featured-image-preview.png` and
+  `/private/tmp/acm-featured-image-tests.log`.
+- Mounted Main/Mini Golf/Template ownership, saved reload/export and actual
+  200% zoom remain unverified. Normal Image's native dimension, decorative,
+  custom-link and lightbox checks are recorded separately in
+  `/private/tmp/acm-image-pane-evidence.json`. No publication or deployment.
+
+## Social Icons frame and foreground ownership — 5 October 2026
+
+- Explorer identified duplicate Preview border/radius/margin on both the shared
+  wrapper and inner navigation. The sole Builder retained the outer owner and
+  reused a three-variable icon-colour projection in Edit and Preview. Child
+  frames, palette/gradient values, layout, labels and safe links are unchanged.
+- Rendered checking exposed a related contrast failure: generic block-link
+  rules replaced the default white social foreground with off-black. Ordinary
+  link normal/hover selectors now exclude social links in Studio and public
+  prose, preserving their dedicated foreground and decoration rules.
+- New regression checks: 7/7 plus the new CSS case 1/1, independently verified.
+  Related Social Icons checks: 4/4. Typecheck and the final CSS production build
+  pass; the build is recorded in `/private/tmp/acm-social-frame-build-final.log`.
+  Scoped lint retains the same seven pre-existing Canvas errors. Diff check
+  passes. No full suite was run.
+- Native memory-only Library evidence covers all three variations, one outer
+  2px border/11px margin/9px radius, actual 2px → 5px Undo/Redo, default white
+  foreground, authored palette colour in Edit/Preview and Logos Only, and colour
+  Undo. Reset Example restores the fixture and deliberately clears history.
+  At 768px and 390px there is no horizontal document overflow and visible pane
+  controls remain contained. Evidence: `/private/tmp/acm-social-frame-browser.json`
+  and `/private/tmp/acm-social-frame-preview.png`.
+- Additional native control coverage records both orientations and all four
+  justifications in Edit/Preview, 12px/20px gap axes, wrapping off, labels off,
+  same-tab links and all four icon sizes. Both children's URL/label/rel changes
+  update their intended links; subsequent parent changes preserve those values
+  and add the new-tab safety tokens. Evidence:
+  `/private/tmp/acm-social-controls-browser.json` and
+  `/private/tmp/acm-social-children-browser.json`.
+- Mounted owner reload/export, real public/template presentation, native hover
+  and 200% zoom remain unverified; renderer SSR and selector checks do not claim
+  those runtime contexts. The wider matrix and coherent source commit remain
+  open. Work remains local.
+
+## Mini Golf shared block context — 5 October 2026
+
+- Explorer found that the generic Edit fallback omitted the document and
+  managed-media context passed by Preview. The sole Builder added those props
+  to the existing shared BlockField, including the selected managed Image URL,
+  and forwarded the media lookup to the canonical score-table fallback.
+- Actual component SSR verifies populated Title, Subtitle, Author and both Date
+  sources, visibility overrides, nested metadata and managed images, safe/missing
+  image handling, absent metadata and whole-document reading time. The canonical
+  score-table Preview resolves managed images in its cell and caption. Its Edit
+  prop check establishes document/root-block/media identity; rich-text contents
+  initialise through browser effects and are not certified by that SSR check.
+- Final focused checks: 9/9 actual-component cases and 1/1 Edit prop-contract
+  case, independently accepted. Typecheck, production build and scoped lint
+  pass. Diff check passes. The full suite was not rerun. Evidence is recorded in
+  `/private/tmp/acm-mini-golf-context-tests.log`,
+  `/private/tmp/acm-mini-golf-context-props-tests.log`,
+  `/private/tmp/acm-mini-golf-context-typecheck.log` and
+  `/private/tmp/acm-mini-golf-context-build.log`.
+- Mounted Main editing remains paused with the visible Connection lost state.
+  View → Preview in new tab renders the saved document through the explicit
+  read-only route. No authoring mutation, takeover or existing-draft replacement
+  was performed. Main/Template owner persistence and Mini Golf mounted authoring
+  checks remain open; Mini Golf has no supported disposable-copy command.
+- This is a local context-propagation fix, not complete Mini Golf or editor
+  parity. The wider inventory and coherent source commit remain open.
+
+## Mini Golf canonical editing delegate — 5 October 2026
+
+- Explorer identified missing generic adapter callbacks for List targeting,
+  links, nested insertion and shared controls. The sole Builder extracted the
+  existing complete Canvas BlockField contract into one local renderer and
+  offered it to presentation adapters. Generic Mini Golf blocks and rich
+  score-table fallbacks use it; specialised runtime presentation stays scoped.
+- Native checks exposed outer Group selection overriding a focused nested List.
+  Wrappers now resolve the deepest document-owned block. Independent review
+  identified missing nested Table toolbars in specialised Sections; nested
+  delegates now receive one shared toolbar while roots retain Canvas ownership.
+- Focused checks pass 59/59 across delegate, Mini Golf presentation and actual
+  block-context tests. The broader related run caught a synthetic selection
+  event without a target; null-safe target resolution retains the parent fallback.
+  Typecheck and final production build pass. Scoped lint retains seven existing
+  Canvas errors and two warnings; it is not a clean lint result. Diff check passes.
+  Logs: `/private/tmp/acm-adapted-editor-final-tests.log`,
+  `/private/tmp/acm-adapted-editor-final-typecheck.log`,
+  `/private/tmp/acm-adapted-editor-final-build.log` and
+  `/private/tmp/acm-adapted-editor-lint.json`.
+- The memory-only selection Library can use the real Mini Golf adapter. Native
+  evidence confirms second root List Bold with Undo/Redo, nested List Italic,
+  intended non-first score cell Bold with the other three cells unchanged,
+  caption-only hyperlink, specialised Section second List item Italic, and
+  insertion into the second nested Column with Undo/Redo of the same child ID.
+  Read-only fields have contenteditable=false. Evidence:
+  `/private/tmp/acm-adapted-editor-browser.json` and
+  `/private/tmp/acm-adapted-editor-nested-table.png`.
+- The independent Verifier accepted the bounded delegate, owner and toolbar
+  correction from source, focused regressions and saved native evidence.
+  Group/Column appenders and an already-open Library remain apparently enabled
+  in read-only mode despite guarded mutation; their availability is not accepted.
+- The exact historical 150-test/21-failure artefact could not be located. Older
+  available logs contain stale source-owner assertions and deferred colour
+  differences; all 21 failures have not been individually closed. Mounted owner
+  persistence/reload/export, real Mini Golf authoring and 200% zoom remain open.
+  The full suite and coherent source commit remain owed; work remains local.
+
+## Read-only nested insertion availability — 5 October 2026
+
+- Explorer confirmed that existing write guards refuse mutations, while nested
+  appenders and an open Block Library still advertised insertion. The sole
+  Builder reused one Group/Section/Column appender, disabled unavailable tiles
+  and dragging, and guarded opening, dispatch and drag entry against the current
+  writable reference. Existing drag cancellation and drop guards remain intact.
+- Focused checks pass 28/28; Main and Mini Golf repeated docked insertion checks
+  pass 2/2. The block-placement harness now supplies the actual shared insertion
+  helper used by the production drop handler. A separate Template sticky-library
+  harness still lacks the current insertContent command and remains unresolved.
+  Typecheck and production build pass. Scoped lint reports seven existing Canvas
+  errors, two warnings and the existing hook-rule error in block-placement's
+  synthetic loop; the new regression file has no lint findings. Diff check passes.
+- Memory-only native evidence confirms disabled nested appenders and Library
+  tiles after editing becomes unavailable, draggable=false, usable search and
+  Close, and a new Paragraph in the intended empty Column after restoring editing.
+  Both canonical and Mini Golf presentations were checked. Evidence:
+  /private/tmp/acm-readonly-insertion-browser.json and
+  /private/tmp/acm-readonly-insertion-browser.png; focused/build/typecheck logs
+  use the same acm-readonly-insertion prefix.
+- Independent read-only review accepts this bounded fix. Between-block insertion
+  controls still appear enabled and are a separate remaining issue. Saved-draft
+  ownership, persistence/export and wider insertion parity are not certified.
+  The complete outcome matrix, full suite and coherent commit remain open.
+
+## Individual control outcomes and complete source inventory — 5 October 2026
+
+- The previous status-only goal turn made no implementation progress. This pass
+  returned to the first priority: explicit individual inventory outcomes before
+  opening further implementation cohorts. The main agent was Explorer and sole
+  documentation Builder; a separate read-only Verifier reviewed the matrix.
+- All 426 existing block/property identities and their order are preserved. Each
+  row now records an outcome, evidence boundary and remaining acceptance. Totals:
+  360 Unverified, 33 Bounded accepted, 9 Partial, 9 Configuration exclusion,
+  10 No exposed control and 5 Intentionally hidden. Compound field ownership is
+  retained; one accepted subfield does not certify the entire composite control.
+- Atomic source records add 207 menu/action/form entries and 344 pane/subordinate
+  entries, including Document, Studio, View, Template, Navigation and supporting
+  Files/template-library controls: 977 total records. Dynamic palette colours,
+  allowed block types, library tiles and optional property choices remain
+  parameterised operations with explicit conditions and canonical source owners.
+  Main Document Styles intentionally has no separate document-level overrides.
+  Backup/Bin/Design/Sites are navigation destinations, not new application audits.
+- Independent review confirmed preservation of the property rows and unique
+  atomic IDs. Its hand-back removed two invented Allowed Blocks controls and
+  narrowed Table alignment evidence to the recorded Right choice. Left/Centre
+  remain unverified; the composite alignment row is Partial. The final amended
+  inventory passed independent read-only review, including the 977-record recount
+  and sampled supporting Files/Template owners.
+- Structural counting and identity checks passed; scoped git diff --check passed.
+  No implementation code or persisted product content changed for this inventory pass, and
+  no behaviour tests, build or full suite were rerun. A source-only outcome is
+  not native interaction evidence or whole-editor parity.
+- Current Template canonical-delegate formatting, cover/between/end read-only
+  appender availability and sticky-library harness repairs are implemented but
+  await final accepted evidence. The live Template caption-anchor activation
+  failure remains an open bounded diagnostic; it is not closed by successful
+  toolbar Link creation. Their focused logs are separate from this inventory.
+- The wider goal remains active. Remaining accepted-context gaps, highest-impact
+  defects, final full-suite classification and a coherent implementation commit
+  remain outstanding. Work stays local; no push, publication or deployment.
