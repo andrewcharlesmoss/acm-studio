@@ -50,7 +50,7 @@ const sharedSymbols: Partial<Record<StudioIconName, IconName>> = {
   info: "state.info",
   lock: "security.lock",
   "lock-open": "security.unlock",
-  list: "text.list-bulleted",
+  list: "view.list",
   "more-vertical": "action.more",
   paragraph: "text.paragraph",
   quote: "text.quote",

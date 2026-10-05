@@ -4,6 +4,8 @@
 
 ### Added
 
+- The editor List View button now uses a new shared `@acm/icons` List View mark with the three-line stepped outline shown in Gutenberg.
+
 - Homepage local-site actions resolve current running ports through Project Ports, with shared discovery, clear unavailable states and a fresh lookup before opening. Hosted links remain separate.
 
 - Insert and replace inline images without leaving the editor, with reusable image controls, changed-only width and alternative-text editing, caret restoration and Undo/Redo. Managed images render in rich captions and table cells.
