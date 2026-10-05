@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { useEffect, useRef } from "react";
+import { StudioFocusOutlineSetting } from "../focus-outline-preferences";
 import "@acm/ribbon/styles.css";
 import "../ribbon/ribbon-library.css";
 import "../panes/pane-library.css";
@@ -50,6 +51,7 @@ export function StudioUiLibrary({ section, activeSection = section, onSectionCha
     <header className="ui-library-header">
       <a href="/studio"><AcmIcon name="navigation.back" size={20} />ACM Studio</a>
       <strong>Studio UI Library</strong>
+      <StudioFocusOutlineSetting />
     </header>
     <div className="ui-library-sections" role="tablist" aria-label="Studio UI Library Sections">
       {sections.map((item) => <button key={item.id} ref={node => { tabRefs.current[item.id] = node; }} type="button" role="tab" id={`studio-ui-tab-${item.id}`} aria-controls="studio-ui-section-panel" aria-selected={activeSection === item.id} tabIndex={activeSection === item.id ? 0 : -1}

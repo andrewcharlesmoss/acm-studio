@@ -4,6 +4,7 @@
 
 ### Added
 
+- Focus Outline offers On, Off and Keyboard Only throughout ACM Studio, including the editor and its empty appender. The Library header and editor View menu share an ownership-guarded preference that survives navigation and reloads; keyboard navigation and selected-item markings remain available.
 - Undo and Redo in the Styles sandbox, with platform shortcuts and temporary history for colour, typography, button, layout and reset actions.
 - Added a standalone Slider foundation to the Controls library, with shared accent, derived hover and pressed colours, independent temporary overrides and a visible consumer list.
 - Added dependency and consumer details to each Controls section's ownership and compatibility disclosure.

@@ -88,8 +88,28 @@ sections; consumers supply the labels, routes, permissions and active section.
 The Navigation section demonstrates that shared component directly; Workspace
 shows how it composes with the Ribbon and panes.
 
-All fixtures and interactions remain temporary component state. The library
-does not call product APIs, use write ownership or read/write browser storage.
+All catalogue fixtures and demo interactions remain temporary component state.
+Focus Outline is a deliberate user-preference exception: the Library header and
+editor View menu share On, Off and Keyboard Only across every ACM Studio route.
+On shows outlines for pointer and keyboard focus; Off hides them; Keyboard Only
+(the default) shows them after meaningful keyboard input and hides them after
+pointer input. Modifier keys alone do not switch input mode. Portalled overlays
+inherit the active choice immediately. Keyboard navigation, editing carets and
+selected-item markings remain available in every mode. Andrew explicitly
+authorised Off for ACM Studio; forced-colours mode retains visible focus.
+
+The preference survives reloads and full-page Studio navigation when saving is
+available. The isolated `acm-studio-focus-outline-v1` key accepts only the three
+modes and uses `studioWriteOwnership`: an existing writer saves it through the
+coordinator, otherwise a bounded claim loads the current preference and saves
+under the same exclusive Web Lock. It never writes content or uses an unlocked
+fallback. A denied or failed save keeps the choice on the current page and shows
+a status beside the setting. Other open pages load the saved choice on their next
+navigation or reload. Studio's route layout owns listeners and document scope;
+public article routes retain their usual focus behaviour. The setting does not
+change the shared style preset. Catalogue demos do not call product APIs or
+read/write product stores.
+
 The shared `blockCapabilityProfiles` registry is the source for the Blocks
 index and detail inventories, and for shared-style inspector ownership,
 defaults, reset fields, conditional settings and dependency links. It does not

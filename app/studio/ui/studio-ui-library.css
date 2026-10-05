@@ -1,6 +1,7 @@
 .ui-library { min-height: 100dvh; }
 .ui-library-header { min-height: 4.5rem; display: flex; align-items: center; gap: 1.5rem; padding: 1rem 2rem; border-bottom: 1px solid var(--rl-line); background: #fff; }
 .ui-library-header a { display: inline-flex; align-items: center; gap: .65rem; color: inherit; text-decoration: none; }
+.ui-library-header .studio-focus-preference { margin-left: auto; }
 .ui-library-header strong { padding-left: 1.5rem; border-left: 1px solid var(--rl-line); font-weight: 600; }
 .ui-library-sections { display: flex; gap: .5rem; padding: 0 2rem; border-bottom: 1px solid var(--rl-line); overflow-x: auto; }
 .ui-library-sections button { display: flex; flex: 0 0 auto; align-items: center; gap: .6rem; padding: .85rem 1rem; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--rl-muted); font: inherit; cursor: pointer; }

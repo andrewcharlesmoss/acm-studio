@@ -1,0 +1,28 @@
+.studio-focus-setting { align-items: center; display: inline-flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
+.studio-focus-setting select { background: white; border: 1px solid var(--rl-line); border-radius: 5px; color: inherit; min-height: 40px; padding: .4rem .6rem; }
+/* Document scope reaches Studio portals; the host removes it outside Studio. */
+html[data-studio-focus-visible="true"] body :focus { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c) !important; outline-offset: var(--focus-ring-offset, -2px) !important; }
+html[data-studio-focus-visible="false"] body :focus { outline: none !important; }
+html[data-studio-focus-visible="false"] .paragraph-custom-font-size-input:focus-within,
+html[data-studio-focus-visible="false"] .paragraph-font-size-options button:focus { box-shadow: none !important; }
+html[data-studio-focus-visible="false"] :is(.inspector-colour-control, .post-tags-input-area, .password-protection-input):focus-within,
+html[data-studio-focus-visible="false"] .sg-guide-markdown li:focus-within,
+html[data-studio-focus-visible="false"] .sg-guide-formatted [data-guide-style-path]:focus-within { outline: none !important; }
+html[data-studio-focus-visible="false"] :is(.design-page-title-input, .design-canvas-heading input, .design-all-page-title input):focus { box-shadow: none !important; }
+/* Selection outlines remain semantic marks even when focus outlines are hidden. */
+html[data-studio-focus-visible="false"] .rl-object-selected:focus { outline: 2px solid #555 !important; outline-offset: 4px !important; }
+html[data-studio-focus-visible="false"] .rl-icon-card[aria-pressed="true"]:focus { outline: 2px solid #555 !important; outline-offset: 1px !important; }
+html[data-studio-focus-visible="false"] .kb-card[aria-pressed="true"]:focus { outline: 2px solid currentColor !important; outline-offset: 2px !important; }
+html[data-studio-focus-visible="false"] :is(.canvas-block.is-selected, [data-studio-selected="true"], .is-document-field-selected):focus { outline: 1px solid #8f8f8f !important; outline-offset: -1px !important; }
+html[data-studio-focus-visible="false"] [data-studio-multi-selected="true"]:focus { outline: none !important; }
+html[data-studio-focus-visible="false"] .paragraph-gradient-options button[aria-pressed="true"]:focus { outline: 2px solid var(--accent) !important; outline-offset: 2px !important; }
+html[data-studio-focus-visible="false"] :is(.design-canvas-heading-actions, .design-all-page-actions) button.is-active:focus { outline: 2px solid #6b707566 !important; outline-offset: -1px !important; }
+@media (forced-colors: active) {
+  html[data-studio-focus-mode] body :is(:focus, .rl-icon-card[aria-pressed="true"]:focus, .kb-card[aria-pressed="true"]:focus, .paragraph-gradient-options button[aria-pressed="true"]:focus, .design-canvas-heading-actions button.is-active:focus) { outline: 2px solid Highlight !important; outline-offset: 2px !important; }
+}
+
+.studio-focus-setting { font: inherit; }
+.studio-focus-setting select { font: inherit; }
+.studio-focus-setting-status { display: block; font-size: var(--studio-ui-size, 13px); }
+.studio-view-popover .studio-focus-setting { display: flex; margin: .75rem; }
+.studio-view-popover .studio-focus-setting-status { margin: .75rem; }

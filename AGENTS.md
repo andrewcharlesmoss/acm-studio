@@ -81,6 +81,18 @@ Studio interface text uses Gutenberg's 13px system UI baseline through
 smaller than that token: use hierarchy, weight, colour and spacing instead.
 Article and block content may retain their content-specific typography.
 
+ACM Studio's Focus Outline preference applies to every `/studio` route,
+including the editor, appender and portalled overlays. On shows focus outlines
+for pointer and keyboard input, Off hides them, and Keyboard Only is the default.
+Andrew explicitly authorised Off as an accessibility exception for this scope;
+keyboard navigation, editing carets and selected-item markings remain available,
+and forced-colours mode retains visible focus. Public article routes are outside
+this scope. The Library header and editor View menu share the setting. Its exact
+enumerated preference is saved through `studioWriteOwnership`, using the existing
+writer or a bounded claim of the same Web Lock; load the latest preference before
+writing and never save without ownership. A denied or failed save applies only
+to the current page and must be reported visibly. See `docs/studio-ui-library.md`.
+
 The Pane section of the Studio UI Library documents the shared internal Pane
 components used by Studio Navigation, Block Library, Editor Inspector, Design
 Pages/Layers and Design Properties. Its component contract is v1.0.0; see

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { StudioFocusOutlineSetting } from "./focus-outline-preferences";
 import { StudioIcon } from "./studio-icons";
 
 export type StudioViewport = "desktop" | "tablet" | "mobile";
@@ -42,6 +43,7 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
         closeMenu();
         return;
       }
+      if (event.target instanceof HTMLSelectElement) return;
       if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
         const items = [...(rootRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]:not(:disabled)') ?? [])];
         const current = items.indexOf(document.activeElement as HTMLElement);
@@ -76,13 +78,14 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
       <span>View</span><StudioIcon name="chevron-down" size={16} aria-hidden="true" />
     </button>
     {open ? <div className="studio-view-popover" role="menu" aria-label="View options">
-      <div className="studio-view-popover-heading"><strong>View</strong><button ref={closeRef} type="button" aria-label="Close View menu" onClick={closeMenu}><StudioIcon name="close" size={18} /></button></div>
+      <div className="studio-view-popover-heading"><strong>View</strong><button ref={closeRef} type="button" aria-label="Close View menu" onClick={() => closeMenu()}><StudioIcon name="close" size={18} /></button></div>
       <div className="studio-view-group" aria-label="Preview viewport">
         {viewports.map(item => <button ref={viewport === item.id ? activeViewportRef : null} className="studio-view-option" type="button" role="menuitemradio" aria-checked={viewport === item.id} key={item.id} onClick={() => chooseViewport(item.id)}>
           <span><strong>{item.label}</strong><small>Preview {item.label.toLowerCase()} viewport.</small></span>
           {viewport === item.id ? <StudioIcon name="check" size={18} aria-hidden="true" /> : null}
         </button>)}
       </div>
+      <div className="studio-view-group"><StudioFocusOutlineSetting /></div>
       <div className="studio-view-group studio-view-responsive" aria-disabled="true">
         <span className="studio-view-option is-unavailable"><span><strong>Responsive styles</strong><small>Viewport-specific style editing is not available in Studio yet.</small></span></span>
       </div>
