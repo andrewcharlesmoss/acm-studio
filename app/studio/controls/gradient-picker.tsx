@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioButton } from "./button";
 import { watchInspectorPopover } from "../panes/inspector-popover-position";
 import { createPortal } from "react-dom";
 import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
@@ -135,7 +136,7 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
       </div>
       <strong className="paragraph-gradient-presets-label">DEFAULT</strong>
       <div className="paragraph-gradient-options" role="group" aria-label="Default gradients">{DEFAULT_GRADIENTS.map(preset => <button key={preset.name} type="button" title={preset.name} aria-label={`Gradient: ${preset.name}`} aria-pressed={JSON.stringify(gradient) === JSON.stringify(preset.value) && Boolean(value)} style={{ backgroundImage: paragraphBackgroundGradientCss(preset.value) }} onClick={() => { onChange(JSON.stringify(gradient) === JSON.stringify(preset.value) && value ? undefined : preset.value); setSelectedStop(null); setInserting(false); }} />)}</div>
-      {value ? <div className="paragraph-gradient-footer"><button className="studio-clear-action" type="button" onClick={() => { onChange(undefined); setSelectedStop(null); setInserting(false); }}>Clear</button></div> : null}
+      {value ? <div className="paragraph-gradient-footer"><StudioButton variant="text" type="button" onClick={() => { onChange(undefined); setSelectedStop(null); setInserting(false); }}>Clear</StudioButton></div> : null}
     </div>, document.body) : null}
     {isOpen && (activeStop || inserting) ? createPortal(<div ref={stopPopoverRef} className="paragraph-colour-palette paragraph-gradient-stop-popover" role="dialog" aria-label={inserting ? "Insert gradient control point" : "Gradient control point colour"} style={stopPosition}>
       <PopoverHeading closeRef={stopCloseRef} closeLabel="Close control point colour picker" onClose={closeStopEditor}><span className="visually-hidden">Control point colour</span></PopoverHeading>

@@ -12,7 +12,8 @@ const buttonPreset: CSSProperties = {
 } as CSSProperties;
 
 /** Scope the shared preset to this action, without styling neighbouring controls. */
-export function StudioButton({ variant = "base", className, style: buttonStyle, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "base" | "secondary" }) {
+export function StudioButton({ variant = "base", className, style: buttonStyle, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "base" | "secondary" | "text" }) {
+  if (variant === "text") return <button {...props} style={buttonStyle} className={`acm-button acm-button-text studio-text-action${className ? ` ${className}` : ""}`} />;
   const style = {
     ...buttonPreset,
     "--studio-button-background": `var(--acm-button-${variant}-background)`,

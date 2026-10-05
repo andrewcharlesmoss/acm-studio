@@ -4,6 +4,8 @@
 
 ### Added
 
+- Shared Text action buttons keep Clear and inspector Reset All consistently blue, with central hover, pressed, focus and disabled states and a working Controls specimen.
+
 - Paragraph Typography now offers Font for individual block overrides, with Default restoring inheritance. The reusable Font selector and its working Controls specimen share font choices with the content renderer.
 
 - The editor List View button now uses a new shared `@acm/icons` List View mark with the three-line stepped outline shown in Gutenberg.

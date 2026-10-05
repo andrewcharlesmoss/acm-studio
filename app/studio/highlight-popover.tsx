@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioButton } from "./controls/button";
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { HighlightChannel, highlightColoursAtRange } from "../content/text-highlight";
@@ -93,7 +94,7 @@ export function HighlightPopover({ editor, anchor, colours, disabled, onChange, 
         <div><span>{active.mixed ? "Mixed colours" : active.value ? "Custom colour" : "No colour selected"}</span>{active.value ? <span className="paragraph-colour-preview-value">{active.value}</span> : null}</div>
       </div>
       <ColourSwatches value={active.value ? resolvedColour : undefined} onChange={value => onChange(channel, value)} disabled={disabled} />
-      <div className="highlight-colour-actions"><button type="button" className="highlight-close" aria-label="Close Highlight" title="Close" onClick={() => onClose()}><StudioIcon name="close" size={16} /></button><button type="button" className="studio-clear-action" disabled={disabled || !active.hasColour} onClick={() => { onChange(channel); requestAnimationFrame(() => tabRefs.current[channel === "textColor" ? 0 : 1]?.focus()); }}>Clear</button></div>
+      <div className="highlight-colour-actions"><button type="button" className="highlight-close" aria-label="Close Highlight" title="Close" onClick={() => onClose()}><StudioIcon name="close" size={16} /></button><StudioButton variant="text" type="button" disabled={disabled || !active.hasColour} onClick={() => { onChange(channel); requestAnimationFrame(() => tabRefs.current[channel === "textColor" ? 0 : 1]?.focus()); }}>Clear</StudioButton></div>
     </div>
     {customOpen ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom highlight ${label} colour picker`} style={customPosition as CSSProperties}>
       <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={closeCustom}>Custom colour</PopoverHeading>

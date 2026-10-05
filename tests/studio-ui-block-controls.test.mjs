@@ -296,8 +296,8 @@ test("List compatibility records recursive nesting and independent List Item ins
 });
 
 test("every reusable Controls entry has a grouped anchor specimen and compatible direct route", () => {
-  assert.equal(studioControlEntries.length, 22);
-  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 22);
+  assert.equal(studioControlEntries.length, 23);
+  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 23);
   for (const entry of studioControlEntries) {
     assert.equal(studioControlEntryById[entry.id], entry);
     assert.ok(entry.purpose && entry.owner && entry.consumers.length && entry.states && entry.compatibility, entry.id);

@@ -96,3 +96,5 @@
   .ui-controls-page .paragraph-length-controls input[type="range"] { grid-column:1 / -1; width:100%; min-width:0; }
   .ui-controls-page .paragraph-length-controls input[type="number"] { width:100%; }
 }
+
+.ui-text-action-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }

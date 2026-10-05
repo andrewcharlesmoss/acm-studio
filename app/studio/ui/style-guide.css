@@ -106,7 +106,7 @@
 .sg-guide-heading h2, .sg-source-detail-heading h3 { margin: .2rem 0 0; font-size: 1rem; overflow-wrap: anywhere; }
 .sg-guide-heading > span, .sg-source-detail-heading > span { color: var(--rl-muted); font-size: .8125rem; white-space: nowrap; }
 .sg-source-detail { display: grid; gap: .55rem; border: 1px solid var(--rl-line); border-radius: 7px; padding: .7rem; background: #fbfbfa; }
-.sg-source-detail-heading button, .sg-guide-search button { min-height: 36px; border: 1px solid var(--rl-line); border-radius: 5px; padding: .35rem .5rem; background: white; cursor: pointer; }
+.sg-source-detail-heading button:not(.acm-button-text), .sg-guide-search button { min-height: 36px; border: 1px solid var(--rl-line); border-radius: 5px; padding: .35rem .5rem; background: white; cursor: pointer; }
 .sg-source-help { margin: 0; color: var(--rl-muted); font-size: var(--studio-ui-size, .8125rem); }
 .sg-source-detail dl { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: .3rem .6rem; margin: 0; font-size: .8125rem; }
 .sg-source-detail dl div { display: contents; }

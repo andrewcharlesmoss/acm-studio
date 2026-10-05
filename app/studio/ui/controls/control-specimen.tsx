@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioButton } from "../../controls/button";
 import { useRef, useState } from "react";
 import { StudioAnchoredMenu } from "../../overlays/anchored-menu";
 import { StudioMenuItem } from "../../overlays/menu";
@@ -58,6 +59,7 @@ const blockLinksByControl: Record<string, string[]> = {
 };
 
 export function ControlSpecimen({ entry, sliderAccent, sliderHoverAccent, sliderPressAccent, onSliderAccentChange, onSliderHoverAccentChange, onSliderPressAccentChange }: { entry: StudioControlEntry; sliderAccent: string; sliderHoverAccent: string; sliderPressAccent: string; onSliderAccentChange: (value: string | null) => void; onSliderHoverAccentChange: (value: string | null) => void; onSliderPressAccentChange: (value: string | null) => void }) {
+  const [textActionValue, setTextActionValue] = useState<string | undefined>("Example value");
   const [headingLevel, setHeadingLevel] = useState<HeadingLevel>(2);
   const [toggle, setToggle] = useState(false);
   const [variation, setVariation] = useState<"default" | "plain" | "stripes">("default");
@@ -95,6 +97,7 @@ export function ControlSpecimen({ entry, sliderAccent, sliderHoverAccent, slider
 
   function resetExample() {
     switch (entry.id) {
+      case "text-action": setTextActionValue("Example value"); break;
       case "heading-level": setHeadingLevel(2); break;
       case "toggle": setToggle(false); break;
       case "style-variation": setVariation("default"); break;
@@ -125,6 +128,7 @@ export function ControlSpecimen({ entry, sliderAccent, sliderHoverAccent, slider
     <div className="ui-control-detail-card" aria-labelledby={`control-specimen-${entry.id}`}>
       <div className="ui-control-detail-header"><h4 id={`control-specimen-${entry.id}`}>Live specimen</h4></div>
       <div data-inspector-popover-owner="" key={resetRevision} className={`ui-control-detail-example inspector-sections${entry.id === "border-settings" || entry.id === "image-dimensions" ? " is-wide" : ""}`}>
+        {entry.id === "text-action" ? <div className="ui-control-live"><div className="ui-text-action-buttons"><StudioButton variant="text" type="button" disabled={textActionValue === undefined} onClick={() => setTextActionValue(undefined)}>Clear</StudioButton><StudioButton variant="text" type="button" onClick={() => setTextActionValue("Example value")}>Reset</StudioButton><StudioButton variant="text" type="button" disabled>Clear Disabled</StudioButton></div><p role="status">{textActionValue ?? "Value cleared"}</p></div> : null}
         {entry.id === "anchored-menu" ? <ToolbarMenuSpecimen /> : null}
         {entry.id === "link-destination" ? <LinkDestinationSpecimen /> : null}
         {entry.id === "inline-image" ? <InlineImageSpecimen /> : null}
@@ -132,7 +136,7 @@ export function ControlSpecimen({ entry, sliderAccent, sliderHoverAccent, slider
         {entry.id === "heading-level" ? <div className="ui-control-live"><HeadingLevelSetting value={headingLevel} onChange={setHeadingLevel} /><p>Selected: Heading {headingLevel}</p><HeadingLevelSetting value={2} disabled onChange={() => {}} /></div> : null}
         {entry.id === "toggle" ? <div className="ui-control-live"><ToggleSetting label="Example setting" checked={toggle} onChange={setToggle} /><ToggleSetting label="Disabled example" checked disabled onChange={() => {}} /></div> : null}
         {entry.id === "style-variation" ? <div className="ui-control-live"><StyleVariationSetting kind="quote" value={variation === "stripes" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="table" value={variation === "plain" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="quote" disabled onChange={() => {}} /></div> : null}
-        {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" paletteClassName="ui-control-colour-palette" /><PaletteColourSetting row label="Text colour" value={colour} onChange={setColour} /><p>Default: {colour ?? "Unset"} · Hover: {hoverColour ?? "Unset"}</p><button className="studio-clear-action" type="button" onClick={() => { setColour(undefined); setHoverColour(undefined); }}>Clear both colours</button></div><div className="ui-control-state-examples"><ColourPicker label="Disabled colour" value="#0088ff" onChange={() => {}} disabled wrapperClassName="ui-control-disabled" /><div className="ui-control-swatch-states" aria-label="Overlapping unset colour swatches"><ColourValueSwatch /><ColourValueSwatch overlap /></div><span>Unset swatches overlap with opaque white centres. The disabled picker cannot be opened.</span></div></div> : null}
+        {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" paletteClassName="ui-control-colour-palette" /><PaletteColourSetting row label="Text colour" value={colour} onChange={setColour} /><p>Default: {colour ?? "Unset"} · Hover: {hoverColour ?? "Unset"}</p><StudioButton variant="text" type="button" onClick={() => { setColour(undefined); setHoverColour(undefined); }}>Clear both colours</StudioButton></div><div className="ui-control-state-examples"><ColourPicker label="Disabled colour" value="#0088ff" onChange={() => {}} disabled wrapperClassName="ui-control-disabled" /><div className="ui-control-swatch-states" aria-label="Overlapping unset colour swatches"><ColourValueSwatch /><ColourValueSwatch overlap /></div><span>Unset swatches overlap with opaque white centres. The disabled picker cannot be opened.</span></div></div> : null}
         {entry.id === "custom-font-size" ? <div className="ui-control-live ui-control-size-example"><CustomFontSizeSetting value={fontSize} onChange={setFontSize} /><p>Current value: {fontSize ?? "Default"}</p></div> : null}
         {entry.id === "paragraph-length" ? <div className="ui-control-live ui-control-size-example"><ParagraphLengthSetting label="Line indent" value={indent} min={-100} max={300} onChange={setIndent} /><p>Current value: {indent ?? "Default"}</p><ParagraphLengthSetting label="Disabled example" value="16px" min={0} max={100} disabled onChange={() => {}} /></div> : null}
         {entry.id === "box-length" ? <div className="ui-control-live ui-control-size-example"><BoxLengthSetting label="Padding" value={padding} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} onChange={setPadding} /><BoxLengthSetting label="Margin" value={margin} layout="all" presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={setMargin} /><p>Padding: {padding ?? "Default"} · Margin: {margin ?? "Default"}</p><BoxLengthSetting label="Code margin" value={codeMargin} layout="vertical" presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={setCodeMargin} /><p>Current value: {codeMargin ?? "Default"}</p><BoxLengthSetting label="Disabled example" value="12px" layout="all" min={0} max={120} disabled onChange={() => {}} /></div> : null}

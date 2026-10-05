@@ -506,3 +506,15 @@ adjacent French/English runs and an empty-language RTL run. Its production menu
 uses the shared anchored popover shell with a live selection rectangle, native
 form Tab navigation, standard buttons and the catalogue Language icon. Drafts,
 formatting and history remain independent of product stores.
+
+## Shared text actions
+
+Clear actions and the inspector Reset All action use `StudioButton` with
+`variant="text"`. The framework-neutral `.acm-button-text` variant in
+`@acm/styles` owns normal, hover, pressed, focus and disabled states. Studio's
+`.studio-text-action` theme supplies its editor blue once, including portalled
+controls, with a compact 32px target. Component-specific styles own placement;
+they must not override the action colour or duplicate interaction rules.
+The Controls library includes a working Text action specimen with Clear, Reset
+and disabled actions. Callers retain their existing state and focus behaviour.
+This CSS addition does not change saved UniversalStylePreset data.

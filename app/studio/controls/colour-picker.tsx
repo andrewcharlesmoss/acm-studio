@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioButton } from "./button";
 import { watchInspectorPopover } from "../panes/inspector-popover-position";
 import { createPortal } from "react-dom";
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -145,7 +146,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       </div>
       <strong className="paragraph-colour-theme-heading">THEME</strong>
       <ColourSwatches value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={() => changeActiveColour(undefined)} disabled={disabled} />
-      {activeValue ? <button type="button" className="paragraph-colour-clear studio-clear-action" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</button> : null}
+      {activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
       {additionalControls}
       {customOpen && !disabled ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
