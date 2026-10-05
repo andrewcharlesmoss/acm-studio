@@ -12,7 +12,7 @@ export type StudioProject = {
 
 const visitSite = (href: string): StudioProjectLink => ({ label: "Visit Site", href });
 const environment = (id: string, name: "Production" | "Staging", href: string, editSiteHref?: string) => ({
-  id, name, links: [visitSite(href), { label: "Edit Site", ...(editSiteHref ? { href: editSiteHref } : {}) }],
+  id, name, links: [{ label: "Edit Site", ...(editSiteHref ? { href: editSiteHref } : {}) }, visitSite(href)],
 });
 
 // Studio owns this directory of actual sites. URLs and staging environments were
@@ -24,25 +24,25 @@ const projects: StudioProject[] = [
     environment("acm-account", "Production", "https://acm-account.andrewcharlesmoss.chatgpt.site"),
   ] },
   { id: "acm-studio", name: "ACM Studio", description: "Content, templates, files and publishing tools across ACM projects.", kind: "Website", links: [
-    visitSite("https://acm-studio.andrewcharlesmoss.chatgpt.site"),
     { label: "Edit Site" },
+    visitSite("https://acm-studio.andrewcharlesmoss.chatgpt.site"),
     { label: "Open Studio", href: "/studio" },
   ] },
-  { id: "andrew-moss", name: "Andrew Moss", description: "Personal site, writing, videos and work history.", kind: "Website", links: [visitSite("https://andrewmoss.me/"), { label: "Edit Site" }] },
+  { id: "andrew-moss", name: "Andrew Moss", description: "Personal site, writing, videos and work history.", kind: "Website", links: [{ label: "Edit Site" }, visitSite("https://andrewmoss.me/")] },
   { id: "habit-tracker", name: "Habit Tracker", description: "Daily habits, progress and notes in a local-first tracker.", kind: "Website", links: [], environments: [
     environment("habit-tracker-staging", "Staging", "https://habit-tracker-staging.andrewcharlesmoss.chatgpt.site"),
     environment("habit-tracker", "Production", "https://habit-tracker.andrewcharlesmoss.chatgpt.site"),
   ] },
-  { id: "lid-angle", name: "Lid Angle", description: "The website for the MacBook lid-angle app.", kind: "Website", links: [visitSite("https://lid-angle.andrewcharlesmoss.chatgpt.site"), { label: "Edit Site" }] },
+  { id: "lid-angle", name: "Lid Angle", description: "The website for the MacBook lid-angle app.", kind: "Website", links: [{ label: "Edit Site" }, visitSite("https://lid-angle.andrewcharlesmoss.chatgpt.site")] },
   { id: "loquafy", name: "Loquafy", description: "One-to-one social video and conversation.", kind: "Website", links: [], environments: [
     environment("loquafy-staging", "Staging", "https://staging.loquafy.com"),
     environment("loquafy", "Production", "https://loquafy.com"),
   ] },
-  { id: "loquage", name: "Loquage", description: "Browser-based visual age estimation and facial tracking.", kind: "Website", links: [visitSite("https://loquage.andrewcharlesmoss.chatgpt.site"), { label: "Edit Site" }] },
+  { id: "loquage", name: "Loquage", description: "Browser-based visual age estimation and facial tracking.", kind: "Website", links: [{ label: "Edit Site" }, visitSite("https://loquage.andrewcharlesmoss.chatgpt.site")] },
   { id: "mini-golf-scorecard", name: "Mini Golf Scorecard", description: "Local scorekeeping, player ordering and shared game summaries.", kind: "Website", links: [], environments: miniGolfSites.map(site => ({
     id: site.id,
     name: site.environmentLabel,
-    links: [visitSite(site.publicHref), { label: "Edit Site", href: site.editorHref }],
+    links: [{ label: "Edit Site", href: site.editorHref }, visitSite(site.publicHref)],
   })).sort((left, right) => ["Staging", "Production"].indexOf(left.name) - ["Staging", "Production"].indexOf(right.name)) },
 ];
 
