@@ -79,13 +79,13 @@ test("rich Button labels survive versioned workspace, publication, template and 
   set.parts[0].nodes = [button];
   assert.deepEqual(plain(templates.templateNodesFromBlocks(templates.templateEditorBlocks([button]))), [button]);
   const templateStore = { ...templates.emptyTemplateStore(), sets: [set] };
-  assert.equal(templateStore.version, "0.25.0");
+  assert.equal(templateStore.version, "0.26.0");
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0" }).sets[0].parts[0].nodes), [button]);
   const pageTemplate = set.templates.find(template => template.kind === "page");
   pageTemplate.nodes = [{ id: "authored-title", type: "heading", level: 2, text: "Title" }, { id: "authored-subtitle", type: "paragraph", text: "Subtitle" }, { id: "content-slot", type: "element", element: "content" }];
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0", defaultTemplateIds: { page: pageTemplate.id } }).sets[0].templates.find(template => template.id === pageTemplate.id).nodes), pageTemplate.nodes, "the most recent legacy reader must preserve authored default Title/Subtitle copy");
   assert.deepEqual(plain(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.24.0", set, media: [] }).set.parts[0].nodes), [button]);
-  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.26.0", set, media: [] }));
+  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.27.0", set, media: [] }));
   const saved = backup.validateStudioBackup({ format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T00:00:00Z", workspace, publications: JSON.stringify(publicationStore), templates: templateStore, media: { folders: [], assets: [] } });
   assert.deepEqual(plain(saved.workspace.documents.find(document => document.id === post.id).blocks), [button]);
 });
@@ -135,7 +135,7 @@ test("Footnote objects survive owned repository saves, publications, templates, 
     repository.save(workspace);
     assert.deepEqual(plain(repository.load().documents.find(item => item.id === document.id).blocks), blocks);
     templateRepository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.25.0");
+    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.26.0");
     assert.deepEqual(plain(templateRepository.loadTemplates(env.storage).sets[0].parts[0].nodes), blocks);
     golf.miniGolfDraftRepository.save(golfWorkspace);
     assert.deepEqual(plain(golf.miniGolfDraftRepository.load().documents[0].blocks), blocks);
@@ -174,6 +174,88 @@ test("neutral templates validate and their editor projection round-trips without
   assert.throws(() => m.validateTemplateSet(set), /metadata/);
   // Even unvalidated projection input must not preserve reserved group metadata.
   assert.equal(m.templateEditorBlocks(set.parts[0].nodes)[0].data, undefined);
+});
+
+test("Template layout controls retain semantics, alignment and Section styles through every owned boundary", async () => {
+  const env = environment(); const model = env.load("studio/template-model.ts");
+  const renderer = env.load("studio/template-renderer.tsx");
+  const packages = env.load("studio/template-package.ts");
+  const repository = env.load("studio/template-store.ts");
+  const nodes = [{ id: "layout-root", type: "group", layout: "flow", tagName: "main", ariaLabel: "Main content", blockAlign: "full", inheritLayout: true, contentSize: "320px", wideSize: "640px", children: [
+    { id: "layout-nested", type: "group", layout: "stack", tagName: "aside", ariaLabel: "Related content", blockAlign: "wide", children: [{ id: "layout-copy", type: "paragraph", text: "Retained" }] },
+    { id: "layout-columns", type: "columns", blockAlign: "full", children: [{ id: "layout-column", type: "column", width: 100, children: [{ id: "layout-section", type: "section", layout: "stack", role: "hero", visualStyle: { textColor: "#123456", backgroundColor: "#abcdef", backgroundImageMediaId: "layout-image" }, children: [] }] }] },
+  ] }];
+  const set = model.createTemplateSet(); set.parts[0].nodes = nodes;
+  const projected = model.templateEditorBlocks(nodes);
+  assert.deepEqual(plain(model.templateNodesFromBlocks(projected, nodes)), nodes);
+  assert.deepEqual(plain(model.validateTemplateSet(set).parts[0].nodes), nodes);
+  const store = { ...model.emptyTemplateStore(), sets: [set] };
+  const snapshot = { version: model.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
+  assert.deepEqual(plain(model.validateTemplateSnapshot(snapshot).set.parts[0].nodes), nodes);
+  assert.deepEqual(plain(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: model.TEMPLATE_VERSION, set, media: [{ id: "layout-image", name: "Background", type: "image/png", size: 1, createdAt: "2026-10-05T00:00:00Z", updatedAt: "2026-10-05T00:00:00Z", folderId: null, altText: "", caption: "", dataBase64: "AA==" }] }).set.parts[0].nodes), nodes);
+  assert.ok(model.templateMediaIds(set).includes("layout-image"));
+  assert.throws(() => repository.saveTemplates(store, env.storage), /read.only|ownership|editing/i);
+  const { release } = await env.own();
+  try {
+    repository.saveTemplates(store, env.storage);
+    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.26.0");
+    assert.deepEqual(plain(repository.loadTemplates(env.storage).sets[0].parts[0].nodes), nodes);
+  } finally { release(); }
+  const document = env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0];
+  for (const templatePreview of [false, true]) {
+    const output = renderToStaticMarkup(createElement(renderer.TemplateNodes, { set, document, nodes, templatePreview, mediaUrls: { "layout-image": "blob:layout-image" } }));
+    assert.match(output, /class="template-node" data-block-align="full"/);
+    assert.match(output, /<main[^>]*aria-label="Main content"[^>]*data-block-align="full"/);
+    assert.match(output, /<aside[^>]*aria-label="Related content"[^>]*data-block-align="wide"/);
+    assert.match(output, /data-block-align="full"[^>]*class="template-columns/);
+    assert.match(output, /<section[^>]*color:#123456;background-color:#abcdef/);
+    assert.match(output, /background-image:url\(&quot;blob:layout-image&quot;\)/);
+  }
+  const sharedOutput = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document, mediaUrls: { "layout-image": "blob:layout-image" } }));
+  assert.match(sharedOutput, /<div data-block-align="full"><main[^>]*aria-label="Main content"/);
+  const cleared = plain(projected);
+  delete cleared[0].tagName; delete cleared[0].ariaLabel; delete cleared[0].blockAlign;
+  delete cleared[0].children[0].blockAlign;
+  delete cleared[0].children[1].blockAlign;
+  delete cleared[0].children[1].children[0].children[0].visualStyle;
+  const reset = model.templateNodesFromBlocks(cleared, nodes);
+  assert.equal(reset[0].tagName, undefined); assert.equal(reset[0].ariaLabel, undefined); assert.equal(reset[0].blockAlign, undefined);
+  assert.equal(reset[0].children[0].blockAlign, undefined); assert.equal(reset[0].children[1].blockAlign, undefined);
+  assert.equal(reset[0].children[1].children[0].children[0].visualStyle, undefined);
+});
+
+test("Template layout validation rejects unsupported semantics and unsafe styles without rewriting input", () => {
+  const env = environment(); const model = env.load("studio/template-model.ts");
+  const cases = [
+    ...["script", "img", "onload"].map(tagName => ({ id: "invalid-group", type: "group", layout: "flow", tagName, children: [] })),
+    { id: "invalid-label", type: "group", layout: "flow", ariaLabel: 123, children: [] },
+    ...["left", "unknown", 42, {}].map(blockAlign => ({ id: "invalid-alignment", type: "group", layout: "flow", blockAlign, children: [] })),
+    ...["left", 42, {}].map(blockAlign => ({ id: "invalid-columns", type: "columns", blockAlign, children: [{ id: "invalid-column", type: "column", children: [] }] })),
+    { id: "invalid-section", type: "section", layout: "flow", visualStyle: { backgroundColor: "url(javascript:alert(1))" }, children: [] },
+    { id: "unsupported-metadata", type: "section", layout: "flow", data: { private: "discard" }, children: [] },
+  ];
+  for (const node of cases) {
+    const set = model.createTemplateSet(); set.parts[0].nodes = [node];
+    const original = JSON.stringify(set);
+    assert.throws(() => model.validateTemplateSet(set), /Invalid|unsupported|supported layout/);
+    assert.equal(JSON.stringify(set), original);
+  }
+});
+
+test("Template v0.25 readers retain existing inline capabilities while writers emit v0.26", () => {
+  const env = environment(); const model = env.load("studio/template-model.ts");
+  const packages = env.load("studio/template-package.ts");
+  const math = env.load("content/math-runs.ts");
+  const image = env.load("content/inline-image.ts");
+  const set = model.createTemplateSet();
+  const runs = [math.mathRun({ type: "math", latex: "x", alternativeText: "x" }), image.inlineImageRun({ type: "image", src: "/image.png", alt: "" }), { text: "French", marks: [{ type: "language", language: "zh-Hant-TW", direction: "ltr" }] }];
+  set.parts[0].nodes = [{ id: "legacy-inline", type: "paragraph", text: "\uFFFC\uFFFCFrench", runs }];
+  const legacy = { ...model.emptyTemplateStore(), version: "0.25.0", sets: [set] };
+  assert.deepEqual(plain(model.validateTemplateStore(legacy).sets[0].parts[0].nodes[0].runs), plain(runs));
+  assert.equal(model.validateTemplateStore(legacy).version, "0.26.0");
+  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.26.0");
+  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.26.0");
+  assert.throws(() => model.validateTemplateStore({ ...legacy, version: "0.24.0" }), /Inline objects/);
 });
 
 test("template copyright placeholders resolve repeatedly and preserve unknown tokens", () => {

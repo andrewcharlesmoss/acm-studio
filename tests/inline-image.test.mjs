@@ -99,10 +99,10 @@ test("current storage gates accept image objects and predecessor envelopes rejec
     for (const version of [22, 23]) assert.throws(() => read({ ...value, version }));
   }
   const set = templates.createTemplateSet(); set.parts[0].nodes = [paragraph];
-  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set] }).version, "0.25.0");
+  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set] }).version, "0.26.0");
   assert.throws(() => templates.validateTemplateStore({ ...templates.emptyTemplateStore(), version: "0.24.0", sets: [set] }));
   const snapshot = { version: "0.25.0", set, templateId: set.templates.find(entry => entry.kind === "post").id };
-  assert.equal(templates.validateTemplateSnapshot(snapshot).version, "0.25.0");
+  assert.equal(templates.validateTemplateSnapshot(snapshot).version, "0.26.0");
   assert.throws(() => templates.validateTemplateSnapshot({ ...snapshot, version: "0.24.0" }));
   assert.equal(containsRichTextInlineObjects({ bin: [{ nested: paragraph }] }, "image"), true);
 });

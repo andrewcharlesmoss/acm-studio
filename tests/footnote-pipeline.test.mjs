@@ -769,7 +769,7 @@ test("workspace and publication envelopes deliberately version inline-object sup
 });
 
 test("Template and Mini Golf contracts retain old records but require new envelopes for objects", () => {
-  assert.equal(TEMPLATE_VERSION, "0.25.0");
+  assert.equal(TEMPLATE_VERSION, "0.26.0");
   assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: "0.23.0" }).version, TEMPLATE_VERSION);
   const identity = { pageId: "mini-golf-home", instanceId: "prod", source: { revision: "fixture", fileHashes: {} } };
   const blocks = [...initialMiniGolfDraft.documents[0].blocks, paragraph(), notes];

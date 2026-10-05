@@ -235,8 +235,8 @@ test("new envelopes preserve multi-section data and read the preceding versions"
   }
   for (const version of [13, 14, 15, 16, 17]) assert.doesNotThrow(() => validatePublicationSnapshot({ version, posts: [] }));
   const { emptyTemplateStore, validateTemplateStore } = load("app/studio/template-model.ts");
-  const store = emptyTemplateStore(); assert.equal(store.version, "0.25.0");
-  assert.equal(validateTemplateStore({ ...store, version: "0.21.0" }).version, "0.25.0");
+  const store = emptyTemplateStore(); assert.equal(store.version, "0.26.0");
+  assert.equal(validateTemplateStore({ ...store, version: "0.21.0" }).version, "0.26.0");
   const { blocksToMiniGolfPageDefinition, parseMiniGolfPageDefinition } = load("app/studio/mini-golf-page-contract.ts");
   const definition = blocksToMiniGolfPageDefinition([multiSection()], { pageId: "page", instanceId: "instance", source: { revision: "fixture", fileHashes: {} } });
   assert.equal(definition.version, 5);

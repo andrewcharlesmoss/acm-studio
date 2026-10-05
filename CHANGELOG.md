@@ -553,6 +553,8 @@
 
 ### Fixed
 
+- Preserve Template Group semantic elements, ARIA labels and width alignment, Columns alignment and Section visual styles through editing, saving, packages and rendering.
+
 - Highlight retains fresh formatting targets across successive caret colour changes; untouched HTML and Code Apply close without adding Undo history.
 
 - Template caption links now open the shared Link preview, and read-only editor appenders correctly disable input. Block Library entry animations respect reduced motion after adopting the shared Pane.

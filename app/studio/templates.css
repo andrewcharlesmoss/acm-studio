@@ -68,6 +68,10 @@
    1200px (desktop), 768px (tablet) and 390px (mobile). */
 .template-surface { color: var(--acm-color-text-primary, var(--template-text)); background: var(--acm-color-surface, var(--template-background)); font-family: var(--acm-type-body-family, var(--template-font)); font-size: var(--acm-type-body-size, var(--template-font-size)); font-style: var(--acm-type-body-style, normal); font-weight: var(--acm-type-body-weight, 400); line-height: var(--acm-type-body-line-height, 1.6); letter-spacing: var(--acm-type-body-letter-spacing, 0); text-transform: var(--acm-type-body-transform, none); container-type: inline-size; max-width: var(--acm-layout-content-width, var(--template-content-width)); min-width: 0; overflow-wrap: anywhere; margin-inline: auto; padding: var(--acm-layout-spacing, var(--template-spacing)); border-radius: var(--acm-layout-radius, var(--template-radius)); }
 .template-surface .template-node + .template-node { margin-top: var(--template-spacing); }
+/* The editor canvas owns its root alignment. Standalone template output uses
+   the same padding-relative expansion, bounded by its own surface. */
+.template-surface.acm-universal-style-preset > .template-node[data-block-align="wide"], .template-surface.acm-universal-style-preset .template-part-content > [data-block-align="wide"] { margin-inline: calc(var(--acm-layout-spacing, var(--template-spacing)) * -.5); width: calc(100% + var(--acm-layout-spacing, var(--template-spacing))); }
+.template-surface.acm-universal-style-preset > .template-node[data-block-align="full"], .template-surface.acm-universal-style-preset .template-part-content > [data-block-align="full"] { margin-inline: calc(var(--acm-layout-spacing, var(--template-spacing)) * -1); width: calc(100% + (var(--acm-layout-spacing, var(--template-spacing)) * 2)); }
 .template-editing .template-content > .canvas-blocks { padding-top: 0; }
 .template-editing .template-content > .canvas-blocks > .canvas-appender:only-child { margin-top: 0; }
 .template-surface a { color: var(--acm-color-accent, var(--template-accent)); text-decoration-thickness: 0.08em; text-underline-offset: 0.16em; }

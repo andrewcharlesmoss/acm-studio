@@ -133,7 +133,7 @@ not empty itself. The Bin is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.25.0** (`0.25.0` in JSON).
+The template-store and JSON package schema is **v0.26.0** (`0.26.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -192,7 +192,13 @@ contract. Group Row and Stack layouts also support Gutenberg's Space between
 justification. Table cells preserve per-cell header tags and scope. Workspace
 data is now version 24, with readers for versions 2–23; local publication
 snapshots are version 18 with readers for versions 1–17, and full backups remain
-version 4. Template packages are v0.25.0, with readers for v0.1.0–v0.24.0.
+version 4. Template packages are v0.26.0, with readers for v0.1.0–v0.25.0.
+Group HTML elements, ARIA labels and block alignment, Columns alignment and
+Section visual styles round-trip through the editor, owned storage, portable
+packages and local publication snapshots. Resetting a field clears it rather
+than recovering an earlier source value. Root output uses padding-relative
+Wide/Full expansion; constrained Groups pass alignment to their child wrappers.
+The v0.25 reader retains Math, inline Image and extended Language objects.
 Group and Section templates support the Grid layout with a maximum
 column count. Group additionally supports Auto/Manual arrangement and minimum
 column width in px, em, rem or vw; Section retains its pixel-based minimum.

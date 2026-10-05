@@ -82,7 +82,7 @@ test("workspace, publication and template gates retain Footnote predecessors but
   const value = { ...initialStudioWorkspace, activeDocumentId: document.id, documents: [document] };
   assert.equal(workspace.validateStudioWorkspace({ ...value, version: 24 }).version, 24);
   for (const reader of [workspace.validateStudioWorkspace, workspace.migrateStudioWorkspace]) assert.throws(() => reader({ ...value, version: 23 }));
-  assert.equal(TEMPLATE_VERSION, "0.25.0");
+  assert.equal(TEMPLATE_VERSION, "0.26.0");
   assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: "0.24.0" }).version, TEMPLATE_VERSION);
 });
 

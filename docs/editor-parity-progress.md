@@ -2768,3 +2768,53 @@ Group semantic/alignment and Columns alignment defect remains a functional
 repair, and the explicit unverified matrix/native/persistence/export/responsive
 rows still require acceptance. No whole-editor certification, push or deployment
 is implied by this local source commit.
+
+## Template layout preservation — 5 October 2026
+
+Baseline: local integrated commit `507284e`. Explorer confirmed an inherited
+loss of Group HTML element, ARIA label and outer alignment, Columns alignment
+and Section visual styles. Main was the sole Builder; a separate read-only
+Verifier reviewed the schema, projections and final rendering ownership.
+
+- Template contracts now write v0.26.0 and retain readers through v0.25.0,
+  including existing Math, inline Image and extended Language objects. Group
+  semantics/alignment, Columns alignment and Section styles survive both
+  projection directions, owned saves, packages and publication snapshots.
+  Clearing fields removes overrides. Invalid tags, non-string labels, invalid
+  alignment strings/types and unsafe styles are rejected without changing input.
+- Validation reuses the canonical block validator while retaining Template's
+  strict metadata boundary. Existing template media collection and ownership
+  paths are reused; no workspace/publication version or ownership policy changes.
+- Root, shared-part and Column child wrappers carry alignment. Standalone
+  Template output expands Wide/Full relative to its surface padding. Canvas
+  root sizing remains owned by the existing canvas contract.
+- Focused affected checks pass 185/185; typecheck, production build, source/scoped
+  test lint and diff checks pass. Logs: `/private/tmp/acm-template-layout-final-
+  focused.log`, `acm-template-layout-final-typecheck.log`,
+  `acm-template-layout-final-build.log` and `acm-template-layout-scoped-lint.log`.
+  The touched inline-image test's three lint errors are also present at the
+  immutable baseline; retained comparison: `acm-template-layout-baseline-inline-
+  lint.log`. They are not reported as a green whole-project lint result.
+- Native memory-only Template Header replay confirms `aside` and its ARIA label
+  in Edit/Preview. Group root None/Wide/Full measured 992/1068.8/1145.6px in Edit
+  and 992/1016/1040px within Preview's own surface. Columns Wide/Full rendered
+  distinct widths; Undo/Redo changed Preview between 1016 and 1040px. A constrained
+  Group's nested paragraph measured 320px (normal), 640px (Wide) in both modes
+  and available width for Full (990px selected Edit frame, 992px Preview).
+  Screenshot: `/private/tmp/acm-template-layout-browser.png`. The example was
+  reset afterwards; existing user templates were not changed.
+- Root Wide/Full is a confirmed visual discrepancy: Edit uses its 76.8px canvas
+  gutter, Preview its 24px Template spacing. Normal widths match, but expanded
+  widths differ as recorded above. Exact root Edit/Preview width parity remains
+  deferred visual work under goal item 5; this repair accepts value preservation
+  and distinct alignment choices, not identical root dimensions. Numerical
+  measurements are Main's native public-DOM replay, not an independent replay.
+- The latest root/shared-wrapper assertions pass 11/11 focused regressions in
+  `/private/tmp/acm-template-layout-final-regressions.log`. Independent read-only
+  review accepts the bounded source repair and reviews these check logs; it
+  retains the width discrepancy and remaining mounted acceptance limitations.
+- Section style rendering has static production-renderer acceptance. Mounted
+  template owner reload, downloaded package/export re-import, Section native
+  interaction and remaining responsive/input contexts are still unverified.
+  This repair closes the confirmed field-loss defect; it does not certify the
+  remaining block/control matrix or whole-goal Gutenberg parity.

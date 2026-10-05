@@ -159,8 +159,10 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.25.0 and read versions
-v0.1.0 through v0.24.0. Published local posts retain an immutable design snapshot
+Template packages and stored template contracts use v0.26.0 and read versions
+v0.1.0 through v0.25.0. Group semantic elements, ARIA labels and block alignment,
+Columns alignment and Section visual styles survive the template projection.
+Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
