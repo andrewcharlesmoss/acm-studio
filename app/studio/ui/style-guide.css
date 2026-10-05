@@ -60,6 +60,8 @@
 .sg-preview-heading > span { color: var(--rl-muted); font-size: .875rem; }
 .sg-preview-frame { max-width: 100%; overflow: auto; border: 1px solid #d9d9d5; border-radius: 8px; background: #eee; overscroll-behavior: contain; }
 .sg-preview { min-height: 100%; margin: 0 auto; padding: clamp(1rem, 3vw, 2rem); background: var(--acm-color-surface); color: var(--acm-color-text-primary); }
+.sg-preview [data-source-selected="true"] { outline: 2px solid var(--acm-color-accent); outline-offset: 2px; }
+.sg-preview[data-source-selected="true"] { outline-offset: -4px; }
 .sg-preview-frame[data-viewport="desktop"] .sg-preview { width: min(100%, var(--acm-layout-content-width)); }
 .sg-preview-frame[data-viewport="tablet"] .sg-preview { width: 768px; }
 .sg-preview-frame[data-viewport="mobile"] .sg-preview { width: 390px; padding: 1rem; }

@@ -41,6 +41,7 @@
 
 ### Changed
 
+- Written Style Guide hover and pinned selections now visibly mark their matching live preview specimen, completing the two-way source/preview inspection link.
 - Active Reset all actions in every block inspector now use the shared `@acm/styles` accent colour.
 - The shared Elements tools menu now labels the link-colour option as Link.
 
