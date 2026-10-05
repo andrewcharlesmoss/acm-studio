@@ -271,7 +271,7 @@ test("minimum dimension controls match mapped Gutenberg block support", async ()
 test("shadow controls match mapped Gutenberg block support", async () => {
   const shadowTypes = ["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"];
   for (const type of shadowTypes) assert.ok(capabilityProfileFor(type).controls.some(control => control.id === "shadow"), `${type}:shadow`);
-  assert.equal(capabilityProfileFor("paragraph").controls.find(control => control.id === "shadow")?.source, "studio");
+  assert.equal(capabilityProfileFor("paragraph").controls.some(control => control.id === "shadow"), false);
   assert.equal(capabilityProfileFor("paragraph").controls.some(control => control.id === "text-shadow"), false);
 });
 

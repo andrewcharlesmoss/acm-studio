@@ -82,6 +82,7 @@ export function retainedLegacyStyleControls(profile: BlockCapabilityProfile, sty
   if (!style) return [];
   const ownedFields = new Set(profile.controls.flatMap(control => control.fields.map(field => field.split(".").at(-1) ?? field)));
   return (Object.entries(styleControlFields) as Array<[StyleControlId, (typeof styleControlFields)[StyleControlId]]>)
+    .filter(([id]) => !(profile.type === "paragraph" && id === "shadow"))
     .filter(([, definition]) => definition.fields.some(field => !ownedFields.has(field)) && definition.fields.some(field => style[field] !== undefined && style[field] !== "" && style[field] !== false))
     .map(([id]) => ({ ...makeStyleControl(id, "studio"), availableWhen: "Retained saved value; surfaced for editing and reset." }));
 }
@@ -245,7 +246,7 @@ const paragraphControls: InspectorControlProfile[] = [
   { ...makeStyleControl("orientation"), enabled: false, availableWhen: "Gutenberg writing mode is enabled in editor settings; not enabled in Andrew's current reference.", dependency: "writing-mode-setting" },
   { ...makeSpecificControl("background", "Background colour or gradient", "background"), fields: ["backgroundColor", "backgroundGradient"], resetFields: ["backgroundColor", "backgroundGradient"] },
   makeStyleControl("padding"), makeStyleControl("margin"), makeStyleControl("min-height", "studio"), makeStyleControl("min-width", "studio"),
-  makeStyleControl("border"), makeStyleControl("radius"), makeStyleControl("shadow", "studio"), makeStyleControl("link-colour"),
+  makeStyleControl("border"), makeStyleControl("radius"), makeStyleControl("link-colour"),
   { ...makeSpecificControl("advanced", "HTML anchor", "advanced"), fields: ["anchor"], resetFields: ["anchor"] },
   { ...makeSpecificControl("class-name", "Additional CSS class(es)", "advanced"), fields: ["className"], resetFields: ["className"] },
   { ...makeSpecificControl("additional-css", "Additional CSS declarations", "advanced"), fields: ["additionalCss"], resetFields: ["additionalCss"] },
