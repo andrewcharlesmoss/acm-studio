@@ -57,7 +57,7 @@ function BoxLengthRow({ label, settingLabel, value, min, max, allowPercent, onCh
   </div>;
 }
 
-export function BoxLengthSetting({ label, value, layout, corners = false, presets, compact = false, leadingControl, allowPercent = true, canReset = Boolean(value), disabled = false, min, max, onChange }: BoxLengthSettingProps) {
+export function BoxLengthSetting({ label, value, layout, corners = false, presets, compact = false, leadingControl, allowPercent = true, canReset = !corners && Boolean(value), disabled = false, min, max, onChange }: BoxLengthSettingProps) {
   const parts = expandBoxLengths(value);
   const [splitOverride, setSplitOverride] = useState<boolean | null>(null);
   const split = splitOverride ?? Boolean(value && (layout === "vertical" ? parts[0] !== parts[2] : value.trim().split(/\s+/).length >= (layout === "axes" ? 3 : 2)));
