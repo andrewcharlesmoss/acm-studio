@@ -685,7 +685,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .block-position + .block-position .canvas-block { margin-top: var(--studio-block-gap); }
 .canvas-block:hover { border-color: #d9d7cf; }
 .canvas-block:not(.is-selected):is(:hover, [data-studio-hovered="true"]) { border-color: #8f8f8f; outline: 1px solid #8f8f8f; outline-offset: -1px; }
-.canvas-block.is-selected { border-color: #8f8f8f; outline: 1px solid #8f8f8f; outline-offset: -1px; }
+.canvas-block.is-selected { border-color: var(--acm-color-alert, #FF383C); outline: 1px solid var(--acm-color-alert, #FF383C); outline-offset: -1px; }
 .has-multi-block-selection { --studio-block-selection-shade: color-mix(in srgb, var(--acm-color-alert, #FF383C) 30%, transparent); }
 .has-multi-block-selection [data-studio-multi-selected="true"] { border-color: transparent; outline: none; border-radius: 0; }
 .has-multi-block-selection [data-studio-multi-selected="true"]::after { background: var(--studio-block-selection-shade); content: ""; inset: -1px; pointer-events: none; position: absolute; z-index: 4; }
@@ -996,7 +996,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-nested-block { min-width: 0; position: relative; }
 /* Nested editor blocks use an inset outline so source layout is unchanged. */
 .block-canvas :is(.studio-nested-block, [data-studio-selected]):not([data-studio-selected="true"]):is(:hover, [data-studio-hovered="true"]) { outline: 1px solid #8f8f8f; outline-offset: -1px; }
-.block-canvas :is(.studio-nested-block, [data-studio-selected])[data-studio-selected="true"] { outline: 1px solid #8f8f8f; outline-offset: -1px; }
+.block-canvas :is(.studio-nested-block, [data-studio-selected])[data-studio-selected="true"] { outline: 1px solid var(--acm-color-alert, #FF383C); outline-offset: -1px; }
 .nested-add-block { align-items: center; background: transparent; border: 1px dashed #b6b4ac; color: var(--muted); display: inline-flex; gap: 6px; justify-content: center; min-height: 34px; padding: 6px 10px; }
 .social-icons-block .social-icons-appender { position: relative; }
 .social-icon-picker { background: #fff; border: 1px solid #d2d0c8; border-radius: 5px; box-shadow: 0 8px 24px rgba(27, 28, 29, .16); left: 0; padding: 10px; position: absolute; top: calc(100% + 8px); width: min(320px, calc(100vw - 32px)); z-index: 30; }

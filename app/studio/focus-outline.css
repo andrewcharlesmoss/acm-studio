@@ -13,7 +13,9 @@ html[data-studio-focus-visible="false"] :is(.design-page-title-input, .design-ca
 html[data-studio-focus-visible="false"] .rl-object-selected:focus { outline: 2px solid #555 !important; outline-offset: 4px !important; }
 html[data-studio-focus-visible="false"] .rl-icon-card[aria-pressed="true"]:focus { outline: 2px solid #555 !important; outline-offset: 1px !important; }
 html[data-studio-focus-visible="false"] .kb-card[aria-pressed="true"]:focus { outline: 2px solid currentColor !important; outline-offset: 2px !important; }
-html[data-studio-focus-visible="false"] :is(.canvas-block.is-selected, [data-studio-selected="true"], .is-document-field-selected):focus { outline: 1px solid #8f8f8f !important; outline-offset: -1px !important; }
+html[data-studio-focus-visible="false"] .canvas-block.is-selected:focus { outline: 1px solid var(--acm-color-alert, #FF383C) !important; outline-offset: -1px !important; }
+html[data-studio-focus-visible="false"] :is([data-studio-selected="true"], .is-document-field-selected):focus { outline: 1px solid #8f8f8f !important; outline-offset: -1px !important; }
+html[data-studio-focus-visible="false"] .block-canvas [data-studio-selected="true"]:focus { outline: 1px solid var(--acm-color-alert, #FF383C) !important; outline-offset: -1px !important; }
 html[data-studio-focus-visible="false"] [data-studio-multi-selected="true"]:focus { outline: none !important; }
 html[data-studio-focus-visible="false"] .paragraph-gradient-options button[aria-pressed="true"]:focus { outline: 2px solid var(--accent) !important; outline-offset: 2px !important; }
 html[data-studio-focus-visible="false"] :is(.design-canvas-heading-actions, .design-all-page-actions) button.is-active:focus { outline: 2px solid #6b707566 !important; outline-offset: -1px !important; }
