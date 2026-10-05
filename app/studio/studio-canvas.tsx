@@ -61,7 +61,7 @@ import { useFitText } from "../components/fit-text-paragraph";
 import { ArticleMetaIcon } from "../components/article-meta-icon";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeDisplay } from "../content/reading-time";
-import { imageDisplayStyle } from "../content/image-style";
+import { imageDisplayStyle, imageWrapperStyle } from "../content/image-style";
 import { resolveImageSource } from "../content/image-source";
 import { dividerRuleStyle } from "../content/divider-style";
 import { highlightCode } from "../content/code-highlighting.mjs";
@@ -2779,7 +2779,7 @@ export function BlockField(props: BlockFieldProps) {
   if (!block.visualStyle || block.type === "spacer") return content;
   const style = block.visualStyle;
   const backgroundImageUrl = ["quote", "group", "heading", "code", "document-title"].includes(block.type) && style.backgroundImageMediaId ? props.mediaUrls?.[style.backgroundImageMediaId] : undefined;
-  const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "button" || block.type === "image" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
+  const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
   if (block.type === "buttons") delete css.textDecoration;
   if (block.type === "social-icons" || block.type === "divider") { delete css.backgroundColor; delete css.backgroundImage; }
   if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";

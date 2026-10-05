@@ -2,7 +2,7 @@
 
 ## Scope and working baseline
 
-Snapshot: 5 October 2026, local branch `codex/panel-library`, baseline HEAD `098b1a8`, with bounded Quote appearance and accepted-evidence reconciliation recorded below. This is an inventory of the current working tree, not a release or an immutable source snapshot.
+Snapshot: 5 October 2026, local branch `codex/panel-library`, baseline HEAD `c9cda79`, with the bounded Image wrapper repair and Field acceptance recorded below. This is an inventory of the current working tree, not a release or an immutable source snapshot.
 
 Andrew’s revised priority is to finish the inventory, fix the highest-impact broken behaviours, reuse accepted evidence unless related code changes, run focused checks after each fix and the full suite once near the end, and defer lower-priority visual differences.
 
@@ -34,7 +34,7 @@ The documentation projection now follows the accepted Table section/reset semant
 | Footnotes (footnotes) | Canvas note editor; typed reference/companion operations; ParagraphInspector | Partial evidence; remaining controls/contexts unverified. |
 | Buttons (buttons) | BlockInspector Layout; LayoutSpacingSetting; Canvas Buttons | Partial evidence; remaining controls/contexts unverified. |
 | Button (button) | BlockInspector Button/state; rich label editor; ButtonLinkControl | Partial evidence; remaining controls/contexts unverified. |
-| Field (field) | BlockInspector Field; fieldSelectOptions; Canvas Field | Native read-only input state and handler guards checked; mounted ownership context remains unverified. |
+| Field (field) | BlockInspector Field; fieldSelectOptions; Canvas Field | Native Library label/options/value, Text/Select switching, canvas edits, visible history and Preview read-only state checked; mounted ownership and persistence contexts remain unverified. |
 | Spacer (spacer) | SpacerInspector; spacerOrientationForChildren | Partial evidence; remaining controls/contexts unverified. |
 | Title (document-title) | BlockInspector Title; document metadata; ParagraphInspector | Partial evidence; remaining controls/contexts unverified. |
 | Document Subtitle (document-subtitle) | MetadataAlignment; document metadata; ParagraphInspector | Partial evidence; remaining controls/contexts unverified. |
@@ -140,11 +140,11 @@ records remain separate availability outcomes.
 
 | Block-control outcome | Rows |
 | --- | --- |
-| Unverified | 337 |
+| Unverified | 332 |
 | Configuration exclusion | 9 |
 | Intentionally hidden | 5 |
 | Bounded accepted | 33 |
-| Partial | 32 |
+| Partial | 37 |
 | No exposed control | 10 |
 | Total | 426 |
 
@@ -927,7 +927,7 @@ This section is a source inventory generated from the current capability profile
 | Border (border) | gutenberg; inspector | borderColor, borderStyle, borderWidth |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 | Radius (radius) | gutenberg; inspector | borderRadius |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 | Shadow (shadow) | gutenberg; inspector | shadow |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| HTML anchor, CSS classes and Additional CSS (advanced) | gutenberg; inspector | title, visualStyle.anchor, visualStyle.className, visualStyle.additionalCss |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
+| HTML anchor, CSS classes and Additional CSS (advanced) | gutenberg; inspector | title, visualStyle.anchor, visualStyle.className, visualStyle.additionalCss |  | Partial | Native Additional CSS has matching Edit/Preview wrapper targets; clearing and Undo/Redo work. Anchor/class retained; single image border/shadow preserved. | Title editing, remaining CSS declarations, persistence/export, other owners, responsive and 200% zoom. |
 
 ### Embed (embed)
 
@@ -1019,10 +1019,10 @@ This section is a source inventory generated from the current capability profile
 
 | Control | Source / placement / availability | Owned fields | Condition | Outcome | Evidence / current behaviour | Remaining acceptance / change |
 | --- | --- | --- | --- | --- | --- | --- |
-| Field label (label) | studio; inspector | label |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Text or select control (control) | studio; inspector | control |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Example value (value) | studio; inspector | value |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Select options (options) | studio; inspector | options | When the control type is Select. | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
+| Field label (label) | studio; inspector | label |  | Partial | Native Library label/options/value changes reach Edit/Preview; canvas edits, Text/Select switching and history retain values including values outside options. Preview is read-only. | Mounted ownership loss, keyboard shortcuts, persistence/export, other owners, responsive and 200% zoom. |
+| Text or select control (control) | studio; inspector | control |  | Partial | Native Library label/options/value changes reach Edit/Preview; canvas edits, Text/Select switching and history retain values including values outside options. Preview is read-only. | Mounted ownership loss, keyboard shortcuts, persistence/export, other owners, responsive and 200% zoom. |
+| Example value (value) | studio; inspector | value |  | Partial | Native Library label/options/value changes reach Edit/Preview; canvas edits, Text/Select switching and history retain values including values outside options. Preview is read-only. | Mounted ownership loss, keyboard shortcuts, persistence/export, other owners, responsive and 200% zoom. |
+| Select options (options) | studio; inspector | options | When the control type is Select. | Partial | Native Library label/options/value changes reach Edit/Preview; canvas edits, Text/Select switching and history retain values including values outside options. Preview is read-only. | Mounted ownership loss, keyboard shortcuts, persistence/export, other owners, responsive and 200% zoom. |
 
 ### Spacer (spacer)
 

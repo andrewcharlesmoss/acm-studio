@@ -553,6 +553,8 @@
 
 ### Fixed
 
+- Image Additional CSS now uses the same wrapper target in Edit and Preview, with border and shadow retained on the image itself.
+
 - Quote citations now follow authored block typography in Edit and Preview, retain compact defaults after reset and preserve inner-block overrides.
 
 - List and List Item typography now reaches their bullets/numbers and nested text consistently in Edit and Preview, while preserving item overrides and reset/history.

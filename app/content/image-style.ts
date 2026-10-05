@@ -12,6 +12,16 @@ const ratios: Record<NonNullable<ImageBlock["aspectRatio"]>, string | undefined>
   wide: "16 / 9",
 };
 
+const imageFrameProperties = ["borderStyle", "borderWidth", "borderColor", "borderRadius", "boxShadow"];
+
+export function imageWrapperStyle(block: Pick<ImageBlock, "visualStyle">): Record<string, string> {
+  const style = paragraphStyleToCss(block.visualStyle);
+  // The frame belongs to the image, while spacing and Additional CSS belong
+  // to its wrapper. Both renderers must use the same split.
+  for (const property of imageFrameProperties) delete style[property];
+  return style;
+}
+
 export function imageDisplayStyle(block: ImagePresentation, options: { includeFrame?: boolean } = {}): Record<string, string> {
   const style: Record<string, string> = {};
   if (block.displayWidth) style.width = `${block.displayWidth}px`;
@@ -26,7 +36,7 @@ export function imageDisplayStyle(block: ImagePresentation, options: { includeFr
   }
   if (options.includeFrame !== false) {
     const frame = paragraphStyleToCss(block.visualStyle);
-    for (const key of ["borderStyle", "borderWidth", "borderColor", "borderRadius", "boxShadow"]) {
+    for (const key of imageFrameProperties) {
       if (frame[key]) style[key] = frame[key];
     }
   }

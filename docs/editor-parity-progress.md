@@ -2954,3 +2954,53 @@ Verifier reviewed the schema, projections and final rendering ownership.
 - Independent Verifier accepted the final source, tests, screenshot and bounded
   inventory outcomes. Its browser provider had no available browsers, so native
   evidence is Builder replay with independent source/screenshot review.
+
+## 5 October 2026 — Image wrapper styling and Field controls
+
+- Baseline `c9cda79`. Read-only Explorer identified Image Additional CSS being
+  ignored in Edit. Main reproduced it in the memory-only Library: safe red
+  outline, 12px padding and pale-red background appeared in Preview but not
+  Edit. The saved declarations remained intact.
+- Sole Builder centralises Image wrapper styling alongside `imageDisplayStyle`.
+  Both renderers use the existing bounded Additional CSS parser and the same
+  five-property frame exclusion. Border, radius and shadow belong to the image;
+  wrapper spacing and safe CSS use the wrapper. No model, storage, history, icon
+  or write-ownership changes. Preview behaviour is retained.
+- Native Library Edit/Preview now match for the three declarations. The sample
+  image retains its own 2px Solid border and Soft shadow, with no duplicate
+  wrapper frame; caption, dimensions, anchor and class remain. Clearing the CSS
+  removes only its wrapper declarations; Undo restores and Redo clears them.
+  Screenshot: `/private/tmp/acm-image-wrapper-browser.png`.
+- Four new focused tests cover actual production Edit and both Preview
+  renderers, unchanged content, frame ownership, clearing and the existing
+  rejection of unsafe CSS. Initial test assertions used incorrect fixture
+  field names and assumed partial unsafe-list acceptance; they were corrected
+  to the existing contract before the final pass.
+- Focused Image/preview/Featured Image checks pass 92/92 in
+  `/private/tmp/acm-image-wrapper-focused.log`. Build/typecheck pass in
+  `acm-image-wrapper-build.log` and `acm-image-wrapper-typecheck.log`. Scoped
+  lint has zero errors and two existing image warnings in
+  `acm-image-wrapper-lint.log`. Canvas lint retains the baseline's six errors
+  and two warnings, with matching diagnostic messages in
+  `acm-image-wrapper-canvas-lint.log` and
+  `acm-image-wrapper-canvas-baseline-lint.log`. Full suite remains deferred
+  until near the end.
+- Field requires no source correction in this pass. Actual Library label,
+  options and value changes reach Edit/Preview; canvas Select and Text changes
+  update the pane. Values outside options retain a synthetic option. Text/Select
+  switching preserves the edited value/options. Visible Undo/Redo restores
+  both canvas value paths; Preview Select is disabled and Text is read-only.
+  Screenshot: `/private/tmp/acm-field-controls-browser.png`.
+- Image Advanced and four Field rows gain Partial evidence only. Block-control
+  totals are 332 Unverified and 37 Partial; all 426 identities and the wider
+  977-record inventory remain intact. Title editing, remaining Image CSS,
+  persistent reload/export, other editor owners, keyboard history, responsive
+  presentation and actual 200% zoom remain unverified. No whole-block
+  acceptance or completion of the broader goal is claimed.
+- Reset Example restored the original Image and Field fixtures and disabled
+  their Undo/Redo controls before closing both temporary tabs. Product data
+  and Focus Outline preferences were untouched.
+- Independent read-only Verifier accepted the source, focused checks,
+  screenshots and bounded documentation with no blocker. Native evidence is
+  Builder replay with independent source/screenshot review; this does not
+  close the remaining owner, persistence, responsive or 200% acceptance gaps.

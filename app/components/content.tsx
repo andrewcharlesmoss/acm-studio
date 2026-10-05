@@ -19,7 +19,7 @@ import { blockAlignmentClass, contentBlockAlignment } from "../content/block-ali
 import { columnsLayoutStyle } from "../content/columns";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeDisplay } from "../content/reading-time";
-import { imageDisplayStyle } from "../content/image-style";
+import { imageDisplayStyle, imageWrapperStyle } from "../content/image-style";
 import { resolveImageSource } from "../content/image-source";
 import { dividerRuleStyle } from "../content/divider-style";
 import { tableCellMetadataAt, tableCellScopeFor, tableCellTagFor } from "../content/table-cell-metadata";
@@ -79,13 +79,8 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     if (!block.visualStyle || block.type === "spacer") return content;
     const style = block.visualStyle;
     const backgroundImageUrl = ["quote", "group", "heading", "code", "document-title"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
-    const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "button" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
+    const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
     if (block.type === "buttons") delete css.textDecoration;
-    if (block.type === "image") {
-      // Image border controls are applied directly to the image frame below;
-      // keep only wrapper-level styles here to avoid drawing the frame twice.
-      for (const property of ["borderStyle", "borderWidth", "borderColor", "borderRadius", "boxShadow"]) delete css[property];
-    }
     if (block.type === "social-icons" || block.type === "divider") { delete css.backgroundColor; delete css.backgroundImage; }
     if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
     const coverFrameClass = block.type === "cover-image"
