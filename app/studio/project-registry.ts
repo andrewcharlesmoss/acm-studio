@@ -10,35 +10,39 @@ export type StudioProject = {
   environments?: { id: string; name: string; links: StudioProjectLink[] }[];
 };
 
-const repository = (name: string): StudioProjectLink => ({
-  label: "View Repository",
-  href: `https://github.com/andrewcharlesmoss/${name}`,
+const visitSite = (href: string): StudioProjectLink => ({ label: "Visit Site", href });
+const environment = (id: string, name: "Production" | "Staging", href: string) => ({
+  id, name, links: [visitSite(href)],
 });
 
-// Studio owns display copy and available actions. Keep membership aligned with
-// the active independent projects in workspace-governance/PROJECTS.json.
+// Studio owns this directory of actual sites. URLs and staging environments were
+// checked against Sites metadata on 5 October 2026; library packages and projects
+// without a hosted site belong in their existing tools, not this directory.
 const projects: StudioProject[] = [
-  { id: "acm-account", name: "ACM Account", description: "Shared identity and account management for ACM projects.", kind: "Application", links: [repository("acm-account")] },
-  { id: "acm-icons", name: "ACM Icons", description: "Shared SVG symbols, keyboard artwork and icon catalogue.", kind: "Shared library", links: [{ label: "Open Icons", href: "/studio/ui/icons" }] },
-  { id: "acm-panel", name: "ACM Panel", description: "Reusable panels for ACM interfaces.", kind: "Shared library", links: [{ label: "Open Panels", href: "/studio/ui/panels" }] },
-  { id: "acm-ribbon", name: "ACM Ribbon", description: "Shared Ribbon layout, controls and keyboard navigation.", kind: "Shared library", links: [{ label: "Open Ribbon", href: "/studio/ui/ribbon" }] },
-  { id: "acm-studio", name: "ACM Studio", description: "Content, templates, files and publishing tools across ACM projects.", kind: "Application", links: [{ label: "Open Studio", href: "/studio" }] },
-  { id: "acm-styles", name: "ACM Styles", description: "Universal colours, typography, buttons and layout presets.", kind: "Shared library", links: [{ label: "Open Styles", href: "/studio/ui/styles" }] },
-  { id: "andrew-moss", name: "Andrew Moss", description: "Personal site, writing, videos and work history.", kind: "Website", links: [{ label: "Visit Site", href: "https://andrewmoss.me/" }] },
-  { id: "habit-tracker", name: "Habit Tracker", description: "Daily habits, progress and notes in a local-first tracker.", kind: "Website", links: [repository("habit-tracker")] },
-  { id: "lid-angle", name: "Lid Angle", description: "A native macOS app for measuring a MacBook’s lid angle.", kind: "macOS app", links: [repository("lid-angle")] },
-  { id: "loquafy", name: "Loquafy", description: "One-to-one social video and conversation.", kind: "Application", links: [repository("loquafy")] },
-  { id: "loquafy-mark-lab", name: "Loquafy Mark Lab", description: "Explore and refine the geometry of the Loquafy mark.", kind: "Website", links: [repository("loquafy-mark-lab")] },
-  { id: "loquage", name: "Loquage", description: "Browser-based visual age estimation and facial tracking.", kind: "Website", links: [repository("loquage")] },
+  { id: "acm-account", name: "ACM Account", description: "Shared identity and account management for ACM projects.", kind: "Website", links: [], environments: [
+    environment("acm-account", "Production", "https://acm-account.andrewcharlesmoss.chatgpt.site"),
+    environment("acm-account-staging", "Staging", "https://acm-account-staging.andrewcharlesmoss.chatgpt.site"),
+  ] },
+  { id: "acm-studio", name: "ACM Studio", description: "Content, templates, files and publishing tools across ACM projects.", kind: "Website", links: [
+    visitSite("https://acm-studio.andrewcharlesmoss.chatgpt.site"),
+    { label: "Open Studio", href: "/studio" },
+  ] },
+  { id: "andrew-moss", name: "Andrew Moss", description: "Personal site, writing, videos and work history.", kind: "Website", links: [visitSite("https://andrewmoss.me/")] },
+  { id: "habit-tracker", name: "Habit Tracker", description: "Daily habits, progress and notes in a local-first tracker.", kind: "Website", links: [], environments: [
+    environment("habit-tracker", "Production", "https://habit-tracker.andrewcharlesmoss.chatgpt.site"),
+    environment("habit-tracker-staging", "Staging", "https://habit-tracker-staging.andrewcharlesmoss.chatgpt.site"),
+  ] },
+  { id: "lid-angle", name: "Lid Angle", description: "The website for the MacBook lid-angle app.", kind: "Website", links: [visitSite("https://lid-angle.andrewcharlesmoss.chatgpt.site")] },
+  { id: "loquafy", name: "Loquafy", description: "One-to-one social video and conversation.", kind: "Website", links: [], environments: [
+    environment("loquafy", "Production", "https://loquafy.com"),
+    environment("loquafy-staging", "Staging", "https://staging.loquafy.com"),
+  ] },
+  { id: "loquage", name: "Loquage", description: "Browser-based visual age estimation and facial tracking.", kind: "Website", links: [visitSite("https://loquage.andrewcharlesmoss.chatgpt.site")] },
   { id: "mini-golf-scorecard", name: "Mini Golf Scorecard", description: "Local scorekeeping, player ordering and shared game summaries.", kind: "Website", links: [], environments: miniGolfSites.map(site => ({
     id: site.id,
     name: site.environmentLabel,
-    links: [{ label: "Visit Site", href: site.publicHref }, { label: "Edit Site", href: site.editorHref }],
+    links: [visitSite(site.publicHref), { label: "Edit Site", href: site.editorHref }],
   })).sort((left, right) => left.name.localeCompare(right.name, "en-GB")) },
-  // Retain the existing planned entry alongside registered projects.
-  { id: "mission-control", name: "Mission Control", description: "The wider operating system for projects and work.", kind: "Planned", links: [] },
-  { id: "project-ports", name: "Project Ports", description: "Manage local development servers and their assigned ports.", kind: "macOS app", links: [repository("project-ports")] },
-  { id: "workspace-governance", name: "Workspace Governance", description: "Shared project standards, documentation and review guidance.", kind: "Governance", links: [repository("workspace-governance")] },
 ];
 
 export const studioProjects = projects.sort((left, right) => left.name.localeCompare(right.name, "en-GB"));

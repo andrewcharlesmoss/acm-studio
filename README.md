@@ -11,12 +11,10 @@ contracts.
 
 ## Included
 
-- **Project registry** at `/`: equal cards in alphabetical order for all active
-  independent workspace projects, with available Studio tools, site links and
-  repositories. Studio owns the display copy and actions in
-  `app/studio/project-registry.ts`; the focused catalogue check compares its
-  membership with `workspace-governance/PROJECTS.json`. Mission Control remains
-  an explicitly planned entry.
+- **Site registry** at `/`: equal cards in alphabetical order for projects with
+  actual hosted sites. Identified Production and Staging environments share a
+  project card. Studio owns the verified site URLs and available actions in
+  `app/studio/project-registry.ts`; shared libraries remain in the UI Library.
 
 - **Templates** at `/studio/templates`: create independent site designs with
   reusable page/post layouts, shared headers and footers, site identity,

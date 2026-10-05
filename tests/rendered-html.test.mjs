@@ -21,12 +21,12 @@ test("renders the ACM Studio control centre at the root route", async () => {
   const html = await response.text();
   assert.match(html, /<title>ACM Studio — Andrew Charles Moss<\/title>/i);
   assert.match(html, /Everything underneath one roof/);
-  assert.match(html, /Your projects/);
+  assert.match(html, /Your sites/);
   assert.match(html, /Andrew Moss/);
   assert.match(html, /Content Studio/);
-  assert.match(html, /Connection pending/);
+  assert.doesNotMatch(html, /Connection pending|View Repository|ACM Styles|Mission Control/);
   const cards = [...html.matchAll(/<article class="dashboard-site-card" data-project-id="([^"]+)"[^>]*>[\s\S]*?<h3>([^<]+)<\/h3>/g)];
-  assert.equal(cards.length, 16);
+  assert.equal(cards.length, 8);
   const names = cards.map(card => card[2]);
   assert.deepEqual(names, [...names].sort((left, right) => left.localeCompare(right, "en-GB")));
   assert.equal(cards.filter(card => card[1] === "mini-golf-scorecard").length, 1);

@@ -94,15 +94,20 @@ test("Mini Golf environments remain separate editor targets within one dashboard
   assert.match(editor, /Production remains separate until an explicit synchronisation is reviewed/);
 });
 
-test("the dashboard catalogue includes every active independent project alphabetically", async () => {
+test("the dashboard catalogue includes only actual sites alphabetically", async () => {
   const { studioProjects } = await loadProductionModule(new URL("../app/studio/project-registry.ts", import.meta.url));
-  const registry = JSON.parse(readFileSync(new URL("../../workspace-governance/PROJECTS.json", import.meta.url), "utf8"));
-  const registeredIds = registry.projects.filter(project => project.active && project.independent).map(project => project.path).sort();
-  assert.deepEqual(studioProjects.filter(project => project.id !== "mission-control").map(project => project.id).sort(), registeredIds);
+  assert.deepEqual(studioProjects.map(project => project.id), ["acm-account", "acm-studio", "andrew-moss", "habit-tracker", "lid-angle", "loquafy", "loquage", "mini-golf-scorecard"]);
+  for (const id of ["acm-account", "habit-tracker", "loquafy", "mini-golf-scorecard"]) {
+    assert.deepEqual(studioProjects.find(project => project.id === id).environments.map(environment => environment.name), ["Production", "Staging"]);
+  }
+  for (const project of studioProjects) {
+    const links = [...project.links, ...(project.environments ?? []).flatMap(environment => environment.links)];
+    assert.ok(links.some(link => link.label === "Visit Site" && link.href.startsWith("https://")));
+    assert.ok(links.every(link => link.label !== "View Repository"));
+  }
   assert.equal(new Set(studioProjects.map(project => project.id)).size, studioProjects.length);
   const names = studioProjects.map(project => project.name);
   assert.deepEqual(names, [...names].sort((left, right) => left.localeCompare(right, "en-GB")));
-  assert.equal(studioProjects.find(project => project.id === "mission-control").kind, "Planned");
 });
 
 test("the dashboard exposes the Design canvas alongside the working tools", () => {

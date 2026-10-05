@@ -42,7 +42,7 @@ export function StudioDashboard() {
         </section>
 
         <section className="dashboard-section" aria-labelledby="sites-title">
-          <div className="dashboard-section-heading"><div><p className="eyebrow">Project registry</p><h2 id="sites-title">Your projects</h2></div><p>All your projects, in alphabetical order. Open their available tools, sites and repositories.</p></div>
+          <div className="dashboard-section-heading"><div><p className="eyebrow">Site registry</p><h2 id="sites-title">Your sites</h2></div><p>Your sites, in alphabetical order. Production and identified staging sites are grouped together.</p></div>
           <div className="dashboard-site-grid">
             {studioProjects.map(project => <ProjectCard project={project} key={project.id} />)}
           </div>
