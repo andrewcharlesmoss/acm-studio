@@ -1,5 +1,8 @@
 "use client";
 
+import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
+import { StudioButton } from "./controls/button";
+
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { StudioIcon, type StudioIconName } from "./studio-icons";
 import {
@@ -88,7 +91,6 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
   const folderNameInputRef = useRef<HTMLInputElement>(null);
   const previewDialogRef = useRef<HTMLDialogElement>(null);
   const previewTriggerRef = useRef<HTMLButtonElement>(null);
-  const insertAltDialogRef = useRef<HTMLDialogElement>(null);
   const insertAltTriggerRef = useRef<HTMLButtonElement>(null);
   const [insertAltAsset, setInsertAltAsset] = useState<MediaAsset | null>(null);
   const [insertAltText, setInsertAltText] = useState("");
@@ -168,25 +170,6 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
   const selectedContainerId = selectedAsset?.folderId ?? selectedFolder?.parentId ?? null;
   const selectedContainer = selectedContainerId ? folderMap.get(selectedContainerId) ?? null : null;
 
-  useEffect(() => {
-    const dialog = insertAltDialogRef.current;
-    if (!insertAltAsset || !dialog) return;
-    if (!dialog.open) dialog.showModal();
-    const input = dialog.querySelector<HTMLTextAreaElement>("textarea");
-    input?.focus();
-    input?.select();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        dialog.close();
-        setInsertAltAsset(null);
-        insertAltTriggerRef.current?.focus();
-      }
-    };
-    dialog.addEventListener("keydown", onKeyDown);
-    return () => dialog.removeEventListener("keydown", onKeyDown);
-  }, [insertAltAsset]);
-
   function requestImageInsert(asset: MediaAsset, trigger?: HTMLButtonElement) {
     if (!canMutate) return;
     if (targetKind === "background") {
@@ -199,11 +182,9 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
   }
 
   function confirmImageInsert() {
-    if (!insertAltAsset) return;
+    if (!insertAltAsset || !canMutate) return;
     onInsertImage(insertAltAsset, objectUrls[insertAltAsset.id], insertAltText.trim());
-    insertAltDialogRef.current?.close();
     setInsertAltAsset(null);
-    insertAltTriggerRef.current?.focus();
   }
 
   useEffect(() => {
@@ -713,14 +694,13 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
           <img src={objectUrls[previewAsset.id]} alt={previewAsset.altText || previewAsset.name} />
       </dialog> : null}
 
-      {insertAltAsset ? <dialog ref={insertAltDialogRef} className="media-alt-dialog" aria-labelledby="media-alt-title" onClose={() => { setInsertAltAsset(null); insertAltTriggerRef.current?.focus(); }}>
-        <form method="dialog" onSubmit={(event) => { event.preventDefault(); confirmImageInsert(); }}>
-          <h2 id="media-alt-title">Describe this image</h2>
+      {insertAltAsset ? <StudioDialog title="Describe this image" className="media-alt-dialog" returnFocus={insertAltTriggerRef} selectInitialText onClose={() => setInsertAltAsset(null)}>
+        <form onSubmit={(event) => { event.preventDefault(); confirmImageInsert(); }}>
           <p>Provide alternative text for people who cannot see the image.</p>
-          <label><span>Alternative text</span><textarea rows={4} value={insertAltText} onChange={(event) => setInsertAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>
-          <div className="media-dialog-actions"><button type="button" onClick={() => insertAltDialogRef.current?.close()}>Cancel</button><button className="button-primary" type="submit">{targetKind === "cover" ? "Use as cover image" : "Insert image"}</button></div>
+          <label><span>Alternative text</span><textarea disabled={!canMutate} rows={4} value={insertAltText} onChange={(event) => setInsertAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>
+          <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={() => setInsertAltAsset(null)}>Cancel</StudioButton><StudioButton type="submit" disabled={!canMutate}>{targetKind === "cover" ? "Use as cover image" : "Insert image"}</StudioButton></StudioDialogActions>
         </form>
-      </dialog> : null}
+      </StudioDialog> : null}
 
       <footer className="media-status"><span aria-live="polite">{writable ? status : "Read-only files. Browsing and downloads remain available."}</span><span>{assets.length} {assets.length === 1 ? "file" : "files"} · {folders.length} {folders.length === 1 ? "folder" : "folders"} · {formatBytes(totalSize)}</span></footer>
     </section>

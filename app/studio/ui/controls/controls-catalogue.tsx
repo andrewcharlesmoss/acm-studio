@@ -18,9 +18,11 @@ export function ControlsCatalogue() {
     const accent = style.getPropertyValue("--studio-range-accent").trim() || style.getPropertyValue("--gutenberg-accent").trim();
     if (/^#[\da-f]{6}$/i.test(accent)) setSliderDefaultAccent(accent);
   }, []);
+  const sliderDefaultHoverAccent = deriveSliderStateColour(sliderDefaultAccent);
+  const sliderDefaultPressAccent = deriveSliderStateColour(sliderDefaultHoverAccent);
   const effectiveSliderAccent = sliderAccent ?? sliderDefaultAccent;
-  const effectiveSliderHoverAccent = sliderHoverAccent ?? deriveSliderStateColour(effectiveSliderAccent);
-  const effectiveSliderPressAccent = sliderPressAccent ?? deriveSliderStateColour(effectiveSliderHoverAccent);
+  const effectiveSliderHoverAccent = sliderHoverAccent ?? sliderDefaultHoverAccent;
+  const effectiveSliderPressAccent = sliderPressAccent ?? sliderDefaultPressAccent;
   const layoutStyle = {
     "--studio-range-accent": effectiveSliderAccent,
     "--studio-range-hover-accent": effectiveSliderHoverAccent,

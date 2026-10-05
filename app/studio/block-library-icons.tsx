@@ -1,58 +1,53 @@
 import type { IconName, IconScale } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
-import type { BlockLibraryItemType } from "./editor-model";
 import type { ContentBlock } from "../content/model";
-import { AcmStudioIcon } from "./acm-studio-icons";
-import { StudioIcon, type StudioIconName } from "./studio-icons";
 
 type SharedSymbol = { source: "ACM Icons"; symbol: IconName };
-type StudioSymbol = { source: "ACM Studio"; symbol: StudioIconName };
-type BlockSymbol = SharedSymbol | StudioSymbol;
-type BlockIconType = ContentBlock["type"] | "template-content";
+type BlockSymbol = SharedSymbol;
+export type BlockIconType = ContentBlock["type"] | "template-content";
 
 const blockSymbols: Record<BlockIconType, BlockSymbol> = {
-  "template-content": { source: "ACM Studio", symbol: "block" },
-  group: { source: "ACM Icons", symbol: "arrange.group" },
+  "template-content": { source: "ACM Icons", symbol: "document.content" },
+  group: { source: "ACM Icons", symbol: "layout.flow" },
   columns: { source: "ACM Icons", symbol: "layout.columns" },
-  column: { source: "ACM Icons", symbol: "layout.columns" },
-  component: { source: "ACM Studio", symbol: "block" },
-  section: { source: "ACM Studio", symbol: "block" },
+  column: { source: "ACM Icons", symbol: "layout.column" },
+  component: { source: "ACM Icons", symbol: "component.block" },
+  section: { source: "ACM Icons", symbol: "arrange.group" },
   paragraph: { source: "ACM Icons", symbol: "text.paragraph" },
-  heading: { source: "ACM Studio", symbol: "heading-marker" },
-  list: { source: "ACM Icons", symbol: "text.list-bulleted" },
+  heading: { source: "ACM Icons", symbol: "block.heading" },
+  list: { source: "ACM Icons", symbol: "block.list" },
   quote: { source: "ACM Icons", symbol: "text.quote" },
-  table: { source: "ACM Icons", symbol: "table.cell" },
-  code: { source: "ACM Icons", symbol: "text.code" },
-  footnotes: { source: "ACM Icons", symbol: "text.footnote" },
-  image: { source: "ACM Icons", symbol: "insert.image" },
-  embed: { source: "ACM Icons", symbol: "action.link" },
-  button: { source: "ACM Studio", symbol: "button" },
+  table: { source: "ACM Icons", symbol: "block.table" },
+  code: { source: "ACM Icons", symbol: "block.code" },
+  footnotes: { source: "ACM Icons", symbol: "text.list-numbered" },
+  image: { source: "ACM Icons", symbol: "block.image" },
+  embed: { source: "ACM Icons", symbol: "insert.embed" },
+  buttons: { source: "ACM Icons", symbol: "insert.button" },
+  button: { source: "ACM Icons", symbol: "insert.button" },
   field: { source: "ACM Icons", symbol: "insert.text" },
-  divider: { source: "ACM Studio", symbol: "separator" },
-  spacer: { source: "ACM Studio", symbol: "spacer" },
-  "document-title": { source: "ACM Icons", symbol: "text.heading" },
+  divider: { source: "ACM Icons", symbol: "layout.separator" },
+  spacer: { source: "ACM Icons", symbol: "layout.spacer" },
+  "document-title": { source: "ACM Icons", symbol: "document.title" },
   "document-subtitle": { source: "ACM Icons", symbol: "text.paragraph" },
-  "cover-image": { source: "ACM Icons", symbol: "document.cover" },
-  "reading-time": { source: "ACM Studio", symbol: "clock" },
-  "post-author": { source: "ACM Icons", symbol: "account.record" },
-  "post-date": { source: "ACM Studio", symbol: "calendar" },
-  "social-icons": { source: "ACM Icons", symbol: "social.icons" },
+  "cover-image": { source: "ACM Icons", symbol: "document.featured-image" },
+  "reading-time": { source: "ACM Icons", symbol: "time.clock" },
+  "post-author": { source: "ACM Icons", symbol: "account.author" },
+  "post-date": { source: "ACM Icons", symbol: "document.date" },
+  "social-icons": { source: "ACM Icons", symbol: "social.block" },
   "social-linkedin": { source: "ACM Icons", symbol: "brand.linkedin" },
   "social-tiktok": { source: "ACM Icons", symbol: "brand.tiktok" },
 };
 
-export function blockLibrarySymbol(type: BlockLibraryItemType): BlockSymbol {
+export function blockLibrarySymbol(type: BlockIconType): BlockSymbol {
   return blockSymbols[type];
 }
 
 export function BlockLibraryIcon({ type }: { type: BlockIconType }) {
   const entry = blockSymbols[type];
-  if (entry.source === "ACM Icons") return <AcmIcon name={entry.symbol} scale="Regular-M" size={24} />;
-  return <StudioIcon name={entry.symbol} />;
+  return <AcmIcon name={entry.symbol} scale="Regular-M" size={24} />;
 }
 
-export function BlockLibraryIconSample({ type, size, scale }: { type: BlockLibraryItemType; size: number; scale: IconScale }) {
+export function BlockLibraryIconSample({ type, size, scale }: { type: BlockIconType; size: number; scale: IconScale }) {
   const entry = blockSymbols[type];
-  if (entry.source === "ACM Icons") return <AcmIcon name={entry.symbol} scale={scale} size={size} />;
-  return <AcmStudioIcon name={entry.symbol} size={size} />;
+  return <AcmIcon name={entry.symbol} scale={scale} size={size} />;
 }

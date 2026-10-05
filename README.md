@@ -88,6 +88,10 @@ snapshot boundaries and refresh procedure.
 
 The existing content editor remains available at `/studio`.
 
+The Publish date picker uses this device's local time zone. Its UTC offset
+follows the selected date, including daylight-saving changes; saved timestamps
+use UTC ISO format. Studio has no separate site time-zone setting.
+
 - Gutenberg-style editing for pages and posts
 - Reading Time, Post Author and Post Date blocks under the **Other** inserter
   group, with document-level metadata controls and shared Edit/Preview/publication rendering
@@ -144,15 +148,24 @@ Run these commands from `/Users/andrewmoss/Documents/Codex/_Projects/acm-studio`
 ```bash
 npm run dev
 npm run build
+npm run typecheck
 npm test
 npm run lint
 ```
+
+`npm run typecheck` uses `tsconfig.typecheck.json`, which resolves React types
+from Studio's installed dependencies for shared packages consumed as source.
+The runtime/build configuration stays in `tsconfig.json`. The obsolete
+`app/studio/ui/blocks/paragraph/page 2.tsx` copy is preserved but excluded from
+typechecking; the active Paragraph route is `page.tsx`.
 
 ## Documentation
 
 - [`AGENTS.md`](AGENTS.md) — project scope, boundaries and verification
 - [`CHANGELOG.md`](CHANGELOG.md) — notable project changes
 - [`docs/FOUNDATION.md`](docs/FOUNDATION.md) — architecture and local limits
+- [`docs/editor-parity-progress.md`](docs/editor-parity-progress.md) — Gutenberg
+  comparison evidence, corrected issues and outstanding verification
 
 ## Safe local editing
 

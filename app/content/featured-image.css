@@ -1,0 +1,26 @@
+/* The same image box serves content, template and editor presentations. */
+.document-featured-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0;
+}
+
+/* A resolved image owns its dimensions; the mock frame is for empty states. */
+.document-dynamic-cover > .canvas-cover-image.is-source {
+  aspect-ratio: auto;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+}
+
+.canvas-cover-image .document-featured-image {
+  height: auto;
+  object-fit: fill;
+}
+
+.template-cover .document-featured-image {
+  border-radius: 0;
+}

@@ -1,7 +1,7 @@
 "use client";
 import { useId, useState } from "react";
 import type { ContentBlock } from "../content/model";
-import { setColumnWidth } from "../content/columns";
+import { findColumnsParent, maximumColumnWidth } from "../content/columns";
 import { spacerOrientationFor } from "../content/spacer";
 import { BlockInspector } from "./studio-inspectors";
 import type { ListItemSelection } from "../content/model";
@@ -25,10 +25,10 @@ function LinkSettings({ title, links, onChange, disabled = false }: { title: str
   </div>)}<label>New Link Label<input value={label} onChange={event => setLabel(event.target.value)} placeholder={title === "Social and support" ? "LinkedIn or Buy Me a Coffee" : "About"} /></label><label>New Destination<input value={url} onChange={event => setUrl(event.target.value)} placeholder="https://… or /page" /></label><button type="button" disabled={!label.trim() || !url.trim()} onClick={() => { onChange([...links, { id: templateId(), label: label.trim(), url: url.trim() }]); }}>Add Link</button></InspectorAccordionSection>;
 }
 
-export function TemplateInspector({ set, target, selectedBlock, selectedListItem = null, writable, onChange, onBlockChange, onOpenMedia, onEditPart, users, tab: selectedTab, onTabChange, paneWidth = 300, onPaneWidthChange, paneCollapsed = false, onPaneCollapsedChange }: {
+export function TemplateInspector({ set, target, selectedBlock, selectedListItem = null, writable, onChange, onBlockChange, onColumnCountChange, onColumnWidthChange, onOpenMedia, onEditPart, users, tab: selectedTab, onTabChange, paneWidth = 300, onPaneWidthChange, paneCollapsed = false, onPaneCollapsedChange }: {
   set: TemplateSet; target: PageTemplate | TemplatePart; selectedBlock: ContentBlock | null; writable: boolean;
   selectedListItem?: ListItemSelection | null;
-  onChange: (set: TemplateSet) => void; onBlockChange: (block: ContentBlock) => void; onOpenMedia: (logo?: boolean, background?: boolean) => void; onEditPart: (id: string) => void; users: string[];
+  onChange: (set: TemplateSet) => void; onBlockChange: (block: ContentBlock) => void; onColumnCountChange?: (parent: Extract<ContentBlock, { type: "columns" }>, count: number) => void; onColumnWidthChange?: (parent: Extract<ContentBlock, { type: "columns" }>, columnId: string, width: number) => void; onOpenMedia: (logo?: boolean, background?: boolean) => void; onEditPart: (id: string) => void; users: string[];
   tab?: "template" | "styles" | "block"; onTabChange?: (tab: "template" | "styles" | "block") => void;
   paneWidth?: number; onPaneWidthChange?: (width: number) => void; paneCollapsed?: boolean; onPaneCollapsedChange?: (collapsed: boolean) => void;
 }) {
@@ -54,7 +54,7 @@ export function TemplateInspector({ set, target, selectedBlock, selectedListItem
   return <Pane trackClassName="studio-inspector-track" className="studio-inspector template-inspector" bodyClassName="inspector-scroll" label="Template Inspector" side="right" width={paneWidth} onWidthChange={onPaneWidthChange} minWidth={270} maxWidth={480} collapsed={paneCollapsed} onCollapsedChange={onPaneCollapsedChange ?? (() => undefined)} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
     tabs={<PaneTabs id={tabPrefix} label="Template settings" className="inspector-tabs" tabs={[{ id: "template", label: "Template" }, { id: "block", label: "Block", disabled: !selectedBlock }, { id: "styles", label: "Styles" }]} active={tab} onChange={value => selectTab(value as typeof tab)} />}>
     <InspectorContentDisabledProvider disabled={!writable}>
-      {tab === "block" ? selectedBlock ? element ? <InspectorAccordionSection contentDisabled={!writable} title={templateElementLabel(String(element))}><p>Content is supplied by the preview document or site identity.</p><label>Alignment<select value={String(selectedBlock.type === "group" ? selectedBlock.data?.align ?? "left" : "left")} onChange={event => onBlockChange({ ...selectedBlock, data: { ...(selectedBlock.type === "group" ? selectedBlock.data : {}), align: event.target.value } } as ContentBlock)}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : partId ? <InspectorAccordionSection contentDisabled={!writable} title="Shared part"><label>Part<select value={String(partId)} onChange={event => onBlockChange({ ...selectedBlock, data: { templatePart: event.target.value } } as ContentBlock)}>{set.parts.map(part => <option value={part.id} key={part.id}>{part.name}</option>)}</select></label><button type="button" onClick={() => onEditPart(String(partId))}>Edit {set.parts.find(part => part.id === partId)?.name}</button></InspectorAccordionSection> : <BlockInspector block={selectedBlock} selectedListItem={selectedListItem?.blockId === selectedBlock.id ? selectedListItem : null} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} fontSizeModeScope={`${set.id}:${target.id}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => onBlockChange(setColumnWidth(selectedColumnParent, columnId, width)) : undefined} onOpenFiles={() => onOpenMedia()} onOpenBackgroundMedia={() => onOpenMedia(false, true)} canOpenFiles /> : <p>Select a block in the canvas or List View.</p> : tab === "styles" ? <>
+      {tab === "block" ? selectedBlock ? element && element !== "content" ? <InspectorAccordionSection contentDisabled={!writable} title={templateElementLabel(String(element))}><p>Content is supplied by the preview document or site identity.</p><label>Alignment<select value={String(selectedBlock.type === "group" ? selectedBlock.data?.align ?? "left" : "left")} onChange={event => onBlockChange({ ...selectedBlock, data: { ...(selectedBlock.type === "group" ? selectedBlock.data : {}), align: event.target.value } } as ContentBlock)}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label></InspectorAccordionSection> : partId ? <InspectorAccordionSection contentDisabled={!writable} title="Shared part"><label>Part<select value={String(partId)} onChange={event => onBlockChange({ ...selectedBlock, data: { templatePart: event.target.value } } as ContentBlock)}>{set.parts.map(part => <option value={part.id} key={part.id}>{part.name}</option>)}</select></label><button type="button" onClick={() => onEditPart(String(partId))}>Edit {set.parts.find(part => part.id === partId)?.name}</button></InspectorAccordionSection> : <BlockInspector contentSlot={element === "content"} block={selectedBlock} selectedListItem={selectedListItem?.blockId === selectedBlock.id ? selectedListItem : null} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} fontSizeModeScope={`${set.id}:${target.id}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnCountChange={selectedBlock.type === "columns" && onColumnCountChange ? count => onColumnCountChange(selectedBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 && onColumnWidthChange ? (columnId, width) => onColumnWidthChange(selectedColumnParent, columnId, width) : undefined} onOpenFiles={() => onOpenMedia()} onOpenBackgroundMedia={() => onOpenMedia(false, true)} canOpenFiles /> : <p>Select a block in the canvas or List View.</p> : tab === "styles" ? <>
         <InspectorAccordionSection contentDisabled={!writable} title="Semantic colours"><p>Applies to every template in {set.name}. Explicit block styles take precedence.</p>
           {([ ["surface", "Surface"], ["surfaceRaised", "Raised surface"], ["surfaceSubtle", "Subtle surface"], ["textPrimary", "Primary text"], ["textSecondary", "Secondary text"], ["border", "Border"], ["accent", "Accent"], ["onAccent", "Text on accent"], ["success", "Success"], ["information", "Information"], ["alert", "Alert"], ["warning", "Warning"], ["rating", "Rating"] ] as [keyof SiteStyles["palette"], string][]).map(([key, label]) => <label key={key}>{label}<input type="color" value={set.styles.palette[key]} onChange={event => changePalette(key, event.target.value)} /></label>)}
         </InspectorAccordionSection>
@@ -83,20 +83,4 @@ export function TemplateInspector({ set, target, selectedBlock, selectedListItem
       </>}
     </InspectorContentDisabledProvider>
   </Pane>;
-}
-
-function findColumnsParent(blocks: ContentBlock[], columnId: string): Extract<ContentBlock, { type: "columns" }> | undefined {
-  for (const block of blocks) {
-    if (block.type === "columns") {
-      if (block.children.some(column => column.id === columnId)) return block;
-      for (const column of block.children) {
-        const nested = findColumnsParent(column.children, columnId);
-        if (nested) return nested;
-      }
-    } else if ((block.type === "group" || block.type === "section" || block.type === "column" || block.type === "component") && block.children) {
-      const nested = findColumnsParent(block.children, columnId);
-      if (nested) return nested;
-    }
-  }
-  return undefined;
 }

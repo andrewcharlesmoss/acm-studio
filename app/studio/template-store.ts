@@ -1,6 +1,5 @@
 import { TEMPLATE_STORAGE_KEY, emptyTemplateStore, validateTemplateStore, templateMediaIds, validateTemplatePublicationSnapshot, type TemplateStore } from "./template-model";
 import { studioWriteOwnership } from "./write-ownership";
-import type { LocallyPublishedArticle } from "../content/local-publishing";
 import { LOCAL_PUBLICATIONS_KEY } from "../content/local-storage-keys";
 
 export function loadTemplates(storage: Pick<Storage, "getItem"> = window.localStorage): TemplateStore {
@@ -14,8 +13,8 @@ export function saveTemplates(store: TemplateStore, storage: Pick<Storage, "setI
   studioWriteOwnership.assertWritable();
   // Never overwrite an unreadable snapshot, including one changed outside this UI.
   loadTemplates(storage);
-  validateTemplateStore(store);
-  storage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(store));
+  const canonicalStore = validateTemplateStore(store);
+  storage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(canonicalStore));
   window.dispatchEvent(new Event("studio-templates-changed"));
 }
 
@@ -25,6 +24,9 @@ export function assertTemplateMediaCanBeDeleted(id: string) {
     || templates.bin.some(item => templateMediaIds(item.kind === "set" ? item.set : item.setSnapshot).includes(id))) throw new Error("This image is used by a template or an item in the Bin. Replace those references or permanently delete the binned item first.");
   const raw = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
   if (raw === null) return;
-  const publications: unknown = JSON.parse(raw); validateTemplatePublicationSnapshot(publications);
-  if ((publications as { posts: LocallyPublishedArticle[] }).posts.some(post => post.templateSnapshot && post.mediaIds.includes(id))) throw new Error("This image is used by a published template snapshot. Update or unpublish that post before deleting it.");
+  const publications = validateTemplatePublicationSnapshot(JSON.parse(raw));
+  const publication = publications.posts.find(post => post.mediaIds.includes(id));
+  if (publication) throw new Error(publication.templateSnapshot
+    ? "This image is used by a published template snapshot. Update or unpublish that post before deleting it."
+    : "This image is used by a published copy. Update or unpublish that post before deleting it.");
 }

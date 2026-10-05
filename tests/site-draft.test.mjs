@@ -6,25 +6,34 @@ import path from "node:path";
 import vm from "node:vm";
 import ts from "typescript";
 import test from "node:test";
+import { createRequire } from "node:module";
+
+const requirePackage = createRequire(import.meta.url);
 
 function draftModules(writable = true) {
   const records = new Map([["acm-studio-workspace-v2", "existing draft"], ["acm-studio-publications-v1", "existing publication"]]);
   const cache = new Map();
-  function load(name) {
-    if (cache.has(name)) return cache.get(name);
+  function load(name, base = new URL("../app/studio/", import.meta.url)) {
+    let url = new URL(name, base);
+    if (!/\.(?:ts|tsx|mjs)$/.test(url.pathname)) url = new URL(`${url.href}.ts`);
+    if (url.pathname.endsWith("/studio/write-ownership.ts")) return { studioWriteOwnership: { assertWritable() { if (!writable) throw new Error("read-only"); } } };
+    if (cache.has(url.href)) return cache.get(url.href);
+    const input = readFileSync(url, "utf8");
     const exports = {};
-    cache.set(name, exports);
-    const source = ts.transpileModule(readFileSync(new URL(`../app/studio/${name}.ts`, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
-    vm.runInNewContext(source, { exports, require: (id) => id === "./write-ownership" ? { studioWriteOwnership: { assertWritable() { if (!writable) throw new Error("read-only"); } } } : load(id.slice(2)), window: { localStorage: { getItem: (key) => records.get(key) ?? null, setItem: (key, value) => records.set(key, value) } } });
+    cache.set(url.href, exports);
+    const source = ts.transpileModule(input, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+    try {
+      vm.runInNewContext(source, { exports, require: id => id.startsWith(".") ? load(id, url) : requirePackage(id), window: { localStorage: { getItem: (key) => records.get(key) ?? null, setItem: (key, value) => records.set(key, value) } } });
+    } catch (error) { cache.delete(url.href); throw error; }
     return exports;
   }
   return { ...load("mini-golf-draft"), records };
 }
 
 test("Mini Golf content and section order round-trip without touching the existing Studio", () => {
-  const { initialMiniGolfDraft, miniGolfDraftRepository, records } = draftModules();
+  const { initialMiniGolfDraft, validateMiniGolfDraft, miniGolfDraftRepository, records } = draftModules();
   assert.equal(miniGolfDraftRepository.load(), null);
-  const draft = structuredClone(initialMiniGolfDraft);
+  const draft = structuredClone(validateMiniGolfDraft(initialMiniGolfDraft));
   draft.documents[0].title = "Our mini golf round";
   draft.documents[0].template = "wide";
   draft.documents[0].blocks.push({ id: "custom-note", type: "paragraph", text: "A note added in the shared editor." });
@@ -85,7 +94,7 @@ test("Mini Golf staging is the primary working copy while production stays a ref
 test("the dashboard exposes the Design canvas alongside the working tools", () => {
   const dashboard = readFileSync(new URL("../app/studio/studio-dashboard.tsx", import.meta.url), "utf8");
   assert.match(dashboard, /href="\/studio\/designs"/);
-  assert.match(dashboard, /<strong>Design canvas<\/strong>/);
+  assert.match(dashboard, /<strong>Design Canvas<\/strong>/);
 });
 
 test("the inherited page retains the real scorecard and styles without executable scripts", () => {
@@ -276,13 +285,13 @@ test("version 5 transitional scorecard groups recover their table and become edi
   assert.equal(scorecard.children[0].children[0].text, "Our scores");
   assert.equal(scorecard.children.find((block) => block.type === "table").rows.length, 11);
   miniGolfDraftRepository.save(loaded);
-  assert.equal(JSON.parse(records.get(MINI_GOLF_DRAFT_KEY)).version, 10);
+  assert.equal(JSON.parse(records.get(MINI_GOLF_DRAFT_KEY)).version, 13);
   assert.equal(JSON.stringify(miniGolfDraftRepository.load()), JSON.stringify(loaded));
 });
 
 test("current section drafts retain deleted score tables and arbitrary authored columns", () => {
-  const { initialMiniGolfDraft, miniGolfDraftRepository } = draftModules();
-  const draft = structuredClone(initialMiniGolfDraft);
+  const { initialMiniGolfDraft, validateMiniGolfDraft, miniGolfDraftRepository } = draftModules();
+  const draft = structuredClone(validateMiniGolfDraft(initialMiniGolfDraft));
   const section = draft.documents[0].blocks.find((block) => block.id === "scorecard");
   const table = section.children.find((block) => block.type === "table");
   table.rows = [["Hole", "Ada", "Bo", "Cy", "Total"], ["1", "2", "3", "4", "9"], ["Total", "2", "3", "4", "9"]];
@@ -294,9 +303,9 @@ test("current section drafts retain deleted score tables and arbitrary authored 
   assert.equal(miniGolfDraftRepository.load().documents[0].blocks.find((block) => block.id === "scorecard").children.some((block) => block.type === "table"), false);
 });
 
-test("version 7 is a complete typed page and preserves all source-leaf deletions on reload", () => {
-  const { initialMiniGolfDraft, miniGolfDraftRepository } = draftModules();
-  const draft = structuredClone(initialMiniGolfDraft);
+test("current typed page preserves all source-leaf deletions on reload", () => {
+  const { initialMiniGolfDraft, validateMiniGolfDraft, miniGolfDraftRepository } = draftModules();
+  const draft = structuredClone(validateMiniGolfDraft(initialMiniGolfDraft));
   const footer = draft.documents[0].blocks.find((block) => block.role === "footer");
   footer.children = [];
   draft.documents[0].blocks = draft.documents[0].blocks.filter((block) => block.role !== "hero");

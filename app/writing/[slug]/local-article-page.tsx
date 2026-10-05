@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { BlockRenderer } from "../../components/content";
 import { ArticleByline, PageFrame } from "../../components/site-shell";
 import { readingTimeLabel } from "../../content/reading-time";
-import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, parseLocallyPublishedArticles, restoreLegacyPublicationCover, type LocallyPublishedArticle } from "../../content/local-publishing";
+import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, locallyPublishedDocument, parseLocallyPublishedArticles, restoreLegacyPublicationCover, type LocallyPublishedArticle } from "../../content/local-publishing";
+import { documentFieldVisible } from "../../content/document-metadata";
 import { getMediaAsset } from "../../studio/media-store";
 import { safeImageSource } from "../../content/rich-text";
 import { TemplateDocument } from "../../studio/template-renderer";
-import type { StudioDocument } from "../../studio/editor-model";
 import { verifyPassword } from "../../content/password-protection";
 import { StudioIcon } from "../../studio/studio-icons";
 
@@ -106,9 +106,9 @@ export function LocalArticlePage({ slug }: { slug: string }) {
     return <PageFrame><main className="local-password-gate"><p className="eyebrow">Password protected preview</p><h1>{article.title}</h1><p>Enter the password to view this locally published post.</p><form onSubmit={async (event) => { event.preventDefault(); if (await verifyPassword(passwordInput, article.passwordProtection!)) { setPasswordUnlocked(true); setPasswordError(""); } else setPasswordError("That password is incorrect."); }}><label htmlFor="local-article-password">Password</label><div className="local-password-input"><input id="local-article-password" type={passwordVisible ? "text" : "password"} autoComplete="current-password" value={passwordInput} onChange={(event) => setPasswordInput(event.target.value)} /><button type="button" title={passwordVisible ? "Hide password" : "Show password"} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(value => !value)}><StudioIcon name={passwordVisible ? "seen-off" : "seen"} size={18} /></button></div>{passwordError ? <p role="alert">{passwordError}</p> : null}<button className="primary-action" type="submit" disabled={!passwordInput}>View post</button><small>This password gate applies only to this browser’s local preview. It does not secure a hosted page.</small></form></main></PageFrame>;
   }
 
+  const publicationDocument = locallyPublishedDocument(article);
   if (article.templateSnapshot) {
-    const document: StudioDocument = { id: article.localDocumentId, kind: "post", title: article.title, subtitle: article.subtitle, slug: article.slug, excerpt: article.summary, status: "published", author: article.author, metadataBlocksVersion: article.metadataBlocksVersion, publishedAt: article.publishedAt, updatedAt: article.publishedAt, blocks: article.blocks, tags: [], category: article.section || undefined, coverImage: article.coverImage, seoTitle: article.title, seoDescription: article.summary };
-    return <main><div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This post is visible only in this browser.</span><a href="/studio">Edit in Studio</a></div><TemplateDocument snapshot={article.templateSnapshot} document={document} mediaUrls={mediaUrls} /></main>;
+    return <main><div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This post is visible only in this browser.</span><a href="/studio">Edit in Studio</a></div><TemplateDocument snapshot={article.templateSnapshot} document={publicationDocument} mediaUrls={mediaUrls} /></main>;
   }
   const legacyMetadata = article.metadataBlocksVersion !== 2;
   return (
@@ -117,10 +117,10 @@ export function LocalArticlePage({ slug }: { slug: string }) {
         <div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This post is visible only in this browser.</span><a href="/studio">Edit in Studio →</a></div>
         <header className="article-hero">
           <a className="back-link" href="/writing">← Writing archive</a>
-          <h1>{article.title}</h1>
-          {article.subtitle?.trim() ? <p className="article-subtitle">{article.subtitle}</p> : null}
-          {legacyMetadata ? <><p className="article-reading-time">Reading Time: {readingTimeLabel(article.blocks)}</p><ArticleByline article={article} /></> : null}
-          {coverImage ? <figure className="article-cover-image">
+          {documentFieldVisible(publicationDocument, "title") ? <h1>{article.title}</h1> : null}
+          {documentFieldVisible(publicationDocument, "subtitle") && article.subtitle?.trim() ? <p className="article-subtitle">{article.subtitle}</p> : null}
+          {legacyMetadata ? <>{documentFieldVisible(publicationDocument, "readingTime") ? <p className="article-reading-time">Reading Time: {readingTimeLabel(article.blocks)}</p> : null}<ArticleByline article={article} showAuthor={documentFieldVisible(publicationDocument, "author")} showDate={documentFieldVisible(publicationDocument, "publicationDate")} /></> : null}
+          {documentFieldVisible(publicationDocument, "coverImage") && coverImage ? <figure className="article-cover-image">
             {safeCoverImageUrl ? (
               // Local browser-managed media cannot be known to Next's image optimiser.
               // eslint-disable-next-line @next/next/no-img-element
@@ -129,9 +129,9 @@ export function LocalArticlePage({ slug }: { slug: string }) {
           </figure> : null}
         </header>
         <div className="article-layout">
-          <article><BlockRenderer blocks={article.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers document={{ kind: "post", author: article.author, publishedAt: article.publishedAt }} /></article>
+          <article><BlockRenderer blocks={article.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers document={publicationDocument} /></article>
         </div>
-        <nav className="article-end" aria-label="Article navigation"><div><span>End of article</span><strong>{article.title}</strong></div><a href="/writing">Return to writing →</a></nav>
+        <nav className="article-end" aria-label="Article navigation"><div><span>End of article</span>{documentFieldVisible(publicationDocument, "title") ? <strong>{article.title}</strong> : null}</div><a href="/writing">Return to writing →</a></nav>
       </main>
     </PageFrame>
   );

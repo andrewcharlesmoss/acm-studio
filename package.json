@@ -15,7 +15,7 @@
     "styles:source": "node scripts/generate-style-guide-source.mjs",
     "styles:source:check": "node scripts/generate-style-guide-source.mjs --check",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "typecheck": "tsc --noEmit --incremental false --pretty false"
+    "typecheck": "tsc --project tsconfig.typecheck.json --noEmit --pretty false"
   },
   "dependencies": {
     "@acm/icons": "file:../acm-icons",

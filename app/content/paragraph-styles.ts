@@ -237,10 +237,17 @@ export function paragraphStyleToCss(style?: ParagraphStyle, backgroundImageUrl?:
 export function listItemTextStyle(style?: ParagraphStyle): Record<string, string> {
   if (!style) return {};
   return paragraphStyleToCss({
+    textColor: style.textColor,
+    fontFamily: style.fontFamily,
+    appearance: style.appearance,
+    letterSpacing: style.letterSpacing,
+    textTransform: style.textTransform,
+    textDecoration: style.textDecoration,
     fontSize: style.fontSize,
     fontSizeCustom: style.fontSizeCustom,
     lineHeight: style.lineHeight,
     linkColor: style.linkColor,
+    linkHoverColor: style.linkHoverColor,
   });
 }
 

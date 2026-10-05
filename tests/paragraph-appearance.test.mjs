@@ -166,6 +166,14 @@ test("layout gap axes render independently and preserve legacy gap fallback", ()
     "--block-layout-max-column-width": "calc((100% - 32px) / 3)",
   });
   assert.equal(validLayoutOptions({ gap: 16, columnGap: 32, rowGap: 8 }), true);
+  assert.deepEqual(layoutStyleProperties({ horizontalAlign: "space-between", verticalAlign: "space-between" }), {
+    "--block-layout-min-column-width": "192px",
+    "--block-layout-max-column-width": "calc((100% - 0px) / 3)",
+    "--block-layout-horizontal-align": "space-between",
+    "--block-layout-vertical-align": "space-between",
+  });
+  assert.equal(validLayoutOptions({ horizontalAlign: "space-between" }), false);
+  assert.equal(validLayoutOptions({ horizontalAlign: "space-between", verticalAlign: "space-between" }, true), true);
   assert.equal(validLayoutOptions({ columnGap: 121 }), false);
   assert.equal(validLayoutOptions({ rowGap: -1 }), false);
 });

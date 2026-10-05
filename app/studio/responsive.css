@@ -74,7 +74,7 @@
   .canvas-block-toolbar { flex-wrap: wrap; width: max-content; }
   .canvas-block { margin-bottom: 0; }
   .between-blocks { display: none; }
-  .inserter-group > div { grid-template-columns: repeat(2, 1fr); }
+  .inserter-group > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .media-manager { min-height: calc(100dvh - 101px); }
   .media-toolbar { align-items: flex-start; gap: 12px; padding: 12px 14px; }
   .media-toolbar-actions { flex-shrink: 0; }

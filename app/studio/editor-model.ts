@@ -1,5 +1,6 @@
 import type { ContentBlock, DocumentDisplayField, DocumentDisplayMode } from "../content/model";
 import { createColumnsBlock } from "../content/columns";
+import { createButtonForInsertion } from "./button-insertion";
 import type { LocallyPublishedArticle } from "../content/local-publishing";
 import type { TemplateAssignment } from "./template-model";
 import { paragraphBlockDefinition } from "./blocks/paragraph/definition";
@@ -47,7 +48,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24;
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
   documents: StudioDocument[];
@@ -67,36 +68,40 @@ export type StudioBinnedDocument = {
 export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column">;
 export type BlockLibraryItemType = InsertableBlockType | "template-content";
 
+export const blockCatalogueGroups = ["Text", "Media", "Design", "Widgets", "Theme", "Embeds", "Other"] as const;
+export type BlockCatalogueGroup = (typeof blockCatalogueGroups)[number];
+
 export const blockCatalogue: Array<{
   type: BlockLibraryItemType;
   label: string;
   description: string;
-  group: "Text" | "Media" | "Design" | "Widgets" | "Other";
+  group: BlockCatalogueGroup;
 }> = [
-  { type: "group", label: "Group", description: "Combine blocks in a stack, row, columns or responsive grid.", group: "Design" },
-  { type: "columns", label: "Columns", description: "Arrange blocks in adjustable, responsive columns.", group: "Design" },
-  { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Design" },
   { type: paragraphBlockDefinition.type, label: paragraphBlockDefinition.label, description: paragraphBlockDefinition.description, group: "Text" },
-  { type: "heading", label: "Heading", description: "Introduce a new section.", group: "Text" },
+  { type: "heading", label: "Heading", description: "Introduce new sections and organise content to help visitors (and search engines) understand the structure of your content.", group: "Text" },
   { type: "list", label: "List", description: "Create an ordered or bullet list.", group: "Text" },
   { type: "quote", label: "Quote", description: "Emphasise a quotation.", group: "Text" },
-  { type: "table", label: "Table", description: "Create structured content in rows and columns.", group: "Text" },
   { type: "code", label: "Code", description: "Display code or a formula.", group: "Text" },
+  { type: "table", label: "Table", description: "Create structured content in rows and columns to display information.", group: "Text" },
   { type: "image", label: "Image", description: "Add an image by URL for now.", group: "Media" },
-  { type: "embed", label: "Embed", description: "Link to an external resource.", group: "Media" },
+  { type: "buttons", label: "Buttons", description: "Prompt visitors to take action with a group of buttons.", group: "Design" },
   { type: "button", label: "Button", description: "Add a call to action.", group: "Design" },
-  { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Design" },
+  { type: "columns", label: "Columns", description: "Arrange blocks in adjustable, responsive columns.", group: "Design" },
+  { type: "group", label: "Group", description: "Gather blocks in a layout container.", group: "Design" },
   { type: "divider", label: "Separator", description: "Separate two sections.", group: "Design" },
   { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design" },
   { type: "social-icons", label: "Social Icons", description: "Add links to your social profiles.", group: "Widgets" },
   { type: "social-linkedin", label: "LinkedIn", description: "Link to a LinkedIn profile.", group: "Widgets" },
   { type: "social-tiktok", label: "TikTok", description: "Link to a TikTok profile.", group: "Widgets" },
-  { type: "document-title", label: "Document Title", description: "Display the current page or post title.", group: "Other" },
-  { type: "document-subtitle", label: "Document Subtitle", description: "Display the current page or post subtitle.", group: "Other" },
-  { type: "cover-image", label: "Cover Image", description: "Display the document cover image.", group: "Other" },
+  { type: "document-title", label: "Title", description: "Display the current page or post title.", group: "Theme" },
+  { type: "cover-image", label: "Featured Image", description: "Display the document cover image.", group: "Theme" },
+  { type: "post-author", label: "Author", description: "Show the document author when one is set.", group: "Theme" },
+  { type: "post-date", label: "Date", description: "Show the document publication date.", group: "Theme" },
+  { type: "embed", label: "Embed", description: "Add a block that displays content from other sites, like YouTube or Vimeo.", group: "Embeds" },
+  { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Other" },
+  { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Other" },
   { type: "reading-time", label: "Reading Time", description: "Show the calculated reading time for this document.", group: "Other" },
-  { type: "post-author", label: "Post Author", description: "Show the document author when one is set.", group: "Other" },
-  { type: "post-date", label: "Post Date", description: "Show the document publication date.", group: "Other" },
+  { type: "document-subtitle", label: "Document Subtitle", description: "Display the current page or post subtitle.", group: "Other" },
 ];
 
 export const socialIconCatalogue: typeof blockCatalogue = [
@@ -108,7 +113,7 @@ export const templateContentBlock = {
   type: "template-content" as const,
   label: "Content",
   description: "Show the body supplied by each document.",
-  group: "Other" as const,
+  group: "Theme" as const,
 };
 
 const fixedDate = "2026-08-20T00:00:00.000Z";
@@ -132,7 +137,7 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 14,
+  version: 24,
   activeDocumentId: "page-home",
   bin: [],
   categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],
@@ -226,17 +231,18 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "paragraph") return paragraphBlockDefinition.create(id);
   if (type === "social-icons") return { id, type, children: [] };
   if (type === "social-linkedin" || type === "social-tiktok") return { id, type, url: "" };
-  if (type === "group") return { id, type, layout: "stack", children: [] };
+  if (type === "group") return { id, type, layout: "flow", inheritLayout: true, children: [] };
   if (type === "columns") return createColumnsBlock(id);
   if (type === "section") return { id, type, layout: "stack", children: [] };
   if (type === "heading") return { id, type, level: 2, text: "A new section" };
-  if (type === "quote") return { id, type, text: "A useful thought worth emphasising." };
+  if (type === "quote") return { id, type, text: "", children: [{ id: `${id}-paragraph`, type: "paragraph", text: "A useful thought worth emphasising." }] };
   if (type === "list") return { id, type, style: "unordered", items: ["First item", "Second item"] };
-  if (type === "table") return { id, type, rows: [["", "", ""], ["", "", ""]] };
+  if (type === "table") return { id, type, rows: [] };
   if (type === "code") return { id, type, language: "text", code: "" };
   if (type === "image") return { id, type, src: "", alt: "", caption: "" };
   if (type === "embed") return { id, type, url: "", title: "External resource" };
-  if (type === "button") return { id, type, label: "Learn more", url: "#", style: "primary" };
+  if (type === "buttons") return { id, type, children: [createBlock("button", `${id}-button`) as Extract<ContentBlock, { type: "button" }>], justification: "left", orientation: "horizontal", allowWrap: true };
+  if (type === "button") return createButtonForInsertion(id);
   if (type === "field") return { id, type, control: "text", label: "Label", value: "" };
   if (type === "divider") return { id, type };
   if (type === "spacer") return { id, type, height: 32 };

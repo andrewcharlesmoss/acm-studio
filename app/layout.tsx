@@ -9,6 +9,9 @@ import "./studio/responsive.css";
 import "./studio/site-draft.css";
 import "./studio/design.css";
 import "./studio/templates.css";
+import "./studio/content-slot-layout.css";
+import "./content/buttons.css";
+import "./content/featured-image.css";
 
 export const metadata: Metadata = {
   title: {

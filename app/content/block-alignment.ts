@@ -7,6 +7,7 @@ const quoteAlignments = ["left", "right", "wide", "full"] as const;
 export const blockAlignmentSupport = {
   paragraph: widthAlignments,
   heading: widthAlignments,
+  buttons: ["left", "center", "right", "wide", "full"],
   quote: quoteAlignments,
   list: widthAlignments,
   table: floatedAlignments,

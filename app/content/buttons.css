@@ -1,0 +1,40 @@
+/* Width belongs to the group item, including interaction-state widths. */
+.content-buttons > .content-button-item { width: var(--button-item-width, auto); }
+.content-buttons > .content-button-item.has-button-hover-width:has(.content-button:hover),
+.content-buttons > .content-button-item.is-button-state-preview-hover.has-button-hover-width { width: var(--button-hover-item-width); }
+.content-buttons > .content-button-item.has-button-focus-width:has(.content-button:focus, .content-button:focus-visible),
+.content-buttons > .content-button-item.is-button-state-preview-focus.has-button-focus-width { width: var(--button-focus-item-width); }
+.content-buttons > .content-button-item.has-button-active-width:has(.content-button:active),
+.content-buttons > .content-button-item.is-button-state-preview-active.has-button-active-width { width: var(--button-active-item-width); }
+
+.content-buttons > .content-button-item :is(.button-field, .button-block),
+.content-buttons > .content-button-item :is(.button-field, .button-block)[class*="has-button-"]:has(> .content-button),
+.content-buttons > .content-button-item :is(.button-field, .button-block).is-button-state-preview-hover.has-button-hover-width,
+.content-buttons > .content-button-item :is(.button-field, .button-block).is-button-state-preview-focus.has-button-focus-width,
+.content-buttons > .content-button-item :is(.button-field, .button-block).is-button-state-preview-active.has-button-active-width { width: 100%; }
+.content-buttons > .content-button-item.has-button-item-width .content-button { box-sizing: border-box; width: 100%; }
+
+/* The filled and outlined variants occupy the same height at each text size. */
+.content-button { box-sizing: border-box; text-align: center; overflow-wrap: anywhere; }
+.content-button.is-primary,
+.template-surface .content-button.is-primary { padding: var(--button-base-padding, calc(0.667em + 2px) calc(1.333em + 2px)); }
+
+/* Outline is a content style. Studio's secondary action buttons are separate. */
+.content-button.is-secondary,
+.template-surface .content-button.is-secondary {
+  padding: var(--button-base-padding, 0.667em 1.333em);
+  background-color: var(--button-base-background-color, transparent);
+  background-image: var(--button-base-background-image, none);
+  border: var(--button-base-border-width, 2px) var(--button-base-border-style, solid) var(--button-base-border-color, currentColor);
+  color: var(--button-base-color, var(--button-group-color, inherit));
+}
+.template-surface .content-button.is-secondary:hover {
+  background-color: var(--button-hover-background-color, var(--button-base-background-color, transparent));
+  color: var(--button-hover-color, var(--button-base-color, var(--button-group-color, inherit)));
+}
+
+/* Template Fill has a theme border; subtract it from the outline compensation. */
+.template-surface .content-button.is-primary {
+  --button-fill-border-compensation: var(--button-base-border-width, var(--acm-button-base-border-width, var(--acm-layout-border-width, var(--template-border-width, 0px))));
+  padding: var(--button-base-padding, calc(0.667em + 2px - var(--button-fill-border-compensation)) calc(1.333em + 2px - var(--button-fill-border-compensation)));
+}

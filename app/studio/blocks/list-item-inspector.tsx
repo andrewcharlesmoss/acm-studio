@@ -1,18 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type { ListBlock, ListItem, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle } from "../../content/model";
+import type { ListBlock, ListItem, ParagraphStyle } from "../../content/model";
 import { InspectorAccordionSection } from "../inspector-accordion";
-import { BackgroundSelection } from "../controls/background-selection";
-import { ColourPicker } from "../controls/colour-picker";
-import { FontSizeAppearanceSetting } from "../controls/font-size-appearance-setting";
-import { LineHeightSetting } from "../controls/line-height-setting";
-import { BoxLengthSetting } from "../box-length-setting";
+import { ParagraphInspector } from "../studio-inspectors";
+import { AdvancedFieldsControl } from "../controls/advanced-fields-control";
 import { findListBlock, updateListItem } from "../list-structure";
 import { BlockLibraryIcon } from "../block-library-icons";
-import { listItemSupportedStyleFields } from "./capability-profiles";
+import { listItemStyleInspectorProfile, listItemSupportedStyleFields } from "./capability-profiles";
 
-  const supportedStyleFields = new Set(listItemSupportedStyleFields);
+const supportedStyleFields = new Set(listItemSupportedStyleFields);
 
 export function ListItemInspector({ block, listId, itemIndex, onChange }: {
   block: ListBlock;
@@ -23,9 +20,7 @@ export function ListItemInspector({ block, listId, itemIndex, onChange }: {
   const list = findListBlock(block, listId);
   const item = list?.items[itemIndex];
   const style = item && typeof item !== "string" ? item.style ?? {} : {};
-  const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");
   const [fontSizeMode, setFontSizeMode] = useState<"presets" | "custom">(style.fontSizeCustom ? "custom" : "presets");
-
   function updateStyles(changes: Partial<ParagraphStyle>) {
     onChange(updateListItem(block, listId, itemIndex, current => {
       const currentItem: Exclude<ListItem, string> = typeof current === "string" ? { text: current } : current;
@@ -43,36 +38,23 @@ export function ListItemInspector({ block, listId, itemIndex, onChange }: {
     updateStyles({ [field]: value } as Partial<ParagraphStyle>);
   }
 
-  function updateFontSize(value: ParagraphFontSize | string | undefined, mode: "presets" | "custom") {
-    setFontSizeMode(mode);
-    updateStyles({ fontSize: mode === "presets" ? value as ParagraphFontSize | undefined : undefined, fontSizeCustom: mode === "custom" ? value : undefined });
-  }
-
-  function updateBackground(backgroundColor: string | undefined, backgroundGradient: ParagraphBackgroundGradient | undefined) {
-    updateStyles({ backgroundColor, backgroundGradient });
-  }
-
   if (!item) return null;
 
   return <div className="block-inspector-settings list-item-inspector">
     <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span><BlockLibraryIcon type="list" /></span><h2>List Item</h2></div><p className="setting-note">Style the selected item in this List.</p></section></div>
     <div className="inspector-sections">
-      <InspectorAccordionSection title="Colour">
-        <BackgroundSelection mode={backgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} textColour={style.textColor} fontSize={style.fontSizeCustom ?? ({ small: "14px", medium: "16px", large: "20px", "x-large": "24px", "xx-large": "32px" } as const)[style.fontSize ?? "medium"]} fontWeight={style.appearance?.replace(/-italic$/, "")} assessTextContrast onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
-      </InspectorAccordionSection>
-      <InspectorAccordionSection title="Typography">
-        <FontSizeAppearanceSetting size={style.fontSize} customSize={style.fontSizeCustom} mode={fontSizeMode} onModeChange={setFontSizeMode} onSizeChange={value => updateFontSize(value, "presets")} onCustomSizeChange={value => updateFontSize(value, "custom")} onAppearanceChange={() => {}} showAppearance={false} />
-        <LineHeightSetting value={style.lineHeight} onChange={value => updateStyle("lineHeight", value)} />
-      </InspectorAccordionSection>
-      <InspectorAccordionSection title="Dimensions">
-        <BoxLengthSetting label="Padding" value={style.padding} layout="axes" min={0} max={100} onChange={value => updateStyle("padding", value)} />
-        <BoxLengthSetting label="Margin" value={style.margin} layout="axes" min={-100} max={200} onChange={value => updateStyle("margin", value)} />
-      </InspectorAccordionSection>
-      <InspectorAccordionSection title="Elements">
-        <ColourPicker label="Link colour" value={style.linkColor} onChange={value => updateStyle("linkColor", value)} clearLabel="Clear link colour" />
-      </InspectorAccordionSection>
-      <InspectorAccordionSection title="Advanced">
-        <label><span>HTML anchor</span><input value={style.anchor ?? ""} onChange={event => { const value = event.target.value; if (!value || /^[a-z][a-z0-9_-]*$/i.test(value)) updateStyle("anchor", value || undefined); }} placeholder="section-name" /></label>
+      <ParagraphInspector profileOverride={listItemStyleInspectorProfile} block={{ id: `${listId}-item-${itemIndex}`, type: "paragraph", text: typeof item === "string" ? item : item.text, style }} fontSizeViewMode={fontSizeMode} onFontSizeViewModeChange={setFontSizeMode} onChange={next => {
+        if (next.type !== "paragraph") return;
+        const changes: Partial<ParagraphStyle> = {};
+        for (const field of listItemSupportedStyleFields) changes[field as keyof ParagraphStyle] = next.style?.[field as keyof ParagraphStyle] as never;
+        updateStyles(changes);
+      }} />
+      <InspectorAccordionSection title="Advanced" className="advanced-fields-section">
+        <AdvancedFieldsControl fields={{ anchor: true, className: true, additionalCss: true }} style={style} blockName="List Item" placeholders onChange={(field, value) => {
+          if (field === "anchor" && value && !/^[a-z][a-z0-9_-]*$/i.test(value)) return;
+          if (field === "className" && value && !/^[a-z0-9 _-]*$/i.test(value)) return;
+          updateStyle(field, value || undefined);
+        }} />
       </InspectorAccordionSection>
     </div>
   </div>;

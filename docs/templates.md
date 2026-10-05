@@ -131,7 +131,9 @@ not empty itself. The Bin is included in full Studio backups.
 
 ## Storage and portable contract
 
-The template-store and JSON package schema is **v0.14.0** (`0.14.0` in JSON).
+Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
+
+The template-store and JSON package schema is **v0.25.0** (`0.25.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -166,7 +168,7 @@ preserve the template's previous rendering. The same conversion is used for
 active sets, Bin entries, imported packages, backups and template snapshots.
 Existing published snapshots keep their original version and captured values;
 later template edits do not change them. Publishing a changed design records a
-v0.14.0 snapshot only through the normal **Update** action.
+snapshot using the current schema only through the normal **Update** action.
 
 The explicit shared-editor target supplies template blocks and an inspector.
 Dynamic elements are projected into block-command handles only in memory;
@@ -186,12 +188,19 @@ without a separate template-library page.
 Layout options, Spacer, document metadata, dynamic document-field blocks,
 root-level Group sticky positioning, Gutenberg's Huge Social Icons size and
 managed Quote/Group background images are additive to the existing typed block
-contract. Workspace data is now version 14, with readers for versions 2–13;
-local publication snapshots are version 7 with readers for versions 1–6, and
-full backups remain version 4. Template packages are v0.14.0, with readers for
-v0.1.0–v0.13.0. Group and Section templates support the Grid layout with a maximum
-column count and minimum column width in pixels. Each
-Page/Post template may supply
+contract. Group Row and Stack layouts also support Gutenberg's Space between
+justification. Table cells preserve per-cell header tags and scope. Workspace
+data is now version 24, with readers for versions 2–23; local publication
+snapshots are version 18 with readers for versions 1–17, and full backups remain
+version 4. Template packages are v0.25.0, with readers for v0.1.0–v0.24.0.
+Group and Section templates support the Grid layout with a maximum
+column count. Group additionally supports Auto/Manual arrangement and minimum
+column width in px, em, rem or vw; Section retains its pixel-based minimum.
+Local publications freeze the effective visibility of Title, Subtitle, Cover
+image, Author, Date and Reading Time from the exact selected template and document
+overrides. Template or draft changes affect an existing publication only after
+Update. Older snapshots without a saved visibility policy keep Show defaults.
+Each Page/Post template may supply
 Author, Category, Tags and Parent page defaults plus display defaults for
 dynamic fields; legacy set-level defaults remain a fallback. Documents record
 explicit value and display overrides, including empty values;
@@ -301,3 +310,117 @@ repositories, alter Mini Golf drafts, add archives/listings, synchronise sets
 between sites or publish online. Hosted settings and Design canvas remain
 separate product capabilities. No release or deployment is implied by a local
 template save or publication snapshot.
+
+### Content-slot and dynamic presentation settings
+
+Content elements preserve Group content/wide-width inheritance, custom CSS lengths,
+block spacing and shared visual styles through the transient editor projection and
+v0.20.0 packages. Projection children remain empty in saved templates. Editing a
+slot changes its presentation, while each document continues to own its body.
+
+Body width alignment shares one Content-slot layout in Edit, Preview and local
+publication. None uses the content limit; Wide width uses the wide limit and
+half the page gutter on each side; Full width reaches the root template surface
+edges when the Content slot has no authored inset. Content padding and borders
+remain in effect. Custom content and wide sizes remain centred and bounded by the
+available space. Nested Content slots fill their own containers without borrowing the page
+gutter. Intentionally narrow containers can therefore make two width choices
+look the same.
+
+Title supports Paragraph as well as H1–H6. Author prefix/initials, Date icon and
+Reading Time prefix/presentation are explicit ACM additions. Reading Time offers
+word count and a 200–250 wpm range while retaining the 220 wpm default. Date custom
+formatting uses the bounded tokens documented in the compatibility guide; last
+modified reads the document timestamp. New local publications capture that value;
+legacy snapshots without it remain without a confirmed modified date.
+
+The preceding Table contract generation (workspace v21, publication v14 and
+template v0.22.0) introduced the following boundaries. Table sections retain flat
+row coordinates with explicit header/footer row counts.
+Legacy flags still identify one row per section when counts are absent. Workspace
+v21, local publication v14 and template v0.22.0 writers preserve multiple section
+rows; their preceding versions remain readable without changing saved content.
+Mini Golf page-definition exports use version 2 and read version 1. The backup
+envelope remains version 4 and the Mini Golf draft envelope remains version 10;
+contained workspace/template/publication payloads carry their own versions.
+
+
+Button labels optionally retain rich runs alongside their plain label projection.
+Interactive inline links and footnote references are excluded from a Button label;
+the Button owns its outer link. Workspace v22, publication v15 and template
+v0.23.0 retain that formatting. Mini Golf page definitions use version 5 and read
+versions 1–4; its draft envelope uses version 13 and reads versions 1–12. The latest
+draft generation preserves removed authored source elements on reload. The outer
+backup envelope remains version 4. Legacy plain labels remain valid.
+
+
+### Inline Footnote compatibility
+
+New references occupy one logical U+FFFC slot, with their note identity stored in
+an `inline` record. The placeholder is never displayed or counted as prose.
+Workspace 23, publication 16, template v0.24.0, Mini Golf draft 12/page
+definition 4 and clipboard 2 introduced Footnote objects; clipboard 3 added
+partial-selection note companions. Those generations and their successors remain
+readable. Earlier envelopes carrying inline run metadata are rejected rather
+than interpreted as ordinary text. Validated legacy marked-text references are
+canonicalised in memory when readers activate a document; reading alone does
+not save that migration. Existing persisted data remains recoverable until an
+authorised owned write records the current contract.
+
+
+### Inline Math compatibility
+
+New Math uses one logical U+FFFC object, rendered through one shared safe
+presentation module in Edit, Preview and HTML export. Generated KaTeX children
+are never saved content. Selected text seeds LaTeX immediately; an empty caret
+inserts an editable placeholder. Toggling Math off restores the selected current
+source. Unchanged source retains the original selected text's formatting.
+
+Math objects require workspace 24, publication 17, template/package v0.25.0,
+Mini Golf draft 13/page definition 5 and block clipboard 4. Their immediate
+predecessors still accept Footnote objects, but reject under-versioned Math.
+The outer backup envelope remains version 4.
+
+Legacy Math marks may contain authored prose different from the expression and
+may span formatting boundaries. They render as one equation and edit in place;
+removing Math reveals that exact prose and formatting. They are not automatically
+converted to objects. MathML input and accessible descriptions are retained ACM
+additions. Unsafe MathML stays in the transient editor and cannot replace saved
+content. Invalid LaTeX remains recoverable as source with parse feedback.
+
+Closing an empty expression removes its placeholder only while the same
+document, block and rich field remain writable and unchanged. Ownership loss
+irrevocably discards the transient editor without a late write. A placeholder
+whose cleanup was denied remains recoverable in the saved record and renders
+without a visible U+FFFC character.
+
+Native rich-text paste reads the typed Math descriptor from detached clipboard
+HTML before inserting validated runs. It retains the expression, description
+and source formatting without treating generated KaTeX text as authored prose.
+Malformed mathematical clipboard content leaves the current field unchanged
+with feedback. Ordinary pasted text, escaped code and comments keep native
+paste behaviour. A mixed Math/Footnote selection requires the block Copy action
+so referenced note content travels with it.
+
+
+### Inline Language compatibility
+
+Language uses a `bdo` element with a language tag and explicit LTR/RTL direction,
+matching the pinned Gutenberg direction override. Existing `span lang` imports
+remain readable. Empty language permits a direction-only format. Expanded tags
+accept bounded syntax including singleton extensions and private use; this is
+not a complete BCP 47 registry validation. Previously accepted historical tags,
+including long values, remain recoverable without truncation.
+
+Empty and expanded Language values use the same unfinished local generation as
+Math: workspace 24, publication 17, template/package v0.25.0, Mini Golf draft 13,
+page definition 5 and clipboard 4. Older envelopes reject these values before
+migration; ordinary historical Language values remain readable. Detection walks
+nested rich fields and Math source-recovery runs. No release is implied.
+
+The checked menu removes an active format, including a contiguous equal-format
+extent at a caret. A mixed selection opens a fresh form with empty language/LTR
+rather than editing one selected run's attributes. Caret application changes
+pending typing formats and creates no document history until text is inserted.
+Selected application/removal is one document operation. The shared field resolver
+and deferred focus guard retain the captured document, field and expected runs.

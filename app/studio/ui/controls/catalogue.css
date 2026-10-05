@@ -10,8 +10,8 @@
 .ui-control-entry-header .rl-eyebrow { margin:0 0 .25rem; color:var(--rl-muted); }
 .ui-control-entry-header h3 { margin:0 0 .35rem; font-size:1.1rem; }
 .ui-control-entry-header > div > p:last-child { max-width:68ch; margin:.2rem 0 0; color:var(--rl-muted); }
-.ui-control-reset { min-height:40px; display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; gap:.45rem; border:1px solid var(--rl-line); border-radius:6px; padding:.45rem .75rem; background:#fff; color:inherit; font:inherit; }
-.ui-control-reset:focus-visible { outline:2px solid var(--rl-accent); outline-offset:3px; }
+.ui-control-reset, .ui-control-action { min-height:40px; display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; gap:.45rem; border:1px solid var(--rl-line); border-radius:6px; padding:.45rem .75rem; background:#fff; color:inherit; font:inherit; }
+.ui-control-reset:focus-visible, .ui-control-action:focus-visible { outline:2px solid var(--rl-accent); outline-offset:3px; }
 .ui-control-detail-card { margin:1rem 0 .25rem; overflow:visible; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }
 .ui-control-detail-header { padding:.65rem 1rem; border-bottom:1px solid var(--rl-line); background:#faf9f6; }
 .ui-control-detail-header h4 { margin:0; font-size:.9rem; }

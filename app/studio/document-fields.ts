@@ -1,5 +1,6 @@
 import type { ContentBlock, DocumentDisplayField, DocumentDisplayMode } from "../content/model";
 import { readingTimeMinutes } from "../content/reading-time";
+import { DOCUMENT_DISPLAY_FIELDS } from "../content/document-metadata";
 import type { StudioDocument, StudioDocumentKind } from "./editor-model";
 import type { TemplateDefaults, TemplateNode, TemplateSet } from "./template-model";
 
@@ -63,8 +64,7 @@ export function resolveDocumentFields(document: StudioDocument, set?: TemplateSe
 export type FieldUsage = { document: number; template: number; total: number };
 
 export function resolveDocumentDisplay(document: StudioDocument, template?: { displayDefaults?: Partial<Record<DocumentDisplayField, DocumentDisplayMode>> }) {
-  const fields: DocumentDisplayField[] = ["title", "subtitle", "coverImage", "author", "publicationDate", "readingTime"];
-  return Object.fromEntries(fields.map(field => [field, document.displayOverrides?.[field] ?? template?.displayDefaults?.[field] ?? "show"])) as Record<DocumentDisplayField, DocumentDisplayMode>;
+  return Object.fromEntries(DOCUMENT_DISPLAY_FIELDS.map(field => [field, document.displayOverrides?.[field] ?? template?.displayDefaults?.[field] ?? "show"])) as Record<DocumentDisplayField, DocumentDisplayMode>;
 }
 
 export function documentDisplaySource(document: StudioDocument, field: DocumentDisplayField, hasTemplate: boolean) {

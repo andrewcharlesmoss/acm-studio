@@ -1,10 +1,13 @@
 "use client";
 
+import { watchInspectorPopover } from "../panes/inspector-popover-position";
 import { createPortal } from "react-dom";
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
 import { AcmIcon } from "@acm/icons/react";
 import { GradientStopColour } from "./gradient-stop-colour";
+import { PopoverHeading } from "../overlays/popover-heading";
+import { useOverlayDismiss } from "../overlays/use-overlay-dismiss";
 import { StudioIcon } from "../studio-icons";
 
 const paletteRoles: { key: keyof typeof UNIVERSAL_STYLE_PRESET.palette; label: string }[] = [
@@ -85,31 +88,13 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
 
   useLayoutEffect(() => {
     if (!open) return;
-    function positionPalette() {
-      const anchor = triggerRef.current ?? rootRef.current?.querySelector<HTMLButtonElement>("button");
-      const palette = paletteRef.current;
-      if (!anchor || !palette) return;
-      const anchorRect = anchor.getBoundingClientRect();
-      const inspectorLeft = anchor.closest(".studio-inspector")?.getBoundingClientRect().left ?? anchorRect.left;
-      const width = Math.min(262, window.innerWidth - 32);
-      const swatchGridWidth = width - 34;
+    const anchor = triggerRef.current ?? rootRef.current?.querySelector<HTMLButtonElement>("button") ?? null;
+    return watchInspectorPopover(anchor, paletteRef.current, 262, next => {
+      const swatchGridWidth = next.width - 34;
       const swatchColumns = Math.max(3, Math.min(6, Math.floor((swatchGridWidth + 12) / 40)));
       const swatchSize = Math.min(28, (swatchGridWidth - (swatchColumns - 1) * 12) / swatchColumns);
-      setPosition({
-        left: Math.max(16, Math.min(inspectorLeft - width - 12, window.innerWidth - width - 16)),
-        top: Math.max(16, Math.min(anchorRect.top, window.innerHeight - palette.getBoundingClientRect().height - 16)),
-        width,
-        swatchSize,
-        swatchColumns,
-      });
-    }
-    positionPalette();
-    window.addEventListener("resize", positionPalette);
-    window.addEventListener("scroll", positionPalette, true);
-    return () => {
-      window.removeEventListener("resize", positionPalette);
-      window.removeEventListener("scroll", positionPalette, true);
-    };
+      setPosition({ ...next, swatchSize, swatchColumns });
+    });
   }, [open, activeWarning, activeState, customOpen]);
 
   function close(restoreFocus = true) {
@@ -122,39 +107,19 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   useLayoutEffect(() => {
     if (!customOpen) return;
     customCloseRef.current?.focus();
-    function repositionCustom() {
-      const anchor = previewRef.current, popup = customRef.current;
-      if (!anchor || !popup) return;
-      const bounds = anchor.getBoundingClientRect();
-      const width = Math.min(260, window.innerWidth - 32);
-      setCustomPosition({ width, left: Math.max(16, Math.min(bounds.left - width - 12, window.innerWidth - width - 16)), top: Math.max(16, Math.min(bounds.top, window.innerHeight - popup.getBoundingClientRect().height - 16)) });
-    }
-    repositionCustom();
-    window.addEventListener("resize", repositionCustom);
-    window.addEventListener("scroll", repositionCustom, true);
-    return () => { window.removeEventListener("resize", repositionCustom); window.removeEventListener("scroll", repositionCustom, true); };
+    return watchInspectorPopover(previewRef.current, customRef.current, 260, setCustomPosition, { ownerAnchor: rootRef.current, leftBoundary: paletteRef.current });
   }, [customOpen]);
-  useLayoutEffect(() => {
-    if (!open) return;
-    function dismiss(event: KeyboardEvent | PointerEvent) {
-      if (event instanceof KeyboardEvent) {
-        if (event.key !== "Escape") return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (customOpen) { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); return; }
-        close();
-        return;
-      }
-      if (event.target instanceof Node && !rootRef.current?.contains(event.target) && !paletteRef.current?.contains(event.target)) close(false);
-      else if (event.target instanceof Node && customOpen && !customRef.current?.contains(event.target) && !previewRef.current?.contains(event.target)) setCustomOpen(false);
-    }
-    document.addEventListener("keydown", dismiss as EventListener);
-    document.addEventListener("pointerdown", dismiss as EventListener);
-    return () => {
-      document.removeEventListener("keydown", dismiss as EventListener);
-      document.removeEventListener("pointerdown", dismiss as EventListener);
-    };
-  }, [open, customOpen]);
+  useOverlayDismiss({
+    open,
+    onEscape: () => {
+      if (customOpen) { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }
+      else close();
+    },
+    onOutside: target => {
+      if (!rootRef.current?.contains(target) && !paletteRef.current?.contains(target)) close(false);
+      else if (customOpen && !customRef.current?.contains(target) && !previewRef.current?.contains(target)) setCustomOpen(false);
+    },
+  });
 
   const triggerProps: ColourPickerTriggerProps = { disabled, expanded: open, controls: paletteId, onClick: () => { if (!disabled) setOpen(current => !current); setCustomOpen(false); }, close: () => { setOpen(false); setCustomOpen(false); } };
   return <div ref={rootRef} className={`inspector-colour-setting paragraph-palette-setting${hasHoverState ? " paragraph-palette-setting--element" : ""}${wrapperClassName ? ` ${wrapperClassName}` : ""}`}>
@@ -168,7 +133,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       {!hasHoverState && !clearLabel ? <button type="button" aria-label={`Reset ${label} colour`} onClick={() => onChange(undefined)} disabled={disabled || !value}>Reset</button> : null}
     </div>}
     {open ? createPortal(<div ref={paletteRef} id={paletteId} className={`paragraph-colour-palette paragraph-theme-colour-palette${paletteClassName ? ` ${paletteClassName}` : ""}`} role="dialog" aria-label={`${colourLabel} palette`} style={{ left: position.left, top: position.top, width: position.width, "--colour-swatch-size": `${position.swatchSize}px`, "--colour-swatch-columns": position.swatchColumns } as CSSProperties}>
-      <div className="paragraph-colour-palette-heading"><strong>{label}</strong><button ref={closeRef} type="button" aria-label={`Close ${label} palette`} title="Close" onClick={() => close()}><StudioIcon name="close" size={16} /></button></div>
+      <PopoverHeading closeRef={closeRef} closeLabel={`Close ${label} palette`} onClose={() => close()}>{label}</PopoverHeading>
       {hasHoverState ? <div className="paragraph-colour-state-tabs" role="group" aria-label={`${label} colour state`}>
         <button type="button" disabled={disabled} aria-pressed={activeState === "default"} onClick={() => { setActiveState("default"); setCustomOpen(false); }}>Default</button>
         <button type="button" disabled={disabled} aria-pressed={activeState === "hover"} onClick={() => { setActiveState("hover"); setCustomOpen(false); }}>Hover</button>
@@ -181,7 +146,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       <ColourSwatches value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={() => changeActiveColour(undefined)} disabled={disabled} />
       {activeValue ? <button type="button" className="paragraph-colour-clear studio-clear-action" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</button> : null}
       {customOpen && !disabled ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
-        <div className="paragraph-colour-palette-heading"><strong>Custom colour</strong><button ref={customCloseRef} type="button" aria-label="Close custom colour picker" onClick={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}><StudioIcon name="close" size={16} /></button></div>
+        <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
         <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={false} />
       </div> : null}
       {hasHoverState && activeWarning ? <div className="paragraph-colour-contrast-warning" role="status"><AcmIcon name="state.warning" size={18} /><span>This link colour has poor contrast against the background. Consider increasing contrast.</span></div> : null}

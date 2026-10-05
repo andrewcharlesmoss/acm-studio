@@ -34,7 +34,7 @@ function modules(overrides = {}, globals = {}) {
       if (specifier in overrides) return overrides[specifier];
       if (specifier.endsWith("write-ownership")) return { studioWriteOwnership: writer, ownershipMessage: () => null };
       if (!specifier.startsWith(".")) return require(specifier);
-      return load(path.resolve(path.dirname(filename), specifier.endsWith(".mjs") ? specifier : `${specifier}.ts`));
+      return load(path.resolve(path.dirname(filename), /\.(?:mjs|tsx?)$/.test(specifier) ? specifier : `${specifier}.ts`));
     } }, { filename });
     return exports;
   }
@@ -48,7 +48,7 @@ function storage(initial = null) {
 }
 
 // Run the actual hook's effects and dependency changes, with persistence injected.
-function hookHarness(repository, load, syncOverride = null) {
+function hookHarness(repository, load, syncOverride = null, ownershipOverride = null) {
   let activeRepository = repository;
   const slots = [];
   let index = 0;
@@ -79,14 +79,14 @@ function hookHarness(repository, load, syncOverride = null) {
       }
     },
   };
-  const useWorkspace = modules({ react, "./editor-model": load("app/studio/editor-model.ts"), "./workspace-repository": { browserWorkspaceRepository: repository }, ...(syncOverride ? { "./studio-sync": syncOverride } : {}) }, {
+  const useWorkspace = modules({ react, "./editor-model": load("app/studio/editor-model.ts"), "./workspace-repository": { browserWorkspaceRepository: repository }, ...(syncOverride ? { "./studio-sync": syncOverride } : {}), ...(ownershipOverride ? { "./write-ownership": { studioWriteOwnership: ownershipOverride, ownershipMessage: state => state === "blocked" ? "Writer is read-only" : null } } : {}) }, {
     queueMicrotask: (fn) => microtasks.push(fn),
   })("app/studio/use-studio-workspace.ts").useStudioWorkspace;
   let result;
   return {
     flush() {
       let renders = 0;
-      while (dirty) {
+      while (dirty || microtasks.length) {
         assert.ok(++renders < 20, "hook should settle");
         dirty = false; index = 0;
         // eslint-disable-next-line react-hooks/rules-of-hooks -- This harness supplies an isolated dispatcher for each render.
@@ -97,7 +97,34 @@ function hookHarness(repository, load, syncOverride = null) {
       return result;
     },
     setRepository(next) { activeRepository = next; dirty = true; },
+    unmount() { slots.forEach(slot => slot?.cleanup?.()); },
   };
+}
+
+async function settleHook(hook) {
+  for (let index = 0; index < 16; index++) { await Promise.resolve(); hook.flush(); }
+  return hook.flush();
+}
+
+function deferred() {
+  let resolve; let reject;
+  const promise = new Promise((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
+}
+
+function realSyncHarness(repository, ownership = null) {
+  const load = modules({}, { Error, crypto: globalThis.crypto, setTimeout, clearTimeout, setInterval, clearInterval, queueMicrotask });
+  const actualSync = load("app/studio/studio-sync.ts");
+  const sessions = [];
+  const sync = { createStudioSync(options) {
+    const session = actualSync.createStudioSync({ ...options,
+      channelFactory: () => ({ postMessage() {}, addEventListener() {}, removeEventListener() {}, close() {} }),
+    });
+    sessions.push(session);
+    return session;
+  } };
+  const hook = hookHarness(repository, load, sync, ownership);
+  return { hook, close() { hook.unmount(); sessions.forEach(session => session.close()); } };
 }
 
 for (const raw of ["{broken", "", JSON.stringify({ version: 1, documents: [] }), JSON.stringify({ version: 2, activeDocumentId: "bad", documents: [{ id: "bad", kind: "post" }] })]) {
@@ -122,7 +149,7 @@ test("a genuinely absent workspace may initialise and save", () => {
   const state = hookHarness(load("app/studio/workspace-repository.ts").browserWorkspaceRepository, load).flush();
   assert.match(state.saveLabel, /Saved locally/);
   assert.equal(localStorage.writes.length, 1);
-  assert.equal(JSON.parse(localStorage.raw()).version, 14);
+  assert.equal(JSON.parse(localStorage.raw()).version, initialStudioWorkspace.version);
 });
 
 test("autosave status reports persistence time rather than a stale document timestamp", () => {
@@ -153,7 +180,164 @@ test("Save feedback cannot hide a quota failure; a successful persistence retry 
   assert.equal(h.flush().saveLabel, "Could not save locally");
   quota = false;
   h.flush().commit((workspace) => ({ ...workspace }));
+  assert.equal(h.flush().saveLabel, "Could not save locally", "An unchanged commit is not a persistence retry");
+  assert.equal(h.flush().canUndo, false);
+  h.flush().commit((workspace) => ({ ...workspace, documents: workspace.documents.map((document, index) => index === 0 ? { ...document, title: "Retry after quota recovery" } : document) }));
   assert.match(h.flush().saveLabel, /Saved locally/);
+});
+
+test("explicit Save retries failed current data without a timestamp or consuming Undo and Redo", () => {
+  let quota = true; let writes = 0;
+  const h = hookHarness({ load: () => null, save() { writes++; if (quota) throw Error("quota"); } }, modules());
+  h.flush().updateActiveField("title", "An unsaved edit");
+  h.flush().undo();
+  const before = h.flush();
+  assert.equal(before.canRedo, true);
+  assert.equal(before.canUndo, false);
+  assert.equal(before.saveLabel, "Could not save locally");
+  const raw = JSON.stringify(before.workspace); const previousWrites = writes;
+  quota = false;
+  assert.equal(before.requestSave(), true);
+  const saved = h.flush();
+  assert.equal(writes, previousWrites + 1);
+  assert.match(saved.saveLabel, /Saved locally/);
+  assert.equal(JSON.stringify(saved.workspace), raw);
+  assert.equal(saved.canRedo, true);
+  assert.equal(saved.canUndo, false);
+  saved.requestSave(); h.flush();
+  assert.equal(writes, previousWrites + 1, "Already saved snapshots do not need another write");
+  h.flush().redo();
+  assert.equal(h.flush().workspace.documents[0].title, "An unsaved edit");
+  const denied = hookHarness({ load() { throw Error("unreadable"); }, save() { assert.fail("Unreadable data must not save"); } }, modules());
+  assert.equal(denied.flush().requestSave(), false);
+  denied.flush();
+});
+
+test("the actual Save draft action requests persistence even when draft status is unchanged", () => {
+  const source = readFileSync(path.join(root, "app/studio/studio-prototype.tsx"), "utf8");
+  const parsed = ts.createSourceFile("studio-prototype.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let declaration;
+  function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === "savePageDraft") declaration = node; ts.forEachChild(node, visit); }
+  visit(parsed); assert.ok(declaration);
+  const calls = [];
+  const scope = { writable: true, activeDocument: { kind: "page", status: "draft" }, updateActiveField: (...args) => calls.push(args), studioSession: { requestSave: () => calls.push("save") } };
+  vm.runInNewContext(`${declaration.getText(parsed)}; savePageDraft();`, scope);
+  assert.deepEqual(calls, [["status", "draft"], "save"]);
+  calls.length = 0; scope.writable = false;
+  vm.runInNewContext("savePageDraft();", scope);
+  assert.deepEqual(calls, []);
+});
+
+for (const succeeds of [true, false]) {
+  test(`repeated Save awaits real sync persistence ${succeeds ? "success" : "failure"} without optimistic success`, async () => {
+    let persisted = structuredClone(initialStudioWorkspace);
+    let writes = 0;
+    const gate = deferred();
+    const repository = { load: () => structuredClone(persisted), async save(snapshot) {
+      writes++; await gate.promise; persisted = structuredClone(snapshot);
+    } };
+    const fixture = realSyncHarness(repository); const h = fixture.hook;
+    try {
+      await settleHook(h);
+      const originalTitle = persisted.documents[0].title;
+      h.flush().updateActiveField("title", "Pending title");
+      let state = await settleHook(h);
+      assert.equal(writes, 1); assert.equal(state.saveLabel, "Saving…");
+      const current = JSON.stringify(state.workspace);
+      for (let index = 0; index < 3; index++) {
+        assert.equal(state.requestSave(), false, "Save reuses the pending persistence operation");
+        state = await settleHook(h);
+        assert.equal(state.saveLabel, "Saving…");
+        assert.equal(state.canUndo, true); assert.equal(JSON.stringify(state.workspace), current);
+      }
+      assert.equal(persisted.documents[0].title, originalTitle); assert.equal(writes, 1);
+      if (succeeds) gate.resolve(); else gate.reject(new Error("quota"));
+      state = await settleHook(h);
+      if (succeeds) {
+        assert.equal(persisted.documents[0].title, "Pending title");
+        assert.match(state.saveLabel, /Saved locally/);
+        state.requestSave(); await settleHook(h); assert.equal(writes, 1);
+        assert.equal(state.canUndo, true);
+      } else {
+        assert.equal(persisted.documents[0].title, originalTitle);
+        assert.match(state.saveLabel, /quota|Could not save locally/);
+        assert.doesNotMatch(state.saveLabel, /Saved locally/);
+      }
+    } finally { fixture.close(); }
+  });
+}
+
+test("a pending Save completion cannot relabel a replacement writer session", async () => {
+  const saved = structuredClone(initialStudioWorkspace); const gate = deferred();
+  const fixture = realSyncHarness({ load: () => structuredClone(saved), save: () => gate.promise });
+  const h = fixture.hook;
+  try {
+    await settleHook(h); h.flush().updateActiveField("title", "Old writer edit");
+    await settleHook(h);
+    const replacement = structuredClone(saved); replacement.documents[0].title = "Replacement writer title";
+    h.setRepository({ load: () => structuredClone(replacement), save() { assert.fail("Replacement snapshot is already persisted"); } });
+    const current = await settleHook(h);
+    const label = current.saveLabel;
+    gate.resolve();
+    const after = await settleHook(h);
+    assert.equal(after.workspace.documents[0].title, "Replacement writer title");
+    assert.equal(after.saveLabel, label);
+    assert.equal(after.canUndo, false); assert.equal(after.canRedo, false);
+  } finally { fixture.close(); }
+});
+
+test("Undo during pending persistence queues the restored content and preserves Redo", async () => {
+  let persisted = structuredClone(initialStudioWorkspace); const writes = []; const gates = [];
+  const fixture = realSyncHarness({ load: () => structuredClone(persisted), async save(snapshot) {
+    writes.push(structuredClone(snapshot)); const gate = deferred(); gates.push(gate);
+    await gate.promise; persisted = structuredClone(snapshot);
+  } });
+  const h = fixture.hook;
+  try {
+    await settleHook(h); const originalTitle = persisted.documents[0].title;
+    h.flush().updateActiveField("title", "Pending edit"); await settleHook(h);
+    h.flush().undo();
+    let state = await settleHook(h);
+    assert.equal(state.workspace.documents[0].title, originalTitle);
+    assert.equal(state.canRedo, true); assert.equal(state.canUndo, false);
+    assert.equal(state.requestSave(), false);
+    gates[0].resolve(); state = await settleHook(h);
+    assert.equal(writes.length, 2);
+    assert.equal(writes[1].documents[0].title, originalTitle);
+    assert.equal(state.workspace.documents[0].title, originalTitle);
+    assert.equal(state.saveLabel, "Saving…"); assert.equal(state.canRedo, true);
+    gates[1].resolve(); state = await settleHook(h);
+    assert.equal(persisted.documents[0].title, originalTitle);
+    assert.match(state.saveLabel, /Saved locally/); assert.equal(state.canRedo, true);
+    state.redo(); state = await settleHook(h);
+    assert.equal(state.workspace.documents[0].title, "Pending edit"); assert.equal(writes.length, 3);
+    gates[2].resolve(); await settleHook(h);
+    assert.equal(persisted.documents[0].title, "Pending edit");
+  } finally { gates.forEach(gate => gate.resolve()); fixture.close(); }
+});
+
+test("pending Save failure after ownership loss cannot resume editing or replace read-only feedback", async () => {
+  let state = "writable"; let listener; const token = Symbol("writer"); const gate = deferred();
+  const ownership = {
+    getState: () => state, subscribe(callback) { listener = callback; return () => {}; },
+    acquire(callback) { callback(token); return () => {}; }, loaded() {},
+    canWrite: supplied => state === "writable" && (supplied === undefined || supplied === token),
+  };
+  let writes = 0; const saved = structuredClone(initialStudioWorkspace);
+  const fixture = realSyncHarness({ load: () => structuredClone(saved), save() { writes++; return gate.promise; } }, ownership);
+  const h = fixture.hook;
+  try {
+    await settleHook(h); h.flush().updateActiveField("title", "Pending writer edit"); await settleHook(h);
+    assert.equal(writes, 1);
+    state = "blocked"; listener();
+    const lost = await settleHook(h);
+    assert.equal(lost.writable, false); assert.equal(lost.requestSave(), false);
+    const label = lost.saveLabel;
+    gate.reject(new Error("quota after handover"));
+    const after = await settleHook(h);
+    assert.equal(after.saveLabel, label); assert.equal(after.writable, false);
+    assert.equal(after.canUndo, false); assert.equal(after.canRedo, false); assert.equal(writes, 1);
+  } finally { fixture.close(); }
 });
 
 test("a conflict pauses autosave and reports a failed resolution without losing the local canvas", async () => {
@@ -238,7 +422,7 @@ test("workspace v2 migration adds metadata blocks once without changing body IDs
   delete post.author;
   const migrated = validation.migrateStudioWorkspace(legacy);
   assert.equal(legacy.version, 2);
-  assert.equal(migrated.version, 14);
+  assert.equal(migrated.version, initialStudioWorkspace.version);
   const nextPost = migrated.documents.find((document) => document.id === post.id);
   assert.equal(nextPost.author, "Andrew Moss");
   assert.deepEqual(Array.from(nextPost.blocks.slice(2), (block) => block.id), bodyIds);
@@ -249,53 +433,81 @@ test("workspace v2 migration adds metadata blocks once without changing body IDs
   assert.equal(JSON.stringify(validation.migrateStudioWorkspace(migrated)), JSON.stringify(migrated));
 });
 
-test("workspace v7 migrates to v14 without changing documents or categories", () => {
+test("workspace v7 migrates to the current schema without changing documents or categories", () => {
   const legacy = structuredClone(initialStudioWorkspace);
   legacy.version = 7;
   const documents = structuredClone(legacy.documents);
   const categories = structuredClone(legacy.categories);
   const migrated = validation.migrateStudioWorkspace(legacy);
-  assert.equal(migrated.version, 14);
+  assert.equal(migrated.version, initialStudioWorkspace.version);
   assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
   assert.equal(JSON.stringify(migrated.categories), JSON.stringify(categories));
 });
 
-test("workspace v8 migrates to v14 without changing documents or categories", () => {
+test("workspace v8 migrates to the current schema without changing documents or categories", () => {
   const legacy = structuredClone(initialStudioWorkspace);
   legacy.version = 8;
   const documents = structuredClone(legacy.documents);
   const categories = structuredClone(legacy.categories);
   const migrated = validation.migrateStudioWorkspace(legacy);
-  assert.equal(migrated.version, 14);
+  assert.equal(migrated.version, initialStudioWorkspace.version);
   assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
   assert.equal(JSON.stringify(migrated.categories), JSON.stringify(categories));
 });
 
-test("workspace v10 migration preserves content and advances to v14", () => {
+test("workspace v10 migration preserves content and advances to the current schema", () => {
   const legacy = structuredClone(initialStudioWorkspace);
   legacy.version = 10;
   const documents = structuredClone(legacy.documents);
   const migrated = validation.migrateStudioWorkspace(legacy);
-  assert.equal(migrated.version, 14);
+  assert.equal(migrated.version, initialStudioWorkspace.version);
   assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
-  assert.equal(validation.validateStudioWorkspace(migrated).version, 14);
+  assert.equal(validation.validateStudioWorkspace(migrated).version, initialStudioWorkspace.version);
 });
 
-test("workspace v11 migration preserves content and advances to v14", () => {
+test("workspace v11 migration preserves content and advances to the current schema", () => {
   const legacy = structuredClone(initialStudioWorkspace);
   legacy.version = 11;
   const documents = structuredClone(legacy.documents);
   const migrated = validation.migrateStudioWorkspace(legacy);
-  assert.equal(migrated.version, 14);
+  assert.equal(migrated.version, initialStudioWorkspace.version);
   assert.equal(JSON.stringify(migrated.documents), JSON.stringify(documents));
-  assert.equal(validation.validateStudioWorkspace(migrated).version, 14);
+  assert.equal(validation.validateStudioWorkspace(migrated).version, initialStudioWorkspace.version);
+});
+
+test("workspace v15 advances to the current schema and validates Group Space between values", () => {
+  const legacy = structuredClone(initialStudioWorkspace);
+  legacy.version = 15;
+  const page = legacy.documents[0];
+  const group = { id: "v15-space-between-row", type: "group", layout: "row", horizontalAlign: "space-between", children: [{ id: "v15-row-child", type: "paragraph", text: "Preserved" }] };
+  page.blocks.push(group);
+  const migrated = validation.migrateStudioWorkspace(legacy);
+  assert.equal(migrated.version, initialStudioWorkspace.version);
+  assert.equal(validation.validateStudioWorkspace(migrated).documents[0].blocks.at(-1).horizontalAlign, "space-between");
+});
+
+test("workspace v16 advances to the current schema while retaining Table cell metadata", () => {
+  const legacy = structuredClone(initialStudioWorkspace);
+  legacy.version = 16;
+  const page = legacy.documents[0];
+  page.blocks.push({ id: "v16-cell-semantics", type: "table", rows: [["Header", "Body"]], hasHeader: true, cellMetadata: [[null, { tag: "td" }]] });
+  const migrated = validation.migrateStudioWorkspace(legacy);
+  assert.equal(migrated.version, initialStudioWorkspace.version);
+  assert.equal(JSON.stringify(migrated.documents[0].blocks.at(-1).cellMetadata), JSON.stringify([[null, { tag: "td" }]]));
+  assert.equal(JSON.stringify(validation.validateStudioWorkspace(migrated).documents[0].blocks.at(-1).cellMetadata), JSON.stringify([[null, { tag: "td" }]]));
 });
 
 test("current workspace and publication snapshots round-trip validation", () => {
   const backup = validBackup();
   const { toLocallyPublishedArticle } = load("app/content/local-publishing.ts");
   backup.publications = JSON.stringify({ version: 1, posts: [toLocallyPublishedArticle(backup.workspace.documents.find((document) => document.kind === "post"))] });
-  assert.equal(backupStore.validateStudioBackup(backup), backup);
+  const original = JSON.stringify(backup);
+  const canonical = backupStore.validateStudioBackup(backup);
+  assert.equal(JSON.stringify(canonical.workspace), JSON.stringify(backup.workspace));
+  assert.equal(JSON.parse(canonical.publications).version, 18);
+  assert.equal(JSON.stringify(JSON.parse(canonical.publications).posts), JSON.stringify(JSON.parse(backup.publications).posts));
+  assert.equal(JSON.stringify(backup), original);
+  assert.equal(JSON.stringify(backupStore.validateStudioBackup(canonical)), JSON.stringify(canonical));
 });
 
 test("Quote and Group background image settings pass workspace validation", () => {
@@ -329,6 +541,13 @@ test("Button interaction styles validate only supported Gutenberg state properti
   assert.equal(validation.validContentBlocks([{ ...block, interactionStyles: { hover: { anchor: "unsafe-state-field" } } }]), false);
   assert.equal(validation.validContentBlocks([{ ...block, interactionStyles: { focus: { textColor: "not-a-colour" } } }]), false);
   assert.equal(validation.validContentBlocks([{ ...block, interactionStyles: { hover: { width: 33 } } }]), false);
+});
+
+test("Group allowed block restrictions validate only unique supported types", () => {
+  const group = { id: "restricted-group", type: "group", layout: "flow", children: [], allowedBlocks: ["paragraph", "image"] };
+  assert.equal(validation.validContentBlocks([group]), true);
+  assert.equal(validation.validContentBlocks([{ ...group, allowedBlocks: ["paragraph", "paragraph"] }]), false);
+  assert.equal(validation.validContentBlocks([{ ...group, allowedBlocks: ["unknown"] }]), false);
 });
 
 for (const [name, corrupt] of [
@@ -446,17 +665,17 @@ test("folder moves preserve metadata and reject missing or cyclic destinations",
 });
 
 
-test("workspace v14 round-trips custom gradients and reads legacy presets", () => {
+test("current workspace round-trips custom gradients and reads legacy presets", () => {
   const workspace = structuredClone(initialStudioWorkspace);
   const paragraph = workspace.documents.flatMap(document => document.blocks).find(block => block.type === "paragraph");
   const gradient = { type: "radial", angle: 90, stops: [{ colour: "#FF0000", position: 0 }, { colour: "#0000FF80", position: 100 }] };
   paragraph.style = { backgroundGradient: gradient };
   const restored = validation.validateStudioWorkspace(JSON.parse(JSON.stringify(workspace)));
-  assert.equal(restored.version, 14);
+  assert.equal(restored.version, initialStudioWorkspace.version);
   assert.deepEqual(restored.documents.flatMap(document => document.blocks).find(block => block.id === paragraph.id).style.backgroundGradient, gradient);
   paragraph.style.backgroundGradient = "ocean";
   workspace.version = 13;
   const legacy = validation.migrateStudioWorkspace(workspace);
-  assert.equal(legacy.version, 14);
+  assert.equal(legacy.version, initialStudioWorkspace.version);
   assert.equal(legacy.documents.flatMap(document => document.blocks).find(block => block.id === paragraph.id).style.backgroundGradient, "ocean");
 });

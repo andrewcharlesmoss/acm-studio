@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
 import type { ParagraphBackgroundGradient } from "../../content/model";
@@ -8,7 +8,8 @@ import { paragraphTextColourHasPoorContrast } from "../../content/paragraph-styl
 import { GradientPicker } from "./gradient-picker";
 import { ColourPicker } from "./colour-picker";
 
-export function BackgroundSelection({ mode, colour, gradient, textColour, fontSize, fontWeight, assessTextContrast = false, hasBackgroundImage = false, onModeChange, onColourChange, onGradientChange, disabled = false }: {
+export function BackgroundSelection({ mode, colour, gradient, textColour, fontSize, fontWeight, assessTextContrast = false, hasBackgroundImage = false, imageControl, onModeChange, onColourChange, onGradientChange, disabled = false }: {
+  imageControl?: ReactNode;
   mode: "colour" | "gradient";
   colour?: string;
   gradient?: ParagraphBackgroundGradient;
@@ -27,6 +28,7 @@ export function BackgroundSelection({ mode, colour, gradient, textColour, fontSi
   const lowContrast = Boolean(assessTextContrast && colour && !hasBackgroundImage && paragraphTextColourHasPoorContrast(textColour ?? UNIVERSAL_STYLE_PRESET.palette.textPrimary, colour, fontSize, fontWeight));
   return <div className="paragraph-background-control">
     <ColourPicker label="Background colour" value={colour} onChange={onColourChange} clearLabel="Clear background colour" wrapperClassName="paragraph-background-picker" disabled={disabled} trigger={({ disabled: isDisabled, expanded, controls, onClick, close }) => <div className="paragraph-background-modes" role="group" aria-label="Background type">
+      {imageControl ? <div className="paragraph-background-option-row">{imageControl}</div> : null}
       <div className="paragraph-background-option-row">
         <button type="button" className="paragraph-background-option" disabled={isDisabled} aria-pressed={mode === "colour"} aria-expanded={expanded} aria-controls={controls} onClick={() => { onModeChange("colour"); onClick(); }}>
           <span className={`paragraph-background-mode-swatch${colour ? " has-colour" : ""}`} aria-hidden="true" style={colour ? { backgroundColor: colour } : undefined} />Colour

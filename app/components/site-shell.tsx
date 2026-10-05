@@ -41,15 +41,16 @@ export function PageFrame({ children }: { children: ReactNode }) {
   );
 }
 
-export function ArticleByline({ article }: { article: Pick<Article, "publishedAt" | "displayDate"> }) {
+export function ArticleByline({ article, showAuthor = true, showDate = true }: { article: Pick<Article, "publishedAt" | "displayDate">; showAuthor?: boolean; showDate?: boolean }) {
+  if (!showAuthor && !showDate) return null;
   return (
     <div className="article-byline">
-      <span className="article-author-avatar" aria-hidden="true">AM</span>
-      <span>By <strong>Andrew Moss</strong></span>
-      <span className="article-byline-detail">
+      {showAuthor ? <><span className="article-author-avatar" aria-hidden="true">AM</span>
+      <span>By <strong>Andrew Moss</strong></span></> : null}
+      {showDate ? <span className="article-byline-detail">
         <ArticleMetaIcon name="clock" />
         {article.publishedAt ? <time dateTime={article.publishedAt}>{article.displayDate}</time> : <span>{article.displayDate}</span>}
-      </span>
+      </span> : null}
     </div>
   );
 }

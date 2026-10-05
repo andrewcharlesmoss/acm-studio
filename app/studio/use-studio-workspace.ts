@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cloneWorkspace, initialStudioWorkspace, type StudioDocument, type StudioWorkspace } from "./editor-model";
 import { validateStudioWorkspace } from "./workspace-validation";
+import { reconcileFootnoteBlocks } from "../content/footnote-reconciliation";
 import { commitHistory, redoHistory, undoHistory } from "./studio-command-operations.mjs";
 import { browserWorkspaceRepository, type WorkspaceRepository } from "./workspace-repository";
 
@@ -11,6 +12,16 @@ import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type
 import { reconcileStudioPendingSave, type StudioPendingSave } from "./studio-pending-save";
 
 const MAX_HISTORY = 60;
+
+type WorkspaceSaveAttempt = {
+  snapshotKey: string;
+  session: StudioSyncSession<StudioWorkspace> | null;
+  token: symbol | null;
+  repository: WorkspaceRepository;
+  completion: Promise<void>;
+  settled: boolean;
+  recovering: boolean;
+};
 
 export function useStudioWorkspace(repository: WorkspaceRepository = browserWorkspaceRepository, ownership: StudioWriteOwnership = studioWriteOwnership, initialWorkspace: StudioWorkspace = initialStudioWorkspace, scope = "main-studio", validateSnapshot: (value: unknown) => StudioWorkspace = validateStudioWorkspace, options: { readOnly?: boolean; activeDocumentId?: string } = {}) {
   const readOnly = options.readOnly === true;
@@ -24,6 +35,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   const [ownershipState, setOwnershipState] = useState<OwnershipState>(ownership.getState());
   const [ownershipGeneration, setOwnershipGeneration] = useState(0);
   const [attempt, setAttempt] = useState(0);
+  const [saveAttempt, setSaveAttempt] = useState(0);
   const tokenRef = useRef<symbol | null>(null);
   const [loadedToken, setLoadedToken] = useState<symbol | null>(null);
   const [historyAvailability, setHistoryAvailability] = useState({ undo: false, redo: false });
@@ -36,6 +48,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   const authoritativeWorkspaceRef = useRef(cloneWorkspace(initialWorkspace));
   const pendingPeerSaveRef = useRef<StudioPendingSave<StudioWorkspace> | null>(null);
   const lastPersistedWorkspaceRef = useRef<string | null>(null);
+  const pendingSaveAttemptRef = useRef<WorkspaceSaveAttempt | null>(null);
   const [syncStatus, setSyncStatus] = useState<StudioSyncStatus>("disconnected");
   const [syncSnapshotReady, setSyncSnapshotReady] = useState(false);
   const [syncConflict, setSyncConflict] = useState<StudioSyncConflict | null>(null);
@@ -153,6 +166,11 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       },
       onSnapshot: (snapshot, source) => {
         if (closed || (pendingConflictRef.current && source !== "commit" && source !== "conflict")) return;
+        if (source === "recovery" && pendingSaveAttemptRef.current?.session === syncRef.current) {
+          // Recovery publishes the saved baseline before pending operations
+          // reject. It must not enqueue a successful no-op over that failure.
+          pendingSaveAttemptRef.current.recovering = true;
+        }
         // Display updates may contain optimistic edits. Only the committed
         // callback above may advance the saved or handover baseline.
         const view = pendingPeerSaveRef.current?.snapshot ?? snapshot;
@@ -214,40 +232,66 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
     let message: string;
     let failed = false;
     const snapshotKey = JSON.stringify(workspace);
-    if (lastPersistedWorkspaceRef.current === snapshotKey) return;
+    const session = syncRef.current;
+    const priorAttempt = pendingSaveAttemptRef.current;
+    const hasPendingSave = priorAttempt && !priorAttempt.settled && !priorAttempt.recovering && priorAttempt.session === session
+      && priorAttempt.token === loadedToken && priorAttempt.repository === repository;
+    // Undo can return to saved content while a newer version is still being
+    // written. Queue that return so the pending write cannot replace it.
+    if (lastPersistedWorkspaceRef.current === snapshotKey && !hasPendingSave) return;
     setSaveLabel("Saving…");
+    const isCurrentWriter = () => syncRef.current === session && tokenRef.current === loadedToken
+      && (primaryWritable ? ownership.canWrite(loadedToken) : session?.isConnectedPeer() === true);
     if (primaryWritable && (!syncRef.current?.isAvailable() || !syncRef.current.isPrimary())) {
       try {
         repository.save(workspace);
         const updated = new Date();
         queueMicrotask(() => {
+          if (cancelled || !isCurrentWriter()) return;
           setSaveError(null);
           setSaveLabel(`Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
           lastPersistedWorkspaceRef.current = snapshotKey;
         });
       } catch (error) {
         queueMicrotask(() => {
+          if (cancelled || !isCurrentWriter()) return;
           setSaveError(error instanceof Error ? error.message : "Could not save locally");
           setSaveLabel("Could not save locally");
         });
       }
-      return;
+      return () => { cancelled = true; };
     }
-    void (async () => {
-      const session = syncRef.current;
-      try {
+    let pending = pendingSaveAttemptRef.current;
+    if (!pending || pending.settled || pending.snapshotKey !== snapshotKey || pending.session !== session
+      || pending.token !== loadedToken || pending.repository !== repository) {
+      // Reattaching an effect or clicking Save must await the existing write,
+      // not submit the optimistic snapshot as an already-completed no-op.
+      // A different edit starts another ordered sync operation.
+      const completion = Promise.resolve().then(async () => {
+        if (!isCurrentWriter()) throw new Error("The Studio persistence owner changed.");
         if (primaryWritable) {
           if (session?.isAvailable() && session.isPrimary()) await session.commitPrimary(workspace);
           else repository.save(workspace);
         } else if (session?.isConnectedPeer()) {
-          const pending = pendingPeerSaveRef.current;
+          const peerSave = pendingPeerSaveRef.current;
           pendingPeerSaveRef.current = {
-            base: pending ? cloneWorkspace(pending.base) : cloneWorkspace(authoritativeWorkspaceRef.current),
+            base: peerSave ? cloneWorkspace(peerSave.base) : cloneWorkspace(authoritativeWorkspaceRef.current),
             snapshot: cloneWorkspace(workspace),
           };
           await session.submit(workspace);
-        } else return;
-        if (syncRef.current !== session) return;
+        } else throw new Error("The primary Studio tab stopped responding.");
+      });
+      pending = { snapshotKey, session, token: loadedToken, repository, completion, settled: false, recovering: false };
+      pendingSaveAttemptRef.current = pending;
+      const attempt = pending;
+      void completion.finally(() => {
+        attempt.settled = true;
+      }).catch(() => undefined);
+    }
+    void (async () => {
+      try {
+        await pending.completion;
+        if (cancelled || !isCurrentWriter()) return;
         const updated = new Date();
         message = primaryWritable ? `Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Synced with another ACM Studio tab";
         if (!pendingPeerSaveRef.current && JSON.stringify(workspaceRef.current) === snapshotKey) lastPersistedWorkspaceRef.current = snapshotKey;
@@ -256,24 +300,39 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         message = error instanceof Error ? error.message : "Could not save locally";
       }
       queueMicrotask(() => {
-        if (cancelled || (!primaryWritable && !peerWritable)) return;
+        // Sync recovery replaces the displayed snapshot before rejecting the
+        // write. Keep that latest failure visible even after effect cleanup.
+        if (!isCurrentWriter() || (cancelled && (!failed || pendingSaveAttemptRef.current !== pending))) return;
         setSaveError(failed ? message : null);
         setSaveLabel(message);
       });
     })();
     return () => { cancelled = true; };
-  }, [ready, repository, loadedRepository, loadError, syncConflict, workspace, ownership, loadedToken, ownershipState, primaryWritable, peerWritable, readOnly]);
+  }, [ready, repository, loadedRepository, loadError, syncConflict, workspace, ownership, loadedToken, ownershipState, primaryWritable, peerWritable, readOnly, saveAttempt]);
+
+  function requestSave() {
+    if (!ready || loadError || syncConflict || !editable) return false;
+    const pending = pendingSaveAttemptRef.current;
+    if (pending && !pending.settled && pending.snapshotKey === JSON.stringify(workspaceRef.current) && pending.session === syncRef.current
+      && pending.token === loadedToken && pending.repository === repository) return false;
+    // Retry persistence of the current snapshot without an artificial content
+    // edit, timestamp or history entry. The effect rechecks current ownership.
+    setSaveAttempt(value => value + 1);
+    return true;
+  }
 
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
     if (!editable) return false;
     let committed = true;
     setWorkspace((current) => {
       if (!editable) { committed = false; return current; }
+      const proposed = update(cloneWorkspace(current));
+      if (JSON.stringify(proposed) === JSON.stringify(current)) return current;
       const nextHistory = commitHistory(current, historyRef.current, MAX_HISTORY);
       historyRef.current = nextHistory.history;
       futureRef.current = nextHistory.future;
       setHistoryAvailability({ undo: nextHistory.history.length > 0, redo: nextHistory.future.length > 0 });
-      return update(cloneWorkspace(current));
+      return proposed;
     });
     return committed;
   }
@@ -311,9 +370,13 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   function updateDocument(documentId: string, update: (document: StudioDocument) => StudioDocument) {
     commit((current) => ({
       ...current,
-      documents: current.documents.map((document) => document.id === documentId
-        ? { ...update(document), updatedAt: new Date().toISOString() }
-        : document),
+      documents: current.documents.map((document) => {
+        if (document.id !== documentId) return document;
+        const next = update(document);
+        if (next === document || JSON.stringify(next) === JSON.stringify(document)) return document;
+        const blocks = reconcileFootnoteBlocks(document.blocks, next.blocks);
+        return blocks ? { ...next, blocks, updatedAt: new Date().toISOString() } : document;
+      }),
     }));
   }
 
@@ -362,5 +425,5 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
           : null;
   const ownershipLabel = ownershipState === "waiting" && (peerWritable || syncStatus === "connecting") ? null : ownershipMessage(ownershipState);
   const canRetryEditing = ownershipState === "unavailable" || (ownershipState === "waiting" && ["unsupported", "disconnected"].includes(syncStatus));
-  return { workspace, ready, loadError, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing, retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? statusLabel ?? ownershipLabel ?? saveError ?? saveLabel, setSaveLabel, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
+  return { workspace, ready, loadError, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing, retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? statusLabel ?? ownershipLabel ?? saveError ?? saveLabel, setSaveLabel, requestSave, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
 }

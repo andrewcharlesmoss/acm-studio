@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
+import { loadProductionModule } from "./production-module.mjs";
+
+const { richTextPointAtOffset } = await loadProductionModule(new URL("../app/studio/rich-text-dom.ts", import.meta.url));
 
 const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
 const source = canvas.slice(canvas.indexOf("function restoreEditorSelection("), canvas.indexOf("function escapeHtml("));
@@ -10,8 +13,8 @@ const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.Scri
 
 function fixture(values) {
   const nodes = values.map(value => ({ nodeType: 3, nodeValue: value, textContent: value, childNodes: [] }));
-  const lastChild = { nodeType: 1, textContent: values.join(""), childNodes: nodes };
-  const editor = { nodeType: 1, nodeValue: null, lastChild, childNodes: values.length ? [lastChild] : [] };
+  const lastChild = { nodeType: 1, tagName: "STRONG", dataset: {}, textContent: values.join(""), childNodes: nodes };
+  const editor = { nodeType: 1, tagName: "DIV", dataset: {}, nodeValue: null, lastChild, childNodes: values.length ? [lastChild] : [] };
   const points = [];
   let restored = false;
   const check = (node, offset) => {
@@ -19,7 +22,7 @@ function fixture(values) {
     assert.ok(offset <= (node.nodeType === 3 ? node.nodeValue.length : node.childNodes.length), "Range offset must respect node type");
     points.push({ node, offset });
   };
-  const context = { Node: { TEXT_NODE: 3 }, NodeFilter: { SHOW_TEXT: 4 }, document: {
+  const context = { richTextPointAtOffset, Node: { TEXT_NODE: 3 }, NodeFilter: { SHOW_TEXT: 4 }, document: {
     createTreeWalker() { let index = 0; return { nextNode: () => nodes[index++] ?? null }; },
     createRange: () => ({ setStart: check, setEnd: check }),
   }, window: { getSelection: () => ({ removeAllRanges() {}, addRange() { restored = true; } }) } };

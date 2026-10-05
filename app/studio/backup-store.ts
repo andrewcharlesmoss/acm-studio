@@ -5,7 +5,7 @@ import { loadDesigns } from "./design-store";
 import type { StudioWorkspace } from "./editor-model";
 import { listMediaLibrary, replaceMediaLibrary, type MediaAsset, type MediaFolder } from "./media-store";
 import { isRecord, migrateStudioWorkspace, validateStudioWorkspace } from "./workspace-validation";
-import { TEMPLATE_STORAGE_KEY, validateTemplateStore, templateMediaIds, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
+import { TEMPLATE_STORAGE_KEY, validateTemplateStore, templateMediaIds, validateWorkspacePublicationTemplates, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
 import { loadTemplates } from "./template-store";
 
 const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
@@ -66,9 +66,8 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if (typeof value.exportedAt !== "string" || !Number.isFinite(Date.parse(value.exportedAt))) {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
-  const workspace = migrateStudioWorkspace(value.workspace);
-  validateStudioWorkspace(workspace);
-  if (value.templates !== undefined) validateTemplateStore(value.templates, workspace.documents);
+  const workspace = validateWorkspacePublicationTemplates(migrateStudioWorkspace(value.workspace));
+  const templates = value.templates === undefined ? undefined : validateTemplateStore(value.templates, workspace.documents);
   if (value.designs !== undefined) {
     if (!Array.isArray(value.designs)) throw new Error("The design collection is invalid.");
     value.designs.forEach(validateDesignProject);
@@ -115,24 +114,26 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if (value.publications !== null && typeof value.publications !== "string") {
     throw new Error("The published-post snapshot is invalid.");
   }
+  let publications = value.publications;
   if (typeof value.publications === "string") {
     try {
-      const snapshot = JSON.parse(value.publications);
-      validatePublicationSnapshot(snapshot);
+      const snapshot = validatePublicationSnapshot(JSON.parse(value.publications));
       for (const post of snapshot.posts) if (post.templateSnapshot && post.mediaIds.some((id: string) => !assetIds.has(id))) throw new Error("A published template image is missing from the backup.");
+      publications = JSON.stringify(snapshot);
     } catch {
       throw new Error("The published-post snapshot is invalid.");
     }
   }
   for (const item of workspace.bin) if (item.publication && item.publication.mediaIds.some(id => !assetIds.has(id))) throw new Error("A binned published post is missing one or more media files from the backup.");
-  if (value.templates !== undefined) for (const set of (value.templates as TemplateStore).sets) {
+  if (templates !== undefined) for (const set of templates.sets) {
     if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A template image is missing from the backup.");
   }
-  if (value.templates !== undefined) for (const item of (value.templates as TemplateStore).bin) {
+  if (templates !== undefined) for (const item of templates.bin) {
     const set = item.kind === "set" ? item.set : item.setSnapshot;
     if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A binned template image is missing from the backup.");
   }
-  return value as StudioBackup;
+  return { ...(value as unknown as StudioBackup), workspace,
+    ...(templates ? { templates } : {}), publications: publications as string | null };
 }
 
 export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary {
@@ -193,13 +194,13 @@ export async function createStudioBackup(workspace: StudioWorkspace) {
 }
 
 export function downloadStudioBackup(backup: StudioBackup) {
-  validateStudioBackup(backup);
-  const blob = new Blob([JSON.stringify(backup)], { type: "application/json" });
+  const canonical = validateStudioBackup(backup);
+  const blob = new Blob([JSON.stringify(canonical)], { type: "application/json" });
   if (blob.size > MAX_BACKUP_BYTES) throw new Error("This backup exceeds the 100 MB browser backup limit.");
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `acm-studio-backup-${backup.exportedAt.slice(0, 10)}.json`;
+  link.download = `acm-studio-backup-${canonical.exportedAt.slice(0, 10)}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -216,22 +217,22 @@ export async function readStudioBackup(file: File) {
 }
 
 export async function restoreStudioBackup(backup: StudioBackup) {
-  validateStudioBackup(backup);
+  const canonical = validateStudioBackup(backup);
   return studioWriteOwnership.restore(async (permit) => {
-    const assets = backup.media.assets.map(({ dataBase64, ...asset }) => ({ ...asset, blob: base64ToBlob(dataBase64, asset.type) }));
+    const assets = canonical.media.assets.map(({ dataBase64, ...asset }) => ({ ...asset, blob: base64ToBlob(dataBase64, asset.type) }));
     const previousLibrary = await listMediaLibrary();
     const previousWorkspace = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
     const previousPublications = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
     const previousDesigns = window.localStorage.getItem(DESIGN_STORAGE_KEY);
     const previousTemplates = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
     try {
-      await replaceMediaLibrary(assets, backup.media.folders, permit);
-      window.localStorage.setItem(LOCAL_WORKSPACE_KEY, JSON.stringify(backup.workspace));
-      if (backup.templates) window.localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(backup.templates));
+      await replaceMediaLibrary(assets, canonical.media.folders, permit);
+      window.localStorage.setItem(LOCAL_WORKSPACE_KEY, JSON.stringify(canonical.workspace));
+      if (canonical.templates) window.localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(canonical.templates));
       else window.localStorage.removeItem(TEMPLATE_STORAGE_KEY);
-      if (backup.designs) window.localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(backup.designs));
+      if (canonical.designs) window.localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(canonical.designs));
       else window.localStorage.removeItem(DESIGN_STORAGE_KEY);
-      if (backup.publications) window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, backup.publications);
+      if (canonical.publications) window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, canonical.publications);
       else window.localStorage.removeItem(LOCAL_PUBLICATIONS_KEY);
     } catch (error) {
       const rollbackFailures: unknown[] = [];

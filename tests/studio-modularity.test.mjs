@@ -20,7 +20,9 @@ test("keeps Studio commands behind focused hooks", async () => {
   assert.match(coordinator, /useStudioPublishing/);
   assert.doesNotMatch(coordinator, /getMediaAsset|function updateBlock|function moveBlockTo/);
   assert.match(workspace, /setSaveLabel/);
-  assert.match(documents, /publishingRepository\.unpublish/);
+  assert.match(documents, /publications\.unpublish/);
+  assert.match(documents, /moveDocumentToBin/);
+  assert.doesNotMatch(documents, /deleteDocumentFromWorkspace/);
   assert.match(blocks, /function insertBlock/);
   assert.match(media, /URL\.revokeObjectURL/);
   assert.match(publishing, /browserPublishingRepository/);

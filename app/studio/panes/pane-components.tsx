@@ -98,6 +98,7 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
     style={{ "--pane-width": `${width}px` } as CSSProperties}>
     <aside ref={container} id={id} className={`pane${className ? ` ${className}` : ""}`} aria-label={label} hidden={collapsed} inert={inert}
       style={style}
+      data-inspector-popover-owner={side === "right" ? "" : undefined}
       data-pane-region={side} onFocusCapture={() => { focusWasInside.current = true; }}
       onBlurCapture={(event) => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) focusWasInside.current = false; }}>
       {header != null && <header className="pane-header" data-pane-region={`${side}.header`}>{header}</header>}

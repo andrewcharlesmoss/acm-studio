@@ -735,8 +735,8 @@
   text-align: center;
 }
 
-:is(.mini-golf-editor-surface, .mini-golf-standalone-page) .score-input:focus,
-:is(.mini-golf-editor-surface, .mini-golf-standalone-page) .name-input:focus {
+:is(.mini-golf-editor-surface, .mini-golf-standalone-page) .score-input:focus-visible,
+:is(.mini-golf-editor-surface, .mini-golf-standalone-page) .name-input:focus-visible {
   border-color: var(--green);
   box-shadow: 0 0 0 3px #185c3a1c;
 }
@@ -1474,7 +1474,6 @@ html:has(.mini-golf-standalone-page), body:has(.mini-golf-standalone-page) { bac
 :is(.mini-golf-editor-surface, .mini-golf-standalone-page) .big-score > .score-value { margin:0; color:inherit; font:inherit; }
 .studio-list-actions { display:flex; align-items:center; }
 .studio-list-actions button { display:grid; place-items:center; width:28px; height:32px; border:0; background:transparent; }
-.studio-list-actions button:first-child svg { transform:rotate(180deg); }
 
 /* Contenteditable wrappers use the same source font as their preview elements. */
 .mini-golf-editor-surface :is(.rich-text-editor, .block-textarea) {

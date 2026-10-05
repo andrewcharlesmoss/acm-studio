@@ -105,7 +105,7 @@ export function useStudioMedia({
     if (insertAsBackground) {
       if (!destinationBlockId) return;
       updateBlock(destinationBlockId, block => {
-        if (block.type !== "quote" && block.type !== "group") return block;
+        if (block.type !== "quote" && block.type !== "group" && block.type !== "heading" && block.type !== "code" && block.type !== "document-title") return block;
         return { ...block, visualStyle: { ...block.visualStyle, backgroundImageMediaId: asset.id } };
       });
       setTargetBlockId(null);

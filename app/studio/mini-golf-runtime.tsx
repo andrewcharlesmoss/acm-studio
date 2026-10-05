@@ -18,8 +18,8 @@ export function initialRuntimeGame(blocks: ContentBlock[]): Game {
   const table = all.find(item => item.type === "table");
   const setting = (suffix: string, fallback: number) => { const block = all.find(item => item.type === "field" && (item.siteRole === suffix.slice(1) || item.id.endsWith(suffix))); return block?.type === "field" ? Number.parseInt(block.value) || fallback : fallback; };
   let index = 0;
-  const game = golf.createGame(setting("-holes", 9), setting("-players", table?.type === "table" ? table.rows[0].length - 2 : 2), () => `studio-player-${++index}`);
-  if (table?.type === "table" && table.hasHeader) game.players = game.players.map((player, column) => ({ ...player, name: table.rows[0][column + 1] ?? player.name }));
+  const game = golf.createGame(setting("-holes", 9), setting("-players", table?.type === "table" ? Math.max(1, (table.rows[0]?.length ?? 4) - 2) : 2), () => `studio-player-${++index}`);
+  if (table?.type === "table" && table.hasHeader) game.players = game.players.map((player, column) => ({ ...player, name: table.rows[0]?.[column + 1] ?? player.name }));
   return game;
 }
 

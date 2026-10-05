@@ -21,7 +21,7 @@ export function spacerOrientationFor(blocks: ContentBlock[], targetId: string): 
       } else if (block.type === "columns") {
         const found = visit(block.children, "vertical");
         if (found) return found;
-      } else if (block.type === "column" || block.type === "component") {
+      } else if (block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons") {
         const found = visit(block.children ?? [], "vertical");
         if (found) return found;
       }

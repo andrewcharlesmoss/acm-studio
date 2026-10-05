@@ -16,6 +16,7 @@ import {
 import { loadDesigns, saveDesigns } from "./design-store";
 import { createDesignSync, type DesignSyncConflict, type DesignSyncSession, type DesignSyncStatus } from "./design-sync";
 import type { DesignChange, DesignMergeConflict } from "./design-merge";
+import { StudioMenuItem, focusStudioMenu, navigateStudioMenu } from "./overlays/menu";
 import { StudioIcon } from "./studio-icons";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import type { StudioIconName } from "./studio-icons";
@@ -716,20 +717,27 @@ type DesignContextMenuProps = {
 type DesignContextMenuState = { x: number; y: number; alignOpen: boolean };
 
 function DesignContextMenu({ x, y, selectedCount, canCopy, canPaste, canAlign, canLock, selectionLocked, alignOpen, onClose, onCopy, onPaste, onAlignToggle, onAlign, onLock, onLink }: DesignContextMenuProps) {
-  const firstItemRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => { firstItemRef.current?.focus(); }, []);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const alignTriggerRef = useRef<HTMLButtonElement>(null);
+  const alignMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { focusStudioMenu(menuRef.current); }, []);
+  function openAlignMenu() {
+    if (!alignOpen) onAlignToggle();
+    requestAnimationFrame(() => alignMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus());
+  }
+  function closeAlignMenu() { onAlignToggle(); alignTriggerRef.current?.focus(); }
   const itemLabel = selectedCount > 1 ? "selected layers" : "selected layer";
-  return <div className="design-context-menu" role="menu" tabIndex={-1} aria-label="Canvas actions" style={{ left: x, top: y }} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); onClose(); } }}>
-    <button ref={firstItemRef} type="button" role="menuitem" onClick={() => { onCopy(); onClose(); }} disabled={!canCopy}><StudioIcon name="copy" size={20} /><span>Copy</span><kbd>⌘C / Ctrl+C</kbd></button>
-    <button type="button" role="menuitem" onClick={() => { onPaste(); onClose(); }} disabled={!canPaste}><StudioIcon name="copy" size={20} /><span>Paste</span><kbd>⌘V / Ctrl+V</kbd></button>
+  return <div ref={menuRef} className="design-context-menu" role="menu" tabIndex={-1} aria-label="Canvas actions" style={{ left: x, top: y }} onPointerDown={(event) => event.stopPropagation()} onKeyDown={event => navigateStudioMenu(event, onClose)}>
+    <StudioMenuItem onClick={() => { onCopy(); onClose(); }} disabled={!canCopy}><StudioIcon name="copy" size={20} /><span>Copy</span><kbd>⌘C / Ctrl+C</kbd></StudioMenuItem>
+    <StudioMenuItem onClick={() => { onPaste(); onClose(); }} disabled={!canPaste}><StudioIcon name="copy" size={20} /><span>Paste</span><kbd>⌘V / Ctrl+V</kbd></StudioMenuItem>
     <div className="design-context-menu-separator" role="separator" />
-    <button type="button" role="menuitem" aria-haspopup="menu" aria-expanded={alignOpen} onClick={onAlignToggle} disabled={!canAlign}><StudioIcon name="align-left" size={20} /><span>Align to page</span><StudioIcon name="chevron-right" size={18} /></button>
-    {alignOpen && canAlign ? <div className="design-context-submenu" role="menu" tabIndex={-1} aria-label={`Align ${itemLabel} to page`}>
-      {(["top", "middle", "bottom", "left", "centre", "right"] as const).map((axis) => <button key={axis} type="button" role="menuitem" onClick={() => { onAlign(axis); onClose(); }}>{axis === "centre" ? "Centre" : axis[0].toUpperCase() + axis.slice(1)}</button>)}
+    <StudioMenuItem ref={alignTriggerRef} aria-haspopup="menu" aria-expanded={alignOpen} onClick={() => alignOpen ? closeAlignMenu() : openAlignMenu()} onKeyDown={event => { if (event.key === "ArrowRight" && canAlign) { event.preventDefault(); event.stopPropagation(); openAlignMenu(); } }} disabled={!canAlign}><StudioIcon name="align-left" size={20} /><span>Align to page</span><StudioIcon name="chevron-right" size={18} /></StudioMenuItem>
+    {alignOpen && canAlign ? <div ref={alignMenuRef} className="design-context-submenu" role="menu" tabIndex={-1} aria-label={`Align ${itemLabel} to page`} onKeyDown={event => { if (event.key === "ArrowLeft" || event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeAlignMenu(); } else navigateStudioMenu(event, onClose); }}>
+      {(["top", "middle", "bottom", "left", "centre", "right"] as const).map((axis) => <StudioMenuItem key={axis} onClick={() => { onAlign(axis); onClose(); }}>{axis === "centre" ? "Centre" : axis[0].toUpperCase() + axis.slice(1)}</StudioMenuItem>)}
     </div> : null}
     <div className="design-context-menu-separator" role="separator" />
-    <button type="button" role="menuitem" onClick={() => { onLock(); onClose(); }} disabled={!canLock}><StudioIcon name={selectionLocked ? "lock-open" : "lock"} size={20} /><span>{selectionLocked ? "Unlock" : "Lock"}</span></button>
-    <button type="button" role="menuitem" onClick={() => { onLink(); onClose(); }} disabled={!canCopy}><StudioIcon name="link" size={20} /><span>Link</span></button>
+    <StudioMenuItem onClick={() => { onLock(); onClose(); }} disabled={!canLock}><StudioIcon name={selectionLocked ? "lock-open" : "lock"} size={20} /><span>{selectionLocked ? "Unlock" : "Lock"}</span></StudioMenuItem>
+    <StudioMenuItem onClick={() => { onLink(); onClose(); }} disabled={!canCopy}><StudioIcon name="link" size={20} /><span>Link</span></StudioMenuItem>
   </div>;
 }
 
@@ -865,22 +873,14 @@ export function DesignEditor() {
 
   useEffect(() => {
     if (!contextMenu) return;
-    const closeOnOutsidePointer = (event: PointerEvent) => {
+    const closeOnOutsidePointer = (event: globalThis.PointerEvent) => {
       const target = event.target;
       if (target instanceof Element && target.closest(".design-context-menu")) return;
       closeContextMenu();
     };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      event.stopPropagation();
-      closeContextMenu();
-    };
     document.addEventListener("pointerdown", closeOnOutsidePointer);
-    document.addEventListener("keydown", closeOnEscape, true);
     return () => {
       document.removeEventListener("pointerdown", closeOnOutsidePointer);
-      document.removeEventListener("keydown", closeOnEscape, true);
     };
   }, [closeContextMenu, contextMenu]);
 
@@ -977,12 +977,8 @@ export function DesignEditor() {
       const index = Array.from(panel.querySelectorAll(".design-page-item")).indexOf(item);
       const page = design?.pages[index];
       if (!page) return;
-      const modifiers = { metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey, checked: checkbox ? !checkbox.checked : true };
-      if (checkbox) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      if (event.metaKey || event.ctrlKey || event.shiftKey || checkbox) selectPageSet(page.id, modifiers);
+      const modifiers = { metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey, checked: true };
+      if (event.metaKey || event.ctrlKey || event.shiftKey) selectPageSet(page.id, modifiers);
     };
     const handlePageSelectionChange = (event: Event) => {
       const target = event.target;
@@ -1047,7 +1043,7 @@ export function DesignEditor() {
       pageDropPositionRef.current = { id: targetPage.id, position };
     };
     const handleDragEnd = () => clearDropGuide();
-    const handlePageDrop = (event: DragEvent) => {
+    const handlePageDrop = (event: globalThis.DragEvent) => {
       const dropTarget = pageDropPositionRef.current;
       if (!draggedPageId) return;
       event.preventDefault();
@@ -1112,7 +1108,8 @@ export function DesignEditor() {
       onConflict: (next) => { setSyncConflict(next); setConflictPanelOpen(true); setStatus("Resolve conflicting changes"); },
       loadAuthoritative: () => loadDesigns().find((item) => item.id === design.id) ?? design,
       onSnapshot: (snapshot, source) => {
-        const localActivePageId = snapshot.pages.some((page) => page.id === activePageIdRef.current) ? activePageIdRef.current : snapshot.activePageId;
+        const currentActivePageId = activePageIdRef.current;
+        const localActivePageId = currentActivePageId && snapshot.pages.some((page) => page.id === currentActivePageId) ? currentActivePageId : snapshot.activePageId;
         activePageIdRef.current = localActivePageId;
         const displayedSnapshot = localActivePageId === snapshot.activePageId ? snapshot : { ...snapshot, activePageId: localActivePageId };
         setDesign(displayedSnapshot);
@@ -1797,7 +1794,7 @@ export function DesignEditor() {
       const input = document.createElement("input");
       input.className = "design-page-title-input";
       input.value = page.name;
-      input.disabled = !writable || page.locked;
+      input.disabled = !writable || Boolean(page.locked);
       input.setAttribute("aria-label", `Edit ${page.name}`);
       input.addEventListener("click", (clickEvent) => clickEvent.stopPropagation());
       let cancelled = false;

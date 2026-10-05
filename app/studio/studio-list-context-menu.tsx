@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { StudioMenuItem, focusStudioMenu, navigateStudioMenu } from "./overlays/menu";
 import { StudioIcon, type StudioIconName } from "./studio-icons";
 
 export type StudioListContextMenuTarget = {
@@ -46,26 +47,13 @@ export function StudioListContextMenu({ target, actions = [], onDelete, onClose,
     return () => window.removeEventListener("resize", updateMenuSize);
   }, [menuSizeKey]);
   useEffect(() => {
-    const firstItem = menuRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)");
-    if (firstItem) firstItem.focus();
-    else menuRef.current?.focus();
+    focusStudioMenu(menuRef.current);
     const closeOnPointerDown = (event: PointerEvent) => {
       if (event.target instanceof Node && !menuRef.current?.contains(event.target)) onClose();
     };
-    const closeOnKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); onClose(); requestAnimationFrame(() => restoreFocus ? restoreFocus() : returnFocusRef?.current?.focus()); return; }
-      if (!menuRef.current || !["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
-      const items = [...menuRef.current.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")];
-      if (!items.length) return;
-      const current = items.indexOf(document.activeElement as HTMLButtonElement);
-      const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : current < 0 ? (event.key === "ArrowUp" ? items.length - 1 : 0) : (current + (event.key === "ArrowUp" ? -1 : 1) + items.length) % items.length;
-      if (items[next]) { event.preventDefault(); items[next].focus(); }
-    };
     document.addEventListener("pointerdown", closeOnPointerDown);
-    document.addEventListener("keydown", closeOnKeyDown);
     return () => {
       document.removeEventListener("pointerdown", closeOnPointerDown);
-      document.removeEventListener("keydown", closeOnKeyDown);
     };
   }, [onClose, restoreFocus, returnFocusRef]);
   const viewportWidth = typeof window === "undefined" ? 1024 : window.innerWidth;
@@ -80,11 +68,11 @@ export function StudioListContextMenu({ target, actions = [], onDelete, onClose,
     if (restoreFocus) restoreFocus(); else returnFocusRef?.current?.focus();
     action.onClick();
   };
-  return <div ref={menuRef} className="studio-list-context-menu" role="menu" tabIndex={-1} aria-label={`Actions for ${target.label}`} style={{ left, top }}>
+  return <div ref={menuRef} className="studio-list-context-menu" role="menu" tabIndex={-1} aria-label={`Actions for ${target.label}`} style={{ left, top }} onKeyDown={event => navigateStudioMenu(event, () => { onClose(); requestAnimationFrame(() => restoreFocus ? restoreFocus() : returnFocusRef?.current?.focus()); })}>
     {menuActions.map((action, index) => {
       const helpId = `${helpPrefix}-${index}`;
       return <Fragment key={`${action.label}-${index}`}>
-        <button className={action.destructive ? "is-destructive" : undefined} type="button" role="menuitem" disabled={action.disabled} aria-describedby={action.disabled && action.disabledReason ? helpId : undefined} onClick={() => runAction(action)}><StudioIcon name={action.icon} size={16} />{action.label}</button>
+        <StudioMenuItem className={action.destructive ? "is-destructive" : undefined} disabled={action.disabled} aria-describedby={action.disabled && action.disabledReason ? helpId : undefined} onClick={() => runAction(action)}><StudioIcon name={action.icon} size={16} />{action.label}</StudioMenuItem>
         {action.disabled && action.disabledReason ? <small id={helpId} role="status">{action.disabledReason}</small> : null}
       </Fragment>;
     })}

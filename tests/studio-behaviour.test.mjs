@@ -2,9 +2,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { loadProductionModule } from "./production-module.mjs";
 import { studioHistoryShortcut, handleStudioHistoryShortcut } from "../app/studio/studio-history-shortcuts.mjs";
 import { moveDesignLayer, reorderDesignLayers } from "../app/studio/design-layer-operations.mjs";
 import { blockCapabilityProfiles, capabilityProfileFor } from "../app/studio/blocks/capability-profiles.ts";
+import { groupAllowsChild, parentOfNestedBlock, blockInserterOptions } from "../app/studio/block-inserter-options.ts";
 import {
   addDocumentToWorkspace,
   commitHistory,
@@ -57,6 +63,42 @@ test("nested blocks support lookup, update, removal and deep duplication", () =>
   assert.equal(findBlockById(removeNestedBlockById(updated, "table").blocks, "table"), null);
 });
 
+test("Group allowed block choices constrain nested insertion and paragraph splitting eligibility", async () => {
+  const items = [
+    { type: "paragraph", label: "Paragraph", description: "Text" },
+    { type: "heading", label: "Heading", description: "Title" },
+    { type: "image", label: "Image", description: "Media" },
+    { type: "social-icons", label: "Social Icons", description: "Social links" },
+    { type: "social-linkedin", label: "LinkedIn", description: "A social link" },
+    { type: "social-tiktok", label: "TikTok", description: "A social link" },
+    { type: "template-content", label: "Content", description: "Template content" },
+  ];
+  const group = { id: "group", type: "group", layout: "flow", allowedBlocks: ["paragraph", "image", "social-icons"], children: [] };
+  assert.deepEqual(blockInserterOptions(items, group, "").map(item => item.type), ["paragraph", "image", "social-icons"]);
+  assert.deepEqual(blockInserterOptions(items, group, "media").map(item => item.type), ["image"]);
+  assert.deepEqual(blockInserterOptions(items, undefined, "").map(item => item.type), ["paragraph", "heading", "image", "social-icons", "social-linkedin", "social-tiktok"]);
+  assert.deepEqual(blockInserterOptions(items, { id: "social", type: "social-icons", children: [] }, "", [items[1], items[4], items[5]]).map(item => item.type), ["social-linkedin", "social-tiktok"]);
+
+  assert.equal(groupAllowsChild(group, "heading"), false);
+  assert.equal(groupAllowsChild(group, "paragraph"), true);
+  assert.equal(groupAllowsChild(group, "social-linkedin"), true);
+  assert.equal(groupAllowsChild({ ...group, allowedBlocks: ["paragraph"] }, "social-tiktok"), false);
+  assert.equal(groupAllowsChild({ ...group, allowedBlocks: undefined }, "heading"), true);
+  const paragraph = { id: "existing-paragraph", type: "paragraph" };
+  const restrictiveGroup = { ...group, allowedBlocks: ["image"] , children: [paragraph] };
+  assert.equal(parentOfNestedBlock([restrictiveGroup], paragraph.id)?.id, group.id);
+  assert.equal(groupAllowsChild(parentOfNestedBlock([restrictiveGroup], paragraph.id), "paragraph"), false);
+  const commands = await readFile(new URL("../app/studio/use-studio-block-commands.ts", import.meta.url), "utf8");
+  assert.equal((commands.match(/parentOfNestedBlock\(activeDocument\.blocks, blockId\)/g) ?? []).length, 4, "duplication, both paragraph split paths and List exit check their parent");
+  const templateEditor = await readFile(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
+  assert.match(templateEditor, /const parent = parentId \? findBlockById\(templateEditorBlocks\(nodesRef\.current\), parentId\) : undefined/);
+  assert.match(templateEditor, /if \(parentId && !parent\) return null/);
+  assert.match(templateEditor, /parent && !groupAllowsChild\(parent, type\)/);
+  assert.match(templateEditor, /const currentSelected = selectedBlock \? findBlockById\(templateEditorBlocks\(nodesRef\.current\), selectedBlock\.id\) : null/);
+  assert.match(templateEditor, /if \(!atRoot && \(selectedBlock\?\.type === "group" \|\| selectedBlock\?\.type === "column"\) && !currentSelected\) return null/);
+  assert.match(templateEditor, /if \(!groupAllowsChild\(currentSelected, projected\.type\)\) return null/);
+});
+
 test("duplicating a List assigns fresh IDs to every nested List", () => {
   let nextId = 0;
   const source = { ...document(), blocks: [{ id: "list-root", type: "list", style: "unordered", items: [
@@ -81,9 +123,9 @@ test("new code blocks start empty for the editor placeholder", async () => {
   assert.match(source, /if \(type === "code"\) return \{ id, type, language: "text", code: "" \};/);
 });
 
-test("new table blocks start with an editable two-row grid", async () => {
+test("new table blocks start with the creation placeholder", async () => {
   const source = await readFile(new URL("../app/studio/editor-model.ts", import.meta.url), "utf8");
-  assert.match(source, /if \(type === "table"\) return \{ id, type, rows: \[\["", "", ""\], \["", "", ""\]\] \};/);
+  assert.match(source, /if \(type === "table"\) return \{ id, type, rows: \[\] \};/);
 });
 
 test("custom font size stays selected and updates continuously while its slider moves", async () => {
@@ -127,8 +169,10 @@ test("custom font size stays selected and updates continuously while its slider 
   assert.doesNotMatch(customFontSize, /fontSizeSource/);
   const styles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(customFontSize, /className="studio-range-control paragraph-custom-font-size-slider"/);
-  assert.match(styles, /\.studio-range-control\[type="range"\] \{ accent-color: var\(--gutenberg-accent\); appearance: auto; -webkit-appearance: auto;/);
-  assert.match(styles, /\.studio-range-control:focus-visible \{ outline: var\(--focus-ring-width\) solid var\(--gutenberg-accent\);/);
+  assert.match(styles, /\.studio-range-control\[type="range"\] \{ accent-color: var\(--studio-range-accent, var\(--gutenberg-accent\)\); appearance: auto; -webkit-appearance: auto;/);
+  assert.match(styles, /\.studio-range-control\[type="range"\]:not\(:disabled\):hover \{ accent-color: var\(--studio-range-hover-accent/);
+  assert.match(styles, /\.studio-range-control\[type="range"\]:not\(:disabled\):active \{ accent-color: var\(--studio-range-pressed-accent/);
+  assert.match(styles, /\.studio-range-control:focus-visible \{ outline: var\(--focus-ring-width\) solid var\(--studio-range-accent, var\(--gutenberg-accent\)\);/);
 });
 
 test("Studio range controls share the Gutenberg-accented slider style", async () => {
@@ -178,6 +222,7 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
 
 test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped paths", async () => {
   const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const advancedControl = await readFile(new URL("../app/studio/controls/advanced-fields-control.tsx", import.meta.url), "utf8");
   const stylesheet = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const advancedFields = source.slice(source.indexOf("function advancedFieldsForBlock"), source.indexOf("function AdvancedFieldsInspector"));
   const advancedInspector = source.slice(source.indexOf("function AdvancedFieldsInspector"), source.indexOf("function ParagraphInspector"));
@@ -198,20 +243,22 @@ test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped pa
   const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
   assert.match(dividerInspector, /fields=\{\{ anchor: true, className: true, additionalCss: true \}\}/);
   assert.match(advancedInspector, /paragraph-advanced-fields/);
-  assert.match(blockSettings, /<AdvancedFieldsInspector block=\{block\} onChange=\{onChange\} fields=\{advanced\} \/>/);
+  assert.match(blockSettings, /<AdvancedFieldsInspector semanticElement=\{!contentSlot\} block=\{block\} onChange=\{onChange\} fields=\{advanced\} \/>/);
   assert.match(blockSettings, /fields=\{advanced\}/);
   assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: uppercase; \}/);
-  assert.match(advancedInspector, /fields\.className \? <div className="advanced-field"><label htmlFor=\{`\$\{descriptionPrefix\}-class-name`\}><span>Additional CSS class\(es\)<\/span><\/label><input id=\{`\$\{descriptionPrefix\}-class-name`\} aria-describedby=\{`\$\{descriptionPrefix\}-class-name-help`\} value=\{style\.className \?\? ""\}/);
-  assert.match(advancedInspector, /fields\.additionalCss \? <div className="advanced-field"><label htmlFor=\{`\$\{descriptionPrefix\}-additional-css`\}><span>Additional CSS<\/span><\/label><textarea id=\{`\$\{descriptionPrefix\}-additional-css`\} aria-describedby=/);
-  assert.match(advancedInspector, /placeholder=\{block\.type === "paragraph" \? undefined : "section-name"\}/);
-  assert.match(advancedInspector, /placeholder=\{block\.type === "paragraph" \? undefined : "custom-class"\}/);
-  assert.doesNotMatch(advancedInspector, /<textarea[^>]*placeholder=/);
-  assert.match(advancedInspector, /Enter a word or two, without spaces, to make a unique web address just for this block/);
-  assert.match(advancedInspector, /Learn more about anchors/);
-  assert.match(advancedInspector, /Separate multiple classes with spaces\./);
-  assert.match(advancedInspector, /Add your own CSS to customise the appearance of the \{blockName\} block/);
-  assert.match(advancedInspector, /e\.g\. <code>colour: red;<\/code>/);
-  assert.doesNotMatch(advancedInspector, /Studio applies safe declarations to this block/);
+  assert.match(advancedControl, /const fieldId = useId\(\)/);
+  assert.match(advancedInspector, /placeholders=\{block\.type !== "paragraph" && block\.type !== "embed"\}/);
+  assert.match(advancedControl, /fields\.className \? <div className="advanced-field"><label htmlFor=\{`\$\{fieldId\}-class-name`\}><span>Additional CSS class\(es\)<\/span><\/label><input id=\{`\$\{fieldId\}-class-name`\} aria-describedby=\{`\$\{fieldId\}-class-name-help`\} value=\{style\.className \?\? ""\}/);
+  assert.match(advancedControl, /fields\.additionalCss \? <div className="advanced-field"><label htmlFor=\{`\$\{fieldId\}-additional-css`\}><span>Additional CSS<\/span><\/label><textarea id=\{`\$\{fieldId\}-additional-css`\} aria-describedby=/);
+  assert.match(advancedControl, /placeholder=\{!placeholders \? undefined : "section-name"\}/);
+  assert.match(advancedControl, /placeholder=\{!placeholders \? undefined : "custom-class"\}/);
+  assert.doesNotMatch(advancedControl, /<textarea[^>]*placeholder=/);
+  assert.match(advancedControl, /Enter a word or two, without spaces, to make a unique web address just for this block/);
+  assert.match(advancedControl, /Learn more about anchors/);
+  assert.match(advancedControl, /Separate multiple classes with spaces\./);
+  assert.match(advancedControl, /Add your own CSS to customise the appearance of the \{blockName\} block/);
+  assert.match(advancedControl, /e\.g\. <code>colour: red;<\/code>/);
+  assert.doesNotMatch(advancedControl, /Studio applies safe declarations to this block/);
   assert.match(advancedInspector, /block\.type === "paragraph" \|\| block\.type === "columns" \|\| block\.type === "column"\) onChange\(\{ \.\.\.block, style:/);
 });
 
@@ -225,7 +272,7 @@ test("shadow controls match mapped Gutenberg block support", async () => {
   const shadowTypes = ["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"];
   for (const type of shadowTypes) assert.ok(capabilityProfileFor(type).controls.some(control => control.id === "shadow"), `${type}:shadow`);
   assert.equal(capabilityProfileFor("paragraph").controls.find(control => control.id === "shadow")?.source, "studio");
-  assert.equal(capabilityProfileFor("paragraph").controls.find(control => control.id === "text-shadow")?.source, "gutenberg");
+  assert.equal(capabilityProfileFor("paragraph").controls.some(control => control.id === "text-shadow"), false);
 });
 
 test("Cover Image exposes Gutenberg shared border, radius and shadow styling", async () => {
@@ -262,15 +309,22 @@ test("table editing exposes row and column actions from the toolbar menu", async
 });
 
 test("block options expose a safe Gutenberg-style Edit as HTML action", async () => {
-  const [canvas, htmlEditor, styles] = await Promise.all([
+  const [canvas, htmlEditor, styles, blockMenu, anchoredMenu, menu] = await Promise.all([
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio-html-editor.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/block-options-menu.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/overlays/anchored-menu.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/overlays/menu.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(canvas, /aria-label="More block options"/);
-  assert.match(canvas, /role="menuitem" onMouseDown=\{preserveTextSelection\} onClick=\{\(\) => openHtmlEditor\(block\)\}/);
+  assert.match(canvas, /action: "html", label: "Edit as HTML", disabled: !writable \|\| !allowHtmlEditing/);
+  assert.match(canvas, /if \(action === "html"\) \{ openHtmlEditor\(block\); return; \}/);
+  assert.match(canvas, /<BlockOptionsMenu items=\{blockMenuItems\(block\)\} trigger=\{htmlEditorTriggerRef\} onClose=\{closeBlockMenu\} onAction=\{action => \{ void runBlockMenuAction\(action, block\); \}\}/);
+  assert.match(blockMenu, /<StudioMenuItem[^>]*onClick=\{\(\) => onAction\(item\.action\)\}/);
+  assert.match(menu, /role="menuitem"/);
   assert.match(canvas, /<strong>Edit as HTML<\/strong>/);
-  assert.match(canvas, /parseHtmlToBlock\(htmlEditor\.draft, block\)/);
+  assert.match(canvas, /parseHtmlToBlock\(htmlEditor\.draft, block, activeDocument\.blocks\)/);
   assert.match(htmlEditor, /export function blockToHtml/);
   assert.match(htmlEditor, /export function parseHtmlToBlock/);
   assert.match(htmlEditor, /Component blocks are code-backed/);
@@ -283,7 +337,8 @@ test("block options expose a safe Gutenberg-style Edit as HTML action", async ()
   assert.match(htmlEditor, /plainTextFromRuns/);
   assert.match(styles, /\.block-options-menu \{[^}]*background: white[^}]*position: absolute/);
   assert.match(styles, /\.html-editor-popover textarea \{[^}]*font-family: ui-monospace[^}]*font-size: 13px/);
-  assert.match(canvas, /className="block-options-menu" role="menu" tabIndex=\{-1\}/);
+  assert.match(blockMenu, /<StudioAnchoredMenu anchor=\{\(\) => trigger\.current\} align="end" className="block-options-menu studio-block-options-menu"/);
+  assert.match(anchoredMenu, /role="menu" tabIndex=\{-1\}/);
 });
 
 test("the shared canvas exposes a recursive List View for block structure", async () => {
@@ -376,7 +431,7 @@ test("dynamic cover blocks keep selection borders tight to the image", async () 
 
 test("template cover editing uses the shared hover actions", async () => {
   const source = await readFile(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8");
-  assert.match(source, /className="canvas-cover-wrap document-dynamic-cover"/);
+  assert.match(source, /className=\{`canvas-cover-wrap document-dynamic-cover\$\{fieldVisualClassName \? ` \$\{fieldVisualClassName\}` : ""\}`\}/);
   assert.match(source, /className="canvas-cover-actions"/);
   assert.match(source, /aria-label="Choose fixed cover image"/);
   assert.match(source, /aria-label="Remove cover image"/);
@@ -398,7 +453,7 @@ test("template dynamic fields use neutral placeholders", async () => {
   ]);
   assert.match(canvas, /templatePlaceholder \? "Title" : document\?\.title \|\| "Add a title in Document settings\."/);
   assert.match(canvas, /templatePlaceholder \? "Subtitle" : document\?\.subtitle \|\| "Add a subtitle in Document settings\."/);
-  assert.match(editor, /const contentSlot = <div className="template-content-slot"/);
+  assert.match(editor, /const contentSlot = <TemplateContentSlot \/>/);
   assert.match(editor, /templatePreview=\{context\.mode === "preview"\}/);
   assert.ok(renderer.includes("templatePreview ? <TitleElement id={fieldVisualId} className={titleClassName} style={titleStyle}>Title</TitleElement>"));
   assert.ok(renderer.includes("templatePreview ? <p id={fieldVisualId} className={`template-subtitle template-dynamic-placeholder${subtitleClass}`} style={subtitleStyle}>Subtitle</p>"));
@@ -413,11 +468,13 @@ test("template footer selection removes duplicate top spacing", async () => {
 test("Studio environment badges use the neutral LOCAL label", async () => {
   const [dashboard, prototype, workspace, styles] = await Promise.all([
     readFile(new URL("../app/studio/studio-dashboard.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio-header.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
   for (const source of [dashboard, prototype, workspace]) assert.match(source, /className="prototype-pill">LOCAL<\/span>/);
+  const coordinator = await readFile(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  assert.match(coordinator, /<StudioHeader studioSection=\{studioSection\}/);
   assert.match(styles, /\.prototype-pill \{\s*background: #e7e7e7;\s*border-radius: 999px;\s*color: #1c1c1e;/);
 });
 
@@ -450,7 +507,7 @@ test("block hover controls use the shared ACM move chevrons vertically", async (
   assert.match(styles, /\.block-move-controls \{[^}]*grid-template-rows: repeat\(2, 18px\)/);
   assert.match(styles, /\.canvas-block-toolbar \{[^}]*background: var\(--studio-toolbar-background\)/s);
   assert.match(styles, /\.canvas-block-toolbar \{[^}]*border: 1px solid var\(--studio-toolbar-border\)/s);
-  assert.match(styles, /\.canvas-block-toolbar button \{[^}]*height: 30px[^}]*width: 30px/);
+  assert.match(styles, /\.canvas-block-toolbar button:not\(\.acm-button\):where\(:not\(\[role\^="menuitem"\]\)\) \{[^}]*height: 30px[^}]*width: 30px/);
   assert.match(styles, /\.canvas-block-toolbar button:focus-visible \{[^}]*outline:/);
   assert.match(styles, /\.canvas-block-actions \{[^}]*align-items: center[^}]*display: flex/);
   const order = [
@@ -500,7 +557,8 @@ test("the document inspector exposes Gutenberg-style status and publish date con
   assert.match(source, /publish-calendar-grid/);
   assert.match(source, /aria-label="Previous month"/);
   assert.match(source, /aria-label="Next month"/);
-  assert.match(source, /UTC\+0/);
+  assert.match(source, /formatPublicationTimezone\(selectedDate\)/);
+  assert.match(source, /Times use this device’s local time zone/);
   assert.match(source, /Now/);
   assert.match(source, /const publishDate = document\.publishAt \? formatPublishDate\(document\.publishAt\) : "Immediately";/);
   assert.match(source, /function publishImmediately\(\) \{\s*const now = new Date\(\)\.toISOString\(\);\s*onChange\("publishAt", undefined\);/);
@@ -511,7 +569,7 @@ test("the document inspector exposes Gutenberg-style status and publish date con
   assert.match(source, /publishOpen && portalRoot \? createPortal\(<div ref=\{publishPopoverRef\} id="publish-date-popover"[\s\S]*?portalRoot\) : null\}/);
   assert.match(source, /className="post-excerpt-control"[\s\S]*?post-content-summary[\s\S]*?title="Publishing"[\s\S]*?title="Address"[\s\S]*?title="Author"/);
   assert.match(source, /document\.kind === "post" \? <div className="post-summary-block">[\s\S]*?className="post-excerpt-control"[\s\S]*?className="post-content-summary"/);
-  assert.match(source, /trigger\.closest\("\.studio-inspector"\)\?\.getBoundingClientRect\(\)\.left/);
+  assert.match(source, /watchInspectorPopover\(publishTriggerRef\.current, publishPopoverRef\.current, 320, setPublishPopoverPosition, \{ topOffset: -12 \}\)/);
   assert.match(source, /globalThis\.document\.addEventListener\("pointerdown", closePublishPopover\)/);
   assert.match(source, /event\.target\.closest\("button, input, select, textarea, a\[href\], \[tabindex\]:not\(\[tabindex='-1'\]\)"\)/);
   assert.match(source, /event\.key !== "Escape"/);
@@ -531,7 +589,9 @@ test("post excerpts open in a Gutenberg-style pane beside the inspector", async 
   assert.match(source, /aria-label="Close excerpt"/);
   assert.match(source, /Learn more about manual excerpts/);
   assert.match(source, /function closeWithEscape\(event: globalThis\.KeyboardEvent\)[\s\S]*?setExcerptOpen\(false\)[\s\S]*?excerptTriggerRef\.current\?\.focus\(\)/);
-  assert.match(source, /left: Math\.max\(16, inspectorLeft - width - 12\)/);
+  assert.match(source, /watchInspectorPopover\(excerptTriggerRef\.current, excerptPopoverRef\.current, 640, setExcerptPopoverPosition, \{ topOffset: -12 \}\)/);
+  const positioning = await readFile(new URL("../app/studio/panes/inspector-popover-geometry.mjs", import.meta.url), "utf8");
+  assert.match(positioning, /Math\.min\(ownerLeft, boundaryLeft\) - width - 12/, "the shared owner positions the excerpt to the pane's left");
   assert.match(styles, /\.post-excerpt-popover \{[^}]*position: fixed[^}]*z-index: 80/);
   assert.match(styles, /\.post-document-inspector > \.post-summary-block \{[^}]*display: grid[^}]*gap: 12px[^}]*padding: 14px 18px 18px/);
   assert.match(styles, /\.post-document-inspector \.post-excerpt-trigger \{[^}]*color: var\(--accent-strong\)[^}]*display: inline-flex/);
@@ -544,21 +604,27 @@ test("Gutenberg controls use the single block inspector and nonessential ACM opt
   const blockStart = source.indexOf("const blockSettings", inspectorStart);
   const requiredStart = source.indexOf("const requiredSettings", blockStart);
   const blockSettings = source.slice(blockStart, requiredStart);
-  const requiredSettings = source.slice(requiredStart, source.indexOf("return <div className=\"block-inspector-settings\"", requiredStart));
-  const socialLinkSettings = requiredSettings.slice(requiredSettings.indexOf('block.type === "social-linkedin"'), requiredSettings.indexOf('block.type === "embed" ?'));
-  assert.match(source, /const alignedBlock = block\.type === "heading" \|\| block\.type === "document-title" \? block : null/);
-  assert.match(blockSettings, /title="Social Icons"[\s\S]*?<span>Style<\/span>[\s\S]*?logos-only[\s\S]*?<span>Gap<\/span>/);
+  const requiredSettings = source.slice(requiredStart, source.indexOf("\n  return <div", requiredStart));
+  const socialLinkSettings = requiredSettings.slice(requiredSettings.indexOf('block.type === "social-linkedin"'));
+  assert.match(source, /const alignedBlock = block\.type === "document-title" \? block : null/);
+  assert.match(blockSettings, /title="Social Icons"[\s\S]*?<span>Style<\/span>[\s\S]*?logos-only[\s\S]*?<LayoutSpacingSetting[^>]*label=\{index \? "Vertical gap" : "Horizontal gap"\}/);
   assert.doesNotMatch(blockSettings, /Horizontal gap \(px\)|Vertical gap \(px\)/);
   assert.match(socialLinkSettings, /Profile URL[\s\S]*Text label[\s\S]*Link rel/, "standalone social link attributes share one section with its profile URL");
   assert.equal((socialLinkSettings.match(/<span>Text label<\/span>/g) ?? []).length, 1, "standalone social links render one editable label field");
   assert.equal((socialLinkSettings.match(/<span>Link rel<\/span>/g) ?? []).length, 1, "standalone social links render one rel field");
   assert.doesNotMatch(blockSettings, /Code language|Divider colour|Studio cover options|Studio responsive layout|Studio spacer width/);
   assert.match(requiredSettings, /<span>Profile URL<\/span>/, "standalone social links remain editable");
-  assert.match(requiredSettings, /<span>Card title<\/span>/, "safe embed card content remains editable");
+  const canvas = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(canvas, /aria-label="Embed player title"[^>]*value=\{block\.title\}[^>]*onChange=\{event => onChange\(\{ \.\.\.block, title: event\.target\.value \}\)\}/, "safe Embed player title remains editable on the canvas");
+  assert.match(canvas, /function EmbedUrlField\(\{ block, rootBlocks, selected, writable, mediaUrls, onTextSelection, onLinkActivate, onChange \}/, "Embed editing receives the canvas parent policy, write permission and shared rich-text handlers");
+  assert.match(canvas, /EmbedUrlField key=\{`\$\{block\.id\}-\$\{block\.url\}`\}/, "undo and redo remount the URL form from saved block state");
+  assert.match(canvas, /event\.preventDefault\(\);\s*if \(!writable\) return;/, "URL submission enforces read-only mode in its handler");
+  assert.match(canvas, /disabled=\{!writable\}/, "read-only canvases disable Embed URL submission");
   assert.doesNotMatch(requiredSettings, /Studio spacing|Additional CSS declarations|Reading Time|<span>Presentation<\/span>|<span>Prefix<\/span>|document-subtitle/);
   const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
-  assert.doesNotMatch(dividerInspector, /<span>HTML element<\/span>/, "the ACM hr/div selector is hidden");
-  assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "element")?.source, "studio");
+  assert.match(dividerInspector, /<AdvancedFieldsInspector[^>]*>[\s\S]*<span>HTML element<\/span>[\s\S]*<\/AdvancedFieldsInspector>/, "the Gutenberg hr/div selector belongs in Advanced");
+  assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "element")?.source, "gutenberg");
+  assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "element")?.section, "advanced");
   assert.deepEqual(capabilityProfileFor("divider").controls.find(control => control.id === "background")?.fields, ["backgroundColor", "backgroundGradient"]);
   assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "background")?.source, "gutenberg");
   assert.deepEqual(capabilityProfileFor("divider").sections.map(section => [section.id, section.label]), [["layout", "Styles"], ["background", "Background"], ["dimensions", "Dimensions"], ["advanced", "Advanced"]]);
@@ -571,7 +637,8 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   const toolsSection = await readFile(new URL("../app/studio/inspector-tools-section.tsx", import.meta.url), "utf8");
   const studioTypography = capabilityProfileFor("paragraph").controls.filter(control => control.section === "typography" && control.source === "studio").map(control => control.id);
   const enabledBlockTypography = capabilityProfileFor("paragraph").controls.filter(control => control.section === "typography" && control.source === "gutenberg" && control.enabled !== false).map(control => control.id);
-  assert.deepEqual(enabledBlockTypography, ["colour", "size", "appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "letter-case", "drop-cap", "fit-text", "text-shadow"]);
+  assert.deepEqual(enabledBlockTypography, ["colour", "size", "appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "letter-case", "drop-cap", "fit-text"]);
+  assert.equal(capabilityProfileFor("paragraph").controls.some(control => control.id === "text-shadow"), false, "Paragraph has no Text shadow Typography option");
   assert.deepEqual(studioTypography, []);
   for (const id of ["family", "orientation"]) {
     const control = capabilityProfileFor("paragraph").controls.find(item => item.id === id);
@@ -581,19 +648,24 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   assert.match(profileSource, /paragraph: paragraphInspectorProfile/);
   assert.match(inspector, /const profile = capabilityProfileFor\(block\.type\)/);
   assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
-  assert.match(inspector, /const scopedTypographyOptions = typographyOptions\.filter\(option => \(option\.source \?\? "gutenberg"\) === visibleSource\)/);
-  assert.match(inspector, /function clearTools\(ids: Iterable<string>\) \{\s*const selectedIds = \[\.\.\.ids\];\s*const nextStyle = resetInspectorStyleFields\(style, selectedIds, styleControls\)/);
+  assert.match(inspector, /const scopedTypographyOptions = typographyOptions\.filter\(option => \(visibleSource === undefined \|\| \(option\.source \?\? "gutenberg"\) === visibleSource\)\)/);
+  assert.match(inspector, /function clearTools\(ids: Iterable<string>, resetGroupLayout = false\) \{\s*const selectedIds = \[\.\.\.ids\];\s*const nextStyle = resetSupportedInspectorStyleFields\(style, selectedIds, styleControls\)/);
   assert.match(inspector, /<FontSizeAppearanceSetting/);
   assert.match(inspector, /<BackgroundSelection/);
   assert.doesNotMatch(inspector.slice(inspector.indexOf("export function BlockInspector"), inspector.indexOf("type AdvancedFields")), /<PaneTabs/);
   assert.match(inspector, /paragraphLinkColourHasPoorContrast\(defaultValue, style/);
   assert.match(inspector, /paragraphLinkColourHasPoorContrast\(hoverValue, style/);
-  assert.match(inspector, /return <PaletteColourSetting label="Link" value=\{defaultValue\} onChange=\{onDefaultChange\} hoverValue=\{hoverValue\}/);
-  assert.match(inspector, /return <ColourPicker label=\{label\} value=\{value\} onChange=\{onChange\} hoverValue=\{hoverValue\}/);
+  assert.match(inspector, /return <PaletteColourSetting row label="Link" value=\{defaultValue\} onChange=\{onDefaultChange\} hoverValue=\{hoverValue\}/);
+  const paletteSetting = await readFile(new URL("../app/studio/controls/palette-colour-setting.tsx", import.meta.url), "utf8");
+  assert.match(inspector, /import \{ PaletteColourSetting \} from "\.\/controls\/palette-colour-setting"/);
+  assert.match(paletteSetting, /return <ColourPicker label=\{label\}[\s\S]*value=\{value\} onChange=\{onChange\} hoverValue=\{hoverValue\} onHoverChange=\{onHoverChange\}/);
   assert.match(colourControl, /Escape/);
   assert.match(colourControl, /onHoverChange/);
   assert.match(colourControl, /ColourValueSwatch/);
-  assert.match(colourControl, /document\.addEventListener\("keydown", dismiss as EventListener\)/);
+  assert.match(colourControl, /useOverlayDismiss\(/);
+  const overlayDismiss = await readFile(new URL("../app/studio/overlays/use-overlay-dismiss.ts", import.meta.url), "utf8");
+  assert.match(overlayDismiss, /document\.addEventListener\("keydown", keydown\)/);
+  assert.match(overlayDismiss, /event\.key !== "Escape"[^\n]*!isTopmost\(\)/);
   assert.match(toolsSection, /className="inspector-tools-menu-divider" role="separator"/);
   assert.match(toolsSection, /aria-label="Studio options"/);
   assert.match(toolsSection, /gutenbergOptions\.map\(option => <button/);
@@ -629,7 +701,7 @@ test("the selected block summary stays above the single inspector panel", async 
   assert.match(summary, /<h2>\{blockName\}<\/h2>/);
   assert.match(summary, /<p className="setting-note">\{blockDescription\}<\/p>/);
   assert.match(source, /blockCatalogue\.find\(\(item\) => item\.type === block\.type\)/);
-  assert.match(source, /blockDescription = blockInfo\?\.description \?\? profile\.description/);
+  assert.match(source, /blockDescription = contentSlot \? "Displays the current document body in this template\." : blockInfo\?\.description \?\? profile\.description/);
 });
 
 test("selected document title and subtitle show their block summary in the Block tab", async () => {
@@ -663,14 +735,19 @@ test("document settings keep WordPress-like fields separate from Studio-specific
 });
 
 test("text block hover controls use shared ACM icons", async () => {
-  const [canvas, transforms, styles] = await Promise.all([
+  const [canvas, transforms, styles, blockIcons] = await Promise.all([
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/block-transforms.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/block-library-icons.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(canvas, /aria-label=\{`Transform \$\{blockLabel\(block\.type\)\} block`\}/);
-  assert.match(canvas, /import \{ AcmIcon, type IconName \} from "@acm\/icons\/react"/);
-  assert.match(canvas, /StudioHoverIcon name="text\.paragraph"/);
+  assert.match(canvas, /import \{ AcmIcon \} from "@acm\/icons\/react"/);
+  assert.match(canvas, /import type \{ IconName \} from "@acm\/icons"/);
+  assert.match(canvas, /<HoverBlockTypeIcon type=\{block\.type\}/);
+  assert.match(canvas, /return <BlockTypeIcon type=\{type\} \/>/);
+  assert.match(canvas, /return <BlockLibraryIcon type=\{type\} \/>/);
+  assert.match(blockIcons, /paragraph: \{ source: "ACM Icons", symbol: "text\.paragraph" \}/);
   assert.match(canvas, /StudioHoverIcon name="text\.bold"/);
   assert.match(canvas, /StudioHoverIcon name="text\.italic"/);
   assert.match(canvas, /StudioHoverIcon name="action\.link"/);
@@ -686,6 +763,40 @@ test("text block hover controls use shared ACM icons", async () => {
   assert.match(styles, /\.canvas-block-toolbar > div \{ align-items: center; display: flex; \}/);
   assert.match(styles, /\.canvas-block-toolbar button > svg \{ display: block; flex: 0 0 auto; \}/);
   assert.match(styles, /\.canvas-format-actions \.alignment-button \{ flex: 0 0 38px; width: 38px; \}/);
+});
+
+test("List View uses direction-specific shared movement icons and catalogue links", async () => {
+  const [canvas, studioIcons, catalogue, styles] = await Promise.all([
+    readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio-icons.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/ui/icons-catalogue.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/site-draft.css", import.meta.url), "utf8"),
+  ]);
+  assert.ok(canvas.includes('disabled={!canMoveItem(block.id, -1)} onClick={() => onMoveItem(block.id, -1)}><StudioHoverIcon name="arrange.move-up" size={16} /></button>'));
+  assert.ok(canvas.includes('disabled={!canMoveItem(block.id, 1)} onClick={() => onMoveItem(block.id, 1)}><StudioHoverIcon name="arrange.move-down" size={16} /></button>'));
+  assert.match(studioIcons, /seen: "view\.show"/);
+  assert.match(studioIcons, /"seen-off": "view\.hide"/);
+  assert.match(studioIcons, /visibility: "view\.show"/);
+  assert.match(studioIcons, /"visibility-off": "view\.hide"/);
+  assert.match(catalogue, /"view\.show": \[\{ label: "Show a hidden page on the design canvas"/);
+  assert.match(catalogue, /"view\.hide": \[\{ label: "Hide a page on the design canvas"/);
+  assert.match(styles, /\.studio-list-actions button \{[^}]*display:grid/);
+  assert.doesNotMatch(styles, /\.studio-list-actions button:first-child svg \{ transform:rotate\(180deg\); \}/);
+});
+
+test("Studio globe and zoom controls use catalogue symbols with recorded consumers", async () => {
+  const [icons, catalogue] = await Promise.all([
+    readFile(new URL("../app/studio/studio-icons.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/ui/icons-catalogue.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(icons, /globe: "text\.language"/);
+  assert.match(icons, /"zoom-in": "view\.zoom-in"/);
+  assert.match(icons, /"zoom-out": "view\.zoom-out"/);
+  assert.match(catalogue, /"text\.language": \[[^\]]*Show the destination of a selected external link/);
+  assert.match(catalogue, /"view\.zoom-in": \[\{ label: "Zoom in on the Design Canvas"/);
+  assert.match(catalogue, /"view\.zoom-out": \[\{ label: "Zoom out on the Design Canvas"/);
+  assert.match(catalogue, /Zoom in on a template canvas/);
+  assert.match(catalogue, /Zoom out on a template canvas/);
 });
 
 test("auto-height fields avoid observing the element they resize", async () => {
@@ -718,11 +829,13 @@ test("deleting a non-active document preserves the active document and adjacent 
 });
 
 test("content and template list rows expose keyboard and pointer context menus", async () => {
-  const [studio, templateWorkspace, menu, styles] = await Promise.all([
-    readFile(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8"),
+  const [studio, templateWorkspace, menu, styles, sharedMenu, documentCommands] = await Promise.all([
+    readFile(new URL("../app/studio/studio-navigation-pane.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio-list-context-menu.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/overlays/menu.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/use-studio-document-commands.ts", import.meta.url), "utf8"),
   ]);
   for (const source of [studio, templateWorkspace]) {
     assert.match(source, /onContextMenu=\{/);
@@ -731,8 +844,10 @@ test("content and template list rows expose keyboard and pointer context menus",
     assert.match(source, /aria-haspopup="menu"/);
   }
   assert.match(menu, /role="menu"/);
-  assert.match(menu, /role="menuitem"/);
-  assert.match(menu, /event\.key === "Escape"/);
+  assert.match(menu, /<StudioMenuItem/);
+  assert.match(sharedMenu, /role="menuitem"/);
+  assert.match(menu, /navigateStudioMenu\(event, \(\) => \{ onClose\(\); requestAnimationFrame/);
+  assert.match(sharedMenu, /event\.key === "Escape"/);
   assert.match(menu, /returnFocusRef/);
   assert.match(menu, /disabledReason/);
   assert.match(menu, /actions = \[\]/);
@@ -749,7 +864,8 @@ test("content and template list rows expose keyboard and pointer context menus",
   assert.match(templateWorkspace, /icon: "copy"/);
   assert.doesNotMatch(templateWorkspace, /function duplicateTarget\(\)/);
   assert.doesNotMatch(templateWorkspace, /function deleteTarget\(\)/);
-  assert.match(studio, /Its template assignment will also be removed/);
+  assert.match(documentCommands, /bin: \[\.\.\.current\.bin, \{[^\n]*document,/);
+  assert.match(documentCommands, /\.\.\.\(assignment \? \{ assignment \} : \{\}\)/, "recoverable deletion retains its assignment in the Bin");
 });
 
 test("history supports undo and redo and clears redo after a new commit", () => {
@@ -773,7 +889,7 @@ test("List View stays blue while hovered and selected canvas blocks use grey out
   assert.match(css, /\.canvas-block:not\(\.is-selected\):is\(:hover, \[data-studio-hovered="true"\]\)\s*\{[^}]*outline: 1px solid #8f8f8f;[^}]*outline-offset: -1px;/);
   assert.match(css, /\.canvas-block\.is-selected\s*\{[^}]*border-color: #8f8f8f;[^}]*outline: 1px solid #8f8f8f;[^}]*outline-offset: -1px;/);
   assert.match(css, /\.studio-list-item\.is-selected\s*\{[^}]*border-color: var\(--accent\)/);
-  assert.match(css, /\.canvas-block\.is-table\.is-selected \.table-field \{ border-color: #8f8f8f;/);
+  assert.match(css, /\.canvas-block\.is-table\.is-selected \.table-field-grid \{ border-color: #8f8f8f;/);
 });
 
 
@@ -816,13 +932,13 @@ test("between-block and drag insertion cues stay centred in the reserved gap", (
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(css, /\.block-position \{ display: flow-root; position: relative; \}/);
   assert.match(css, /\.block-position \+ \.block-position \.canvas-block \{ margin-top: var\(--studio-block-gap\); \}/);
-  assert.match(css, /\.block-position \+ \.block-position \.between-blocks \{ top: calc\(\(var\(--studio-block-gap\) \/ 2\) - 15px\); \}/);
-  assert.match(css, /\.block-position \+ \.block-position \.drop-indicator \{ top: calc\(\(var\(--studio-block-gap\) \/ 2\) - 1\.5px\); \}/);
-  assert.match(css, /\.block-position:has\(\+ \.block-position \.canvas-block\.is-selected\) \+ \.block-position \.drop-indicator:not\(\.is-after\) \{ top: calc\(\(var\(--studio-block-gap\) \/ 2\) - 20\.5px\); \}/);
-  assert.match(canvas, /function dragInsertionIndex\(event: DragEvent<HTMLDivElement>, index: number\)/);
-  assert.match(canvas, /const target = insertionIndex > from \? insertionIndex - 1 : insertionIndex/);
-  assert.match(canvas, /onDragOver=\{\(event\) => handleBlockDragOver\(event, index\)\}/);
-  assert.match(css, /\.drop-indicator\.is-after \{ bottom: -2px; top: auto; \}/);
+  assert.match(css, /\.block-position \+ \.block-position \.between-blocks \{ top: calc\(\(\(var\(--studio-block-gap\) - var\(--studio-block-grid-gap, 0px\)\) \/ 2\) - 15px\); \}/);
+  assert.match(css, /\.block-position \+ \.block-position \.drop-indicator \{ top: calc\(\(\(var\(--studio-block-gap\) - var\(--studio-block-grid-gap, 0px\)\) \/ 2\) - 2px\); \}/);
+  assert.match(css, /\.block-position:has\(\+ \.block-position \.canvas-block\.is-selected\) \+ \.block-position \.drop-indicator:not\(\.is-after\) \{ top: calc\(\(\(var\(--studio-block-gap\) - var\(--studio-block-grid-gap, 0px\)\) \/ 2\) - 21px\); \}/);
+  assert.match(canvas, /function canvasInsertionIndex\(event: DragEvent<HTMLDivElement>\)/);
+  assert.match(canvas, /onMoveBlockTo\(from, index > from \? index - 1 : index\)/);
+  assert.match(canvas, /onDragOver=\{handleCanvasDragOver\} onDrop=\{handleCanvasDrop\}/);
+  assert.match(css, /\.canvas-appender > \.drop-indicator\.is-at-end \{[^}]*top: 50%; transform: translateY\(-50%\);/);
   assert.match(css, /\.cover-inserter-position \{ height: 30px; position: relative; \}/);
   assert.match(css, /\.cover-inserter-position \.between-blocks \{ top: 0; \}/);
 });
@@ -862,15 +978,18 @@ test("history shortcuts follow Mac and Windows/Linux conventions and prevent nat
 
 test("both editors share history shortcuts without replacing save or Escape handling", () => {
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const screen = readFileSync(new URL("../app/studio/use-studio-screen-navigation.ts", import.meta.url), "utf8");
   const miniGolf = readFileSync(new URL("../app/studio/mini-golf-site-editor.tsx", import.meta.url), "utf8");
   const hook = readFileSync(new URL("../app/studio/use-studio-history-shortcuts.ts", import.meta.url), "utf8");
-  assert.match(studio, /useStudioHistoryShortcuts\(studioSection === "templates" \? templateSession\.undo : undoStudio, studioSection === "templates" \? templateSession\.redo : redoStudio, studioSection === "content" \|\| studioSection === "templates"\)/);
-  assert.match(studio, /function undoStudio\(\) \{\s*undo\(\);\s*setSelectedBlockId\(null\)/);
-  assert.match(studio, /function redoStudio\(\) \{\s*redo\(\);\s*setSelectedBlockId\(null\)/);
+  assert.match(studio, /useStudioHistoryShortcuts\(studioSection === "templates" \? templateSession\.undo : undoStudio, studioSection === "templates" \? templateSession\.redo : redoStudio, \(studioSection === "content" \|\| studioSection === "templates"\) && !previewWindow\)/);
+  assert.match(studio, /function undoStudio\(\) \{\s*undo\(\);\s*setDocumentFieldSelection\(null\);\s*setSelectedBlockId\(null\)/);
+  assert.match(studio, /function redoStudio\(\) \{\s*redo\(\);\s*setDocumentFieldSelection\(null\);\s*setSelectedBlockId\(null\)/);
   assert.match(miniGolf, /useStudioHistoryShortcuts\(undo, redo, view === "page"\)/);
   assert.doesNotMatch(studio, /event.key.toLowerCase\(\) === "z"/);
-  assert.match(studio, /event.key.toLowerCase\(\) === "s"/);
-  assert.match(studio, /event.key === "Escape"/);
+  assert.match(studio, /useStudioScreenNavigation\(\{ setStudioSection/);
+  assert.match(screen, /event.key.toLowerCase\(\) === "s"/);
+  assert.match(screen, /event.key === "Escape"/);
+  assert.match(screen, /event.defaultPrevented \|\| event.isComposing \|\| document.querySelector\("dialog\[open\]"\)/);
   assert.match(hook, /removeEventListener\("keydown", handleKeyDown\)/);
 });
 
@@ -897,14 +1016,18 @@ test("templates use the shared resizable panes and readable document status labe
 
 test("content navigation presents Templates as a sibling authoring mode", () => {
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const navigation = readFileSync(new URL("../app/studio/studio-navigation-pane.tsx", import.meta.url), "utf8");
+  const screen = readFileSync(new URL("../app/studio/use-studio-screen-navigation.ts", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const templateStyles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
-  assert.match(studio, /<div className="library-tabs" aria-label="Content type">[\s\S]*<button type="button" onClick=\{\(\) => switchStudioMode\("templates"\)\}>Templates<span>\{templateSession\.store\.sets\.reduce\(\(count, item\) => count \+ item\.templates\.length \+ item\.parts\.length, 0\)}<\/span><\/button>/);
-  assert.match(studio, /const \[studioSection, setStudioSection\] = useState<"content" \| "templates" \| "files" \| "backup">\("content"\)/);
-  assert.match(studio, /const mode = new URLSearchParams\(window\.location\.search\)\.get\("mode"\);\s*queueMicrotask\(\(\) => \{ if \(mode === "templates"\) setStudioSection\("templates"\); \}\);/);
-  assert.match(studio, /window\.addEventListener\("popstate", syncModeFromLocation\)/);
-  assert.match(studio, /if \(currentPath !== nextPath\) window\.history\.pushState/);
-  assert.doesNotMatch(studio, /<a className="library-tool-button" href="\/studio\/templates">/);
+  assert.match(studio, /<StudioNavigationPane[\s\S]*onSelectLibraryKind=\{selectLibraryKind\}/);
+  assert.match(navigation, /<PaneTabs[^>]*label="Content type"[\s\S]*\{ id: "templates", label: "Templates" \}/);
+  assert.match(navigation, /templateSession\.store\.sets\.reduce\(\(count, item\) => count \+ item\.templates\.length \+ item\.parts\.length, 0\)/);
+  assert.match(studio, /const \[studioSection, setStudioSection\] = useState<"content" \| "templates" \| "files" \| "backup" \| "bin">\("content"\)/);
+  assert.match(screen, /queueMicrotask\(\(\) => \{[\s\S]*navigation.section === "templates"[\s\S]*setStudioSection\("templates"\)/);
+  assert.match(screen, /window\.addEventListener\("popstate", syncModeFromLocation, true\)/);
+  assert.match(screen, /if \(currentPath !== nextPath\) \{[\s\S]*window\.history\.pushState/);
+  assert.doesNotMatch(navigation, /<a className="library-tool-button" href="\/studio\/templates">/);
   assert.match(styles, /\.library-tabs \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(styles, /\.library-tabs button/);
   const templateWorkspace = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
@@ -1001,23 +1124,30 @@ test("design undo and redo preserve a still-existing object selection", () => {
   assert.match(editor, /restoreSelection\(next\)/);
 });
 
-test("design canvas keeps layers in the left pane and offers an all-pages view", () => {
+test("design canvas keeps layers in the left pane and offers an all-pages view", async () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
-  assert.match(editor, /aria-label="Design pages and layers"/);
+  assert.match(editor, /<Pane[^\n]*label="Design pages and layers" side="left"/);
   assert.match(editor, /const \[leftPaneTab, setLeftPaneTab\] = useState<"pages" \| "layers">\("pages"\)/);
   assert.match(editor, /type StudioRibbonTab = "file" \| "home" \| "insert" \| "arrange" \| "view" \| "export"/);
   assert.match(editor, /\{ id: "file", label: "File" \}/);
   assert.match(editor, /if \(tab === "file"\) \{\s*window\.location\.href = "\/studio\/designs\/library";/);
   assert.match(editor, /<StudioRibbonPanel tab="file">[\s\S]*All designs/);
-  assert.match(editor, /role="tablist" aria-label="Design navigation"/);
-  assert.match(editor, /role="tab"[\s\S]*>Pages<\/button>[\s\S]*role="tab"[\s\S]*>Layers<\/button>/);
-  assert.match(editor, /aria-controls=\{leftPaneTab === "pages" \? "design-pages-tabpanel" : undefined\}/);
-  assert.match(editor, /aria-controls=\{leftPaneTab === "layers" \? "design-layers-tabpanel" : undefined\}/);
-  assert.match(editor, /leftPaneTab === "pages" \? <div className="design-page-list"/);
-  assert.match(editor, /id="design-pages-tab"/);
-  assert.match(editor, /id="design-pages-tabpanel" role="tabpanel" aria-labelledby="design-pages-tab"/);
-  assert.match(editor, /id="design-layers-tabpanel" role="tabpanel" aria-labelledby="design-layers-tab" aria-label="Layers"><LayerList/);
+  assert.match(editor, /<PaneTabs id=\{designNavigationTabsId\} label="Design navigation"[^\n]*tabs=\{\[\{ id: "pages", label: "Pages" \}, \{ id: "layers", label: "Layers" \}\]\} active=\{leftPaneTab\}/);
+  assert.match(editor, /<PaneTabPanel className="design-page-list" id=\{designNavigationTabsId\} tab="pages" active=\{leftPaneTab\}/);
+  assert.match(editor, /<PaneTabPanel className="design-pages-layers" id=\{designNavigationTabsId\} tab="layers" active=\{leftPaneTab\}>\s*<LayerList/);
+  const { PaneTabs, PaneTabPanel } = await loadProductionModule(new URL("../app/studio/panes/pane-components.tsx", import.meta.url));
+  const tabs = [{ id: "pages", label: "Pages" }, { id: "layers", label: "Layers" }];
+  for (const active of ["pages", "layers"]) {
+    const markup = renderToStaticMarkup(createElement(PaneTabs, { id: "design", label: "Design navigation", tabs, active, onChange() {} }));
+    assert.match(markup, /role="tablist" aria-label="Design navigation"/);
+    for (const tab of tabs) {
+      assert.ok(markup.includes(`id="design-tab-${tab.id}" aria-controls="design-panel-${tab.id}" aria-selected="${active === tab.id}" tabindex="${active === tab.id ? 0 : -1}"`));
+      const panel = renderToStaticMarkup(createElement(PaneTabPanel, { id: "design", tab: tab.id, active }, tab.label));
+      assert.ok(panel.includes(`role="tabpanel" id="design-panel-${tab.id}" aria-labelledby="design-tab-${tab.id}"`));
+      assert.equal(panel.includes('hidden=""'), active !== tab.id);
+    }
+  }
   assert.match(editor, /<LayerList page=\{activePage\} selectedIds=\{selectedIds\} writable=\{writable\} onSelect=\{\(id\) => selectObjects\(\[id\]\)\} onReorder=\{reorderLayer\}/);
   assert.match(editor, /function moveLayer\(objectId: string, direction: LayerMoveDirection\)/);
   assert.match(editor, /function reorderLayer\(sourceId: string, targetId: string, position: LayerDropPosition\)/);
@@ -1128,9 +1258,12 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-resize-handle:focus-visible, \.design-endpoint-handle:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; filter: none; \}/);
   assert.match(css, /\.design-arrow-bend-handle:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; \}/);
   assert.doesNotMatch(css, /\.design-endpoint-handle:focus-visible \{ outline: none; stroke: #284aa9/);
-  assert.match(css, /\.design-pane-tabs button::after \{ position: absolute; right: 8px; bottom: -1px; left: 8px; height: 2px;/);
-  assert.match(css, /\.design-pane-tabs button:hover::after, \.design-pane-tabs button:focus-visible::after \{ right: 4px; left: 4px; background: #b8b6ae;/);
-  assert.match(css, /\.design-pane-tabs button\.is-active::after \{ background: #555;/);
+  assert.match(css, /\.design-pane-tabs \{ --pane-tab-label-inset: 8px;/);
+  const paneCss = readFileSync(new URL("../app/studio/panes/pane-components.css", import.meta.url), "utf8");
+  assert.match(paneCss, /\.pane-tabs \.pane-tab-label::after \{[^}]*height: 3px;[^}]*background: transparent;/);
+  assert.match(paneCss, /\[aria-selected="true"\] \.pane-tab-label::after \{ background: #555;/);
+  assert.match(paneCss, /button\[aria-selected="true"\]:not\(:disabled\):hover \.pane-tab-label::after \{ right: 6px; left: 6px;/);
+  assert.match(paneCss, /button:not\(:disabled\):not\(\[aria-selected="true"\]\):is\(:hover, :focus-visible\) \.pane-tab-label::after \{ background: var\(--pane-tab-hover-indicator, #b8b6ae\);/);
 });
 
 test("the File tab provides a local design library", () => {
@@ -1148,7 +1281,8 @@ test("the File tab provides a local design library", () => {
 
 test("layers use the full pane and keep scrolling on the outer panel", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
-  assert.match(css, /\.design-pages-layers \{[^}]*flex: 1 1 auto;[^}]*min-height: 0;[^}]*overflow-y: auto;/);
+  assert.match(css, /\.design-pages-body \{ overflow-y: auto;/);
+  assert.match(css, /\.design-pages-layers \{[^}]*min-height: 0;[^}]*overflow: visible;/);
   assert.match(css, /\.design-pages-layers \.design-layer-list \{ margin-inline: -64px; max-height: none; overflow: visible; padding-inline: 64px; \}/);
   assert.match(css, /\.design-pages-layers \.design-layer-list \{ padding-right: 160px; \}/);
 });
@@ -1186,15 +1320,21 @@ test("design tool selection uses a neutral active colour", () => {
 
 test("design surfaces use the lighter Account neutral theme", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  // Keep the unresolved visual policy visible; moving pane ownership does not
+  // approve different accent or focus colours.
   assert.match(css, /\.design-shell \{ --accent: #8f8f8f; --accent-soft: #e7e7e7; --focus-ring-colour: rgba\(143, 143, 143, \.72\); --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa;/);
   assert.match(css, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: #f7f7f7; --acm-ribbon-text: #3f3f3f; background: #f7f7f7; border: 1px solid #d8d8d8;/);
-  assert.match(css, /\.design-pages \{ background: #f7f7f7; border-right: 1px solid #d8d8d8;/);
-  assert.match(css, /\.design-inspector \{ background: #f7f7f7; border-left: 1px solid #d8d8d8;/);
+  assert.match(css, /\.design-pages\.pane \{ background: #f7f7f7; border-right: 0;/);
+  assert.match(css, /\.design-inspector\.pane \{ background: #f7f7f7; border-left: 0;/);
+  assert.match(css, /\.design-workspace \.pane-track \{ --pane-border: #d8d8d8;/);
+  const paneCss = readFileSync(new URL("../app/studio/panes/pane-components.css", import.meta.url), "utf8");
+  assert.match(paneCss, /\.pane-track\[data-side="left"\] \.pane \{ border-right: 1px solid var\(--pane-border\);/);
+  assert.match(paneCss, /\.pane-track\[data-side="right"\] \.pane \{ border-left: 1px solid var\(--pane-border\);/);
 });
 
 test("design name uses a neutral grey focus outline", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
-  assert.match(css, /\.acm-ribbon-brand input:focus \{ border-color: #6b7075; outline: 2px solid #6b707566; outline-offset: 1px; \}/);
+  assert.match(css, /\.acm-ribbon-brand input:focus \{[^}]*border-color: #6b7075; outline: 2px solid #6b707566; outline-offset: 1px; \}/);
   assert.doesNotMatch(css, /\.acm-ribbon-brand input:focus \{[^}]*var\(--accent\)|\.acm-ribbon-brand input:focus \{[^}]*#cc181833/);
 });
 
@@ -1207,15 +1347,17 @@ test("page action focus outlines use neutral grey", () => {
 
 test("page inspector stays beside the canvas at tablet widths", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
-  assert.match(css, /@media \(max-width: 980px\) \{[\s\S]*\.design-workspace \{ --design-pages-width: 180px; --design-inspector-width: 260px; grid-template-columns: 180px minmax\(0, 1fr\) 260px; \}/);
+  assert.match(css, /\.design-workspace \{ --design-inspector-width: 260px; --design-pages-width: 224px;/);
+  assert.match(css, /@media \(max-width: 980px\) \{[\s\S]*\.design-workspace \{ grid-template-columns: var\(--design-pages-width\) minmax\(0, 1fr\) var\(--design-inspector-width\); \}/);
   assert.match(css, /\.design-inspector \{ border-left: 1px solid #d8d8d8; border-top: 0; grid-column: 3; max-height: none; \}/);
-  assert.match(css, /\.design-zoom-dock \{ left: 180px; right: 260px; \}/);
+  assert.match(css, /\.design-zoom-dock \{ left: var\(--design-pages-width\); right: var\(--design-inspector-width\); \}/);
 });
 
 test("narrow workspaces preserve the three-column design", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(css, /@media \(max-width: 720px\) \{[\s\S]*\.design-shell \{ min-height: 100dvh; min-width: 700px; \}/);
-  assert.match(css, /\.design-workspace \{ display: grid; grid-template-columns: 180px minmax\(0, 1fr\) 260px; min-width: 700px; \}/);
+  assert.match(css, /\.design-workspace \{[^}]*grid-template-columns: var\(--design-pages-width\) minmax\(240px, 1fr\) var\(--design-inspector-width\);/);
+  assert.match(css, /min-width: max\(700px, calc\(var\(--design-pages-width\) \+ var\(--design-inspector-width\) \+ 240px\)\)/);
   assert.doesNotMatch(css, /@media \(max-width: 720px\) \{[\s\S]*\.design-workspace \{ display: block; \}/);
 });
 
@@ -1230,18 +1372,20 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(ribbon, /event\.key !== "ArrowRight" && event\.key !== "ArrowLeft" && event\.key !== "Home" && event\.key !== "End"/);
   assert.match(ribbon, /hidden=\{!effectiveActive\} aria-hidden=\{!effectiveActive\}/);
   assert.match(ribbon, /useId\(\)\.replace\(\/:\/g, ""\)/);
-  assert.match(ribbonCss, /\.acm-ribbon-content \{ border-top: 1px solid var\(--acm-ribbon-border\); box-sizing: border-box; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\); overflow: auto; \}/);
+  assert.match(ribbonCss, /\.acm-ribbon-content \{ box-sizing: border-box; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\); overflow: auto; \}/);
   assert.match(ribbonCss, /\.acm-ribbon-content > \.acm-ribbon-panel \{ align-items: stretch; box-sizing: border-box; display: flex; gap: 2px; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\);/);
   assert.match(editor, /<StudioRibbon\s+className="design-ribbon-panel"/);
   assert.match(designCss, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: #f7f7f7; --acm-ribbon-text: #3f3f3f; background: #f7f7f7; border: 1px solid #d8d8d8; border-radius: 14px; margin: 16px; overflow: visible; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs > button, \.design-ribbon-panel \.acm-ribbon-group-label, \.design-ribbon-panel \.acm-ribbon-brand a, \.design-ribbon-panel \.acm-ribbon-brand input \{ font-weight: 400; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs \{ border-top: 0; border-bottom: 1px solid #d8d8d8; \}/);
-  assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs > button \{ position: relative; border-bottom: 3px solid transparent !important; background: transparent; \}/);
+  assert.match(ribbonCss, /\.acm-ribbon-tabs > button::after \{[^}]*height: 3px;[^}]*left: var\(--acm-ribbon-tab-inline-padding\)/);
+  assert.match(ribbonCss, /\.acm-ribbon-tabs > button\.is-active::after \{ background: var\(--acm-ribbon-accent\);/);
+  assert.match(ribbonCss, /button\.is-active:not\(:disabled\):hover::after \{ left: 6px; right: 6px;/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-content \{ border-top: 0; \}/);
   assert.match(editor, /className=\{`design-zoom-dock\$\{pagesCollapsed \? " is-pages-collapsed" : ""\}`\}/);
   assert.match(editor, /className="design-zoom-slider" aria-label="Canvas zoom control"/);
-  assert.match(editor, /id="design-canvas-zoom" type="range" min="10" max="500" step="1" value=\{zoom\}/);
-  assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: #f7f7f7; border-top: 1px solid #d8d8d8; bottom: 0;.*left: 224px;.*position: fixed; right: 260px;.*z-index: 30;/);
+  assert.match(editor, /id="design-canvas-zoom" className="studio-range-control" type="range" min="10" max="500" step="1" value=\{zoom\}/);
+  assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: #f7f7f7; border-top: 1px solid #d8d8d8; bottom: 0;[^}]*left: var\(--design-pages-width\);[^}]*position: absolute; right: var\(--design-inspector-width\);[^}]*z-index: 30;/);
   assert.match(designCss, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
 
@@ -1267,20 +1411,14 @@ test("design workspace exposes centred collapse controls for both side panes", (
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(editor, /const \[inspectorCollapsed, setInspectorCollapsed\] = useState\(false\)/);
-  assert.match(editor, /design-pane-collapse design-pane-collapse-left/);
-  assert.match(editor, /design-pane-collapse design-pane-collapse-right/);
-  assert.equal((editor.match(/design-pane-collapse design-pane-collapse-/g) ?? []).length, 2);
-  assert.match(editor, /aria-label=\{pagesCollapsed \? "Show pages and layers" : "Hide pages and layers"\}/);
-  assert.match(editor, /aria-label=\{inspectorCollapsed \? "Show properties" : "Hide properties"\}/);
-  assert.match(css, /\.design-pane-collapse \{/);
+  assert.match(editor, /<Pane[^>]*className="design-pages"[^>]*side="left"[^>]*collapsed=\{pagesCollapsed\} onCollapsedChange=\{setPagesCollapsed\}/);
+  assert.match(editor, /<Pane[^>]*className="design-inspector"[^>]*side="right"[^>]*collapsed=\{inspectorCollapsed\} onCollapsedChange=\{setInspectorCollapsed\}/);
   assert.match(css, /\.design-main \{ display: grid; grid-column: 2;/);
-  assert.match(css, /\.design-pane-collapse:hover, \.design-pane-collapse:focus-visible \{ background: #eceae3; border-color: #aaa89f; color: var\(--ink\); outline: none; \}/);
-  assert.match(css, /\.design-pane-collapse \{[^}]*height: 48px;[^}]*width: 28px;/);
-  assert.match(css, /\.design-pane-collapse-left \{ left: calc\(var\(--design-pages-width\) - 14px\); \}/);
-  assert.match(css, /\.design-pane-collapse-right \{ right: calc\(var\(--design-inspector-width\) - 14px\); \}/);
-  assert.match(css, /\.design-workspace\.inspector-collapsed \{ grid-template-columns: 224px minmax\(0, 1fr\) 0; \}/);
   assert.match(css, /\.design-workspace\.inspector-collapsed \.design-zoom-dock \{ right: 0; \}/);
-  assert.match(css, /\.design-workspace\.pages-collapsed\.inspector-collapsed \{ grid-template-columns: 0 minmax\(0, 1fr\) 0; \}/);
+  const panes = readFileSync(new URL("../app/studio/panes/pane-components.tsx", import.meta.url), "utf8");
+  assert.match(panes, /const action = `\$\{collapsed \? "Show" : "Hide"\} \$\{label\}`/);
+  assert.match(panes, /aria-label=\{action\}/);
+  assert.match(panes, /hidden=\{collapsed\}/);
 });
 
 test("design editor exposes the ACM Studio local identity bar", () => {
@@ -1408,7 +1546,8 @@ test("design rotation handle uses one dedicated SVG glyph", () => {
   assert.match(editor, /<StudioIcon name="rotate" size=\{28 \* controlScale\}/);
   assert.doesNotMatch(editor, /design-rotate-connector/);
   assert.doesNotMatch(editor, /<StudioIcon name="undo" size=\{13\}.*<StudioIcon name="redo" size=\{13\}/);
-  assert.match(icons, /case "rotate": return <svg/);
+  assert.match(icons, /rotate: "arrange\.rotate"/);
+  assert.doesNotMatch(icons, /case "rotate": return <svg/);
 });
 
 test("design rotation control hides during drag and keeps the rotation cursor", () => {
@@ -1585,7 +1724,7 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(editor, /className="design-text-wrap-setting"/);
   assert.match(editor, /function ColourControl\(\{ label, value, opacity = 1/);
   assert.match(editor, /const opacityLabel = label === "Text colour" \? "Text" : label === "Line colour" \? "Line" : label/);
-  assert.match(editor, /\{opacityLabel\} opacity \(\{visibleOpacity\}%\).*min="0" max="100" step="1" value=\{visibleOpacity\}/);
+  assert.match(editor, /\{opacityLabel\} opacity \(\{visibleOpacity\}%\)[^>]*min="0" max="100" step="1" value=\{visibleOpacity\}/);
   assert.match(editor, /Opacity \(\{Math\.round\(selectedObject\.opacity \* 100\)\}%\).*min="0" max="100" step="1"/);
   assert.match(editor, /Arrowhead size.*min=\{DESIGN_ARROWHEAD_SCALE_MIN \* 100\} max=\{DESIGN_ARROWHEAD_SCALE_MAX \* 100\} step="1"/);
   assert.match(editor, /aria-label=\{`\$\{opacityLabel\} opacity`\}/);
@@ -1603,7 +1742,9 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(css, /\.design-inline-text-editor \{/);
   assert.match(css, /\.design-text-wrap-setting input\[type="checkbox"\]/);
   assert.match(css, /\.design-colour-control \{ display: grid; gap: 8px; \}/);
-  assert.match(css, /\.design-inspector input\[type="range"\], \.design-zoom-slider input\[type="range"\] \{ accent-color: var\(--accent\); border: 0; min-height: 20px; padding: 0; \}/);
+  assert.match(editor, /className="studio-range-control" type="range"/);
+  const shared = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(shared, /\.studio-range-control/);
   assert.match(css, /\.design-inspector input\[type="color"\]:focus-visible \{ border-color: var\(--accent\); outline: 2px solid var\(--focus-ring-colour\); outline-offset: var\(--focus-ring-offset\); \}/);
   assert.match(css, /\.design-colour-control input\[type="range"\] \{ width: 100%; \}/);
 });
@@ -1642,7 +1783,7 @@ test("list items split their rich text on Return without a permanent Add item co
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
   assert.match(listField, /onSplitParagraph=\{\(beforeRuns, afterRuns\) =>/);
-  assert.match(listField, /nextItems\.splice\(index \+ 1, 0, itemWithText\("", plainTextFromRuns\(afterRuns\), afterRuns\)\)/);
+  assert.match(listField, /nextItems\.splice\(index \+ 1, 0, listItemAfterSplit\(item, plainTextFromRuns\(afterRuns\), afterRuns\)\)/);
   assert.match(listField, /replaceListItems\(block, list\.id, nextItems\)/);
   assert.match(listField, /focusItem\(list\.id, index \+ 1\)/);
   assert.doesNotMatch(listField, /Add item/);
@@ -1653,13 +1794,34 @@ test("list items split their rich text on Return without a permanent Add item co
 test("Backspace removes an empty list item and keeps text editing intact", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
-  assert.match(listField, /event\.key === "Backspace" && !event\.shiftKey && listItemText\(item\)\.length === 0/);
-  assert.match(listField, /removeListItem\(block, list\.id, index\)/);
-  assert.match(listField, /focusItem\(list\.id, Math\.max\(0, index - 1\)\)/);
-  assert.match(listField, /depth > 0 && items\.length === 1/);
+  assert.match(listField, /const backward = event\.key === "Backspace"/);
+  assert.match(listField, /mergeListItemBoundary\(block, list\.id, index, backward \? "backward" : "forward", rootBlocks\)/);
+  assert.match(listField, /scheduleBlockCommandFocus\(editor, \{ blockId: merged\.listId, listItemIndex: merged\.itemIndex/);
+  assert.match(listField, /if \(!writable \|\| event\.defaultPrevented \|\| event\.nativeEvent\?\.isComposing\) return/);
   assert.doesNotMatch(listField, /list-item-remove/);
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.doesNotMatch(css, /\.list-field-row textarea:focus\s*\{/);
+});
+
+test("selected List Items expose accessible indent and outdent actions backed by the shared structure operations", () => {
+  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const controls = canvas.slice(canvas.indexOf("function ListItemIndentControls"), canvas.indexOf("function caretRangeAtPoint"));
+  const profiles = readFileSync(new URL("../app/studio/blocks/capability-profiles.ts", import.meta.url), "utf8");
+  const compatibility = readFileSync(new URL("../docs/block-inspector-compatibility.md", import.meta.url), "utf8");
+  const icons = readFileSync(new URL("../app/studio/ui/icons-catalogue.tsx", import.meta.url), "utf8");
+  const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
+  assert.match(controls, /role="group" aria-label="List item indentation"/);
+  assert.match(controls, /aria-label="Outdent list item"/);
+  assert.match(controls, /aria-label="Indent list item"/);
+  assert.match(controls, /outdentListItem\(block, list\.id, selection\.itemIndex, rootBlocks\)/);
+  assert.match(controls, /indentListItem\(block, list\.id, selection\.itemIndex/);
+  assert.match(controls, /onMouseDown=\{preserveTextSelection\}/);
+  assert.match(controls, /item\?\.focus\(\)/);
+  assert.match(listField, /activeItem\?\.listId === list\.id && activeItem\.itemIndex === index \? <ListItemIndentControls/);
+  assert.doesNotMatch(profiles, /Block-level indent and outdent controls/);
+  assert.match(compatibility, /List Item outdent carries the following items/);
+  assert.match(icons, /"arrange\.indent": \[\{ label: "Indent selected List Item", href: "\/studio\/ui\/blocks\/list" \}\]/);
+  assert.match(icons, /"arrange\.outdent": \[\{ label: "Outdent selected List Item", href: "\/studio\/ui\/blocks\/list" \}\]/);
 });
 
 test("template targets appear as separate library entries", () => {
@@ -1680,7 +1842,9 @@ test("content type tabs stay horizontal in the template sidebar, including narro
 
 test("main editor tabs use the full library width and show document status labels", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const prototype = readFileSync(new URL("../app/studio/studio-navigation-pane.tsx", import.meta.url), "utf8");
+  const coordinator = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  assert.match(coordinator, /<StudioNavigationPane workspace=\{workspace\}/);
   assert.match(css, /\.studio-library \.library-tabs \.pane-tabs \{[^}]*grid-column: 1 \/ -1;/);
   assert.match(css, /\.document-item \{[^}]*grid-template-columns: 28px minmax\(0, 1fr\) auto;/);
   assert.match(css, /\.document-item \.document-status \{[^}]*border-radius: 999px;[^}]*width: fit-content;/);
@@ -1702,12 +1866,14 @@ test("the main Add block control uses the black primary treatment", () => {
 
 test("text alignment controls use neutral selected states", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(css, /\.alignment-menu button:hover, \.alignment-menu button\.is-active \{ background: #f0f0f0 !important; color: #1e1e1e !important; \}/);
+  assert.match(css, /\.alignment-menu button:hover, \.alignment-menu button\.is-active,[^{]*\{ background: #f0f0f0 !important; color: #1e1e1e !important; \}/);
   assert.match(css, /\.canvas-format-actions \.alignment-button\.is-active \{ background: #f0f0f0; color: #1e1e1e; \}/);
 });
 
 test("Command or Control-S publishes the active post like Update", () => {
-  const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const prototype = readFileSync(new URL("../app/studio/use-studio-screen-navigation.ts", import.meta.url), "utf8");
+  const coordinator = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  assert.match(coordinator, /useStudioScreenNavigation\(\{ setStudioSection/);
   assert.match(prototype, /event\.key\.toLowerCase\(\) === "s" && studioSection === "content" && activeDocument\.kind === "post"/);
   assert.match(prototype, /event\.preventDefault\(\);\s*publishing\.publish\(\);/);
 });
@@ -1717,7 +1883,13 @@ test("full document counts sit beside Code and collapse before crowding the tool
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   const actions = canvas.slice(canvas.indexOf('className="editor-document-actions"'), canvas.indexOf('{publishFeedback ?'));
   assert.match(actions, /Code<\/button>[\s\S]*className="editor-document-counts"/);
-  assert.match(actions, /<strong>\{wordCount\} words · \{characterCount\} characters · \{activeDocument.blocks.length\} blocks<\/strong>/);
+  assert.match(actions, /<strong>\{displayedWordCount\} words · \{displayedCharacterCount\} characters · \{displayedBlockCount\} blocks<\/strong>/);
+  const calculations = canvas.slice(canvas.indexOf("const hasAppenderDraft"), canvas.indexOf("\n\n  useLayoutEffect", canvas.indexOf("const hasAppenderDraft")));
+  for (const [draft, words, characters, blocks] of [["", 4, 10, 2], ["  ", 4, 12, 2], ["New words", 6, 20, 3]]) {
+    const scope = { appenderValue: draft, wordCount: 4, characterCount: 10, activeDocument: { blocks: [{}, {}] } };
+    runInNewContext(ts.transpileModule(`${calculations}\nglobalThis.counts = [displayedWordCount, displayedCharacterCount, displayedBlockCount];`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
+    assert.deepEqual(Array.from(scope.counts), [words, characters, blocks]);
+  }
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(css, /@container \(max-width: 1000px\) \{\s*\.editor-document-counts \{ display: none; \}/);
 });
@@ -1727,8 +1899,8 @@ test("block library shares the docked work area and excludes List View", () => {
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(canvas, /className="editor-work-area">\s*\{showInserter && !previewing && !codeEditor \? <BlockInserter/);
   assert.match(canvas, /!previewing && !showInserter && listViewOpen \? <StudioListView/);
-  assert.match(canvas, /function openInserter[^}]*setListViewOpen\(false\);[^}]*onOpenInserter\(afterIndex, query\)/);
-  assert.match(canvas, /className="block-inserter"[^>]*aria-labelledby="inserter-title"/);
+  assert.match(canvas, /function openInserter[^}]*setListViewOpen\(false\);[^}]*onOpenInserter\(afterIndex, query, parentId \?\? undefined\)/);
+  assert.match(canvas, /<Pane[^>]*className=\{`block-inserter[^>]*label="Block Library"/);
   assert.doesNotMatch(canvas, /className="block-inserter"[^>]*aria-modal/);
   assert.match(canvas, /openerRef.current\?\.isConnected/);
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
@@ -1742,10 +1914,10 @@ test("editor shells retain the desktop workspace when the browser is narrow", ()
   const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const templates = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
-  assert.match(prototype, /className="studio-shell studio-desktop-only"/);
+  assert.match(prototype, /className=\{`studio-shell studio-desktop-only/);
   assert.match(templates, /className="studio-shell studio-desktop-only template-shell"/);
   assert.match(styles, /\.studio-desktop-only \{ min-width: 1130px; \}/);
-  assert.match(styles, /\.studio-desktop-only \.studio-workspace \{ display: grid; grid-template-columns: 290px minmax\(540px, 1fr\) 300px;/);
+  assert.match(styles, /\.studio-desktop-only \.studio-workspace \{ display: grid; grid-template-columns: var\(--studio-library-width\) minmax\(540px, 1fr\) var\(--studio-inspector-width\);/);
   assert.match(styles, /\.studio-desktop-only \.studio-library, \.studio-desktop-only \.studio-inspector \{ display: flex;/);
 });
 
@@ -1753,20 +1925,27 @@ test("editor shells retain the desktop workspace when the browser is narrow", ()
 test("template editing shows an empty Content slot instead of sample document body", () => {
   const editor = readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
-  assert.match(editor, /const contentSlot = context\.mode === "edit"/);
-  assert.match(editor, /className="template-content-slot"[^>]*aria-label="Content slot"/);
-  assert.match(editor, /Supplied by each document/);
+  assert.match(editor, /const contentSlot = <TemplateContentSlot/);
+  const slot = readFileSync(new URL("../app/studio/template-content-slot.tsx", import.meta.url), "utf8");
+  assert.match(slot, /className="template-content-slot"[^>]*aria-label="Content slot"/);
+  assert.match(slot, /Supplied by each document/);
   assert.match(styles, /\.template-content-slot \{[^}]*min-height: 132px;[^}]*text-align: center;/);
 });
 
-test("template Content is available in the block library and can be removed", () => {
+test("template Content is available only through its explicit template capability", async () => {
   const [editor, model, inspector] = [
     readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8"),
     readFileSync(new URL("../app/studio/template-model.ts", import.meta.url), "utf8"),
     readFileSync(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8"),
   ];
-  assert.match(editor, /type: "template-content"/);
-  assert.match(editor, /type === "template-content"\) return insertNode\(\{ id: templateId\(\), type: "element", element: "content" \}\)/);
+  const { templateContentAvailable } = await loadProductionModule(new URL("../app/studio/template-content-insertion.ts", import.meta.url));
+  const item = { type: "template-content", label: "Content", description: "Template Content" };
+  assert.equal(blockInserterOptions([item], undefined, "").length, 0);
+  assert.equal(blockInserterOptions([item], undefined, "", [], { allowTemplateContent: true }).length, 1);
+  assert.equal(templateContentAvailable({ kind: "page", nodes: [] }), true);
+  assert.equal(templateContentAvailable({ kind: "header", nodes: [] }), false);
+  assert.equal(templateContentAvailable({ kind: "post", nodes: [{ id: "slot", type: "element", element: "content" }] }), false);
+  assert.match(editor, /onInsertTemplateContent: allowTemplateContent/);
   assert.match(model, /countContent\(template\.nodes, new Set\(\)\) > 1/);
   assert.match(inspector, /Content is optional while exploring; add at most one Content element/);
 });
@@ -1774,7 +1953,11 @@ test("template Content is available in the block library and can be removed", ()
 
 test("template body appender does not add a blue focus border", () => {
   const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
-  assert.match(styles, /\.template-workspace \.canvas-appender input:focus-visible \{ box-shadow: none; outline: 0; \}/);
+  assert.match(styles, /\.template-workspace \.canvas-appender input:focus-visible \{ box-shadow: none; \}/);
+  assert.doesNotMatch(styles, /\.template-workspace \.canvas-appender input:focus-visible[^}]*outline: 0/);
+  const policy = readFileSync(new URL("../app/studio/focus-outline.css", import.meta.url), "utf8");
+  assert.match(policy, /html\[data-studio-focus-visible="false"\] body :focus \{ outline: none !important;/);
+  assert.match(policy, /forced-colors: active/);
 });
 
 
@@ -1801,9 +1984,9 @@ test("Preview and Code transitions dismiss the block library", () => {
 
 test("the block library slides in on each mount and respects reduced motion", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(css, /\.block-inserter \{ animation: studio-inserter-enter 180ms ease-out/);
+  assert.match(css, /\.block-inserter\.pane \{ animation: studio-inserter-enter 180ms ease-out/);
   assert.match(css, /@keyframes studio-inserter-enter \{\s*from \{ opacity: 0; transform: translateX\(-100%\); \}\s*to \{ opacity: 1; transform: translateX\(0\); \}/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.block-inserter, \.block-inserter\[data-closing="true"\] \{ animation: none; \}/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.block-inserter\.pane, \.block-inserter\.is-closing \{ animation: none; \}/);
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(canvas, /onClick=\{\(\) => showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)\}/);
   assert.match(canvas, /showInserter && !previewing && !codeEditor \? <BlockInserter/);
@@ -1823,10 +2006,10 @@ test("library dismissal waits for its own exit animation except with reduced mot
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(canvas, /function dismissInserter\(\) \{\s*if \(window.matchMedia\("\(prefers-reduced-motion: reduce\)"\).matches\) finishInserterClose\(\);\s*else setInserterClosing\(true\)/);
   assert.match(canvas, /onDismiss=\{dismissInserter\}/);
-  assert.match(canvas, /event.target === event.currentTarget && event.animationName === "studio-inserter-exit"\) onCloseAnimationEnd\(\)/);
+  assert.match(canvas, /event.target instanceof HTMLElement && event.target.classList.contains\("block-inserter"\) && event.animationName === "studio-inserter-exit"\) onCloseAnimationEnd\(\)/);
   assert.match(canvas, /inert=\{closing\}/);
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(css, /\.block-inserter\[data-closing="true"\] \{ animation: studio-inserter-exit 180ms ease-in forwards/);
+  assert.match(css, /\.block-inserter\.is-closing \{ animation: studio-inserter-exit 180ms ease-in forwards/);
   assert.match(canvas, /onClick=\{\(\) => \{ dismiss\(\); onCloseAnimationEnd\(\); \}\}/);
 });
 
@@ -1835,8 +2018,8 @@ test("Add block cancels an exit in progress and restores the entry animation", (
   const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
   assert.match(canvas, /showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)/);
   assert.match(canvas, /function openInserter[^}]*setInserterClosing\(false\)/);
-  assert.match(canvas, /data-closing=\{closing \|\| undefined\}/);
-  assert.match(canvas, /if \(closing && event.target === event.currentTarget/);
+  assert.match(canvas, /className=\{`block-inserter\$\{closing \? " is-closing" : ""\}`\}/);
+  assert.match(canvas, /if \(closing && event.target instanceof HTMLElement/);
 });
 
 
@@ -1845,7 +2028,7 @@ test("between-block add controls toggle the shared block library", () => {
   assert.match(canvas, /function toggleInserter\(afterIndex: number \| null, query\?: string\) \{\s*if \(showInserter && !inserterClosing\) \{\s*dismissInserter\(\);/);
   assert.match(canvas, /className="between-blocks cover-inserter"[^>]*onClick=\{\(\) => toggleInserter\(-1\)\}/);
   assert.match(canvas, /className="between-blocks"[^>]*onClick=\{\(\) => toggleInserter\(index - 1\)\}/);
-  assert.match(canvas, /className="canvas-appender-button"[^>]*onClick=\{\(\) => \{ setAppenderValue\(""\); setAppenderActive\(false\); toggleInserter\(activeDocument\.blocks\.length - 1\); \}\}/);
+  assert.match(canvas, /className="canvas-appender-button"[^>]*onClick=\{\(\) => \{ if \(!writableRef.current\) return; setAppenderValue\(""\); setAppenderActive\(false\); toggleInserter\(activeDocument\.blocks\.length - 1\); \}\}/);
 });
 
 
@@ -2107,18 +2290,23 @@ test("overflow pointer and focus transitions reach toggle handlers before dismis
 
 
 test("content type tabs follow the shared Studio tool menu", () => {
-  const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
-  const prototypeLibrary = prototype.slice(prototype.indexOf('<aside className="studio-library">'), prototype.indexOf('<div className="document-list">'));
+  const prototype = readFileSync(new URL("../app/studio/studio-navigation-pane.tsx", import.meta.url), "utf8");
+  const prototypeLibrary = prototype.slice(prototype.indexOf('<Pane trackClassName="studio-library-track"'), prototype.indexOf('<div className="document-list">'));
+  assert.ok(prototypeLibrary.includes('className="library-tool-button"'));
+  assert.ok(prototypeLibrary.includes('className="library-tabs"'));
   assert.ok(prototypeLibrary.indexOf('className="library-tool-button"') < prototypeLibrary.indexOf('className="library-tabs"'));
 
   const templates = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
-  const templateLibrary = templates.slice(templates.indexOf('<aside className="studio-library">'), templates.indexOf('<div className="document-list template-document-list">'));
+  const templateLibrary = templates.slice(templates.indexOf('<Pane trackClassName="studio-library-track"'), templates.indexOf('<div className="document-list template-document-list">'));
+  assert.ok(templateLibrary.includes('className="library-tool-button"'));
+  assert.ok(templateLibrary.includes('className="library-tabs"'));
   assert.ok(templateLibrary.indexOf('className="library-tool-button"') < templateLibrary.indexOf('className="library-tabs"'));
 });
 
 test("Studio View menu exposes viewport, template and read-only preview actions", async () => {
   const menu = readFileSync(new URL("../app/studio/studio-view-menu.tsx", import.meta.url), "utf8");
   const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const header = readFileSync(new URL("../app/studio/studio-header.tsx", import.meta.url), "utf8");
   const page = readFileSync(new URL("../app/studio/page.tsx", import.meta.url), "utf8");
   const workspace = readFileSync(new URL("../app/studio/use-studio-workspace.ts", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
@@ -2129,7 +2317,8 @@ test("Studio View menu exposes viewport, template and read-only preview actions"
   assert.match(menu, /role="menuitemcheckbox" aria-checked=\{showTemplate\}/);
   assert.match(menu, /Viewport-specific style editing is not available in Studio yet/);
   assert.match(menu, /event\.key === "Escape"/);
-  assert.match(prototype, /window\.open\(`\/studio\?\$\{query\.toString\(\)\}`, "_blank", "noopener,noreferrer"\)/);
+  assert.match(prototype, /<StudioHeader studioSection=\{studioSection\}/);
+  assert.match(header, /window\.open\(`\/studio\?\$\{query\.toString\(\)\}`, "_blank", "noopener,noreferrer"\)/);
   assert.match(page, /return <StudioPrototype initialView=\{/);
   assert.match(page, /export const dynamic = "force-dynamic"/);
   assert.match(prototype, /export function StudioPrototype\(\{ initialView \}: \{ initialView: StudioInitialView \}\)/);
@@ -2141,4 +2330,16 @@ test("Studio View menu exposes viewport, template and read-only preview actions"
   assert.match(css, /\.studio-preview-window \.editor-document-bar \{ display: none; \}/);
   assert.match(css, /\.studio-preview-window\.studio-desktop-only \{ min-width: 0; width: 100%; \}/);
   assert.match(css, /\.studio-preview-window\.studio-desktop-only > \.studio-workspace \{ display: block; min-width: 0; width: 100%; \}/);
+});
+
+test("Embed catalogue places content on the canvas and lists only Dimensions and Advanced in the pane", () => {
+  const profile = capabilityProfileFor("embed");
+  assert.deepEqual(profile.sections.map(section => section.id), ["dimensions", "advanced"]);
+  assert.deepEqual(profile.defaults.dimensions, ["margin"]);
+  for (const id of ["url", "caption", "card-title", "block-alignment"]) {
+    assert.equal(profile.controls.find(control => control.id === id)?.placement, "canvas");
+  }
+  assert.deepEqual(profile.controls.find(control => control.id === "advanced")?.fields, ["visualStyle.anchor", "visualStyle.className", "visualStyle.additionalCss"]);
+  assert.ok(profile.dependencies.some(dependency => dependency.id === "box-length"));
+  assert.ok(profile.dependencies.some(dependency => dependency.id === "inspector-tools"));
 });

@@ -40,6 +40,9 @@ Andrew explicitly authorised the Copilot keyboard mark
 as a sourced brand exception on 26 September 2026. Its MIT-licensed Lobe Icons
 SVG, provenance and licence are owned by `acm-icons/sources/copilot/`; preserve
 the shared geometry and licence notices when previewing or exporting it.
+Andrew authorised Inter-derived H1–H6 heading marks on 2 October 2026. These
+shared font-outline assets use the pinned, licensed source in
+`acm-icons/sources/inter/`; retain their provenance and licence notices.
 
 The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes, Panels,
 Icons and Styles. Its Styles section is a preview sandbox for the executable `@acm/styles`
@@ -95,7 +98,7 @@ to the current page and must be reported visibly. See `docs/studio-ui-library.md
 
 The Pane section of the Studio UI Library documents the shared internal Pane
 components used by Studio Navigation, Block Library, Editor Inspector, Design
-Pages/Layers and Design Properties. Its component contract is v1.0.0; see
+Pages/Layers and Design Properties. Its component contract is v1.1.0; see
 `docs/pane-library.md`. Catalogue fixtures and demo state remain separate from
 product stores and write ownership. Product data, commands and pane-specific
 behaviour remain owned by their existing features. Pane specimens permit
@@ -103,6 +106,18 @@ temporary edge resizing, with contained horizontal scrolling at narrow widths;
 collapse controls remain available. Studio Navigation and Editor Inspector
 adopt the shared resizing contract. Other product panes retain their existing
 widths and responsive behaviour.
+
+Every floating inspector box or menu opens on the workspace-facing left of its
+owning right pane, regardless of block type. This applies to live editors and
+UI Library specimens, including control menus, colour and gradient editors,
+font-size units and document settings. Declare `data-inspector-popover-owner`
+on the actual pane boundary and use the shared inspector-popover positioning
+contract; never position from the section button's horizontal coordinate.
+Portal children retain their original pane owner. Nested editors may extend
+further left of their parent popup. Keep overlays within the visible viewport
+as far as available space allows, without automatically flipping to the right.
+Reposition on pane/popup resize and scrolling, and preserve close controls,
+Escape dismissal and focus return. See `docs/pane-library.md`.
 
 The main content editor, template editor and Mini Golf editor remain
 three-pane desktop workspaces at narrow viewport widths. They keep a minimum
@@ -144,13 +159,22 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.14.0 and read versions
-v0.1.0 through v0.13.0. Published local posts retain an immutable design snapshot
+Template packages and stored template contracts use v0.25.0 and read versions
+v0.1.0 through v0.24.0. Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 14 and reads versions 2–13. Local publication
-snapshots use version 7 and read versions 1–6.
+Workspace data uses version 24 and reads versions 2–23. Local publication
+snapshots use version 18 and read versions 1–17. Publications freeze the effective
+document-field visibility from their selected template and document overrides;
+older snapshots without that policy retain Show defaults. Inline Math objects require
+workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
+publication 16. Legacy marked-text references and equations remain readable.
+Studio block clipboard envelopes use version 4 and read versions 1–3. Partial
+selections carry referenced document note companions; paste attaches them outside
+restricted child lists within the same content/history transaction. Math objects
+require clipboard 4; Footnote companions remain readable in clipboard 3. Cut may remove
+the source only after a reader-valid copy and unchanged block/note ownership.
 
 Deleted pages, posts, template entries and unassigned template sets move to the
 local Studio Bin. Keep their assignments, local publication snapshots and
@@ -204,6 +228,18 @@ media, publications or backup stores. Site navigation uses full-page links to
 reset editing state. Preview may run the shared Mini Golf game locally with isolated, owner-gated
 session storage. Page authoring and game sessions remain separate. Writes to the
 Mini Golf project or live site are not part of the page-draft pilot.
+
+Mini Golf drafts use envelope version 13 and read versions 1–12; page
+definitions use version 5 and read versions 1–4. Math objects require these
+current envelopes; their Footnote predecessors remain readable.
+
+Mini Golf runtime Preview uses an ephemeral block projection for calculated
+fields and repeated leaderboard cards. The first player retains the authored
+block IDs; subsequent instances receive collision-safe presentation IDs. Shared
+notes retain one visible owner, and navigation uses the projected reading order.
+Keep this projection out of drafts, content history, game-session persistence and
+exports; authored records remain the saved source of truth. Edit and Preview
+reuse the player-text binding.
 
 Mini Golf staging and prod are separate site entries with separate browser
 page-draft keys. The original pilot route/key belongs to prod and must remain

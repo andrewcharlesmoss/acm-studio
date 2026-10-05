@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import ts from "typescript";
 import { blockCapabilityProfiles, capabilityProfileFor, hasScopedStyleControls, listItemCapabilityProfile, listItemSupportedStyleFields, resetInspectorStyleFields, retainedLegacyStyleControls, scopedStyleSectionIds } from "../app/studio/blocks/capability-profiles.ts";
 import { studioControlEntries, studioControlEntryById } from "../app/studio/controls/library-catalogue.ts";
 
@@ -10,9 +11,9 @@ const read = path => readFileSync(resolve(path), "utf8");
 test("all typed blocks and template Content have complete, ordered inspector capability profiles", () => {
   const profiles = Object.values(blockCapabilityProfiles);
   const typedProfiles = profiles.filter(profile => profile.type !== "template-content");
-  assert.equal(typedProfiles.length, 27);
-  assert.equal(profiles.length, 28);
-  assert.equal(new Set(profiles.map(profile => profile.type)).size, 28);
+  assert.equal(typedProfiles.length, 28);
+  assert.equal(profiles.length, 29);
+  assert.equal(new Set(profiles.map(profile => profile.type)).size, 29);
 
   for (const profile of profiles) {
     assert.ok(profile.label, profile.type);
@@ -36,15 +37,14 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.deepEqual(paragraph.inventorySections.find(section => section.id === "advanced")?.fields, ["anchor", "className", "additionalCss"]);
 
   const heading = capabilityProfileFor("heading");
-  assert.deepEqual(heading.sections.map(section => section.id), ["text", "typography", "background", "dimensions", "border", "elements", "advanced"]);
+  assert.deepEqual(heading.sections.map(section => section.id), ["content", "typography", "background", "dimensions", "border", "elements", "advanced"]);
   assert.deepEqual(scopedStyleSectionIds(heading, undefined, "gutenberg"), ["typography", "background", "dimensions", "border", "elements"]);
   assert.equal(heading.controls.find(control => control.id === "block-alignment")?.placement, "canvas");
   assert.equal(heading.sections.some(section => section.id === "canvas"), false);
-  const headingPaneControls = heading.controls.filter(control => control.section === "text" && control.placement !== "canvas").map(control => control.id);
-  assert.deepEqual(headingPaneControls, ["text-alignment", "level"]);
   const inspectorSource = read("app/studio/studio-inspectors.tsx");
-  const headingMarkup = inspectorSource.slice(inspectorSource.indexOf("const blockSettings = ("), inspectorSource.indexOf("const requiredSettings = ("));
-  assert.ok(headingMarkup.indexOf('<span>Alignment</span>') < headingMarkup.indexOf('<span>Level</span>'), "Heading pane renders Alignment before Level");
+  const headingPaneControls = heading.controls.filter(control => control.section === "content" && control.placement !== "canvas").map(control => control.id);
+  assert.deepEqual(headingPaneControls, ["level"]);
+
   const table = capabilityProfileFor("table");
   for (const id of ["table-alignment", "column-alignment"]) assert.equal(table.controls.find(control => control.id === id)?.placement, "canvas", `table:${id}`);
   assert.ok(!table.sections.some(section => ["table-alignment", "column-alignment"].includes(section.id)));
@@ -61,7 +61,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.ok(imageInspector.indexOf("<ImageDimensionsSetting") < imageInspector.indexOf("<FocalPositionSetting"), "Image dimensions render before focal position");
 
   const columnPaneOrder = columns.controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
-  assert.deepEqual(columnPaneOrder, ["column-count", "stack-on-mobile", "vertical-alignment"]);
+  assert.deepEqual(columnPaneOrder, ["column-count", "stack-on-mobile", "vertical-alignment", "gaps"]);
   assert.equal(columns.controls.find(control => control.id === "vertical-alignment")?.source, "gutenberg");
   assert.deepEqual(columns.controls.find(control => control.id === "column-count")?.fields, ["children"]);
   const columnsInspector = inspectorSource.slice(inspectorSource.indexOf("function ColumnsInspector"), inspectorSource.indexOf("function ColumnInspector"));
@@ -69,35 +69,76 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.ok(columnsInspector.indexOf("Stack on mobile") < columnsInspector.indexOf("Vertical alignment"), "Gutenberg controls follow their rendered order");
   assert.doesNotMatch(columnsInspector, /Studio columns layout|Studio adds a tablet breakpoint/);
 
-  const groupPaneOrder = capabilityProfileFor("group").controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
-  assert.deepEqual(groupPaneOrder, ["layout", "sticky", "alignment", "gaps", "padding", "content-width", "columns", "grid", "semantic-element", "background-image"]);
+  const groupProfile = capabilityProfileFor("group");
+  const groupPaneOrder = groupProfile.controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
+  assert.deepEqual(groupPaneOrder, ["layout", "alignment", "wrapping", "content-width", "grid"]);
+  assert.equal(groupProfile.controls.find(control => control.id === "sticky")?.section, "position");
+  assert.equal(groupProfile.controls.find(control => control.id === "sticky")?.dependency, "root-group");
+  assert.equal(groupProfile.controls.find(control => control.id === "alignment")?.dependency, "layout");
+  assert.match(groupProfile.controls.find(control => control.id === "alignment")?.availableWhen ?? "", /Row or Stack/);
+  assert.equal(groupProfile.controls.find(control => control.id === "gaps")?.section, "dimensions");
+  assert.equal(groupProfile.controls.find(control => control.id === "gaps")?.dependency, "layout");
+  assert.equal(groupProfile.controls.find(control => control.id === "content-width")?.source, "gutenberg");
+  assert.equal(groupProfile.controls.find(control => control.id === "columns" && control.section === "layout")?.source, "studio");
+  assert.equal(groupProfile.controls.find(control => control.id === "background-image")?.source, "studio");
+  assert.deepEqual(groupProfile.defaults.dimensions, ["padding"]);
   const sectionPaneOrder = capabilityProfileFor("section").controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
   assert.deepEqual(sectionPaneOrder, ["layout", "alignment", "gaps", "padding", "content-width", "columns", "grid"]);
   for (const type of ["group", "section"]) {
     const profile = capabilityProfileFor(type);
-    assert.equal(profile.controls.find(control => control.id === "min-width")?.source, "studio", `${type} minimum width remains hidden as an ACM addition`);
+    assert.equal(profile.controls.find(control => control.id === "min-width")?.source, type === "group" ? "gutenberg" : "studio", `${type} minimum width ownership`);
     assert.deepEqual(profile.controls.find(control => control.id === "alignment")?.fields, ["horizontalAlign", "verticalAlign"], `${type} alignment fields`);
     assert.deepEqual(profile.controls.find(control => control.id === "gaps")?.fields, ["gap", "columnGap", "rowGap"], `${type} gap fields`);
     assert.deepEqual(profile.controls.find(control => control.id === "padding")?.fields, ["paddingX", "paddingY"], `${type} padding fields`);
-    assert.deepEqual(profile.controls.find(control => control.id === "content-width")?.fields, ["contentWidth"], `${type} content width fields`);
-    const columnsSetting = profile.controls.find(control => control.id === "columns");
+    assert.deepEqual(profile.controls.find(control => control.id === "content-width")?.fields, type === "group" ? ["inheritLayout", "contentSize", "wideSize"] : ["contentWidth"], `${type} content width fields`);
+    const columnsSetting = profile.controls.find(control => control.id === "columns" && control.section === "layout");
     assert.deepEqual(columnsSetting?.fields, ["columns"], `${type} column count fields`);
-    assert.equal(columnsSetting?.dependency, "layout");
-    assert.match(columnsSetting?.availableWhen ?? "", /layout is Columns/);
+    if (type === "group") assert.equal(columnsSetting?.availability, "model-only");
+    else {
+      assert.equal(columnsSetting?.dependency, "layout");
+      assert.match(columnsSetting?.availableWhen ?? "", /layout is Columns/);
+    }
     const gridSetting = profile.controls.find(control => control.id === "grid");
-    assert.deepEqual(gridSetting?.fields, ["columns", "minColumnWidth"], `${type} grid fields`);
+    assert.deepEqual(gridSetting?.fields, type === "group" ? ["columns", "gridMode", "minColumnWidth", "minColumnWidthUnit"] : ["columns", "minColumnWidth"], `${type} grid fields`);
     assert.equal(gridSetting?.dependency, "layout");
     assert.match(gridSetting?.availableWhen ?? "", /layout is Grid/);
   }
   const layoutInspector = inspectorSource.slice(inspectorSource.indexOf("function LayoutInspector"), inspectorSource.indexOf("type ColumnsBlock"));
-  assert.ok(layoutInspector.indexOf("<span>Arrangement</span>") < layoutInspector.indexOf("<span>Position</span>"), "Layout arrangement renders before Group sticky position");
-  assert.ok(layoutInspector.indexOf("<span>Position</span>") < layoutInspector.indexOf("<span>Horizontal alignment</span>"), "Group sticky position renders before alignment controls");
-  assert.ok(layoutInspector.indexOf("<span>Vertical alignment</span>") < layoutInspector.indexOf('label="Horizontal gap"'), "Layout alignment renders before gap controls");
-  assert.ok(layoutInspector.indexOf('label="Vertical padding"') < layoutInspector.indexOf("<span>Content width</span>"), "Layout padding renders before content width");
-  assert.ok(layoutInspector.indexOf("<span>Content width</span>") < layoutInspector.indexOf("{block.layout === \"columns\""), "Layout content width renders before conditional Columns count");
-  assert.ok(layoutInspector.indexOf("{block.layout === \"columns\"") < layoutInspector.indexOf("{block.layout === \"grid\""), "Conditional Columns count renders before grid options");
+  assert.match(inspectorSource, /<p className="setting-note">\{blockDescription\}<\/p>\{block.type === "heading"[^\n]+?\}\{block.type === "group" && !contentSlot \? <GroupLayoutSelection/, "Group layout variations remain below the description after the mutually exclusive Heading control");
+  assert.doesNotMatch(layoutInspector, /GroupLayoutSelection/, "Group layout variations are not repeated in Dimensions");
+  assert.match(layoutInspector, /block\.layout === "flow" \|\| block\.layout === "stack"/);
+  assert.match(layoutInspector, /block\.layout === "columns"\) return null/);
+  assert.match(layoutInspector, /row \? "Justification" : "Horizontal alignment"/);
+  assert.match(layoutInspector, /row \? "Vertical alignment" : "Justification"/);
+  assert.match(layoutInspector, /row \? \["left", "centre", "right", "space-between"\] : \["left", "centre", "right", "stretch"\]/);
+  assert.match(layoutInspector, /row \? \["top", "centre", "bottom", "stretch"\] : \["top", "centre", "bottom", "space-between"\]/);
+  assert.match(layoutInspector, /value === "space-between" \? "Space between"/);
+  assert.match(layoutInspector, /block\.layout === "grid"/);
+  const groupLayoutInspector = layoutInspector.slice(0, layoutInspector.indexOf("const controls = <>"));
+  assert.doesNotMatch(groupLayoutInspector, /<span>Content width<\/span>/, "ACM content width is not shown in Group's Block pane");
+  const groupDimensions = inspectorSource.slice(inspectorSource.indexOf("function GroupDimensionsInspector"), inspectorSource.indexOf("function GroupPositionInspector"));
+  assert.match(inspectorSource, /label="Padding" value=\{style.padding/);
+  assert.match(groupDimensions, /label="Horizontal gap"/);
+  assert.match(groupDimensions, /label="Vertical gap"/);
+  assert.doesNotMatch(groupDimensions, /block\.layout !== "flow"/);
+  assert.match(groupDimensions, /<legend>Block spacing<\/legend>/);
+  assert.match(inspectorSource, /resetGroupDimensionFields\(block, nextStyle, \{ padding: selectedIds.includes\("padding"\), layout: resetGroupLayout \}\)/);
+  assert.match(inspectorSource, /title="Position" options=\{\[\{ id: "position", label: "Position" \}\]\}/);
+  const groupPositionInspector = inspectorSource.slice(inspectorSource.indexOf("function GroupPositionInspector"), inspectorSource.indexOf("type ColumnsBlock"));
+  assert.match(groupPositionInspector, /configuredPosition: block\.position, visible: Boolean\(block\.position\)/);
+  assert.match(groupPositionInspector, /positionVisibility\.configuredPosition === block\.position/);
+  assert.doesNotMatch(groupPositionInspector, /alwaysShow/, "Group Position stays optional until selected or already configured");
+  assert.match(inspectorSource, /sectionId === "background" && groupLayoutControls/);
+  const allowedBlocks = capabilityProfileFor("group").controls.find(control => control.id === "allowed-blocks");
+  assert.equal(allowedBlocks?.source, "gutenberg");
+  assert.equal(allowedBlocks?.section, "allowed-blocks");
+  assert.deepEqual(allowedBlocks?.fields, ["allowedBlocks"]);
+  const advancedInspector = inspectorSource.slice(inspectorSource.indexOf("function AdvancedFieldsInspector"), inspectorSource.indexOf("type LayoutBlock"));
+  assert.doesNotMatch(advancedInspector, /AllowedBlocksInspector/);
+  assert.match(inspectorSource, /<AdvancedFieldsInspector semanticElement=\{!contentSlot\} block=\{block\} onChange=\{onChange\} fields=\{advanced\} \/> : null}\s*\{!contentSlot && \(block.type === "group" \|\| block.type === "column"\) \? <AllowedBlocksInspector/);
+  assert.doesNotMatch(inspectorSource, /<InspectorAccordionSection title="Allowed Blocks">/);
   const columnPane = capabilityProfileFor("column");
-  assert.deepEqual(columnPane.controls.filter(control => control.source === "gutenberg" && control.section === "layout").map(control => control.id), ["width", "vertical-alignment", "gap"]);
+  assert.deepEqual(columnPane.controls.filter(control => control.source === "gutenberg" && control.section === "layout").map(control => control.id), ["width", "vertical-alignment", "gap", "allowed-blocks"]);
   assert.equal(columnPane.controls.find(control => control.id === "vertical-alignment")?.source, "gutenberg");
   assert.deepEqual(columnPane.controls.find(control => control.id === "gap")?.fields, ["rowGap", "gap"]);
   const singleColumnInspector = inspectorSource.slice(inspectorSource.indexOf("function ColumnInspector"), inspectorSource.indexOf("function ComponentInspector"));
@@ -208,9 +249,9 @@ test("the block inspector exposes only Gutenberg-owned shared style groups", () 
   }
 
   const inspector = read("app/studio/studio-inspectors.tsx");
-  assert.match(inspector, /const visibleSource = "gutenberg"/);
+  assert.match(inspector, /const visibleSource = profileOverride && profileOverride\.label === "List Item" \? undefined : block\.type === "document-subtitle" \? "studio" : "gutenberg"/);
   assert.match(inspector, /scopedStyleSectionIds\(profile, style, visibleSource\)/);
-  assert.match(inspector, /background: showBackground \? <InspectorAccordionSection className="inspector-panel" title="Background">/);
+  assert.match(inspector, /background: showBackground \? <GroupBackgroundSection group canReset=/);
 });
 
 test("List compatibility records recursive nesting and independent List Item inspection", () => {
@@ -221,23 +262,33 @@ test("List compatibility records recursive nesting and independent List Item ins
   assert.equal(capabilityProfileFor("list").nestedProfiles?.[0], itemProfile);
   assert.ok(itemProfile.sections.every(section => itemProfile.controls.some(control => control.section === section.id)));
   assert.ok(itemProfile.controls.every(control => control.fields.every(field => control.resetFields.includes(field))));
-  assert.ok(!itemProfile.controls.flatMap(control => control.fields).includes("textColor"));
+  assert.equal(itemProfile.controls.find(control => control.id === "colour")?.source, "studio");
+  assert.deepEqual(itemProfile.controls.find(control => control.id === "colour")?.fields, ["textColor"]);
   assert.ok(itemProfile.dependencies.every(dependency => studioControlEntryById[dependency.id]));
   const lineHeightControl = itemProfile.controls.find(control => control.id === "line-height");
   assert.ok(lineHeightControl);
   assert.ok(itemProfile.dependencies.some(dependency => dependency.id === lineHeightControl.id));
-  assert.deepEqual([...itemProfile.resetFields].sort(), ["anchor", "backgroundColor", "backgroundGradient", "fontSize", "fontSizeCustom", "lineHeight", "linkColor", "margin", "padding"].sort());
+  assert.deepEqual([...itemProfile.resetFields].sort(), ["additionalCss", "anchor", "appearance", "backgroundColor", "backgroundGradient", "borderColor", "borderRadius", "borderStyle", "borderWidth", "className", "fontFamily", "fontSize", "fontSizeCustom", "letterSpacing", "lineHeight", "linkColor", "linkHoverColor", "margin", "padding", "textColor", "textDecoration", "textTransform"].sort());
   assert.deepEqual([...listItemSupportedStyleFields].sort(), [...new Set(itemProfile.controls.flatMap(control => control.fields))].sort());
   assert.ok(!unsupported.includes("Nested List Item blocks"));
   assert.ok(!unsupported.some(item => item.includes("List Item anchor")));
-  assert.ok(unsupported.includes("List Item block-level indent and outdent controls"));
-  assert.ok(unsupported.includes("Footnote and inline-image insertion from List Item formatting"));
+  assert.ok(!unsupported.includes("List Item block-level indent and outdent controls"));
+  assert.deepEqual(unsupported, ["Footnote and inline-image insertion across multiple List Items"]);
+  assert.deepEqual(itemProfile.unsupported, unsupported);
 
   const compatibility = read("docs/block-inspector-compatibility.md");
-  assert.match(compatibility, /recursive nested items with Tab\/Shift\+Tab indentation/);
-  assert.match(compatibility, /independently selected List Items with anchor, background colour, gradient, link colour, font size, line height, margin and padding controls/);
-  assert.match(compatibility, /The List Item contract does not declare text-colour support/);
-  assert.match(compatibility, /Rich-text table cells remain\s+an\s+unsupported typed-model capability/);
+  assert.match(compatibility, /Recursive List editing, ordered marker\/start\/reverse controls and item-scoped formatting/);
+  assert.match(compatibility, /Selected List Items use the shared style editor for text colour, family, appearance, size, line height/);
+  assert.match(compatibility, /Advanced retains anchor, classes and safe Additional CSS/);
+  assert.match(compatibility, /Item text colour and CSS fields are ACM extensions to the recorded pinned List Item contract/);
+  assert.match(compatibility, /Single-item Footnote and inline-image insertion preserve the item and its nested content/);
+  const canvas = ts.createSourceFile("studio-canvas.tsx", read("app/studio/studio-canvas.tsx"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const listField = canvas.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "ListField")?.getText(canvas);
+  assert.ok(listField, "the production ListField owns keyboard indentation");
+  assert.match(listField, /event\.key === "Tab"/);
+  assert.match(listField, /event\.shiftKey/);
+  assert.match(listField, /<ListItemIndentControls/);
+  assert.match(compatibility, /Table cells and caption support rich text; cell spanning remains unsupported/);
   assert.doesNotMatch(compatibility, /Known typed-model gaps remain nested List Items/);
   assert.match(read("app/studio/blocks/list-item-inspector.tsx"), /new Set\(listItemSupportedStyleFields\)/);
   assert.match(read("app/studio/workspace-validation.ts"), /new Set\(listItemSupportedStyleFields\)/);
@@ -245,8 +296,8 @@ test("List compatibility records recursive nesting and independent List Item ins
 });
 
 test("every reusable Controls entry has a grouped anchor specimen and compatible direct route", () => {
-  assert.equal(studioControlEntries.length, 13);
-  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 13);
+  assert.equal(studioControlEntries.length, 21);
+  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 21);
   for (const entry of studioControlEntries) {
     assert.equal(studioControlEntryById[entry.id], entry);
     assert.ok(entry.purpose && entry.owner && entry.consumers.length && entry.states && entry.compatibility, entry.id);
@@ -262,10 +313,10 @@ test("every reusable Controls entry has a grouped anchor specimen and compatible
   assert.match(route, /redirect\(`\/studio\/ui\/controls#\$\{encodeURIComponent\(entry\.id\)\}`\)/);
   assert.match(catalogue, /id=\{controlGroupId\(group\)\}/);
   assert.match(navigation, /href=\{`#\$\{entry\.id\}`\}/);
-  assert.match(catalogue, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\} \/>/);
+  assert.match(catalogue, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\} sliderAccent=\{effectiveSliderAccent\}/);
   assert.match(reset, /<section id=\{entry\.id\}/);
   assert.match(reset, /function resetExample\(\)/);
-  assert.match(reset, /Related block specimens/);
+  assert.match(reset, /Example block specimens/);
 });
 
 test("shared line-height setting is used by block and List Item inspectors", () => {
@@ -276,6 +327,12 @@ test("shared line-height setting is used by block and List Item inspectors", () 
   assert.match(setting, /placeholder="Default"/);
   assert.match(setting, /onChange\(event\.target\.value \|\| undefined\)/);
   assert.match(inspector, /<LineHeightSetting value=\{style\.lineHeight\}/);
-  assert.match(listItemInspector, /<LineHeightSetting value=\{style\.lineHeight\}/);
+  assert.match(listItemInspector, /import \{ ParagraphInspector \} from/);
+  assert.match(listItemInspector, /<ParagraphInspector profileOverride=\{listItemStyleInspectorProfile\}/);
+  assert.match(listItemInspector, /block=\{\{[^\n]*type: "paragraph"[^\n]*style \}\}/);
+  assert.match(listItemInspector, /for \(const field of listItemSupportedStyleFields\) changes\[field as keyof ParagraphStyle\] = next\.style\?/);
+  assert.ok(listItemCapabilityProfile.controls.find(control => control.id === "line-height")?.fields.includes("lineHeight"));
+  assert.match(listItemInspector, /updateStyles\(changes\)/);
+  assert.doesNotMatch(listItemInspector, /LineHeightSetting/);
   assert.doesNotMatch(listItemInspector, /style\.lineHeight.*input/);
 });

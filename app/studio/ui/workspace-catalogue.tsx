@@ -48,6 +48,6 @@ export function WorkspaceCatalogue() {
           <PaneSpecimen key={revision} definition={skeletonDefinition} regions={defaultRegions} layout="both" content="normal" studio={false} indicatorVariant={indicatorVariant} />
         </div>
       </div>
-      <p className="ui-workspace-caption">The workspace preview scrolls horizontally when its full structure does not fit. Changes stay in this example only.</p>
+      <p className="ui-workspace-caption">The workspace preview scrolls horizontally when its full structure does not fit. Changes stay in this example only. <a href="/studio/ui/selection">Try Multiple Block Selection</a>.</p>
     </section>;
 }

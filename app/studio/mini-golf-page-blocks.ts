@@ -1,3 +1,4 @@
+import { tableRowSections } from "../content/table-row-sections";
 import type { ContentBlock, SiteContentRole, SiteSectionRole } from "../content/model";
 
 const assetRoot = "https://mini-golf-scorecard.andrewcharlesmoss.chatgpt.site";
@@ -26,7 +27,7 @@ export function completeMiniGolfPage(blocks: ContentBlock[], title: string, subt
       if (block.children.some((item) => item.type === "section" && item.role === "scorecard-heading")) return block;
       const heading = block.children.find((item) => item.type === "heading");
       const table = block.children.find((item) => item.type === "table");
-      const holes = table?.type === "table" ? Math.max(0, table.rows.length - Number(Boolean(table.hasHeader)) - Number(Boolean(table.hasFooter))) : 0;
+      const holes = table?.type === "table" ? tableRowSections(table).bodyEnd - tableRowSections(table).bodyStart : 0;
       const actions = section(`${block.id}-actions`, "scorecard-actions", [paragraph(`${block.id}-progress`, `0 / ${holes} Holes Complete`, "progress"), { id: id(`${block.id}-text-size`), type: "field", control: "select", label: "Table text", value: "Standard", options: ["Small", "Standard", "Large"], siteRole: "table-size" }, { id: id(`${block.id}-auto-resize`), type: "button", label: "↔ Auto-Resize Columns", url: "#", style: "secondary", siteRole: "auto-resize" }]);
       const headingRow = section(`${block.id}-heading-row`, "scorecard-heading", [...(heading ? [heading] : []), ...(table ? [actions] : [])]);
       const children = block.children.flatMap((item) => item === heading ? [headingRow] : [item]);
@@ -77,7 +78,8 @@ export function bindMiniGolfRuntime(blocks: ContentBlock[]): ContentBlock[] {
   return blocks.map(block => {
     const next = block.type === "columns"
       ? { ...block, children: block.children.map(column => ({ ...column, children: bindMiniGolfRuntime(column.children) })) }
-      : (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component") && block.children
+      : block.type === "buttons" ? { ...block, children: block.children.map(child => bindMiniGolfRuntime([child])[0] as typeof child) }
+      : (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component" || block.type === "quote") && block.children
         ? { ...block, children: bindMiniGolfRuntime(block.children) }
         : block;
     if (next.siteRole === "metric-value") {

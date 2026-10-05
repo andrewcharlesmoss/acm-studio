@@ -29,7 +29,7 @@ product APIs, or read/write browser persistence. No real documents, designs or
 media are involved. Product data, commands, persistence and pane-specific
 interaction remain owned by their existing features.
 
-## Internal component contract — v1.0.0
+## Internal component contract — v1.1.0
 
 The compatibility contract covers the React props, slots, accessible behaviour
 and CSS tokens in `app/studio/panes/pane-components.tsx` and its scoped CSS.
@@ -71,6 +71,33 @@ This is an internal Studio module, not a published package.
   variants retain the same layout and focus behaviour. Space-constrained
   Studio Navigation uses a 4px inset to keep all three tab labels and counts
   visible.
+
+### Inspector overlay ownership
+
+Right panes declare `data-inspector-popover-owner` on their outer `aside`.
+Standalone Block and Controls catalogue specimens declare the same boundary on
+their inspector/example container. The shared `inspectorPopoverOwner` and
+`watchInspectorPopover` helpers resolve that boundary before positioning any
+floating inspector box. Every block uses this rule: menus, colour palettes,
+gradient editors, font-size unit menus and document popovers open 12px to the
+left of the pane, into the workspace. The trigger controls vertical alignment,
+not the horizontal edge. This additive ownership contract is v1.1.0; existing
+Pane props remain compatible.
+
+Portal children pass their original owner anchor. A custom colour editor opens
+further left of its parent palette; a gradient-stop editor keeps the original
+pane edge and aligns below its stop. Both stay on the left of the pane.
+Available workspace width bounds popup width when at least 200px remains (or
+the preferred width for smaller menus). Viewport width, vertical placement and
+height remain constrained. When there is insufficient usable workspace for the full
+popup, clamp towards the left viewport margin; never flip to the other side of
+the pane. The same geometry applies to catalogue previews and product panes.
+
+The watcher observes the owner, anchor and popup for size changes, listens to
+viewport resize and captures scrolling, and disconnects when the popup closes.
+The owning control retains outside-click dismissal, a visible Close control,
+Escape behaviour, keyboard navigation and focus return. Native select lists and
+inline fields remain browser controls; canvas toolbar menus have separate owners.
 
 The pane container stays mounted when collapsed. Hidden content is outside
 keyboard navigation; focus within a collapsing pane moves to its edge button.

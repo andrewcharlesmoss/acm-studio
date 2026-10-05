@@ -16,7 +16,7 @@ export function InspectorAccordionSection({ kind, title, detail, className, cont
   const inheritedDisabled = useContext(InspectorContentDisabledContext);
   const contentId = useId();
   return <section className={`inspector-accordion-section${className ? ` ${className}` : ""}`} data-document-kind={kind}>
-    <h2><button type="button" className="inspector-accordion-heading" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen(value => !value)}><span>{title}</span>{detail ? <span className="inspector-accordion-detail">{detail}</span> : null}<StudioIcon name={open ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
+    <h2><button type="button" className="inspector-accordion-heading" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen(value => !value)}><span>{title}</span>{detail ? <span className="inspector-accordion-detail">{detail}</span> : null}<StudioIcon name={title === "Advanced" ? "chevron-down" : open ? "chevron-down" : "chevron-right"} size={16} className={title === "Advanced" && open ? "is-expanded-advanced" : undefined} /></button></h2>
     <div id={contentId} className="inspector-accordion-content" hidden={!open}>{contentDisabled || inheritedDisabled ? <fieldset disabled>{children}</fieldset> : children}</div>
   </section>;
 }

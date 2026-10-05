@@ -1,6 +1,8 @@
 "use client";
+import { readableRichText } from "../content/footnote-runs";
+import { visibleListText } from "../content/block-editorial";
 
-import { listText, type ButtonInteractionState, type ContentBlock, type ListItemSelection } from "../content/model";
+import { type ButtonInteractionState, type ContentBlock, type ListItemSelection } from "../content/model";
 import { StudioCanvas, type StudioCanvasProps } from "./studio-canvas";
 import { StudioInspector, type StudioInspectorProps } from "./studio-inspectors";
 import type { StudioDocument } from "./editor-model";
@@ -40,15 +42,17 @@ export function StudioEditor({ target, writable = true, onUndo, onRedo, canUndo 
 }
 
 export function documentText(block: ContentBlock): string {
-  if (block.type === "paragraph" || block.type === "heading" || block.type === "quote") return block.text;
-  if (block.type === "list") return listText(block.items);
+  if (block.editorial?.hidden) return "";
+  if (block.type === "paragraph" || block.type === "heading") return readableRichText(block.text, block.runs);
+  if (block.type === "quote") return `${block.children ? block.children.map(documentText).join(" ") : readableRichText(block.text, block.runs)} ${readableRichText(block.attribution, block.attributionRuns)}`.trim();
+  if (block.type === "list") return visibleListText(block.items);
   if (block.type === "code") return block.code;
-  if (block.type === "button") return block.label;
+  if (block.type === "button") return readableRichText(block.label, block.labelRuns);
   if (block.type === "field") return `${block.label} ${block.value}`;
-  if (block.type === "embed") return `${block.title} ${block.caption ?? ""}`.trim();
-  if (block.type === "image") return block.caption ?? "";
-  if (block.type === "table") return block.rows.flat().join(" ");
-  if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column") return block.children.map(documentText).join(" ");
+  if (block.type === "embed") return `${block.title} ${readableRichText(block.caption, block.captionRuns)}`.trim();
+  if (block.type === "image") return readableRichText(block.caption, block.captionRuns);
+  if (block.type === "table") return block.rows.flatMap((row, r) => row.map((cell, c) => readableRichText(cell, block.cellRuns?.[r]?.[c]))).join(" ");
+  if (block.type === "buttons" || block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column") return block.children.map(documentText).join(" ");
   if (block.type === "component") return Object.values(block.data ?? {}).flatMap((item) => Array.isArray(item) ? item : [item]).join(" ");
   return "";
 }

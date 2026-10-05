@@ -14,6 +14,7 @@ import { SiteSettings } from "./site-settings";
 import { StudioEditor, documentCharacterCount, documentWordCount } from "./studio-editor";
 import { blockCatalogue, type InsertableBlockType } from "./editor-model";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
+import { insertedBlockSelectionId } from "./button-insertion";
 import { MiniGolfRuntimeProvider } from "./mini-golf-runtime";
 import { blocksToMiniGolfPageDefinition } from "./mini-golf-page-contract";
 import runtimeSource from "../../docs/mini-golf-runtime-source.json";
@@ -49,11 +50,14 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
     return true;
   }
 
-  function insertBlock(type: InsertableBlockType, afterIndex = insertAfterIndex, keepInserterOpen = false) {
-    const block = blockCommands.insertBlock(type, afterIndex);
+  function insertBlock(type: InsertableBlockType, afterIndex = insertAfterIndex, keepInserterOpen = false, parentId?: string, parentInsertionIndex?: number) {
+    if (!writable) return null;
+    const block = blockCommands.insertBlock(type, afterIndex, parentId, parentInsertionIndex);
+    if (!block) return null;
     setSelectedDocumentField(null);
-    setSelectedBlockId(block.id);
+    setSelectedBlockId(insertedBlockSelectionId(block));
     setInspectorTab("block");
+    if (keepInserterOpen && !parentId && afterIndex !== null) setInsertAfterIndex(afterIndex + 1);
     if (!keepInserterOpen) { setShowInserter(false); setInserterQuery(""); }
     return block;
   }
@@ -145,6 +149,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
             onMoveBlock: blockCommands.moveBlock,
             onDuplicateBlock: duplicateBlock,
             onRemoveBlock: removeBlock,
+            onRemoveBlocks: blockCommands.removeBlocks,
             onUpdateBlock: blockCommands.updateBlock,
             onSplitParagraph: (id, beforeRuns, afterRuns) => {
               const nextId = blockCommands.splitParagraph(id, beforeRuns, afterRuns);
@@ -152,8 +157,9 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
               return nextId;
             },
             onSplitParagraphs: (id, paragraphs) => blockCommands.splitParagraphs(id, paragraphs),
-            onInsertBlock: insertBlock,
-            onInsertBlockAt: (type, insertionIndex) => insertBlock(type, insertionIndex - 1, true),
+            onExitList: (id, index, operation, listId) => blockCommands.exitList(id, index, operation, listId),
+            onInsertBlock: (type, parentId, options) => insertBlock(type, insertAfterIndex, options?.keepInserterOpen, parentId),
+            onInsertBlockAt: (type, insertionIndex, parentId) => insertBlock(type, insertionIndex - 1, true, parentId, parentId ? insertionIndex : undefined),
             onSetShowInserter: setShowInserter,
             onSetInserterQuery: setInserterQuery,
           }}
@@ -163,6 +169,8 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
             selectedDocumentField,
             activeDocument: page,
             pages: [page],
+            categories: workspace.categories,
+            tagSuggestions: [],
             canDelete: false,
             canDuplicate: false,
             canOpenFiles: false,
@@ -170,7 +178,12 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
             allowedPageTemplates: ["default", "wide"],
             onSelectTab: setInspectorTab,
             onDocumentChange: updateActiveField,
+            // This isolated draft contains only a page; post taxonomy is unavailable.
+            onCategorySelectionChange: () => undefined,
+            onAddCategory: () => undefined,
             onBlockChange: (next) => selectedBlock && blockCommands.updateBlock(selectedBlock.id, () => next),
+            onColumnWidthChange: blockCommands.updateColumnWidth,
+            onColumnCountChange: blockCommands.updateColumnCount,
             onOpenFiles: () => { if (confirmCodeEditorDiscard()) setView("files"); },
             onPublish: () => undefined,
             onUnpublish: () => undefined,

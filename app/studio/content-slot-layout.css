@@ -1,0 +1,37 @@
+/* The body wrapper owns width alignment in both Edit and Preview. */
+.template-content-layout { --studio-content-slot-gutter: 0px; }
+
+/* Only a root Content slot can use the template surface's outer gutter. */
+.template-surface > .template-node > .template-content > .template-content-layout {
+  --studio-content-slot-gutter: var(--acm-layout-spacing, var(--template-spacing, 0px));
+}
+
+.template-content-layout.has-layout-options[data-layout-constrained="true"] > :is(.studio-block-preview, .canvas-blocks) {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: none;
+  width: 100%;
+  gap: var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 16px)));
+}
+
+.template-content-layout[data-layout-constrained="true"] > :is(.studio-block-preview, .canvas-blocks) > :is(.content-block, .canvas-block, .block-position) {
+  box-sizing: border-box;
+  justify-self: center;
+  width: 100%;
+  max-width: var(--block-content-size, var(--template-content-width, 1040px));
+  margin-inline: 0;
+}
+
+.template-content-layout[data-layout-constrained="true"] > :is(.studio-block-preview, .canvas-blocks) > :is(.has-block-align-wide, [data-block-align="wide"]) {
+  width: calc(100% + var(--studio-content-slot-gutter));
+  max-width: var(--block-wide-size, 1280px);
+}
+
+.template-content-layout[data-layout-constrained="true"] > :is(.studio-block-preview, .canvas-blocks) > :is(.has-block-align-full, [data-block-align="full"]) {
+  width: calc(100% + var(--studio-content-slot-gutter) * 2);
+  max-width: none;
+}
+
+.template-content-layout > .canvas-blocks > .block-position > .canvas-block {
+  width: 100%;
+  margin-inline: 0;
+}

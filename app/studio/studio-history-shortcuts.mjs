@@ -5,6 +5,7 @@ export function isIndependentHistoryTarget(target) {
   if (!element) return false;
   if (element.closest("[data-studio-table-authoring]") && element.closest(".block-canvas")) return false;
   if (element.closest(independentSurfaces)) return true;
+  if (element.closest(".rich-text-editor") && element.closest("[data-studio-rich-text-history]")) return false;
   const editable = element.isContentEditable || element.matches?.("input, textarea, select") || element.closest('[contenteditable="true"], [contenteditable=""]');
   return Boolean(editable && !element.closest(".block-canvas"));
 }

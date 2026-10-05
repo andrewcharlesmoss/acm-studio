@@ -20,7 +20,7 @@ export function anchoredMenuPosition({ anchor, width, height, viewportWidth, vie
 }
 
 /** Resize/scroll tracking is shared by canvas and Library consumers. */
-export function watchAnchoredMenu(anchor, popup, align, onPosition) {
+export function watchAnchoredMenu(anchor, popup, align, onPosition, anchorRect) {
   let frame = null;
   let stopped = false;
   function schedule() {
@@ -39,7 +39,7 @@ export function watchAnchoredMenu(anchor, popup, align, onPosition) {
     // clamps scrollTop and can move the keyboard-focused last item out of view.
     const bounds = popup.getBoundingClientRect();
     const position = anchoredMenuPosition({
-      anchor: anchor.getBoundingClientRect(), width: bounds.width,
+      anchor: anchorRect?.() ?? anchor.getBoundingClientRect(), width: bounds.width,
       height: Math.max(bounds.height, popup.scrollHeight),
       viewportWidth, viewportHeight, viewportLeft: viewport?.offsetLeft ?? 0,
       viewportTop: viewport?.offsetTop ?? 0, align,

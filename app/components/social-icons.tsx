@@ -1,6 +1,7 @@
 import { AcmIcon } from "@acm/icons/react";
 import { safeTextLink } from "../content/rich-text";
 import { blockAlignmentClass } from "../content/block-alignment";
+import { paragraphBackgroundGradientCss } from "../content/paragraph-styles";
 import type { ContentBlock, SocialIconBlock } from "../content/model";
 import type { CSSProperties } from "react";
 
@@ -24,6 +25,15 @@ export function socialIconsGapStyle(block: SocialIconsBlock): CSSProperties {
     columnGap: block.horizontalGap === undefined ? undefined : `${block.horizontalGap}px`,
     rowGap: block.verticalGap === undefined ? undefined : `${block.verticalGap}px`,
   };
+}
+
+/** Icon colours belong to the navigation; the outer block owns its frame. */
+export function socialIconsColourStyle(block: SocialIconsBlock): CSSProperties {
+  return {
+    "--social-icon-background": block.visualStyle?.backgroundColor,
+    "--social-icon-background-image": block.visualStyle?.backgroundGradient ? paragraphBackgroundGradientCss(block.visualStyle.backgroundGradient) : undefined,
+    "--social-icon-colour": block.visualStyle?.textColor,
+  } as CSSProperties;
 }
 
 export function socialIconLabel(block: SocialIconBlock): string {

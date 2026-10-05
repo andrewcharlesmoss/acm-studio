@@ -12,8 +12,9 @@ const require = createRequire(import.meta.url);
 const cache = new Map();
 function loadModule(url) {
   if (cache.has(url.href)) return cache.get(url.href);
+  const source = readFileSync(url, "utf8");
   const exports = {}; cache.set(url.href, exports);
-  let compiled = ts.transpileModule(readFileSync(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  let compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   if (url.pathname.endsWith("mini-golf-presentation.tsx")) compiled += "\nexports.__renderBlock = renderBlock;";
   if (url.pathname.endsWith("studio-html-editor.ts")) compiled += "\nexports.__parseTable = parseTable; exports.__parseElement = parseElement;";
   vm.runInNewContext(compiled, { exports, Node: { TEXT_NODE: 3, ELEMENT_NODE: 1 }, require: (name) => {
@@ -35,9 +36,63 @@ const presentation = { ...presentationModule.miniGolfPresentation, renderBlock: 
 const { completeMiniGolfPage } = loadModule(new URL("../app/studio/mini-golf-page-blocks.ts", import.meta.url));
 const heading = { id: "heading", type: "heading", level: 2, text: "Our scores" };
 const table = { id: "table", type: "table", hasHeader: true, hasFooter: true, rows: [["Hole", "Ada", "Bo", "Cy", "Total"], ["1", "2", "3", "4", "9"], ["Total", "2", "3", "4", "9"]] };
-const context = { document: { title: "Mini Golf Scorecard" }, mode: "preview", onDocumentFieldChange() {}, onFocusDocumentField() {} };
+const context = { document: { title: "Mini Golf Scorecard", blocks: [] }, mode: "preview", onDocumentFieldChange() {}, onFocusDocumentField() {} };
 const section = { id: "scorecard", type: "section", role: "scorecard", layout: "stack", children: [heading, table] };
 const render = (block, mode = "preview") => renderToStaticMarkup(presentation.renderBlock({ ...context, block, mode }));
+
+test("adapted wrappers preserve the deepest document-owned block selection", () => {
+  const child = { id: "nested-list", type: "list", style: "unordered", items: ["First", "Second"] };
+  const parent = { id: "parent-group", type: "group", children: [child] };
+  const selected = [];
+  const tree = presentation.renderBlock({ ...context, document: { ...context.document, blocks: [parent] }, block: parent, mode: "edit", renderEditableBlock: () => null, onSelectBlock: id => selected.push(id) });
+  let stopped = 0;
+  const event = id => ({ stopPropagation: () => stopped++, target: { closest: () => ({ getAttribute: () => id }) } });
+  tree.props.onFocus(event(child.id));
+  tree.props.onPointerDown(event(child.id));
+  tree.props.onFocus(event("missing-block"));
+  tree.props.onPointerDown({ stopPropagation: () => stopped++, target: {} });
+  assert.deepEqual(selected, [child.id, child.id, parent.id, parent.id]);
+  assert.equal(stopped, 4);
+});
+
+test("canonical score-table Edit fallback forwards the document and managed-media context", () => {
+  const authored = { ...table, caption: "Course notes" };
+  const document = { ...context.document, blocks: [authored] };
+  const mediaUrls = { managed: "blob:http://localhost:3010/course-fixture" };
+  const tree = presentation.renderBlock({ ...context, document, mediaUrls, mode: "edit", block: { ...section, children: [authored] } });
+  const wrapper = tree.props.children[0].props.children;
+  assert.equal(wrapper.props.children.props.document, document);
+  assert.equal(wrapper.props.children.props.rootBlocks, document.blocks);
+  assert.equal(wrapper.props.children.props.mediaUrls, mediaUrls);
+});
+
+test("Mini Golf text editors forward their own selection and links, and respect read-only mode", () => {
+  const selection = { start: 1, end: 3 };
+  for (const block of [heading, { id: "paragraph", type: "paragraph", text: "A note" }]) {
+    const events = [];
+    const mediaUrls = { "image": "blob:fixture" };
+    const tree = presentation.renderBlock({ ...context, block, mode: "edit", writable: true, mediaUrls, onTextSelection: (...args) => events.push(["selection", ...args]), onLinkActivate: (...args) => events.push(["link", ...args]) });
+    assert.equal(tree.props["data-studio-block-id"], block.id);
+    assert.equal(tree.props.mediaUrls, mediaUrls);
+    tree.props.onSelectionChange(selection);
+    tree.props.onSelectionChange(null);
+    tree.props.onLinkActivate(selection);
+    assert.deepEqual(events, [["selection", block.id, selection], ["selection", block.id, null], ["link", block.id, selection]]);
+    const readOnly = presentation.renderBlock({ ...context, block, mode: "edit", writable: false });
+    assert.equal(typeof readOnly.type, "string");
+    assert.equal(readOnly.props.onChange, undefined);
+    assert.equal(readOnly.props.contentEditable, undefined);
+  }
+});
+
+test("authored Mini Golf Button labels retain rich formatting in preview and read-only edit", () => {
+  const block = { id: "rich-action", type: "button", siteRole: "share-action", label: "Share scores", labelRuns: [{ text: "Share", marks: ["bold"] }, { text: " scores", marks: ["italic"] }], url: "", style: "primary" };
+  for (const mode of ["preview", "edit"]) {
+    const html = renderToStaticMarkup(presentation.renderBlock({ ...context, block, mode, writable: false }));
+    assert.match(html, /<strong>Share<\/strong><em> scores<\/em>/);
+    assert.doesNotMatch(html, /contenteditable="true"/);
+  }
+});
 
 test("source scorecard markup follows all authored player columns in both modes", () => {
   for (const mode of ["edit", "preview"]) {
@@ -212,11 +267,34 @@ test("HTML editing preserves paragraph alignment and table dimension contracts",
   const html = blocksToHtml([original]);
   assert.match(html, /data-column-widths="10,20,25,30,15"/);
   assert.match(html, /data-row-heights="120,70,50"/);
-  const fakeTable = (attributes = {}) => ({ dataset: {}, classList: { contains: () => false }, getAttribute: (name) => attributes[name] ?? null, querySelector: (name) => name === "tbody" ? { querySelectorAll: () => original.rows.map((row) => ({ children: row.map((textContent) => ({ textContent })) })) } : null });
+  const fakeTable = (attributes = {}) => ({ dataset: {}, classList: { contains: () => false }, getAttribute: (name) => attributes[name] ?? null, querySelector: (name) => name === "tbody" ? { querySelectorAll: () => original.rows.map((row) => ({ children: row.map((textContent) => ({ textContent, childNodes: [{ nodeType: 3, textContent }] })) })) } : null });
   const parsed = __parseTable(fakeTable(), "table", original);
   assert.deepEqual(Array.from(parsed.block.columnWidths), original.columnWidths);
   assert.deepEqual(Array.from(parsed.block.rowHeights), original.rowHeights);
   assert.match(__parseTable(fakeTable({ "data-column-widths": "0,-1" }), "table", original).error, /positive numbers/);
+});
+
+test("Table cell header tags and scopes survive HTML editing round-trips", () => {
+  const { blocksToHtml, __parseTable } = loadModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url));
+  const attributes = (values = {}) => ({ getAttribute: name => values[name] ?? null });
+  const cell = (tagName, textContent, attrs = {}) => ({ tagName, textContent, ...attributes(attrs), childNodes: [{ nodeType: 3, textContent }] });
+  const row = (...children) => ({ children });
+  const section = (...rows) => ({ querySelectorAll: () => rows });
+  const tableElement = {
+    dataset: {},
+    classList: { contains: () => false },
+    getAttribute: () => null,
+    querySelector: name => ({ thead: section(row(cell("TH", "Column", { scope: "col" }), cell("TD", "Unheaded"), cell("TH", "No scope"))), tbody: section(row(cell("TH", "Row", { scope: "row" }), cell("TD", "Value"), cell("TD", "Other"))), tfoot: null, caption: null })[name] ?? null,
+  };
+  const original = { id: "cell-semantics", type: "table", rows: [["Column", "Unheaded", "No scope"], ["Row", "Value", "Other"]], hasHeader: true };
+  const parsed = __parseTable(tableElement, original.id, original);
+  assert.deepEqual(JSON.parse(JSON.stringify(parsed.block.cellMetadata)), [[{ scope: "col" }, { tag: "td" }, { scope: null }], [{ tag: "th", scope: "row" }, null, null]]);
+  const html = blocksToHtml([parsed.block]);
+  assert.match(html, /<th scope="col">Column<\/th>/);
+  assert.match(html, /<td>Unheaded<\/td>/);
+  assert.match(html, /<th>No scope<\/th>/);
+  assert.match(html, /<th scope="row">Row<\/th>/);
+  assert.match(html, /<td>Value<\/td>/);
 });
 
 test("HTML editing round-trips supported Gutenberg block widths and explicit None", () => {
@@ -246,7 +324,7 @@ test("HTML editing round-trips floated block alignment and migrates legacy wide 
   const textNode = { nodeType: 3, textContent: "Quote" };
   const quoteElement = {
     tagName: "BLOCKQUOTE", dataset: { blockId: "quote" }, className: "alignright", textContent: "Quote",
-    classList: { contains: () => false }, querySelector: () => null, childNodes: [textNode],
+    classList: { contains: () => false }, querySelector: () => null, childNodes: [textNode], children: [], cloneNode() { return { ...this }; },
   };
   const quote = __parseElement(quoteElement, { id: "quote", type: "quote", text: "Quote" }).block;
   assert.equal(quote.blockAlign, "right");
@@ -289,7 +367,7 @@ test("HTML editing reads Quote style and alignment and rejects unsupported style
   const { __parseElement } = loadModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url));
   const { validContentBlocks } = loadModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
   const original = { id: "quote", type: "quote", text: "Original" };
-  const element = { tagName: "BLOCKQUOTE", dataset: { blockId: "quote" }, className: "align-centre is-style-plain", classList: { contains: (name) => name === "is-style-plain" }, textContent: "Quoted", childNodes: [{ nodeType: 3, textContent: "Quoted" }], querySelector: () => null };
+  const element = { tagName: "BLOCKQUOTE", dataset: { blockId: "quote" }, className: "align-centre is-style-plain", classList: { contains: (name) => name === "is-style-plain" }, textContent: "Quoted", childNodes: [{ nodeType: 3, textContent: "Quoted" }], children: [], querySelector: () => null, cloneNode() { return { ...this }; } };
   const parsed = __parseElement(element, original);
   assert.equal(parsed.block.text, "Quoted");
   assert.equal(parsed.block.align, "centre");
@@ -309,7 +387,7 @@ test("HTML editing retains ordered list marker styles and validates persisted va
     hasAttribute: (name) => name === "type",
     querySelectorAll: () => [],
     children: [{
-      tagName: "LI", textContent: "First", children: [], childNodes: [{ nodeType: 3, textContent: "First" }],
+      tagName: "LI", textContent: "First", children: [], childNodes: [{ nodeType: 3, textContent: "First" }], getAttribute: () => null,
       cloneNode: () => ({ tagName: "LI", textContent: "First", children: [], childNodes: [{ nodeType: 3, textContent: "First" }] }),
     }],
   });
@@ -381,6 +459,31 @@ test("Studio runtime shares canonical game calculations and preserves authored d
 });
 
 
+test("runtime Preview instance identities retain legacy action and Field bindings through their source IDs", () => {
+  const { miniGolfPreviewProjection } = loadModule(new URL("../app/studio/mini-golf-preview-projection.ts", import.meta.url));
+  const { golf } = loadModule(new URL("../app/studio/mini-golf-runtime.tsx", import.meta.url));
+  const game = golf.createGame(2, 2, (() => { let id = 0; return () => `player-${++id}`; })());
+  const calls = [];
+  const updates = [];
+  const runtime = { game, model: golf.buildExportModel(game), feedback: {}, run(binding) { calls.push(binding); }, setGame(update) { updates.push(update(game)); } };
+  const source = [{ id: "leaderboard", type: "section", role: "leaderboard", children: [{ id: "card", type: "section", role: "leaderboard-card", children: [{ id: "legacy-reset", type: "button", label: "Reset", url: "", style: "secondary" }, { id: "legacy-holes", type: "field", label: "Holes", control: "select", value: "2" }, { id: "legacy-players", type: "field", label: "Players", control: "select", value: "2" }] }] }];
+  const before = JSON.stringify(source);
+  const projected = miniGolfPreviewProjection(source, runtime);
+  for (const card of projected.blocks[0].children) {
+    const button = card.children[0];
+    const tree = presentation.renderBlock({ ...context, block: button, runtime, sourceBlockIds: projected.sourceBlockIds });
+    tree.props.onClick();
+    for (const field of card.children.slice(1)) {
+      const control = presentation.renderBlock({ ...context, block: field, runtime, sourceBlockIds: projected.sourceBlockIds });
+      control.props.children[1].props.onChange({ target: { value: "3" } });
+    }
+  }
+  assert.equal(calls.join(","), "reset,reset");
+  assert.equal(updates.map(game => `${game.holes}/${game.players.length}`).join(","), "3/2,2/3,3/2,2/3");
+  assert.notEqual(projected.blocks[0].children[1].children[0].id, "legacy-reset");
+  assert.equal(JSON.stringify(source), before);
+});
+
 test("pristine runtime follows authored defaults while played sessions remain separate", () => {
   const { initialRuntimeGame, syncRuntimeDefaults, authoredTableSize, runtimeTableDimensions } = loadModule(new URL("../app/studio/mini-golf-runtime.tsx", import.meta.url));
   const { bindMiniGolfRuntime } = loadModule(new URL("../app/studio/mini-golf-page-blocks.ts", import.meta.url));
@@ -426,7 +529,7 @@ test("versioned page definitions round-trip authored structure and report source
   assert.equal(contract.equalMiniGolfPageDefinitions(baseline, JSON.parse(JSON.stringify(baseline))), true);
   assert.throws(() => contract.blocksToMiniGolfPageDefinition([{ id: "unknown", type: "react-component" }], identity), /Unsupported/);
   assert.throws(() => contract.blocksToMiniGolfPageDefinition([table, table], identity), /duplicate/);
-  assert.throws(() => contract.parseMiniGolfPageDefinition({ ...baseline, version: 2 }), /version/);
+  assert.throws(() => contract.parseMiniGolfPageDefinition({ ...baseline, version: 6 }), /version/);
   assert.throws(() => contract.parseMiniGolfPageDefinition({ ...baseline, defaults: {} }), /disagree/);
   assert.throws(() => contract.parseMiniGolfPageDefinition({ ...baseline, unknown: true }), /Unsupported/);
   assert.throws(() => contract.blocksToMiniGolfPageDefinition([{ ...table, unsupported: () => null }], identity), /non-JSON/);
@@ -459,7 +562,9 @@ test("Edit and Preview connect the canonical runtime while Edit retains table se
   const runtimeSource = readFileSync(new URL("../app/studio/mini-golf-runtime.tsx", import.meta.url), "utf8");
   const connected = presentationSource.slice(presentationSource.indexOf("function ConnectedBlock"));
   assert.match(connected, /renderBlock\(\{ \.\.\.context, runtime \}\)/);
-  assert.doesNotMatch(connected, /context\.mode === "preview"/);
+  assert.match(connected, /runtime && context\.mode === "preview"/);
+  assert.match(connected, /miniGolfPreviewProjection\(context\.document\.blocks, runtime\)/);
+  assert.match(connected, /runtimeProjected: true/);
   assert.match(runtimeSource, /onAdjustScore=\{\(id, hole, delta\) => setGame\(game => golf\.adjustScore\(game, id, hole, delta\)\)\}/);
   let selectedId;
   const tree = presentation.renderBlock({ ...context, mode: "edit", block: section, runtime: {}, selectedBlockId: table.id, onSelectBlock: id => { selectedId = id; } });
@@ -583,4 +688,27 @@ test("Mini Golf table labels and empty totals author through rows without changi
   wrapper.props.children.props.onCellChange(0, 0, "Round");
   assert.deepEqual(cellSelection, ["labels", 1, 3]);
   assert.equal(updated.rows[0][0], "Round");
+});
+
+
+test("canonical multi-section score Table forwards cell and caption formatting targets", () => {
+  const multi = { ...table, headerRowCount: 2, footerRowCount: 2, rows: [table.rows[0], table.rows[0], table.rows[1], table.rows[2], table.rows[2]] };
+  const calls = [];
+  const find = node => {
+    if (!node || typeof node !== "object") return undefined;
+    if (node.props?.block?.id === multi.id && node.props?.onTextSelection) return node;
+    for (const child of [node.props?.children].flat(Infinity)) { const result = find(child); if (result) return result; }
+  };
+  const tree = presentation.renderBlock({ ...context, mode: "edit", writable: false, document: { ...context.document, blocks: [multi] }, block: { ...section, children: [multi] }, onTextSelection: (...args) => calls.push(["selection", ...args]), onLinkActivate: (...args) => calls.push(["link", ...args]), onTableCellFocus: (...args) => calls.push(["cell", ...args]) });
+  const editor = find(tree);
+  assert.ok(editor);
+  assert.equal(editor.props.writable, false);
+  assert.equal(editor.props.rootBlocks[0], multi);
+  const range = { start: 1, end: 4 };
+  editor.props.onTextSelection(range, 1, 2);
+  editor.props.onTextSelection(range);
+  editor.props.onLinkActivate(range, 1, 2);
+  editor.props.onLinkActivate(range);
+  editor.props.onTableCellFocus(1, 2);
+  assert.deepEqual(calls, [["selection", "table", range, 1, 2], ["selection", "table", range, undefined, undefined], ["link", "table", range, 1, 2], ["link", "table", range, undefined, undefined], ["cell", "table", 1, 2]]);
 });

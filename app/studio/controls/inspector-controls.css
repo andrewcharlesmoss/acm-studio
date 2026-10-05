@@ -1,0 +1,27 @@
+/* Own the row layout even inside inspectors that make ordinary field labels grids. */
+.studio-toggle-setting:has(> .studio-toggle-track) { align-items: center; cursor: pointer; display: flex; gap: 8px; min-height: 32px; position: relative; }
+.studio-toggle-setting input[type="checkbox"] { border: 0; height: 32px; left: 0; margin: 0; opacity: 0; padding: 0; position: absolute; top: 0; width: 32px; }
+.studio-toggle-setting > .studio-toggle-track { background: #fff; border: 1px solid #757575; border-radius: 8px; box-sizing: border-box; flex: 0 0 32px; height: 16px; max-width: 32px; min-width: 32px; position: relative; width: 32px; }
+.studio-toggle-track::after { background: #1e1e1e; border-radius: 50%; content: ""; height: 12px; left: 1px; position: absolute; top: 1px; width: 12px; }
+.studio-toggle-setting:has(> .studio-toggle-track) > span:last-child { color: var(--ink); font-size: var(--studio-ui-size, 13px); font-weight: 400; min-width: 0; }
+.studio-toggle-setting input:checked + .studio-toggle-track { background: var(--gutenberg-accent, #3858e9); border-color: var(--gutenberg-accent, #3858e9); }
+.studio-toggle-setting input:checked + .studio-toggle-track::after { background: #fff; left: 17px; }
+.studio-toggle-setting input:focus-visible + .studio-toggle-track { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c); outline-offset: 2px; }
+html[data-studio-focus-visible="false"] .studio-toggle-setting input:focus + .studio-toggle-track { outline: none; }
+html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .studio-toggle-track { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c); outline-offset: 2px; }
+.studio-toggle-setting:has(input:disabled) { cursor: default; opacity: .5; }
+.studio-style-variations { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.studio-style-variations button { background: #fff; border: 1px solid #ddd; border-radius: 2px; color: inherit; display: grid; gap: 8px; min-width: 0; padding: 12px 8px; text-align: center; }
+.studio-style-variations button[aria-pressed="true"] { border-color: var(--gutenberg-accent, #3858e9); box-shadow: inset 0 0 0 1px var(--gutenberg-accent, #3858e9); }
+.studio-style-preview { align-items: center; display: flex; justify-content: center; min-height: 60px; }
+.studio-style-preview blockquote { border-left: 3px solid currentColor; margin: 0; padding: 0 8px; text-align: left; }
+.studio-style-preview blockquote p { margin: 0; }
+.studio-style-preview cite { font-size: var(--studio-ui-size, 13px); }
+.studio-style-preview.is-plain blockquote { border: 0; }
+.studio-style-variations.is-label-only { gap: 8px; }
+.studio-style-variations.is-label-only button { display: block; min-height: 40px; padding: 8px 12px; font: inherit; font-weight: 600; }
+.studio-style-variations.is-label-only button[aria-pressed="true"] { background: #1e1e1e; color: #fff; border-color: #ddd; box-shadow: none; }
+@media (forced-colors: active) {
+  html[data-studio-focus-mode] .studio-toggle-setting input:focus + .studio-toggle-track { outline: 2px solid Highlight; }
+  .studio-style-variations button[aria-pressed="true"] { border: 2px solid Highlight; }
+}

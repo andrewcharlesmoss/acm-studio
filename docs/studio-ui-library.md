@@ -17,10 +17,10 @@ The library has nine sections:
 - **Panels** — the shared card surface and header slots, demonstrated with
   temporary sample data from `@acm/panel`.
 - **Blocks** — block definitions, inspector capabilities, relationships and
-  isolated editing specimens. A grouped index covers all 27 typed block types,
+  isolated editing specimens. A grouped index covers all 28 typed block types,
   plus the template Content slot. Each entry has a detail route at
   `/studio/ui/blocks/{type}`; Paragraph keeps `/studio/ui/blocks/paragraph`.
-- **Controls** — 13 working inspector controls and a shared Slider foundation,
+- **Controls** — 19 working control specimens, including the shared Slider foundation,
   with their supported states, ownership and consumers on the grouped
   `/studio/ui/controls` page.
   Group and control links jump to in-page specimen anchors. Recognised legacy
@@ -88,6 +88,32 @@ sections; consumers supply the labels, routes, permissions and active section.
 The Navigation section demonstrates that shared component directly; Workspace
 shows how it composes with the Ribbon and panes.
 
+The memory-only selection specimen at `/studio/ui/selection` uses the shared
+Studio Canvas. Drag across blocks, including from or into its empty “Type / to
+choose a block” appender, to select real blocks for one undoable deletion. The
+empty appender represents the document end, not a saved block. A populated
+appender retains native text selection and its draft; normal typing, slash
+insertion and the Add Block button keep their existing behaviour.
+
+The docked Block Library uses three icon-and-label tiles per row. Supported
+Gutenberg equivalents follow its category and registration order: Text
+(Paragraph, Heading, List, Quote, Code, Table), Media (Image), Design
+(Button, Columns, Group, Separator, Spacer), Widgets (Social Icons and available
+social children), Theme (Title, Featured Image, Author, Date,
+Reading Time), then Embeds (Embed). ACM-only Section and Field follow the Design
+equivalents; Document Subtitle remains in Other. The Theme labels use Gutenberg's
+current names. Unsupported Gutenberg blocks
+are omitted. Descriptions remain available as tile tooltips and search terms.
+The canonical category list and block catalogue drive editor and specimen menus.
+Upstream references checked on 2 October 2026: [Gutenberg registration order](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/index.jsx),
+[WordPress default categories](https://github.com/WordPress/wordpress-develop/blob/trunk/src/wp-includes/block-editor.php)
+and [Gutenberg three-column block list](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-editor/src/components/block-types-list/index.jsx).
+
+The docked Block Library stays open after selecting a tile by mouse or keyboard.
+It preserves search and the insertion parent, and repeated root insertions advance
+in click order. Close, Escape and the Add Block toggle dismiss it explicitly;
+transient pickers and appender submission retain their existing behaviour.
+
 All catalogue fixtures and demo interactions remain temporary component state.
 Focus Outline is a deliberate user-preference exception: the Library header and
 editor View menu share On, Off and Keyboard Only across every ACM Studio route.
@@ -111,8 +137,17 @@ change the shared style preset. Catalogue demos do not call product APIs or
 read/write product stores.
 
 The shared `blockCapabilityProfiles` registry is the source for the Blocks
-index and detail inventories, and for shared-style inspector ownership,
-defaults, reset fields, conditional settings and dependency links. It does not
+index and runtime shared-style inspector ownership, defaults, reset fields
+and conditional settings. The disclosure-only projection in
+`app/studio/blocks/catalogue-documentation.ts` supplements those profiles with
+current availability, canvas/summary placement, nesting, document context,
+actual direct/composed dependencies and compatibility notes. It must never be
+passed to an inspector, validator, reset action or saved-data migration.
+Disclosures are capability categories, not a promise of visual pane order.
+Gutenberg/ACM labels describe origin, not separate panes. Hidden retained
+attributes and model-only fields are distinguished from available controls.
+The recorded pinned Gutenberg defaults are separate from Studio insertion
+defaults; they do not certify current upstream parity. It does not
 define a second saved format. Block-specific inspectors keep their established
 editing components and data contracts. Each specimen uses production `BlockField`,
 `BlockInspector` and Studio `BlockRenderer` components with temporary,
@@ -124,7 +159,7 @@ The preview uses ordinary linked text, and inspector control inventory,
 relationships and compatibility notes are collapsed disclosures. No specimen
 reads real documents, browser persistence or the product write lock.
 
-The Controls section presents 13 working controls and a standalone Slider
+The Controls section presents working controls and a standalone Slider
 foundation on one grouped page, with in-page jump links and isolated specimen
 state. It retains the original inspector specimens and adds border settings,
 font size and Appearance, background colour/gradient, preset number, image
@@ -135,14 +170,18 @@ Colour-picker ownership includes palette selection, Default/Hover values,
 swatch geometry, popover positioning and dismissal. Text actions such as Clear
 and the gradient angle dial marker use `--gutenberg-accent` for Gutenberg's
 accent blue, including their reference hover and focus states.
-The Slider foundation owns `--studio-range-accent`, the shared accent and focus
-colour for standard `.studio-range-control` inputs. Pointer hover uses
+The Slider foundation owns `--studio-range-accent`, the shared accent for
+standard `.studio-range-control` inputs. Focus outlines follow the Studio
+Focus Outline preference and focus tokens. Pointer hover uses
 `--studio-range-hover-accent`, which defaults to a 12% darker shade of the shared
 accent. While a range is being pressed or dragged, `--studio-range-pressed-accent`
 defaults to a further 12% darker shade of the hover colour. Either state colour
-can be overridden independently. Its Controls specimen previews all three
-effective colours, and Reset example restores the accent plus both derived
-defaults. Its disclosure lists the
+can be overridden independently. Discrete spacing ranges use a separate
+darker pressed fallback. Preview overrides apply to this Controls page only;
+they do not persist or change live editor settings. Its specimen previews all three
+effective colours independently: changing one colour leaves the other two
+unchanged. Reset example restores the theme's default accent plus the hover
+and pressed colours derived from that default accent. Its disclosure lists the
 Controls sections that inherit it and external consumers. Consumers retain
 their native range values, bounds, steps and behaviour. Gradient hue and alpha
 inputs use specialist colour tracks and
@@ -201,6 +240,42 @@ The Buttons panel exposes Base, Secondary and Outline variants. Each variant
 has independently editable normal text colour and hover text colour, and both
 values update the matching live preview button. These edits remain temporary
 Styles sandbox state.
+
+The block HTML editor and document code editor use `StudioButton`: Base for Apply
+and Secondary for Cancel. Its scoped `@acm/styles` preset supplies colours, border, shape and
+hover treatment. Studio retains its system UI typography and focus preference;
+the adapter dims disabled buttons and keeps their variant colours while hovered.
+The Styles sandbox previews this same baseline without changing editor settings.
+
+The link and rich-text editors, block editorial dialogs, template naming and
+media insertion also use `StudioButton` for their Cancel and Apply/Save actions.
+Destructive commands retain their feature-specific treatment.
+
+`overlays/StudioDialog` and `StudioDialogActions` own native modal opening,
+accessible headings, the close button, Escape dismissal, initial field focus,
+focus return and action layout. Block naming, notes and locks, template naming,
+image descriptions and permanent-deletion confirmation consume this shell;
+feature owners retain drafts, validation and write-ownership checks.
+
+Colour and gradient pickers share `PopoverHeading` and `useOverlayDismiss`.
+Dismissal applies to the topmost registered overlay; nested custom-colour and
+control-point editors close before their parent. Their existing inspector
+positioning and colour-editing contracts remain authoritative.
+
+Block options, list actions and Design context menus share `StudioMenuItem`
+and `navigateStudioMenu` for disabled-aware Arrow, Home and End navigation and
+Escape/Tab dismissal. Each owner retains its actions, focus-return target and
+placement, including the distinct inspector positioning contract.
+
+`StudioAnchoredMenu` owns viewport placement, portal rendering, resize/scroll
+tracking and topmost dismissal for More text formatting and Block options.
+Its Controls specimen lives at `/studio/ui/controls#anchored-menu`. Long menus
+scroll on the side with more space; visual viewport offsets and dimensions
+constrain their bounds. Commands and saved text ranges remain with the caller.
+Escape and repeat-trigger dismissal restore the opener; outside dismissal
+retains the clicked target, and Tab continues from the opener's document order.
+Inspector menus keep their separate workspace-facing pane-edge contract.
+
 The font picker offers Inter and the individual fallback families from the
 shared stack: Helvetica Neue, Helvetica, Arial and generic sans-serif. Older
 System Sans and Georgia preset values remain valid for compatibility but are
@@ -247,11 +322,11 @@ overflow stays inside the Workspace frame while the page itself remains usable.
 Include 320px and 390px mobile, 768px tablet, the 1060px Styles transition and
 1440px desktop widths when reviewing catalogue layout. Compare section
 introductions, card edges, toolbar alignment and expanded disclosure states.
-For Blocks, visit all 28 entries and verify editing, selection, Preview, Reset
-Example, Undo and Redo. Check Block/Studio pane availability, conditional
+For Blocks, visit all 29 entries and verify editing, selection, Preview, Reset
+Example, Undo and Redo. Check setting origin and availability in the shared pane, conditional
 controls, retained legacy values, temporary document fields, nested selection,
 local media and the template Content projection. Verify unsupported gaps against
-the compatibility guide. For Controls, visit all 12 in-page specimens, exercise
+the compatibility guide. For Controls, visit all 19 in-page specimens, exercise
 their values, disabled examples, conditional availability and reset actions,
 and check consumer links, group/control jump links and compatible legacy detail
 route redirects. Check palette
@@ -337,3 +412,97 @@ Square, wide, tall and ISO keycap dimensions and transparent outer padding remai
 unchanged. Backspace, Spacebar and Shift use the new proportions documented
 above. Inter sources and licensing belong to ACM Icons; Studio neither embeds
 nor loads the font for key artwork.
+
+The Controls catalogue also owns the shared native Toggle setting and the
+Quote Style variation previews and Table Default/Stripes buttons. The six text-block specimens reuse
+bordered colour rows, Background stacks, segmented spacing, compact Border and
+section options/reset controls. Their background media examples remain memory-only;
+see the dated six-block inventory in `docs/block-inspector-compatibility.md` for
+supported controls, theme conditions and model gaps.
+
+### Block icon parity
+
+The Block Symbols collection includes every canonical library entry, including
+non-insertable Column, Footnotes and Component blocks and the template content
+slot. Tiles, pane summaries, List View and generic transform choices use the
+same shared symbol mapping. Heading level controls retain their H1–H6 labels.
+See [Block icon references](block-icon-reference.md) for the complete ownership
+and Gutenberg reference mapping.
+
+Studio-only insertable blocks — Section, Field, Reading Time and Document Subtitle —
+belong in Other, which is always the last Block Library section. Blocks with
+Gutenberg equivalents retain their standard categories and names, including Title
+and Featured Image. Component also remains Other
+in the full catalogue, without becoming insertable.
+
+The Heading level control at `/studio/ui/controls/heading-level` supplies the
+Heading inspector's H1–H6 summary buttons. Its live and disabled specimens use
+temporary state and Reset Example returns to H2. The header and toolbar consume the six shared `text.heading-one` through
+`text.heading-six` catalogue symbols, each available in Interface Icons with
+three optical scales and export. The selected-level header is contextual; the Block Library's generic Heading icon remains unchanged. Shared
+font-size presets use one rectangular frame without internal dividers.
+
+Table captions use the same temporary visibility controller in the canvas toolbar
+and Table specimen. An empty caption stays hidden until Add caption is used;
+existing caption text remains visible. Adding focuses the centred field below the
+table, outside its border. Remove caption clears text and formatting through the
+owning editor's undoable update. Reset Example also resets empty-caption prompts.
+The caption prompt is not a persisted content attribute.
+
+The Table toolbar uses 40px icon targets, 24px formatting symbols and wider
+paired alignment controls. Its caption visibility button consumes the original
+`text.caption` symbol from `@acm/icons`; the accessible name switches between
+Add caption and Remove caption. Table spacing is scoped to its toolbar, while
+dropdown rows retain their own dimensions.
+
+### Block catalogue availability
+
+Block control inventories distinguish Gutenberg-derived controls, ACM additions,
+theme-unavailable controls and model-only fields without an inspector. Gap controls
+link to Layout spacing; custom content/wide widths link to Paragraph length. Content
+uses a real template-slot inspector and isolated body rather than a Paragraph stand-in.
+Reading Time is an ACM adaptation of Gutenberg Time to Read; estimator differences
+remain explicit in the compatibility guide.
+
+### Block options menu
+
+The canvas hover toolbar provides Copy, Cut, Duplicate, Add before, Add after,
+Add note, Copy styles, Paste styles, Group/Ungroup, Lock, Rename, Hide/Show,
+Edit as HTML and Delete. Create pattern is deliberately excluded. The menu is
+portalled, remains within the viewport, supports arrow-key navigation, and
+closes when its trigger is clicked again, with Escape or an outside pointer
+press.
+
+Add before/after inserts an empty Paragraph. Copy/Cut uses the system clipboard;
+Cut removes blocks only after a successful copy. Studio clipboard pastes create
+new IDs and clear unique HTML anchors. Ordinary text pastes remain native.
+Copy/Paste styles uses temporary editor state, retaining the destination’s
+content, name, note, locks and HTML anchors. Shared visual styles and text
+alignment transfer across compatible block types; type-specific presentation
+settings transfer between blocks of the same type.
+
+Names appear in List View. Notes are single private authoring notes rather than
+threaded comments. Saving a note or selecting a noted block shows its card in
+the bottom-right corner of the canvas, independent of canvas scrolling. The
+card offers Edit note and Back to block; Close or Escape collapses it to Show
+note without deleting the saved note. Other open editor overlays take priority
+for Escape. Read-only editors can view notes but cannot edit them. Cards are
+hidden in Preview and the code editor. Notes do not yet store author identity
+or timestamps, so the card identifies its block rather than inventing an author
+or date. Hide removes content from previews and local publication;
+the editor shows a compact Show control and List View retains the block. Locks
+independently restrict movement and removal while leaving content editable.
+Grouping and HTML edits honour existing locks and supported nesting rules.
+Template HTML editing remains unavailable until dynamic nodes can round-trip
+safely. All mutations use the existing document history and write ownership.
+
+Authoring metadata is stored as optional `editorial` fields in workspace v20 and
+template v0.21.0 records. Local publication v13 snapshots retain visibility but
+strip private notes, names and locks. Readers retain the previous versions.
+
+
+The memory-only selection specimen also demonstrates Language attributes across
+adjacent French/English runs and an empty-language RTL run. Its production menu
+uses the shared anchored popover shell with a live selection rectangle, native
+form Tab navigation, standard buttons and the catalogue Language icon. Drafts,
+formatting and history remain independent of product stores.

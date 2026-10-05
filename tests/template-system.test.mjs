@@ -8,6 +8,10 @@ import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import * as universalStyles from "@acm/styles";
+import { loadProductionModule } from "./production-module.mjs";
+
+const { StudioCanvas: CanonicalStudioCanvas } = await loadProductionModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url));
+const { mergeListItemBoundary } = await loadProductionModule(new URL("../app/studio/list-boundary.ts", import.meta.url));
 
 const require = createRequire(import.meta.url);
 const plain = value => JSON.parse(JSON.stringify(value));
@@ -27,7 +31,7 @@ function environment(overrides = {}) {
     const exports = {}; cache.set(url.href, exports);
     const source = readFileSync(url, "utf8");
     const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-    vm.runInNewContext(compiled, { exports, crypto: webcrypto, window, Blob, FileReader, Event, Date, Error, AggregateError, setTimeout, clearTimeout, queueMicrotask, console, require: name => {
+    vm.runInNewContext(compiled, { exports, structuredClone, crypto: webcrypto, window, Blob, FileReader, Event, Date, Error, AggregateError, setTimeout, clearTimeout, queueMicrotask, console, require: name => {
       if (name in overrides) return overrides[name];
       if (name.endsWith(".css")) return {};
       if (name.endsWith("media-store")) return { listMediaLibrary: async () => ({ assets: [...library.assets], folders: [...library.folders] }), replaceMediaLibrary: async (assets, folders) => { library.assets = [...assets]; library.folders = [...folders]; } };
@@ -50,6 +54,99 @@ function environment(overrides = {}) {
   return { load, storage, records, library, own, fail: (key, count = 1) => { failKey = key; failures = count; } };
 }
 
+test("rich Button labels survive versioned workspace, publication, template and backup boundaries", () => {
+  const env = environment();
+  const editor = env.load("studio/editor-model.ts");
+  const validation = env.load("studio/workspace-validation.ts");
+  const templates = env.load("studio/template-model.ts");
+  const packages = env.load("studio/template-package.ts");
+  const publications = env.load("content/local-publishing.ts");
+  const backup = env.load("studio/backup-store.ts");
+  const button = { id: "rich-contract-button", type: "button", label: "Continue", labelRuns: [{ text: "Continue", marks: ["bold"] }], url: "/continue", style: "primary" };
+  const workspace = plain(editor.initialStudioWorkspace);
+  const post = workspace.documents.find(document => document.kind === "post");
+  post.blocks = [button];
+  assert.equal(workspace.version, 24);
+  assert.deepEqual(plain(validation.validateStudioWorkspace(workspace).documents.find(document => document.id === post.id).blocks), [button]);
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 24);
+  assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 25 }));
+  const article = publications.toLocallyPublishedArticle(post);
+  const publicationStore = { version: 16, posts: [article] };
+  assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publicationStore))[0].blocks), [button]);
+  assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 15 })).length, 1);
+  assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 19 })).length, 0);
+  const set = templates.createTemplateSet();
+  set.parts[0].nodes = [button];
+  assert.deepEqual(plain(templates.templateNodesFromBlocks(templates.templateEditorBlocks([button]))), [button]);
+  const templateStore = { ...templates.emptyTemplateStore(), sets: [set] };
+  assert.equal(templateStore.version, "0.25.0");
+  assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0" }).sets[0].parts[0].nodes), [button]);
+  const pageTemplate = set.templates.find(template => template.kind === "page");
+  pageTemplate.nodes = [{ id: "authored-title", type: "heading", level: 2, text: "Title" }, { id: "authored-subtitle", type: "paragraph", text: "Subtitle" }, { id: "content-slot", type: "element", element: "content" }];
+  assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0", defaultTemplateIds: { page: pageTemplate.id } }).sets[0].templates.find(template => template.id === pageTemplate.id).nodes), pageTemplate.nodes, "the most recent legacy reader must preserve authored default Title/Subtitle copy");
+  assert.deepEqual(plain(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.24.0", set, media: [] }).set.parts[0].nodes), [button]);
+  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.26.0", set, media: [] }));
+  const saved = backup.validateStudioBackup({ format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T00:00:00Z", workspace, publications: JSON.stringify(publicationStore), templates: templateStore, media: { folders: [], assets: [] } });
+  assert.deepEqual(plain(saved.workspace.documents.find(document => document.id === post.id).blocks), [button]);
+});
+
+test("rich Button labels survive Mini Golf contracts without reconstructing removed content", async () => {
+  const env = environment();
+  const portable = env.load("studio/mini-golf-page-contract.ts");
+  const draft = env.load("studio/mini-golf-draft.ts");
+  const button = { id: "custom-button", type: "button", label: "Continue", labelRuns: [{ text: "Continue", marks: ["italic"] }], url: "", style: "primary" };
+  const definition = portable.blocksToMiniGolfPageDefinition([button], { pageId: "page", instanceId: "local", source: { revision: "fixture", fileHashes: {} } });
+  assert.equal(definition.version, 5);
+  for (const version of [1, 2, 3, 4, 5]) assert.deepEqual(plain(portable.miniGolfPageDefinitionToBlocks({ ...definition, version })), [button]);
+  assert.throws(() => portable.parseMiniGolfPageDefinition({ ...definition, version: 6 }));
+  const workspace = plain(draft.initialMiniGolfDraft);
+  workspace.documents[0].blocks = [button];
+  const key = draft.MINI_GOLF_DRAFT_KEY;
+  env.storage.setItem(key, JSON.stringify({ format: "mini-golf-page-draft", version: 11, workspace }));
+  assert.deepEqual(plain(draft.miniGolfDraftRepository.load().documents[0].blocks), [button]);
+  const { release } = await env.own();
+  try {
+    draft.miniGolfDraftRepository.save(workspace);
+    assert.equal(JSON.parse(env.storage.getItem(key)).version, 13);
+    assert.deepEqual(plain(draft.miniGolfDraftRepository.load().documents[0].blocks), [button]);
+  } finally { release(); }
+});
+
+test("Footnote objects survive owned repository saves, publications, templates, Mini Golf and backup validation", async () => {
+  const env = environment();
+  const editor = env.load("studio/editor-model.ts");
+  const references = env.load("content/footnote-runs.ts");
+  const blocks = plain([{ id: "footnote-paragraph", type: "paragraph", text: `Text${references.INLINE_OBJECT_CHARACTER}`, runs: [{ text: "Text" }, references.footnoteReferenceRun("note")] }, { id: "footnote-notes", type: "footnotes", notes: [{ id: "note", text: "Retained note" }] }]);
+  const workspace = plain(editor.initialStudioWorkspace);
+  const document = workspace.documents.find(item => item.kind === "post");
+  document.blocks = blocks;
+  const repository = env.load("studio/workspace-repository.ts").browserWorkspaceRepository;
+  const templates = env.load("studio/template-model.ts");
+  const templateRepository = env.load("studio/template-store.ts");
+  const set = templates.createTemplateSet();
+  set.parts[0].nodes = blocks;
+  const store = { ...templates.emptyTemplateStore(), sets: [set] };
+  const golf = env.load("studio/mini-golf-draft.ts");
+  const golfWorkspace = plain(golf.validateMiniGolfDraft(golf.initialMiniGolfDraft));
+  golfWorkspace.documents[0].blocks = blocks;
+  assert.throws(() => repository.save(workspace), /read.only|ownership|editing/i);
+  const { release } = await env.own();
+  try {
+    repository.save(workspace);
+    assert.deepEqual(plain(repository.load().documents.find(item => item.id === document.id).blocks), blocks);
+    templateRepository.saveTemplates(store, env.storage);
+    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.25.0");
+    assert.deepEqual(plain(templateRepository.loadTemplates(env.storage).sets[0].parts[0].nodes), blocks);
+    golf.miniGolfDraftRepository.save(golfWorkspace);
+    assert.deepEqual(plain(golf.miniGolfDraftRepository.load().documents[0].blocks), blocks);
+    const publications = env.load("content/local-publishing.ts");
+    const publication = { version: 16, posts: [publications.toLocallyPublishedArticle(document)] };
+    assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publication))[0].blocks), blocks);
+    const backup = env.load("studio/backup-store.ts").validateStudioBackup({ format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T00:00:00Z", workspace, publications: JSON.stringify(publication), templates: store, media: { folders: [], assets: [] } });
+    assert.deepEqual(plain(backup.workspace.documents.find(item => item.id === document.id).blocks), blocks);
+  } finally { release(); }
+});
+
 test("neutral templates validate and their editor projection round-trips without lost content", () => {
   const env = environment(); const m = env.load("studio/template-model.ts"); const renderer = env.load("studio/template-renderer.tsx"); const editor = env.load("studio/editor-model.ts");
   const set = m.createTemplateSet(); m.validateTemplateSet(set);
@@ -64,7 +161,13 @@ test("neutral templates validate and their editor projection round-trips without
   for (const item of [...set.templates, ...set.parts]) {
     const actual = m.templateNodesFromBlocks(m.templateEditorBlocks(item.nodes));
     const expected = plain(item.nodes);
-    m.visitTemplateNodes(expected, node => { if (node.type === "element") node.align = "left"; });
+    // The current projection keeps Title/Image inherited alignment unset and
+    // makes the Content slot's default layout inheritance explicit.
+    m.visitTemplateNodes(expected, node => {
+      if (node.type !== "element") return;
+      if (!["document-title", "cover-image"].includes(node.element)) node.align ??= "left";
+      if (node.element === "content") node.inheritLayout ??= true;
+    });
     assert.deepEqual(plain(actual), expected);
   }
   set.parts[0].nodes[0].data = { templateElement: "content" };
@@ -196,13 +299,13 @@ test("v0.12 migrates one exact pre-Content placeholder pair per computed-default
   const binnedSubtitle = binnedPage.nodes.find(node => node.type === "element" && node.element === "subtitle");
   binnedSubtitle.style = { textColor: "#654321" };
   const binned = { id: model.templateId(), deletedAt: "2026-09-29T10:00:00.000Z", kind: "set", set: binnedSet };
-  const customNodes = plain(customTemplate.nodes); const unmarkedNodes = plain(unmarkedTemplate.nodes); const styledPlaceholderNodes = plain(styledPlaceholderTemplate.nodes); const nestedOnlyNodes = plain(nestedOnlyTemplate.nodes); const secondPostPair = plain([secondPostTitle, secondPostSubtitle]); const binnedNodes = plain(binnedSet.templates[0].nodes);
+  const customNodes = plain(customTemplate.nodes); const unmarkedNodes = plain(unmarkedTemplate.nodes); const styledPlaceholderNodes = plain(styledPlaceholderTemplate.nodes); const nestedOnlyNodes = plain(nestedOnlyTemplate.nodes); const binnedNodes = plain(binnedSet.templates[0].nodes);
 
   const migrated = model.validateTemplateStore({ version: "0.11.0", sets: [set], assignments: [], bin: [binned] });
   const migratedSet = migrated.sets[0]; const migratedPage = migratedSet.templates.find(template => template.kind === "page");
   const migratedTitle = migratedPage.nodes.find(node => node.id === title.id);
   const migratedSubtitle = migratedPage.nodes.find(node => node.id === subtitle.id);
-  assert.equal(migrated.version, "0.14.0");
+  assert.equal(migrated.version, model.TEMPLATE_VERSION);
   assert.deepEqual(plain(migratedTitle), { id: title.id, type: "element", element: "document-title", level: 2, align: "centre", visualStyle: title.visualStyle });
   assert.deepEqual(plain(migratedSubtitle), { id: subtitle.id, type: "element", element: "subtitle", align: "right", visualStyle: { ...subtitle.style, ...subtitle.visualStyle } });
   assert.equal(migratedPage.isDefault, true);
@@ -331,7 +434,7 @@ test("template schemas v0.1.0 through v0.6.0 migrate styles without changing the
     assert.equal(migrated.buttons.base.borderWidth, 0);
     assert.deepEqual(plain(migrated.layout), { spacing: 30, contentWidth: 1200, radius: 10, borderWidth: 2 });
     const legacySnapshot = m.validateTemplateSnapshot({ version, set, templateId: set.templates[0].id });
-    assert.equal(legacySnapshot.version, version);
+    assert.equal(legacySnapshot.version, m.TEMPLATE_VERSION);
     assert.equal(legacySnapshot.set.styles.typography.body.size.desktop.value, 1.125);
   }
 });
@@ -395,9 +498,25 @@ test("responsive layout options and Spacer blocks validate and survive template 
   assert.deepEqual(JSON.parse(JSON.stringify(templates.templateNodesFromBlocks(templates.templateEditorBlocks([group]))[0])), group);
 });
 
+test("Group Row and Stack Space between values validate and round-trip through templates", () => {
+  const env = environment(); const validation = env.load("studio/workspace-validation.ts"); const templates = env.load("studio/template-model.ts");
+  const row = { id: "space-between-row", type: "group", layout: "row", horizontalAlign: "space-between", children: [{ id: "row-copy-one", type: "paragraph", text: "One" }, { id: "row-copy-two", type: "paragraph", text: "Two" }] };
+  const stack = { id: "space-between-stack", type: "group", layout: "stack", verticalAlign: "space-between", children: [{ id: "stack-copy-one", type: "paragraph", text: "One" }, { id: "stack-copy-two", type: "paragraph", text: "Two" }] };
+  assert.equal(validation.validContentBlocks([row, stack]), true);
+  assert.equal(validation.validContentBlocks([{ id: "section-space-between", type: "section", layout: "row", horizontalAlign: "space-between", children: [] }]), false);
+  assert.equal(validation.validContentBlocks([{ id: "column-space-between", type: "columns", children: [{ id: "column", type: "column", verticalAlign: "space-between", children: [] }] }]), false);
+  const set = templates.createTemplateSet();
+  set.templates[0].nodes.push(row, stack);
+  templates.validateTemplateSet(set);
+  const projected = templates.templateEditorBlocks([row, stack]);
+  const roundTrip = templates.templateNodesFromBlocks(projected);
+  assert.deepEqual(plain(roundTrip), [row, stack]);
+  assert.equal(templates.validateTemplateStore({ version: "0.15.0", sets: [set], assignments: [] }).version, templates.TEMPLATE_VERSION);
+});
+
 test("sticky Group position survives template storage and block projection", () => {
   const env = environment(); const validation = env.load("studio/workspace-validation.ts"); const templates = env.load("studio/template-model.ts");
-  const group = { id: "sticky-template-group", type: "group", layout: "stack", position: "sticky", children: [{ id: "sticky-template-copy", type: "paragraph", text: "Pinned in the template" }] };
+  const group = { id: "sticky-template-group", type: "group", layout: "stack", position: "sticky", allowedBlocks: ["paragraph", "heading"], children: [{ id: "sticky-template-copy", type: "paragraph", text: "Pinned in the template" }] };
   assert.equal(validation.validContentBlocks([group]), true);
   assert.throws(() => templates.validateTemplateSet({ ...templates.createTemplateSet(), templates: [{ id: "bad-template", name: "Bad", kind: "page", nodes: [{ ...group, position: "fixed" }] }] }), /Invalid template layout/);
   assert.throws(() => templates.validateTemplateSet({ ...templates.createTemplateSet(), templates: [{ id: "bad-section-template", name: "Bad section", kind: "page", nodes: [{ id: "bad-section", type: "section", layout: "stack", position: "sticky", children: [] }] }] }), /Invalid template layout/);
@@ -408,7 +527,7 @@ test("sticky Group position survives template storage and block projection", () 
   assert.equal(blocks[0].position, "sticky");
   assert.deepEqual(plain(templates.templateNodesFromBlocks(blocks)[0]), group);
   const legacyStore = templates.validateTemplateStore({ version: "0.10.0", sets: [set], assignments: [] });
-  assert.equal(legacyStore.version, "0.14.0");
+  assert.equal(legacyStore.version, templates.TEMPLATE_VERSION);
 });
 
 test("dedicated Columns presets follow WordPress order and preserve editable columns", () => {
@@ -518,6 +637,9 @@ function packageFixture(env) {
 test("portable imports remap all design/media IDs and reject missing media, wrong versions and malformed bytes", () => {
   const env = environment(); const p = env.load("studio/template-package.ts"); const input = packageFixture(env);
   const m = env.load("studio/template-model.ts");
+  for (const version of ["0.16.0", "0.15.0", "0.14.0"]) {
+    assert.equal(p.validateTemplatePackage({ ...input, version }).version, m.TEMPLATE_VERSION, `legacy ${version} package imports normalise to the current version`);
+  }
   input.set.templates[0].nodes.push({ id: m.templateId(), type: "group", layout: "stack", visualStyle: { backgroundImageMediaId: "image-source" }, children: [] });
   input.set.templates[0].nodes.push({ id: m.templateId(), type: "quote", text: "A quote", visualStyle: { backgroundImageMediaId: "image-source" } });
   const result = p.prepareTemplateImport(input);
@@ -649,7 +771,7 @@ test("templated canvas previews show top-level and nested dividers like Content 
   const renderCanvas = presentation => renderToStaticMarkup(createElement(StudioCanvas, { ...props, presentation }));
   const compose = (_context, content) => createElement(TemplateDocument, { snapshot, document, content });
   const presentation = { hideDividers: false, renderHeader: () => null, renderDocument: compose };
-  const countDividers = html => (html.match(/<hr class="content-divider"/g) ?? []).length;
+  const countDividers = html => (html.match(/<hr class="content-divider(?:\s|")/g) ?? []).length;
   assert.equal(countDividers(renderCanvas(presentation)), 2);
   // Exercise both canvas preview branches, including template-editor fallbacks.
   assert.equal(countDividers(renderCanvas({ ...presentation, renderBlock: () => null })), 2);
@@ -695,7 +817,8 @@ test("template edit nodes remain keyboard and pointer selectable without visible
   assert.match(html, /class="template-node-selectable"[^>]*role="group"[^>]*aria-label="Template node: Group"[^>]*tabindex="0"/);
   assert.match(html, /aria-label="Template node: Site Identity"/);
   const source = readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
-  assert.match(source, /onPointerDown=\{event => \{ event\.stopPropagation\(\); setSelected\(node\.id\); \}\}/);
+  assert.match(source, /onPointerDown=\{event => \{ event\.stopPropagation\(\); const nestedId = event\.target instanceof Element \? event\.target\.closest<HTMLElement>\("\[data-studio-nested-block-id\]"\)\?\.dataset\.studioNestedBlockId : undefined; selectBlock\(nestedId \?\? node\.id\); \}\}/);
+  assert.match(source, /onFocusCapture=\{event => \{ const nestedId = event\.target instanceof Element \? event\.target\.closest<HTMLElement>\("\[data-studio-nested-block-id\]"\)\?\.dataset\.studioNestedBlockId : undefined; selectBlock\(nestedId \?\? node\.id\); \}\}/);
   assert.match(source, /onKeyDown=\{event => \{/);
 });
 
@@ -771,7 +894,7 @@ test("template and publication image references prevent deletion until removed",
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document, { version: m.TEMPLATE_VERSION, set, templateId: set.templates[1].id });
-  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 7);
+  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 18);
   env.storage.removeItem(m.TEMPLATE_STORAGE_KEY);
   assert.throws(() => store.assertTemplateMediaCanBeDeleted("image-source"), /published template snapshot/);
   publications.unpublishDocumentLocally(document.id);
@@ -811,6 +934,136 @@ function hooks() {
   };
   return { react, render: callback => { cursor = 0; return callback(); }, flush: async () => { pending.splice(0).forEach(effect => effect()); await new Promise(resolve => setImmediate(resolve)); } };
 }
+
+function templateInsertionFixture({ writable = true, accept = true, blocks = [] } = {}) {
+  const h = hooks();
+  const env = environment({ react: { ...require("react"), ...h.react, useLayoutEffect() {} }, "highlight.js": { default: require("highlight.js") } });
+  const model = env.load("studio/template-model.ts");
+  const { TemplateEditor } = env.load("studio/template-editor.tsx");
+  let set = model.createTemplateSet();
+  const targetId = set.templates[0].id;
+  set = { ...set, templates: set.templates.map(item => item.id === targetId ? { ...item, nodes: model.templateNodesFromBlocks(blocks) } : item) };
+  const documents = env.load("studio/editor-model.ts").initialStudioWorkspace.documents;
+  let changes = 0;
+  const render = () => h.render(() => TemplateEditor({ set, target: set.templates.find(item => item.id === targetId), documents, mediaUrls: {}, writable,
+    onChange(next) { if (!accept) return false; set = next; changes++; return true; }, onEditPart() {}, onOpenMedia() {}, undo() {}, redo() {}, canUndo: false, canRedo: false }));
+  return { canvas: render().props.canvas, render, documents, get blocks() { return model.templateEditorBlocks(set.templates.find(item => item.id === targetId).nodes); }, get changes() { return changes; } };
+}
+
+for (const block of [
+  { id: "text", type: "paragraph", text: "Template text" },
+  { id: "list", type: "list", style: "unordered", items: ["First", "Second"] },
+  { id: "table", type: "table", rows: [["First", "Second"]], caption: "Caption" },
+  { id: "quote", type: "quote", text: "Quote", attribution: "Citation" },
+]) test(`Template canonical delegate retains ${block.type} ownership and sample context`, () => {
+  const fixture = templateInsertionFixture({ blocks: [block] });
+  const sampleBefore = JSON.stringify(fixture.documents);
+  const calls = [];
+  const context = { mode: "edit", block: fixture.blocks[0], renderEditableBlock(value, options) { calls.push({ value, options }); return createElement("span", {}, "Canonical field"); } };
+  const rendered = fixture.canvas.presentation.renderBlock(context);
+  assert.equal(rendered.props.children, "Canonical field");
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].value.id, block.id);
+  assert.equal(calls[0].options.templatePlaceholder, true);
+  assert.equal(calls[0].options.document.id, fixture.canvas.activeDocument.id);
+  assert.deepEqual(plain(calls[0].options.document.blocks), plain(fixture.documents.find(document => document.id === fixture.canvas.activeDocument.id).blocks));
+  assert.equal(JSON.stringify(fixture.documents), sampleBefore);
+  fixture.canvas.onUpdateBlock(block.id, current => ({ ...current, editorial: { name: "Template change" } }));
+  assert.equal(fixture.blocks[0].editorial.name, "Template change");
+  assert.equal(fixture.changes, 1);
+  assert.equal(JSON.stringify(fixture.documents), sampleBefore);
+});
+
+test("Template canonical delegate retains horizontal Row orientation and nested IDs", () => {
+  const fixture = templateInsertionFixture({ blocks: [{ id: "row", type: "group", layout: "row", children: [{ id: "spacer", type: "spacer", height: 32, width: 48 }, { id: "nested", type: "paragraph", text: "Nested" }] }] });
+  const calls = [];
+  const context = { mode: "edit", block: fixture.blocks[0], renderEditableBlock(value, options) { calls.push({ value, options }); return createElement("span", {}, value.id); } };
+  const rendered = fixture.canvas.presentation.renderBlock(context);
+  renderToStaticMarkup(rendered);
+  assert.deepEqual(calls.map(call => call.value.id), ["spacer", "nested"]);
+  assert.ok(calls.every(call => call.options.spacerOrientation === "horizontal" && call.options.templatePlaceholder === true));
+});
+
+test("Template canonical List fields retain authored roots and reject stale boundary merges", () => {
+  const list = { id: "authored-list", type: "list", style: "unordered", items: ["First", "Second"] };
+  const fixture = templateInsertionFixture({ blocks: [list] });
+  const sampleBefore = JSON.stringify(fixture.documents);
+  const fields = [];
+  const presentation = fixture.canvas.presentation;
+  renderToStaticMarkup(createElement(CanonicalStudioCanvas, {
+    ...fixture.canvas,
+    presentation: { ...presentation, renderBlock(context) {
+      return presentation.renderBlock({ ...context, renderEditableBlock(block, options) {
+        const field = context.renderEditableBlock(block, options);
+        fields.push(field);
+        return field;
+      } });
+    } },
+  }));
+  assert.equal(fields.length, 1);
+  const field = fields[0];
+  assert.deepEqual(plain(field.props.rootBlocks), [list]);
+  assert.notEqual(field.props.document.blocks, field.props.rootBlocks, "sample content must not become the editing root");
+  const merged = mergeListItemBoundary(field.props.block, list.id, 1, "backward", field.props.rootBlocks);
+  assert.ok(merged);
+  fixture.canvas.onUpdateBlock(list.id, current => ({ ...current, items: ["Newer first", "Second"] }));
+  field.props.onChange(merged.block, true);
+  assert.deepEqual(plain(fixture.blocks[0].items), ["Newer first", "Second"]);
+  fixture.canvas.onUpdateBlock(list.id, () => list);
+  field.props.onChange(merged.block, true);
+  assert.deepEqual(plain(fixture.blocks[0].items), ["FirstSecond"]);
+  assert.equal(JSON.stringify(fixture.documents), sampleBefore, "template edits must preserve sample documents");
+});
+
+for (const mode of ["edit", "preview"]) test(`Template ${mode} static fields do not activate editing when unavailable`, () => {
+  const fixture = templateInsertionFixture({ writable: false, blocks: [{ id: "title", type: "document-title", level: 2 }] });
+  const result = fixture.canvas.presentation.renderBlock({ mode, block: fixture.blocks[0], renderEditableBlock() { assert.fail("Static field must not use editing contract"); } });
+  const html = renderToStaticMarkup(result);
+  assert.doesNotMatch(html, /contenteditable="true"/);
+  if (mode === "preview") assert.match(html, />Title</);
+});
+
+test("template insertion callbacks preserve sequential edits before a render", () => {
+  const fixture = templateInsertionFixture();
+  const first = fixture.canvas.onInsertBlock("buttons");
+  const second = fixture.canvas.onInsertBlock("buttons");
+  assert.ok(first); assert.ok(second);
+  assert.deepEqual(plain(fixture.blocks.map(block => block.id)), [first.id, second.id]);
+  assert.equal(first.children[0].label, ""); assert.equal(second.children[0].url, "");
+  assert.equal(fixture.changes, 2);
+});
+
+test("template stale nested insertion refuses a deleted Buttons parent", () => {
+  const fixture = templateInsertionFixture({ blocks: [{ id: "buttons", type: "buttons", children: [{ id: "button", type: "button", label: "Keep", url: "/keep", style: "primary" }] }] });
+  fixture.canvas.onRemoveBlock("buttons");
+  assert.equal(fixture.blocks.length, 0); assert.equal(fixture.changes, 1);
+  assert.equal(fixture.canvas.onInsertBlock("button", "buttons"), null);
+  assert.equal(fixture.blocks.length, 0); assert.equal(fixture.changes, 1);
+});
+
+test("template implicit selected Column insertion uses the current allowed-block policy", () => {
+  const fixture = templateInsertionFixture({ blocks: [{ id: "columns", type: "columns", children: [{ id: "column", type: "column", children: [], allowedBlocks: ["paragraph", "buttons"] }] }] });
+  fixture.canvas.onSelectBlock("column");
+  const captured = fixture.render().props.canvas;
+  captured.onUpdateBlock("column", block => ({ ...block, allowedBlocks: ["paragraph"] }));
+  assert.equal(fixture.changes, 1);
+  assert.equal(captured.onInsertBlock("buttons"), null);
+  assert.equal(fixture.changes, 1); assert.equal(fixture.blocks[0].children[0].children.length, 0);
+  const paragraph = captured.onInsertBlock("paragraph");
+  assert.ok(paragraph);
+  assert.equal(fixture.blocks[0].children[0].children[0].id, paragraph.id);
+});
+
+test("template rejected and read-only insertions return no phantom blocks", () => {
+  for (const settings of [{ accept: false }, { writable: false }]) {
+    for (const type of ["buttons", "button", "paragraph", "social-linkedin", "social-tiktok"]) {
+      const fixture = templateInsertionFixture(settings);
+      assert.equal(fixture.canvas.onInsertBlock(type), null, type);
+      assert.equal(fixture.canvas.onInsertBlockAt(type, 0), null, type);
+      assert.equal(fixture.blocks.length, 0); assert.equal(fixture.changes, 0);
+    }
+  }
+});
 
 test("template hook reports Saving then Saved, supports undo/redo, and never hides quota errors", async () => {
   const h = hooks(); const env = environment({ react: h.react }); const m = env.load("studio/template-model.ts");
@@ -1019,14 +1272,14 @@ test("custom background gradients survive template packages and publication snap
   const gradient = { type: "linear", angle: 45, stops: [{ colour: "#FF0000", position: 0 }, { colour: "#0000FF", position: 100 }] };
   set.templates[0].nodes.push({ id: "custom-gradient", type: "paragraph", text: "Gradient", style: { backgroundGradient: gradient } });
   const packageValue = packages.validateTemplatePackage(JSON.parse(JSON.stringify({ format: "acm-studio-template-set", version: m.TEMPLATE_VERSION, set, media: fixture.media })));
-  assert.equal(packageValue.version, "0.14.0");
+  assert.equal(packageValue.version, m.TEMPLATE_VERSION);
   assert.deepEqual(plain(packageValue.set.templates[0].nodes.at(-1).style.backgroundGradient), gradient);
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   document.blocks.push({ id: "publication-gradient", type: "paragraph", text: "Gradient", style: { backgroundGradient: gradient } });
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document);
   const snapshot = JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY));
-  assert.equal(snapshot.version, 7);
+  assert.equal(snapshot.version, 18);
   assert.doesNotThrow(() => validation.validatePublicationSnapshot(snapshot));
   assert.deepEqual(snapshot.posts[0].blocks.at(-1).style.backgroundGradient, gradient);
   release();

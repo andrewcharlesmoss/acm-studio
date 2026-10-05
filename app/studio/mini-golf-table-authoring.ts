@@ -1,6 +1,14 @@
+import { tableRowSections } from "../content/table-row-sections";
 import type { ContentBlock } from "../content/model";
 
 type Table = Extract<ContentBlock, { type: "table" }>;
+/** Rich cells and captions require the canonical Table, as do other shapes. */
+export function supportsMiniGolfRuntimeTable(table: Table) {
+  if (table.caption || table.cellRuns?.some(row => row.some(runs => runs.some(run => run.inline || run.marks?.length)))) return false;
+  const { headerRowCount, footerRowCount, bodyStart, bodyEnd } = tableRowSections(table);
+  return headerRowCount === 1 && footerRowCount === 1 && bodyEnd > bodyStart && (table.rows[0]?.length ?? 0) >= 3;
+}
+
 export type TableAuthoringCell = { selector: string; rowIndex: number; columnIndex: number; value: string; label: string; editable: boolean };
 type Totals = { holeTotals: number[]; playerTotals: number[]; grandTotal: number };
 

@@ -2584,3 +2584,187 @@ No whole-block parity or goal completion is claimed.
 - The two motion/navigation test-hardening changes separately pass 5/5 in
   `/private/tmp/acm-parity-motion-hardening-focused.log` and were independently
   accepted. No full-suite rerun was added for this browser check.
+
+## Selected-block menu actions — 5 October 2026
+
+- Fixed Duplicate, Add before/after and Paste styles using the normalised block
+  selection. Duplicate inserts the complete batch after its last selected
+  sibling, selects the copies and remaps shared note identities once. Add
+  before/after uses the outer selection edges. Paste styles applies all
+  destinations through one validated document/history proposal, preserving
+  content and unique anchors. Missing/stale targets, lost ownership, changed
+  documents, invalid structures and protected locks refuse the proposal.
+- The visible selected-block toolbar now exposes the existing shared Block
+  Options menu. Copy, Cut, Duplicate, Add before/after, Copy/Paste styles and
+  Delete are available there; individual-block actions keep their existing
+  toolbar. Duplicate and insertion require the same actual sibling container,
+  including List Item child ownership. Cross-container ranges display a refusal
+  reason. Group was initially excluded from this range menu; the subsequent
+  mixed-selection Group repair below supersedes that exclusion.
+- Real Main-editor actions on the named test copy duplicated the selected Table
+  and Heading together, selected both copies, and reversed/restored both with
+  one Undo/Redo step. Forward Add before inserted before the Table; reverse Add
+  after inserted after the Heading. Copying Heading Large styles and pasting
+  into two separately selected paragraphs changed both from 16px to 20px;
+  Undo restored both to 16px and Redo restored both to 20px. The paragraph
+  content was retained. Temporary insertions, duplicates and paragraph styles
+  were undone. Heading Large remains in the test copy only.
+- Toolbar/menu pointer capture preserves the range. Escape closes the range
+  menu and returns focus to its visible trigger without clearing the range;
+  clicking that trigger again also closes it. Portalled menu anchoring was
+  checked against the visible trigger. Screenshot:
+  `/private/tmp/acm-block-menu-selection-browser.png`.
+- Related regressions pass 120/120; the final focused file adds Escape and
+  trigger-binding coverage and passes 12/12. Production build passes. New
+  helper/test lint is checked separately; the Canvas preimage and current
+  versions retain the same seven existing errors and two warnings. These are
+  bounded results, not whole-repository lint or full parity acceptance.
+- Explorer used pinned Gutenberg `store/actions.js` and `block-actions/index.jsx`;
+  the sole Builder implemented the change and a separate read-only Verifier
+  reviewed it, including the follow-up anchor and Escape fixes. Native actions
+  are Builder replay evidence. Nested owners, note cloning, invalid insertion
+  and stale writer/document refusal have focused production-function coverage;
+  their complete native context matrix remains unverified. The existing broad
+  implementation cohort remains uncommitted pending a coherent source review.
+
+
+## Mixed-selection Group action — 5 October 2026
+
+- Compared the pinned Gutenberg v24.1.0-rc.1 implementation at commit
+  `e3ac73cd69d472341b66c43cb77be36e838f868e`, including the convert-to-group
+  control and `group-blocks.js`. A mixed selection wraps its complete canonical
+  sibling selection in a new Group and retains any existing Group intact.
+  Studio previously could ungroup only its representative Group.
+- The shared range Block Options menu now offers Group. Ungroup remains the
+  single-Group action. Invalid sibling ownership, restricted containers,
+  removal/movement locks and template placeholders refuse the action. The
+  operation uses one validated document/history proposal and selects the new
+  wrapper. Focus returns to that wrapper, including nested wrappers given a
+  programmatic-only tabindex, rather than the removed menu trigger or a child.
+- Native Main-editor replay in the named test copy grouped Paragraph/Table,
+  then grouped that existing Group with the Heading. The new outer Group
+  retained the inner Group and all original child IDs; Undo restored the inner
+  Group plus Heading and Redo restored the exact outer wrapper ID. Nested
+  Paragraph/Table grouping retained the caption and selected/focused its new
+  nested wrapper; Undo/Redo removed/restored that exact wrapper. Temporary
+  grouping was undone, and the original first post was restored as active.
+  Screenshot: `/private/tmp/acm-group-menu-browser.png`.
+- Final focused pointer/menu regressions pass 28/28; final related selection
+  checks pass 62/62. The final production build completes. New helper/test
+  lint passes; existing whole-Canvas lint limitations remain unchanged.
+  Evidence: `/private/tmp/acm-group-menu-final-focused.log`,
+  `/private/tmp/acm-group-menu-final-related.log` and
+  `/private/tmp/acm-group-menu-final-build.log`.
+- Explorer comparison, sole-Builder implementation and independent read-only
+  source/screenshot review are complete. Native focus/history evidence is the
+  Builder's replay. Full Template/Mini Golf, persistence/export, responsive and
+  keyboard context acceptance remains open. The shared source cohort remains
+  part of the wider integrated editor changes; this is bounded Group acceptance.
+
+
+## Focus Outline source commit — 5 October 2026
+
+- Recorded the independently reviewed 16-file Focus Outline source cohort as
+  local commit `a618c7f023f52c5eb462b0c5b07c5df644b1f1a8`. It includes the shared
+  route provider/context, policy, ownership-guarded preference repository,
+  editor/Library settings, focused tests and only matching documentation/CSS.
+  Unrelated integrated editor changes and duplicate files remain unstaged.
+- Removed the policy test's dependency on uncommitted selection CSS; its
+  selection-specific assertions remain with the selection test cohort.
+  Exported exact index files into a temporary focused test fixture, with
+  unchanged ownership source and existing dependencies: 13/13 checks pass.
+  Immutable commit exports match that candidate and independently rerun 13/13.
+  Evidence: `/private/tmp/acm-focus-outline-index-fixture.log` and
+  `/private/tmp/acm-focus-outline-immutable-commit.log`. Scoped lint and cached
+  diff checks pass; a separate read-only Verifier accepts the source boundary.
+- Existing accepted native Focus evidence is retained above. The current dirty
+  editor production build passes, but no isolated fresh-checkout application
+  build is claimed for this commit. No push, promotion or deployment occurred.
+  The broader integrated editor source cohort and remaining parity matrix stay
+  open; the goal remains active.
+
+## Highlight and unchanged source Apply — 5 October 2026
+
+- Independent source review found stale Highlight owner/document/run captures and
+  a valid unchanged HTML/Code draft that stayed open. Highlight now shares the
+  existing rich-field freshness guard, including block and run snapshots. Own
+  accepted changes refresh that capture; pending-only caret colours retain the
+  authored block snapshot. Content-changing caret edits reseed their pending
+  marks after the child editor updates its runs. Closing or changing owner
+  cancels that guarded hand-off.
+- Untouched HTML and Code drafts retain their original typed records instead of
+  parsing in default properties. Apply closes successfully without a content
+  transaction; changed drafts still use parser, structure, locks, notes and
+  freshness validation. Lost ownership or a changed source keeps the form open.
+- Native Main replay in the named local test copy confirms successive Text and
+  Background colours at an existing-format caret, two Undo operations restoring
+  the original mark, pending-only colours on a plain Paragraph, and both colours
+  on newly typed text. That text insertion was undone. Selecting another block
+  dismisses Highlight. Untouched HTML then Code Apply both close while retaining
+  the existing Redo branch. The original first post was restored as active.
+  Screenshot: `/private/tmp/acm-highlight-final-browser.png`.
+- An open HTML form captures its document, block snapshot and initial draft.
+  Apply refuses a changed same-ID block even after both document refs rerender.
+  Native Main replay typed a temporary character, opened HTML, then used Undo
+  while the form stayed open: Apply showed conflict feedback and retained the
+  newer text. Cancel closed the form; the original first post was restored.
+- A shared minimal HTML DOM fixture now serves existing block-preview and new
+  production-function Apply regressions. It is bounded parser evidence; native
+  browser replay establishes the history and focus boundary. Focused affected
+  tests pass 152/152, scoped test lint and `git diff --check` pass, and final
+  production build/typecheck complete. Logs: `/private/tmp/acm-review-handback-
+  focused.log`, `/private/tmp/acm-review-handback-build.log` and
+  `/private/tmp/acm-review-handback-typecheck.log`.
+- The broad suite immediately before these hand-backs passed 1,553/1,556. Its
+  three failures retain deferred Design neutral/guide colour and Block Library
+  icon-colour expectations; no assertion was waived. That run does not cover the
+  final hand-backs; the affected 152-test run and final build/typecheck do.
+- Independent contract review found an inherited Template defect: Group tag,
+  accessible label and outer alignment are discarded by the projection; Columns
+  outer alignment is rejected. Those exposed controls require a cohesive model,
+  validation, projection and Edit/Preview repair. It remains the next functional
+  change. Wider matrix, owner persistence/export and responsive acceptance remain
+  open; this is not whole-editor parity certification.
+
+## Shared icon dependency source commit — 5 October 2026
+
+- The additionally authorised `acm-icons` project now records the reviewed
+  catalogue cohort in local commit `dda5977a978bd0766af64a2daa4e5a74054865dd`,
+  private development v0.21.1. The 175-file commit contains 36 new symbols, the
+  three requested horizontal-alignment fill refinements, their masters and
+  generated optical assets, converter/provenance, metadata and focused coverage.
+  All 276 existing addition timestamps remain unchanged; the 36 new entries
+  match the introducing commit's author and committer instant.
+- Build, deterministic distribution check, 28/28 tests and diff checks pass. A
+  restored temporary fonttools v4.60.1 environment also verifies all six licensed
+  Inter heading masters against their generator. Logs:
+  `/private/tmp/acm-icons-final-tests.log` and
+  `/private/tmp/acm-heading-generator-check.log`. Independent read-only review
+  accepts the bounded source cohort. Earlier accepted rendered optical-scale
+  evidence is retained: this hand-back changes counts, dates and new keywords,
+  not geometry. No package publication or remote operation occurred.
+
+## Integrated editor source checkpoint — 5 October 2026
+
+The integrated local source checkpoint captures the task-owned editor cohort,
+its typed contracts, owning adapters, shared controls/menus, Library specimens,
+regressions and compatibility/inventory evidence. It depends on the committed
+ACM Icons revision recorded above. Five unrelated duplicate `* 2.*` files and
+`tsconfig.tsbuildinfo` are excluded and preserved.
+
+Independent read-only reviews accept the sampled command/selection/overlay and
+content/persistence/rendering contracts. The final Highlight/HTML hand-backs
+pass 152 affected checks, build/typecheck, scoped test lint and diff checks. The
+latest broad suite retains three deliberately deferred visual failures; whole
+Canvas lint retains six errors and two warnings (unused helper, pre-existing
+effect/state patterns, programmatic wrapper tabindex and image rules). The
+latest narrow menu/formatting replay passes 45/45 after the final hook dependency
+cleanup; logs are `/private/tmp/acm-integrated-final-format-menu.log` and
+`/private/tmp/acm-integrated-canvas-lint.log`. These limits are retained,
+not waived or presented as green whole-project checks.
+
+This checkpoint is incomplete against the whole goal: the inherited Template
+Group semantic/alignment and Columns alignment defect remains a functional
+repair, and the explicit unverified matrix/native/persistence/export/responsive
+rows still require acceptance. No whole-editor certification, push or deployment
+is implied by this local source commit.

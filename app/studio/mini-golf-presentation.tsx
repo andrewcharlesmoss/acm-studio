@@ -1,4 +1,7 @@
 "use client";
+import { visibleFootnoteNumbers } from "../content/footnote-blocks";
+import { findContentBlock } from "../content/block-tree";
+import { bindMiniGolfPlayer, miniGolfPreviewProjection } from "./mini-golf-preview-projection";
 
 import { Fragment, createElement, type ReactNode } from "react";
 import type { ContentBlock } from "../content/model";
@@ -6,40 +9,60 @@ import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { paragraphStyleToCss } from "../content/paragraph-styles";
 import { BlockRenderer, renderText } from "../components/content";
 import { BlockField, RichTextEditor, type RichTextEditorProps } from "./studio-canvas";
-import { updateMiniGolfAuthoredCell } from "./mini-golf-table-authoring";
+import { supportsMiniGolfRuntimeTable, updateMiniGolfAuthoredCell } from "./mini-golf-table-authoring";
 import { useMiniGolfRuntime, RuntimeScoreTable, golf, type MiniGolfRuntime } from "./mini-golf-runtime";
 import type { StudioPresentation, StudioPresentationContext } from "./studio-presentation";
 
 /** Shared source revision for the Mini Golf presentation adapter. */
 export const MINI_GOLF_SOURCE_REVISION = "0d2df8bd31f277df31522aa47ca6bf785888c460";
 // The score panel keeps the source identity used by existing draft migrations: mini-golf-scorecard-panel.
-type Context = StudioPresentationContext & { runtime?: MiniGolfRuntime | null; runtimeLeader?: boolean };
+type Context = StudioPresentationContext & { runtime?: MiniGolfRuntime | null; runtimeLeader?: boolean; runtimeProjected?: boolean; leaderCardIds?: Set<string>; sourceBlockIds?: Map<string, string> };
 type Section = Extract<ContentBlock, { type: "section" }>;
 type Table = Extract<ContentBlock, { type: "table" }>;
 
 function selected(context: Context, block: ContentBlock, props: Record<string, unknown> = {}) {
   if (context.mode !== "edit") return props;
-  return { ...props, "data-studio-nested-block-id": block.id, "data-studio-selected": context.selectedBlockId === block.id, "data-studio-hovered": context.hoveredBlockId === block.id, onPointerDown: (event: React.PointerEvent) => { event.stopPropagation(); context.onSelectBlock?.(block.id); }, onFocus: (event: React.FocusEvent) => { event.stopPropagation(); context.onSelectBlock?.(block.id); } };
+  const select = (event: React.PointerEvent | React.FocusEvent) => {
+    event.stopPropagation();
+    const nestedId = (event.target as HTMLElement | null)?.closest?.("[data-studio-nested-block-id]")?.getAttribute("data-studio-nested-block-id");
+    context.onSelectBlock?.(nestedId && findContentBlock(context.document.blocks, nestedId) ? nestedId : block.id);
+  };
+  return { ...props, "data-studio-nested-block-id": block.id, "data-studio-selected": context.selectedBlockId === block.id, "data-studio-hovered": context.hoveredBlockId === block.id, onPointerDown: select, onFocus: select };
+}
+
+function adaptedEditableBlock(context: Context, block: ContentBlock): ReactNode {
+  const nested = !context.document.blocks.some(root => root.id === block.id);
+  return <div {...selected(context, block, { className: nested ? "studio-nested-block" : undefined })}>
+    {nested ? context.renderBlockControls?.(block) : null}
+    {context.renderEditableBlock?.(block)}
+  </div>;
 }
 
 // Nested selections are attached to the source element itself: data-studio-nested-block-id={child.id}.
 
 function editableText(context: Context, block: Extract<ContentBlock, { type: "heading" | "paragraph" }>, tag: string, className?: string, content?: ReactNode): ReactNode {
   const style = { ...(block.type === "paragraph" ? paragraphStyleToCss(block.style) : {}), ...(block.align ? { textAlign: block.align === "centre" ? "center" as const : block.align } : {}) };
-  const props = selected(context, block, { className, style, role: block.siteRole === "status" ? "status" : undefined, "data-block-id": block.id });
-  if (context.mode === "edit") return <RichTextEditor {...props} as={tag as RichTextEditorProps["as"]} text={block.text} runs={block.runs} onSelectionChange={() => {}} onLinkActivate={() => undefined} onSplitParagraphs={block.type === "paragraph" && context.onSplitParagraphs ? paragraphs => context.onSplitParagraphs?.(block.id, paragraphs) ?? null : undefined} onChange={(text, runs) => context.onUpdateBlock?.(block.id, (current) => current.type === block.type ? { ...current, text, runs } : current)} />;
-  return createElement(tag, props, content ?? renderText(block.text, block.runs));
+  const props = selected(context, block, { className, style, role: block.siteRole === "status" ? "status" : undefined, "data-block-id": block.id, "data-studio-block-id": block.id });
+  if (context.mode === "edit" && context.writable !== false) return <RichTextEditor {...props} as={tag as RichTextEditorProps["as"]} text={block.text} runs={block.runs} mediaUrls={context.mediaUrls} onSelectionChange={selection => context.onTextSelection?.(block.id, selection)} onLinkActivate={selection => context.onLinkActivate?.(block.id, selection)} onSplitParagraphs={block.type === "paragraph" && context.onSplitParagraphs ? paragraphs => context.onSplitParagraphs?.(block.id, paragraphs) ?? null : undefined} onChange={(text, runs) => context.onUpdateBlock?.(block.id, (current) => current.type === block.type ? { ...current, text, runs } : current)} />;
+  return createElement(tag, props, content ?? renderText(block.text, block.runs, context.mediaUrls, visibleFootnoteNumbers(context.document.blocks), { blockId: block.id, kind: "text" }));
+}
+
+function buttonLabel(context: Context, block: Extract<ContentBlock, { type: "button" }>) {
+  if (context.mode !== "edit" || context.writable === false) return renderText(block.label, block.labelRuns, context.mediaUrls, visibleFootnoteNumbers(context.document.blocks), { blockId: block.id, kind: "label" });
+  return <RichTextEditor as="span" text={block.label} runs={block.labelRuns} mediaUrls={context.mediaUrls} withoutInteractiveFormatting data-studio-block-id={block.id} data-placeholder="Add text…" aria-label="Button text" onSelectionChange={selection => context.onTextSelection?.(block.id, selection)} onLinkActivate={() => undefined} onChange={(label, labelRuns) => context.onUpdateBlock?.(block.id, current => current.type === "button" ? { ...current, label, labelRuns: labelRuns.length ? labelRuns : undefined } : current)} />;
 }
 
 function action(context: Context, block: Extract<ContentBlock, { type: "button" }>, className: string) {
   const roleActions: Record<string, string> = { "reset-scores": "reset", "export-excel": "excel", "export-image": "image", "export-html": "html" };
-  const binding = roleActions[block.siteRole ?? ""] ?? (block.siteRole === "new-game" || block.siteRole === "auto-resize" ? block.siteRole : ["reset", "excel", "image", "html"].find(value => block.id.endsWith(`-${value}`)));
-  if (context.runtime && binding) return <button {...selected(context, block, { className, type: "button" })} onClick={() => void context.runtime?.run(binding)}>{context.runtime.feedback[binding] || block.label}</button>;
-  return <button key={block.id} {...selected(context, block, { className, type: "button", "aria-disabled": true, "data-block-id": block.id })} onClick={(event) => event.preventDefault()}>{block.label}</button>;
+  const sourceId = context.sourceBlockIds?.get(block.id) ?? block.id;
+  const binding = roleActions[block.siteRole ?? ""] ?? (block.siteRole === "new-game" || block.siteRole === "auto-resize" ? block.siteRole : ["reset", "excel", "image", "html"].find(value => sourceId.endsWith(`-${value}`)));
+  if (context.runtime && binding) return <button {...selected(context, block, { className, type: "button" })} onClick={() => void context.runtime?.run(binding)}>{context.runtime.feedback[binding] || renderText(block.label, block.labelRuns, context.mediaUrls, visibleFootnoteNumbers(context.document.blocks), { blockId: block.id, kind: "label" })}</button>;
+  return <button key={block.id} {...selected(context, block, { className, type: "button", "aria-disabled": true, "data-block-id": block.id })} onClick={(event) => event.preventDefault()}>{buttonLabel(context, block)}</button>;
 }
 
 function field(context: Context, block: Extract<ContentBlock, { type: "field" }>, id: string) {
-  const binding = block.siteRole === "holes" || block.id.endsWith("-holes") ? "holes" : block.siteRole === "players" || block.id.endsWith("-players") ? "players" : null;
+  const sourceId = context.sourceBlockIds?.get(block.id) ?? block.id;
+  const binding = block.siteRole === "holes" || sourceId.endsWith("-holes") ? "holes" : block.siteRole === "players" || sourceId.endsWith("-players") ? "players" : null;
   if (context.runtime && binding) {
     const runtime = context.runtime;
     return <div {...selected(context, block, { className: "field" })}><label htmlFor={id}>{block.label}</label><select id={id} value={binding === "holes" ? runtime.game.holes : runtime.game.players.length} onChange={event => runtime.setGame(game => binding === "holes" ? golf.resizeHoles(game, Number(event.target.value)) : golf.resizePlayers(game, Number(event.target.value)))}>{Array.from({ length: binding === "holes" ? 18 : 8 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1} {i === 0 ? binding.slice(0, -1) : binding}</option>)}</select></div>;
@@ -49,6 +72,10 @@ function field(context: Context, block: Extract<ContentBlock, { type: "field" }>
 }
 
 function renderScoreTable(context: Context, table: Table, tableFontSize: string) {
+  if (!supportsMiniGolfRuntimeTable(table) && context.mode === "edit" && context.renderEditableBlock) return adaptedEditableBlock(context, table);
+  if (!supportsMiniGolfRuntimeTable(table)) return <div {...selected(context, table)}>{context.mode === "edit"
+    ? <BlockField block={table} rootBlocks={context.document.blocks} document={context.document} mediaUrls={context.mediaUrls} writable={context.writable} onTableCellFocus={(row, column) => context.onTableCellFocus?.(table.id, row, column)} onTextSelection={(selection, row, column) => context.onTextSelection?.(table.id, selection, row, column)} onLinkActivate={(selection, row, column) => context.onLinkActivate?.(table.id, selection, row, column)} onChange={next => context.onUpdateBlock?.(table.id, () => next)} />
+    : <BlockRenderer blocks={[table]} variant="studio" document={context.document} readingTimeBlocks={context.document.blocks} mediaUrls={context.mediaUrls} />}</div>;
   if (context.runtime) return <div {...selected(context, table)}><RuntimeScoreTable runtime={context.runtime} table={table} mode={context.mode} onCellSelect={(row, column) => { context.onSelectBlock?.(table.id); context.onTableCellFocus?.(table.id, row, column); }} onCellChange={(row, column, value) => context.onUpdateBlock?.(table.id, current => current.type === "table" ? updateMiniGolfAuthoredCell(current, row, column, value) : current)} /></div>;
   // The table block owns its complete shape and values. Never manufacture a
   // deleted table or force a saved scorecard back to two players at render time.
@@ -89,7 +116,8 @@ function renderScoreTable(context: Context, table: Table, tableFontSize: string)
 
 function renderBlock(context: Context, parentRole?: Section["role"], tableFontSize = "16px"): ReactNode {
   const block = context.block;
-  if (!block) return null;
+  if (!block || (context.mode === "preview" && block.editorial?.hidden)) return null;
+  if (block.type === "section" && block.role === "leaderboard-card" && context.leaderCardIds) context = { ...context, runtimeLeader: context.leaderCardIds.has(block.id) };
   if (block.type === "section" && block.role) {
     if (block.role === "scorecard") {
       const findSize = (items: ContentBlock[]): string | undefined => {
@@ -101,24 +129,11 @@ function renderBlock(context: Context, parentRole?: Section["role"], tableFontSi
       const value = findSize(block.children);
       tableFontSize = value === "Small" ? "13px" : value === "Large" ? "19px" : "16px";
     }
-    if (block.role === "leaderboard" && context.runtime) {
+    if (block.role === "leaderboard" && context.runtime && !context.runtimeProjected) {
       const runtime = context.runtime;
       const templates = block.children.filter(item => item.type === "section" && item.role === "leaderboard-card");
       const template = templates[0];
-      const bind = (item: ContentBlock, player: typeof runtime.model.stats[number]): ContentBlock => {
-        if (item.type === "columns") return { ...item, children: item.children.map(column => ({ ...column, children: column.children.map(child => bind(child, player)) })) };
-        if ((item.type === "section" || item.type === "group" || item.type === "column" || item.type === "component") && item.children) return { ...item, children: item.children.map(child => bind(child, player)) };
-        if (item.type !== "paragraph" && item.type !== "heading") return item;
-        let text = item.text;
-        if (item.siteRole === "player-name") text = player.name || "Unnamed player";
-        if (item.siteRole === "score-value") text = player.total ? String(player.total) : "—";
-        if (["metric-value", "metric-average", "metric-deviation", "metric-holes"].includes(item.siteRole ?? "")) {
-          if (item.siteRole === "metric-average" || item.id.includes("-metric-1-")) text = golf.formatStat(player.average);
-          if (item.siteRole === "metric-deviation" || item.id.includes("-metric-2-")) text = golf.formatStat(player.deviation);
-          if (item.siteRole === "metric-holes" || item.id.includes("-metric-3-")) text = `${player.values.length} / ${runtime.game.holes}`;
-        }
-        return { ...item, text, runs: text === item.text ? item.runs : undefined };
-      };
+      const bind = (item: ContentBlock, player: typeof runtime.model.stats[number]) => bindMiniGolfPlayer(item, player, runtime.game.holes);
       if (context.mode === "edit") {
         return <section {...selected(context, block, { className: "summary-grid" })}>{block.children.map(item => {
           const player = runtime.model.stats[templates.indexOf(item)];
@@ -153,7 +168,7 @@ function renderBlock(context: Context, parentRole?: Section["role"], tableFontSi
           content.push(<div className={block.role === "setup" ? "setup-actions" : "finish-actions"} key={`actions-${first}`}>{actions}</div>);
         }
       }
-      return createElement(container[0], selected(context, block, { className: `${container[1]}${block.role === "leaderboard-card" && context.runtimeLeader ? " leader" : ""}` || undefined, "aria-label": typeof block.data?.ariaLabel === "string" ? block.data.ariaLabel : undefined, "data-source-revision": block.role === "hero" ? MINI_GOLF_SOURCE_REVISION : undefined }), content);
+      return createElement(container[0], selected(context, block, { className: `${container[1]}${block.role === "leaderboard-card" && (context.runtimeLeader || context.leaderCardIds?.has(block.id)) ? " leader" : ""}` || undefined, "aria-label": typeof block.data?.ariaLabel === "string" ? block.data.ariaLabel : undefined, "data-source-revision": block.role === "hero" ? MINI_GOLF_SOURCE_REVISION : undefined }), content);
     }
   }
   if (block.type === "table" && parentRole === "scorecard") return renderScoreTable(context, block, tableFontSize);
@@ -171,7 +186,7 @@ function renderBlock(context: Context, parentRole?: Section["role"], tableFontSi
     if (block.siteRole === "score-label") tag = "span";
     if (block.siteRole === "metric-label") tag = "dt";
     if (["metric-value", "metric-average", "metric-deviation", "metric-holes"].includes(block.siteRole ?? "")) tag = "dd";
-    if (block.siteRole === "score-value" && context.mode === "preview" && !block.align && (block.type !== "paragraph" || !block.style)) return renderText(block.text, block.runs);
+    if (block.siteRole === "score-value" && context.mode === "preview" && !block.align && (block.type !== "paragraph" || !block.style)) return renderText(block.text, block.runs, context.mediaUrls, visibleFootnoteNumbers(context.document.blocks), { blockId: block.id, kind: "text" });
     let presentedBlock = block;
     if (block.siteRole === "title" && block.text.toLowerCase() === "mini golf scorecard" && !block.runs?.some((run) => run.marks?.includes("italic"))) {
       // The source brand emphasises Scorecard even after a plain-text edit.
@@ -199,15 +214,22 @@ function renderBlock(context: Context, parentRole?: Section["role"], tableFontSi
   }
   if (block.type === "button") {
     if (block.siteRole === "social-action") return context.mode === "preview" ? null : <span {...selected(context, block, { className: "sr-only" })}>{block.label}</span>;
-    if (parentRole === "account") return <a href={safeTextLink(block.url) ?? "#"} {...selected(context, block, { className: `button ${block.style}`, "aria-disabled": true })} onClick={(event) => event.preventDefault()}>{block.label}</a>;
+    if (parentRole === "account") return <a href={safeTextLink(block.url) ?? "#"} {...selected(context, block, { className: `button ${block.style}`, "aria-disabled": true })} onClick={(event) => event.preventDefault()}>{buttonLabel(context, block)}</a>;
     return action(context, block, `button ${block.siteRole === "auto-resize" ? "compact-toggle" : block.siteRole === "new-game" ? "ghost" : block.style}`);
   }
-  if (context.mode === "preview") return <BlockRenderer blocks={[block]} variant="studio" hideDividers />;
-  return <div {...selected(context, block)}><BlockField block={block} selectedBlockId={context.selectedBlockId} hoveredBlockId={context.hoveredBlockId} onTableCellFocus={() => context.onSelectBlock?.(block.id)} onTextSelection={() => {}} onLinkActivate={() => undefined} onChange={(next) => context.onUpdateBlock?.(block.id, () => next)} /></div>;
+  if (context.mode === "preview") return <BlockRenderer blocks={[block]} variant="studio" hideDividers document={context.document} readingTimeBlocks={context.document.blocks} mediaUrls={context.mediaUrls} />;
+  if (context.renderEditableBlock) return adaptedEditableBlock(context, block);
+  return <div {...selected(context, block)}><BlockField block={block} selectedBlockId={context.selectedBlockId} hoveredBlockId={context.hoveredBlockId} rootBlocks={context.document.blocks} document={context.document} mediaUrls={context.mediaUrls} mediaUrl={block.type === "image" && block.mediaId ? context.mediaUrls?.[block.mediaId] : undefined} writable={context.writable !== false} onExitList={(id, index, operation, listId) => context.writable !== false ? context.onExitList?.(id, index, operation, listId) ?? null : null} onTableCellFocus={() => context.onSelectBlock?.(block.id)} onTextSelection={() => {}} onLinkActivate={() => undefined} onChange={(next, requireSourceMatch) => context.onUpdateBlock?.(block.id, current => !requireSourceMatch || JSON.stringify(current) === JSON.stringify(block) ? next : current)} /></div>;
 }
 
 function ConnectedBlock({ context }: { context: Context }) {
   const runtime = useMiniGolfRuntime();
+  if (runtime && context.mode === "preview") {
+    const projection = miniGolfPreviewProjection(context.document.blocks, runtime);
+    const block = context.block ? findContentBlock(projection.blocks, context.block.id) : undefined;
+    if (context.block && !block) return null;
+    return renderBlock({ ...context, block: block ?? undefined, document: { ...context.document, blocks: projection.blocks }, runtime, runtimeProjected: true, leaderCardIds: projection.leaderCardIds, sourceBlockIds: projection.sourceBlockIds });
+  }
   return renderBlock({ ...context, runtime });
 }
 export const miniGolfPresentation: StudioPresentation = { renderHeader: () => <></>, renderBlock: context => <ConnectedBlock context={context} />,  showPublicationDetails: false, allowCoverImage: false };

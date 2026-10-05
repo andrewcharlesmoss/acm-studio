@@ -11,7 +11,7 @@
 .ui-catalogue-card button:focus-visible { outline:2px solid #465b78; outline-offset:3px; border-radius:2px; }
 .ui-block-detail-page > .rl-eyebrow button { padding:0; border:0; background:transparent; color:inherit; font:inherit; text-transform:inherit; letter-spacing:inherit; text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
 .ui-block-detail-page > .rl-eyebrow button:focus-visible { outline:2px solid #465b78; outline-offset:2px; }
-.ui-block-detail-page { max-width:1440px; margin-inline:auto; padding-bottom:3rem; }
+.ui-block-detail-page { max-width:1440px; margin-inline:0; padding-bottom:3rem; }
 .ui-block-detail-page > p { max-width:76ch; }
 .ui-block-specimen { margin:1.25rem 0; border:1px solid var(--rl-line); border-radius:9px; background:#fff; overflow:visible; }
 .ui-block-specimen-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; padding:1rem 1.25rem; border-bottom:1px solid var(--rl-line); }
@@ -66,6 +66,7 @@
 .ui-block-inventory-columns { display:grid; grid-template-columns:minmax(120px,1fr) 90px minmax(180px,1fr); gap:.75rem; margin-left:1.5rem; padding:.4rem 0; border-bottom:1px solid var(--rl-line); font-weight:600; }
 .ui-block-inventory ol { padding-left:1.5rem; }
 .ui-block-inventory li { display:grid; grid-template-columns:minmax(120px,1fr) 90px minmax(180px,1fr); gap:.75rem; padding:.45rem 0; border-bottom:1px solid var(--rl-line); }
+.ui-block-inventory li > span { min-width:0; overflow-wrap:anywhere; }
 .ui-block-inventory li span:nth-child(2) { color:var(--rl-muted); }
 @media (max-width:900px) {
   .ui-block-editor-layout { grid-template-columns:minmax(0,1fr); }

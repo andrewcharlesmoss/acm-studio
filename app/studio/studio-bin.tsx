@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import type { useStudioWorkspace } from "./use-studio-workspace";
 import type { useTemplates } from "./use-templates";
+import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
+import { StudioButton } from "./controls/button";
 import { StudioIcon } from "./studio-icons";
 import { restoreLocallyPublishedArticle } from "../content/local-publishing";
 import { copyTemplateData, visitTemplateNodes } from "./template-model";
@@ -20,7 +22,6 @@ function formattedDate(value: string) {
 export function StudioBin({ workspace, templates }: { workspace: WorkspaceSession; templates: TemplateSession }) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [permanentTarget, setPermanentTarget] = useState<BinTarget | null>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const writable = workspace.writable && templates.writable;
   const entries = [
@@ -28,17 +29,7 @@ export function StudioBin({ workspace, templates }: { workspace: WorkspaceSessio
     ...templates.store.bin.map(item => ({ id: item.id, label: item.kind === "set" ? item.set.name : item.entry.name, detail: `${item.kind === "set" ? "Template set" : item.entry.kind === "page" || item.entry.kind === "post" ? `${item.entry.kind} template` : `Shared ${item.entry.kind}`} · deleted ${formattedDate(item.deletedAt)}`, kind: item.kind, mark: item.kind === "set" ? "S" : "T", deletedAt: item.deletedAt })),
   ].sort((left, right) => right.deletedAt.localeCompare(left.deletedAt));
 
-  useEffect(() => {
-    if (!permanentTarget) return;
-    const dialog = dialogRef.current;
-    if (dialog && !dialog.open) dialog.showModal();
-  }, [permanentTarget]);
-
-  function closePermanentDialog() {
-    dialogRef.current?.close();
-    setPermanentTarget(null);
-    requestAnimationFrame(() => openerRef.current?.isConnected && openerRef.current.focus());
-  }
+  function closePermanentDialog() { setPermanentTarget(null); }
 
   function askPermanentDelete(event: MouseEvent<HTMLButtonElement>, target: BinTarget) {
     openerRef.current = event.currentTarget;
@@ -138,10 +129,9 @@ export function StudioBin({ workspace, templates }: { workspace: WorkspaceSessio
       <span className="document-kind-mark" aria-hidden="true">{entry.mark}</span><span className="studio-bin-copy"><strong>{entry.label}</strong><small>{entry.detail}</small></span>
       <div className="studio-bin-actions"><button type="button" disabled={!writable} onClick={() => entry.kind === "document" ? restoreDocument(workspace.workspace.bin.find(item => item.id === entry.id)!) : restoreTemplate(templates.store.bin.find(item => item.id === entry.id)!)}><StudioIcon name="undo" size={16} />Restore</button><button className="danger-button" type="button" disabled={!writable} onClick={event => askPermanentDelete(event, entry)}><StudioIcon name="trash" size={16} />Delete permanently</button></div>
     </li>)}</ul> : <p className="studio-bin-empty">The Bin is empty.</p>}
-    <dialog ref={dialogRef} className="template-dialog" aria-labelledby="studio-bin-confirm-title" onCancel={event => { event.preventDefault(); closePermanentDialog(); }} onClose={() => setPermanentTarget(null)}>
-      <button className="template-dialog-close" type="button" aria-label="Close permanent delete confirmation" onClick={closePermanentDialog}><StudioIcon name="close" /></button>
-      <h2 id="studio-bin-confirm-title">Delete permanently?</h2><p>This will permanently delete “{permanentTarget?.label}”. You won’t be able to restore it.</p>
-      <div className="template-dialog-actions"><button type="button" onClick={closePermanentDialog}>Cancel</button><button className="button-primary" type="button" disabled={!writable} onClick={() => permanentTarget && permanentlyDelete(permanentTarget)}>Delete permanently</button></div>
-    </dialog>
+    {permanentTarget ? <StudioDialog title="Delete permanently?" className="template-dialog" returnFocus={openerRef} onClose={closePermanentDialog}>
+      <p>This will permanently delete “{permanentTarget.label}”. You won’t be able to restore it.</p>
+      <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closePermanentDialog}>Cancel</StudioButton><button className="button-primary danger-button" type="button" disabled={!writable} onClick={() => permanentlyDelete(permanentTarget)}>Delete permanently</button></StudioDialogActions>
+    </StudioDialog> : null}
   </section>;
 }

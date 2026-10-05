@@ -1,13 +1,29 @@
-import type { ColumnBlock, ContentBlock, DocumentDisplayField, DocumentDisplayMode, LayoutMode, LayoutOptions, ParagraphStyle, SiteSectionRole } from "../content/model";
+import { containsRichTextInlineObjects, containsExtendedLanguage } from "../content/rich-text-contract";
+import { validDocumentDisplay } from "../content/document-metadata";
+import { migrateLegacyFootnoteBlocks } from "../content/footnote-blocks";
+import { validBlockEditorial, type BlockEditorial } from "../content/block-editorial";
+import { GROUP_ALLOWED_BLOCK_TYPES, type ColumnBlock, type ContentBlock, type DocumentDisplayField, type DocumentDisplayMode, type GroupAllowedBlockType, type GroupLayoutOptions, type LayoutMode, type LayoutOptions, type ParagraphStyle, type SiteSectionRole } from "../content/model";
+import { contentMediaIds, historicalContentMediaIds } from "../content/media-references";
 import { validLayoutOptions } from "../content/layout";
-import type { StudioDocument, StudioDocumentKind } from "./editor-model";
+import type { StudioDocument, StudioDocumentKind, StudioWorkspace } from "./editor-model";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
-import { isRecord, validContentBlocks, validParagraphStyle, validatePublicationSnapshot } from "./workspace-validation";
+import { isRecord, PUBLICATION_VERSION, validContentBlocks, validParagraphStyle, validatePublicationSnapshot } from "./workspace-validation";
 import { createUniversalStylePreset, validateUniversalStylePreset } from "@acm/styles";
 import type { UniversalStylePreset } from "@acm/styles";
 
 export const LEGACY_TEMPLATE_VERSION = "0.1.0" as const;
-export const TEMPLATE_VERSION = "0.14.0" as const;
+export const TEMPLATE_VERSION = "0.25.0" as const;
+export const LEGACY_TEMPLATE_VERSION_24 = "0.24.0" as const;
+export const LEGACY_TEMPLATE_VERSION_23 = "0.23.0" as const;
+export const LEGACY_TEMPLATE_VERSION_22 = "0.22.0" as const;
+export const LEGACY_TEMPLATE_VERSION_21 = "0.21.0" as const;
+export const LEGACY_TEMPLATE_VERSION_20 = "0.20.0" as const;
+export const LEGACY_TEMPLATE_VERSION_19 = "0.19.0" as const;
+export const LEGACY_TEMPLATE_VERSION_18 = "0.18.0" as const;
+export const LEGACY_TEMPLATE_VERSION_17 = "0.17.0" as const;
+export const LEGACY_TEMPLATE_VERSION_16 = "0.16.0" as const;
+export const LEGACY_TEMPLATE_VERSION_15 = "0.15.0" as const;
+export const LEGACY_TEMPLATE_VERSION_14 = "0.14.0" as const;
 export const LEGACY_TEMPLATE_VERSION_13 = "0.13.0" as const;
 export const LEGACY_TEMPLATE_VERSION_12 = "0.12.0" as const;
 export const LEGACY_TEMPLATE_VERSION_11 = "0.11.0" as const;
@@ -25,17 +41,18 @@ export const templateElements = ["site-identity", "navigation", "document-title"
 export type TemplateElement = typeof templateElements[number];
 export type TemplateImage = { src: string; mediaId?: string; alt: string };
 type TemplateElementNode =
-  | { id: string; type: "element"; element: Exclude<TemplateElement, "cover-image" | "document-title" | "subtitle">; align?: "left" | "centre" | "right" }
-  | { id: string; type: "element"; element: "document-title"; align?: "left" | "centre" | "right"; level?: 1 | 2 | 3 | 4 | 5 | 6; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string; visualStyle?: ParagraphStyle }
+  | { id: string; type: "element"; element: Exclude<TemplateElement, "cover-image" | "document-title" | "subtitle" | "content">; align?: "left" | "centre" | "right" }
+  | ({ id: string; type: "element"; element: "content"; align?: "left" | "centre" | "right"; visualStyle?: ParagraphStyle } & GroupLayoutOptions)
+  | (Omit<Extract<ContentBlock, { type: "document-title" }>, "type"> & { type: "element"; element: "document-title" })
   | { id: string; type: "element"; element: "subtitle"; align?: "left" | "centre" | "right"; style?: ParagraphStyle; visualStyle?: ParagraphStyle }
-  | { id: string; type: "element"; element: "cover-image"; align?: "left" | "centre" | "right"; fixedImage?: TemplateImage; coverImageHidden?: boolean };
-export type TemplateNode = Exclude<ContentBlock, { type: "group" | "section" | "columns" | "column" | "component" }>
-  | ({ id: string; type: "group"; layout: LayoutMode; children: TemplateNode[]; position?: "sticky"; visualStyle?: ParagraphStyle } & LayoutOptions)
+  | (Omit<Extract<ContentBlock, { type: "cover-image" }>, "type"> & { type: "element"; element: "cover-image"; fixedImage?: TemplateImage; coverImageHidden?: boolean });
+export type TemplateNode = (Exclude<ContentBlock, { type: "group" | "section" | "columns" | "column" | "component" }>
+  | ({ id: string; type: "group"; layout: LayoutMode; children: TemplateNode[]; position?: "sticky"; visualStyle?: ParagraphStyle; allowedBlocks?: GroupAllowedBlockType[] } & GroupLayoutOptions)
   | ({ id: string; type: "section"; layout: LayoutMode; role?: SiteSectionRole; children: TemplateNode[] } & LayoutOptions)
   | ({ id: string; type: "columns"; children: TemplateColumn[]; style?: ParagraphStyle } & Omit<LayoutOptions, "columns" | "horizontalAlign" | "minColumnWidth">)
   | TemplateColumn
   | TemplateElementNode
-  | { id: string; type: "part"; partId: string };
+  | { id: string; type: "part"; partId: string }) & { editorial?: BlockEditorial };
 type TemplateColumn = Omit<ColumnBlock, "children"> & { children: TemplateNode[] };
 export type PageTemplate = { id: string; name: string; kind: StudioDocumentKind; nodes: TemplateNode[]; defaults?: TemplateDefaults; displayDefaults?: Partial<Record<DocumentDisplayField, DocumentDisplayMode>>; isDefault?: boolean };
 export type TemplatePart = { id: string; name: string; kind: "header" | "footer"; nodes: TemplateNode[] };
@@ -50,7 +67,7 @@ export type TemplateSet = {
 };
 export type TemplateAssignment = { documentId: string; setId: string; templateId: string; kind: StudioDocumentKind };
 export type StudioBinnedTemplate = { id: string; deletedAt: string; kind: "template"; setId: string; setName: string; entry: PageTemplate | TemplatePart; setSnapshot: TemplateSet } | { id: string; deletedAt: string; kind: "set"; set: TemplateSet };
-export type TemplateSchemaVersion = typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_13 | typeof LEGACY_TEMPLATE_VERSION_12 | typeof LEGACY_TEMPLATE_VERSION_11 | typeof LEGACY_TEMPLATE_VERSION_10 | typeof LEGACY_TEMPLATE_VERSION_9 | typeof LEGACY_TEMPLATE_VERSION_8 | typeof LEGACY_TEMPLATE_VERSION_7 | typeof LEGACY_TEMPLATE_VERSION_6 | typeof LEGACY_TEMPLATE_VERSION_5 | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION_3 | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION;
+export type TemplateSchemaVersion = typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_24 | typeof LEGACY_TEMPLATE_VERSION_23 | typeof LEGACY_TEMPLATE_VERSION_22 | typeof LEGACY_TEMPLATE_VERSION_21 | typeof LEGACY_TEMPLATE_VERSION_20 | typeof LEGACY_TEMPLATE_VERSION_19 | typeof LEGACY_TEMPLATE_VERSION_18 | typeof LEGACY_TEMPLATE_VERSION_17 | typeof LEGACY_TEMPLATE_VERSION_16 | typeof LEGACY_TEMPLATE_VERSION_15 | typeof LEGACY_TEMPLATE_VERSION_14 | typeof LEGACY_TEMPLATE_VERSION_13 | typeof LEGACY_TEMPLATE_VERSION_12 | typeof LEGACY_TEMPLATE_VERSION_11 | typeof LEGACY_TEMPLATE_VERSION_10 | typeof LEGACY_TEMPLATE_VERSION_9 | typeof LEGACY_TEMPLATE_VERSION_8 | typeof LEGACY_TEMPLATE_VERSION_7 | typeof LEGACY_TEMPLATE_VERSION_6 | typeof LEGACY_TEMPLATE_VERSION_5 | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION_3 | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION;
 export type TemplateStore = { version: TemplateSchemaVersion; sets: TemplateSet[]; assignments: TemplateAssignment[]; bin: StudioBinnedTemplate[]; defaultTemplateIds?: { page?: string; post?: string } };
 export type TemplateSnapshot = { version: TemplateSchemaVersion; set: TemplateSet; templateId: string };
 export const emptyTemplateStore = (): TemplateStore => ({ version: TEMPLATE_VERSION, sets: [], assignments: [], bin: [], defaultTemplateIds: {} });
@@ -59,7 +76,7 @@ export const templateElementLabel = (value: string) => value.split("-").map(word
 export const copyTemplateData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 export function visitTemplateNodes(nodes: TemplateNode[], visit: (node: TemplateNode) => void) {
-  for (const node of nodes) { visit(node); if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column" || node.type === "social-icons") visitTemplateNodes(node.children, visit); }
+  for (const node of nodes) { visit(node); if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column" || node.type === "social-icons" || node.type === "quote" || node.type === "buttons") visitTemplateNodes((node.children ?? []) as TemplateNode[], visit); }
 }
 
 export function createDocumentTemplateNodes(kind: StudioDocumentKind): TemplateNode[] {
@@ -160,22 +177,26 @@ export function validateTemplateSet(value: unknown): TemplateSet {
     for (const node of items as unknown[]) {
       if (!isRecord(node) || ++count > 3000) invalid("The template contains invalid or too many elements.");
       claimId(node.id, ids);
+      if (!validBlockEditorial(node.editorial)) invalid("Invalid block editorial settings.");
       if (node.type === "element") {
         if (!templateElements.includes(node.element as TemplateElement) || (node.align !== undefined && !["left", "centre", "right"].includes(node.align as string))) invalid("Unknown template element.");
-        if (node.element === "document-title" && ((node.level !== undefined && ![1, 2, 3, 4, 5, 6].includes(node.level as number)) || (node.isLink !== undefined && typeof node.isLink !== "boolean") || (node.linkTarget !== undefined && !["_self", "_blank"].includes(node.linkTarget as string)) || !optionalTemplateString(node.rel) || !validParagraphStyle(node.visualStyle))) invalid("The template Document Title settings are invalid.");
+        if (node.element === "content" && (!validLayoutOptions(node, true) || !validParagraphStyle(node.visualStyle) || Object.keys(node).some(key => !["editorial", "id", "type", "element", "align", "visualStyle", "horizontalAlign", "verticalAlign", "gap", "columnGap", "rowGap", "paddingX", "paddingY", "contentWidth", "columns", "minColumnWidth", "stackAt", "contentSize", "wideSize", "inheritLayout", "allowWrap", "gridMode", "minColumnWidthUnit"].includes(key)))) invalid("The template Content settings are invalid.");
+        if (node.element === "document-title" && ((node.blockAlign !== undefined && typeof node.blockAlign !== "string") || !validContentBlocks([{ ...node, type: "document-title" }]))) invalid("The template Document Title settings are invalid.");
         if (node.element === "subtitle" && (!validParagraphStyle(node.style) || !validParagraphStyle(node.visualStyle))) invalid("The template Document Subtitle settings are invalid.");
+        if (node.element === "cover-image" && ((node.blockAlign !== undefined && typeof node.blockAlign !== "string") || !validContentBlocks([{ ...node, type: "cover-image" }]))) invalid("The template Featured Image settings are invalid.");
         if (node.element === "cover-image" && node.fixedImage !== undefined && !validTemplateImage(node.fixedImage)) invalid("The fixed template cover image is invalid.");
         if (node.element === "cover-image" && node.coverImageHidden !== undefined && typeof node.coverImageHidden !== "boolean") invalid("The template cover image visibility is invalid.");
         if (node.element !== "cover-image" && ("fixedImage" in node || "coverImageHidden" in node)) invalid("Only a Cover Image element can use cover image settings.");
       } else if (node.type === "part") { if (!safeId(node.partId)) invalid("Invalid shared-part reference."); }
-      else if (node.type === "group" || node.type === "section") { const supportedKeys = ["id", "type", "layout", "role", "children", "horizontalAlign", "verticalAlign", "gap", "columnGap", "rowGap", "paddingX", "paddingY", "contentWidth", "columns", "minColumnWidth", "stackAt"]; if (node.type === "group") supportedKeys.push("position", "visualStyle"); if (Object.keys(node).some(key => !supportedKeys.includes(key)) || (node.type === "group" && (node.position !== undefined && node.position !== "sticky" || !validParagraphStyle(node.visualStyle))) || (node.type === "section" && node.visualStyle !== undefined) || !["stack", "row", "columns", "grid"].includes(node.layout as string) || (node.role !== undefined && !["account", "setup", "scorecard", "leaderboard", "share", "hero", "hero-copy", "account-copy", "scorecard-heading", "scorecard-actions", "leaderboard-card", "leaderboard-score", "leaderboard-metrics", "metric", "footer", "footer-brand", "footer-links", "social-link"].includes(node.role as string)) || !validLayoutOptions(node)) invalid("Invalid template layout or unsupported group metadata."); nodes(node.children, depth + 1); }
-      else if (node.type === "columns") { if (Object.keys(node).some(key => !["id", "type", "children", "style", "verticalAlign", "gap", "columnGap", "rowGap", "paddingX", "paddingY", "contentWidth", "stackAt"].includes(key)) || !validLayoutOptions(node) || !validParagraphStyle(node.style) || !Array.isArray(node.children) || node.children.length < 1 || node.children.length > 6 || node.children.some(child => !isRecord(child) || child.type !== "column")) invalid("Columns blocks need between one and six Column blocks and supported layout settings."); nodes(node.children, depth + 1, "columns"); }
-      else if (node.type === "column") { if (parentType !== "columns" || Object.keys(node).some(key => !["id", "type", "children", "width", "verticalAlign", "gap", "columnGap", "rowGap", "style"].includes(key)) || (node.width !== undefined && (typeof node.width !== "number" || node.width < 5 || node.width > 100)) || (node.verticalAlign !== undefined && !["top", "centre", "bottom", "stretch"].includes(node.verticalAlign as string)) || !validLayoutOptions(node) || !validParagraphStyle(node.style) || !Array.isArray(node.children)) invalid("Invalid Column block settings."); nodes(node.children, depth + 1, "column"); }
+      else if (node.type === "group" || node.type === "section") { const supportedKeys = ["editorial", "id", "type", "layout", "role", "children", "horizontalAlign", "verticalAlign", "gap", "columnGap", "rowGap", "paddingX", "paddingY", "contentWidth", "columns", "minColumnWidth", "stackAt"]; if (node.type === "group") supportedKeys.push("position", "visualStyle", "allowedBlocks", "contentSize", "wideSize", "inheritLayout", "allowWrap", "gridMode", "minColumnWidthUnit"); if (Object.keys(node).some(key => !supportedKeys.includes(key)) || (node.type === "group" && (node.position !== undefined && node.position !== "sticky" || !validParagraphStyle(node.visualStyle) || (node.allowedBlocks !== undefined && (!Array.isArray(node.allowedBlocks) || new Set(node.allowedBlocks).size !== node.allowedBlocks.length || node.allowedBlocks.some(type => !GROUP_ALLOWED_BLOCK_TYPES.includes(type as typeof GROUP_ALLOWED_BLOCK_TYPES[number])))))) || (node.type === "section" && node.visualStyle !== undefined) || !["flow", "stack", "row", "columns", "grid"].includes(node.layout as string) || (node.role !== undefined && !["account", "setup", "scorecard", "leaderboard", "share", "hero", "hero-copy", "account-copy", "scorecard-heading", "scorecard-actions", "leaderboard-card", "leaderboard-score", "leaderboard-metrics", "metric", "footer", "footer-brand", "footer-links", "social-link"].includes(node.role as string)) || !validLayoutOptions(node, node.type === "group")) invalid("Invalid template layout or unsupported group metadata."); nodes(node.children, depth + 1); }
+      else if (node.type === "columns") { if (Object.keys(node).some(key => !["editorial", "id", "type", "children", "style", "verticalAlign", "gap", "columnGap", "rowGap", "paddingX", "paddingY", "contentWidth", "stackAt"].includes(key)) || !validLayoutOptions(node) || !validParagraphStyle(node.style) || !Array.isArray(node.children) || node.children.length < 1 || node.children.length > 6 || node.children.some(child => !isRecord(child) || child.type !== "column")) invalid("Columns blocks need between one and six Column blocks and supported layout settings."); nodes(node.children, depth + 1, "columns"); }
+      else if (node.type === "column") { if (parentType !== "columns" || (node.allowedBlocks !== undefined && (!Array.isArray(node.allowedBlocks) || new Set(node.allowedBlocks).size !== node.allowedBlocks.length || node.allowedBlocks.some(type => !GROUP_ALLOWED_BLOCK_TYPES.includes(type as typeof GROUP_ALLOWED_BLOCK_TYPES[number])))) || Object.keys(node).some(key => !["editorial", "id", "type", "children", "width", "verticalAlign", "gap", "columnGap", "rowGap", "style", "allowedBlocks"].includes(key)) || (node.width !== undefined && (typeof node.width !== "number" || node.width < 5 || node.width > 100)) || (node.verticalAlign !== undefined && !["top", "centre", "bottom", "stretch"].includes(node.verticalAlign as string)) || !validLayoutOptions(node) || !validParagraphStyle(node.style) || !Array.isArray(node.children)) invalid("Invalid Column block settings."); nodes(node.children, depth + 1, "column"); }
       else {
         if (node.type === "component" || node.type === "column" || !validContentBlocks([node])) invalid("Invalid ordinary template block.");
         if ((node.type === "button" || node.type === "embed") && node.url && !safeTextLink(node.url as string)) invalid("Unsafe template link.");
         if (node.type === "image" && ((node.src && !safeImageSource(node.src as string)) || (node.mediaId !== undefined && !safeId(node.mediaId)))) invalid("Invalid template image.");
-        if (Array.isArray(node.runs)) for (const run of node.runs) if (Array.isArray(run.marks)) for (const mark of run.marks) if (isRecord(mark) && mark.type === "link" && !safeTextLink(mark.url as string)) invalid("Unsafe text link.");
+        for (const runs of [node.runs, node.attributionRuns, node.captionRuns]) if (Array.isArray(runs)) for (const run of runs) if (Array.isArray(run.marks)) for (const mark of run.marks) if (isRecord(mark) && mark.type === "link" && !safeTextLink(mark.url as string)) invalid("Unsafe text link.");
+        if ((node.type === "quote" || node.type === "buttons") && node.children !== undefined) nodes(node.children, depth + 1, node.type);
       }
     }
   }
@@ -199,19 +220,39 @@ export function validateTemplateSet(value: unknown): TemplateSet {
         if (!part || ancestors.has(part.id)) invalid("Shared parts must exist in this set and cannot form cycles.");
         slots += countContent(part!.nodes, new Set([...ancestors, part!.id]), depth + 1);
       } else if (node.type === "element" && node.element === "content") slots++;
-      else if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column" || node.type === "social-icons") slots += countContent(node.children, ancestors, depth + 1);
+      else if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column" || node.type === "social-icons" || node.type === "quote" || node.type === "buttons") slots += countContent((node.children ?? []) as TemplateNode[], ancestors, depth + 1);
     }
     return slots;
   }
   for (const part of set.parts) { expansion = 0; if (countContent(part.nodes, new Set([part.id])) !== 0) invalid("Content belongs in a page or post template, not a shared part."); }
   for (const template of set.templates) { expansion = 0; if (countContent(template.nodes, new Set()) > 1) invalid("Each template may contain at most one Content element."); }
-  return { ...set, defaults: set.defaults ?? {}, templates: set.templates.map(template => ({ ...template, defaults: template.defaults ?? set.defaults ?? {} })) };
+  return { ...set, defaults: set.defaults ?? {},
+    templates: set.templates.map(template => ({ ...template, defaults: template.defaults ?? set.defaults ?? {}, nodes: migrateTemplateFootnoteNodes(template.nodes) })),
+    parts: set.parts.map(part => ({ ...part, nodes: migrateTemplateFootnoteNodes(part.nodes) })),
+  };
+}
+
+/** Preserve template-only nodes and layout metadata while reusing rich fields. */
+function migrateTemplateFootnoteNodes(nodes: TemplateNode[]): TemplateNode[] {
+  let changed = false;
+  const next = nodes.map(node => {
+    let migrated = node;
+    if (node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column") {
+      const children = migrateTemplateFootnoteNodes(node.children);
+      if (children !== node.children) migrated = { ...node, children } as TemplateNode;
+    } else if (node.type !== "element" && node.type !== "part") {
+      migrated = migrateLegacyFootnoteBlocks([node as ContentBlock])[0] as TemplateNode;
+    }
+    changed ||= migrated !== node;
+    return migrated;
+  });
+  return changed ? next : nodes;
 }
 
 function optionalTemplateString(value: unknown) { return value === undefined || (typeof value === "string" && value.length <= 2000); }
 function validTemplateDefaults(value: unknown): value is TemplateDefaults { return isRecord(value) && optionalTemplateString(value.author) && optionalTemplateString(value.category) && optionalTemplateString(value.parentPageId) && (value.tags === undefined || (Array.isArray(value.tags) && value.tags.length <= 100 && value.tags.every(item => typeof item === "string" && item.length <= 160))); }
 function validDisplayDefaults(value: unknown): value is Partial<Record<DocumentDisplayField, DocumentDisplayMode>> {
-  return isRecord(value) && Object.entries(value).every(([key, candidate]) => ["title", "subtitle", "coverImage", "author", "publicationDate", "readingTime"].includes(key) && ["show", "hide"].includes(candidate as string));
+  return validDocumentDisplay(value);
 }
 
 function hasOnlySupportedPlaceholderFields(node: Record<string, unknown>, supported: readonly string[]) {
@@ -256,9 +297,10 @@ function migrateLegacySubtitleStyles(nodes: TemplateNode[]): TemplateNode[] {
 }
 
 export function validateTemplateStore(value: unknown, documents?: Pick<StudioDocument, "id" | "kind">[]): TemplateStore {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000 || (value.bin !== undefined && (!Array.isArray(value.bin) || value.bin.length > 10000))) invalid("Unsupported or invalid saved template data. Original data has been retained.");
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000 || (value.bin !== undefined && (!Array.isArray(value.bin) || value.bin.length > 10000))) invalid("Unsupported or invalid saved template data. Original data has been retained.");
+  if ((![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_24].includes(value.version as typeof TEMPLATE_VERSION) && containsRichTextInlineObjects(value) || value.version !== TEMPLATE_VERSION && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) invalid("Inline objects require the current template format. Original data has been retained.");
   if (value.defaultTemplateIds !== undefined && (!isRecord(value.defaultTemplateIds) || (value.defaultTemplateIds.page !== undefined && !safeId(value.defaultTemplateIds.page)) || (value.defaultTemplateIds.post !== undefined && !safeId(value.defaultTemplateIds.post)))) invalid("The default template selection is invalid.");
-  const migrateLegacyDefaultTitles = value.version !== TEMPLATE_VERSION && value.version !== LEGACY_TEMPLATE_VERSION_13 && value.version !== LEGACY_TEMPLATE_VERSION_12;
+  const migrateLegacyDefaultTitles = value.version !== TEMPLATE_VERSION && value.version !== LEGACY_TEMPLATE_VERSION_24 && value.version !== LEGACY_TEMPLATE_VERSION_23 && value.version !== LEGACY_TEMPLATE_VERSION_22 && value.version !== LEGACY_TEMPLATE_VERSION_21 && value.version !== LEGACY_TEMPLATE_VERSION_20 && value.version !== LEGACY_TEMPLATE_VERSION_19 && value.version !== LEGACY_TEMPLATE_VERSION_18 && value.version !== LEGACY_TEMPLATE_VERSION_17 && value.version !== LEGACY_TEMPLATE_VERSION_16 && value.version !== LEGACY_TEMPLATE_VERSION_15 && value.version !== LEGACY_TEMPLATE_VERSION_14 && value.version !== LEGACY_TEMPLATE_VERSION_13 && value.version !== LEGACY_TEMPLATE_VERSION_12;
   const store = { ...(value as unknown as TemplateStore), version: TEMPLATE_VERSION, bin: ((value.bin ?? []) as unknown[]).map(item => { if (!isRecord(item)) return item; if (item.kind === "set") return { ...item, set: validateTemplateSet(item.set) }; if (item.kind === "template") return { ...item, setSnapshot: validateTemplateSet(item.setSnapshot) }; return item; }), sets: (value.sets as unknown[]).map(item => {
     if (!isRecord(item)) return item;
     const set = validateTemplateSet({ ...item, defaults: item.defaults ?? {} });
@@ -292,26 +334,57 @@ export function validateTemplateStore(value: unknown, documents?: Pick<StudioDoc
     if (documents && !documents.some(d => d.id === assignment.documentId && d.kind === assignment.kind)) invalid("A template assignment refers to a missing document.");
     assigned.add(assignment.documentId);
   }
-  return { ...store, defaultTemplateIds: store.defaultTemplateIds ?? {} };
+  const bin = store.bin.map(item => {
+    if (item.kind !== "template") return item;
+    // The entry is the actual restore payload. Validate it in its saved set,
+    // rather than substituting the possibly different snapshot entry by ID.
+    const snapshot = validateTemplateSet({ ...item.setSnapshot,
+      templates: item.setSnapshot.templates.map(entry => entry.id === item.entry.id ? item.entry : entry),
+      parts: item.setSnapshot.parts.map(entry => entry.id === item.entry.id ? item.entry : entry),
+    });
+    const entry = [...snapshot.templates, ...snapshot.parts].find(entry => entry.id === item.entry.id)!;
+    return { ...item, entry };
+  });
+  return { ...store, bin, defaultTemplateIds: store.defaultTemplateIds ?? {} };
 }
 
 export function validateTemplateSnapshot(value: unknown): TemplateSnapshot {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
+  if ((![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_24].includes(value.version as typeof TEMPLATE_VERSION) && containsRichTextInlineObjects(value) || value.version !== TEMPLATE_VERSION && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) invalid("Inline objects require the current template snapshot.");
   const snapshot = value as unknown as TemplateSnapshot;
   const set = validateTemplateSet(snapshot.set);
   if (!set.templates.some(t => t.id === snapshot.templateId && ["page", "post"].includes(t.kind))) invalid("Invalid published template.");
-  return { ...snapshot, set };
+  return { ...snapshot, version: TEMPLATE_VERSION, set };
 }
 
 /** Publication boundary validation; content-only validators remain independent. */
-export function validateTemplatePublicationSnapshot(value: unknown): void {
-  validatePublicationSnapshot(value);
-  for (const post of (value as { posts: { templateSnapshot?: unknown; mediaIds: string[] }[] }).posts) {
+export function validateTemplatePublicationSnapshot(value: unknown) {
+  const canonical = validatePublicationSnapshot(value);
+  const posts = canonical.posts.map(post => {
     if (post.templateSnapshot !== undefined) {
       const snapshot = validateTemplateSnapshot(post.templateSnapshot);
-      if (templateMediaIds(snapshot.set).some(id => !post.mediaIds.includes(id))) invalid("Published template media references are incomplete.");
+      // Require the index that this saved format actually wrote, then repair
+      // newly discovered references in the returned projection only.
+      if (historicalTemplateMediaIds(snapshot.set, post.templateSnapshot.version).some(id => !post.mediaIds.includes(id))) invalid("Published template media references are incomplete.");
+      const mediaIds = Array.from(new Set([...post.mediaIds, ...contentMediaIds(post.blocks), ...templateMediaIds(snapshot.set)]));
+      return { ...post, mediaIds, templateSnapshot: snapshot };
     }
-  }
+    const mediaIds = Array.from(new Set([...post.mediaIds, ...contentMediaIds(post.blocks)]));
+    return mediaIds.length === post.mediaIds.length && mediaIds.every((id, index) => id === post.mediaIds[index]) ? post : { ...post, mediaIds };
+  });
+  return { ...canonical, posts };
+}
+
+/** Apply template-owned validation after the portable workspace envelope passes. */
+export function validateWorkspacePublicationTemplates(workspace: StudioWorkspace): StudioWorkspace {
+  let changed = false;
+  const bin = workspace.bin.map(item => {
+    if (!item.publication) return item;
+    const publication = validateTemplatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [item.publication] }).posts[0];
+    changed = true;
+    return { ...item, publication };
+  });
+  return changed ? { ...workspace, bin } : workspace;
 }
 
 export function duplicateTemplateSet(source: TemplateSet, name = `${source.name} Copy`): TemplateSet {
@@ -336,28 +409,58 @@ export function resolveTemplate(store: TemplateStore, document: Pick<StudioDocum
 }
 
 export function templateMediaIds(set: TemplateSet): string[] {
+  return collectTemplateMediaIds(set);
+}
+
+/** v0.14.0 and earlier indexed block assets, but no rich-field images. */
+function historicalTemplateMediaIds(set: TemplateSet, version: string): string[] {
+  const minor = Number(version.split(".")[1]);
+  return collectTemplateMediaIds(set, minor <= 14 ? "block-assets" : "rich-fields");
+}
+
+function collectTemplateMediaIds(set: TemplateSet, historical?: "block-assets" | "rich-fields"): string[] {
   const ids = new Set<string>();
   if (set.identity.logo?.mediaId) ids.add(set.identity.logo.mediaId);
   for (const item of [...set.templates, ...set.parts]) visitTemplateNodes(item.nodes, node => {
+    if (historical !== "block-assets" && node.type !== "element" && node.type !== "part" && node.type !== "group" && node.type !== "section" && node.type !== "columns" && node.type !== "column") for (const id of (historical ? historicalContentMediaIds : contentMediaIds)([node])) ids.add(id);
     if (node.type === "image" && node.mediaId) ids.add(node.mediaId);
-    const style = node.type === "group" || node.type === "quote" ? node.visualStyle : undefined;
+    const style = historical === "block-assets" ? (node.type === "group" || node.type === "quote" ? node.visualStyle : undefined)
+      : !historical && (node.type === "columns" || node.type === "column") ? node.style
+      : "visualStyle" in node ? node.visualStyle : undefined;
     if (style?.backgroundImageMediaId) ids.add(style.backgroundImageMediaId);
     if (node.type === "element" && node.element === "cover-image" && node.fixedImage?.mediaId) ids.add(node.fixedImage.mediaId);
   });
   return Array.from(ids);
 }
 
+type TitlePresentation = Omit<Extract<ContentBlock, { type: "document-title" }>, "id" | "type">;
+type CoverPresentation = Omit<Extract<ContentBlock, { type: "cover-image" }>, "id" | "type">;
+
+function titlePresentation(node: TitlePresentation): TitlePresentation {
+  const { align, blockAlign, level, isLink, linkTarget, rel, visualStyle, siteRole } = node;
+  return copyTemplateData({ align, blockAlign, level, isLink, linkTarget, rel, visualStyle, siteRole });
+}
+function coverPresentation(node: CoverPresentation): CoverPresentation {
+  const { align, blockAlign, isLink, linkTarget, rel, aspectRatio, scale,
+    displayWidth, displayHeight, focalX, focalY, visualStyle, siteRole } = node;
+  return copyTemplateData({ align, blockAlign, isLink, linkTarget, rel, aspectRatio, scale,
+    displayWidth, displayHeight, focalX, focalY, visualStyle, siteRole });
+}
+
 /** Projection for shared block commands only; never stored as a content document. */
 export function templateEditorBlocks(nodes: TemplateNode[]): ContentBlock[] {
   return nodes.map((node): ContentBlock => node.type === "element" && node.element === "document-title"
-    ? { id: node.id, type: "document-title", align: node.align, level: node.level, isLink: node.isLink, linkTarget: node.linkTarget, rel: node.rel, visualStyle: node.visualStyle }
+    ? { ...titlePresentation(node), editorial: node.editorial, id: node.id, type: "document-title" }
     : node.type === "element" && node.element === "subtitle"
-      ? { id: node.id, type: "document-subtitle", align: node.align, visualStyle: mergeParagraphStyles(node.style, node.visualStyle) }
+      ? { editorial: node.editorial, id: node.id, type: "document-subtitle", align: node.align, visualStyle: mergeParagraphStyles(node.style, node.visualStyle) }
       : node.type === "element" && node.element === "cover-image"
-        ? { id: node.id, type: "cover-image", align: node.align }
+        ? { ...coverPresentation(node), editorial: node.editorial, id: node.id, type: "cover-image" }
+        : node.type === "element" && node.element === "content"
+          ? { ...pickLayoutOptions(node), inheritLayout: node.inheritLayout ?? true, editorial: node.editorial, id: node.id, type: "group", layout: "flow", children: [], visualStyle: node.visualStyle ? copyTemplateData(node.visualStyle) : undefined, data: { templateElement: "content", align: node.align ?? "left" } }
         : node.type === "element" || node.type === "part"
-          ? { id: node.id, type: "group", layout: "stack", children: [], data: node.type === "part" ? { templatePart: node.partId } : { templateElement: node.element, align: node.align ?? "left" } }
-    : node.type === "group" || node.type === "section" ? { id: node.id, type: node.type, layout: node.layout, ...(node.type === "group" && node.position ? { position: node.position } : {}), ...(node.type === "group" && node.visualStyle ? { visualStyle: copyTemplateData(node.visualStyle) } : {}), ...(node.type === "section" && node.role ? { role: node.role } : {}), ...pickLayoutOptions(node), children: templateEditorBlocks(node.children) }
+          ? { editorial: node.editorial, id: node.id, type: "group", layout: "stack", children: [], data: node.type === "part" ? { templatePart: node.partId } : { templateElement: node.element, align: node.align ?? "left" } }
+    : node.type === "group" ? { editorial: node.editorial, id: node.id, type: node.type, layout: node.layout, ...(node.position ? { position: node.position } : {}), ...(node.visualStyle ? { visualStyle: copyTemplateData(node.visualStyle) } : {}), ...(node.allowedBlocks ? { allowedBlocks: [...node.allowedBlocks] } : {}), ...pickLayoutOptions(node), children: templateEditorBlocks(node.children) }
+      : node.type === "section" ? { editorial: node.editorial, id: node.id, type: node.type, layout: node.layout, ...(node.role ? { role: node.role } : {}), ...pickLayoutOptions(node), children: templateEditorBlocks(node.children) }
       : node.type === "columns" ? { ...node, children: node.children.map(column => ({ ...column, children: templateEditorBlocks(column.children) })) as ColumnBlock[] }
         : node.type === "column" ? { ...node, children: templateEditorBlocks(node.children) } : node);
 }
@@ -365,18 +468,20 @@ export function templateNodesFromBlocks(blocks: ContentBlock[], sourceNodes: Tem
   const sourceById = new Map<string, TemplateNode>();
   visitTemplateNodes(sourceNodes, node => sourceById.set(node.id, node));
   return blocks.map((block): TemplateNode => {
-    if (block.type === "document-title") return { id: block.id, type: "element", element: "document-title", align: block.align ?? "left", level: block.level, ...(block.isLink !== undefined ? { isLink: block.isLink } : {}), ...(block.linkTarget ? { linkTarget: block.linkTarget } : {}), ...(block.rel ? { rel: block.rel } : {}), ...(block.visualStyle ? { visualStyle: copyTemplateData(block.visualStyle) } : {}) };
-    if (block.type === "document-subtitle") return { id: block.id, type: "element", element: "subtitle", align: block.align ?? "left", ...(block.visualStyle ? { visualStyle: copyTemplateData(block.visualStyle) } : {}) };
+    if (block.type === "document-title") return { ...titlePresentation(block), editorial: block.editorial, id: block.id, type: "element", element: "document-title" };
+    if (block.type === "document-subtitle") return { editorial: block.editorial, id: block.id, type: "element", element: "subtitle", align: block.align ?? "left", ...(block.visualStyle ? { visualStyle: copyTemplateData(block.visualStyle) } : {}) };
     if (block.type === "cover-image") {
       const source = sourceById.get(block.id);
-      return { id: block.id, type: "element", element: "cover-image", align: block.align ?? "left", ...(source?.type === "element" && source.element === "cover-image" ? {
+      return { ...coverPresentation(block), editorial: block.editorial, id: block.id, type: "element", element: "cover-image", ...(source?.type === "element" && source.element === "cover-image" ? {
         ...(source.fixedImage ? { fixedImage: copyTemplateData(source.fixedImage) } : {}),
         ...(source.coverImageHidden ? { coverImageHidden: true } : {}),
       } : {}) };
     }
-    if (block.type === "group" && typeof block.data?.templatePart === "string") return { id: block.id, type: "part", partId: block.data.templatePart };
-    if (block.type === "group" && typeof block.data?.templateElement === "string") return { id: block.id, type: "element", element: block.data.templateElement as Exclude<TemplateElement, "cover-image">, align: block.data.align as "left" | "centre" | "right" };
-    if (block.type === "group" || block.type === "section") return { id: block.id, type: block.type, layout: block.layout, ...(block.type === "group" && block.position ? { position: block.position } : {}), ...(block.type === "group" && block.visualStyle ? { visualStyle: copyTemplateData(block.visualStyle) } : {}), ...(block.type === "section" && block.role ? { role: block.role } : {}), ...pickLayoutOptions(block), children: templateNodesFromBlocks(block.children, sourceNodes) };
+    if (block.type === "group" && typeof block.data?.templatePart === "string") return { editorial: block.editorial, id: block.id, type: "part", partId: block.data.templatePart };
+    if (block.type === "group" && block.data?.templateElement === "content") return { editorial: block.editorial, id: block.id, type: "element", element: "content", align: block.data.align as "left" | "centre" | "right", ...pickLayoutOptions(block), ...(block.visualStyle ? { visualStyle: copyTemplateData(block.visualStyle) } : {}) };
+    if (block.type === "group" && typeof block.data?.templateElement === "string") return { editorial: block.editorial, id: block.id, type: "element", element: block.data.templateElement as Exclude<TemplateElement, "cover-image">, align: block.data.align as "left" | "centre" | "right" };
+    if (block.type === "group") return { editorial: block.editorial, id: block.id, type: block.type, layout: block.layout, ...(block.position ? { position: block.position } : {}), ...(block.visualStyle ? { visualStyle: copyTemplateData(block.visualStyle) } : {}), ...(block.allowedBlocks ? { allowedBlocks: [...block.allowedBlocks] } : {}), ...pickLayoutOptions(block), children: templateNodesFromBlocks(block.children, sourceNodes) };
+    if (block.type === "section") return { editorial: block.editorial, id: block.id, type: block.type, layout: block.layout, ...(block.role ? { role: block.role } : {}), ...pickLayoutOptions(block), children: templateNodesFromBlocks(block.children, sourceNodes) };
     if (block.type === "columns") return { ...block, children: block.children.map(column => ({ ...column, children: templateNodesFromBlocks(column.children, sourceNodes) })) };
     if (block.type === "column") return { ...block, children: templateNodesFromBlocks(block.children, sourceNodes) };
     if (block.type === "component") return invalid("Product components are not template blocks.");
@@ -384,6 +489,7 @@ export function templateNodesFromBlocks(blocks: ContentBlock[], sourceNodes: Tem
   });
 }
 
-function pickLayoutOptions(block: LayoutOptions): LayoutOptions {
-  return Object.fromEntries(Object.entries(block).filter(([key, value]) => ["horizontalAlign", "verticalAlign", "gap", "columnGap", "rowGap", "paddingX", "paddingY", "contentWidth", "columns", "minColumnWidth", "stackAt"].includes(key) && value !== undefined)) as LayoutOptions;
+type LayoutOptionKey = "horizontalAlign" | "verticalAlign" | "gap" | "columnGap" | "rowGap" | "paddingX" | "paddingY" | "contentWidth" | "columns" | "minColumnWidth" | "stackAt" | "contentSize" | "wideSize" | "inheritLayout" | "allowWrap" | "gridMode" | "minColumnWidthUnit";
+function pickLayoutOptions<T extends LayoutOptions | GroupLayoutOptions>(block: T): Pick<T, Extract<keyof T, LayoutOptionKey>> {
+  return Object.fromEntries(Object.entries(block).filter(([key, value]) => ["horizontalAlign", "verticalAlign", "gap", "columnGap", "rowGap", "paddingX", "paddingY", "contentWidth", "columns", "minColumnWidth", "stackAt", "contentSize", "wideSize", "inheritLayout", "allowWrap", "gridMode", "minColumnWidthUnit"].includes(key) && value !== undefined)) as Pick<T, Extract<keyof T, LayoutOptionKey>>;
 }

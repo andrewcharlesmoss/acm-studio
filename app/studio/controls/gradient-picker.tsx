@@ -1,11 +1,14 @@
 "use client";
 
+import { watchInspectorPopover } from "../panes/inspector-popover-position";
 import { createPortal } from "react-dom";
 import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 import type { CustomBackgroundGradient, ParagraphBackgroundGradient } from "../../content/model";
 import { DEFAULT_GRADIENTS, editableBackgroundGradient } from "../../content/background-gradient";
 import { paragraphBackgroundGradientCss } from "../../content/paragraph-styles";
 import { GradientStopColour } from "./gradient-stop-colour";
+import { PopoverHeading } from "../overlays/popover-heading";
+import { useOverlayDismiss } from "../overlays/use-overlay-dismiss";
 import { StudioIcon } from "../studio-icons";
 
 export function GradientPicker({ value, onChange, disabled = false, active, onOpen }: {
@@ -59,54 +62,22 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
   useLayoutEffect(() => { if (stopEditorOpen) stopCloseRef.current?.focus(); }, [stopEditorOpen]);
   useLayoutEffect(() => {
     if (selectedStop === null && !inserting) return;
-    function repositionStop() {
-      const anchor = selectedStop === null ? insertRef.current : stopRefs.current[selectedStop];
-      const popup = stopPopoverRef.current;
-      if (!anchor || !popup) return;
-      const bounds = anchor.getBoundingClientRect();
-      const width = Math.min(260, window.innerWidth - 32);
-      setStopPosition({ width, left: Math.max(16, Math.min(bounds.left + bounds.width / 2 - width / 2, window.innerWidth - width - 16)), top: Math.max(16, Math.min(bounds.bottom + 8, window.innerHeight - popup.getBoundingClientRect().height - 16)) });
-    }
-    repositionStop();
-    window.addEventListener("resize", repositionStop);
-    window.addEventListener("scroll", repositionStop, true);
-    return () => { window.removeEventListener("resize", repositionStop); window.removeEventListener("scroll", repositionStop, true); };
+    const anchor = selectedStop === null ? insertRef.current : stopRefs.current[selectedStop];
+    return watchInspectorPopover(anchor, stopPopoverRef.current, 260, setStopPosition, { ownerAnchor: triggerRef.current, below: true });
   }, [selectedStop, inserting]);
   useLayoutEffect(() => {
     if (!isOpen) return;
-    function reposition() {
-      const anchor = triggerRef.current;
-      const popup = popoverRef.current;
-      if (!anchor || !popup) return;
-      const bounds = anchor.getBoundingClientRect();
-      const width = Math.min(280, window.innerWidth - 32);
-      const leftEdge = anchor.closest(".studio-inspector")?.getBoundingClientRect().left ?? bounds.left;
-      setPosition({ width, left: Math.max(16, Math.min(leftEdge - width - 12, window.innerWidth - width - 16)), top: Math.max(16, Math.min(bounds.top, window.innerHeight - popup.getBoundingClientRect().height - 16)) });
-    }
-    function dismiss(event: KeyboardEvent | PointerEvent) {
-      if (event instanceof KeyboardEvent) {
-        if (event.key !== "Escape") return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (selectedStop !== null || inserting) { closeStopEditor(); return; }
-        close();
-      } else if (event.target instanceof Node && !stopPopoverRef.current?.contains(event.target)) {
-        if (!popoverRef.current?.contains(event.target) && !triggerRef.current?.contains(event.target)) close(false);
-        else if (!barRef.current?.contains(event.target)) { setSelectedStop(null); setInserting(false); }
-      }
-    }
-    reposition();
-    window.addEventListener("resize", reposition);
-    window.addEventListener("scroll", reposition, true);
-    document.addEventListener("keydown", dismiss);
-    document.addEventListener("pointerdown", dismiss);
-    return () => {
-      window.removeEventListener("resize", reposition);
-      window.removeEventListener("scroll", reposition, true);
-      document.removeEventListener("keydown", dismiss);
-      document.removeEventListener("pointerdown", dismiss);
-    };
-  }, [isOpen, selectedStop, inserting, gradient.type, closeStopEditor]);
+    return watchInspectorPopover(triggerRef.current, popoverRef.current, 280, setPosition);
+  }, [isOpen, selectedStop, inserting, gradient.type]);
+  useOverlayDismiss({
+    open: isOpen,
+    onEscape: () => { if (stopEditorOpen) closeStopEditor(); else close(); },
+    onOutside: target => {
+      if (stopPopoverRef.current?.contains(target)) return;
+      if (!popoverRef.current?.contains(target) && !triggerRef.current?.contains(target)) close(false);
+      else if (!barRef.current?.contains(target)) { setSelectedStop(null); setInserting(false); }
+    },
+  });
 
   function update(next: CustomBackgroundGradient) { onChange(next); }
   function changeStop(index: number, patch: Partial<CustomBackgroundGradient["stops"][number]>) {
@@ -130,7 +101,7 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
       <span className={`paragraph-background-mode-swatch${value ? " has-gradient" : ""}`} aria-hidden="true" style={value ? { backgroundImage: paragraphBackgroundGradientCss(value) } : undefined} />Gradient
     </button>
     {isOpen ? createPortal(<div ref={popoverRef} id={id} className="paragraph-colour-palette paragraph-gradient-palette" role="dialog" aria-label="Background gradient" style={position}>
-      <div className="paragraph-colour-palette-heading"><strong>Gradient</strong><button ref={closeRef} type="button" aria-label="Close gradient picker" title="Close" onClick={() => close()}><StudioIcon name="close" size={16} /></button></div>
+      <PopoverHeading closeRef={closeRef} closeLabel="Close gradient picker" onClose={() => close()}>Gradient</PopoverHeading>
       <div className={`paragraph-gradient-bar${value ? "" : " is-unset"}`} style={{ backgroundImage: `${barBackground}, repeating-conic-gradient(#ddd 0% 25%, white 0% 50%)`, backgroundSize: "auto, 12px 12px" }}>
         <div ref={barRef} className="paragraph-gradient-track" onPointerDown={event => {
           if (event.pointerType !== "touch" || event.target !== event.currentTarget || gradient.stops.length >= 20) return;
@@ -167,7 +138,7 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
       {value ? <div className="paragraph-gradient-footer"><button className="studio-clear-action" type="button" onClick={() => { onChange(undefined); setSelectedStop(null); setInserting(false); }}>Clear</button></div> : null}
     </div>, document.body) : null}
     {isOpen && (activeStop || inserting) ? createPortal(<div ref={stopPopoverRef} className="paragraph-colour-palette paragraph-gradient-stop-popover" role="dialog" aria-label={inserting ? "Insert gradient control point" : "Gradient control point colour"} style={stopPosition}>
-      <div className="paragraph-colour-palette-heading"><span className="visually-hidden">Control point colour</span><button ref={stopCloseRef} type="button" aria-label="Close control point colour picker" onClick={closeStopEditor}><StudioIcon name="close" size={16} /></button></div>
+      <PopoverHeading closeRef={stopCloseRef} closeLabel="Close control point colour picker" onClose={closeStopEditor}><span className="visually-hidden">Control point colour</span></PopoverHeading>
       <GradientStopColour key={editorSession} colour={activeStop?.colour ?? "#FFFFFF"} onChange={colour => {
         if (selectedStop !== null) changeStop(selectedStop, { colour });
         else if (insertPosition !== null && gradient.stops.length < 20) {

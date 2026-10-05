@@ -105,10 +105,14 @@ test("keeps hosted database, login and starter-preview surfaces out of the found
   assert.match(editorModel, /type: "button"/);
   assert.match(editorModel, /type: "divider"/);
   assert.match(workspaceRepository, /window\.localStorage/);
-  assert.match(studio, /application\/json/);
+  const jsonExport = await readFile(new URL("app/studio/studio-json-export.ts", root), "utf8");
+  const canvasActions = await readFile(new URL("app/studio/use-studio-canvas-actions.ts", root), "utf8");
+  assert.match(studio, /import \{ exportStudioJson as exportJson \} from "\.\/studio-json-export"/);
+  assert.match(jsonExport, /application\/json/);
   assert.match(blockCommands, /function moveBlock/);
   assert.match(documentCommands, /function duplicateDocument/);
-  assert.match(studio, /function insertBlock/);
+  assert.match(studio, /useStudioCanvasActions\(\{ blockCommands, writable, insertAfterIndex/);
+  assert.match(canvasActions, /function insertBlock/);
   assert.match(studioMedia, /mediaId/);
   assert.match(mediaStore, /indexedDB\.open/);
   assert.match(mediaStore, /addMediaFiles/);

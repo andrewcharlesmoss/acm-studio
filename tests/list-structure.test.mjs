@@ -2,13 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
+import { loadProductionModule } from "./production-module.mjs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 async function compileModule(url) {
   let output = ts.transpileModule(await readFile(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-  for (const match of [...output.matchAll(/from "([^\"]+)"/g)]) {
+  for (const match of [...output.matchAll(/from "([^"]+)"/g)]) {
     const specifier = match[1];
     if (!specifier.startsWith(".")) continue;
-    const dependency = await compileModule(new URL(`${specifier}.ts`, url));
+    const dependency = await compileModule(new URL(/\.[cm]?[jt]sx?$/.test(specifier) ? specifier : `${specifier}.ts`, url));
     output = output.replace(match[0], `from "${dependency}"`);
   }
   return `data:text/javascript;base64,${Buffer.from(output).toString("base64")}`;
@@ -108,18 +111,144 @@ test("indenting consecutive reversed-list items continues their original sequenc
   assert.equal(second.block.items[0].children[0].reversed, true);
 });
 
-test("outdenting a nested item inserts it after its owning item and removes empty list wrappers", () => {
+test("outdenting a nested item carries following siblings beneath it and removes empty wrappers", () => {
   const original = list([{ text: "Parent", children: [list(["First", "Second"], "child-list")] }, "Sibling"]);
   const moved = outdentListItem(original, "child-list", 0);
   assert.ok(moved);
   assert.deepEqual(moved.block.items, [
-    { text: "Parent", children: [list(["Second"], "child-list")] },
-    "First",
+    { text: "Parent" },
+    { text: "First", children: [list(["Second"], "child-list")] },
     "Sibling",
   ]);
   assert.deepEqual({ listId: moved.listId, itemIndex: moved.itemIndex }, { listId: "root", itemIndex: 1 });
   const emptied = outdentListItem(list([{ text: "Parent", children: [list(["Only child"], "child-list")] }]), "child-list", 0);
   assert.deepEqual(emptied.block.items, [{ text: "Parent" }, "Only child"]);
+});
+
+const readingOrder = block => block.items.flatMap(item => [typeof item === "string" ? item : item.text, ...(typeof item === "string" ? [] : (item.children ?? []).flatMap(readingOrder))]);
+
+test("middle outdent retains source metadata and creates a unique tail without duplicating its anchor or note", () => {
+  const source = { ...list(["Before", { text: "Moved", runs: [{ text: "Moved", marks: ["bold"] }], style: { anchor: "item" } }, "After"], "nested"), visualStyle: { anchor: "list-anchor", className: "list-class" }, editorial: { note: "Retain with source" } };
+  const original = list([{ text: "Parent", children: [source, list(["Later list"], "nested-outdent-1")] }, "Sibling"]);
+  const snapshot = structuredClone(original);
+  const result = outdentListItem(original, "nested", 1);
+  assert.deepEqual(readingOrder(result.block), readingOrder(original));
+  const retained = result.block.items[0].children[0];
+  const moved = result.block.items[1];
+  assert.deepEqual(retained.items, ["Before"]);
+  assert.equal(retained.id, "nested");
+  assert.equal(retained.visualStyle, source.visualStyle);
+  assert.equal(retained.editorial, source.editorial);
+  assert.equal(moved.runs, source.items[1].runs);
+  assert.equal(moved.style, source.items[1].style);
+  const expectedTail = { ...source, id: "nested-outdent-2", items: ["After"], visualStyle: { className: "list-class" } };
+  delete expectedTail.editorial;
+  assert.deepEqual(moved.children[0], expectedTail);
+  assert.equal(moved.children[1], original.items[0].children[1]);
+  assert.deepEqual(original, snapshot);
+});
+
+test("outdent preserves existing moved children before the tail and later parent Lists", () => {
+  const original = list([{ text: "Parent", children: [list(["Earlier"], "earlier"), list(["Before", { text: "Moved", children: [list(["Own child"], "own")] }, "After"], "nested"), list(["Later"], "later")] }, "Sibling"]);
+  const result = outdentListItem(original, "nested", 1);
+  assert.deepEqual(readingOrder(result.block), readingOrder(original));
+  assert.deepEqual(result.block.items[0].children.map(child => child.id), ["earlier", "nested"]);
+  assert.deepEqual(result.block.items[1].children.map(child => child.id), ["own", "nested-outdent-1", "later"]);
+});
+
+for (const reversed of [false, true]) {
+  test(`ordered outdent retains explicit ${reversed ? "reversed" : "forward"} prefix and tail numbering`, () => {
+    const source = { ...list(["Before", "Moved", "After", "Last"], "ordered", "ordered"), marker: "I", start: 9, reversed };
+    const original = list([{ text: "Parent", children: [source] }]);
+    const result = outdentListItem(original, "ordered", 1);
+    const prefix = result.block.items[0].children[0], tail = result.block.items[1].children[0];
+    assert.equal(prefix.start, 9);
+    assert.equal(tail.start, reversed ? 7 : 11);
+    assert.equal(tail.marker, "I"); assert.equal(tail.reversed, reversed);
+    assert.deepEqual(readingOrder(result.block), readingOrder(original));
+  });
+}
+
+test("implicit reversed numbering survives a shortened prefix and relocated tail", () => {
+  const source = { ...list(["Before", "Moved", "After"], "ordered", "ordered"), reversed: true };
+  const original = list([{ text: "Parent", children: [source] }]);
+  const result = outdentListItem(original, "ordered", 1);
+  assert.equal(result.block.items[0].children[0].start, 3);
+  assert.equal(result.block.items[1].children[0].start, 1);
+});
+
+test("last nested item outdent needs no tail and invalid indices leave the tree unchanged", () => {
+  const original = list([{ text: "Parent", children: [list(["Before", "Moved"], "nested")] }]);
+  const result = outdentListItem(original, "nested", 1);
+  assert.deepEqual(result.block.items, [{ text: "Parent", children: [list(["Before"], "nested")] }, "Moved"]);
+  assert.equal(outdentListItem(original, "nested", -1), null);
+  assert.equal(outdentListItem(original, "nested", 2), null);
+  assert.equal(outdentListItem(original, "missing", 0), null);
+});
+
+test("outdent at the third level updates only its owning branch and preserves reading order", () => {
+  const original = list([{ text: "Top", children: [list([{ text: "Middle", children: [list(["Before", "Moved", "After"], "deep")] }, "Middle sibling"], "nested")] }, "Top sibling"]);
+  const result = outdentListItem(original, "deep", 1);
+  assert.deepEqual(readingOrder(result.block), readingOrder(original));
+  assert.deepEqual({ listId: result.listId, itemIndex: result.itemIndex }, { listId: "nested", itemIndex: 1 });
+  assert.equal(result.block.items[1], "Top sibling");
+  const nested = result.block.items[0].children[0];
+  assert.deepEqual(nested.items[0].children[0].items, ["Before"]);
+  assert.deepEqual(nested.items[1], { text: "Moved", children: [list(["After"], "deep-outdent-1")] });
+  assert.equal(nested.items[2], "Middle sibling");
+});
+
+test("outdent output remains valid typed content after a JSON save/read boundary", async () => {
+  const { validContentBlocks } = await loadProductionModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
+  const { blockToHtml } = await loadProductionModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url));
+  const original = list([{ text: "Parent", children: [{ ...list(["Before", { text: "Moved", runs: [{ text: "Moved", marks: ["bold"] }] }, "After"], "nested", "ordered"), reversed: true }] }]);
+  const result = outdentListItem(original, "nested", 1);
+  const stored = JSON.parse(JSON.stringify(result.block));
+  assert.equal(validContentBlocks([stored]), true);
+  assert.deepEqual(readingOrder(stored), readingOrder(original));
+  const html = blockToHtml(stored);
+  assert.match(html, /<strong>Moved<\/strong>/);
+  assert.ok(html.indexOf("Before") < html.indexOf("Moved") && html.indexOf("Moved") < html.indexOf("After"));
+  assert.equal((html.match(/data-block-id="nested"/g) ?? []).length, 1);
+  assert.equal((html.match(/data-block-id="nested-outdent-1"/g) ?? []).length, 1);
+});
+
+test("tail IDs avoid blocks elsewhere in the document, including nested non-List content", async () => {
+  const { validContentBlocks } = await loadProductionModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
+  const root = list([{ text: "Parent", children: [list(["Before", "Moved", "After"], "nested")] }]);
+  const other = { id: "group", type: "group", layout: "flow", children: [{ id: "nested-outdent-1", type: "paragraph", text: "Other content" }] };
+  const result = outdentListItem(root, "nested", 1, [root, other]);
+  assert.equal(result.block.items[1].children[0].id, "nested-outdent-2");
+  assert.equal(validContentBlocks([result.block, other]), true);
+});
+
+for (const [start, reversed] of [[100000, false], [-100000, true]]) {
+  test(`outdent refuses an unrepresentable ordered tail at start ${start}`, async () => {
+    const { validContentBlocks } = await loadProductionModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
+    const root = list([{ text: "Parent", children: [{ ...list(["Before", "Moved", "After"], "nested", "ordered"), start, reversed }] }]);
+    const snapshot = structuredClone(root);
+    assert.equal(validContentBlocks([root]), true);
+    assert.equal(outdentListItem(root, "nested", 1, [root]), null);
+    assert.deepEqual(root, snapshot);
+  });
+}
+
+test("the actual List toolbar and keyboard paths supply document-wide ID context", async () => {
+  const canvas = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  assert.match(canvas, /<ListField[^>]*rootBlocks=\{rootBlocks\}/);
+  assert.match(canvas, /<ListItemIndentControls[^>]*rootBlocks=\{rootBlocks\}/);
+  assert.equal((canvas.match(/outdentListItem\(block, list\.id, (?:selection\.itemIndex|index), rootBlocks\)/g) ?? []).length, 4);
+  assert.match(canvas, /mergeListItemBoundary\(block, list\.id, index, backward \? "backward" : "forward", rootBlocks\)/);
+});
+
+test("Studio Preview places nested Lists in the shared item-content column", async () => {
+  const { BlockRenderer } = await loadProductionModule(new URL("../app/components/content.tsx", import.meta.url));
+  const root = list([{ text: "Parent", children: [list(["Child"], "child")] }]);
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [root], variant: "studio" }));
+  assert.match(html, /<div class="list-field-item-content"><span class="list-item-text"[^>]*>Parent<\/span><ul class="list-field-preview">/);
+  assert.match(html, /<div class="list-field-item-content"><span class="list-item-text"[^>]*>Child<\/span><\/div>/);
+  const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [root], variant: "article" }));
+  assert.doesNotMatch(article, /list-field-item-content/);
 });
 
 test("root list items cannot be outdented and the first item cannot be indented", () => {

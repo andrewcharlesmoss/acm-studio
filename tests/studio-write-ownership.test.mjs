@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import vm from "node:vm";
@@ -18,7 +18,8 @@ function modules(globals = {}, overrides = {}) {
     vm.runInNewContext(source, { exports, AggregateError, Error, Blob, File, crypto, structuredClone, queueMicrotask, setInterval, clearInterval, ...globals, require(specifier) {
       if (specifier in overrides) return overrides[specifier];
       if (!specifier.startsWith(".")) return require(specifier);
-      return load(path.resolve(path.dirname(filename), /\.(mjs|ts)$/.test(specifier) ? specifier : `${specifier}.ts`));
+      const base = path.resolve(path.dirname(filename), specifier);
+      return load(/\.(?:mjs|tsx?)$/.test(specifier) ? base : existsSync(`${base}.ts`) ? `${base}.ts` : `${base}.tsx`);
     } }, { filename });
     return exports;
   };
@@ -47,7 +48,7 @@ async function publicationFixture(raw = null, failWrite = false) {
     setItem(_key, value) { writes++; if (failWrite) throw Error("Storage unavailable"); raw = value; },
   };
   const load = modules({ window: { localStorage: storage } }, {
-    react: { useState: () => [null, (message) => feedback.push(message)] },
+    react: { useState: () => [null, (message) => feedback.push(message)], useEffect() {} },
   });
   await own(load("app/studio/write-ownership.ts").studioWriteOwnership, locks());
   const publication = load("app/content/local-publishing.ts");
@@ -58,7 +59,7 @@ async function publicationFixture(raw = null, failWrite = false) {
 test("publication mutations preserve exact unreadable bytes without any write", async () => {
   const fixture = await publicationFixture();
   const article = fixture.publication.toLocallyPublishedArticle(fixture.document);
-  const malformed = ["", "{private broken bytes", "null", "[]", JSON.stringify({ version: 4, posts: [] }),
+  const malformed = ["", "{private broken bytes", "null", "[]", JSON.stringify({ version: 19, posts: [] }),
     JSON.stringify({ version: 1, posts: {} }), JSON.stringify({ version: 1, posts: [null] }),
     JSON.stringify({ version: 1, posts: [{ ...article, publishedAt: "not a date" }] }),
     JSON.stringify({ version: 1, posts: [{ ...article, blocks: [{ id: "bad", type: "paragraph", text: 42 }] }] }),
@@ -73,7 +74,7 @@ test("publication mutations preserve exact unreadable bytes without any write", 
 });
 
 test("valid and absent publication stores retain, replace and unpublish posts", async () => {
-  for (const raw of [null, JSON.stringify({ version: 1, posts: [] })]) {
+  for (const raw of [null, ...[1, 4, 16].map(version => JSON.stringify({ version, posts: [] }))]) {
     const f = await publicationFixture(raw);
     f.publication.publishDocumentLocally(f.document);
     const another = { ...f.document, id: "another", slug: "another-post", title: "Another post" };

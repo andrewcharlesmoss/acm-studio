@@ -3,6 +3,7 @@ import { assertTemplateMediaCanBeDeleted } from "./template-store";
 import { LOCAL_WORKSPACE_KEY } from "../content/local-storage-keys";
 import { contentMediaIds } from "../content/media-references";
 import { migrateStudioWorkspace, validateStudioWorkspace } from "./workspace-validation";
+import { validateWorkspacePublicationTemplates } from "./template-model";
 import type { StudioWorkspace } from "./editor-model";
 
 export type MediaFolder = {
@@ -229,7 +230,7 @@ export async function deleteMediaAsset(id: string) {
     const rawWorkspace = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
     if (rawWorkspace !== null) {
       let workspace: StudioWorkspace;
-      try { workspace = validateStudioWorkspace(migrateStudioWorkspace(JSON.parse(rawWorkspace))); }
+      try { workspace = validateWorkspacePublicationTemplates(validateStudioWorkspace(migrateStudioWorkspace(JSON.parse(rawWorkspace)))); }
       catch { throw new Error("The saved workspace could not be checked. Restore a valid backup before deleting files."); }
       const documents = [...workspace.documents, ...workspace.bin.map(item => item.document)];
       if (documents.some(document => document.coverImage?.mediaId === id || contentMediaIds(document.blocks).includes(id))) {

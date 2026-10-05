@@ -42,10 +42,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-body:has(.studio-shell, .design-shell, .design-library-shell) {
-  background: radial-gradient(circle at 83% 8%, rgba(92, 94, 92, 0.06), transparent 26rem), var(--paper);
-}
-
 a { color: inherit; text-decoration: none; }
 
 a:focus-visible,
@@ -55,11 +51,6 @@ textarea:focus-visible,
 select:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-colour);
   outline-offset: var(--focus-ring-offset);
-}
-
-:where(.studio-shell, .design-shell, .design-library-shell, .pane-workspace, .pl-catalogue, .rl-shell, .template-surface) :focus {
-  border-color: #5c5e5c !important;
-  outline-color: var(--focus-ring-colour) !important;
 }
 
 button, input, textarea, select { font: inherit; }
@@ -660,8 +651,8 @@ button, input, textarea, select { font: inherit; }
 }
 
 .prose { font-size: 20px; line-height: 1.7; }
-.prose a:not(.content-button) { color: #2f6eb4; text-decoration-line: underline; text-decoration-thickness: .08em; text-underline-offset: .12em; }
-.prose a:not(.content-button):hover { color: #1f4f88; }
+.prose a:not(.content-button, .social-icon-item) { color: #2f6eb4; text-decoration-line: underline; text-decoration-thickness: .08em; text-underline-offset: .12em; }
+.prose a:not(.content-button, .social-icon-item):hover { color: #1f4f88; }
 .prose > :first-child { margin-top: 0; }
 .prose p { margin: 0 0 1.5em; }
 
@@ -680,10 +671,10 @@ button, input, textarea, select { font: inherit; }
 .prose h6 { font-size: 18px; margin: 1.4em 0 0.45em; }
 .prose ul, .prose ol { margin: 0 0 1.8em; padding-left: 1.3em; }
 .prose li { margin-bottom: 0.5em; padding-left: 0.35em; }
-.content-table-frame { border: 1px solid #bfc3ca; border-radius: 6px; margin: 1.8em 0; overflow: hidden; }
-.content-table { border-collapse: separate; border-spacing: 0; font-family: var(--font-sans); font-size: 15px; line-height: 1.5; table-layout: fixed; width: 100%; }
+.content-table-frame { margin: 1.8em 0; }
+.content-table { border: 1px solid #bfc3ca; border-radius: 6px; overflow: hidden; border-collapse: separate; border-spacing: 0; font-family: var(--font-sans); font-size: 15px; line-height: 1.5; table-layout: fixed; width: 100%; }
 .content-table.is-auto-layout, .table-field-grid.is-auto-layout { table-layout: auto; }
-.content-table caption, .table-field-grid caption { caption-side: bottom; padding: 10px 12px; text-align: left; }
+.content-table-frame > figcaption, .table-field > figcaption { caption-side: bottom; margin-top: .5em; text-align: center; }
 .content-table-frame.is-striped tbody tr:nth-child(odd) > *, .table-field.is-striped tbody tr:nth-child(odd) > * { background-color: #f2f2f7; }
 .content-table th, .content-table td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; padding: 0; position: relative; text-align: left; vertical-align: top; }
 .content-table tr > :last-child { border-right: 0; }
@@ -692,6 +683,7 @@ button, input, textarea, select { font: inherit; }
 /* Like the editor's textareas, content must not impose a minimum row height.
    Retain all text in a keyboard-scrollable area within the saved dimensions. */
 .content-table-cell { box-sizing: border-box; height: 100%; inset: 0; overflow: auto; overflow-wrap: anywhere; padding: 9px 10px; position: absolute; white-space: pre-wrap; width: 100%; }
+.content-table tr:not(.has-explicit-row-height) .content-table-cell { height: auto; position: static; }
 .content-table-cell:focus-visible { outline: 1px solid #6b7280; outline-offset: -1px; }
 
 .pull-quote {
@@ -741,20 +733,22 @@ button, input, textarea, select { font: inherit; }
 /* Inspector styling lives on a neutral wrapper so Edit, Preview and published
    content share the same box. Only explicitly changed typography overrides
    each block's normal type scale. */
-.block-visual-style.has-custom-font-size :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-marker, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { font-size: inherit; }
-.block-visual-style.has-custom-font-family :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-marker, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { font-family: inherit; }
-.block-visual-style.has-custom-appearance :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { font-style: inherit; font-weight: inherit; }
-.block-visual-style.has-custom-line-height :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { line-height: inherit; }
-.block-visual-style.has-custom-letter-spacing :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { letter-spacing: inherit; }
-.block-visual-style.has-custom-text-colour :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-marker, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid textarea, .code-highlight, .code-input, .studio-code-preview) { color: inherit; }
+.block-visual-style.has-custom-font-size :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-marker, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid .table-cell-editor, .code-highlight, .code-input, .studio-code-preview) { font-size: inherit; }
+.block-visual-style.has-custom-font-family :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-marker, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid .table-cell-editor, .code-highlight, .code-input, .studio-code-preview) { font-family: inherit; }
+.block-visual-style.has-custom-appearance :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid .table-cell-editor, .code-highlight, .code-input, .studio-code-preview) { font-style: inherit; font-weight: inherit; }
+.block-visual-style.has-custom-line-height :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid .table-cell-editor, .code-highlight, .code-input, .studio-code-preview) { line-height: inherit; }
+.block-visual-style.has-custom-letter-spacing :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid .table-cell-editor, .code-highlight, .code-input, .studio-code-preview) { letter-spacing: inherit; }
+.block-visual-style.has-custom-text-colour :is(h1, h2, h3, h4, h5, h6, blockquote, ol, ul, pre, .block-textarea, .list-field-marker, .list-field-row textarea, .list-item-text, .content-table, .content-table-cell, .table-field-grid .table-cell-editor, .code-highlight, .code-input, .studio-code-preview) { color: inherit; }
 .block-visual-style.has-custom-background :is(pre, .code-highlight, .studio-code-preview) { background: transparent; }
-.block-visual-style a { color: var(--studio-paragraph-link-color, inherit); }
-.block-visual-style a:hover { color: var(--studio-paragraph-link-hover-color, var(--studio-paragraph-link-color, #1f4f88)); filter: var(--studio-paragraph-link-hover-filter, brightness(.8)); }
+/* Social links own their foreground in both default and Logos Only styles. */
+.block-visual-style a:where(:not(.social-icon-item)) { color: var(--studio-paragraph-link-color, inherit); }
+.block-visual-style a:where(:not(.social-icon-item)):hover { color: var(--studio-paragraph-link-hover-color, var(--studio-paragraph-link-color, #1f4f88)); filter: var(--studio-paragraph-link-hover-filter, brightness(.8)); }
 .prose .paragraph-content a { color: var(--studio-paragraph-link-color, inherit); }
 .prose .paragraph-content a:hover { color: var(--studio-paragraph-link-hover-color, var(--studio-paragraph-link-color, #1f4f88)); filter: var(--studio-paragraph-link-hover-filter, brightness(.8)); }
 .block-visual-style.has-custom-font-size :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-size: inherit; }
 .block-visual-style.has-custom-font-family :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-family: inherit; }
 .block-visual-style.has-custom-appearance :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { font-style: inherit; font-weight: inherit; }
+.block-visual-style.has-custom-line-height :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { line-height: inherit; }
 .block-visual-style.has-custom-text-colour :is(.metadata-block, .metadata-block-editor, .document-dynamic-field, .document-dynamic-field p, .article-byline, .article-byline-detail, .reading-time-badge) { color: inherit; }
 .has-drop-cap:is(p, .paragraph-field)::first-letter { float: left; font-size: 3.4em; font-weight: 600; line-height: .82; margin: .04em .12em 0 0; }
 .has-fit-text:is(p, .paragraph-field, .heading-field, h1, h2, h3, h4, h5, h6) { white-space: pre; word-break: normal; }
@@ -790,10 +784,9 @@ button, input, textarea, select { font: inherit; }
 .social-icons-block.size-large { font-size: 36px; }
 .social-icons-block.size-huge { font-size: 48px; }
 .social-icons-block.is-style-logos-only .social-icon-item { background: transparent; background-image: none; color: currentColor; min-height: 0; min-width: 0; padding: 0; }
-.social-icons-block.is-style-logos-only .social-icon-item.is-linkedin { color: #0a66c2; }
-.social-icons-block.is-style-logos-only .social-icon-item.is-tiktok { color: #171717; }
+.social-icons-block.is-style-logos-only .social-icon-item.is-linkedin { color: var(--social-icon-colour, #0a66c2); }
+.social-icons-block.is-style-logos-only .social-icon-item.is-tiktok { color: var(--social-icon-colour, #171717); }
 .social-icons-block.is-style-logos-only .social-icon-glyph svg { height: 1.25em; width: 1.25em; }
-.social-icons-block.is-style-logos-only .social-icon-label { display: none; }
 .social-icons-block.is-style-pill-shape .social-icon-item { padding-inline: calc((2 / 3) * 1em); }
 
 .article-image img { border-radius: 16px; display: block; max-width: 100%; }
@@ -809,8 +802,9 @@ button, input, textarea, select { font: inherit; }
 .inline-math { white-space: nowrap; }
 .inline-math-fallback { border-bottom: 1px dotted currentColor; }
 .article-footnotes { border-top: 1px solid var(--line); font-size: .9em; margin-top: 2rem; padding-top: 1rem; }
-.article-footnotes ol { padding-left: 1.5rem; }
+.article-footnotes ol { list-style-type: decimal; padding-left: 1.5rem; }
 .article-footnotes li { margin-block: .5rem; }
+.footnote-backlink { align-items: center; display: inline-flex; min-height: 24px; min-width: 24px; vertical-align: middle; }
 .block-visual-style.has-custom-font-size :is(.article-footnotes, .footnotes-field, .footnotes-field textarea) { font-size: inherit; }
 .block-visual-style.has-custom-font-family :is(.article-footnotes, .footnotes-field, .footnotes-field textarea) { font-family: inherit; }
 .block-visual-style.has-custom-appearance :is(.article-footnotes, .footnotes-field, .footnotes-field textarea) { font-style: inherit; font-weight: inherit; }
@@ -818,7 +812,7 @@ button, input, textarea, select { font: inherit; }
 .article-image figcaption { color: var(--muted); font-size: 12px; margin-top: 8px; }
 .embed-card { border: 1px solid var(--line); border-radius: 14px; display: grid; font-size: 14px; gap: 6px; padding: 20px; }
 .embed-card span { color: var(--muted); font-size: 11px; text-transform: uppercase; }
-.embed-caption { color: var(--muted); font-size: inherit; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
+.embed-caption { color: var(--muted); font-size: inherit; line-height: 1.4; margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
 .button-block.has-width-25 { width: 25%; }
 .button-block.has-width-50 { width: 50%; }
 .button-block.has-width-75 { width: 75%; }
@@ -844,3 +838,40 @@ button, input, textarea, select { font: inherit; }
 .not-found { min-height: 650px; padding: 120px 0; }
 .not-found h1 { font-size: clamp(54px, 8vw, 100px); font-weight: 570; letter-spacing: -0.06em; line-height: 1; margin: 24px 0 32px; max-width: 900px; }
 .not-found > p:not(.eyebrow) { color: var(--muted); font-size: 18px; margin-bottom: 32px; }
+
+.content-table-frame, .table-field { margin: 0; }
+.table-field.has-table-border > .table-field-grid[style*="border-width"] :is(thead, tbody, tfoot, tr, th, td),
+.content-table-frame.has-table-border > .content-table[style*="border-width"] :is(thead, tbody, tfoot, tr, th, td) { border-width: inherit; }
+.table-field.has-table-border > .table-field-grid[style*="border-style"] :is(thead, tbody, tfoot, tr, th, td),
+.content-table-frame.has-table-border > .content-table[style*="border-style"] :is(thead, tbody, tfoot, tr, th, td) { border-style: inherit; }
+.table-field.has-table-border > .table-field-grid[style*="border-color"] :is(thead, tbody, tfoot, tr, th, td),
+.content-table-frame.has-table-border > .content-table[style*="border-color"] :is(thead, tbody, tfoot, tr, th, td) { border-color: inherit; }
+
+.content-table-frame.has-table-border, .table-field.has-table-border { border: 0; }
+
+.content-table-frame.has-table-border > table, .table-field.has-table-border > table { border-collapse: collapse; }
+
+/* Provider players are shared by the editor, preview and local publication. */
+.embed-player-block { margin: 0; }
+.content-provider-embed { width: 100%; }
+.content-provider-embed iframe { display: block; border: 0; width: 100%; min-height: 200px; }
+.content-provider-embed iframe[src*="tiktok.com"] { max-width: 420px; margin-inline: auto; }
+.content-provider-embed-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-block: 8px; font: 13px var(--studio-ui-font, system-ui); }
+.content-provider-embed-actions button { padding: 6px 10px; background: transparent; border: 1px solid currentColor; border-radius: 3px; cursor: pointer; }
+
+.content-buttons > p { margin: 0; }
+.quote-field blockquote { margin: 0; }
+.quote-citation-editor { display: block; margin-top: 12px; font-style: italic; }
+
+.content-buttons .content-button-item { flex: 0 1 auto; min-width: 0; }
+.content-buttons .content-button-item :is(.button-field, .button-block) { width: 100%; margin: 0; padding: 0; }
+.content-buttons .content-button-item :is(.studio-block-preview, .prose, .content-block) { margin: 0; padding: 0; }
+
+.embed-player-block .embed-title-setting { display: grid; gap: 6px; margin: 12px 0; font: var(--studio-ui-size, 13px) var(--studio-ui-font, sans-serif); }
+.embed-player-block .embed-title-setting input { border: 1px solid #949494; border-radius: 2px; padding: 8px; width: 100%; box-sizing: border-box; font: inherit; }
+.embed-player-block .embed-edit-url { width: auto; height: auto; padding: 8px 12px; border: 1px solid #949494; margin: 0 8px 8px 0; }
+.embed-player-block .embed-caption-editor { display: block; margin-top: 8px; font: inherit; }
+
+/* Section boundaries are shared by the editable and preview tables. */
+:is(.content-table, .table-field-grid) > thead > tr:last-child > :is(th, td) { border-bottom: 3px solid #bfc3ca; }
+:is(.content-table, .table-field-grid) > tfoot > tr:first-child > :is(th, td) { border-top: 3px solid #bfc3ca; }

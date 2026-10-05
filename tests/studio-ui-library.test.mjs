@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 
 const read = (path) => readFileSync(resolve(path), "utf8");
 
-test("Controls renders every specimen and resolves its group and navigation anchors", async () => {
+test("Controls renders catalogue entry anchors and resolves grouped navigation", async () => {
   const { createRequire } = await import("node:module");
   const { pathToFileURL } = await import("node:url");
   const { default: ts } = await import("typescript");
@@ -23,6 +23,7 @@ test("Controls renders every specimen and resolves its group and navigation anch
   const { ControlsCatalogue } = await import(compile(read("app/studio/ui/controls/controls-catalogue.tsx"), {
     "../../controls/library-catalogue": catalogueUrl, "../studio-ui-library": wrapperUrl,
     "./control-specimen": specimenUrl, "./controls-navigation": navigationUrl,
+    "../../controls/range-colours": pathToFileURL(resolve("app/studio/controls/range-colours.ts")).href,
   }));
   const html = renderToStaticMarkup(createElement(ControlsCatalogue));
   const ids = [...html.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);
@@ -74,7 +75,7 @@ test("Block Library routes use one capability profile and production inspector s
   assert.match(definition, /availableBlockTransforms/);
   assert.match(inspector, /capabilityProfileFor\(block\.type\)/);
   assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls\(profile, style\)\]/);
-  assert.match(inspector, /resetInspectorStyleFields\(style, selectedIds, styleControls\)/);
+  assert.match(inspector, /resetSupportedInspectorStyleFields\(style, selectedIds, styleControls\)/);
   assert.match(inspector, /className=\{`advanced-fields-section\$\{block\.type === "paragraph" \? " paragraph-advanced-fields" : ""\}`\}/);
   assert.match(studioStyles, /\.inspector-sections \.advanced-fields-section > h2 \{[^}]*text-transform: none/);
   assert.match(specimen, /<BlockField/);
@@ -101,6 +102,64 @@ test("Block Library routes use one capability profile and production inspector s
   assert.match(specimen, /className="ui-block-sample-note"/);
   assert.doesNotMatch(specimen, /studioWriteOwnership|localStorage|sessionStorage/);
   assert.match(read("app/studio/ui/blocks/page.tsx"), /<BlockLibraryCatalogue initialType=\{null\} \/>/);
+});
+
+test("shared inspector icons link back to their Studio catalogue examples", () => {
+  const icons = read("app/studio/ui/icons-catalogue.tsx");
+  for (const [symbol, expectedConsumers] of [
+    ["action.remove", [["Clear background colour control", "/studio/ui/controls#background-selection"]]],
+    ["state.warning", [["Background contrast warning", "/studio/ui/controls#background-selection"]]],
+    ["action.adjust", [["Box dimensions controls", "/studio/ui/controls#box-length"]]],
+    ["action.add", [["Inspector options and block inserter controls", "/studio/ui/blocks/paragraph"]]],
+    ["action.delete", [["Remove blocks, List View items and cover images", "/studio/ui/blocks/group"]]],
+    ["action.duplicate", [["Duplicate block action", "/studio/ui/blocks/group"]]],
+    ["action.edit", [["Edit inline text links", "/studio/ui/blocks/paragraph"]]],
+    ["action.link", [["Add a link to selected text", "/studio/ui/blocks/paragraph"]]],
+    ["action.undo", [["Reset Pane demo", "/studio/ui/panes"]]],
+    ["navigation.chevron-right", [["Pane collapse controls", "/studio/ui/panes"]]],
+    ["arrange.move-down", [["Move blocks down in the editor canvas", "/studio/ui/blocks/group"], ["Move selected blocks down in List View", "/studio/ui/blocks/group"]]],
+    ["arrange.move-up", [["Move blocks up in the editor canvas", "/studio/ui/blocks/group"], ["Move selected blocks up in List View", "/studio/ui/blocks/group"]]],
+    ["view.hide", [["Hide a page on the design canvas", "/studio/designs"], ["Mask a Site Settings value", "/studio/sites/mini-golf-scorecard"]]],
+    ["view.show", [["Show a hidden page on the design canvas", "/studio/designs"], ["Reveal a masked Site Settings value", "/studio/sites/mini-golf-scorecard"]]],
+    ["text.bold", [["Bold inline text formatting", "/studio/ui/blocks/paragraph"]]],
+    ["text.footnote", [["Insert an inline footnote", "/studio/ui/blocks/paragraph"]]],
+    ["text.italic", [["Italic inline text formatting", "/studio/ui/blocks/paragraph"]]],
+    ["text.language", [["Set inline text language", "/studio/ui/blocks/paragraph"]]],
+    ["text.math", [["Insert inline mathematical notation", "/studio/ui/blocks/paragraph"]]],
+    ["insert.highlight", [["Highlight inline text", "/studio/ui/blocks/paragraph"]]],
+    ["insert.image", [["Insert an inline image in text", "/studio/ui/blocks/paragraph"]]],
+    ["text.code", [["Format inline code", "/studio/ui/blocks/paragraph"]]],
+    ["text.keyboard", [["Format keyboard input", "/studio/ui/blocks/paragraph"]]],
+    ["text.strikethrough", [["Format strikethrough text", "/studio/ui/blocks/paragraph"]]],
+    ["text.subscript", [["Format subscript text", "/studio/ui/blocks/paragraph"]]],
+    ["text.superscript", [["Format superscript text", "/studio/ui/blocks/paragraph"]]],
+    ["block.heading", [["Transform a block to Heading", "/studio/ui/blocks/heading"]]],
+    ["block.list", [["Transform a block to List", "/studio/ui/blocks/list"]]],
+    ["text.paragraph", [["Transform a block to Paragraph", "/studio/ui/blocks/paragraph"]]],
+    ["text.quote", [["Transform a block to Quote", "/studio/ui/blocks/quote"]]],
+    ["action.close", [["Colour and gradient picker close controls", "/studio/ui/controls#background-selection"], ["Inspector options menu close control", "/studio/ui/controls#inspector-tools"], ["Remove a selected block", "/studio/ui/blocks/group"], ["Collapse a Pane from its header", "/studio/ui/panes"]]],
+    ["action.copy", [["Gradient stop colour copy control", "/studio/ui/controls#background-selection"], ["Design canvas Copy, Paste and duplicate actions", "/studio/designs"]]],
+    ["action.more", [["Block toolbar options menu", "/studio/ui/blocks/group"]]],
+    ["action.more", [["Inspector options menu", "/studio/ui/blocks/paragraph"]]],
+    ["navigation.external", [["Paragraph Advanced help link", "/studio/ui/blocks/paragraph"]]],
+    ["state.selected", [["Selected custom font size unit", "/studio/ui/blocks/paragraph"]]],
+    ["table.cell", [["Table options menu", "/studio/ui/blocks/table"]]],
+    ["navigation.back", [["Studio navigation and publish-date previous-month control", "/studio"]]],
+    ["navigation.forward", [["Studio navigation and publish-date next-month control", "/studio"]]],
+  ]) {
+    const entryStart = icons.indexOf(`"${symbol}":`);
+    const entry = entryStart < 0 ? "" : icons.slice(entryStart, icons.indexOf("\n", entryStart));
+    for (const [label, href] of expectedConsumers) {
+      assert.ok(entry.includes(`label: "${label}"`), `${symbol} identifies ${label}`);
+      assert.ok(entry.includes(`href: "${href}"`), `${symbol} links to ${href}`);
+    }
+  }
+  assert.match(icons, /const blockConsumers = blockLibraryCatalogue\.filter/);
+  assert.match(icons, /href: `\/studio\/ui\/icons\?collection=blocks&block=/);
+  assert.match(icons, /consumer\.href\.startsWith\("\/studio\/ui\/"\) \? "Studio UI Library" : "ACM Studio"/);
+  const wrapper = read("app/studio/studio-icons.tsx");
+  assert.match(wrapper, /pencil: "action\.edit"/);
+  assert.match(wrapper, /trash: "action\.delete"/);
 });
 
 test("Block Library index groups typed blocks, nested/system entries and template Content", () => {
@@ -147,28 +206,30 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(navigation, /requestAnimationFrame/);
   assert.match(navigation, /studioControlGroups\.flatMap\(group => studioControlEntries\.filter\(entry => entry\.group === group\)\)/);
   assert.match(navigation, /for \(const entry of orderedControlEntries\)/);
-  assert.match(read("app/studio/controls/library-catalogue.ts"), /\["Colour", "Typography", "Sizing", "Style", "Media", "Inspector"\]/);
+  assert.match(read("app/studio/controls/library-catalogue.ts"), /\["Foundation", "Colour", "Typography", "Sizing", "Style", "Media", "Inspector"\]/);
   assert.match(navigation, /href=\{`#\$\{entry\.id\}`\}/);
-  assert.match(page, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\} \/>/);
+  assert.match(page, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\}/);
+  for (const [prop, value] of [["sliderAccent", "effectiveSliderAccent"], ["sliderHoverAccent", "effectiveSliderHoverAccent"], ["sliderPressAccent", "effectiveSliderPressAccent"], ["onSliderAccentChange", "setSliderAccent"], ["onSliderHoverAccentChange", "setSliderHoverAccent"], ["onSliderPressAccentChange", "setSliderPressAccent"]]) assert.ok(page.includes(`${prop}={${value}}`), prop);
   assert.match(detail, /<section id=\{entry\.id\}/);
   assert.match(detail, /<h3 id=\{`control-entry-\$\{entry\.id\}`\}>/);
   assert.match(detail, /<h4 id=\{`control-specimen-\$\{entry\.id\}`\}>/);
   assert.match(detail, /<ColourPicker/);
   assert.match(detail, /paletteClassName="ui-control-colour-palette"/);
   const colourPicker = read("app/studio/controls/colour-picker.tsx");
-  assert.match(colourPicker, /Math\.min\(262, window\.innerWidth - 32\)/);
+  assert.match(colourPicker, /watchInspectorPopover\(anchor, paletteRef\.current, 262,/);
   assert.match(colourPicker, /--colour-swatch-size/);
   assert.match(colourPicker, /--colour-swatch-columns/);
   assert.match(colourPicker, /Math\.max\(3, Math\.min\(6,/);
   assert.match(colourPicker, /paragraph-colour-preview-card/);
   assert.match(colourPicker, /paragraph-colour-theme-heading/);
   assert.match(colourPicker, /paragraph-colour-clear/);
-  assert.match(colourPicker, /activeValue \? <button type="button" className="paragraph-colour-clear" disabled=\{disabled\} onClick=\{\(\) => changeActiveColour\(undefined\)\}>Clear<\/button> : null/);
+  assert.match(colourPicker, /activeValue \? <button type="button" className="paragraph-colour-clear studio-clear-action" disabled=\{disabled\} onClick=\{\(\) => changeActiveColour\(undefined\)\}>Clear<\/button> : null/);
   const gradientPicker = read("app/studio/controls/gradient-picker.tsx");
-  assert.match(gradientPicker, /\{value \? <div className="paragraph-gradient-footer"><button type="button" onClick=/);
+  assert.match(gradientPicker, /\{value \? <div className="paragraph-gradient-footer"><button className="studio-clear-action" type="button" onClick=/);
   assert.match(read("app/globals.css"), /--gutenberg-accent: #3858e9/);
   assert.match(studioStyles, /\.paragraph-gradient-footer button \{ border-radius: 4px; color: var\(--gutenberg-accent\); \}/);
-  assert.match(studioStyles, /\.paragraph-gradient-footer button:hover, \.paragraph-colour-clear:hover:not\(:disabled\) \{ background: var\(--accent-soft\); color: var\(--gutenberg-accent\); \}/);
+  assert.match(studioStyles, /\.studio-clear-action:hover:not\(:disabled\) \{ background: transparent; border-color: transparent; color: var\(--gutenberg-accent\); \}/);
+  assert.match(studioStyles, /\.studio-clear-action:hover:not\(:disabled\)::before \{ background: var\(--accent-soft\); \}/);
   assert.match(studioStyles, /\.paragraph-gradient-footer button:focus-visible \{ outline: var\(--focus-ring-width\) solid var\(--gutenberg-accent\)/);
   assert.match(studioStyles, /\.paragraph-gradient-angle-dial span::after \{[^}]*background: var\(--gutenberg-accent\)/);
   assert.match(studioStyles, /\.paragraph-colour-clear \{[^}]*color: var\(--gutenberg-accent\)/);
@@ -190,7 +251,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(detail, /<PresetNumberSetting/);
   assert.match(detail, /<ImageDimensionsSetting/);
   assert.match(detail, /<FocalPositionSetting/);
-  assert.match(detail, /Ownership, consumers, relationships and compatibility/);
+  assert.match(detail, /Ownership, consumers, dependencies and compatibility/);
   assert.match(detail, /<StudioIcon name="chevron-right" size=\{16\} \/>/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-facts\[open\] > summary svg \{ transform:rotate\(90deg\); \}/);
   assert.match(detail, /Reset example/);
@@ -274,22 +335,24 @@ test("Block Library catalogue previews the exact shared and Studio symbols used 
   const canvas = read("app/studio/studio-canvas.tsx");
   const templateEditor = read("app/studio/template-editor.tsx");
   assert.match(icons, /collection=blocks/);
-  assert.match(icons, /blockLibraryCatalogue = \[\.\.\.blockCatalogue, templateContentBlock\]/);
+  assert.match(icons, /blockLibraryCatalogue = blockLibraryEntries/);
   assert.match(icons, /BlockLibraryIconSample type=\{item\.type\} scale=\{scale\}/);
   assert.match(icons, /Regular-S · 16px/);
   assert.match(icons, /Regular-M · 24px/);
   assert.match(icons, /Regular-L · 32px/);
   assert.match(templateEditor, /\.\.\.blockCatalogue, templateContentBlock/);
-  assert.match(blockSymbols, /group: \{ source: "ACM Icons", symbol: "arrange\.group" \}/);
-  for (const symbol of ["text.paragraph", "text.heading", "text.list-bulleted", "text.quote", "table.cell", "text.code", "insert.image", "document.cover", "account.record", "social.icons"]) {
+  assert.match(blockSymbols, /group: \{ source: "ACM Icons", symbol: "layout\.flow" \}/);
+  for (const symbol of ["text.paragraph", "block.heading", "block.list", "text.quote", "block.table", "block.code", "insert.embed", "block.image", "document.featured-image", "account.author", "social.block", "component.block", "insert.button", "layout.separator", "layout.spacer", "time.clock", "document.date", "layout.column", "text.list-numbered", "document.title", "document.content"]) {
     assert.ok(blockSymbols.includes(`symbol: "${symbol}"`), symbol);
   }
-  assert.match(blockSymbols, /heading: \{ source: "ACM Studio", symbol: "heading-marker" \}/);
+  assert.match(icons, /"insert\.embed": \[\{ label: "Embed block tile and URL entry specimen", href: "\/studio\/ui\/blocks\/embed" \}\]/);
+  assert.match(icons, /initialBlock/);
+  assert.match(icons, /ui-block-symbol-link/);
+  assert.match(icons, /blockConsumers/);
+  assert.match(blockSymbols, /heading: \{ source: "ACM Icons", symbol: "block\.heading" \}/);
   assert.doesNotMatch(blockSymbols, /heading-level/);
-  for (const symbol of ["button", "separator", "spacer", "clock", "calendar"]) {
-    assert.ok(blockSymbols.includes(`symbol: "${symbol}"`), symbol);
-  }
-  assert.match(canvas, /<BlockLibraryIcon type=\{blockType\}/);
+  assert.doesNotMatch(blockSymbols, /source: "ACM Studio"/);
+  assert.match(canvas, /<BlockLibraryIcon type=\{type\}/);
 });
 
 test("keyboard inspector exposes each selected key's artwork provenance and available licence notice", () => {
@@ -305,7 +368,9 @@ test("keyboard inspector exposes each selected key's artwork provenance and avai
 });
 
 test("Studio tool navigation points to one combined library entry", () => {
-  for (const file of ["app/studio/studio-dashboard.tsx", "app/studio/studio-prototype.tsx", "app/studio/template-workspace.tsx"]) {
+  const coordinator = read("app/studio/studio-prototype.tsx");
+  assert.match(coordinator, /<StudioNavigationPane workspace=\{workspace\}/);
+  for (const file of ["app/studio/studio-dashboard.tsx", "app/studio/studio-navigation-pane.tsx", "app/studio/template-workspace.tsx"]) {
     const source = read(file);
     assert.ok(source.includes("Studio UI Library"), file);
     assert.ok(source.includes('href="/studio/ui"'), file);

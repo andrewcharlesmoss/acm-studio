@@ -4,6 +4,8 @@ import { documentFieldVisible } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
+import { imageDisplayStyle } from "../content/image-style";
+import { resolveImageSource } from "../content/image-source";
 import { columnsLayoutStyle } from "../content/columns";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import type { ContentBlock } from "../content/model";
@@ -12,11 +14,12 @@ import type { StudioDocument } from "./editor-model";
 import type { SiteStyles, TemplateNode, TemplatePart, TemplateSet, TemplateSnapshot } from "./template-model";
 import { StudioIcon } from "./studio-icons";
 import { resolveTemplateCopyright } from "./template-placeholders";
+import { TemplateContentLayout } from "./template-content-slot";
 import { universalStylePresetToCss, universalStylePresetToCssVariables } from "@acm/styles";
 
 function hasDocumentMetadataBlocks(blocks: StudioDocument["blocks"]): boolean {
   return blocks.some(block => ["reading-time", "post-author", "post-date"].includes(block.type)
-    || ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component") && hasDocumentMetadataBlocks(block.children ?? [])));
+    || ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons") && hasDocumentMetadataBlocks(block.children ?? [])));
 }
 
 function templateHasElement(nodes: TemplateNode[], set: TemplateSet, wanted: string, seen = new Set<string>()): boolean {
@@ -68,7 +71,9 @@ export function templateStyleProperties(styles: SiteStyles): CSSProperties {
 
 export function TemplateSurface({ set, children, editing = false, editorCanvas = false }: { set: TemplateSet; children: ReactNode; editing?: boolean; editorCanvas?: boolean }) {
   const styleKey = `acm-template-style-${stylePresetKey(set.styles)}`;
-  return <><style>{universalStylePresetToCss(set.styles, `.${styleKey}`)}</style><div className={`template-surface${editorCanvas ? "" : " acm-universal-style-preset"} ${styleKey}`} style={templateStyleProperties(set.styles)} onClickCapture={event => { if (editing && event.target instanceof Element && event.target.closest("a")) event.preventDefault(); }}>{children}</div></>;
+  // Rich-text fields handle links first; bubbling then prevents static editing links from navigating.
+  // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+  return <><style>{universalStylePresetToCss(set.styles, `.${styleKey}`)}</style><div className={`template-surface${editorCanvas ? "" : " acm-universal-style-preset"} ${styleKey}`} style={templateStyleProperties(set.styles)} onClick={event => { if (editing && event.target instanceof Element && event.target.closest("a")) event.preventDefault(); }}>{children}</div></>;
 }
 
 function stylePresetKey(styles: SiteStyles): string {
@@ -92,10 +97,10 @@ function brandInitials(name: string): string {
   return (initials || "S").toUpperCase();
 }
 
-function TemplateImage({ src, alt }: { src: string; alt: string }) {
+function TemplateImage({ src, alt, style, className }: { src: string; alt: string; style?: CSSProperties; className?: string }) {
   // Managed browser blobs and authored URLs are resolved locally.
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} />;
+  return <img src={src} alt={alt} style={style} className={className} />;
 }
 
 export type TemplateRenderContext = {
@@ -121,6 +126,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
   function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false, spacerOrientation: SpacerOrientation = "vertical"): ReactNode {
+    if (node.editorial?.hidden) return null;
     if (++rendered > 10000 || depth > 16) return <p role="alert">Template expansion limit reached.</p>;
     let result: ReactNode;
     if (node.type === "part") {
@@ -134,34 +140,34 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       const backgroundImageUrl = node.type === "group" && node.visualStyle?.backgroundImageMediaId ? mediaUrls[node.visualStyle.backgroundImageMediaId] : undefined;
       const style = node.type === "group" ? node.visualStyle : undefined;
       const childSpacerOrientation = node.layout === "row" ? "horizontal" : "vertical";
-      result = <Group id={paragraphStyleAnchor(style)} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation)}</div>)}</Group>;
+      result = <Group id={paragraphStyleAnchor(style)} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.filter(child => !child.editorial?.hidden).map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation)}</div>)}</Group>;
     } else if (node.type === "columns") {
       const className = paragraphStyleClassName(node.style);
-      result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle(node), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.map(column => {
+      result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle({ ...node, children: node.children.filter(column => !column.editorial?.hidden) }), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.filter(column => !column.editorial?.hidden).map(column => {
         const columnClassName = paragraphStyleClassName(column.style);
-        return <div id={paragraphStyleAnchor(column.style)} className={`template-column${columnClassName ? ` ${columnClassName}` : ""}`} key={column.id} style={{ ...layoutStyleProperties(column), ...(column.verticalAlign ? { alignSelf: column.verticalAlign === "centre" ? "center" : column.verticalAlign === "bottom" ? "end" : column.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(column.style) }}>{column.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared, "vertical")}</div>)}</div>;
+        return <div id={paragraphStyleAnchor(column.style)} className={`template-column${columnClassName ? ` ${columnClassName}` : ""}`} key={column.id} style={{ ...layoutStyleProperties(column), ...(column.verticalAlign ? { alignSelf: column.verticalAlign === "centre" ? "center" : column.verticalAlign === "bottom" ? "end" : column.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(column.style) }}>{column.children.filter(child => !child.editorial?.hidden).map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared, "vertical")}</div>)}</div>;
       })}</div>;
     } else if (node.type === "column") {
       const className = paragraphStyleClassName(node.style);
-      result = <div id={paragraphStyleAnchor(node.style)} className={`template-column${className ? ` ${className}` : ""}`} style={{ ...(node.verticalAlign ? { alignSelf: node.verticalAlign === "centre" ? "center" : node.verticalAlign === "bottom" ? "end" : node.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(node.style) }}>{node.children.map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared, "vertical")}</div>)}</div>;
+      result = <div id={paragraphStyleAnchor(node.style)} className={`template-column${className ? ` ${className}` : ""}`} style={{ ...layoutStyleProperties(node), ...(node.verticalAlign ? { alignSelf: node.verticalAlign === "centre" ? "center" : node.verticalAlign === "bottom" ? "end" : node.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(node.style) }}>{node.children.filter(child => !child.editorial?.hidden).map(child => <div key={child.id}>{render(child, ancestors, depth + 1, shared, "vertical")}</div>)}</div>;
     } else if (node.type === "element") {
       const align = node.align === "centre" ? "center" : node.align;
-      const fieldVisualStyle = node.element === "document-title" ? node.visualStyle
+      const fieldVisualStyle = (node.element === "document-title" || node.element === "cover-image") ? node.visualStyle
         : node.element === "subtitle" ? { ...(node.style ?? {}), ...(node.visualStyle ?? {}) }
           : undefined;
       const fieldVisualClassName = paragraphStyleClassName(fieldVisualStyle);
       const fieldVisualId = paragraphStyleAnchor(fieldVisualStyle);
       let element: ReactNode;
       switch (node.element) {
-        case "content": element = content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} />; break;
+        case "content": element = <TemplateContentLayout layout={node} visualStyle={node.visualStyle} mediaUrls={mediaUrls}>{content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} />}</TemplateContentLayout>; break;
         case "document-title": {
-          const TitleElement = `h${node.level ?? 1}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+          const TitleElement = node.level === 0 ? "p" : `h${node.level ?? 1}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
           const href = document.slug ? safeTextLink(document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
-          // eslint-disable-next-line @next/next/no-target-blank
+          // eslint-disable-next-line react/jsx-no-target-blank -- blank targets include both safety tokens.
           const linkedTitle = node.isLink && href ? <a href={href} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={[node.rel, node.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{document.title}</a> : document.title;
           const titleClassName = ["template-dynamic-placeholder", fieldVisualClassName].filter(Boolean).join(" ");
           const titleInputClassName = ["template-title-input", fieldVisualClassName].filter(Boolean).join(" ");
-          const titleStyle = paragraphStyleToCss(fieldVisualStyle);
+          const titleStyle = paragraphStyleToCss(fieldVisualStyle, fieldVisualStyle?.backgroundImageMediaId ? mediaUrls[fieldVisualStyle.backgroundImageMediaId] : undefined);
           element = documentFieldVisible(document, "title") ? templatePreview ? <TitleElement id={fieldVisualId} className={titleClassName} style={titleStyle}>Title</TitleElement> : editingDocument ? <input id={fieldVisualId} className={titleInputClassName} data-heading-level={node.level ?? 1} style={titleStyle} aria-label="Document title" value={document.title} onFocus={() => onFocusDocumentField?.("title")} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <TitleElement id={fieldVisualId} className={fieldVisualClassName || undefined} style={titleStyle}>{linkedTitle}</TitleElement> : null;
           break;
         }
@@ -178,21 +184,30 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         }
         case "cover-image": {
           const cover = node.fixedImage ?? document.coverImage;
-          const src = cover?.mediaId ? safeImageSource(mediaUrls[cover.mediaId] ?? "", { allowBlob: true }) : safeImageSource(cover?.src ?? "");
+          const src = resolveImageSource(cover, mediaUrls);
+          const imageStyle = imageDisplayStyle(node, { includeFrame: false });
+          const frameStyle = paragraphStyleToCss(node.visualStyle);
+          if (node.visualStyle?.borderRadius) frameStyle.overflow = "hidden";
+          const frameProps = { id: fieldVisualId, style: frameStyle };
+          const frameClassName = ["template-cover", fieldVisualClassName].filter(Boolean).join(" ");
+          const image = src ? <TemplateImage src={src} alt={cover?.alt ?? ""} style={imageStyle} className="document-featured-image" /> : null;
+          const href = document.slug ? safeTextLink(document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          // eslint-disable-next-line react/jsx-no-target-blank -- blank targets include both safety tokens.
+          const linkedImage = image && node.isLink && href ? <a href={href} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={[node.rel, node.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image;
           const hidden = node.coverImageHidden === true;
           const fixed = Boolean(node.fixedImage) && !hidden;
-          const placeholder = <div className="template-cover-placeholder" role="img" aria-label={hidden ? "Cover image hidden" : fixed ? "Fixed cover image placeholder" : "Cover image placeholder"} />;
+          const placeholder = <div {...frameProps} className={`template-cover-placeholder${fieldVisualClassName ? ` ${fieldVisualClassName}` : ""}`} role="img" aria-label={hidden ? "Cover image hidden" : fixed ? "Fixed cover image placeholder" : "Cover image placeholder"} />;
           const actions = onChangeCover ? <div className="canvas-cover-actions">
             <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label="Choose fixed cover image" title="Choose fixed cover image"><StudioIcon name="image" /></button>
             {!hidden && onRemoveCoverImage ? <button className="cover-action-button" type="button" onClick={onRemoveCoverImage} aria-label="Remove cover image" title="Remove cover image"><StudioIcon name="close" /></button> : null}
             {onRemoveCoverBlock ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCoverBlock} aria-label="Delete cover image block" title="Delete cover image block"><StudioIcon name="trash" /></button> : null}
           </div> : null;
-          element = hidden ? editingDocument ? <div className="canvas-cover-wrap document-dynamic-cover"><div className="canvas-cover-image" role="img" aria-label="Cover image hidden" />{actions}</div> : null
-            : documentFieldVisible(document, "coverImage") ? fixed && templatePreview ? src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : placeholder
-            : templatePreview ? placeholder : editingDocument ? <div className="canvas-cover-wrap document-dynamic-cover">
-              <div className={`canvas-cover-image${src ? " is-source" : ""}`} role="img" aria-label={cover?.alt || "Mock cover image"}>{src ? <TemplateImage src={src} alt={cover?.alt ?? ""} /> : null}</div>
+          element = hidden ? editingDocument ? <div {...frameProps} className={`canvas-cover-wrap document-dynamic-cover${fieldVisualClassName ? ` ${fieldVisualClassName}` : ""}`}><div className="canvas-cover-image" role="img" aria-label="Cover image hidden" />{actions}</div> : null
+            : documentFieldVisible(document, "coverImage") ? fixed && templatePreview ? src ? <figure {...frameProps} className={frameClassName}>{linkedImage}</figure> : placeholder
+            : templatePreview ? placeholder : editingDocument ? <div {...frameProps} className={`canvas-cover-wrap document-dynamic-cover${fieldVisualClassName ? ` ${fieldVisualClassName}` : ""}`}>
+              <div className={`canvas-cover-image${src ? " is-source" : ""}`} role="img" aria-label={cover?.alt || "Mock cover image"}>{image}</div>
               {actions}
-            </div> : <>{src ? <figure className="template-cover"><TemplateImage src={src} alt={cover?.alt ?? ""} /></figure> : cover !== null && document.kind === "post" ? placeholder : null}</> : null;
+            </div> : <>{src ? <figure {...frameProps} className={frameClassName}>{linkedImage}</figure> : cover !== null && document.kind === "post" ? placeholder : null}</> : null;
           break;
         }
         case "site-identity": {
@@ -206,11 +221,11 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       }
       const field = node.element === "document-title" ? "title" : node.element === "subtitle" ? "subtitle" : null;
       const isSelectedDocumentField = editingDocument && field !== null && selectedDocumentField === field;
-      result = <div className={`template-element template-${node.element}${isSelectedDocumentField ? " is-document-field-selected" : ""}`} data-template-element={node.element} data-document-field={field ?? undefined} onPointerDown={editingDocument && field ? () => onFocusDocumentField?.(field) : undefined} style={{ textAlign: align }}>{element}</div>;
+      result = <div className={`template-element template-${node.element}${"blockAlign" in node && node.blockAlign ? ` align${node.blockAlign}` : ""}${isSelectedDocumentField ? " is-document-field-selected" : ""}`} data-template-element={node.element} data-document-field={field ?? undefined} onPointerDown={editingDocument && field ? () => onFocusDocumentField?.(field) : undefined} style={{ textAlign: align }}>{element}</div>;
     } else result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} spacerOrientation={spacerOrientation} />;
     return (!shared ? decorate?.(node, result) : undefined) ?? result;
   }
-  return <>{nodes.map(node => <div className="template-node" key={node.id} style={node.type === "group" && node.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : undefined}>{render(node, new Set(), 0)}</div>)}</>;
+  return <>{nodes.filter(node => !node.editorial?.hidden).map(node => <div className="template-node" key={node.id} style={node.type === "group" && node.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : undefined}>{render(node, new Set(), 0)}</div>)}</>;
 }
 
 export function TemplateDocument({ snapshot, editorCanvas = false, ...context }: Omit<TemplateRenderContext, "set"> & { snapshot: TemplateSnapshot; editorCanvas?: boolean }) {

@@ -1,9 +1,18 @@
-import { listItemText, type ContentBlock, type LayoutMode, type LayoutOptions, type ListItem, type ParagraphStyle, type RichTextRun, type SiteSectionRole, type SocialIconBlock, type TextMark } from "../content/model";
+import { mathRenderEntries, mathRun, mathObjectFromData, legacyMathFromData, validMathRun } from "../content/math-runs";
+import { mathObjectHtml, legacyMathHtml } from "../content/math-presentation";
+import { inlineImageHtml, inlineImageFromData, inlineImageRun, validInlineImageRun } from "../content/inline-image";
+import { footnoteFragment, footnoteReferenceAnchor, visibleFootnoteReferenceAnchors, type FootnoteFieldLocation } from "../content/footnote-blocks";
+import { footnoteReferenceRun, validFootnoteId, validFootnoteReference } from "../content/footnote-runs";
+import { tableRowSections } from "../content/table-row-sections";
+import { fieldSelectOptions } from "../content/field-options";
+import { listItemText, type ContentBlock, type GroupAllowedBlockType, type GroupLayoutHorizontalAlignment, type GroupLayoutOptions, type GroupLayoutVerticalAlignment, type LayoutMode, type LayoutOptions, type ListItem, type ParagraphStyle, type RichTextRun, type SiteSectionRole, type SocialIconBlock, type TextMark } from "../content/model";
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { hasLayoutOptions } from "../content/layout";
-import { plainTextFromRuns, safeImageSource, safeTextLink } from "../content/rich-text";
+import { plainTextFromRuns, safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
 import { validButtonInteractionStyles, validContentBlocks, validListItemStyle } from "./workspace-validation";
 import { paragraphStyleToCss } from "../content/paragraph-styles";
+import { tableCellMetadataAt, tableCellTagFor } from "../content/table-cell-metadata";
+import { editBlockSiblings } from "./block-sibling-operations";
 
 /**
  * Serialises a typed block to the small, semantic HTML surface exposed by
@@ -11,13 +20,18 @@ import { paragraphStyleToCss } from "../content/paragraph-styles";
  * executable draft content: component blocks remain identified by metadata.
  */
 export function blockToHtml(block: ContentBlock): string {
+  return blockToHtmlWithFootnoteAnchors(block, visibleFootnoteReferenceAnchors([block]));
+}
+
+function blockToHtmlWithFootnoteAnchors(block: ContentBlock, footnoteAnchors: Map<string, string>): string {
   const attributes = ` data-block-type="${escapeAttribute(block.type)}" data-block-id="${escapeAttribute(block.id)}"`;
-  return serialiseBlock(block, attributes);
+  return serialiseBlock(block, attributes, footnoteAnchors);
 }
 
 /** Serialise the complete document body for the document-level code editor. */
 export function blocksToHtml(blocks: ContentBlock[]): string {
-  return blocks.map((block) => blockToHtml(block)).join("\n\n");
+  const anchors = visibleFootnoteReferenceAnchors(blocks);
+  return blocks.map((block) => blockToHtmlWithFootnoteAnchors(block, anchors)).join("\n\n");
 }
 
 /** Format supported HTML without changing its content or executable surface. */
@@ -90,30 +104,28 @@ export function formatHtml(html: string): string {
   return lines.join("\n");
 }
 
-function serialiseBlock(block: ContentBlock, attributes = ""): string {
+function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = visibleFootnoteReferenceAnchors([block])): string {
   if (block.siteRole) attributes += ` data-site-role="${escapeAttribute(block.siteRole)}"`;
   const advancedStyle = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : block.visualStyle;
-  if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
+  if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "buttons", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
     attributes += ` data-html-anchor="${escapeAttribute(advancedStyle?.anchor ?? "")}" data-additional-classes="${escapeAttribute(advancedStyle?.className ?? "")}" data-additional-css="${escapeAttribute(advancedStyle?.additionalCss ?? "")}"`;
   }
   switch (block.type) {
     case "paragraph":
-      return `<p${attributes} data-align-explicit="true" data-block-align-explicit="true"${classAttribute([block.style?.className, block.align ? `align-${block.align}` : "", block.blockAlign ? `align${block.blockAlign}` : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}</p>`;
+      return `<p${attributes} data-align-explicit="true" data-block-align-explicit="true"${classAttribute([block.style?.className, block.align ? `align-${block.align}` : "", block.blockAlign ? `align${block.blockAlign}` : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text, { blockId: block.id, kind: "text" })}</p>`;
     case "heading":
-      return `<h${block.level}${attributes} data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}</h${block.level}>`;
+      return `<h${block.level}${attributes} data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text, { blockId: block.id, kind: "text" })}</h${block.level}>`;
     case "quote":
-      return `<blockquote${attributes} data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block), block.quoteStyle === "plain" ? "is-style-plain" : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text)}${block.attribution ? `<cite>${escapeText(block.attribution)}</cite>` : ""}</blockquote>`;
-    case "list": return serialiseList(block, attributes);
+      return `<blockquote${attributes} data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block), block.quoteStyle === "plain" ? "is-style-plain" : ""].filter(Boolean).join(" "))}>${block.children ? block.children.map(child => serialiseBlock(child, ` data-block-id="${escapeAttribute(child.id)}"`, footnoteAnchors)).join("") : runsToHtml(block.runs, block.text, { blockId: block.id, kind: "text" })}${block.attribution ? `<cite>${runsToHtml(block.attributionRuns, block.attribution, { blockId: block.id, kind: "attribution" })}</cite>` : ""}</blockquote>`;
+    case "list": return serialiseList(block, attributes, footnoteAnchors);
     case "table": {
-      const rows = block.rows.length ? block.rows : [[""]];
-      const headerRows = block.hasHeader ? 1 : 0;
-      const footerRows = block.hasFooter ? 1 : 0;
-      const bodyEnd = Math.max(headerRows, rows.length - footerRows);
-      const renderRow = (row: string[], cellTag: "th" | "td") => `<tr>${row.map((cell, index) => { const alignment = block.columnAlignments?.[index]; const htmlAlignment = alignment === "centre" ? "center" : alignment; return `<${cellTag}${htmlAlignment && htmlAlignment !== "left" ? ` class="has-text-align-${htmlAlignment}" data-align="${htmlAlignment}"` : ""}>${escapeText(cell)}</${cellTag}>`; }).join("")}</tr>`;
-      const head = headerRows ? `<thead>${renderRow(rows[0], "th")}</thead>` : "";
-      const body = rows.slice(headerRows, bodyEnd).map((row) => renderRow(row, "td")).join("");
-      const foot = footerRows ? `<tfoot>${renderRow(rows[rows.length - 1], "td")}</tfoot>` : "";
-      return `<table${attributes} data-block-align-explicit="true"${block.fixedWidth === false ? ' data-fixed-width="false"' : ""}${block.columnWidths ? ` data-column-widths="${block.columnWidths.join(",")}"` : ""}${block.rowHeights ? ` data-row-heights="${block.rowHeights.join(",")}"` : ""}${block.columnAlignments ? ` data-column-alignments="${block.columnAlignments.join(",")}"` : ""}${classAttribute([`studio-table${block.tableStyle === "stripes" ? " is-striped" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.caption ? `<caption>${escapeText(block.caption)}</caption>` : ""}${head}<tbody>${body}</tbody>${foot}</table>`;
+      const rows = block.rows;
+      const { headerRowCount: headerRows, footerRowCount: footerRows, bodyEnd } = tableRowSections(block);
+      const renderRow = (row: string[], rowIndex: number, defaultTag: "th" | "td") => `<tr>${row.map((cell, index) => { const metadata = tableCellMetadataAt(block.cellMetadata, rowIndex, index); const cellTag = tableCellTagFor(metadata, defaultTag); const scope = metadata?.scope && metadata.scope !== null ? metadata.scope : undefined; const alignment = block.columnAlignments?.[index]; const htmlAlignment = alignment === "centre" ? "center" : alignment; return `<${cellTag}${scope ? ` scope="${scope}"` : ""}${htmlAlignment && htmlAlignment !== "left" ? ` class="has-text-align-${htmlAlignment}" data-align="${htmlAlignment}"` : ""}>${runsToHtml(block.cellRuns?.[rowIndex]?.[index], cell, { blockId: block.id, kind: "table-cell", row: rowIndex, column: index })}</${cellTag}>`; }).join("")}</tr>`;
+      const head = headerRows ? `<thead>${rows.slice(0, headerRows).map((row, index) => renderRow(row, index, "th")).join("")}</thead>` : "";
+      const body = rows.slice(headerRows, bodyEnd).map((row, index) => renderRow(row, index + headerRows, "td")).join("");
+      const foot = footerRows ? `<tfoot>${rows.slice(bodyEnd).map((row, index) => renderRow(row, bodyEnd + index, "td")).join("")}</tfoot>` : "";
+      return `<table${attributes} data-block-align-explicit="true"${block.fixedWidth === false ? ' data-fixed-width="false"' : ""}${block.columnWidths ? ` data-column-widths="${block.columnWidths.join(",")}"` : ""}${block.rowHeights ? ` data-row-heights="${block.rowHeights.join(",")}"` : ""}${block.columnAlignments ? ` data-column-alignments="${block.columnAlignments.join(",")}"` : ""}${classAttribute([`studio-table${block.tableStyle === "stripes" ? " is-striped" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.caption ? `<caption>${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</caption>` : ""}${head}<tbody>${body}</tbody>${foot}</table>`;
     }
     case "code":
       return `<pre${attributes} data-block-align-explicit="true"${classAttribute(blockAlignmentClass(block))}><code${classAttribute(block.language ? `language-${block.language}` : undefined)}>${escapeText(block.code)}</code></pre>`;
@@ -122,79 +134,85 @@ function serialiseBlock(block: ContentBlock, attributes = ""): string {
       const image = `<img src="${escapeAttribute(safeSource)}" alt="${escapeAttribute(block.decorative ? "" : block.alt)}"${block.decorative ? ' data-decorative="true"' : ""}${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.aspectRatio && block.aspectRatio !== "original" ? ` data-aspect-ratio="${block.aspectRatio}"` : ""}${block.scale ? ` data-scale="${block.scale}"` : ""}${block.displayWidth ? ` data-display-width="${block.displayWidth}"` : ""}${block.displayHeight ? ` data-display-height="${block.displayHeight}"` : ""}${block.focalX !== undefined ? ` data-focal-x="${block.focalX}"` : ""}${block.focalY !== undefined ? ` data-focal-y="${block.focalY}"` : ""} />`;
       const destination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
       const link = destination === "media" ? safeSource : destination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
-      return `<figure${attributes} data-block-align-explicit="true"${classAttribute(blockAlignmentClass(block))}${destination !== "none" ? ` data-link-destination="${destination}"` : ""}${block.imageStyle === "rounded" ? ' data-image-style="rounded"' : ""}>${link ? `<a href="${escapeAttribute(link)}"${block.opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${image}</a>` : image}${block.caption ? `<figcaption>${escapeText(block.caption)}</figcaption>` : ""}</figure>`;
+      return `<figure${attributes} data-block-align-explicit="true"${classAttribute(blockAlignmentClass(block))}${destination !== "none" ? ` data-link-destination="${destination}"` : ""}${block.imageStyle === "rounded" ? ' data-image-style="rounded"' : ""}>${link ? `<a href="${escapeAttribute(link)}"${block.opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${image}</a>` : image}${block.caption ? `<figcaption>${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</figcaption>` : ""}</figure>`;
     }
     case "embed":
-      return `<aside${attributes} data-block-align-explicit="true" data-embed-url="${escapeAttribute(block.url)}"${classAttribute(blockAlignmentClass(block))}><a href="${escapeAttribute(block.url)}">${escapeText(block.title)}</a>${block.caption ? `<p class="embed-caption">${escapeText(block.caption)}</p>` : ""}</aside>`;
+      { const url = safeTextLink(block.url); return `<aside${attributes} data-block-align-explicit="true" data-embed-url="${escapeAttribute(url ?? "")}"${classAttribute(blockAlignmentClass(block))}>${url ? `<a href="${escapeAttribute(url)}">${escapeText(block.title)}</a>` : `<span>${escapeText(block.title)}</span>`}${block.caption ? `<p class="embed-caption">${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</p>` : ""}</aside>`; }
     case "divider":
       return block.tagName === "div"
         ? `<div${attributes} data-block-align-explicit="true"${classAttribute([block.style && block.style !== "default" ? `is-${block.style}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))}></div>`
         : `<hr${attributes} data-block-align-explicit="true"${classAttribute([block.style && block.style !== "default" ? `is-${block.style}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))} />`;
     case "footnotes":
-      return `<section${attributes} class="article-footnotes"><ol>${block.notes.map(note => `<li id="footnote-${escapeAttribute(note.id)}"><span>${escapeText(note.text)}</span><a data-footnote-back="true" href="#footnote-ref-${escapeAttribute(note.id)}" aria-label="Return to footnote reference">↩</a></li>`).join("")}</ol></section>`;
+      return `<section${attributes} class="article-footnotes"><ol>${block.notes.map(note => `<li id="footnote-${escapeAttribute(note.id)}"><span>${escapeText(note.text)}</span>${footnoteAnchors.has(note.id) ? `<a data-footnote-back="true" href="${escapeAttribute(footnoteFragment(footnoteAnchors.get(note.id)!))}" aria-label="Return to footnote reference">↩</a>` : ""}</li>`).join("")}</ol></section>`;
     case "spacer":
       return `<div${attributes}${classAttribute("studio-spacer")} data-spacer-height="${block.height}"${block.heightUnit ? ` data-spacer-height-unit="${block.heightUnit}"` : ""}${block.width === undefined ? "" : ` data-spacer-width="${block.width}"`}${block.widthUnit ? ` data-spacer-width-unit="${block.widthUnit}"` : ""} aria-hidden="true"></div>`;
     case "document-title":
-      return `<h${block.level ?? 2}${attributes} data-block-align-explicit="true" data-metadata-link="${Boolean(block.isLink)}" data-link-target="${escapeAttribute(block.linkTarget ?? "_self")}"${block.rel ? ` data-link-rel="${escapeAttribute(block.rel)}"` : ""}${classAttribute([`metadata-block align-${block.align ?? "left"}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}></h${block.level ?? 2}>`;
+      return `<${block.level === 0 ? "p" : `h${block.level ?? 2}`}${attributes} data-title-level="${block.level ?? 2}" data-block-align-explicit="true" data-metadata-link="${Boolean(block.isLink)}" data-link-target="${escapeAttribute(block.linkTarget ?? "_self")}"${block.rel ? ` data-link-rel="${escapeAttribute(block.rel)}"` : ""}${classAttribute([`metadata-block align-${block.align ?? "left"}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}></${block.level === 0 ? "p" : `h${block.level ?? 2}`}>`;
     case "document-subtitle":
       return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)}></p>`;
     case "cover-image":
       return `<figure${attributes} data-block-align-explicit="true" data-metadata-link="${Boolean(block.isLink)}" data-link-target="${escapeAttribute(block.linkTarget ?? "_self")}"${block.rel ? ` data-link-rel="${escapeAttribute(block.rel)}"` : ""}${block.aspectRatio && block.aspectRatio !== "original" ? ` data-aspect-ratio="${block.aspectRatio}"` : ""}${block.scale ? ` data-scale="${block.scale}"` : ""}${block.displayWidth ? ` data-display-width="${block.displayWidth}"` : ""}${block.displayHeight ? ` data-display-height="${block.displayHeight}"` : ""}${block.focalX !== undefined ? ` data-focal-x="${block.focalX}"` : ""}${block.focalY !== undefined ? ` data-focal-y="${block.focalY}"` : ""}${classAttribute([`metadata-block align-${block.align ?? "left"}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}></figure>`;
     case "reading-time":
-      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "Reading Time:")}" data-metadata-presentation="${escapeAttribute(block.presentation ?? "badge")}"></p>`;
+      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "Reading Time:")}" data-metadata-presentation="${escapeAttribute(block.presentation ?? "badge")}" data-reading-mode="${block.mode ?? "time"}" data-reading-range="${Boolean(block.showRange)}"></p>`;
     case "post-author":
       return `<div${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "By")}" data-metadata-avatar="${block.avatar !== false}"></div>`;
     case "post-date":
-      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-metadata-icon="${block.showIcon !== false}" data-metadata-link="${Boolean(block.isLink)}"></p>`;
+      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-date-source="${block.dateSource ?? "published"}"${block.customFormat !== undefined ? ` data-custom-format="${escapeAttribute(block.customFormat)}"` : ""} data-metadata-icon="${block.showIcon !== false}" data-metadata-link="${Boolean(block.isLink)}"></p>`;
     case "social-icons":
-      return `<nav${attributes} data-block-align-explicit="true" aria-label="Social links" data-social-justification="${block.justification ?? "left"}" data-social-orientation="${block.orientation ?? "horizontal"}" data-social-wrap="${block.allowWrap !== false}" data-social-size="${block.iconSize ?? "normal"}" data-social-style="${block.socialStyle ?? "default"}"${block.horizontalGap === undefined ? "" : ` data-social-horizontal-gap="${block.horizontalGap}"`}${block.verticalGap === undefined ? "" : ` data-social-vertical-gap="${block.verticalGap}"`} data-social-labels="${Boolean(block.showLabels)}" data-social-new-tab="${Boolean(block.openInNewTab)}"${classAttribute(blockAlignmentClass(block))}>${serialiseChildren(block.children)}</nav>`;
+      return `<nav${attributes} data-block-align-explicit="true" aria-label="Social links" data-social-justification="${block.justification ?? "left"}" data-social-orientation="${block.orientation ?? "horizontal"}" data-social-wrap="${block.allowWrap !== false}" data-social-size="${block.iconSize ?? "normal"}" data-social-style="${block.socialStyle ?? "default"}"${block.horizontalGap === undefined ? "" : ` data-social-horizontal-gap="${block.horizontalGap}"`}${block.verticalGap === undefined ? "" : ` data-social-vertical-gap="${block.verticalGap}"`} data-social-labels="${Boolean(block.showLabels)}" data-social-new-tab="${Boolean(block.openInNewTab)}"${classAttribute(blockAlignmentClass(block))}>${serialiseChildren(block.children, footnoteAnchors)}</nav>`;
     case "social-linkedin":
     case "social-tiktok": {
       const url = safeTextLink(block.url);
       return `<a${attributes}${url ? ` href="${escapeAttribute(url)}"` : ""}${block.rel ? ` rel="${escapeAttribute(block.rel)}"` : ""} data-social-url="${escapeAttribute(block.url)}">${escapeText(block.label ?? "")}</a>`;
     }
+    case "buttons": return `<div${attributes} class="content-buttons" data-block-type="buttons" data-justification="${block.justification ?? "left"}" data-orientation="${block.orientation ?? "horizontal"}" data-wrap="${block.allowWrap !== false}" data-horizontal-gap="${block.horizontalGap ?? 8}" data-vertical-gap="${block.verticalGap ?? 8}" data-block-align="${block.blockAlign ?? ""}">${block.children.map(child => serialiseBlock(child, ` data-block-id="${escapeAttribute(child.id)}"`, footnoteAnchors)).join("")}</div>`;
     case "button":
-      return `<p${attributes} data-button-width="${block.width ?? ""}"${block.interactionStyles ? ` data-button-interaction-styles="${escapeAttribute(JSON.stringify(block.interactionStyles))}"` : ""}${classAttribute([`button-block align-${block.align ?? "centre"}`, block.width ? `has-width-${block.width}` : ""].filter(Boolean).join(" "))}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}"${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.opensInNewTab ? ' target="_blank"' : ""}${block.rel || block.opensInNewTab ? ` rel="${escapeAttribute([block.rel, block.opensInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" "))}"` : ""}>${escapeText(block.label)}</a></p>`;
+      return `<p${attributes} data-button-width="${block.width ?? ""}"${block.interactionStyles ? ` data-button-interaction-styles="${escapeAttribute(JSON.stringify(block.interactionStyles))}"` : ""}${classAttribute([`button-block align-${block.align ?? "centre"}`, block.width ? `has-width-${block.width}` : ""].filter(Boolean).join(" "))}><a class="content-button is-${escapeAttribute(block.style)}" href="${escapeAttribute(block.url)}"${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.opensInNewTab ? ' target="_blank"' : ""}${block.rel || block.opensInNewTab ? ` rel="${escapeAttribute([block.rel, block.opensInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" "))}"` : ""}>${runsToHtml(block.labelRuns, block.label, { blockId: block.id, kind: "label" })}</a></p>`;
     case "field":
-      return `<label${attributes}><span>${escapeText(block.label)}</span>${block.control === "select" ? `<select>${(block.options?.length ? block.options : [block.value]).map((option) => `<option${option === block.value ? " selected" : ""}>${escapeText(option)}</option>`).join("")}</select>` : `<input value="${escapeAttribute(block.value)}" />`}</label>`;
+      return `<label${attributes}><span>${escapeText(block.label)}</span>${block.control === "select" ? `<select>${fieldSelectOptions(block).map((option) => `<option${option === block.value ? " selected" : ""}>${escapeText(option)}</option>`).join("")}</select>` : `<input value="${escapeAttribute(block.value)}" />`}</label>`;
     case "section":
-      return `<section${attributes} data-section-role="${escapeAttribute(block.role ?? "")}"${layoutHtmlAttributes(block)}${classAttribute(`studio-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`)}>${serialiseChildren(block.children)}</section>`;
+      return `<section${attributes} data-section-role="${escapeAttribute(block.role ?? "")}"${layoutHtmlAttributes(block)}${classAttribute(`studio-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`)}>${serialiseChildren(block.children, footnoteAnchors)}</section>`;
     case "group": {
       const tag = block.tagName ?? "div";
-      return `<${tag}${attributes} data-block-align-explicit="true"${block.ariaLabel ? ` aria-label="${escapeAttribute(block.ariaLabel)}"` : ""}${block.position ? ` data-group-position="${block.position}"` : ""}${layoutHtmlAttributes(block)}${classAttribute([`studio-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${serialiseChildren(block.children)}</${tag}>`;
+      return `<${tag}${attributes} data-block-align-explicit="true"${block.ariaLabel ? ` aria-label="${escapeAttribute(block.ariaLabel)}"` : ""}${block.position ? ` data-group-position="${block.position}"` : ""}${block.allowedBlocks !== undefined ? ` data-allowed-blocks="${escapeAttribute(block.allowedBlocks.join(","))}"` : ""}${layoutHtmlAttributes(block)}${classAttribute([`studio-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${serialiseChildren(block.children, footnoteAnchors)}</${tag}>`;
     }
     case "columns":
-      return `<div${attributes} data-block-align-explicit="true"${layoutHtmlAttributes(block)} data-column-layout="true"${classAttribute([`studio-columns${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.children.map(column => `<div data-block-type="column" data-block-id="${escapeAttribute(column.id)}" data-column-width="${column.width ?? 100 / block.children.length}"${layoutHtmlAttributes(column)}${classAttribute(`studio-column${column.style?.className ? ` ${escapeAttribute(column.style.className)}` : ""}`)}>${serialiseChildren(column.children)}</div>`).join("")}</div>`;
+      return `<div${attributes} data-block-align-explicit="true"${layoutHtmlAttributes(block)} data-column-layout="true"${classAttribute([`studio-columns${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.children.map(child => blockToHtmlWithFootnoteAnchors(child, footnoteAnchors)).join("")}</div>`;
     case "column":
-      return `<div${attributes} data-column-width="${block.width ?? 100}"${layoutHtmlAttributes(block)}${classAttribute(`studio-column${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${serialiseChildren(block.children)}</div>`;
+      return `<div${attributes} ${block.width === undefined ? "" : `data-column-width="${block.width}"`}${block.allowedBlocks !== undefined ? ` data-allowed-blocks="${escapeAttribute(block.allowedBlocks.join(","))}"` : ""}${layoutHtmlAttributes(block)}${classAttribute(`studio-column${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${serialiseChildren(block.children, footnoteAnchors)}</div>`;
     case "component":
-      return `<div${attributes}${classAttribute("studio-component")} data-component="${escapeAttribute(block.component)}"${block.source ? ` data-source-module="${escapeAttribute(block.source.module)}" data-source-export="${escapeAttribute(block.source.exportName)}" data-source-revision="${escapeAttribute(block.source.revision)}"` : ""}>${block.children ? serialiseChildren(block.children) : ""}</div>`;
+      return `<div${attributes}${classAttribute("studio-component")} data-component="${escapeAttribute(block.component)}"${block.source ? ` data-source-module="${escapeAttribute(block.source.module)}" data-source-export="${escapeAttribute(block.source.exportName)}" data-source-revision="${escapeAttribute(block.source.revision)}"` : ""}>${block.children ? serialiseChildren(block.children, footnoteAnchors) : ""}</div>`;
   }
 }
 
-function serialiseChildren(children: ContentBlock[]) {
-  return children.map((child) => serialiseBlock(child, ` data-block-type="${escapeAttribute(child.type)}" data-block-id="${escapeAttribute(child.id)}"`)).join("");
+function serialiseChildren(children: ContentBlock[], footnoteAnchors: Map<string, string>) {
+  return children.map((child) => serialiseBlock(child, ` data-block-type="${escapeAttribute(child.type)}" data-block-id="${escapeAttribute(child.id)}"`, footnoteAnchors)).join("");
 }
 
-function serialiseList(block: Extract<ContentBlock, { type: "list" }>, attributes = ` data-block-type="list" data-block-id="${escapeAttribute(block.id)}"`): string {
+function serialiseList(block: Extract<ContentBlock, { type: "list" }>, attributes = ` data-block-type="list" data-block-id="${escapeAttribute(block.id)}"`, footnoteAnchors = visibleFootnoteReferenceAnchors([block])): string {
   const tag = block.style === "ordered" ? "ol" : "ul";
-  const items = block.items.map((item: ListItem) => {
-    const text = typeof item === "string" ? escapeText(item) : runsToHtml(item.runs, listItemText(item));
-    const nested = typeof item === "string" ? "" : item.children?.map(child => serialiseList(child)).join("") ?? "";
+  const items = block.items.map((item: ListItem, itemIndex) => {
+    const text = typeof item === "string" ? escapeText(item) : runsToHtml(item.runs, listItemText(item), { blockId: block.id, kind: "list-item", itemIndex });
+    const nested = typeof item === "string" ? "" : item.children?.map(child => blockToHtmlWithFootnoteAnchors(child, footnoteAnchors)).join("") ?? "";
     const style = typeof item === "string" ? undefined : item.style;
     const css = paragraphStyleToCss(style);
     const inlineStyle = Object.entries(css).map(([property, value]) => `${property.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}:${value}`).join(";");
-    const attributes = style ? `${style.anchor ? ` id="${escapeAttribute(style.anchor)}"` : ""}${inlineStyle ? ` style="${escapeAttribute(inlineStyle)}"` : ""} data-list-item-style="${escapeAttribute(JSON.stringify(style))}"` : "";
+    const attributes = style ? `${style.anchor ? ` id="${escapeAttribute(style.anchor)}"` : ""}${style.className ? ` class="${escapeAttribute(style.className)}"` : ""}${inlineStyle ? ` style="${escapeAttribute(inlineStyle)}"` : ""} data-list-item-style="${escapeAttribute(JSON.stringify(style))}"` : "";
     return `<li${attributes}>${text}${nested}</li>`;
   }).join("");
   return `<${tag}${attributes} data-block-align-explicit="true"${block.style === "ordered" && block.marker && block.marker !== "1" ? ` type="${block.marker}"` : ""}${block.style === "ordered" && block.start !== undefined ? ` start="${block.start}"` : ""}${block.style === "ordered" && block.reversed ? " reversed" : ""}${classAttribute(blockAlignmentClass(block))}>${items}</${tag}>`;
 }
 
-function runsToHtml(runs: RichTextRun[] | undefined, text: string) {
+function runsToHtml(runs: RichTextRun[] | undefined, text: string, field: FootnoteFieldLocation) {
   if (!runs?.length) return escapeText(text);
-  return runs.map((run) => {
+  return mathRenderEntries(runs).map(({ run, index: runIndex, legacyRuns }) => {
+    if (validInlineImageRun(run)) return inlineImageHtml(run.inline);
+    if (validMathRun(run)) return mathObjectHtml(run.inline, false);
+    const legacyMath = legacyRuns ? legacyMathHtml(legacyRuns, false) : null;
+    if (legacyMath) return legacyMath;
+    if (run.inline && validFootnoteReference(run)) return `<sup data-footnote-object="${escapeAttribute(run.inline.id)}"><a id="${escapeAttribute(footnoteReferenceAnchor(run.inline.id, field, runIndex))}" href="${escapeAttribute(footnoteFragment(`footnote-${run.inline.id}`))}" aria-label="Footnote">†</a></sup>`;
     let html = escapeText(run.text).replace(/\n/g, "<br />");
-    for (const mark of run.marks ?? []) {
+    for (const [markIndex, mark] of (run.marks ?? []).entries()) {
       if (mark === "bold") html = `<strong>${html}</strong>`;
       else if (mark === "italic") html = `<em>${html}</em>`;
       else if (mark === "strikethrough") html = `<s>${html}</s>`;
@@ -203,15 +221,15 @@ function runsToHtml(runs: RichTextRun[] | undefined, text: string) {
       else if (mark === "superscript") html = `<sup>${html}</sup>`;
       else if (mark === "keyboard") html = `<kbd>${html}</kbd>`;
       else if (mark.type === "highlight") {
-        const style = [mark.textColor && `color:${escapeAttribute(mark.textColor)}`, mark.backgroundColor && `background-color:${escapeAttribute(mark.backgroundColor)}`].filter(Boolean).join(";");
+        const style = `color:${escapeAttribute(mark.textColor ?? "inherit")};background-color:${escapeAttribute(mark.backgroundColor ?? "transparent")}`;
         html = `<mark${style ? ` style="${style}"` : ""}>${html}</mark>`;
       }
-      else if (mark.type === "language") html = `<span lang="${escapeAttribute(mark.language)}" dir="${mark.direction}">${html}</span>`;
+      else if (mark.type === "language") html = `<bdo lang="${escapeAttribute(mark.language)}" dir="${mark.direction}">${html}</bdo>`;
       else if (mark.type === "math") html = `<span data-inline-math="true"${mark.latex ? ` data-math-latex="${escapeAttribute(mark.latex)}"` : ""}${mark.mathml ? ` data-mathml="${escapeAttribute(mark.mathml)}"` : ""} data-math-alt="${escapeAttribute(mark.alternativeText)}">${html}</span>`;
       else if (mark.type === "inline-image") {
         const src = safeImageSource(mark.src ?? "", { allowBlob: true }) ?? "";
         html = `<img data-inline-image="true"${mark.mediaId ? ` data-media-id="${escapeAttribute(mark.mediaId)}"` : ""}${src ? ` src="${escapeAttribute(src)}"` : ""} data-inline-text="${escapeAttribute(run.text)}" alt="${escapeAttribute(mark.alt)}"${mark.width ? ` width="${mark.width}"` : ""} />`;
-      } else if (mark.type === "footnote") html = `<span data-footnote-ref="${escapeAttribute(mark.id)}">${html}<sup><a data-footnote-marker="true" href="#footnote-${escapeAttribute(mark.id)}">†</a></sup></span>`;
+      } else if (mark.type === "footnote") html = `<span data-footnote-ref="${escapeAttribute(mark.id)}">${html}<sup><a id="${escapeAttribute(footnoteReferenceAnchor(mark.id, field, runIndex, markIndex))}" data-footnote-marker="true" href="${escapeAttribute(footnoteFragment(`footnote-${mark.id}`))}">†</a></sup></span>`;
       else {
         const href = safeTextLink(mark.url);
         if (href) html = `<a href="${escapeAttribute(href)}"${mark.opensInNewTab ? " target=\"_blank\" rel=\"noopener noreferrer\"" : ""}>${html}</a>`;
@@ -225,8 +243,15 @@ function classAttribute(value?: string) {
   return value ? ` class="${escapeAttribute(value)}"` : "";
 }
 
-function layoutHtmlAttributes(options: LayoutOptions) {
+function layoutHtmlAttributes(options: LayoutOptions | GroupLayoutOptions) {
+  const group = options as GroupLayoutOptions;
   return [
+    group.contentSize && ` data-layout-content-size="${escapeAttribute(group.contentSize)}"`,
+    group.wideSize && ` data-layout-wide-size="${escapeAttribute(group.wideSize)}"`,
+    group.inheritLayout !== undefined && ` data-layout-inherit="${group.inheritLayout}"`,
+    group.allowWrap !== undefined && ` data-layout-wrap="${group.allowWrap}"`,
+    group.gridMode && ` data-layout-grid-mode="${group.gridMode}"`,
+    group.minColumnWidthUnit && ` data-layout-min-column-width-unit="${group.minColumnWidthUnit}"`,
     options.horizontalAlign && ` data-layout-horizontal-align="${escapeAttribute(options.horizontalAlign)}"`,
     options.verticalAlign && ` data-layout-vertical-align="${escapeAttribute(options.verticalAlign)}"`,
     options.gap !== undefined && ` data-layout-gap="${options.gap}"`,
@@ -256,13 +281,13 @@ export type HtmlBlocksParseResult = { blocks: ContentBlock[] } | { error: string
 export function collectBlockIds(block: ContentBlock): string[] {
   if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "social-icons") return [block.id, ...block.children.flatMap(collectBlockIds)];
   if (block.type === "columns") return [block.id, ...block.children.flatMap(collectBlockIds)];
-  if (block.type === "component") return [block.id, ...(block.children?.flatMap(collectBlockIds) ?? [])];
+  if (block.type === "component" || block.type === "quote" || block.type === "buttons") return [block.id, ...(block.children?.flatMap(collectBlockIds) ?? [])];
   if (block.type === "list") return [block.id, ...block.items.flatMap(item => typeof item === "string" ? [] : item.children?.flatMap(collectBlockIds) ?? [])];
   return [block.id];
 }
 
 /** Parse only the semantic elements emitted by blockToHtml. */
-export function parseHtmlToBlock(html: string, original: ContentBlock): HtmlParseResult {
+export function parseHtmlToBlock(html: string, original: ContentBlock, contextBlocks?: ContentBlock[]): HtmlParseResult {
   if (typeof DOMParser === "undefined") return { error: "HTML editing is only available in a browser." };
   const document = new DOMParser().parseFromString(html, "text/html");
   if (document.querySelector("parsererror")) return { error: "The HTML could not be parsed." };
@@ -275,7 +300,10 @@ export function parseHtmlToBlock(html: string, original: ContentBlock): HtmlPars
   if ("error" in parsed) return parsed;
   const parsedIds = collectBlockIds(parsed.block);
   if (new Set(parsedIds).size !== parsedIds.length) return { error: "Each block must have a unique block ID." };
-  if (!validContentBlocks([parsed.block])) return { error: "This HTML would create an invalid block." };
+  restoreBlockEditorial([parsed.block], originalBlockIndex([original]));
+  const proposal = contextBlocks ? editBlockSiblings(contextBlocks, original.id, (siblings, index) => siblings.map((block, position) => position === index ? parsed.block : block)) : [parsed.block];
+  if (contextBlocks && proposal === contextBlocks) return { error: "This block is no longer in the document." };
+  if (!validContentBlocks(proposal)) return { error: "This HTML would create an invalid block structure." };
   return parsed;
 }
 
@@ -287,9 +315,7 @@ export function parseHtmlToBlocks(html: string, originals: ContentBlock[]): Html
   if (document.querySelector("script, style, iframe, object, embed, form, [onclick], [onerror], [onload], [oninput], [onchange], [onsubmit]")) return { error: "Scripts, event handlers and unsafe elements are not supported." };
   const nodes = [...document.body.childNodes].filter((node) => node.nodeType !== Node.TEXT_NODE || node.textContent?.trim());
   if (nodes.some((node) => node.nodeType !== Node.ELEMENT_NODE)) return { error: "Use supported block elements only." };
-  const originalById = new Map<string, ContentBlock>();
-  const index = (blocks: ContentBlock[]) => blocks.forEach((block) => { originalById.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component" || block.type === "social-icons") index(block.children ?? []); else if (block.type === "columns") block.children.forEach(column => index([column])); });
-  index(originals);
+  const originalById = originalBlockIndex(originals);
   const blocks: ContentBlock[] = [];
   for (const node of nodes) {
     const element = node as HTMLElement;
@@ -301,14 +327,32 @@ export function parseHtmlToBlocks(html: string, originals: ContentBlock[]): Html
   }
   const ids = collectBlockIds({ id: "document-root", type: "group", layout: "stack", children: blocks });
   if (new Set(ids).size !== ids.length) return { error: "Each block must have a unique block ID." };
+  restoreBlockEditorial(blocks, originalById);
   if (!validContentBlocks(blocks)) return { error: "This HTML would create an invalid document." };
   return { blocks };
+}
+
+function visitEditorialBlocks(blocks: ContentBlock[], visit: (block: ContentBlock) => void) {
+  for (const block of blocks) {
+    visit(block);
+    if ("children" in block && block.children) visitEditorialBlocks(block.children, visit);
+    if (block.type === "list") for (const item of block.items) if (typeof item !== "string" && item.children) visitEditorialBlocks(item.children, visit);
+  }
+}
+function originalBlockIndex(blocks: ContentBlock[]) {
+  const result = new Map<string, ContentBlock>();
+  visitEditorialBlocks(blocks, block => result.set(block.id, block));
+  return result;
+}
+function restoreBlockEditorial(blocks: ContentBlock[], originals: Map<string, ContentBlock>) {
+  visitEditorialBlocks(blocks, block => { block.editorial = originals.get(block.id)?.editorial; });
 }
 
 function parseElement(element: HTMLElement, original: ContentBlock, originals = new Map<string, ContentBlock>()): HtmlParseResult {
   const parsed = parseElementBase(element, original, originals);
   if ("error" in parsed) return parsed;
   const block = parsed.block;
+  block.editorial = original.id === block.id ? original.editorial : undefined;
   const styleKey = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? "style" : "visualStyle";
   const existingStyle = styleKey === "style" ? block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : undefined : block.visualStyle;
   const anchor = element.dataset.htmlAnchor;
@@ -333,8 +377,7 @@ function parseElement(element: HTMLElement, original: ContentBlock, originals = 
 
 function parseElementBase(element: HTMLElement, original: ContentBlock, originals = new Map<string, ContentBlock>()): HtmlParseResult {
   if (!originals.size) {
-    const index = (block: ContentBlock) => { originals.set(block.id, block); if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "component" || block.type === "social-icons") (block.children ?? []).forEach(index); else if (block.type === "columns") block.children.forEach(index); };
-    index(original);
+    originals = originalBlockIndex([original]);
   }
   const parsed = parseElementContent(element, original, originals);
   if ("error" in parsed) return parsed;
@@ -361,9 +404,9 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
     if (!notes.length) return { error: "A footnotes block must contain at least one note." };
     return { block: { id, type: "footnotes", notes } };
   }
-  if (declaredType === "reading-time") return { block: { id, type: "reading-time", prefix: element.dataset.metadataPrefix ?? (original.type === "reading-time" ? original.prefix : "Reading Time:"), presentation: element.dataset.metadataPresentation === "plain" ? "plain" : "badge", align: alignmentFromClass(element) ?? (original.type === "reading-time" ? original.align : undefined) } };
+  if (declaredType === "reading-time") return { block: { id, type: "reading-time", mode: element.dataset.readingMode === "words" ? "words" : "time", showRange: element.dataset.readingRange === "true", prefix: element.dataset.metadataPrefix ?? (original.type === "reading-time" ? original.prefix : "Reading Time:"), presentation: element.dataset.metadataPresentation === "plain" ? "plain" : "badge", align: alignmentFromClass(element) ?? (original.type === "reading-time" ? original.align : undefined) } };
   if (declaredType === "post-author") return { block: { id, type: "post-author", prefix: element.dataset.metadataPrefix ?? (original.type === "post-author" ? original.prefix : "By"), avatar: element.dataset.metadataAvatar !== "false", align: alignmentFromClass(element) ?? (original.type === "post-author" ? original.align : undefined) } };
-  if (declaredType === "post-date") return { block: { id, type: "post-date", format: ["long", "short", "iso"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined), isLink: element.dataset.metadataLink === "true" } };
+  if (declaredType === "post-date") return { block: { id, type: "post-date", dateSource: element.dataset.dateSource === "modified" ? "modified" : "published", customFormat: element.dataset.customFormat, format: ["long", "short", "iso", "custom"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" | "custom" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined), isLink: element.dataset.metadataLink === "true" } };
   if (declaredType === "divider") {
     const tagName = element.tagName.toLowerCase();
     if (tagName !== "hr" && tagName !== "div") return { error: "A Separator must use an hr or div element." };
@@ -390,14 +433,28 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
     return { block: { ...(original.type === declaredType ? { visualStyle: original.visualStyle } : {}), id, type: declaredType, url: element.getAttribute("href") ?? element.dataset.socialUrl ?? "", label: element.textContent || undefined, rel: element.getAttribute("rel") || undefined } };
   }
   if (declaredType === "document-title") {
-    const level = Number(element.tagName.slice(1));
-    return { block: { id, type: "document-title", align: alignmentFromClass(element) ?? (original.type === "document-title" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original), level: [1, 2, 3, 4, 5, 6].includes(level) ? level as 1 | 2 | 3 | 4 | 5 | 6 : original.type === "document-title" ? original.level : 2, isLink: element.dataset.metadataLink === "true", linkTarget: element.dataset.linkTarget === "_blank" ? "_blank" : "_self", rel: element.dataset.linkRel || undefined } };
+    const level = element.dataset.titleLevel !== undefined ? Number(element.dataset.titleLevel) : element.tagName === "P" ? 0 : Number(element.tagName.slice(1));
+    return { block: { id, type: "document-title", align: alignmentFromClass(element) ?? (original.type === "document-title" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original), level: [0, 1, 2, 3, 4, 5, 6].includes(level) ? level as 0 | 1 | 2 | 3 | 4 | 5 | 6 : original.type === "document-title" ? original.level : 2, isLink: element.dataset.metadataLink === "true", linkTarget: element.dataset.linkTarget === "_blank" ? "_blank" : "_self", rel: element.dataset.linkRel || undefined } };
   }
   if (declaredType === "document-subtitle") return { block: { id, type: "document-subtitle", align: alignmentFromClass(element) ?? (original.type === "document-subtitle" ? original.align : undefined) } };
   if (declaredType === "cover-image") {
     const number = (name: string) => { const value = element.getAttribute(name); return value === null || value === "" ? undefined : Number(value); };
     const aspectRatio = element.dataset.aspectRatio;
     return { block: { id, type: "cover-image", align: alignmentFromClass(element) ?? (original.type === "cover-image" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original), isLink: element.dataset.metadataLink === "true", linkTarget: element.dataset.linkTarget === "_blank" ? "_blank" : "_self", rel: element.dataset.linkRel || undefined, aspectRatio: aspectRatio && ["original", "square", "portrait", "landscape", "wide"].includes(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "cover-image" }>["aspectRatio"] : undefined, scale: element.dataset.scale === "fill" ? "fill" : element.dataset.scale === "contain" ? "contain" : element.dataset.scale === "cover" ? "cover" : undefined, displayWidth: number("data-display-width"), displayHeight: number("data-display-height"), focalX: number("data-focal-x"), focalY: number("data-focal-y") } };
+  }
+  if (declaredType === "buttons" || element.classList.contains("content-buttons")) {
+    const children: Extract<ContentBlock, { type: "button" }>[] = [];
+    for (const child of [...element.children]) {
+      const childElement = child as HTMLElement;
+      const childId = childElement.dataset.blockId || crypto.randomUUID();
+      const parsed = parseElement(childElement, originals.get(childId) ?? { id: childId, type: "paragraph", text: "" }, originals);
+      if ("error" in parsed) return parsed;
+      if (parsed.block.type !== "button") return { error: "Buttons can contain only Button blocks." };
+      children.push(parsed.block);
+    }
+    const justification = element.dataset.justification;
+    const gap = (value: string | undefined) => value === undefined ? undefined : Number(value);
+    return { block: { id, type: "buttons", children, justification: ["left", "centre", "right", "space-between"].includes(justification ?? "") ? justification as Extract<ContentBlock, { type: "buttons" }>["justification"] : undefined, orientation: element.dataset.orientation === "vertical" ? "vertical" : "horizontal", allowWrap: element.dataset.wrap !== "false", horizontalGap: gap(element.dataset.horizontalGap), verticalGap: gap(element.dataset.verticalGap), blockAlign: element.dataset.blockAlign as Extract<ContentBlock, { type: "buttons" }>["blockAlign"] || undefined } };
   }
   switch (element.tagName.toLowerCase()) {
     case "p": {
@@ -410,16 +467,36 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
           catch { return { error: "Button interaction styles could not be parsed." }; }
           if (!validButtonInteractionStyles(interactionStyles)) return { error: "Button interaction styles are invalid." };
         }
-        return { block: { id, type: "button", label: link.textContent ?? "", url: safeTextLink(link.getAttribute("href") ?? "") || "#", style: link.classList.contains("is-secondary") ? "secondary" : "primary", opensInNewTab: link.getAttribute("target") === "_blank" || undefined, align: alignmentFromClass(element), width: [25, 50, 75, 100].includes(width) ? width as 25 | 50 | 75 | 100 : undefined, title: link.getAttribute("title") || undefined, rel: link.getAttribute("rel")?.replace(/(?:^|\s)(?:noopener|noreferrer)(?=\s|$)/g, " ").trim() || undefined, interactionStyles: interactionStyles as Extract<ContentBlock, { type: "button" }>["interactionStyles"] } };
+        const labelRuns = parseRuns(link);
+        return { block: { id, type: "button", label: labelRuns ? plainTextFromRuns(labelRuns) : link.textContent ?? "", labelRuns, url: safeTextLink(link.getAttribute("href") ?? "") || "", style: link.classList.contains("is-secondary") ? "secondary" : "primary", opensInNewTab: link.getAttribute("target") === "_blank" || undefined, align: alignmentFromClass(element), width: [25, 50, 75, 100].includes(width) ? width as 25 | 50 | 75 | 100 : undefined, title: link.getAttribute("title") || undefined, rel: link.getAttribute("rel")?.replace(/(?:^|\s)(?:noopener|noreferrer)(?=\s|$)/g, " ").trim() || undefined, interactionStyles: interactionStyles as Extract<ContentBlock, { type: "button" }>["interactionStyles"] } };
       }
       const runs = parseRuns(element);
       return { block: { ...preserveParagraphStyle(original, id), type: "paragraph", text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element) ?? (element.dataset.alignExplicit === "true" ? undefined : original.type === "paragraph" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original) } };
     }
     case "h1": case "h2": case "h3": case "h4": case "h5": case "h6":
       { const runs = parseRuns(element); return { block: { id, type: "heading", level: Number(element.tagName.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6, text: runs ? plainTextFromRuns(runs) : textContent, runs, align: alignmentFromClass(element), blockAlign: parsedBlockAlignment(element, original) } }; }
-    case "blockquote":
-      { const runs = parseRuns(element); return { block: { id, type: "quote", text: runs ? plainTextFromRuns(runs) : textContent.replace(element.querySelector("cite")?.textContent ?? "", "").trim(), runs, attribution: element.querySelector("cite")?.textContent || undefined, align: alignmentFromClass(element), blockAlign: parsedBlockAlignment(element, original), quoteStyle: element.classList.contains("is-style-plain") ? "plain" : undefined } }; }
-    case "ul": case "ol": return parseListElement(element, id, original);
+    case "blockquote": {
+      const citation = [...element.children].find(child => child.tagName.toLowerCase() === "cite") as HTMLElement | undefined;
+      const body = element.cloneNode(true) as HTMLElement;
+      [...body.children].filter(child => child.tagName.toLowerCase() === "cite").forEach(child => child.remove());
+      const blockElements = [...body.children].filter(child => ["p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "blockquote", "figure"].includes(child.tagName.toLowerCase()));
+      if (blockElements.length && [...body.childNodes].some(node => node.nodeType === 3 ? Boolean(node.textContent?.trim()) : node.nodeType === 1 && !blockElements.includes(node as Element))) return { error: "A structured Quote must contain supported inner blocks. Wrap loose text in a paragraph and remove unsupported elements." };
+      const children: ContentBlock[] = [];
+      if (blockElements.length) {
+        for (const child of blockElements) {
+          const childElement = child as HTMLElement;
+          const childId = childElement.dataset.blockId || crypto.randomUUID();
+          const parsed = parseElement(childElement, originals.get(childId) ?? { id: childId, type: "paragraph", text: "" }, originals);
+          if ("error" in parsed) return parsed;
+          children.push(parsed.block);
+        }
+      }
+      const runs = children.length ? undefined : parseRuns(body);
+      const attributionRuns = citation ? parseRuns(citation) : undefined;
+      const attribution = attributionRuns ? plainTextFromRuns(attributionRuns) : citation?.textContent || undefined;
+      return { block: { id, type: "quote", text: children.length ? "" : runs ? plainTextFromRuns(runs) : body.textContent ?? "", runs, children: children.length ? children : undefined, attribution, attributionRuns, align: alignmentFromClass(element), blockAlign: parsedBlockAlignment(element, original), quoteStyle: element.classList.contains("is-style-plain") ? "plain" : undefined } };
+    }
+    case "ul": case "ol": return parseListElement(element, id, original, originals);
     case "table":
       return parseTable(element, id, original);
     case "pre":
@@ -437,7 +514,10 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       const link = image.closest("a");
       const linkDestination = destination && ["none", "custom", "media", "lightbox"].includes(destination) ? destination as Extract<ContentBlock, { type: "image" }>["linkDestination"] : link ? "custom" : undefined;
       const parsedAlignment = parsedBlockAlignment(element, original) ?? (element.classList.contains("is-wide") ? "wide" : undefined);
-      const next: Extract<ContentBlock, { type: "image" }> = { ...(original.type === "image" ? original : {}), id, type: "image", src: src ?? "", alt: image.dataset.decorative === "true" && original.type === "image" ? original.alt : image.getAttribute("alt") ?? "", decorative: image.dataset.decorative === "true", title: image.getAttribute("title") || undefined, aspectRatio: aspectRatio && ["original", "square", "portrait", "landscape", "wide"].includes(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "image" }>["aspectRatio"] : undefined, scale: scale === "cover" || scale === "contain" ? scale : undefined, displayWidth: numberAttribute("data-display-width"), displayHeight: numberAttribute("data-display-height"), focalX: numberAttribute("data-focal-x"), focalY: numberAttribute("data-focal-y"), linkDestination, linkUrl: linkDestination === "custom" && link ? safeTextLink(link.getAttribute("href") ?? "") || undefined : undefined, opensInNewTab: link?.getAttribute("target") === "_blank" || undefined, imageStyle: element.dataset.imageStyle === "rounded" ? "rounded" : undefined, caption: element.querySelector("figcaption")?.textContent || undefined, blockAlign: parsedAlignment, wide: false };
+      const captionElement = element.querySelector("figcaption");
+      const captionRuns = captionElement ? parseRuns(captionElement) : undefined;
+      const caption = captionRuns ? plainTextFromRuns(captionRuns) : captionElement?.textContent || undefined;
+      const next: Extract<ContentBlock, { type: "image" }> = { ...(original.type === "image" ? original : {}), id, type: "image", src: src ?? "", alt: image.dataset.decorative === "true" && original.type === "image" ? original.alt : image.getAttribute("alt") ?? "", decorative: image.dataset.decorative === "true", title: image.getAttribute("title") || undefined, aspectRatio: aspectRatio && ["original", "square", "portrait", "landscape", "wide"].includes(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "image" }>["aspectRatio"] : undefined, scale: scale === "cover" || scale === "contain" ? scale : undefined, displayWidth: numberAttribute("data-display-width"), displayHeight: numberAttribute("data-display-height"), focalX: numberAttribute("data-focal-x"), focalY: numberAttribute("data-focal-y"), linkDestination, linkUrl: linkDestination === "custom" && link ? safeTextLink(link.getAttribute("href") ?? "") || undefined : undefined, opensInNewTab: link?.getAttribute("target") === "_blank" || undefined, imageStyle: element.dataset.imageStyle === "rounded" ? "rounded" : undefined, caption, captionRuns, blockAlign: parsedAlignment, wide: false };
       const originalSrc = original.type === "image" ? safeImageSource(original.src) ?? "" : "";
       if (original.type === "image" && (src ?? "") !== originalSrc) delete next.mediaId;
       return { block: next };
@@ -451,7 +531,10 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
     }
     case "section": case "div": case "main": case "article": case "aside": case "header": case "footer": case "nav": {
       if (element.tagName.toLowerCase() === "aside" && declaredType !== "group" && !element.classList.contains("studio-group")) {
-        return { block: { id, type: "embed", url: safeTextLink(element.getAttribute("data-embed-url") ?? element.querySelector("a")?.getAttribute("href") ?? "") || "", title: element.querySelector("a")?.textContent ?? element.firstChild?.textContent ?? "", caption: element.querySelector(".embed-caption")?.textContent || undefined, blockAlign: parsedBlockAlignment(element, original) } };
+        const captionElement = element.querySelector(".embed-caption");
+        const captionRuns = captionElement ? parseRuns(captionElement as HTMLElement) : undefined;
+        const caption = captionRuns ? plainTextFromRuns(captionRuns) : captionElement?.textContent || undefined;
+        return { block: { id, type: "embed", url: safeTextLink(element.getAttribute("data-embed-url") ?? element.querySelector("a")?.getAttribute("href") ?? "") || "", title: element.querySelector("a")?.textContent ?? element.firstChild?.textContent ?? "", caption, captionRuns: captionRuns?.some(run => run.inline || run.marks?.length) ? captionRuns : undefined, blockAlign: parsedBlockAlignment(element, original) } };
       }
       if (element.dataset.spacerHeight !== undefined || element.classList.contains("studio-spacer")) {
         const height = Number(element.dataset.spacerHeight);
@@ -485,7 +568,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
         }
         const width = Number(element.dataset.columnWidth);
         const options = parseLayoutOptions(element);
-        return { block: { ...(original.type === "column" ? original : { id, type: "column" as const, children: [] }), id, type: "column", width: Number.isFinite(width) ? width : undefined, verticalAlign: options.verticalAlign ?? element.dataset.columnVerticalAlign as Extract<ContentBlock, { type: "column" }> ["verticalAlign"], gap: options.gap, columnGap: options.columnGap, rowGap: options.rowGap, children } };
+        return { block: { ...(original.type === "column" ? original : { id, type: "column" as const, children: [] }), id, type: "column", allowedBlocks: element.hasAttribute("data-allowed-blocks") ? ((element.dataset.allowedBlocks ?? "").split(",").filter(Boolean) as GroupAllowedBlockType[]) : original.type === "column" ? original.allowedBlocks : undefined, width: Number.isFinite(width) ? width : undefined, verticalAlign: options.verticalAlign ?? element.dataset.columnVerticalAlign as Extract<ContentBlock, { type: "column" }> ["verticalAlign"], gap: options.gap, columnGap: options.columnGap, rowGap: options.rowGap, children } };
       }
       if (type === "group" && element.dataset.component) {
         if (original.type !== "component" || original.component !== element.dataset.component) return { error: "Component blocks are code-backed; edit their supported properties in the inspector." };
@@ -511,22 +594,37 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
         if ("error" in parsed) return parsed;
         children.push(parsed.block);
       }
-      const layout = (element.className.match(/layout-(stack|row|columns|grid)/)?.[1] ?? "stack") as LayoutMode;
-      const options = parseLayoutOptions(element, true);
-      if (type === "section") return { block: { ...(original.type === "section" ? original : {}), id, type: "section", role: sectionRoleFromData(element.dataset.sectionRole), layout, ...options, children } };
+      const layout = (element.className.match(/layout-(flow|stack|row|columns|grid)/)?.[1] ?? "stack") as LayoutMode;
+      if (type === "section") {
+        const options = parseLayoutOptions(element, true, false);
+        return { block: { ...(original.type === "section" ? original : {}), id, type: "section", role: sectionRoleFromData(element.dataset.sectionRole), layout, ...options, children } };
+      }
+      const options = parseLayoutOptions(element, true, true);
       const semanticTag = element.tagName.toLowerCase();
-      return { block: { ...(original.type === "group" ? original : {}), id, type: "group", layout, ...options, children, blockAlign: parsedBlockAlignment(element, original), tagName: ["div", "main", "section", "article", "aside", "header", "footer", "nav"].includes(semanticTag) ? semanticTag as Extract<ContentBlock, { type: "group" }>["tagName"] : undefined, ariaLabel: element.getAttribute("aria-label") || undefined, position: element.dataset.groupPosition === "sticky" ? "sticky" : undefined } };
+      const allowedBlocks = element.hasAttribute("data-allowed-blocks") ? ((element.dataset.allowedBlocks ?? "").split(",").filter(Boolean) as GroupAllowedBlockType[]) : original.type === "group" ? original.allowedBlocks : undefined;
+      return { block: { ...(original.type === "group" ? original : {}), id, type: "group", layout, ...options, allowedBlocks, children, blockAlign: parsedBlockAlignment(element, original), tagName: ["div", "main", "section", "article", "aside", "header", "footer", "nav"].includes(semanticTag) ? semanticTag as Extract<ContentBlock, { type: "group" }>["tagName"] : undefined, ariaLabel: element.getAttribute("aria-label") || undefined, position: element.dataset.groupPosition === "sticky" ? "sticky" : undefined } };
     }
     default:
       return { error: `This element (${element.tagName.toLowerCase()}) is not supported for this block.` };
   }
 }
 
-function parseLayoutOptions(element: HTMLElement, includeGridOptions = false): LayoutOptions {
+function parseLayoutOptions(element: HTMLElement, includeGridOptions: true, allowSpaceBetween: true): GroupLayoutOptions;
+function parseLayoutOptions(element: HTMLElement, includeGridOptions: true, allowSpaceBetween: false): LayoutOptions;
+function parseLayoutOptions(element: HTMLElement, includeGridOptions?: false): LayoutOptions;
+function parseLayoutOptions(element: HTMLElement, includeGridOptions = false, allowSpaceBetween = false): LayoutOptions | GroupLayoutOptions {
   const number = (value: string | undefined) => value === undefined ? undefined : Number(value);
   return {
-    horizontalAlign: element.dataset.layoutHorizontalAlign as LayoutOptions["horizontalAlign"],
-    verticalAlign: element.dataset.layoutVerticalAlign as LayoutOptions["verticalAlign"],
+    ...(allowSpaceBetween ? {
+      contentSize: element.dataset.layoutContentSize,
+      wideSize: element.dataset.layoutWideSize,
+      inheritLayout: element.hasAttribute("data-layout-inherit") ? element.dataset.layoutInherit === "true" : undefined,
+      allowWrap: element.hasAttribute("data-layout-wrap") ? element.dataset.layoutWrap === "true" : undefined,
+      gridMode: element.dataset.layoutGridMode as GroupLayoutOptions["gridMode"],
+      minColumnWidthUnit: element.dataset.layoutMinColumnWidthUnit as GroupLayoutOptions["minColumnWidthUnit"],
+    } : {}),
+    horizontalAlign: element.dataset.layoutHorizontalAlign as LayoutOptions["horizontalAlign"] | GroupLayoutHorizontalAlignment,
+    verticalAlign: element.dataset.layoutVerticalAlign as LayoutOptions["verticalAlign"] | GroupLayoutVerticalAlignment,
     gap: number(element.dataset.layoutGap),
     columnGap: number(element.dataset.layoutColumnGap),
     rowGap: number(element.dataset.layoutRowGap),
@@ -536,7 +634,7 @@ function parseLayoutOptions(element: HTMLElement, includeGridOptions = false): L
     columns: number(element.dataset.layoutColumns),
     ...(includeGridOptions ? { minColumnWidth: number(element.dataset.layoutMinColumnWidth) } : {}),
     stackAt: element.dataset.layoutStackAt as LayoutOptions["stackAt"],
-  };
+  } as LayoutOptions | GroupLayoutOptions;
 }
 
 function sectionRoleFromData(value?: string): SiteSectionRole | undefined {
@@ -567,7 +665,7 @@ function parsedSocialIconsAlignment(element: HTMLElement, original: ContentBlock
   return alignment === "left" || alignment === "center" || alignment === "right" ? alignment : undefined;
 }
 
-function parseListElement(element: HTMLElement, id: string, original?: ContentBlock): HtmlParseResult {
+function parseListElement(element: HTMLElement, id: string, original: ContentBlock, originals: Map<string, ContentBlock>): HtmlParseResult {
   const ordered = element.tagName.toLowerCase() === "ol";
   const marker = element.getAttribute("type");
   if (ordered && marker && !["1", "A", "a", "I", "i"].includes(marker)) return { error: "This ordered-list style is not supported." };
@@ -584,7 +682,9 @@ function parseListElement(element: HTMLElement, id: string, original?: ContentBl
     for (const nested of nestedElements) {
       const nestedType = nested.dataset.blockType;
       if (nestedType && nestedType !== "list") return { error: "Nested lists must use list block markup." };
-      const parsed = parseListElement(nested, nested.dataset.blockId || crypto.randomUUID());
+      const nestedId = nested.dataset.blockId || crypto.randomUUID();
+      const previous = originals.get(nestedId);
+      const parsed = parseElement(nested, previous?.type === "list" ? previous : { id: nestedId, type: "list", style: "unordered", items: [] }, originals);
       if ("error" in parsed || parsed.block.type !== "list") return "error" in parsed ? parsed : { error: "Nested list markup is invalid." };
       children.push(parsed.block);
     }
@@ -599,12 +699,12 @@ function parseListElement(element: HTMLElement, id: string, original?: ContentBl
         return { error: "List Item style settings are invalid." };
       }
     } else if (item.id && validListItemStyle({ anchor: item.id })) itemStyle = { anchor: item.id };
-    items.push(children.length || runs?.some(run => run.marks?.length) || itemStyle
+    items.push(children.length || runs?.some(run => run.inline || run.marks?.length) || itemStyle
       ? { text, runs, children: children.length ? children : undefined, ...(itemStyle ? { style: itemStyle } : {}) }
       : text);
   }
   const startValue = ordered && element.hasAttribute("start") ? Number(element.getAttribute("start")) : undefined;
-  if (startValue !== undefined && (!Number.isInteger(startValue) || startValue < 1 || startValue > 100000)) return { error: "The ordered-list start value is invalid." };
+  if (startValue !== undefined && (!Number.isInteger(startValue) || startValue < -100000 || startValue > 100000)) return { error: "The ordered-list start value is invalid." };
   return { block: { id, type: "list", style: ordered ? "ordered" : "unordered", items, marker: ordered && marker ? marker as "1" | "A" | "a" | "I" | "i" : undefined, start: startValue, reversed: ordered && element.hasAttribute("reversed") || undefined, blockAlign: original ? parsedBlockAlignment(element, original) : blockAlignmentFromClass(element) } };
 }
 
@@ -616,6 +716,25 @@ function parseRuns(element: HTMLElement): RichTextRun[] | undefined {
     const child = node as HTMLElement;
     if (child.tagName === "CITE") return;
     if (child.tagName === "BR") { runs.push({ text: "\n", marks: marks.length ? marks : undefined }); return; }
+    if (child.dataset.imageObject !== undefined) {
+      const image = inlineImageFromData(child.dataset.imageObject);
+      if (!image) throw new Error("Invalid saved inline image. Original content has been retained.");
+      runs.push(inlineImageRun(image));
+      return;
+    }
+    if (child.dataset.mathObject !== undefined || child.dataset.mathLegacy !== undefined) {
+      const math = mathObjectFromData(child.dataset.mathObject);
+      const legacy = legacyMathFromData(child.dataset.mathLegacy);
+      if (math) runs.push(mathRun(math));
+      else if (legacy) runs.push(...legacy);
+      else throw new Error("Invalid saved mathematical expression. Original content has been retained.");
+      return;
+    }
+    if (child.dataset.footnoteObject !== undefined) {
+      if (!validFootnoteId(child.dataset.footnoteObject)) throw new Error("Invalid footnote reference identity. The original content has been retained.");
+      runs.push(footnoteReferenceRun(child.dataset.footnoteObject));
+      return;
+    }
     const next = [...marks];
     if (child.tagName === "IMG" && child.dataset.inlineImage === "true") {
       const src = safeImageSource(child.getAttribute("src") ?? "");
@@ -629,7 +748,10 @@ function parseRuns(element: HTMLElement): RichTextRun[] | undefined {
       return;
     }
     if (child.tagName === "MATH") {
-      runs.push({ text: child.textContent ?? "", marks: [...marks, { type: "math", mathml: child.outerHTML, alternativeText: child.getAttribute("aria-label") ?? child.textContent ?? "Mathematical expression" }] });
+      const latex = child.getAttribute("data-latex");
+      const math = mathObjectFromData(JSON.stringify({ type: "math", ...(latex !== null ? { latex } : { mathml: child.outerHTML }), alternativeText: child.getAttribute("aria-label") ?? "" }));
+      if (!math) throw new Error("Unsupported mathematical markup. Original content has been retained.");
+      runs.push(mathRun(math));
       return;
     }
     if (child.dataset.inlineMath === "true") next.push({ type: "math", latex: child.dataset.mathLatex, mathml: child.dataset.mathml, alternativeText: child.dataset.mathAlt ?? child.textContent ?? "" });
@@ -638,8 +760,8 @@ function parseRuns(element: HTMLElement): RichTextRun[] | undefined {
       const href = child.querySelector<HTMLAnchorElement>("a[href^='#footnote-']")?.getAttribute("href");
       if (href) next.push({ type: "footnote", id: href.slice("#footnote-".length) });
     }
-    if (child.tagName === "MARK") next.push({ type: "highlight", textColor: child.style.color || undefined, backgroundColor: child.style.backgroundColor || undefined });
-    if (child.lang) next.push({ type: "language", language: child.lang, direction: child.dir === "rtl" ? "rtl" : "ltr" });
+    if (child.tagName === "MARK") next.push({ type: "highlight", textColor: child.style.color && child.style.color !== "inherit" ? child.style.color : undefined, backgroundColor: child.style.backgroundColor && child.style.backgroundColor !== "transparent" ? child.style.backgroundColor : undefined });
+    if (child.lang || child.tagName === "BDO" && child.hasAttribute("dir")) next.push({ type: "language", language: child.lang, direction: child.dir === "rtl" ? "rtl" : "ltr" });
     if (["STRONG", "B"].includes(child.tagName)) next.push("bold");
     if (["EM", "I"].includes(child.tagName)) next.push("italic");
     if (["S", "STRIKE", "DEL"].includes(child.tagName)) next.push("strikethrough");
@@ -659,26 +781,61 @@ function parseRuns(element: HTMLElement): RichTextRun[] | undefined {
 
 function parseTable(element: HTMLElement, id: string, original: ContentBlock): HtmlParseResult {
   const rows: string[][] = [];
+  const parsedCellRuns: (RichTextRun[] | undefined)[][] = [];
+  const parsedCellMetadata: ({ tag?: "th" | "td"; scope?: "row" | "col" | "rowgroup" | "colgroup" | null } | null)[][] = [];
   const head = element.querySelector("thead");
   const body = element.querySelector("tbody");
   const foot = element.querySelector("tfoot");
-  const read = (root: Element | null) => root?.querySelectorAll("tr").forEach((row) => rows.push([...row.children].map((cell) => cell.textContent ?? "")));
-  read(head); read(body); read(foot);
-  if (!rows.length) return { error: "Table blocks must contain at least one row." };
-  if (rows.some((row) => row.length !== rows[0].length)) return { error: "Table rows must all contain the same number of cells." };
+  const read = (root: Element | null, defaultTag: "th" | "td") => root?.querySelectorAll("tr").forEach((row) => {
+    const cells = [...row.children];
+    const rowRuns = cells.map((cell) => parseRuns(cell as HTMLElement));
+    rows.push(cells.map((cell, column) => rowRuns[column] ? plainTextFromRuns(rowRuns[column]!) : cell.textContent ?? ""));
+    parsedCellRuns.push(rowRuns);
+    parsedCellMetadata.push(cells.map(cell => {
+      const tag = cell.tagName?.toLowerCase() === "th" ? "th" : cell.tagName?.toLowerCase() === "td" ? "td" : defaultTag;
+      const scopeValue = typeof cell.getAttribute === "function" ? cell.getAttribute("scope") : null;
+      const validScope = scopeValue === "row" || scopeValue === "col" || scopeValue === "rowgroup" || scopeValue === "colgroup" ? scopeValue : undefined;
+      const metadata: { tag?: "th" | "td"; scope?: "row" | "col" | "rowgroup" | "colgroup" | null } = {};
+      if (tag !== defaultTag) metadata.tag = tag;
+      if (tag === "th") {
+        const defaultScope = defaultTag === "th" ? "col" : undefined;
+        if (validScope !== undefined) metadata.scope = validScope;
+        else if (scopeValue === null && defaultScope !== undefined) metadata.scope = null;
+        else if (scopeValue !== null && defaultScope !== undefined) metadata.scope = null;
+      }
+      return Object.keys(metadata).length ? metadata : null;
+    }));
+  });
+  read(head, "th");
+  const headerRowCount = rows.length;
+  read(body, "td");
+  const footerStart = rows.length;
+  read(foot, "td");
+  const footerRowCount = rows.length - footerStart;
+  if (!rows.length && !(original.type === "table" && !original.rows.length)) return { error: "Table blocks must contain at least one row." };
+  if (rows.some((row) => row.length !== (rows[0]?.length ?? 0))) return { error: "Table rows must all contain the same number of cells." };
   const sizes = (attribute: string, count: number, previous: number[] | undefined) => {
     const encoded = element.getAttribute(attribute);
     if (encoded === null) return previous?.length === count ? previous : undefined;
     const values = encoded.split(",").map(Number);
     return values.length === count && values.every((value) => Number.isFinite(value) && value > 0) ? values : null;
   };
-  const columnWidths = sizes("data-column-widths", rows[0].length, original.type === "table" ? original.columnWidths : undefined);
+  const columnWidths = sizes("data-column-widths", (rows[0]?.length ?? 0), original.type === "table" ? original.columnWidths : undefined);
   const rowHeights = sizes("data-row-heights", rows.length, original.type === "table" ? original.rowHeights : undefined);
   if (columnWidths === null || rowHeights === null) return { error: "Table dimensions must be positive numbers matching the column and row counts." };
   const encodedAlignments = element.dataset.columnAlignments;
   const firstRow = (head ?? body ?? foot)?.querySelectorAll("tr")[0];
   const cellAlignments = [...firstRow?.children ?? []].map((cell) => { const value = typeof cell.getAttribute === "function" ? cell.getAttribute("data-align") : null; return value === "center" ? "centre" : value || "left"; });
   const parsedAlignments = encodedAlignments?.split(",") ?? cellAlignments;
-  const columnAlignments = parsedAlignments.length === rows[0].length && parsedAlignments.every((alignment) => ["left", "centre", "right"].includes(alignment)) ? parsedAlignments as ("left" | "centre" | "right")[] : original.type === "table" && original.columnAlignments?.length === rows[0].length ? original.columnAlignments : undefined;
-  return { block: { id, type: "table", rows, hasHeader: Boolean(head), hasFooter: Boolean(foot), fixedWidth: element.dataset.fixedWidth !== "false", tableStyle: element.classList.contains("is-striped") ? "stripes" : "default", caption: element.querySelector("caption")?.textContent || undefined, columnWidths, rowHeights, columnAlignments, blockAlign: parsedBlockAlignment(element, original) } };
+  const columnAlignments = parsedAlignments.length === (rows[0]?.length ?? 0) && parsedAlignments.every((alignment) => ["left", "centre", "right"].includes(alignment)) ? parsedAlignments as ("left" | "centre" | "right")[] : original.type === "table" && original.columnAlignments?.length === (rows[0]?.length ?? 0) ? original.columnAlignments : undefined;
+  const captionElement = element.querySelector("caption");
+  const captionRuns = captionElement ? parseRuns(captionElement) : undefined;
+  const caption = captionRuns ? plainTextFromRuns(captionRuns) : captionElement?.textContent || undefined;
+  const cellRuns = parsedCellRuns.some((row) => row.some((runs) => runs?.some((run) => run.inline || run.marks?.length)))
+    ? parsedCellRuns.map((row, rowIndex) => row.map((runs, columnIndex) => runs ?? textToRuns(rows[rowIndex][columnIndex])))
+    : undefined;
+  const cellMetadata = parsedCellMetadata.some(row => row.some(metadata => metadata !== null)) ? parsedCellMetadata : undefined;
+  return { block: { id, type: "table", rows, cellRuns, cellMetadata, hasHeader: headerRowCount > 0, hasFooter: footerRowCount > 0,
+    headerRowCount: headerRowCount > 1 || (original.type === "table" && original.headerRowCount !== undefined) ? headerRowCount || undefined : undefined,
+    footerRowCount: footerRowCount > 1 || (original.type === "table" && original.footerRowCount !== undefined) ? footerRowCount || undefined : undefined, fixedWidth: element.dataset.fixedWidth !== "false", tableStyle: element.classList.contains("is-striped") ? "stripes" : "default", caption, captionRuns, columnWidths, rowHeights, columnAlignments, blockAlign: parsedBlockAlignment(element, original) } };
 }

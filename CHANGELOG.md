@@ -4,8 +4,36 @@
 
 ### Added
 
-- Focus Outline offers On, Off and Keyboard Only throughout ACM Studio, including the editor and its empty appender. The Library header and editor View menu share an ownership-guarded preference that survives navigation and reloads; keyboard navigation and selected-item markings remain available.
+- Insert and replace inline images without leaving the editor, with reusable image controls, changed-only width and alternative-text editing, caret restoration and Undo/Redo. Managed images render in rich captions and table cells.
+
+- Drag existing blocks or Block Library items into individual Columns, with a red insertion indicator and one-step Undo/Redo; blocks can also move between columns or back to the document.
+- Extend a List text gesture into a separate List to select both whole blocks, while retaining text selection within one List. The UI Library includes isolated document and Template column-drop examples.
+
+- Button labels support direct rich-text editing with matching preview, HTML and local storage; inline links and footnotes remain excluded from the already linked label.
+- Button toolbars edit and remove their own destination through a reusable Link destination control, with safe URLs, internal suggestions, new-tab/nofollow settings, clipboard preview and preserved rich labels. The Controls library demonstrates the same component in isolated state.
+
 - Undo and Redo in the Styles sandbox, with platform shortcuts and temporary history for colour, typography, button, layout and reset actions.
+
+- Reusable Studio dialog shells, popover headings and dismissal, and menu keyboard navigation; editor and dialog actions now share the Base/Secondary button styles.
+
+- Block notes now appear in a bottom-right canvas card, with Edit note, Back to block and dismiss/reopen controls.
+
+- Gutenberg-style block options with clipboard actions, insertion, style transfer, grouping, private notes, naming, visibility and movement/removal locks.
+
+- Completed Group width inheritance, Row wrapping and Grid arrangement controls; added Columns gap axes, Column allowed-block restrictions, shared List Item styling, dynamic presentation options and a styled template Content-slot inspector.
+
+- Quote inner blocks and rich citations, a Buttons container with shared layout, and actual YouTube, Vimeo and TikTok embeds with a safe original-link fallback.
+
+
+- Added six shared H1–H6 catalogue symbols for the Heading pane and canvas toolbar, with reusable Controls specimens and three-scale icon exports.
+- Focus Outline offers On, Off and Keyboard Only throughout ACM Studio, including the editor and its empty appender. The Library header and editor View menu share an ownership-guarded preference that survives navigation and reloads; keyboard navigation and selected-item markings remain available.
+- Select ranges or separate blocks across mixed block types and nested layouts, then delete the selection in one undoable action. The UI Library selection specimen keeps its example document and history in memory.
+- Table cells now retain Gutenberg `th`/`td` tags and `scope` values through preview, structural edits and HTML editing. Workspace schema v17, local publication snapshots v10 and template schema v0.17.0 preserve readers for previous versions.
+- Every Block Library tile now uses a shared `@acm/icons` symbol; the block-symbol inspector links to the symbol record and the symbol record links back to each consuming block. Existing repeated inspector actions now resolve through the shared icon adapter.
+- Shared icon catalogue entries now link to block movement, duplication, deletion, inline rich-text formatting, link-preview and canvas zoom examples; Studio editor zoom and link-preview globe artwork use their shared catalogue symbols.
+- Group blocks now use Gutenberg's Group, Row, Stack and Grid variations, show a layout chooser when empty, let nested insertion be restricted by allowed block type, support Row and Stack Space between justification, and place layout and background-image options within the shared Dimensions and Background controls. Workspace schema v16, publication snapshots v9 and template schema v0.16.0 retain readers for their previous versions.
+- Added Additional CSS classes and safe Additional CSS declarations to the List Item Advanced settings.
+- Added catalogue-linked indent and outdent toolbar actions for the selected List Item; keyboard indentation remains available.
 - Added a standalone Slider foundation to the Controls library, with shared accent, derived hover and pressed colours, independent temporary overrides and a visible consumer list.
 - Added dependency and consumer details to each Controls section's ownership and compatibility disclosure.
 - Added sorting by the first-added date and time for shared interface icons, with the selected symbol's timestamp shown in UK local time.
@@ -14,6 +42,21 @@
 ### Changed
 
 - Styles specimens use only the shared Focus Outline indicator, without an additional selection outline or marker; mapped guide lines use the shared focus colours.
+
+- Simplified Table to use a two-count creation form and Settings/Styles inspector tabs with simple Default/Stripes buttons. Removed drag resizing and double-click fitting while preserving existing saved sizing, cell content, caption and all Advanced fields.
+
+- Refined the shared H1–H6 marks to use Inter-derived outlines for clearer, consistent letterforms in the catalogue, pane and toolbar.
+- Theme blocks now use Gutenberg's labels: Title, Featured Image, Author and Date.
+- Studio-only blocks now appear together in the final Other section of the Block Library.
+- Block icons now follow Gutenberg recognition conventions through original shared
+  ACM artwork. Every supported block, including non-insertable system blocks,
+  appears in the icon catalogue and uses the same symbol throughout the editor.
+
+- Block Library tiles use three columns and Gutenberg ordering for the supported blocks, with separate Theme and Embeds categories and ACM-specific blocks placed after their equivalents.
+- Group block headings and layout choosers now share the Group symbol; Group, Row, Stack and Grid use the shared catalogue's Gutenberg-aligned layout metaphors.
+- Quote text alignment now has one control in the block toolbar instead of a duplicate in the inspector; its value remains on the same typed block.
+- Embed settings now follow Gutenberg’s Dimensions and Advanced pane, with linked axis or separate-side margins; URL, caption and safe card-title editing live on the canvas.
+- Embed blocks with no valid URL now show a Gutenberg-style URL entry form on the canvas; submitting a valid link reveals Studio's existing safe resource card.
 - Hovering a mapped row in the Styles guide tables now shows its matching source details, completing the two-way preview and guide interaction.
 - The Styles guide and editor now identify normal and hover button text colours explicitly; each colour can be changed per button variant and updates its temporary live preview.
 - Colour and gradient Clear actions and the gradient angle dial marker now follow Gutenberg's accent-blue treatment by default, with their hover and focus feedback retained.
@@ -27,7 +70,7 @@
 - Removed the nested Studio tab from block inspectors and consolidated block settings into one panel. Gutenberg controls previously classified under Studio now appear with the other block settings; nonessential ACM-only inspector options are hidden, while essential custom-block content fields and existing saved values remain intact.
 - Paragraph Additional CSS is now available in the Gutenberg-owned Advanced settings, with Gutenberg's help text and the existing safe, selector-free declaration handling.
 - Button width now lives in Dimensions. Hover, Focus and Active can set their own width and margin with independent reset and canvas preview; mapped core blocks use the shared Advanced inspector for safe Additional CSS declarations. Image visual styles and Spacer CSS declarations now reach their rendered targets.
-- Paragraph inspector now uses Gutenberg's Colour label, reserves blue Studio badges for Paragraph-only options, follows Gutenberg's adjacent-paragraph line indent behaviour, lists Border and Dimensions options in Gutenberg order, disables Drop cap for Gutenberg-incompatible text alignment, and preserves legacy drop-cap preferences when alignment changes. Link colour has separate Default and Hover values. Typography Reset all is enabled only when an optional control is active. Paragraph Advanced includes Gutenberg-style descriptions, uppercase field captions and blank empty fields, plus Additional CSS class(es) and safe, block-scoped Additional CSS declarations with HTML-source round-tripping.
+- Paragraph inspector now uses Gutenberg's Colour label, reserves blue Studio badges for Paragraph-only options, follows Gutenberg's adjacent-paragraph line indent behaviour, lists Border and Dimensions options in Gutenberg order, disables Drop cap for Gutenberg-incompatible text alignment, and preserves legacy drop-cap preferences when alignment changes. Link colour has separate Default and Hover values. Typography Reset all is available for explicit supported values, including default Colour and Size, or revealed optional controls. Paragraph Advanced includes Gutenberg-style descriptions, uppercase field captions and blank empty fields, plus Additional CSS class(es) and safe, block-scoped Additional CSS declarations with HTML-source round-tripping.
 - Quote and Group blocks accept managed background images with Gutenberg-style size, repeat and focal-position controls. Template packages remap and preserve these image references. Workspace schema v13 reads versions 2–12, local publication snapshots use v6 and read versions 1–5, and template schema v0.13.0 reads v0.1.0–v0.12.0.
 - New Page/Post templates start with dynamic Document Title and Document Subtitle fields. Dynamic field styles apply directly to the rendered heading, input or paragraph. The shared Footer part in new template sets uses `© 2026 Andrew Moss. All Rights Reserved.` Active-store and package migration converts the exact root `Title`/`Subtitle` pair at the canonical starter position in each computed-default template, including legacy defaults with no `isDefault` flag; ambiguous nested copy stays authored text. It folds legacy active subtitle paragraph styles into `visualStyle` and leaves Bin entries and published snapshots unchanged. Small Social Icons keep compact glyphs with expanded transparent hit targets. Template schema v0.12.0 reads v0.1.0–v0.11.0.
 - Added Gutenberg's Huge Social Icons size and matched the Small, Normal, Large and Huge artwork scales to Gutenberg. Workspace schema v12 reads versions 2–11; template schema v0.11.0 reads v0.1.0–v0.10.0.
@@ -509,6 +552,136 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+
+- Highlight retains fresh formatting targets across successive caret colour changes; untouched HTML and Code Apply close without adding Undo history.
+
+- Template caption links now open the shared Link preview, and read-only editor appenders correctly disable input. Block Library entry animations respect reduced motion after adopting the shared Pane.
+
+- Group, Section and Column appenders and open Block Library tiles disable insertion when editing is unavailable; Library search and closing remain usable, and insertion resumes when editing is restored.
+
+- Mini Golf's generic blocks reuse the complete Studio editing contract, preserving nested List and Table formatting targets, caption links, child insertion and each nested block's toolbar.
+
+- Mini Golf's shared block fallback now receives document metadata and managed-media context in Edit, matching Preview for inserted metadata blocks and managed images.
+
+- Social Icons applies border, radius and spacing once in Preview. Default and authored icon colours remain readable when the block has shared styling.
+
+- Featured Image now resolves managed media in Preview and uses consistent image dimensions and scaling in Edit, Preview and templates.
+
+- Top alignment now works for shared layouts. Column-count changes preserve content and honour destination restrictions and block locks across editor contexts and the Library specimen.
+
+- Column width changes update the owning Columns block in Studio and Mini Golf, preserve sibling content, and reserve valid widths for every column. The Library specimen demonstrates the same command and history.
+
+- Local publications retain document-field visibility inherited from the selected
+  template or overridden in the document. Hidden fields remain hidden in both
+  publication renderers; existing publications keep their previous defaults.
+
+- First-root List Backspace extracts populated items and preserves nested List
+  owners when promoting empty items. The Blocks Library now reattaches its
+  Undo/Redo shortcuts after Reset Example.
+
+- Corrected nested List Backspace and Delete merging, preserving child List
+  ownership, inline references and the caret. Stale structural updates are
+  refused, and Library merges have a separate Undo entry.
+
+- Rich-text soft line breaks survive subsequent typing and refocusing, including repeated breaks; the Blocks Library now restores its typed rich-text changes with standard Undo/Redo shortcuts.
+
+- Empty List Return preserves nested content, numbering and metadata; selected nonempty text splits normally. Refused or stale exits leave focus in place.
+
+- List Item outdent preserves reading order by carrying following items beneath the moved item, retains ordered numbering and avoids duplicate block IDs, anchors and notes.
+
+- Separator's HTML element choice now appears in shared Advanced settings,
+  following Gutenberg; the Library records its core ownership accurately.
+
+- Content and Templates now retain their mode and selected target through reload
+  and browser history. Cancelling navigation preserves an unsaved HTML draft.
+  Menus and dialogs keep ownership of Escape and Save shortcuts.
+
+- Publish date controls now show the UTC offset for the selected date in this
+  device's local time zone, including daylight-saving changes and fractional
+  offsets; saved publication timestamps retain their UTC ISO format.
+
+- Keep caret-format toolbar states in sync with typing, Highlight changes and
+  Undo; discard stale observations when fields, table structure or content change.
+- Match Group and Buttons default inspector controls while retaining customised
+  optional spacing and child styles.
+
+- Cancel stale formatting-form callbacks after another interaction, preserving intentional selection restoration and guarded empty Math cleanup.
+
+- Upward List selection reaches whole blocks through the left gutter and keeps
+  continuous red shading across the selected range. Active cross-item selection
+  no longer turns into a browser text drag; nested List text selection remains
+  available.
+- Focus Outline controls retain their shared context when development loads
+  separate provider and setting module instances.
+
+- Language formatting now has a checked toggle, caret typing, contiguous active removal, a selection-anchored form and matching direction overrides in Edit, Preview and HTML; stale fields and lost editing ownership cannot receive an old draft.
+
+- Math inserts an inline equation at a caret or selected source, with live syntax editing, parse feedback and source restoration. Edit, Preview and export share its renderer; existing marked equations retain their original prose and formatting.
+
+- Repeated Footnote references have distinct Preview/export anchors and return
+  links to the first visible occurrence; Mini Golf runtime Preview retains
+  unique presentation identities without changing saved content.
+- Partial block Copy/Paste preserves referenced note text and keeps companion
+  notes outside restricted parents. Cut retains its source when notes change
+  during copying or the clipboard payload cannot be read back.
+- Legacy Footnote text remains readable across drafts, Bin entries, templates,
+  publications and backups; backup export and restore retain canonical references
+  without changing the source during reads.
+- Save draft can retry a failed unchanged draft without consuming Undo/Redo.
+  Repeated Save waits for pending persistence, and Undo during a write queues
+  the restored content; failed and superseded saves retain accurate feedback.
+
+- Buttons now share typography and gap-aware widths across Edit and Preview; Outline content styling and template hover colours follow the same parent/child rules.
+
+- Table row actions retain separate header, body and footer sections, support multiple section rows, and clear stale cell targets after deletion. Root and nested Tables share their action menu and selection handling; final-column deletion returns to table creation.
+
+- More text formatting and Block options use shared viewport-aware menus,
+  with keyboard navigation and reliable dismissal focus. Controls includes a
+  working menu specimen.
+- Nested Lists have their own toolbar and formatting target. Shared commands
+  preserve List Item ownership, while Edit, Preview and HTML round trips retain
+  nested appearance and Advanced settings.
+- Highlight uses immediate Text and Background palettes, preserves the captured selection, and clears each colour independently in the editor and preview.
+- Table hover tools have consistent spacing and larger formatting symbols;
+  Caption uses an icon from the shared catalogue with state-aware accessible labels.
+
+- Table captions appear centred below the table only after adding them; the shared caption control adds, focuses and removes captions in the editor and Library specimen. Rich-text formatting menus retain full-width clickable rows instead of inheriting compact toolbar button dimensions.
+
+- Table Header and Footer switches now add and remove separate section rows, matching Gutenberg, with undoable changes and preserved body content. Settings resets use the same behaviour; Edit and Preview share section boundaries.
+
+- Editor Apply and Cancel buttons now use the shared Base and Secondary presets, with readable hover colours and a consistent disabled appearance.
+
+- Block None, Wide width and Full width alignment now renders consistently in template-backed Edit, Preview and local publication, while preserving custom content widths and nested layout boundaries.
+
+- Show the chunky drag-to-append bar in place of the typing prompt only while the pointer is over the appender, preserving thin insertion lines between blocks.
+
+- Close the extra selected-block toolbar gap during a block drag, with insertion feedback positioned in the ordinary gap.
+
+- Keep drag insertion targets tied to the pointer position, clear feedback outside the canvas, and suppress block hover toolbars while dragging.
+
+- Centre the grey add-block control between editor blocks, including template grid spacing and selection toolbars, and show a thick blue bar when dragging to the end.
+
+- Corrected all Blocks and Controls catalogue disclosures: control availability, canvas/summary placement, nesting, document context, reusable dependencies and state behaviour now describe the current implementation. Recorded Gutenberg defaults are separate from Studio insertion defaults, and safe Additional CSS limits are explicit.
+
+- Heading splitting and merging, and List empty-item exit and adjacent-item merging while retaining inline formatting and nested items.
+
+
+- Preserve inline formatting and shared block styling when converting text blocks, retain Title and Featured Image presentation through template edits and saves, and keep nested social-link anchors, classes and styles in Preview. Template schema v0.18.0 retains readers for v0.1.0–v0.17.0.
+
+- Matched the Heading pane to the supplied Gutenberg reference with a selected-level header, reusable H1–H6 summary buttons, toolbar alignment and rectangular font-size presets; new Headings show Colour/Gradient backgrounds while saved images remain editable.
+
+- Selecting an empty Group's layout changes its variation without automatically opening the Block Library.
+
+- Aligned Paragraph, Heading, List, Quote, Table, Code and List Item panes around shared Gutenberg-style controls, supported-field resets and Fit text/size behaviour; added reusable toggle/style specimens, image backgrounds and signed list starts.
+
+- The docked Block Library remains open after choosing a block, preserving search and insertion context so successive choices appear in order.
+- Block selection can now start or finish in the empty bottom appender, including a single final block, without creating a placeholder block or disturbing an appender draft.
+- Inspector menus and floating settings now consistently open to the left of their owning pane in editors and catalogue specimens, including nested colour/gradient editors and font-size unit menus. Pane contract v1.1.0 adds a shared overlay ownership boundary and resize/scroll positioning.
+
+- Group block settings now use Gutenberg-style colour and background rows, segmented spacing sliders and compact border controls. The reusable spacing slider is available in the Controls catalogue; existing custom measurements remain editable.
+- Restored the Studio typecheck by correcting native event types, nullable
+  selection values and isolated Mini Golf inspector inputs, and resolving
+  shared React types through a dedicated check configuration.
 - Enlarged and standardised the hover background for Clear actions across Studio.
 - Matched the gradient insert handle's circle size to the gradient stop handles.
 - Gradient stop handles now show a pointer cursor on hover.

@@ -2,17 +2,19 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { watchInspectorPopover } from "./panes/inspector-popover-position";
 import { StudioIcon } from "./studio-icons";
 import { useInspectorContentDisabled } from "./inspector-accordion";
 
 export type InspectorToolOption = { id: string; label: string; source?: "gutenberg" | "studio" };
 export type InspectorMenuOption = { id: string; label: string; checked?: boolean; disabled?: boolean };
 
-export function InspectorToolsSection({ title, options, visible, canReset, menuOptions = [], onMenuOptionSelect, onToggle, onReset, children }: {
+export function InspectorToolsSection({ title, options, visible, canReset, alwaysShow = false, menuOptions = [], onMenuOptionSelect, onToggle, onReset, children }: {
   title: string;
   options: readonly InspectorToolOption[];
   visible: ReadonlySet<string>;
   canReset?: boolean;
+  alwaysShow?: boolean;
   menuOptions?: readonly InspectorMenuOption[];
   onMenuOptionSelect?: (id: string) => void;
   onToggle: (id: string) => void;
@@ -20,14 +22,15 @@ export function InspectorToolsSection({ title, options, visible, canReset, menuO
   children: ReactNode;
 }) {
   const disabled = useInspectorContentDisabled();
-  return <InspectorToolsSectionContent key={String(disabled)} title={title} options={options} visible={visible} canReset={canReset ?? (visible.size > 0)} menuOptions={menuOptions} onMenuOptionSelect={onMenuOptionSelect} onToggle={onToggle} onReset={onReset} disabled={disabled}>{children}</InspectorToolsSectionContent>;
+  return <InspectorToolsSectionContent key={String(disabled)} title={title} options={options} visible={visible} canReset={canReset ?? (visible.size > 0)} alwaysShow={alwaysShow} menuOptions={menuOptions} onMenuOptionSelect={onMenuOptionSelect} onToggle={onToggle} onReset={onReset} disabled={disabled}>{children}</InspectorToolsSectionContent>;
 }
 
-function InspectorToolsSectionContent({ title, options, visible, canReset, menuOptions, onMenuOptionSelect, onToggle, onReset, disabled, children }: {
+function InspectorToolsSectionContent({ title, options, visible, canReset, alwaysShow, menuOptions, onMenuOptionSelect, onToggle, onReset, disabled, children }: {
   title: string;
   options: readonly InspectorToolOption[];
   visible: ReadonlySet<string>;
   canReset: boolean;
+  alwaysShow: boolean;
   menuOptions: readonly InspectorMenuOption[];
   onMenuOptionSelect?: (id: string) => void;
   onToggle: (id: string) => void;
@@ -46,26 +49,7 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, menuO
 
   useLayoutEffect(() => {
     if (!menuOpen || disabled) return;
-    function positionMenu() {
-      const trigger = triggerRef.current;
-      const menu = menuRef.current;
-      if (!trigger || !menu) return;
-      const triggerRect = trigger.getBoundingClientRect();
-      const inspectorLeft = trigger.closest(".studio-inspector")?.getBoundingClientRect().left ?? triggerRect.left;
-      const width = Math.min(240, window.innerWidth - 32);
-      setMenuPosition({
-        left: Math.min(window.innerWidth - width - 16, Math.max(16, inspectorLeft - width - 12)),
-        top: Math.max(16, Math.min(triggerRect.top, window.innerHeight - menu.getBoundingClientRect().height - 16)),
-        width,
-      });
-    }
-    positionMenu();
-    window.addEventListener("resize", positionMenu);
-    window.addEventListener("scroll", positionMenu, true);
-    return () => {
-      window.removeEventListener("resize", positionMenu);
-      window.removeEventListener("scroll", positionMenu, true);
-    };
+    return watchInspectorPopover(triggerRef.current, menuRef.current, 240, setMenuPosition);
   }, [menuOpen, disabled]);
 
   useEffect(() => {
@@ -95,14 +79,14 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, menuO
     };
   }, [menuOpen, disabled]);
 
-  return <section ref={rootRef} className={`inspector-panel inspector-tools-section${visible.size ? "" : " is-compact"}`}>
+  return <section ref={rootRef} className={`inspector-panel inspector-tools-section${visible.size || alwaysShow ? "" : " is-compact"}`}>
     <div className="inspector-tools-heading">
       <h2>{title}</h2>
       <button ref={triggerRef} type="button" className="inspector-tools-trigger" aria-label={`${title} options`} aria-expanded={menuOpen && !disabled} aria-controls={menuId} disabled={disabled} onClick={() => { if (!menuOpen) document.dispatchEvent(new CustomEvent("studio-inspector-tools-open", { detail: menuId })); setMenuOpen(open => !open); }}><StudioIcon name={visible.size ? "more-vertical" : "add"} size={18} /></button>
       {menuOpen && !disabled ? createPortal(<div ref={menuRef} id={menuId} className="inspector-tools-menu" role="group" aria-label={`${title} controls`} style={menuPosition}>
         <div className="inspector-tools-menu-heading"><span className="inspector-tools-menu-title">{title}</span><button type="button" className="inspector-tools-menu-close" aria-label={`Close ${title} options`} onClick={() => { setMenuOpen(false); triggerRef.current?.focus(); }}><StudioIcon name="close" size={16} /></button></div>
         <div className="inspector-tools-menu-body">
-          {menuOptions.length ? <div className="inspector-tools-menu-options" aria-label="Gutenberg controls">{menuOptions.map(option => <button key={option.id} type="button" disabled={option.disabled} aria-pressed={option.checked} onClick={() => onMenuOptionSelect?.(option.id)}>{option.label}{option.checked ? <StudioIcon name="check" size={16} /> : null}</button>)}</div> : null}
+          {menuOptions.length ? <div className="inspector-tools-menu-options" aria-label="Visible controls">{menuOptions.map(option => <button key={option.id} type="button" disabled={option.disabled} aria-pressed={option.checked} onClick={() => onMenuOptionSelect?.(option.id)}>{option.label}{option.checked ? <StudioIcon name="check" size={16} /> : null}</button>)}</div> : null}
           {gutenbergOptions.length ? <div className="inspector-tools-menu-options" aria-label="Gutenberg options">{gutenbergOptions.map(option => <button key={option.id} type="button" aria-pressed={visible.has(option.id)} onClick={() => onToggle(option.id)}>{option.label}{visible.has(option.id) ? <StudioIcon name="check" size={16} /> : null}</button>)}</div> : null}
           {studioOptions.length ? <>
             {gutenbergOptions.length ? <div className="inspector-tools-menu-divider" role="separator" /> : null}
@@ -112,7 +96,7 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, menuO
         <button type="button" className="inspector-tools-reset" disabled={!canReset} onClick={() => { onReset(); setMenuOpen(false); triggerRef.current?.focus(); }}>Reset all</button>
       </div>, document.body) : null}
     </div>
-    {visible.size ? disabled ? <fieldset className="inspector-tools-content" disabled>{children}</fieldset> : <div className="inspector-tools-content">{children}</div> : null}
+    {visible.size || alwaysShow ? disabled ? <fieldset className="inspector-tools-content" disabled>{children}</fieldset> : <div className="inspector-tools-content">{children}</div> : null}
   </section>;
 }
 

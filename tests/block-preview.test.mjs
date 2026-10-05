@@ -1,38 +1,14 @@
+import { withHtmlDom as withListHtmlDom } from "./html-dom-fixture.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import ts from "typescript";
 
-// Exercise the real renderer without a browser or a second application build.
-async function compileModule(url) {
-  const source = await readFile(url, "utf8").catch(error => {
-    if (error.code !== "ENOENT" || !url.pathname.endsWith(".ts")) throw error;
-    url = new URL(`${url.href}x`);
-    return readFile(url, "utf8");
-  });
-  let { outputText } = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX },
-  });
-  outputText = outputText.replace(/import ["'][^"']+\.css["'];?/g, "");
-  for (const match of [...outputText.matchAll(/from "([^"]+)"/g)]) {
-    const specifier = match[1];
-    let resolved;
-    if (specifier.startsWith(".")) {
-      resolved = specifier.endsWith(".mjs")
-        ? new URL(specifier, url).href
-        : await compileModule(new URL(`${specifier}.ts`, url));
-    } else {
-      resolved = import.meta.resolve(specifier);
-    }
-    outputText = outputText.replace(match[0], `from "${resolved}"`);
-  }
-  return `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`;
-}
+import { compileProductionModule as compileModule } from "./production-module.mjs";
 
 const { BlockRenderer } = await import(await compileModule(new URL("../app/components/content.tsx", import.meta.url)));
-const { safeImageSource } = await import(await compileModule(new URL("../app/content/rich-text.ts", import.meta.url)));
+const { normaliseTextRuns, safeImageSource } = await import(await compileModule(new URL("../app/content/rich-text.ts", import.meta.url)));
 const { parseLocallyPublishedArticles, restoreLegacyPublicationCover, toLocallyPublishedArticle, validatePostForPublication } = await import(await compileModule(new URL("../app/content/local-publishing.ts", import.meta.url)));
 const { blockToHtml, formatHtml, parseHtmlToBlock } = await import(await compileModule(new URL("../app/studio/studio-html-editor.ts", import.meta.url)));
 const { listMarker } = await import(await compileModule(new URL("../app/content/model.ts", import.meta.url)));
@@ -41,6 +17,9 @@ const { imageDisplayStyle } = await import(await compileModule(new URL("../app/c
 const { normaliseCustomFontSize, validCustomFontSize } = await import(await compileModule(new URL("../app/content/font-size.ts", import.meta.url)));
 const { spacerDimensions, spacerOrientationFor } = await import(await compileModule(new URL("../app/content/spacer.ts", import.meta.url)));
 const { capabilityProfileFor } = await import(await compileModule(new URL("../app/studio/blocks/capability-profiles.ts", import.meta.url)));
+const { updateTableCellRuns } = await import(await compileModule(new URL("../app/content/table-cell-runs.ts", import.meta.url)));
+const { updateTableCellMetadata } = await import(await compileModule(new URL("../app/content/table-cell-metadata.ts", import.meta.url)));
+const { tableCellForTextTarget } = await import(await compileModule(new URL("../app/studio/table-text-target.ts", import.meta.url)));
 
 test("Button width and Advanced CSS are exposed through shared profile sections", () => {
   const profile = capabilityProfileFor("button");
@@ -108,18 +87,80 @@ test("ordered lists retain Gutenberg numbering styles through preview and HTML",
   assert.equal(listMarker({ ...block, marker: "i", start: 9 }, 0), "ix.");
 });
 
+
+
+test("Button rich labels render and round-trip without turning the outer URL into an inline mark", () => {
+  const labelRuns = [{ text: "Bold", marks: ["bold"] }, { text: " and " }, { text: "italic", marks: ["italic"] }];
+  for (const url of ["/continue", ""]) {
+    const block = { id: "rich-button-preview", type: "button", label: "Bold and italic", labelRuns, url, style: "primary" };
+    assert.equal(validContentBlocks([block]), true);
+    for (const variant of ["studio", undefined]) {
+      const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
+      assert.match(rendered, /<strong>Bold<\/strong> and <em>italic<\/em>/);
+      assert.equal((rendered.match(/<a\b/g) ?? []).length, url ? 1 : 0);
+    }
+    withListHtmlDom(() => {
+      const parsed = parseHtmlToBlock(blockToHtml(block), block);
+      assert.ok("block" in parsed, parsed.error);
+      assert.equal(parsed.block.label, block.label);
+      assert.equal(parsed.block.url, url);
+      assert.deepEqual(JSON.parse(JSON.stringify(parsed.block.labelRuns)), labelRuns);
+      assert.equal(validContentBlocks([parsed.block]), true);
+    });
+  }
+});
+
+test("read-only Button labels retain rich presentation and disable shared formatting controls", async () => {
+  const { StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  for (const block of [
+    { id: "readonly-button", type: "button", label: "Continue", labelRuns: [{ text: "Continue", marks: ["bold"] }], url: "", style: "primary" },
+    { id: "readonly-paragraph", type: "paragraph", text: "Continue" },
+    { id: "readonly-image", type: "image", src: "/example.png", alt: "Example", caption: "Continue" },
+    { id: "readonly-embed", type: "embed", url: "https://www.youtube.com/watch?v=fixture", title: "Example", caption: "Continue" },
+    { id: "readonly-table", type: "table", rows: [["Continue"]], caption: "Continue" },
+    { id: "readonly-list", type: "list", style: "unordered", items: ["Continue"] },
+  ]) {
+    const html = renderToStaticMarkup(createElement(StudioCanvas, {
+      activeDocument: { id: "readonly-document", kind: "post", status: "draft", title: "Read-only", blocks: [block] },
+      previewing: false, writable: false, selectedBlockId: block.id, wordCount: 1, characterCount: 8, linkTargets: [], mediaBlockUrls: {},
+    }));
+    for (const label of ["Bold selected text", "Italicise selected text", "More text formatting"]) {
+      const button = html.match(new RegExp(`<button\\b[^>]*aria-label="${label}"[^>]*>`))?.[0];
+      assert.ok(button, `${label} remains discoverable`);
+      assert.match(button, /disabled=""/, `${label} advertises read-only availability`);
+    }
+    if (block.type === "button") {
+      assert.match(html, /<strong>Continue<\/strong>/);
+      assert.doesNotMatch(html, /aria-label="Button text"|aria-label="Add or edit hyperlink"/);
+    } else if (block.type === "embed") {
+      assert.match(html, /<figcaption>Continue<\/figcaption>/);
+      assert.doesNotMatch(html, /contentEditable="true"/);
+    } else {
+      assert.doesNotMatch(html, /contentEditable="true"/);
+      const fields = html.match(/<[^>]*class="[^"]*\brich-text-editor\b[^"]*"[^>]*>/g) ?? [];
+      assert.ok(fields.length, `${block.type} renders its rich fields`);
+      for (const field of fields) {
+        assert.match(field, /contentEditable="false"/i);
+        assert.match(field, /aria-readonly="true"/);
+      }
+    }
+  }
+});
+
 test("nested Lists render, validate and round-trip through the semantic HTML source", async () => {
   const block = { id: "parent-list", type: "list", style: "ordered", marker: "A", start: 2, items: [
     { text: "Parent item", runs: [{ text: "Parent " }, { text: "item", marks: ["bold"] }], style: { anchor: "parent-item", backgroundColor: "#eaf3ff", backgroundGradient: { type: "linear", angle: 135, stops: [{ colour: "#a7d8ff", position: 0 }, { colour: "#c99bef", position: 100 }] }, fontSizeCustom: "22px", lineHeight: "1.4", linkColor: "#2563a6", padding: "8px 12px", margin: "4px" }, children: [{ id: "child-list", type: "list", style: "unordered", items: ["Nested item"] }] },
     "Sibling item",
   ] };
   assert.equal(validContentBlocks([block]), true);
-  assert.equal(validContentBlocks([{ ...block, items: [{ text: "Unsupported colour", style: { textColor: "#000000" } }] }]), false, "List Item does not declare text-colour support");
+  assert.equal(validContentBlocks([{ ...block, items: [{ text: "Supported colour", style: { textColor: "#000000" } }] }]), true, "List Item retains authorised text-colour support");
+  assert.equal(validContentBlocks([{ ...block, items: [{ text: "Invalid colour", style: { textColor: "not-a-colour" } }] }]), false);
+  assert.equal(validContentBlocks([{ ...block, items: [{ text: "Unsupported shadow", style: { shadow: "soft" } }] }]), false, "List Item still rejects unsupported generic styles");
   assert.equal(validContentBlocks([{ ...block, items: [{ text: "Parent", children: [{ ...block, id: "parent-list" }] }] }]), false, "nested IDs must remain unique");
   const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
   const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block] }));
   assert.match(studio, /<ol[^>]*type="A"[^>]*start="2"/);
-  assert.match(studio, /<ul class="list-field-preview"><li class="list-field-row"><span class="list-field-marker" aria-hidden="true">•<\/span><span class="list-item-text">Nested item<\/span><\/li><\/ul>/);
+  assert.match(studio, /<ul class="list-field-preview"><li class="list-field-row"><span class="list-field-marker" aria-hidden="true">•<\/span><div class="list-field-item-content"><span class="list-item-text">Nested item<\/span><\/div><\/li><\/ul>/);
   assert.match(article, /<ul><li>Nested item<\/li><\/ul>/);
   assert.match(article, /<li id="parent-item" style="font-size:22px;line-height:1\.4;background-color:#eaf3ff;background-image:linear-gradient\(135deg, [^;]+;--studio-paragraph-link-color:#2563a6;padding:8px 12px;margin:4px"/);
   const html = blockToHtml(block);
@@ -127,67 +168,11 @@ test("nested Lists render, validate and round-trip through the semantic HTML sou
   assert.match(html, /data-list-item-style="\{&quot;anchor&quot;:&quot;parent-item&quot;/);
   assert.match(html, /<strong>item<\/strong>/);
 
-  const previousParser = globalThis.DOMParser;
-  const previousNode = globalThis.Node;
-  const previousHTMLElement = globalThis.HTMLElement;
-  const decode = value => value.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-  const elements = [];
-  class MinimalHTMLElement {}
-  function makeElement(tagName, attributes = {}, parent) {
-    const element = Object.assign(new MinimalHTMLElement(), {
-      nodeType: 1, tagName: tagName.toUpperCase(), className: attributes.class ?? "", dataset: {}, children: [], childNodes: [], parentElement: parent,
-      classList: { contains: name => (attributes.class ?? "").split(/\s+/).includes(name) },
-      getAttribute: name => attributes[name] ?? null,
-      hasAttribute: name => Object.hasOwn(attributes, name),
-      remove() { if (!this.parentElement) return; this.parentElement.children = this.parentElement.children.filter(child => child !== this); this.parentElement.childNodes = this.parentElement.childNodes.filter(child => child !== this); this.parentElement = undefined; },
-      cloneNode(deep) {
-        const copy = makeElement(tagName, attributes);
-        if (deep) for (const child of this.childNodes) {
-          if (child.nodeType === 3) copy.childNodes.push({ ...child });
-          else { const nested = child.cloneNode(true); nested.parentElement = copy; copy.children.push(nested); copy.childNodes.push(nested); }
-        }
-        return copy;
-      },
-      querySelectorAll: selector => {
-        const descendants = [];
-        const visit = parentNode => parentNode.children.forEach(child => { descendants.push(child); visit(child); });
-        visit(element);
-        return selector === "[data-block-id]" ? descendants.filter(child => child.dataset.blockId) : [];
-      },
-    });
-    for (const [name, value] of Object.entries(attributes)) if (name.startsWith("data-")) element.dataset[name.slice(5).replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())] = value;
-    Object.defineProperty(element, "textContent", { get: () => element.childNodes.map(child => child.textContent).join("") });
-    elements.push(element);
-    return element;
-  }
-  class MinimalDOMParser {
-    parseFromString(markup) {
-      elements.length = 0;
-      const body = { children: [], childNodes: [] };
-      const stack = [body];
-      for (const token of markup.match(/<[^>]+>|[^<]+/g) ?? []) {
-        if (token.startsWith("</")) { stack.pop(); continue; }
-        if (token.startsWith("<")) {
-          const [, tagName, rawAttributes = ""] = token.match(/^<([a-z][\w-]*)\b([^>]*)>$/i) ?? [];
-          if (!tagName) continue;
-          const attributes = Object.fromEntries([...rawAttributes.matchAll(/([\w:-]+)="([^"]*)"/g)].map(match => [match[1], decode(match[2])]));
-          const parent = stack.at(-1);
-          const child = makeElement(tagName, attributes, parent);
-          parent.children.push(child); parent.childNodes.push(child);
-          if (!/^(?:br|hr|img|input|meta)$/i.test(tagName) && !/\/\s*>$/.test(token)) stack.push(child);
-        } else stack.at(-1).childNodes.push({ nodeType: 3, textContent: decode(token) });
-      }
-      return { body: { childNodes: body.childNodes }, querySelector: () => null, querySelectorAll: selector => selector === "[data-block-id]" ? elements.filter(element => element.dataset.blockId) : [] };
-    }
-  }
-  try {
-    globalThis.DOMParser = MinimalDOMParser; globalThis.Node = { TEXT_NODE: 3, ELEMENT_NODE: 1 }; globalThis.HTMLElement = MinimalHTMLElement;
+  withListHtmlDom(() => {
     const parsed = parseHtmlToBlock(html, block);
     assert.ok("block" in parsed, "nested HTML is accepted");
     assert.deepEqual(JSON.parse(JSON.stringify(parsed.block)), JSON.parse(JSON.stringify(block)));
-  } finally {
-    globalThis.DOMParser = previousParser; globalThis.Node = previousNode; globalThis.HTMLElement = previousHTMLElement;
-  }
+  });
 });
 
 test("Gutenberg block-width alignment reaches HTML, Studio preview and public rendering", () => {
@@ -233,7 +218,7 @@ test("List items expose the rich-text toolbar and item-scoped editors", async ()
   }));
   assert.match(html, /aria-label="Bold selected text"/);
   assert.match(html, /aria-label="Italicise selected text"/);
-  assert.match(html, /aria-label="Add hyperlink to selected text"/);
+  assert.match(html, /aria-label="Add or edit hyperlink"/);
   assert.match(html, /data-studio-block-id="items" data-list-context-id="items" data-list-item-index="0"/);
   assert.match(html, /data-studio-block-id="items" data-list-context-id="items" data-list-item-index="1"/);
   assert.doesNotMatch(html, /aria-label="Text alignment"/);
@@ -276,6 +261,7 @@ test("shared visual settings render around text blocks in Studio and public view
     { id: "styled-heading", type: "heading", level: 2, text: "Heading", visualStyle: { fontSize: "large", textColor: "#123456", anchor: "heading-link" } },
     { id: "styled-list", type: "list", style: "ordered", items: ["One"], visualStyle: { backgroundColor: "#f2f2f7", padding: "12px", className: "custom-list" } },
     { id: "styled-code", type: "code", code: "let value = 1;", visualStyle: { borderStyle: "solid", borderWidth: "2px", borderColor: "#123456" } },
+    { id: "note-reference", type: "paragraph", text: "\uFFFC", runs: [{ text: "\uFFFC", inline: { type: "footnote", id: "one" } }] },
     { id: "styled-footnotes", type: "footnotes", notes: [{ id: "one", text: "Source note" }], visualStyle: { fontSize: "large", textColor: "#123456" } },
   ];
   for (const variant of ["studio", "article"]) {
@@ -284,6 +270,9 @@ test("shared visual settings render around text blocks in Studio and public view
     assert.match(html, /class="block-visual-style has-custom-background custom-list" style="background-color:#f2f2f7;padding:12px"/);
     assert.match(html, /class="block-visual-style" style="border-style:solid;border-width:2px;border-color:#123456"/);
     assert.match(html, /class="block-visual-style has-custom-font-size has-custom-text-colour" style="font-size:20px;color:#123456"><section class="article-footnotes"/);
+    const orphan = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [blocks.at(-1)], variant }));
+    assert.doesNotMatch(orphan, /article-footnotes|Source note/, "unreferenced recovery notes are omitted from Preview");
+    assert.match(blockToHtml(blocks.at(-1)), /Source note/, "orphan notes remain recoverable in portable source");
   }
 });
 
@@ -314,11 +303,33 @@ test("Button interaction styles render on the selected state and survive HTML se
     interactionStyles: { hover: { textColor: "#ffffff", backgroundColor: "#123456", width: 50, margin: "8px" }, focus: { borderStyle: "solid", borderWidth: "2px", borderColor: "#456789" } },
   };
   const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio", buttonPreview: { blockId: block.id, state: "hover" } }));
-  assert.match(html, /class="content-button is-primary has-button-interaction-styles[^\"]*has-button-hover-width[^\"]*has-button-focus-border-color[^\"]*is-button-state-preview-hover"/);
+  assert.match(html, /class="content-button is-primary has-button-interaction-styles[^"]*has-button-hover-width[^"]*has-button-focus-border-color[^"]*is-button-state-preview-hover"/);
   for (const declaration of ["--button-base-color:#111111", "--button-base-background-color:#eeeeee", "--button-hover-color:#ffffff", "--button-hover-background-color:#123456", "--button-hover-background-image:none", "--button-focus-border-style:solid", "--button-focus-border-width:2px", "--button-focus-border-color:#456789"]) assert.ok(html.includes(declaration), `expected rendered style ${declaration}`);
-  assert.match(html, /class="button-field[^\"]*has-button-hover-width[^\"]*is-button-state-preview-hover" style="--button-hover-width:50%"/);
+  assert.match(html, /class="button-field[^"]*has-button-hover-width[^"]*is-button-state-preview-hover" style="--button-hover-width:50%"/);
   assert.match(html, /--button-hover-margin:8px/);
   assert.match(blockToHtml(block), /data-button-interaction-styles="\{&quot;hover&quot;:/);
+});
+
+test("Buttons preview shares group sizing and typography while retaining child overrides", () => {
+  const block = {
+    id: "buttons", type: "buttons", horizontalGap: 24,
+    visualStyle: { fontSizeCustom: "24px", textColor: "#123456", textDecoration: "underline", padding: "8px" },
+    children: [
+      { id: "fill", type: "button", label: "Fill", url: "", style: "primary", width: 50 },
+      { id: "outline", type: "button", label: "Outline", url: "/guide", style: "secondary", width: 50, visualStyle: { fontSizeCustom: "18px", textDecoration: "none" }, interactionStyles: { hover: { width: 25 } } },
+    ],
+  };
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant, buttonPreview: { blockId: "outline", state: "hover" } }));
+    assert.match(html, /--button-group-font-size:24px/);
+    assert.match(html, /--button-group-text-decoration:underline/);
+    assert.match(html, /--button-item-width:calc\(50% - 12px\)/);
+    assert.match(html, /--button-hover-item-width:calc\(25% - 18px\)/);
+    assert.match(html, /content-button-item[^"]*is-button-state-preview-hover/);
+    assert.match(html, /font-size:18px;text-decoration:none/);
+    assert.match(html, /style="font-size:24px;color:#123456;padding:8px"/);
+    assert.doesNotMatch(html, /style="(?:[^"]*;)?text-decoration:underline/);
+  }
 });
 
 test("Additional CSS reaches mapped visual targets for Image and Spacer", () => {
@@ -378,7 +389,7 @@ test("Spacer dimensions and Embed spacing render in both views and survive HTML 
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
     assert.match(html, /id="section-gap" class="content-spacer custom-gap" style="height:2em;width:100%;margin:12px"/);
     assert.match(html, /id="reference-card" class="block-visual-style" style="margin:20px"/);
-    assert.match(html, /<p class="embed-caption">A useful &lt;resource&gt;<\/p>/);
+    assert.match(html, /<figcaption>A useful &lt;resource&gt;<\/figcaption>/);
   }
   assert.match(blockToHtml(blocks[0]), /data-spacer-height="2" data-spacer-height-unit="em" data-spacer-width="8" data-spacer-width-unit="rem"/);
   assert.match(blockToHtml(blocks[1]), /<a href="https:\/\/example.com\/resource">Resource<\/a><p class="embed-caption">A useful &lt;resource&gt;<\/p>/);
@@ -414,6 +425,49 @@ test("Embed captions contribute to generated publication summaries", () => {
   assert.equal(article.summary, "Resource The caption explains the link");
 });
 
+test("Embed captions preserve legacy text and support rich text in the canvas, renderers and HTML source", async () => {
+  const legacy = { id: "legacy-resource-caption", type: "embed", url: "https://example.com/resource", title: "Resource", caption: "A useful resource" };
+  const formatted = { ...legacy, id: "formatted-resource-caption", caption: "A\nlinked resource", captionRuns: [
+    { text: "A\n", marks: ["bold"] },
+    { text: "linked resource", marks: [{ type: "link", url: "https://example.com/details" }] },
+  ] };
+  const profile = capabilityProfileFor("embed");
+  assert.equal(profile.controls.find(control => control.id === "caption")?.label, "Rich-text caption");
+  assert.equal(profile.unsupported.includes("Rich-text caption"), false);
+  assert.equal(validContentBlocks([legacy]), true);
+  assert.equal(validContentBlocks([formatted]), true);
+  assert.equal(validContentBlocks([{ ...formatted, captionRuns: [{ text: "Different text" }] }]), false);
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [legacy, formatted], variant }));
+    assert.match(html, /<figcaption>A useful resource<\/figcaption>/);
+    assert.match(html, /<figcaption><strong>A\n<\/strong><a href="https:\/\/example.com\/details">linked resource<\/a><\/figcaption>/);
+  }
+  const source = blockToHtml(formatted);
+  assert.match(source, /<p class="embed-caption"><strong>A<br \/><\/strong><a href="https:\/\/example.com\/details">linked resource<\/a><\/p>/);
+
+  const { StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const canvas = renderToStaticMarkup(createElement(StudioCanvas, {
+    activeDocument: { id: "embed-caption-document", kind: "post", status: "draft", title: "Embed captions", blocks: [formatted] },
+    previewing: false, wordCount: 3, characterCount: formatted.caption.length, linkTargets: [], mediaBlockUrls: {}, selectedBlockId: formatted.id,
+  }));
+  assert.match(canvas, /class="embed-caption-editor rich-text-editor" contentEditable="true"/);
+  assert.match(canvas, /aria-label="Embed caption"/);
+  assert.match(canvas, /aria-label="Bold selected text"/);
+  assert.match(canvas, /aria-label="Italicise selected text"/);
+  assert.match(canvas, /aria-label="Add or edit hyperlink"/);
+});
+
+test("initially selected linked Button controls render safely without a browser document", async () => {
+  const { ButtonLinkControl } = await import(await compileModule(new URL("../app/studio/button-link-control.tsx", import.meta.url)));
+  const html = renderToStaticMarkup(createElement(ButtonLinkControl, {
+    value: { url: "/existing" }, selected: true, writable: true, anchor: () => null, suggestions: [],
+    onCaptureSelection() {}, onReturnFocus() {}, onApply() { return null; }, onUnlink() {},
+  }));
+  assert.match(html, /aria-label="Unlink button"/);
+  assert.match(html, /aria-pressed="true"/);
+  assert.doesNotMatch(html, /role="dialog"/);
+});
+
 test("Embed captions count towards reading time", async () => {
   const { readingTimeMinutes } = await import(await compileModule(new URL("../app/content/reading-time.ts", import.meta.url)));
   assert.equal(readingTimeMinutes([{ id: "resource", type: "embed", url: "https://example.com", title: "Resource", caption: Array(220).fill("word").join(" ") }]), 2);
@@ -424,12 +478,97 @@ test("table settings keep caption, striping and automatic cell widths in preview
   const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
   assert.match(rendered, /class="content-table-frame is-striped"/);
   assert.match(rendered, /class="content-table is-auto-layout"/);
-  assert.match(rendered, /<caption>Results<\/caption>/);
+  assert.match(rendered, /<figcaption id="[^"]+">Results<\/figcaption>/);
   assert.doesNotMatch(rendered, /<colgroup>/);
   const source = blockToHtml(block);
   assert.match(source, /data-fixed-width="false"/);
   assert.match(source, /class="studio-table is-striped"/);
   assert.match(source, /<caption>Results<\/caption>/);
+});
+
+test("Table per-cell tag and scope preserve legacy defaults in preview and structure edits", () => {
+  const block = { id: "cell-metadata", type: "table", rows: [["Column", "Plain"], ["Row", "Value"]], hasHeader: true, cellMetadata: [[null, { tag: "td" }], [{ tag: "th", scope: "row" }, null]] };
+  assert.equal(validContentBlocks([block]), true);
+  assert.equal(validContentBlocks([{ ...block, cellMetadata: [[null], [{ tag: "th", scope: "row" }, null]] }]), false, "metadata dimensions must match the table grid");
+  assert.equal(validContentBlocks([{ ...block, cellMetadata: [[null, { tag: "td", scope: "col" }], [{ tag: "th", scope: "row" }, null]] }]), false, "scope belongs to header cells");
+  const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
+  assert.match(rendered, /<th scope="col"><div class="content-table-cell"[^>]*>Column/);
+  assert.match(rendered, /<td><div class="content-table-cell"[^>]*>Plain/);
+  assert.match(rendered, /<th scope="row"><div class="content-table-cell"[^>]*>Row/);
+  const metadata = block.cellMetadata;
+  assert.deepEqual(JSON.parse(JSON.stringify(updateTableCellMetadata(metadata, "insert-row-before", 0, 0, 2, 2, true))), [[null, null], [{ tag: "th", scope: "col" }, null], [{ tag: "th", scope: "row" }, null]]);
+  assert.deepEqual(JSON.parse(JSON.stringify(updateTableCellMetadata(metadata, "insert-column-after", 0, 0, 2, 2))), [[null, null, null], [{ tag: "th", scope: "row" }, null, null]]);
+  assert.deepEqual(JSON.parse(JSON.stringify(updateTableCellMetadata(metadata, "delete-row", 0, 0, 2, 2, true))), [[{ scope: "row" }, { tag: "td" }]]);
+  assert.equal(updateTableCellMetadata(metadata, "delete-column", 0, 0, 2, 2), undefined, "redundant all-default metadata is removed after the column edit");
+});
+
+test("Table captions preserve legacy text and support rich-text editing and round-trip", async () => {
+  const legacy = { id: "legacy-table-caption", type: "table", rows: [["Name", "Value"]], hasHeader: true, caption: "Results" };
+  const formatted = { ...legacy, id: "formatted-table-caption", caption: "A linked result", captionRuns: [
+    { text: "A ", marks: ["bold"] },
+    { text: "linked result", marks: [{ type: "link", url: "https://example.com/results" }] },
+  ], cellRuns: [[[ { text: "Name", marks: ["bold"] } ], [{ text: "Value" }]]] };
+  assert.equal(validContentBlocks([legacy]), true, "legacy plain captions remain valid without a runs field");
+  assert.equal(validContentBlocks([formatted]), true);
+  assert.equal(validContentBlocks([{ ...formatted, captionRuns: [{ text: "Bad", marks: ["not-a-mark"] }] }]), false);
+  assert.equal(validContentBlocks([{ ...formatted, caption: "Different text" }]), false, "caption text must match its rich-text runs");
+  assert.equal(validContentBlocks([{ ...formatted, cellRuns: [[[ { text: "Other" } ], [{ text: "Value" }]]] }]), false, "cell runs must mirror the corresponding cell strings");
+  assert.equal(validContentBlocks([{ ...formatted, cellRuns: [[[ { text: "Name", marks: ["not-a-mark"] } ], [{ text: "Value" }]]] }]), false, "cell runs must contain supported marks");
+
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [legacy, formatted], variant }));
+    assert.match(html, /<figcaption id="[^"]+">Results<\/figcaption>/);
+    assert.match(html, /<figcaption id="[^"]+"><strong>A <\/strong><a href="https:\/\/example.com\/results">linked result<\/a><\/figcaption>/);
+    assert.match(html, /<th scope="col"><div class="content-table-cell"[^>]*><strong>Name<\/strong><\/div><\/th>/);
+  }
+  assert.match(blockToHtml(formatted), /<caption><strong>A <\/strong><a href="https:\/\/example.com\/results">linked result<\/a><\/caption>/);
+  assert.match(blockToHtml(formatted), /<th><strong>Name<\/strong><\/th>/);
+
+  const article = toLocallyPublishedArticle({ id: "table-caption-post", kind: "post", title: "Table caption", subtitle: "", slug: "table-caption", excerpt: "", status: "draft", updatedAt: "2026-09-27T00:00:00.000Z", blocks: [formatted] });
+  assert.equal(article.summary, "A linked result Name Value");
+  const { readingTimeMinutes } = await import(await compileModule(new URL("../app/content/reading-time.ts", import.meta.url)));
+  assert.equal(readingTimeMinutes([{ id: "long-table-caption", type: "table", rows: [[""]], caption: Array(221).fill("word").join(" ") }]), 2);
+
+  const { StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const canvas = renderToStaticMarkup(createElement(StudioCanvas, {
+    activeDocument: { id: "table-caption-document", kind: "post", status: "draft", title: "Table captions", blocks: [formatted] },
+    previewing: false, wordCount: 3, characterCount: formatted.caption.length, linkTargets: [], mediaBlockUrls: {}, selectedBlockId: formatted.id,
+  }));
+  assert.match(canvas, /aria-label="Table caption"/);
+  assert.match(canvas, /class="table-caption-editor rich-text-editor" contentEditable="true"/);
+  assert.match(canvas, /class="table-cell-editor rich-text-editor" contentEditable="true"/);
+  assert.match(canvas, /aria-label="Table header 1"/);
+  assert.match(canvas, /aria-label="Bold selected text"/);
+  assert.match(canvas, /aria-label="Italicise selected text"/);
+  assert.match(canvas, /aria-label="Add or edit hyperlink"/);
+
+  const withoutCaption = { id: "table-without-caption", type: "table", rows: [["Editable cell"]] };
+  const blankCaptionCanvas = renderToStaticMarkup(createElement(StudioCanvas, {
+    activeDocument: { id: "table-no-caption-document", kind: "post", status: "draft", title: "Table cell formatting", blocks: [withoutCaption] },
+    previewing: false, wordCount: 2, characterCount: 13, linkTargets: [], mediaBlockUrls: {}, selectedBlockId: withoutCaption.id,
+  }));
+  assert.match(blankCaptionCanvas, /aria-label="Bold selected text"/);
+  assert.match(blankCaptionCanvas, /aria-label="Italicise selected text"/);
+  assert.match(blankCaptionCanvas, /aria-label="Add or edit hyperlink"/);
+  assert.deepEqual(tableCellForTextTarget({ kind: "cell", rowIndex: 2, columnIndex: 1 }), { rowIndex: 2, columnIndex: 1 });
+  assert.equal(tableCellForTextTarget({ kind: "caption" }), undefined, "caption focus must not reuse the previously focused cell as its formatting target");
+});
+
+test("Table structure edits keep rich-text runs aligned with their cells", () => {
+  const original = [[[{ text: "A", marks: ["bold"] }, { text: " one" }], [{ text: "B", marks: ["italic"] }]], [[{ text: "C" }], [{ text: "D" }]]];
+  const afterRowBefore = updateTableCellRuns(original, "insert-row-before", 1, 0, 2);
+  assert.deepEqual(afterRowBefore[0], original[0]);
+  assert.deepEqual(afterRowBefore[1], [[], []]);
+  assert.deepEqual(afterRowBefore[2], original[1]);
+  const afterRowDelete = updateTableCellRuns(original, "delete-row", 0, 0, 2);
+  assert.deepEqual(afterRowDelete, [original[1]]);
+  const afterColumnBefore = updateTableCellRuns(original, "insert-column-before", 0, 1, 2);
+  assert.deepEqual(afterColumnBefore.map((row) => row[0]), original.map((row) => row[0]));
+  assert.deepEqual(afterColumnBefore.map((row) => row[2]), original.map((row) => row[1]));
+  assert.deepEqual(afterColumnBefore.map((row) => row[1]), [[], []]);
+  const afterColumnDelete = updateTableCellRuns(original, "delete-column", 0, 0, 2);
+  assert.deepEqual(afterColumnDelete.map((row) => row[0]), original.map((row) => row[1]));
+  assert.equal(updateTableCellRuns(undefined, "insert-row-after", 0, 0, 2), undefined);
 });
 
 test("Table column content alignment renders, serialises and validates by column", () => {
@@ -574,6 +713,28 @@ test("Social Icons serialize style, spacing, alignment and per-icon link metadat
   assert.match(rendered, /--social-icon-colour:#ffffff/);
 });
 
+test("Social Icons Logos Only honours custom colour and the shared label toggle", async () => {
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(styles, /\.social-icons-block\.is-style-logos-only \.social-icon-item\.is-linkedin \{ color: var\(--social-icon-colour, #0a66c2\); \}/);
+  assert.match(styles, /\.social-icons-block\.is-style-logos-only \.social-icon-item\.is-tiktok \{ color: var\(--social-icon-colour, #171717\); \}/);
+  assert.doesNotMatch(styles, /\.is-style-logos-only \.social-icon-label\s*\{[^}]*display:\s*none/);
+  const { BlockField } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  for (const socialStyle of ["default", "logos-only", "pill-shape"]) for (const showLabels of [true, false]) {
+    const block = { id: "socials", type: "social-icons", socialStyle, showLabels, visualStyle: { textColor: "#ab1234" }, children: [
+      { id: "linkedin", type: "social-linkedin", url: "https://linkedin.com/in/example", label: "My profile" },
+      { id: "tiktok", type: "social-tiktok", url: "https://tiktok.com/@example", label: "My videos" },
+    ] };
+    const edit = renderToStaticMarkup(createElement(BlockField, { block, selectedBlockId: block.id, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
+    const preview = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
+    for (const html of [edit, preview]) {
+      assert.match(html, /--social-icon-colour:#ab1234/);
+      assert.equal((html.match(/class="social-icon-label"/g) ?? []).length, showLabels ? 2 : 0, `${socialStyle} labels ${showLabels}`);
+      assert.match(html, /aria-label="My profile"/);
+      assert.match(html, /aria-label="My videos"/);
+    }
+  }
+});
+
 test("Social Icons block alignment does not override inner icon justification", async () => {
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
   const studioStyles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
@@ -632,31 +793,53 @@ test("Separator background colour and gradient style the editable, studio and pu
 test("Social Icons, Divider, Cover Image and layout settings survive the semantic HTML parser round-trip", () => {
   const previousParser = globalThis.DOMParser;
   const previousNode = globalThis.Node;
+  const previousHTMLElement = globalThis.HTMLElement;
   const decode = value => value.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
   const allElements = [];
-  function makeElement(tagName, attributes) {
-    const element = {
+  class MinimalHTMLElement {}
+  function makeElement(tagName, attributes, parentElement) {
+    const element = Object.assign(new MinimalHTMLElement(), {
       nodeType: 1,
       tagName: tagName.toUpperCase(),
       className: attributes.class ?? "",
       dataset: {},
       children: [],
       childNodes: [],
+      parentElement,
       classList: { contains: (name) => (attributes.class ?? "").split(/\s+/).includes(name) },
       getAttribute: (name) => attributes[name] ?? null,
+      hasAttribute: (name) => Object.hasOwn(attributes, name),
       querySelector: (selector) => {
         const descendants = [];
         const visit = (parent) => parent.children.forEach((child) => { descendants.push(child); visit(child); });
         visit(element);
-        return descendants.find((child) => child.tagName.toLowerCase() === selector.toLowerCase()) ?? null;
+        return descendants.find((child) => selector.startsWith(".")
+          ? child.classList.contains(selector.slice(1))
+          : child.tagName.toLowerCase() === selector.toLowerCase()) ?? null;
       },
       querySelectorAll: (selector) => {
         const descendants = [];
         const visit = (parent) => parent.children.forEach((child) => { descendants.push(child); visit(child); });
         visit(element);
-        return selector === "[data-block-id]" ? descendants.filter((child) => child.dataset.blockId) : [];
+        return selector === "[data-block-id]" ? descendants.filter((child) => child.dataset.blockId) : descendants.filter((child) => child.tagName.toLowerCase() === selector.toLowerCase());
       },
-    };
+      cloneNode: () => {
+        const clone = makeElement(tagName, { ...attributes }, parentElement);
+        clone.childNodes = element.childNodes.map(child => child.nodeType === 3 ? { ...child } : child.cloneNode(true));
+        clone.children = clone.childNodes.filter(child => child.nodeType === 1);
+        Object.defineProperty(clone, "textContent", { get: () => clone.childNodes.map(child => child.textContent).join("") });
+        return clone;
+      },
+      closest: (selector) => {
+        if (typeof selector !== "string") return null;
+        let current = element;
+        while (current) {
+          if (current.tagName && selector.toLowerCase() === current.tagName.toLowerCase()) return current;
+          current = current.parentElement;
+        }
+        return null;
+      },
+    });
     for (const [name, value] of Object.entries(attributes)) {
       if (name.startsWith("data-")) element.dataset[name.slice(5).replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())] = value;
     }
@@ -675,7 +858,8 @@ test("Social Icons, Divider, Cover Image and layout settings survive the semanti
           const [, tagName, rawAttributes = ""] = token.match(/^<([a-z][\w-]*)\b([^>]*)>$/i) ?? [];
           if (!tagName) continue;
           const attributes = Object.fromEntries([...rawAttributes.matchAll(/([\w:-]+)="([^"]*)"/g)].map((match) => [match[1], decode(match[2])]));
-          const element = makeElement(tagName, attributes);
+          for (const name of ["reversed"]) if (new RegExp(`(?:^|\\s)${name}(?:\\s|$)`).test(rawAttributes)) attributes[name] = "";
+          const element = makeElement(tagName, attributes, stack.at(-1));
           stack.at(-1).children.push(element);
           stack.at(-1).childNodes.push(element);
           if (!voidTags.has(tagName.toLowerCase()) && !/\/\s*>$/.test(token)) stack.push(element);
@@ -695,6 +879,7 @@ test("Social Icons, Divider, Cover Image and layout settings survive the semanti
   try {
     globalThis.DOMParser = MinimalDOMParser;
     globalThis.Node = { TEXT_NODE: 3, ELEMENT_NODE: 1 };
+    globalThis.HTMLElement = MinimalHTMLElement;
     const social = {
       id: "socials",
       type: "social-icons",
@@ -715,6 +900,40 @@ test("Social Icons, Divider, Cover Image and layout settings survive the semanti
     assert.equal(parsedSocial.block.verticalGap, 22);
     assert.equal(parsedSocial.block.blockAlign, "right");
     assert.equal(parsedSocial.block.children[0].rel, "nofollow");
+
+    const image = { id: "rich-caption-image", type: "image", src: "https://example.com/image.png", alt: "Example", caption: "A linked caption", captionRuns: [
+      { text: "A ", marks: ["bold"] },
+      { text: "linked caption", marks: [{ type: "link", url: "https://example.com/caption" }] },
+    ] };
+    const parsedImage = parseHtmlToBlock(blockToHtml(image), image);
+    assert.ok("block" in parsedImage);
+    assert.equal(parsedImage.block.caption, image.caption);
+    assert.deepEqual(JSON.parse(JSON.stringify(parsedImage.block.captionRuns)), image.captionRuns);
+
+    const embed = { id: "rich-caption-embed", type: "embed", url: "https://example.com/resource", title: "Resource", caption: "A\nlinked resource", captionRuns: [
+      { text: "A\n", marks: ["bold"] },
+      { text: "linked resource", marks: [{ type: "link", url: "https://example.com/details" }] },
+    ] };
+    const parsedEmbed = parseHtmlToBlock(blockToHtml(embed), embed);
+    assert.ok("block" in parsedEmbed);
+    assert.equal(parsedEmbed.block.caption, embed.caption);
+    assert.deepEqual(JSON.parse(JSON.stringify(normaliseTextRuns(parsedEmbed.block.captionRuns))), embed.captionRuns);
+
+    const table = { id: "rich-caption-table", type: "table", rows: [["Name", "Value"]], hasHeader: true, caption: "A linked result", captionRuns: [
+      { text: "A ", marks: ["bold"] },
+      { text: "linked result", marks: [{ type: "link", url: "https://example.com/results" }] },
+    ], cellRuns: [[[ { text: "Name", marks: ["bold"] } ], [{ text: "Value", marks: [{ type: "link", url: "https://example.com/value" }] }]]] };
+    const parsedTable = parseHtmlToBlock(blockToHtml(table), table);
+    assert.ok("block" in parsedTable);
+    assert.equal(parsedTable.block.caption, table.caption);
+    assert.deepEqual(JSON.parse(JSON.stringify(parsedTable.block.captionRuns)), table.captionRuns);
+    assert.deepEqual(JSON.parse(JSON.stringify(parsedTable.block.cellRuns)), table.cellRuns);
+
+    const multipleSections = { id: "multi-section-table", type: "table", rows: [["Head one"], ["Head two"], ["Body"], ["Foot one"], ["Foot two"]], hasHeader: true, hasFooter: true, headerRowCount: 2, footerRowCount: 2, caption: "Caption", rowHeights: [45, 50, 60, 65, 70], columnWidths: [100], cellMetadata: [[{ scope: "rowgroup" }], [{ scope: null }], [{ tag: "th", scope: "row" }], [null], [null]], cellRuns: [[[{ text: "Head one", marks: ["bold"] }]], [[{ text: "Head two" }]], [[{ text: "Body" }]], [[{ text: "Foot one" }]], [[{ text: "Foot two" }]]] };
+    const parsedMultiple = parseHtmlToBlock(blockToHtml(multipleSections), multipleSections);
+    assert.ok("block" in parsedMultiple, JSON.stringify(parsedMultiple));
+    for (const field of ["rows", "cellRuns", "cellMetadata", "rowHeights", "columnWidths", "caption", "headerRowCount", "footerRowCount"]) assert.deepEqual(JSON.parse(JSON.stringify(parsedMultiple.block[field])), multipleSections[field], field);
+    assert.equal(validContentBlocks([parsedMultiple.block]), true);
 
     const divider = { id: "divider", type: "divider", tagName: "div", style: "dots", blockAlign: "center", visualStyle: { textColor: "#123456" } };
     const parsedDivider = parseHtmlToBlock(blockToHtml(divider), divider);
@@ -740,6 +959,38 @@ test("Social Icons, Divider, Cover Image and layout settings survive the semanti
     const parsedGroup = parseHtmlToBlock(groupHtml, { id: group.id, type: "group", layout: "row", children: [] });
     assert.ok("block" in parsedGroup);
     assert.deepEqual([parsedGroup.block.gap, parsedGroup.block.columnGap, parsedGroup.block.rowGap], [12, 24, 8]);
+
+    for (const start of [-2, 0, 100000]) {
+      const signedList = { id: "signed-list", type: "list", style: "ordered", start, reversed: true, marker: "a", items: [{ text: "Marked", runs: [{ text: "Marked", marks: ["bold"] }] }] };
+      const parsedSignedList = parseHtmlToBlock(blockToHtml(signedList), signedList);
+      assert.ok("block" in parsedSignedList, JSON.stringify(parsedSignedList));
+      assert.equal(parsedSignedList.block.start, start);
+      assert.equal(parsedSignedList.block.reversed, true);
+      assert.equal(parsedSignedList.block.marker, "a");
+      assert.deepEqual(parsedSignedList.block.items[0].runs[0].marks, ["bold"]);
+    }
+
+    const flowGroup = { id: "flow-group", type: "group", layout: "flow", allowedBlocks: ["paragraph", "heading"], children: [] };
+    const flowGroupHtml = blockToHtml(flowGroup);
+    assert.match(flowGroupHtml, /class="studio-group layout-flow/);
+    const parsedFlowGroup = parseHtmlToBlock(flowGroupHtml, flowGroup);
+    assert.ok("block" in parsedFlowGroup);
+    assert.equal(parsedFlowGroup.block.layout, "flow");
+    assert.deepEqual(parsedFlowGroup.block.allowedBlocks, ["paragraph", "heading"]);
+
+    const rowJustification = { id: "row-justification", type: "group", layout: "row", horizontalAlign: "space-between", children: [{ id: "row-first", type: "paragraph", text: "First" }, { id: "row-second", type: "paragraph", text: "Second" }] };
+    const rowJustificationHtml = blockToHtml(rowJustification);
+    assert.match(rowJustificationHtml, /data-layout-horizontal-align="space-between"/);
+    const parsedRowJustification = parseHtmlToBlock(rowJustificationHtml, rowJustification);
+    assert.ok("block" in parsedRowJustification);
+    assert.equal(parsedRowJustification.block.horizontalAlign, "space-between");
+
+    const stackJustification = { id: "stack-justification", type: "group", layout: "stack", verticalAlign: "space-between", children: [{ id: "stack-first", type: "paragraph", text: "First" }, { id: "stack-second", type: "paragraph", text: "Second" }] };
+    const stackJustificationHtml = blockToHtml(stackJustification);
+    assert.match(stackJustificationHtml, /data-layout-vertical-align="space-between"/);
+    const parsedStackJustification = parseHtmlToBlock(stackJustificationHtml, stackJustification);
+    assert.ok("block" in parsedStackJustification);
+    assert.equal(parsedStackJustification.block.verticalAlign, "space-between");
 
     const stickyGroup = { id: "sticky-group", type: "group", layout: "stack", position: "sticky", children: [{ id: "sticky-copy", type: "paragraph", text: "Pinned" }] };
     const stickyGroupHtml = blockToHtml(stickyGroup);
@@ -768,6 +1019,8 @@ test("Social Icons, Divider, Cover Image and layout settings survive the semanti
     else globalThis.DOMParser = previousParser;
     if (previousNode === undefined) delete globalThis.Node;
     else globalThis.Node = previousNode;
+    if (previousHTMLElement === undefined) delete globalThis.HTMLElement;
+    else globalThis.HTMLElement = previousHTMLElement;
   }
 });
 
@@ -794,11 +1047,40 @@ test("Studio preview preserves block order, semantic content and raw whitespace 
   assert.match(html, /<blockquote[^>]*>A quotation<\/blockquote>/);
   assert.match(html, /class="content-button is-secondary" href="\/projects">Continue/);
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;\n {2}indented\n/);
-  assert.match(html, /<thead><tr style="height:60px"><th scope="col">/);
+  assert.match(html, /<thead><tr class="has-explicit-row-height" style="height:60px"><th scope="col">/);
   assert.match(html, /height:100px/);
   assert.match(html, /<figcaption>Caption<\/figcaption>/);
   assert.doesNotMatch(html, /<textarea|contenteditable|<script>|Write code/);
   assert.deepEqual(blocks, before);
+});
+
+test("Image captions preserve legacy plain text and render supported rich-text marks", async () => {
+  const legacy = { id: "legacy-image", type: "image", src: "/example.png", alt: "Example", caption: "Plain caption" };
+  const formatted = { ...legacy, id: "formatted-image", caption: "A linked caption", captionRuns: [
+    { text: "A ", marks: ["bold"] },
+    { text: "linked caption", marks: [{ type: "link", url: "https://example.com" }] },
+  ] };
+  assert.equal(validContentBlocks([legacy]), true, "legacy captions remain valid without a runs field");
+  assert.equal(validContentBlocks([formatted]), true);
+  assert.equal(validContentBlocks([{ ...formatted, captionRuns: [{ text: "Bad", marks: ["not-a-mark"] }] }]), false);
+  assert.equal(validContentBlocks([{ ...formatted, caption: undefined }]), false, "rich caption runs require their mirrored summary text");
+  assert.equal(validContentBlocks([{ ...formatted, caption: "Different text" }]), false, "caption text must match the rich-text runs");
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [legacy, formatted], variant }));
+    assert.match(html, /<figcaption>Plain caption<\/figcaption>/);
+    assert.match(html, /<figcaption><strong>A <\/strong><a href="https:\/\/example.com">linked caption<\/a><\/figcaption>/);
+  }
+  assert.match(blockToHtml(formatted), /<figcaption><strong>A <\/strong><a href="https:\/\/example.com">linked caption<\/a><\/figcaption>/);
+  const { StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const canvas = renderToStaticMarkup(createElement(StudioCanvas, {
+    activeDocument: { id: "image-caption-document", kind: "post", status: "draft", title: "Image captions", blocks: [formatted] },
+    previewing: false, wordCount: 3, characterCount: formatted.caption.length, linkTargets: [], mediaBlockUrls: {}, selectedBlockId: formatted.id,
+  }));
+  assert.match(canvas, /aria-label="Image caption"/);
+  assert.match(canvas, /class="image-caption-editor rich-text-editor" contentEditable="true"/);
+  assert.match(canvas, /aria-label="Bold selected text"/);
+  assert.match(canvas, /aria-label="Italicise selected text"/);
+  assert.match(canvas, /aria-label="Add or edit hyperlink"/);
 });
 
 test("formatted list items preserve inline links and marks in previews and HTML", () => {
@@ -871,7 +1153,11 @@ test("Plain quotes keep their text alignment in Studio and public previews", () 
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
     assert.match(html, /class="(?:quote-field|pull-quote) align-centre is-style-plain"/);
     assert.match(html, /<blockquote[^>]*>A considered thought<\/blockquote>/);
-    assert.match(html, /<figcaption>— Author<\/figcaption>/);
+    assert.match(html, /<figcaption>Author<\/figcaption>/);
+    const authored = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [{ ...block, attribution: "— Author" }], variant }));
+    assert.match(authored, /<figcaption>— Author<\/figcaption>/, "authored citation punctuation is retained");
+    const rich = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [{ ...block, attribution: "Author", attributionRuns: [{ text: "Author", marks: ["bold"] }] }], variant }));
+    assert.match(rich, /<figcaption><strong>Author<\/strong><\/figcaption>/);
   }
   assert.match(blockToHtml(block), /class="align-centre is-style-plain"/);
 });
@@ -959,13 +1245,16 @@ test("embed and button blocks use the rich-text URL policy", () => {
 
   for (const html of [studioHtml, articleHtml]) {
     assert.match(html, /href="https:\/\/example\.com\/continue">Continue/);
-    assert.match(html, /href="https:\/\/example\.com\/resource">Example/);
+    assert.match(html, /href="https:\/\/example\.com\/resource" target="_blank" rel="noopener noreferrer">Open original content/);
     assert.match(html, /<span class="content-button is-secondary">Unsafe<\/span>/);
-    assert.match(html, /<span>Unsafe<\/span>/);
+    assert.match(html, /Enter a valid web address\./);
     assert.doesNotMatch(html, /href="(?:javascript|data):/i);
     assert.doesNotMatch(html, /(?:javascript|data):/i);
   }
-  assert.match(studioHtml, /Enter a valid URL/);
+  assert.match(studioHtml, /Enter a valid web address\./);
+  const unsafeEmbedSource = blockToHtml(blocks[3]);
+  assert.match(unsafeEmbedSource, /<span>Unsafe<\/span>/);
+  assert.doesNotMatch(unsafeEmbedSource, /href="(?:javascript|data):/i);
 });
 
 test("image sources allow local or HTTPS images and managed blob URLs only", () => {
@@ -1046,6 +1335,11 @@ test("reading time rounds body words consistently across editor and publication"
     assert.equal(toLocallyPublishedArticle(document).readingTime, label);
   }
   assert.equal(readingTimeMinutes([{ id: "t", type: "table", rows: [[Array(220).fill("word").join(" ")]] }, { id: "i", type: "image", caption: "Caption", alt: "Alternative", src: "" }]), 2);
+  const richCaption = { id: "rich-caption", type: "image", alt: "", src: "", caption: Array(221).fill("word").join(" "), captionRuns: [{ text: Array(221).fill("word").join(" "), marks: ["bold"] }] };
+  assert.equal(readingTimeMinutes([richCaption]), 2, "the mirrored caption continues to contribute to reading time");
+  const richCaptionPost = toLocallyPublishedArticle({ kind: "post", status: "draft", title: "Caption", slug: "caption", excerpt: "", author: "Andrew Moss", updatedAt: "2026-09-08T12:00:00Z", blocks: [richCaption] });
+  assert.ok(richCaptionPost.summary.startsWith(richCaption.caption.slice(0, 120)), "the mirrored caption continues to contribute to publication summaries");
+  assert.ok(richCaptionPost.summary.endsWith("…"), "long captions retain the publication summary limit");
   assert.equal(readingTimeMinutes([{ id: "i", type: "image", alt: Array(500).fill("word").join(" "), src: "" }]), 1);
   assert.equal(readingTimeMinutes([
     { id: "section", type: "section", children: [
@@ -1132,4 +1426,105 @@ test("document metadata blocks share values between Studio and local rendering",
   assert.doesNotMatch(html, /0 Comments/);
   const missing = renderToStaticMarkup(createElement(BlockRenderer, { blocks: blocks.slice(0, 3), variant: "studio", document: { kind: "page" } }));
   assert.doesNotMatch(missing, /Ada Lovelace|2026-09-02/);
+});
+
+test("document metadata visibility shares the same Edit and Preview contract", async () => {
+  const { BlockField } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const cases = [
+    { block: { id: "reading", type: "reading-time", prefix: "Read:", presentation: "plain" }, field: "readingTime", text: /Read: 1 minute/ },
+    { block: { id: "author", type: "post-author", prefix: "Written by", avatar: true }, field: "author", text: /Ada Lovelace/ },
+    { block: { id: "date", type: "post-date", format: "iso", showIcon: false }, field: "publicationDate", text: /2026-09-02/ },
+  ];
+  for (const { block, field, text } of cases) for (const visibility of [undefined, "show", "hide"]) {
+    const document = { kind: "post", author: "Ada Lovelace", publishAt: "2026-09-02T12:00:00Z", displayOverrides: { [field]: visibility } };
+    const original = structuredClone(block);
+    const edit = renderToStaticMarkup(createElement(BlockField, { block, document, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
+    const preview = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio", document }));
+    for (const html of [edit, preview]) {
+      if (visibility === "hide") assert.doesNotMatch(html, text, `${block.type} hidden`);
+      else assert.match(html, text, `${block.type} visible`);
+    }
+    assert.deepEqual(block, original, "visibility does not delete or modify authored records");
+  }
+});
+
+test("metadata line height uses shared inheritance and Author exposes no unsupported link colour", async () => {
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(styles, /\.block-visual-style\.has-custom-line-height :is\(\.metadata-block, \.metadata-block-editor,[^)]*\.reading-time-badge\) \{ line-height: inherit; \}/);
+  const { BlockField } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  for (const type of ["reading-time", "post-author", "post-date"]) {
+    const block = { id: type, type, visualStyle: { lineHeight: "2.5" } };
+    const props = { block, document: { kind: "post", author: "Ada Lovelace", publishAt: "2026-09-02T12:00:00Z" }, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} };
+    for (const html of [renderToStaticMarkup(createElement(BlockField, props)), renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio", document: props.document }))]) {
+      assert.match(html, /has-custom-line-height/);
+      assert.match(html, /line-height:2.5/);
+    }
+  }
+  assert.equal(capabilityProfileFor("post-author").controls.some(control => control.id === "link-colour"), false);
+  assert.equal(capabilityProfileFor("post-author").defaults.elements.includes("link-colour"), false);
+  assert.equal(capabilityProfileFor("post-date").controls.some(control => control.id === "link-colour"), true);
+});
+
+test("Table pane styles target the real table while figure spacing and caption stay independent", () => {
+  const block = { id: "styled-table", type: "table", rows: [["Cell"]], caption: "Independent caption", visualStyle: { margin: "12px", padding: "8px", borderStyle: "solid", borderWidth: "3px", borderColor: "#123456", textColor: "#654321", letterSpacing: "2px", textTransform: "uppercase" } };
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
+  assert.match(html, /style="[^"]*padding:8px;[^"]*margin:12px/);
+  assert.match(html, /<table[^>]*style="[^"]*border-width:3px/);
+  assert.match(html, /<table[^>]*style="[^"]*letter-spacing:2px/);
+  assert.match(html, /<\/table><figcaption id="[^"]+">Independent caption<\/figcaption>/);
+  const captionId = html.match(/<figcaption id="([^"]+)"/)[1];
+  assert.ok(html.includes(`aria-labelledby="${captionId}"`));
+});
+
+test("Heading and Code managed background images render in the shared Studio preview", () => {
+  for (const type of ["heading", "code"]) {
+    const block = { id: type, type, text: "Text", code: "const value = 1;", level: 2, visualStyle: { backgroundImageMediaId: "fixture", backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPositionX: 20, backgroundPositionY: 80 } };
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio", mediaUrls: { fixture: "blob:fixture-image" } }));
+    assert.match(html, /background-image:url/);
+    assert.match(html, /blob:fixture-image/);
+    assert.match(html, /background-size:contain/);
+  }
+});
+
+
+test("nested List visual styles survive unchanged parent and child HTML editing", () => {
+  const grandchild = { id: "styled-grandchild", type: "list", style: "unordered", visualStyle: { backgroundColor: "#d1e7dd", anchor: "deep-anchor", className: "deep-example", additionalCss: "color: #123456;" }, items: ["Deep item"] };
+  const child = { id: "styled-child", type: "list", style: "ordered", start: 3, visualStyle: { backgroundColor: "#fff3cd" }, items: [{ text: "Nested item", runs: [{ text: "Nested item" }], children: [grandchild] }] };
+  const parent = { id: "styled-root", type: "list", style: "unordered", items: [{ text: "Parent item", runs: [{ text: "Parent item" }], children: [child] }] };
+  assert.equal(validContentBlocks([parent]), true);
+  for (const selected of [parent, child]) {
+    const html = blockToHtml(selected);
+    assert.match(html, /data-html-anchor="deep-anchor"/);
+    assert.match(html, /data-additional-classes="deep-example"/);
+    withListHtmlDom(() => {
+      const parsed = parseHtmlToBlock(html, selected, [parent]);
+      assert.ok("block" in parsed, "unchanged nested List HTML is accepted");
+      assert.deepEqual(JSON.parse(JSON.stringify(parsed.block)), JSON.parse(JSON.stringify(selected)));
+    });
+  }
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [parent], variant }));
+    assert.match(html, /id="deep-anchor"/);
+    assert.match(html, /background-color:#d1e7dd/);
+    assert.match(html, /background-color:#fff3cd/);
+  }
+});
+
+
+test("multiple Table section rows share semantic Edit and Preview presentation", async () => {
+  const { TableField } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const block = { id: "multi-sections", type: "table", rows: [["Head one"], ["Head two"], ["Body"], ["Foot one"], ["Foot two"]], hasHeader: true, hasFooter: true, headerRowCount: 2, footerRowCount: 2, caption: "Caption", rowHeights: [45, 50, 60, 65, 70], columnWidths: [100], fixedWidth: false };
+  const edit = renderToStaticMarkup(createElement(TableField, { block, onCellFocus() {}, onCaptionFocus() {}, onTextSelection() {}, onLinkActivate() {}, onChange() {} }));
+  for (const html of [edit, renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" })), renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "article" }))]) {
+    for (const [section, count] of [["thead", 2], ["tbody", 1], ["tfoot", 2]]) {
+      const markup = html.match(new RegExp(`<${section}>([\\s\\S]*?)</${section}>`))[1];
+      assert.equal((markup.match(/<tr[ >]/g) ?? []).length, count, section);
+    }
+    assert.equal((html.match(/<th scope="col"/g) ?? []).length, 2);
+    assert.match(html, /is-auto-layout/);
+    assert.doesNotMatch(html, /<colgroup>/);
+    assert.match(html, /height:50px/);
+  }
+  assert.match(edit, /aria-label="Table header row 2, column 1"/);
+  assert.match(edit, /aria-label="Table footer row 2, column 1"/);
 });

@@ -48,7 +48,15 @@ test("open menus track anchor/popup resizing and scrolling with complete listene
   globalThis.window = { innerWidth: 1280, innerHeight: 900, visualViewport, requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; }, cancelAnimationFrame: id => frames.delete(id), addEventListener: (name, callback) => events.set(name, callback), removeEventListener: (name, callback) => { if (events.get(name) === callback) events.delete(name); } };
   globalThis.ResizeObserver = class { constructor(callback) { resize = callback; } observe(element) { observed.push(element); } disconnect() { disconnected = true; } };
   try {
-    const stop = watchAnchoredMenu(anchor, popup, "start", position => positions.push(position));
+    let selectionBounds = null;
+    const stop = watchAnchoredMenu(anchor, popup, "start", position => positions.push(position), () => selectionBounds);
+    selectionBounds = { left: 100, right: 120, top: 80, bottom: 100 };
+    resize(); flush();
+    assert.equal(positions.at(-1).left, 100, "a live text selection overrides the editor rectangle");
+    assert.equal(positions.at(-1).top, 108);
+    selectionBounds = null; resize(); flush();
+    assert.equal(positions.at(-1).left, base.anchor.left, "missing selection returns to the editor anchor");
+    positions.splice(0, positions.length - 1);
     assert.deepEqual(observed, [anchor, popup]);
     window.innerWidth = 390; window.innerHeight = 844;
     visualViewport.width = 390; visualViewport.height = 844;

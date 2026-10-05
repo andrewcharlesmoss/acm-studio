@@ -1,5 +1,16 @@
 import type { CSSProperties } from "react";
 import type { ColumnBlock, ContentBlock, LayoutOptions } from "./model";
+import { childContentBlocks } from "./block-tree";
+import { cssVerticalAlignment } from "./layout";
+
+export function findColumnsParent(blocks: ContentBlock[], columnId: string): Extract<ContentBlock, { type: "columns" }> | undefined {
+  for (const block of blocks) {
+    if (block.type === "columns" && block.children.some(column => column.id === columnId)) return block;
+    const parent = findColumnsParent(childContentBlocks(block), columnId);
+    if (parent) return parent;
+  }
+  return undefined;
+}
 
 export const COLUMN_LAYOUT_PRESETS = [
   { label: "One column", widths: [100] },
@@ -11,6 +22,10 @@ export const COLUMN_LAYOUT_PRESETS = [
 ] as const;
 
 export const COLUMN_COUNT_LIMITS = { min: 1, max: 6 } as const;
+
+export function maximumColumnWidth(columnCount: number): number {
+  return 100 - 5 * (columnCount - 1);
+}
 
 export function createColumnsBlock(id: string, widths: readonly number[] = [50, 50], createId = (index: number) => `${id}-column-${index + 1}`): Extract<ContentBlock, { type: "columns" }> {
   const columns = widths.slice(0, COLUMN_COUNT_LIMITS.max).map((width, index): ColumnBlock => ({
@@ -35,6 +50,7 @@ export function setColumnsLayout(block: Extract<ContentBlock, { type: "columns" 
 }
 
 export function setColumnCount(block: Extract<ContentBlock, { type: "columns" }>, requestedCount: number, createId: (index: number) => string): Extract<ContentBlock, { type: "columns" }> {
+  if (!Number.isFinite(requestedCount)) return block;
   const count = Math.max(COLUMN_COUNT_LIMITS.min, Math.min(COLUMN_COUNT_LIMITS.max, Math.round(requestedCount)));
   const current = block.children.length;
   if (count === current) return block;
@@ -52,15 +68,29 @@ export function setColumnCount(block: Extract<ContentBlock, { type: "columns" }>
 }
 
 export function setColumnWidth(block: Extract<ContentBlock, { type: "columns" }>, columnId: string, requestedWidth: number): Extract<ContentBlock, { type: "columns" }> {
+  if (!Number.isFinite(requestedWidth)) return block;
   const index = block.children.findIndex((column) => column.id === columnId);
   if (index < 0 || block.children.length < 2) return block;
-  const width = Math.max(5, Math.min(95, requestedWidth));
+  const width = Math.max(5, Math.min(maximumColumnWidth(block.children.length), requestedWidth));
   const others = block.children.filter((_, columnIndex) => columnIndex !== index);
-  const previousTotal = others.reduce((total, column) => total + (column.width ?? 100 / block.children.length), 0);
-  const remaining = 100 - width;
+  const widths = new Map<string, number>();
+  let remaining = 100 - width;
+  let unallocated = others;
+  // Keep every sibling within the reader's 5% minimum, redistributing the rest.
+  while (unallocated.length) {
+    const total = unallocated.reduce((sum, column) => sum + (column.width ?? 100 / block.children.length), 0);
+    const share = (column: ColumnBlock) => total > 0 ? (column.width ?? 100 / block.children.length) * remaining / total : remaining / unallocated.length;
+    const minimumColumns = unallocated.filter(column => share(column) < 5);
+    if (!minimumColumns.length) {
+      for (const column of unallocated) widths.set(column.id, share(column));
+      break;
+    }
+    for (const column of minimumColumns) { widths.set(column.id, 5); remaining -= 5; }
+    unallocated = unallocated.filter(column => !widths.has(column.id));
+  }
   const children = block.children.map((column, columnIndex) => columnIndex === index
     ? { ...column, width }
-    : { ...column, width: previousTotal > 0 ? (column.width ?? 100 / block.children.length) * remaining / previousTotal : remaining / others.length });
+    : { ...column, width: widths.get(column.id)! });
   return { ...block, children };
 }
 
@@ -76,6 +106,6 @@ export function columnsLayoutStyle(options: LayoutOptions & { children: readonly
     ...(options.rowGap === undefined ? {} : { "--block-layout-row-gap": `${options.rowGap}px` }),
     "--block-layout-columns": String(options.children.length),
     "--block-layout-grid-template": columnsGridTemplate(options.children),
-    "--block-layout-vertical-align": options.verticalAlign === "centre" ? "center" : options.verticalAlign === "bottom" ? "end" : options.verticalAlign ?? "stretch",
+    "--block-layout-vertical-align": cssVerticalAlignment(options.verticalAlign ?? "stretch"),
   } as CSSProperties;
 }

@@ -1,4 +1,8 @@
+import { mathObjectFromData, legacyMathFromData } from "../content/math-runs";
+import { validFootnoteId } from "../content/footnote-runs";
 import { safeImageSource } from "../content/rich-text";
+import { inlineImageFromData } from "../content/inline-image";
+import { isRichTextLineBreakFiller } from "./rich-text-line-break";
 
 /** DOM points and typed offsets share the editor parser's logical projection. */
 export type RichTextDomPoint = { node: Node; offset: number };
@@ -10,6 +14,11 @@ function elementOf(node: Node): HTMLElement | null {
 function protectedLength(node: Node): number | null {
   const element = elementOf(node);
   if (!element) return null;
+  if (isRichTextLineBreakFiller(element)) return 0;
+  if (element.dataset.imageObject !== undefined) return inlineImageFromData(element.dataset.imageObject) ? 1 : 0;
+  if (element.dataset.mathObject !== undefined) return mathObjectFromData(element.dataset.mathObject) ? 1 : 0;
+  if (element.dataset.mathLegacy !== undefined) return legacyMathFromData(element.dataset.mathLegacy)?.reduce((length, run) => length + run.text.length, 0) ?? 0;
+  if (element.dataset.footnoteObject !== undefined) return validFootnoteId(element.dataset.footnoteObject) ? 1 : 0;
   if (element.dataset.footnoteMarker === "true") return 0;
   // Legacy inline images retain their source text as the logical projection.
   if (element.dataset.inlineImage === "true") return element.dataset.mediaId || safeImageSource(element.dataset.imageSrc ?? "") ? (element.dataset.inlineText ?? "").length : 0;
@@ -27,26 +36,36 @@ export function richTextNodeLength(node: Node): number {
   return children + (element.tagName === "DIV" || element.tagName === "P" ? 1 : 0);
 }
 
-function lastCharacter(node: Node): string {
-  if (node.nodeType === 3) return (node.nodeValue ?? "").slice(-1);
+function trailingSeparator(node: Node, editable: boolean): boolean | null {
+  if (node.nodeType === 3) return node.nodeValue?.length ? false : null;
   const element = elementOf(node);
-  if (!element) return "";
+  if (!element) return null;
   const protectedSize = protectedLength(node);
-  if (protectedSize !== null) return protectedSize ? (element.dataset.inlineText ?? "").slice(-1) : "";
-  if (["BR", "P", "DIV"].includes(element.tagName)) return "\n";
+  if (protectedSize !== null) return protectedSize ? false : null;
+  if (element.tagName === "BR") return editable && element.dataset.studioLineBreak !== "true";
+  if (["P", "DIV"].includes(element.tagName)) return true;
   for (const child of Array.from(node.childNodes).reverse()) {
-    const last = lastCharacter(child);
-    if (last) return last;
+    const last = trailingSeparator(child, editable);
+    if (last !== null) return last;
   }
-  return "";
+  return null;
 }
 
-/** The root contributes no separator; editorToRuns removes one final newline. */
+/** Only synthetic block delimiters and an editable browser's final BR are trimmed. */
+export function richTextTrailingSeparatorLength(root: HTMLElement): number {
+  const editable = root.classList?.contains("rich-text-editor") ?? false;
+  for (const child of Array.from(root.childNodes).reverse()) {
+    const last = trailingSeparator(child, editable);
+    if (last !== null) return Number(last);
+  }
+  return 0;
+}
+
+/** The root and explicit filler contribute no content separator. */
 export function richTextDomLength(root: HTMLElement): number {
   const children = Array.from(root.childNodes);
   const length = children.reduce((total, child) => total + richTextNodeLength(child), 0);
-  const last = children.map(lastCharacter).reverse().find(Boolean);
-  return length - Number(last === "\n");
+  return length - richTextTrailingSeparatorLength(root);
 }
 
 export function richTextOffset(root: HTMLElement, container: Node, offset: number): number | null {
@@ -101,6 +120,7 @@ export function richTextPointAtOffset(root: HTMLElement, requestedOffset: number
     }
     const element = elementOf(node);
     if (!element) return null;
+    if (isRichTextLineBreakFiller(element)) return target === cursor ? boundaryPoint(node) : null;
     const protectedSize = protectedLength(node);
     if (protectedSize !== null || element.tagName === "BR") {
       const length = protectedSize ?? 1;

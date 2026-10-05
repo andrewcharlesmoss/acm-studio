@@ -1,15 +1,18 @@
 import { blobToBase64, base64ToBlob, validateStudioBackup, type StudioBackupAsset } from "./backup-store";
 import { initialStudioWorkspace } from "./editor-model";
 import { listMediaLibrary, replaceMediaLibrary } from "./media-store";
-import { copyTemplateData, duplicateTemplateSet, templateId, templateMediaIds, visitTemplateNodes, validateTemplateSet, validateTemplateStore, LEGACY_TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_13, TEMPLATE_STORAGE_KEY, TEMPLATE_VERSION, type TemplateSet } from "./template-model";
+import { copyTemplateData, duplicateTemplateSet, templateId, templateMediaIds, validateTemplateSet, validateTemplateStore, LEGACY_TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, TEMPLATE_STORAGE_KEY, TEMPLATE_VERSION, type TemplateSet } from "./template-model";
 import { loadTemplates } from "./template-store";
 import { studioWriteOwnership } from "./write-ownership";
 import { isRecord } from "./workspace-validation";
+import { remapContentMediaIds } from "../content/media-references";
+import type { ContentBlock } from "../content/model";
+import type { TemplateNode } from "./template-model";
 
-export type TemplatePackage = { format: "acm-studio-template-set"; version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_13 | typeof LEGACY_TEMPLATE_VERSION_12 | typeof LEGACY_TEMPLATE_VERSION_11 | typeof LEGACY_TEMPLATE_VERSION_10 | typeof LEGACY_TEMPLATE_VERSION_9 | typeof LEGACY_TEMPLATE_VERSION_8 | typeof LEGACY_TEMPLATE_VERSION_7 | typeof LEGACY_TEMPLATE_VERSION_6 | typeof LEGACY_TEMPLATE_VERSION_5 | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION_3 | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION; set: TemplateSet; media: StudioBackupAsset[] };
+export type TemplatePackage = { format: "acm-studio-template-set"; version: typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_24 | typeof LEGACY_TEMPLATE_VERSION_23 | typeof LEGACY_TEMPLATE_VERSION_22 | typeof LEGACY_TEMPLATE_VERSION_21 | typeof LEGACY_TEMPLATE_VERSION_20 | typeof LEGACY_TEMPLATE_VERSION_19 | typeof LEGACY_TEMPLATE_VERSION_18 | typeof LEGACY_TEMPLATE_VERSION_17 | typeof LEGACY_TEMPLATE_VERSION_16 | typeof LEGACY_TEMPLATE_VERSION_15 | typeof LEGACY_TEMPLATE_VERSION_14 | typeof LEGACY_TEMPLATE_VERSION_13 | typeof LEGACY_TEMPLATE_VERSION_12 | typeof LEGACY_TEMPLATE_VERSION_11 | typeof LEGACY_TEMPLATE_VERSION_10 | typeof LEGACY_TEMPLATE_VERSION_9 | typeof LEGACY_TEMPLATE_VERSION_8 | typeof LEGACY_TEMPLATE_VERSION_7 | typeof LEGACY_TEMPLATE_VERSION_6 | typeof LEGACY_TEMPLATE_VERSION_5 | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION_3 | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION; set: TemplateSet; media: StudioBackupAsset[] };
 export const TEMPLATE_PACKAGE_LIMIT = 50 * 1024 * 1024;
 export function validateTemplatePackage(value: unknown): TemplatePackage {
-  if (!isRecord(value) || value.format !== "acm-studio-template-set" || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.media)) throw new Error("This is not a supported template package.");
+  if (!isRecord(value) || value.format !== "acm-studio-template-set" || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.media)) throw new Error("This is not a supported template package.");
   // Run legacy packages through the same active-store migrations before
   // normalising their package version. Package imports must not reinterpret
   // ambiguous nested Title/Subtitle copy as document fields.
@@ -44,11 +47,17 @@ export function prepareTemplateImport(input: TemplatePackage, name?: string) {
   const set = duplicateTemplateSet(source.set, name ?? `${source.set.name} Imported`);
   const ids = new Map(source.media.map(asset => [asset.id, templateId()]));
   if (set.identity.logo?.mediaId) set.identity.logo.mediaId = ids.get(set.identity.logo.mediaId)!;
-  for (const item of [...set.templates, ...set.parts]) visitTemplateNodes(item.nodes, node => {
-    if (node.type === "image" && node.mediaId) node.mediaId = ids.get(node.mediaId)!;
-    const style = node.type === "group" || node.type === "quote" ? node.visualStyle : undefined;
-    if (style?.backgroundImageMediaId) style.backgroundImageMediaId = ids.get(style.backgroundImageMediaId)!;
-  });
+  function remapNodes(nodes: TemplateNode[]): TemplateNode[] {
+    return nodes.map(node => {
+      if (node.type !== "element" && node.type !== "part" && node.type !== "group" && node.type !== "section" && node.type !== "columns" && node.type !== "column") return remapContentMediaIds([node as ContentBlock], ids)[0] as TemplateNode;
+      const style = "visualStyle" in node ? node.visualStyle : undefined;
+      if (style?.backgroundImageMediaId) style.backgroundImageMediaId = ids.get(style.backgroundImageMediaId) ?? style.backgroundImageMediaId;
+      if ((node.type === "columns" || node.type === "column") && node.style?.backgroundImageMediaId) node.style.backgroundImageMediaId = ids.get(node.style.backgroundImageMediaId) ?? node.style.backgroundImageMediaId;
+      if (node.type === "element" && node.element === "cover-image" && node.fixedImage?.mediaId) node.fixedImage.mediaId = ids.get(node.fixedImage.mediaId)!;
+      return node.type === "group" || node.type === "section" || node.type === "columns" || node.type === "column" ? { ...node, children: remapNodes(node.children) } as TemplateNode : node;
+    });
+  }
+  for (const item of [...set.templates, ...set.parts]) item.nodes = remapNodes(item.nodes);
   const assets = source.media.map(({ dataBase64, ...asset }) => ({ ...asset, id: ids.get(asset.id)!, folderId: null, blob: base64ToBlob(dataBase64, asset.type) }));
   return { set: validateTemplateSet(set), assets };
 }
