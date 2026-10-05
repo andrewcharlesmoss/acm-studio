@@ -116,7 +116,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           return (
             <figure className={`${studio ? "quote-field" : "pull-quote"} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${block.quoteStyle === "plain" ? " is-style-plain" : ""}`} key={block.id}>
               <blockquote className={studio ? "block-textarea preview-rich-text" : undefined}>{block.children ? <BlockRenderer blocks={block.children} mediaUrls={mediaUrls} document={document} variant={variant} readingTimeBlocks={readingTimeBlocks ?? blocks} buttonPreview={buttonPreview} /> : renderText(block.text, block.runs, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "text" })}</blockquote>
-              {block.attribution ? <figcaption>{renderText(block.attribution, block.attributionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "attribution" })}</figcaption> : null}
+              {block.attribution ? <figcaption className="quote-citation">{renderText(block.attribution, block.attributionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "attribution" })}</figcaption> : null}
             </figure>
           );
         }

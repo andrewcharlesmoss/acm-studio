@@ -2899,3 +2899,58 @@ Verifier reviewed the schema, projections and final rendering ownership.
   no available browsers, so independent native replay was unavailable.
 - Six rows move to Partial: List and List Item colour, size and line height.
   The inventory now has 347 Unverified and 22 Partial block-control records.
+
+## 5 October 2026 — Quote citation appearance and evidence reconciliation
+
+- Baseline `098b1a8`. Main Explorer reproduced the citation defect in the
+  memory-only Library fixture: XXL/red styled the quotation at 32px but its
+  citation stayed 13px/muted. Edit used italic citation text while Preview did
+  not. The fixed defaults in `studio.css` masked authored parent typography.
+- The pinned Gutenberg Quote `style.scss` at
+  `e3ac73cd69d472341b66c43cb77be36e838f868e` was read through its GitHub page.
+  Its explicit citation size belongs to the legacy large variation; default
+  citation styling does not fix colour/size there. This is source comparison,
+  not a live Gutenberg theme replay. Other requested source fetches failed.
+- Sole Builder adds a shared citation target to the existing typography rules
+  and aligns Studio's default citation rule across Edit/Preview. Existing
+  public citation defaults remain; authored typography can now inherit through
+  the public citation target as well. No model, history, command, storage,
+  icon or write-ownership changes were required.
+- Native Default and Plain Quote checks show citation/body matching 32px red,
+  Medium 500 normal, line height 64px and letter spacing 1px. An inner Paragraph
+  set through its own Large/Accent controls stays blue 20px/40px while the
+  citation stays red 32px/64px. Unrelated legacy Quote/citation defaults remain.
+- Reset Colour restores muted citation colour while retaining 32px size;
+  Undo restores red. Reset Size restores 13px while retaining red and the
+  authored line height; Undo restores 32px. Reset all restores 13px muted italic
+  citation at 19.5px line height, preserving the nested Paragraph override;
+  Undo/Redo restores/reapplies the parent reset in one step. Edit/Preview reset
+  defaults match. Rich bold/link citations and legacy/empty content have focused
+  production-renderer coverage, not new native formatting acceptance.
+- Focused regression/preview/pane checks pass 94/94 in
+  `/private/tmp/acm-quote-appearance-focused.log`. Build/typecheck pass in
+  `acm-quote-appearance-build.log` and `acm-quote-appearance-typecheck.log`.
+  New-test/preview/renderer lint reports no errors and two existing image
+  warnings in `acm-quote-appearance-lint.log`. Full suite remains deferred.
+- Responsive overrides were requested at 1152px/768px/390px, but observed
+  `innerWidth` remained 1280. Overrides were cleared. Responsive and actual
+  200% zoom evidence therefore remain unverified, along with mounted other
+  owners, persistent reload/export and public rendered typography. Screenshot:
+  `/private/tmp/acm-quote-appearance-browser.png`.
+- Reset Example restored both default citations and disabled specimen Undo/Redo
+  before closing the temporary tabs. Product documents and preferences were
+  untouched.
+- Read-only Explorer reconciled existing menu/clipboard evidence against the
+  inventory: Copy, Cut, Duplicate, Add before/after, Copy/Paste styles and
+  Typography/Background Reset all move to Partial with exact bounded limits.
+  List marker/start rows gain Partial presentation evidence only; Reverse
+  interaction remains open. Their command owners are unchanged since `507284e`,
+  so accepted native sequences were retained without replay. Heading Size
+  retains Unverified inspector status despite cross-command styles evidence.
+- New Quote and nested Paragraph appearance evidence moves eight more block
+  controls to Partial. Block-control totals are 337 Unverified and 32 Partial;
+  all 426 identities and the wider 977-record inventory remain intact. Atomic
+  Quote individual Colour/Size resets gain Partial evidence only for this owner.
+- Independent Verifier accepted the final source, tests, screenshot and bounded
+  inventory outcomes. Its browser provider had no available browsers, so native
+  evidence is Builder replay with independent source/screenshot review.

@@ -1153,11 +1153,11 @@ test("Plain quotes keep their text alignment in Studio and public previews", () 
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
     assert.match(html, /class="(?:quote-field|pull-quote) align-centre is-style-plain"/);
     assert.match(html, /<blockquote[^>]*>A considered thought<\/blockquote>/);
-    assert.match(html, /<figcaption>Author<\/figcaption>/);
+    assert.match(html, /<figcaption class="quote-citation">Author<\/figcaption>/);
     const authored = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [{ ...block, attribution: "— Author" }], variant }));
-    assert.match(authored, /<figcaption>— Author<\/figcaption>/, "authored citation punctuation is retained");
+    assert.match(authored, /<figcaption class="quote-citation">— Author<\/figcaption>/, "authored citation punctuation is retained");
     const rich = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [{ ...block, attribution: "Author", attributionRuns: [{ text: "Author", marks: ["bold"] }] }], variant }));
-    assert.match(rich, /<figcaption><strong>Author<\/strong><\/figcaption>/);
+    assert.match(rich, /<figcaption class="quote-citation"><strong>Author<\/strong><\/figcaption>/);
   }
   assert.match(blockToHtml(block), /class="align-centre is-style-plain"/);
 });

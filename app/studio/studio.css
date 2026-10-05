@@ -891,7 +891,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .align-right { text-align: right; }
 .quote-field { border-left: 3px solid #777; padding-left: 22px; }
 .quote-field .block-textarea { font-size: 23px; font-style: italic; line-height: 1.35; margin: 0; }
-.quote-field > span, .quote-field > figcaption { color: var(--muted); display: block; font-size: var(--studio-ui-size); margin-top: 8px; }
+.quote-field > .quote-citation { color: var(--muted); display: block; font-size: var(--studio-ui-size); font-style: italic; margin-top: 8px; }
 .quote-field.is-style-plain { border: 0; padding-left: 0; }
 .quote-field.is-style-plain .block-textarea { font-size: inherit; font-style: normal; line-height: inherit; }
 .list-field { padding-left: 26px; }
