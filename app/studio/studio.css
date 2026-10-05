@@ -140,11 +140,12 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .dashboard-project-links { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .dashboard-card-link { align-items: center; display: inline-flex; font-size: 14px; font-weight: 600; gap: 8px; min-height: 36px; }
 .dashboard-card-link svg { flex-shrink: 0; }
+.dashboard-card-link.is-unavailable { background: none; border: 0; color: var(--muted); cursor: not-allowed; font: inherit; font-size: 14px; font-weight: 600; opacity: .72; padding: 0; }
 .dashboard-project-environments { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
 .dashboard-project-environments.has-staging { gap: 8px 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .dashboard-project-environment > strong { color: var(--muted); display: block; font-size: var(--studio-ui-size); font-weight: 600; }
 .dashboard-card-link svg { transition: transform 160ms ease; }
-.dashboard-card-link:hover svg { transform: translateX(3px); }
+.dashboard-card-link:not(.is-unavailable):hover svg { transform: translateX(3px); }
 .dashboard-card-link.is-muted { color: var(--muted); font-weight: 550; }
 .dashboard-tool-grid { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .dashboard-tool-card { align-items: center; background: #f9f8f4; border: 1px solid #d2d0c8; border-radius: 12px; display: grid; gap: 14px; grid-template-columns: auto minmax(0, 1fr) auto; padding: 17px; }

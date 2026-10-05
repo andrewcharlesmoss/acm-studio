@@ -3,10 +3,15 @@ import { AcmIcon } from "@acm/icons/react";
 import { StudioIcon } from "./studio-icons";
 
 function ProjectLinks({ links, context }: { links: StudioProjectLink[]; context: string }) {
-  return <div className="dashboard-project-links">{links.map(link => {
-    const external = link.href.startsWith("https://");
-    return <a className="dashboard-card-link" key={link.href} href={link.href} aria-label={`${link.label} — ${context}`} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>
-      {link.label}<StudioIcon name={external ? "external" : link.label === "Edit Site" ? "pencil" : "arrow-right"} size={16} />
+  return <div className="dashboard-project-links">{links.map((link, index) => {
+    const external = link.href?.startsWith("https://") ?? false;
+    const accessibleName = `${link.label} — ${context}${link.label === "Edit Site" && !link.href ? " — not available yet" : ""}`;
+    const icon = external ? "external" : link.label === "Edit Site" ? "pencil" : "arrow-right";
+    if (!link.href) return <button className="dashboard-card-link is-unavailable" key={`${link.label}-${index}`} type="button" disabled title="Site editing isn’t available yet" aria-label={accessibleName}>
+      {link.label}<StudioIcon name={icon} size={16} />
+    </button>;
+    return <a className="dashboard-card-link" key={link.href} href={link.href} aria-label={accessibleName} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>
+      {link.label}<StudioIcon name={icon} size={16} />
     </a>;
   })}</div>;
 }
