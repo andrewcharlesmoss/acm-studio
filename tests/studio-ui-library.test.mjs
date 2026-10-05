@@ -227,7 +227,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   const gradientPicker = read("app/studio/controls/gradient-picker.tsx");
   assert.match(gradientPicker, /\{value \? <div className="paragraph-gradient-footer"><StudioButton variant="text" type="button" onClick=/);
   assert.match(read("app/globals.css"), /--gutenberg-accent: #3858e9/);
-  assert.match(studioStyles, /\.studio-text-action \{[^}]*--acm-action-color: var\(--gutenberg-accent/);
+  assert.match(studioStyles, /\.studio-text-action \{[^}]*--acm-action-color: color-mix\(in srgb, var\(--acm-color-accent\) 80%, black\)/);
   assert.doesNotMatch(studioStyles, /\.studio-clear-action/);
   const actionStyles = read("../acm-styles/src/styles.css");
   assert.match(actionStyles, /\.acm-button\.acm-button-text:focus-visible/);

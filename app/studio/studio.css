@@ -1939,9 +1939,9 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 
 /* All Studio text actions use this theme, including portalled controls. */
 .acm-button.studio-text-action {
-  --acm-action-color: var(--gutenberg-accent, #3858e9);
-  --acm-action-hover-color: var(--gutenberg-accent, #3858e9);
-  --acm-action-active-color: var(--gutenberg-accent, #3858e9);
+  --acm-action-color: color-mix(in srgb, var(--acm-color-accent) 80%, black);
+  --acm-action-hover-color: var(--acm-action-color);
+  --acm-action-active-color: var(--acm-action-color);
   --acm-action-hover-background: var(--accent-soft, #e7e7e5);
   --acm-action-min-height: 32px;
   font-family: var(--studio-ui-font);

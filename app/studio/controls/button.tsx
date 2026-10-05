@@ -13,7 +13,13 @@ const buttonPreset: CSSProperties = {
 
 /** Scope the shared preset to this action, without styling neighbouring controls. */
 export function StudioButton({ variant = "base", className, style: buttonStyle, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "base" | "secondary" | "text" }) {
-  if (variant === "text") return <button {...props} style={buttonStyle} className={`acm-button acm-button-text studio-text-action${className ? ` ${className}` : ""}`} />;
+  if (variant === "text") {
+    const style = {
+      "--acm-color-accent": UNIVERSAL_STYLE_PRESET.palette.accent,
+      ...buttonStyle,
+    } as CSSProperties;
+    return <button {...props} style={style} className={`acm-button acm-button-text studio-text-action${className ? ` ${className}` : ""}`} />;
+  }
   const style = {
     ...buttonPreset,
     "--studio-button-background": `var(--acm-button-${variant}-background)`,

@@ -22,7 +22,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     id: "text-action", title: "Text action", group: "Foundation",
     purpose: "Use one shared blue action style for Clear and Reset controls.",
     owner: "@acm/styles CSS and StudioButton", consumers: ["Colour picker", "Gradient picker", "Inline highlight", "Inspector Reset All", "Styles source selection"],
-    dependencies: [{ kind: "uses", label: "@acm/styles Text action", detail: "The shared CSS owns interaction states; Studio themes the action colour once with its editor accent." }],
+    dependencies: [{ kind: "uses", label: "@acm/styles Text action", detail: "The shared CSS owns interaction states; Studio derives readable action text from the shared semantic Accent token (palette.accent / --acm-color-accent)." }],
     states: "Normal, hover, pressed, keyboard focus and disabled.",
     compatibility: "Presentation only. Callers retain their handlers, disabled conditions, focus return and persistence. The saved style preset format is unchanged.",
   },

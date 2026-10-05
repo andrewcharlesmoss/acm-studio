@@ -168,8 +168,8 @@ the extracted BorderSettings, BackgroundSelection, FontSizeAppearanceSetting,
 ImageDimensionsSetting, FocalPositionSetting and PresetNumberSetting controls.
 Colour-picker ownership includes palette selection, Default/Hover values,
 swatch geometry, popover positioning and dismissal. Text actions such as Clear
-and the gradient angle dial marker use `--gutenberg-accent` for Gutenberg's
-accent blue, including their reference hover and focus states.
+use the shared semantic Accent token as described below. The gradient angle dial marker uses `--gutenberg-accent` for Gutenberg's
+accent blue.
 The Slider foundation owns `--studio-range-accent`, the shared accent for
 standard `.studio-range-control` inputs. Focus outlines follow the Studio
 Focus Outline preference and focus tokens. Pointer hover uses
@@ -512,8 +512,12 @@ formatting and history remain independent of product stores.
 Clear actions and the inspector Reset All action use `StudioButton` with
 `variant="text"`. The framework-neutral `.acm-button-text` variant in
 `@acm/styles` owns normal, hover, pressed, focus and disabled states. Studio's
-`.studio-text-action` theme supplies its editor blue once, including portalled
-controls, with a compact 32px target. Component-specific styles own placement;
+`StudioButton` supplies `--acm-color-accent` from the canonical
+`UNIVERSAL_STYLE_PRESET.palette.accent`, including portalled controls. The
+`.studio-text-action` theme mixes 80% Accent with 20% black for readable small
+text (currently #006DCC), with a compact 32px target. The Styles section shows
+the same canonical Accent; its temporary sandbox edits do not alter Studio.
+Component-specific styles own placement;
 they must not override the action colour or duplicate interaction rules.
 The Controls library includes a working Text action specimen with Clear, Reset
 and disabled actions. Callers retain their existing state and focus behaviour.

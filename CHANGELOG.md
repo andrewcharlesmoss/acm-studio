@@ -4,7 +4,7 @@
 
 ### Added
 
-- Shared Text action buttons keep Clear and inspector Reset All consistently blue, with central hover, pressed, focus and disabled states and a working Controls specimen.
+- Shared Text action buttons keep Clear and inspector Reset All consistently linked to the shared semantic Accent token, with readable text colour, central hover, pressed, focus and disabled states and a working Controls specimen.
 
 - Paragraph Typography now offers Font for individual block overrides, with Default restoring inheritance. The reusable Font selector and its working Controls specimen share font choices with the content renderer.
 
