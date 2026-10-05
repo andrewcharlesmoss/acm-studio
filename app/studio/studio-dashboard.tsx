@@ -5,13 +5,14 @@ import { StudioIcon } from "./studio-icons";
 function ProjectLinks({ links, context }: { links: StudioProjectLink[]; context: string }) {
   return <div className="dashboard-project-links">{links.map((link, index) => {
     const external = link.href?.startsWith("https://") ?? false;
-    const accessibleName = `${link.label} — ${context}${link.label === "Edit Site" && !link.href ? " — not available yet" : ""}`;
+    const unavailable = link.label === "Edit Site" && !link.href;
+    const accessibleName = `${link.label} — ${context}${unavailable ? " — not available yet" : ""}`;
     const icon = external ? "external" : link.label === "Edit Site" ? "pencil" : "arrow-right";
-    if (!link.href) return <button className="dashboard-card-link is-unavailable" key={`${link.label}-${index}`} type="button" disabled title="Site editing isn’t available yet" aria-label={accessibleName}>
-      {link.label}<StudioIcon name={icon} size={16} />
+    if (!link.href) return <button className="dashboard-card-link is-icon-only is-unavailable" key={`${link.label}-${index}`} type="button" disabled title={accessibleName} aria-label={accessibleName}>
+      <StudioIcon name={icon} size={20} />
     </button>;
-    return <a className="dashboard-card-link" key={link.href} href={link.href} aria-label={accessibleName} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>
-      {link.label}<StudioIcon name={icon} size={16} />
+    return <a className={`dashboard-card-link${["Visit Site", "Edit Site"].includes(link.label) ? " is-icon-only" : ""}`} key={link.href} href={link.href} aria-label={accessibleName} title={accessibleName} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>
+      {icon === "arrow-right" ? link.label : <StudioIcon name={icon} size={20} />}
     </a>;
   })}</div>;
 }

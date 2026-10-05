@@ -140,6 +140,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .dashboard-project-links { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .dashboard-card-link { align-items: center; display: inline-flex; font-size: 14px; font-weight: 600; gap: 8px; min-height: 36px; }
 .dashboard-card-link svg { flex-shrink: 0; }
+.dashboard-card-link.is-icon-only { border-radius: 8px; height: 36px; justify-content: center; min-height: 36px; padding: 0; width: 36px; }
 .dashboard-card-link.is-unavailable { background: none; border: 0; color: var(--muted); cursor: not-allowed; font: inherit; font-size: 14px; font-weight: 600; opacity: .72; padding: 0; }
 .dashboard-project-environments { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
 .dashboard-project-environments.has-staging { gap: 8px 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
