@@ -47,6 +47,8 @@
 
 ### Changed
 
+- Newly inserted Heading blocks start empty and show the grey “Heading” editing placeholder; the prompt is not saved as block text.
+
 - Shared Border controls now use compact joined inputs, a linked width slider and a box diagram for separate sides. Linking preserves mixed widths; colour and style remain shared across all sides.
 
 - Templates now use one integrated Content Studio workspace, including template set management. Old template-editor links redirect while retaining the selected set and template.

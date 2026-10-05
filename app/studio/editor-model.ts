@@ -234,7 +234,7 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "group") return { id, type, layout: "flow", inheritLayout: true, children: [] };
   if (type === "columns") return createColumnsBlock(id);
   if (type === "section") return { id, type, layout: "stack", children: [] };
-  if (type === "heading") return { id, type, level: 2, text: "A new section" };
+  if (type === "heading") return { id, type, level: 2, text: "" };
   if (type === "quote") return { id, type, text: "", children: [{ id: `${id}-paragraph`, type: "paragraph", text: "A useful thought worth emphasising." }] };
   if (type === "list") return { id, type, style: "unordered", items: ["First item", "Second item"] };
   if (type === "table") return { id, type, rows: [] };
