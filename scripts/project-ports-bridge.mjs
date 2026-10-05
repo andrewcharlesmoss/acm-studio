@@ -30,7 +30,18 @@ export function projectLocalLinks(snapshot) {
       const url = localServiceURL(service.urlTemplate, runtime.actualPort);
       return url ? [url] : [];
     }))];
-    return { id: entry.project.id, status: urls.length === 1 ? "running" : urls.length > 1 ? "multiple" : services.some(service => typeof service.urlTemplate === "string") ? "stopped" : "unconfigured", ...(urls.length === 1 ? { href: urls[0] } : {}) };
+    // Read the agent's state rather than guessing from a saved URL template.
+    const statuses = [
+      ["Starting", "starting"], ["Stopping", "stopping"], ["Failed", "failed"],
+      ["Port conflict", "conflict"], ["Needs review", "review"], ["Stopped", "stopped"],
+    ];
+    const webRuntimes = services.filter(service => typeof service.urlTemplate === "string")
+      .map(service => runtimes.find(item => item.serviceID === service.id));
+    const inactiveStatus = statuses.find(([state]) => webRuntimes.some(runtime => runtime?.state === state))?.[1];
+    const status = urls.length === 1 ? "running" : urls.length > 1 ? "multiple"
+      : webRuntimes.some(runtime => ["Running", "Externally running"].includes(runtime?.state)) ? "unavailable"
+        : inactiveStatus ?? "unconfigured";
+    return { id: entry.project.id, status, ...(urls.length === 1 ? { href: urls[0] } : {}) };
   });
 }
 

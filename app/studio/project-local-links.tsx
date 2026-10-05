@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { StudioIcon } from "./studio-icons";
 
-type LocalProject = { id: string; status: "running" | "stopped" | "multiple" | "unconfigured"; href?: string };
+type LocalProject = { id: string; status: "running" | "stopped" | "multiple" | "unconfigured" | "starting" | "stopping" | "failed" | "conflict" | "review" | "unavailable"; href?: string };
 type LocalSnapshot = { available: boolean; projects: LocalProject[] };
 
 async function readLocalProjects(signal?: AbortSignal): Promise<LocalSnapshot> {
@@ -43,7 +43,15 @@ export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
   if (id === "acm-studio") return <div className="dashboard-local-project"><a className="dashboard-card-link" href="/studio">Open Studio</a></div>;
   if (!local) return null;
   const project = snapshot?.projects.find(project => project.id === id);
-  const status = (!snapshot ? "Checking local server…" : !snapshot.available ? "Project Ports unavailable" : !project || project.status === "unconfigured" ? "Local server not configured" : project.status === "multiple" ? "Multiple servers — choose in Project Ports" : project.status === "running" ? "Local server running" : "Local server stopped");
+  const statusLabels: Record<LocalProject["status"], string> = {
+    running: "Local server running", stopped: "Local server stopped",
+    unconfigured: "Local server not configured", multiple: "Multiple servers — choose in Project Ports",
+    starting: "Local server starting", stopping: "Local server stopping",
+    failed: "Local server failed", conflict: "Local port conflict",
+    review: "Local service needs review", unavailable: "Local website address unavailable",
+  };
+  const status = !snapshot ? "Checking local server…" : !snapshot.available ? "Project Ports unavailable"
+    : project ? statusLabels[project.status] : statusLabels.unconfigured;
   async function openLocal() {
     setOpening(true);
     try {
