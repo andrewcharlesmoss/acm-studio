@@ -11,6 +11,13 @@ contracts.
 
 ## Included
 
+- **Project registry** at `/`: equal cards in alphabetical order for all active
+  independent workspace projects, with available Studio tools, site links and
+  repositories. Studio owns the display copy and actions in
+  `app/studio/project-registry.ts`; the focused catalogue check compares its
+  membership with `workspace-governance/PROJECTS.json`. Mission Control remains
+  an explicitly planned entry.
+
 - **Templates** at `/studio/templates`: create independent site designs with
   reusable page/post layouts, shared headers and footers, site identity,
   navigation and styles. Use **Site Template** in a document's inspector to
@@ -38,8 +45,8 @@ contracts.
   page settings, Preview and a constrained **Edit as HTML** view for supported
   block markup.
 
-Mini Golf staging and production appear separately on the control centre and
-backstage sidebar. Their browser page drafts are isolated. Staging currently
+Mini Golf staging and production share one project card on the control centre
+and appear separately in the backstage sidebar. Their browser page drafts are isolated. Staging currently
 uses the public production capture as a labelled starting reference.
 
 The **Codex Tasks** view reads existing Mini Golf task text through a dev-only

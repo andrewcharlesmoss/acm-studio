@@ -1,12 +1,27 @@
-import { miniGolfSites } from "./site-registry";
+import { studioProjects, type StudioProject, type StudioProjectLink } from "./project-registry";
 import { AcmIcon } from "@acm/icons/react";
+import { StudioIcon } from "./studio-icons";
 
-const sites = [
-  { name: "Andrew Moss", description: "Personal site, writing, videos and work history.", status: "Separate project", statusClass: "dashboard-status-ready", href: "https://andrewmoss.me/" },
-  { name: "Loquafy", description: "Social connection product and conversation platform.", status: "Connection pending", statusClass: "dashboard-status-pending", href: null },
-  { name: "Loquage", description: "Browser-based facial AI experiments and research.", status: "Connection pending", statusClass: "dashboard-status-pending", href: null },
-  { name: "Mission Control", description: "The wider operating system for projects and work.", status: "Connection pending", statusClass: "dashboard-status-pending", href: null },
-];
+function ProjectLinks({ links, context }: { links: StudioProjectLink[]; context: string }) {
+  return <div className="dashboard-project-links">{links.map(link => {
+    const external = link.href.startsWith("https://");
+    return <a className="dashboard-card-link" key={link.href} href={link.href} aria-label={`${link.label} — ${context}`} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>
+      {link.label}<StudioIcon name={external ? "external" : link.label === "Edit Site" ? "pencil" : "arrow-right"} size={16} />
+    </a>;
+  })}</div>;
+}
+
+function ProjectCard({ project }: { project: StudioProject }) {
+  return <article className="dashboard-site-card" data-project-id={project.id}>
+    <div className="dashboard-card-topline"><span className="dashboard-site-mark" aria-hidden="true">{project.name.slice(0, 1)}</span><span className="dashboard-status dashboard-status-pending">{project.kind}</span></div>
+    <h3>{project.name}</h3><p>{project.description}</p>
+    <div className="dashboard-project-actions">
+      {project.environments ? project.environments.map(environment => <div className="dashboard-project-environment" key={environment.id}>
+        <strong>{environment.name}</strong><ProjectLinks links={environment.links} context={`${project.name} — ${environment.name}`} />
+      </div>) : project.links.length ? <ProjectLinks links={project.links} context={project.name} /> : <span className="dashboard-card-link is-muted">Connection pending</span>}
+    </div>
+  </article>;
+}
 
 export function StudioDashboard() {
   return (
@@ -27,19 +42,9 @@ export function StudioDashboard() {
         </section>
 
         <section className="dashboard-section" aria-labelledby="sites-title">
-          <div className="dashboard-section-heading"><div><p className="eyebrow">Site registry</p><h2 id="sites-title">Your sites</h2></div><p>Start with the staging working copy; production remains a separate reference until the two are deliberately synchronised.</p></div>
-          {miniGolfSites.map((miniGolfSite) => <article className="dashboard-site-pilot" key={miniGolfSite.id}>
-            <div><span className={`dashboard-status dashboard-status-ready${miniGolfSite.environment === "staging" ? " dashboard-status-primary" : ""}`}>{miniGolfSite.environment === "staging" ? "Primary working draft" : "Production reference"}</span><h3>{miniGolfSite.name}</h3><p>{miniGolfSite.description}</p></div>
-            <div className="dashboard-pilot-actions"><a className="button-secondary" href={miniGolfSite.publicHref} target="_blank" rel="noopener noreferrer">Visit Live Site <StudioIcon name="external" size={16} /></a><a className="button-primary" href={miniGolfSite.editorHref}>Edit Site <StudioIcon name="pencil" size={16} /></a></div>
-          </article>)}
+          <div className="dashboard-section-heading"><div><p className="eyebrow">Project registry</p><h2 id="sites-title">Your projects</h2></div><p>All your projects, in alphabetical order. Open their available tools, sites and repositories.</p></div>
           <div className="dashboard-site-grid">
-            {sites.map((site) => (
-              <article className="dashboard-site-card" key={site.name}>
-                <div className="dashboard-card-topline"><span className="dashboard-site-mark" aria-hidden="true">{site.name.slice(0, 1)}</span><span className={`dashboard-status ${site.statusClass}`}>{site.status}</span></div>
-                <h3>{site.name}</h3><p>{site.description}</p>
-                {site.href ? <a className="dashboard-card-link" href={site.href}>Visit site <StudioIcon name="external" size={16} /></a> : <span className="dashboard-card-link is-muted">Integration boundary to define</span>}
-              </article>
-            ))}
+            {studioProjects.map(project => <ProjectCard project={project} key={project.id} />)}
           </div>
         </section>
 
@@ -56,11 +61,10 @@ export function StudioDashboard() {
         </section>
 
         <section className="dashboard-boundary" aria-labelledby="boundary-title">
-          <div><p className="eyebrow">Next boundary</p><h2 id="boundary-title">Connect the sites when the contract is ready.</h2></div>
-          <p>The personal site remains independent. ACM Studio owns the shared management layer, and each product keeps its own content and identity.</p>
+          <div><p className="eyebrow">Next boundary</p><h2 id="boundary-title">Bring your projects together.</h2></div>
+          <p>Each project keeps its own content and identity. Studio will bring their management tools together as connections are added.</p>
         </section>
       </main>
     </div>
   );
 }
-import { StudioIcon } from "./studio-icons";

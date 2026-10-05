@@ -7,6 +7,7 @@ import vm from "node:vm";
 import ts from "typescript";
 import test from "node:test";
 import { createRequire } from "node:module";
+import { loadProductionModule } from "./production-module.mjs";
 
 const requirePackage = createRequire(import.meta.url);
 
@@ -80,15 +81,28 @@ test("Mini Golf staging and production page drafts remain separate", () => {
   assert.equal(miniGolfDraftRepository.load().documents[0].title, "Mini Golf Scorecard");
 });
 
-test("Mini Golf staging is the primary working copy while production stays a reference", () => {
+test("Mini Golf environments remain separate editor targets within one dashboard project", async () => {
   const registry = readFileSync(new URL("../app/studio/site-registry.ts", import.meta.url), "utf8");
-  const dashboard = readFileSync(new URL("../app/studio/studio-dashboard.tsx", import.meta.url), "utf8");
+  const { studioProjects } = await loadProductionModule(new URL("../app/studio/project-registry.ts", import.meta.url));
+  const miniGolf = studioProjects.filter(project => project.id === "mini-golf-scorecard");
+  assert.equal(miniGolf.length, 1);
+  assert.deepEqual(miniGolf[0].environments.map(environment => environment.name), ["Production", "Staging"]);
+  assert.deepEqual(miniGolf[0].environments.map(environment => environment.links.find(link => link.label === "Edit Site").href), ["/studio/sites/mini-golf-scorecard", "/studio/sites/mini-golf-scorecard-staging"]);
   const editor = readFileSync(new URL("../app/studio/mini-golf-site-editor.tsx", import.meta.url), "utf8");
   assert.match(registry, /miniGolfSites = \[miniGolfStagingSite, miniGolfSite\]/);
-  assert.match(dashboard, /Primary working draft/);
-  assert.match(dashboard, /Production reference/);
   assert.match(editor, /Staging is the working copy for this build/);
   assert.match(editor, /Production remains separate until an explicit synchronisation is reviewed/);
+});
+
+test("the dashboard catalogue includes every active independent project alphabetically", async () => {
+  const { studioProjects } = await loadProductionModule(new URL("../app/studio/project-registry.ts", import.meta.url));
+  const registry = JSON.parse(readFileSync(new URL("../../workspace-governance/PROJECTS.json", import.meta.url), "utf8"));
+  const registeredIds = registry.projects.filter(project => project.active && project.independent).map(project => project.path).sort();
+  assert.deepEqual(studioProjects.filter(project => project.id !== "mission-control").map(project => project.id).sort(), registeredIds);
+  assert.equal(new Set(studioProjects.map(project => project.id)).size, studioProjects.length);
+  const names = studioProjects.map(project => project.name);
+  assert.deepEqual(names, [...names].sort((left, right) => left.localeCompare(right, "en-GB")));
+  assert.equal(studioProjects.find(project => project.id === "mission-control").kind, "Planned");
 });
 
 test("the dashboard exposes the Design canvas alongside the working tools", () => {

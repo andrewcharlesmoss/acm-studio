@@ -41,6 +41,8 @@
 
 ### Changed
 
+- The homepage lists all active independent workspace projects in one alphabetical card grid with equal prominence. Mini Golf Production and Staging actions share one project card; shared libraries link to their Studio catalogue pages, and Mission Control remains labelled as planned.
+
 - Written Style Guide hover and pinned selections now visibly mark their matching live preview specimen, completing the two-way source/preview inspection link.
 - Active Reset all actions in every block inspector now use the shared `@acm/styles` accent colour.
 - The shared Elements tools menu now labels the link-colour option as Link.
