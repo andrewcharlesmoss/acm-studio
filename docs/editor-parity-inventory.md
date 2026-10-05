@@ -2,7 +2,7 @@
 
 ## Scope and working baseline
 
-Snapshot: 5 October 2026, local branch `codex/panel-library`, HEAD `a618c7f023f52c5eb462b0c5b07c5df644b1f1a8`, with authorised uncommitted parity work. This is an inventory of the current working tree, not a release or an immutable source snapshot.
+Snapshot: 5 October 2026, local branch `codex/panel-library`, baseline HEAD `345c53989f9b825314a77e6760fc5e0c3b18a905`, with the bounded Code appearance repair recorded below. This is an inventory of the current working tree, not a release or an immutable source snapshot.
 
 Andrew’s revised priority is to finish the inventory, fix the highest-impact broken behaviours, reuse accepted evidence unless related code changes, run focused checks after each fix and the full suite once near the end, and defer lower-priority visual differences.
 
@@ -140,11 +140,11 @@ records remain separate availability outcomes.
 
 | Block-control outcome | Rows |
 | --- | --- |
-| Unverified | 356 |
+| Unverified | 353 |
 | Configuration exclusion | 9 |
 | Intentionally hidden | 5 |
 | Bounded accepted | 33 |
-| Partial | 13 |
+| Partial | 16 |
 | No exposed control | 10 |
 | Total | 426 |
 
@@ -893,14 +893,14 @@ This section is a source inventory generated from the current capability profile
 | --- | --- | --- | --- | --- | --- | --- |
 | None or Wide alignment (block-alignment) | gutenberg; canvas | blockAlign |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 | Colour (colour) | gutenberg; inspector | textColor |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Size (size) | gutenberg; inspector | fontSize, fontSizeCustom |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
+| Size (size) | gutenberg; inspector | fontSize, fontSizeCustom |  | Partial | Native preset size with line-height changes, reset and Undo/Redo now resizes the Code surface; Edit/Preview measured equally. | Custom sizes, inherited/nested styles, persistence/export and remaining input/responsive contexts. |
 | Font family (family) | gutenberg; theme-gated | fontFamily | Requires typography configuration absent from the captured Gutenberg theme. | Configuration exclusion | Not exposed in the captured reference theme; retain the documented availability condition. | Confirm configured availability and saved-value preservation if this capability is enabled. |
 | Appearance (appearance) | gutenberg; inspector | appearance |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Line height (line-height) | gutenberg; inspector | lineHeight |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
+| Line height (line-height) | gutenberg; inspector | lineHeight |  | Partial | Native grow/shrink/reset and Undo/Redo fit all four fixture lines at unchanged width; Edit/Preview heights match. | Inherited/nested styles, persistence/export and remaining input/responsive contexts. |
 | Letter spacing (letter-spacing) | gutenberg; inspector | letterSpacing |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 | Decoration (decoration) | gutenberg; inspector | textDecoration |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 | Letter case (letter-case) | gutenberg; inspector | textTransform |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Background colour or gradient (background) | gutenberg; inspector | backgroundColor, backgroundGradient, backgroundImageMediaId, backgroundSize, backgroundRepeat, backgroundFixedSize, backgroundPositionX, backgroundPositionY |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
+| Background colour or gradient (background) | gutenberg; inspector | backgroundColor, backgroundGradient, backgroundImageMediaId, backgroundSize, backgroundRepeat, backgroundFixedSize, backgroundPositionX, backgroundPositionY |  | Partial | Native colour and gradient expose the same authored background in Edit/Preview; reset restores default grey. | Managed image and its sizing/position fields, persistence/export and remaining input/responsive contexts. |
 | Padding (padding) | gutenberg; inspector | padding |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 | Margin (margin) | gutenberg; inspector | margin |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 | Border (border) | gutenberg; inspector | borderColor, borderStyle, borderWidth |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
@@ -908,7 +908,6 @@ This section is a source inventory generated from the current capability profile
 | Shadow (shadow) | gutenberg; inspector | shadow |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 | Language and syntax highlighting (language) | studio; model-only | language | Stored or supported internally; no inspector control is implemented. | No exposed control | Stored/model capability only; no interactive inspector acceptance claimed. | Preservation and applicable reader/export checks; implementation only if required by compatibility scope. |
 | HTML anchor, CSS classes and Additional CSS (advanced) | gutenberg; inspector | visualStyle.anchor, visualStyle.className, visualStyle.additionalCss |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-
 ### Image (image)
 
 | Control | Source / placement / availability | Owned fields | Condition | Outcome | Evidence / current behaviour | Remaining acceptance / change |

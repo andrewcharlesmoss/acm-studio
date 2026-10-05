@@ -553,6 +553,8 @@
 
 ### Fixed
 
+- Code blocks show authored backgrounds in Edit and Preview and resize after typography changes, reset and Undo/Redo.
+
 - Preserve Template Group semantic elements, ARIA labels and width alignment, Columns alignment and Section visual styles through editing, saving, packages and rendering.
 
 - Highlight retains fresh formatting targets across successive caret colour changes; untouched HTML and Code Apply close without adding Undo history.

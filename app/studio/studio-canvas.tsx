@@ -2983,6 +2983,8 @@ function CodeEditor({ value, language, className, writable, onChange }: { value:
   const highlightRef = useRef<HTMLPreElement>(null);
   const highlighted = highlightCode(value, language);
 
+  // Measure after every render: inspector and inherited typography can change
+  // wrapping and line height even when the code and available width stay equal.
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -3010,7 +3012,7 @@ function CodeEditor({ value, language, className, writable, onChange }: { value:
       observer.disconnect();
       if (animationFrame) cancelAnimationFrame(animationFrame);
     };
-  }, [value, language]);
+  });
 
   function syncScroll() {
     const textarea = textareaRef.current;

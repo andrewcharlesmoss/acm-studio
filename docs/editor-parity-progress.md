@@ -2818,3 +2818,40 @@ Verifier reviewed the schema, projections and final rendering ownership.
   interaction and remaining responsive/input contexts are still unverified.
   This repair closes the confirmed field-loss defect; it does not certify the
   remaining block/control matrix or whole-goal Gutenberg parity.
+
+## 5 October 2026 — Code appearance repair
+
+- Baseline `345c53989f9b825314a77e6760fc5e0c3b18a905`, local branch
+  `codex/panel-library`. Explorer identified two Code presentation defects;
+  Main was sole Builder and `block_menu_verifier` independently reviewed the
+  bounded diff and evidence. No publishing, model or persistence changes.
+- Authored colour, gradient and image backgrounds now show through the Code
+  editing shell, as they do through Preview. Default grey remains when the
+  authored background is cleared. Code autosizing now runs after each render,
+  so inspector and inherited typography changes can update height without a
+  change to code text or width. The width observer still ignores height-only
+  notifications, and cleanup cancels pending measurement frames.
+- Before repair, native Code showed a grey editing shell over a red wrapper;
+  line height 3 at 32px font size left a 147px input with 429px scroll height.
+  After fresh reload, input height and scroll height both measured 429px at
+  the same 649px width. Undo returned to 147px and Redo to 429px; shrinking
+  line height to 1.5 measured 237px, matching Preview. Typography reset
+  restored 16px / 25.6px and 147px height; Undo/Redo restored the custom and
+  default sizes respectively. Background reset restored grey and cleared the
+  gradient. Colour and Pale ocean gradient matched Edit/Preview.
+- Focused production-effect, permission and preview checks pass 84/84:
+  `/private/tmp/acm-code-appearance-focused.log`. Build, typecheck and new-test
+  lint pass in the corresponding `acm-code-appearance-build.log`,
+  `acm-code-appearance-typecheck.log` and `acm-code-appearance-lint.log` files.
+  The initial new-fixture lint error was corrected and the check rerun.
+  Whole-project lint and the full suite were not rerun for this bounded fix.
+- Screenshot: `/private/tmp/acm-code-appearance-browser.png`. Native replay
+  used the memory-only Code Library specimen, reset afterwards. Independent
+  review accepted the bounded fix using source and supplied native evidence;
+  it did not independently replay the browser.
+- Three Code control records move to Partial: size, line height and background.
+  Custom sizes, inherited/nested native contexts, managed background images
+  and their sizing fields, persistence/export, responsive and other input
+  modes remain unverified. This repair does not certify whole-Code or
+  whole-editor parity. Inventory now records 353 Unverified and 16 Partial
+  block-control rows; the accepted and excluded rows remain unchanged.
