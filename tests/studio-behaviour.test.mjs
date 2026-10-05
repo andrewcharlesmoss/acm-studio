@@ -1318,11 +1318,9 @@ test("design tool selection uses a neutral active colour", () => {
   assert.doesNotMatch(css, /#f9e1e1|#d89b9b|#9c2525/);
 });
 
-test("design surfaces use the lighter Account neutral theme", () => {
+test("design surfaces use the current neutral theme", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
-  // Keep the unresolved visual policy visible; moving pane ownership does not
-  // approve different accent or focus colours.
-  assert.match(css, /\.design-shell \{ --accent: #8f8f8f; --accent-soft: #e7e7e7; --focus-ring-colour: rgba\(143, 143, 143, \.72\); --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa;/);
+  assert.match(css, /\.design-shell \{ --accent: #1e1e1e; --accent-soft: #e7e7e5; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa;/);
   assert.match(css, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: #f7f7f7; --acm-ribbon-text: #3f3f3f; background: #f7f7f7; border: 1px solid #d8d8d8;/);
   assert.match(css, /\.design-pages\.pane \{ background: #f7f7f7; border-right: 0;/);
   assert.match(css, /\.design-inspector\.pane \{ background: #f7f7f7; border-left: 0;/);
@@ -1535,7 +1533,7 @@ test("design snapping uses Canva-style solid page guides and dotted object guide
   assert.match(editor, /setGuides\(endpointSnap\.guides\)/);
   assert.match(editor, /className=\{`design-guide design-guide-\$\{guide\.style\}`\}/);
   assert.ok(editor.indexOf('<g className="design-guides-overlay"') > editor.indexOf('{page.objects.map('), "guides render above page objects");
-  assert.match(css, /\.design-guide \{ filter: drop-shadow\(0 0 1px rgba\(255, 255, 255, \.95\)\); opacity: \.95; pointer-events: none; shape-rendering: geometricPrecision; stroke: #3858e9; stroke-width: 1\.5;/);
+  assert.match(css, /\.design-guide \{ filter: drop-shadow\(0 0 1px rgba\(255, 255, 255, \.95\)\); opacity: \.95; pointer-events: none; shape-rendering: geometricPrecision; stroke: #555; stroke-width: 1\.5;/);
   assert.match(css, /\.design-guide-solid \{ stroke-dasharray: none; stroke-linecap: butt; \}/);
   assert.match(css, /\.design-guide-dotted \{ stroke-dasharray: 1 5; stroke-linecap: round; \}/);
 });
@@ -1961,9 +1959,9 @@ test("template body appender does not add a blue focus border", () => {
 });
 
 
-test("block library cards use neutral grey icons", () => {
+test("block library icons inherit the interface ink colour", () => {
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(styles, /\.inserter-group button > span \{ color: #6b7075; font-size: 20px; \}/);
+  assert.match(styles, /\.inserter-group button > span \{ color: var\(--ink\); display: flex; \}/);
 });
 
 

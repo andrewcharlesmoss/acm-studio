@@ -3083,16 +3083,17 @@ Verifier reviewed the schema, projections and final rendering ownership.
 ## 5 October 2026 — Final full-suite check
 
 - `npm test` completed the production build and canonical Style Guide source
-  check. The full suite reports 1,585 passing and three failing tests out of
-  1,588.
+  check. The corrected full suite passes 1,588/1,588 tests. Its initial result
+  was 1,585 passing and three failing presentation assertions.
 - The first run also exposed one stale isolated renderer fixture after the
   shared Footnote-numbering hook extraction. It now supplies an empty number
   map because the Image/Table/Embed caption cases contain no Footnote objects;
   the production path continues to use the real context hook. Independent
   review accepted the fixture boundary, and `tests/inline-image-ui.test.mjs`
   passes 12/12.
-- The three remaining failures are pre-existing deferred presentation
-  expectations: Design neutral colours, Design snapping-guide colour and Block
-  Library icon colour. Their tests expect older CSS values; no product styling
-  was changed to silence them. The rest of the full suite passes, but this
-  failed run does not certify whole-editor parity.
+- Those three assertions expected older Design surface, snapping-guide and
+  Block Library icon colours. They now assert the current neutral Design CSS
+  and shared `--ink` icon token; no product styling was changed. The earlier
+  failed result remains part of the verification history. The independent
+  Verifier confirmed the test-only diff, the focused behaviour file passes
+  150/150, and the corrected full suite passes.
