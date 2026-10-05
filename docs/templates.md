@@ -177,13 +177,13 @@ cannot impersonate these reserved handles. The renderer supplies dynamic
 content from the actual preview/document record and scopes design tokens to
 the template surface.
 
-The integrated Content Studio route uses `?mode=templates` and retains the
-`/studio/templates` route as a portable deep link. Both entry points mount one
-workspace and one template synchronisation session. The Templates badge counts
-template sets, not individual Page/Post templates or shared parts. In the
-integrated route, sets and their Page/Post/Header/Footer entries appear in the
-same library pane as content; selecting an entry opens the editor directly
-without a separate template-library page.
+Templates live in the integrated Content Studio at `/studio?mode=templates`.
+The old `/studio/templates` route redirects there, preserving the selected
+`set` and `target` query parameters. The Templates badge counts individual
+Page/Post templates and shared Header/Footer parts. Selecting an entry opens
+the editor directly. Manage Template Sets opens the set manager within the same
+workspace, with Create, Rename, Duplicate, Export, Import and protected Bin
+actions using the existing ownership and template storage contracts.
 
 Layout options, Spacer, document metadata, dynamic document-field blocks,
 root-level Group sticky positioning, Gutenberg's Huge Social Icons size and

@@ -1,4 +1,14 @@
-import type { Metadata } from "next";
-import { TemplateWorkspace } from "../template-workspace";
-export const metadata: Metadata = { title: "Templates", description: "Create reusable page and post designs in ACM Studio." };
-export default function TemplatesPage() { return <TemplateWorkspace />; }
+import { redirect } from "next/navigation";
+
+export default async function TemplatesPage({ searchParams }: {
+  searchParams: Promise<{ set?: string | string[]; target?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const query = new URLSearchParams({ mode: "templates" });
+  for (const key of ["set", "target"] as const) {
+    const value = params[key];
+    const selected = Array.isArray(value) ? value[0] : value;
+    if (selected) query.set(key, selected);
+  }
+  redirect(`/studio?${query.toString()}`);
+}

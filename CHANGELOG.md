@@ -43,6 +43,8 @@
 
 ### Changed
 
+- Templates now use one integrated Content Studio workspace, including template set management. Old template-editor links redirect while retaining the selected set and template.
+
 - The homepage lists actual sites in one alphabetical card grid with equal prominence. ACM Account, Habit Tracker, Loquafy and Mini Golf show their identified Production and Staging sites together. Shared libraries and projects without a hosted site remain in their existing tools.
 
 - Written Style Guide hover and pinned selections now visibly mark their matching live preview specimen, completing the two-way source/preview inspection link.

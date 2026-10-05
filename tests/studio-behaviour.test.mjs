@@ -472,9 +472,10 @@ test("Studio environment badges use the neutral LOCAL label", async () => {
     readFile(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
-  for (const source of [dashboard, prototype, workspace]) assert.match(source, /className="prototype-pill">LOCAL<\/span>/);
+  for (const source of [dashboard, prototype]) assert.match(source, /className="prototype-pill">LOCAL<\/span>/);
   const coordinator = await readFile(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   assert.match(coordinator, /<StudioHeader studioSection=\{studioSection\}/);
+  assert.doesNotMatch(workspace, /className="prototype-pill"/);
   assert.match(styles, /\.prototype-pill \{\s*background: #e7e7e7;\s*border-radius: 999px;\s*color: #1c1c1e;/);
 });
 
@@ -1032,19 +1033,20 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(styles, /\.library-tabs button/);
   const templateWorkspace = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
   assert.match(templateWorkspace, /<div className="library-tabs" aria-label="Content type">[\s\S]*Templates<span>\{templateEntryCount}<\/span>/);
-  assert.match(templateWorkspace, /<div className="library-create">\s*<button type="button" onClick=\{\(\) => importRef\.current\?\.click\(\)\}>Import<\/button>/);
+  assert.match(templateWorkspace, /Manage Template Sets/);
   assert.match(templateWorkspace, /const templateEntries = templates\.store\.sets\.flatMap/);
   assert.match(templateWorkspace, /className=\{`document-item template-target-item/);
   assert.match(styles, /\.template-target-item\.is-active \.document-kind-mark \{ background: #e4e3dd; color: inherit; \}/);
   assert.match(templateWorkspace, /<TemplateEditor key=\{target\.id\}/);
-  assert.match(templateWorkspace, /: standalone \? <section className="template-library"/);
+  assert.doesNotMatch(templateWorkspace, /standalone/);
   assert.match(templateWorkspace, /className="template-status template-inline-status"[^>]*role="alert"[^>]*>.*template-status-actions/s);
   assert.match(templateWorkspace, /Another Studio tab changed this template while you were editing/);
   assert.match(templateWorkspace, /import \{ studioConflictDetails \} from "\.\/studio-sync-description"/);
   assert.match(templateWorkspace, /studioConflictDetails\(templates\.syncConflict\)/);
   assert.match(studio, /import \{ studioConflictDetails \} from "\.\/studio-sync-description"/);
   assert.match(studio, /studioConflictDetails\(syncConflict\)/);
-  assert.match(templateWorkspace, /<span role="status">\{templates\.saveLabel\}<\/span>/);
+  const header = readFileSync(new URL("../app/studio/studio-header.tsx", import.meta.url), "utf8");
+  assert.match(header, /templateSession\.saveLabel/);
   assert.match(templateWorkspace, /!templates\.syncConflict && \(templates\.error/);
   const templateRenderer = readFileSync(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8");
   assert.match(templateRenderer, /className="template-part-content">\{children\}<\/div>/);
@@ -1913,7 +1915,8 @@ test("editor shells retain the desktop workspace when the browser is narrow", ()
   const templates = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   assert.match(prototype, /className=\{`studio-shell studio-desktop-only/);
-  assert.match(templates, /className="studio-shell studio-desktop-only template-shell"/);
+  assert.doesNotMatch(templates, /className="studio-shell/);
+  assert.match(prototype, /<TemplateWorkspacePanel/);
   assert.match(styles, /\.studio-desktop-only \{ min-width: 1130px; \}/);
   assert.match(styles, /\.studio-desktop-only \.studio-workspace \{ display: grid; grid-template-columns: var\(--studio-library-width\) minmax\(540px, 1fr\) var\(--studio-inspector-width\);/);
   assert.match(styles, /\.studio-desktop-only \.studio-library, \.studio-desktop-only \.studio-inspector \{ display: flex;/);

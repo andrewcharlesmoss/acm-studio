@@ -965,7 +965,9 @@ test("template narrow layout restores navigation, settings and save context rath
   for (const panel of ["studio-library", "studio-inspector"]) assert.match(narrow, new RegExp(`\\.template-workspace \\.${panel} \\{ display: flex;`));
   for (const context of ["studio-breadcrumbs", "studio-state", "studio-actions"]) assert.match(narrow, new RegExp(`\\.template-shell \\.${context} \\{ display: flex;`));
   assert.match(narrow, /\.template-toolbar select \{ min-width: 0; max-width: 100%;/);
-  assert.match(readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8"), /studio-shell studio-desktop-only template-shell/);
+  const route = readFileSync(new URL("../app/studio/templates/page.tsx", import.meta.url), "utf8");
+  assert.ok(route.includes("redirect(`/studio?${query.toString()}`)"));
+  assert.doesNotMatch(route, /TemplateWorkspace/);
 });
 
 test("template and publication image references prevent deletion until removed", async () => {
