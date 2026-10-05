@@ -5,7 +5,9 @@ import { StudioAnchoredMenu } from "../../overlays/anchored-menu";
 import { StudioMenuItem } from "../../overlays/menu";
 import { LinkDestinationPopover } from "../../controls/link-destination-popover";
 import { clearedLinkDestination, sameLinkDestination, updatedLinkDestination, type LinkDestination } from "../../../content/link-destination";
-import type { ParagraphAppearance, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle } from "../../../content/model";
+import type { ParagraphAppearance, ParagraphBackgroundGradient, ParagraphFontFamily, ParagraphFontSize, ParagraphStyle } from "../../../content/model";
+import { PARAGRAPH_FONT_FAMILIES } from "../../../content/paragraph-styles";
+import { FontFamilySetting } from "../../controls/font-family-setting";
 import { blockLibraryEntryByType } from "../../blocks/library-catalogue";
 import { studioControlEntries, type StudioControlEntry } from "../../controls/library-catalogue";
 import { BoxLengthSetting } from "../../../studio/box-length-setting";
@@ -34,6 +36,7 @@ import { InlineImagePicker } from "../../inline-image-picker";
 import type { InlineImage } from "../../../content/model";
 
 const blockLinksByControl: Record<string, string[]> = {
+  "font-family": ["paragraph", "list"],
   "link-destination": ["button"],
   "heading-level": ["heading"],
   "toggle": ["paragraph", "heading", "list", "table"],
@@ -70,6 +73,7 @@ export function ControlSpecimen({ entry, sliderAccent, sliderHoverAccent, slider
   const [sliderExampleValue, setSliderExampleValue] = useState(64);
   const [borderStyle, setBorderStyle] = useState<ParagraphStyle>({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" });
   const [fontPreset, setFontPreset] = useState<ParagraphFontSize | undefined>("large");
+  const [fontFamily, setFontFamily] = useState<ParagraphFontFamily | undefined>();
   const [fontCustom, setFontCustom] = useState<string | undefined>();
   const [appearance, setAppearance] = useState<ParagraphAppearance | undefined>("semi-bold");
   const [fontMode, setFontMode] = useState<"presets" | "custom">("presets");
@@ -102,6 +106,7 @@ export function ControlSpecimen({ entry, sliderAccent, sliderHoverAccent, slider
       case "inspector-tools": setVisible(new Set(["line-height"])); setShowInspectorExample(true); break;
       case "border-settings": setBorderStyle({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" }); break;
       case "font-size-appearance": setFontPreset("large"); setFontCustom(undefined); setAppearance("semi-bold"); setFontMode("presets"); break;
+      case "font-family": setFontFamily(undefined); break;
       case "background-selection": setBackgroundMode("gradient"); setBackgroundColour(undefined); setBackgroundGradient("ocean"); break;
       case "layout-spacing": setPresetNumber(undefined); setPadding(undefined); break;
       case "preset-number": setPresetNumber(24); break;
@@ -133,6 +138,7 @@ export function ControlSpecimen({ entry, sliderAccent, sliderHoverAccent, slider
         {entry.id === "inspector-tools" ? <div className="ui-control-tools-example"><InspectorToolsSection title="Typography" options={[{ id: "line-height", label: "Line height" }, { id: "font-family", label: "Font family", source: "studio" }]} visible={visible} onToggle={id => setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={() => setVisible(new Set())}><div className={`ui-control-tools-field${visible.has("line-height") && showInspectorExample ? "" : " is-hidden"}`} aria-hidden={!visible.has("line-height") || !showInspectorExample}><label>Line height <input type="text" placeholder="Default" /></label></div></InspectorToolsSection><button className="ui-control-reset" type="button" onClick={() => setShowInspectorExample(value => !value)}><StudioIcon name="rotate" size={18} />Toggle example control</button></div> : null}
         {entry.id === "inspector-accordion" ? <div className="ui-control-live"><InspectorAccordionSection title="Example settings"><p>This content belongs to the open section. Use the disclosure heading to collapse or reopen it.</p><label>Example value <input type="text" defaultValue="Temporary value" /></label></InspectorAccordionSection></div> : null}
         {entry.id === "border-settings" ? <div className="ui-control-live ui-control-size-example"><BorderSettings style={borderStyle} compact idPrefix="catalogue" onChange={changes => setBorderStyle(current => ({ ...current, ...changes }))} /><p>Border state: {borderStyle.borderStyle ?? "Default"} · {borderStyle.borderWidth ?? "No width"}</p><BorderSettings style={borderStyle} compact idPrefix="catalogue-disabled" disabled onChange={() => {}} /></div> : null}
+        {entry.id === "font-family" ? <div className="ui-control-live ui-control-size-example"><FontFamilySetting value={fontFamily} onChange={setFontFamily} /><p style={{ fontFamily: fontFamily ? PARAGRAPH_FONT_FAMILIES[fontFamily].css : undefined }}>A one-off font choice for this block.</p><FontFamilySetting value="inter" disabled onChange={() => {}} /></div> : null}
         {entry.id === "font-size-appearance" ? <div className="ui-control-live ui-control-size-example"><FontSizeAppearanceSetting size={fontPreset} customSize={fontCustom} appearance={appearance} mode={fontMode} onModeChange={setFontMode} onSizeChange={setFontPreset} onCustomSizeChange={setFontCustom} onAppearanceChange={setAppearance} /><FontSizeAppearanceSetting size="medium" appearance="regular" mode="presets" disabled onModeChange={() => {}} onSizeChange={() => {}} onCustomSizeChange={() => {}} onAppearanceChange={() => {}} /><p>Disabled Typography example shown beneath the working specimen.</p></div> : null}
         {entry.id === "line-height" ? <div className="ui-control-live ui-control-size-example"><LineHeightSetting value={lineHeight} onChange={setLineHeight} /><p>Current value: {lineHeight ?? "Default"}</p><LineHeightSetting value="1.25" disabled onChange={() => {}} label="Disabled example" /></div> : null}
         {entry.id === "background-selection" ? <div className="ui-control-live ui-control-size-example"><BackgroundSelection mode={backgroundMode} colour={backgroundColour} gradient={backgroundGradient} onModeChange={setBackgroundMode} onColourChange={setBackgroundColour} onGradientChange={setBackgroundGradient} /><BackgroundSelection mode="colour" colour="#e5e7eb" disabled onModeChange={() => {}} onColourChange={() => {}} onGradientChange={() => {}} /><p>Use Gradient to edit colour stops, type and angle or choose a preset. Colour opens the shared palette. Reset returns to the ocean gradient example.</p></div> : null}

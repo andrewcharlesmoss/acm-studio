@@ -19,6 +19,14 @@ const rangeDependency = {
 
 export const studioControlEntries: StudioControlEntry[] = [
   {
+    id: "font-family", title: "Font", group: "Typography",
+    purpose: "Override one block's inherited font using Studio's supported families.",
+    owner: "ACM Studio controls", consumers: ["Paragraph Typography", "Selected List Item", "Other inspectors with enabled font-family support"],
+    dependencies: [{ kind: "uses", label: "Paragraph font families", detail: "Labels and CSS stacks share PARAGRAPH_FONT_FAMILIES with the content renderer." }],
+    states: "Default inheritance, Inter, Helvetica Neue, Helvetica, Arial, keyboard focus and disabled.",
+    compatibility: "Stores the existing fontFamily field. Default clears the override; the owning inspector supplies history, persistence and section reset. System fonts use their existing fallback stacks.",
+  },
+  {
     id: "inline-image", title: "Inline image", group: "Media",
     purpose: "Insert or replace an image inside rich text, then edit its width and alternative text.",
     owner: "ACM Studio rich-text controls", consumers: ["Studio Canvas rich fields", "Template editor", "Mini Golf editor", "Controls Library specimen"],

@@ -107,7 +107,7 @@ test("default typography values make Reset eligible and reset only supported fie
     assert.equal(actions.inspectorStyleHasValues({}, ["colour", "size"], controls), false, type);
     const style = { fontSize: "large", textColor: "#112233", fontFamily: "retained", orientation: "vertical-rl", margin: "8px", backgroundColor: "#ffffff" };
     assert.equal(actions.inspectorStyleHasValues(style, ["colour", "size"], controls), true, type);
-    assert.deepEqual(plain(actions.resetSupportedInspectorStyleFields(style, ["colour", "size", "family", "orientation"], controls)), { fontFamily: "retained", orientation: "vertical-rl", margin: "8px", backgroundColor: "#ffffff" });
+    assert.deepEqual(plain(actions.resetSupportedInspectorStyleFields(style, ["colour", "size", "family", "orientation"], controls)), { ...(type === "paragraph" ? {} : { fontFamily: "retained" }), orientation: "vertical-rl", margin: "8px", backgroundColor: "#ffffff" });
     assert.equal(style.fontSize, "large");
   }
 });

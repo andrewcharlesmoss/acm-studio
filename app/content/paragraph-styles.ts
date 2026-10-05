@@ -10,11 +10,11 @@ const fontSizes: Record<NonNullable<ParagraphStyle["fontSize"]>, string> = {
   "xx-large": "32px",
 };
 
-const fontFamilies: Record<NonNullable<ParagraphStyle["fontFamily"]>, string> = {
-  inter: 'Inter, "Helvetica Neue", Helvetica, Arial, sans-serif',
-  "helvetica-neue": '"Helvetica Neue", Helvetica, Arial, sans-serif',
-  helvetica: 'Helvetica, Arial, sans-serif',
-  arial: 'Arial, sans-serif',
+export const PARAGRAPH_FONT_FAMILIES: Record<NonNullable<ParagraphStyle["fontFamily"]>, { label: string; css: string }> = {
+  inter: { label: "Inter", css: 'Inter, "Helvetica Neue", Helvetica, Arial, sans-serif' },
+  "helvetica-neue": { label: "Helvetica Neue", css: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
+  helvetica: { label: "Helvetica", css: 'Helvetica, Arial, sans-serif' },
+  arial: { label: "Arial", css: 'Arial, sans-serif' },
 };
 
 const fontWeights: Record<ParagraphWeight, string> = {
@@ -175,7 +175,7 @@ export function paragraphStyleToCss(style?: ParagraphStyle, backgroundImageUrl?:
   if (!style && !previousParagraphIndent) return {};
   style ??= {};
   const css: Record<string, string> = {};
-  if (style.fontFamily) css.fontFamily = fontFamilies[style.fontFamily];
+  if (style.fontFamily) css.fontFamily = PARAGRAPH_FONT_FAMILIES[style.fontFamily]?.css;
   if (!fitTextEnabled(style)) {
     if (style.fontSizeCustom) css.fontSize = style.fontSizeCustom;
     else if (style.fontSize) css.fontSize = fontSizes[style.fontSize];

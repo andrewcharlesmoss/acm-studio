@@ -4,6 +4,8 @@
 
 ### Added
 
+- Paragraph Typography now offers Font for individual block overrides, with Default restoring inheritance. The reusable Font selector and its working Controls specimen share font choices with the content renderer.
+
 - The editor List View button now uses a new shared `@acm/icons` List View mark with the three-line stepped outline shown in Gutenberg.
 
 - Homepage local-site actions resolve current running ports through Project Ports, with shared discovery, clear unavailable states and a fresh lookup before opening. Hosted links remain separate.
