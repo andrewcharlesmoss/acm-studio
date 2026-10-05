@@ -76,7 +76,7 @@ const styleControlFields: Record<StyleControlId, { label: string; section: Inspe
   border: { label: "Border", section: "border", fields: ["borderColor", "borderStyle", "borderWidth"] },
   radius: { label: "Radius", section: "border", fields: ["borderRadius"] },
   shadow: { label: "Shadow", section: "border", fields: ["shadow"] },
-  "link-colour": { label: "Link colour", section: "elements", fields: ["linkColor", "linkHoverColor"] },
+  "link-colour": { label: "Link", section: "elements", fields: ["linkColor", "linkHoverColor"] },
 };
 export function retainedLegacyStyleControls(profile: BlockCapabilityProfile, style: ParagraphStyle | undefined): InspectorControlProfile[] {
   if (!style) return [];

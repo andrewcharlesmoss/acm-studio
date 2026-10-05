@@ -41,6 +41,8 @@
 
 ### Changed
 
+- The shared Elements tools menu now labels the link-colour option as Link, and active Reset all actions use Gutenberg's blue accent across block inspectors.
+
 - Styles specimens use only the shared Focus Outline indicator, without an additional selection outline or marker; mapped guide lines use the shared focus colours.
 
 - Simplified Table to use a two-count creation form and Settings/Styles inspector tabs with simple Default/Stripes buttons. Removed drag resizing and double-click fitting while preserving existing saved sizing, cell content, caption and all Advanced fields.
