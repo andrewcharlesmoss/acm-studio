@@ -47,6 +47,8 @@
 
 ### Changed
 
+- Enlarged the Border width number-field spinner hit area so its up/down controls are easier to use.
+
 - Newly inserted Heading blocks start empty and show the grey “Heading” editing placeholder; the prompt is not saved as block text.
 
 - Shared Border controls now use compact joined inputs, a linked width slider and a box diagram for separate sides. Linking preserves mixed widths; colour and style remain shared across all sides.
