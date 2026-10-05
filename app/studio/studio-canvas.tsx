@@ -4,7 +4,8 @@ import { readMathClipboardRuns } from "./math-clipboard";
 import { mathObjectHtml, legacyMathHtml } from "../content/math-presentation";
 import { inlineImageHtml, inlineImageFromData, inlineImageRun, validInlineImageRun, inlineImageAtRange, insertInlineImage } from "../content/inline-image";
 import { footnoteReferenceRun, footnoteReferenceAtRange, insertFootnoteReference, validFootnoteId, validFootnoteReference } from "../content/footnote-runs";
-import { orderedFootnoteEntries, visibleFootnoteNumbers } from "../content/footnote-blocks";
+import { orderedFootnoteEntries } from "../content/footnote-blocks";
+import { FootnoteNumbersProvider, useFootnoteNumbers } from "./footnote-numbers-context";
 import { canRemoveFootnoteOwners, preservesReferencedFootnotes, reconcileFootnoteBlocks } from "../content/footnote-reconciliation";
 import { RichTextEditingProvider, useRichTextEditing, useMathActivation, useImageActivation, useRichTextFeedback, useCaretFormatsChange } from "./rich-text-editing-context";
 import { InlineImagePicker, type InlineImageLibrary } from "./inline-image-picker";
@@ -51,7 +52,7 @@ import { EmbedContent } from "../components/embed-content";
 import { TableCaptionControl, TableCaptionProvider, useTableCaption } from "./table-caption-control";
 import { tablePresentation } from "../content/table-presentation";
 import { changedTableStructures, staleTableTextSelection } from "./table-structure-selection";
-import { createContext, useCallback, useContext, useId, useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type DragEvent, type FormEvent, type HTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type DragEvent, type FormEvent, type HTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
 import { blockSelectionRange, normaliseBlockSelection, orderedBlockEntries } from "./block-selection.mjs";
 import { blockSelectionPointerTarget, markBlockSelectionHosts } from "./block-selection-dom";
 import { AcmIcon } from "@acm/icons/react";
@@ -294,16 +295,13 @@ export type StudioCanvasProps = {
   onSetInserterQuery: (query: string) => void;
 };
 
-const FootnoteNumbersContext = createContext(new Map<string, number>());
-
 function richTextSelectionKey(blockId: string, itemIndex?: number, listId?: string, cell?: TableCell) {
   if (cell) return `${blockId}:cell:${cell.rowIndex}:${cell.columnIndex}`;
   return itemIndex === undefined ? blockId : `${blockId}:list:${listId ?? blockId}:item:${itemIndex}`;
 }
 
 export function StudioCanvas(props: StudioCanvasProps) {
-  const numbers = useMemo(() => visibleFootnoteNumbers(props.activeDocument.blocks), [props.activeDocument.blocks]);
-  return <RichTextEditingProvider writable={props.writable !== false}><FootnoteNumbersContext.Provider value={numbers}><TableCaptionProvider key={props.activeDocument.id}><StudioCanvasContent {...props} /></TableCaptionProvider></FootnoteNumbersContext.Provider></RichTextEditingProvider>;
+  return <RichTextEditingProvider writable={props.writable !== false}><FootnoteNumbersProvider blocks={props.activeDocument.blocks}><TableCaptionProvider key={props.activeDocument.id}><StudioCanvasContent {...props} /></TableCaptionProvider></FootnoteNumbersProvider></RichTextEditingProvider>;
 }
 
 function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertTemplateContent, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
@@ -2808,7 +2806,7 @@ export function ParagraphEditField({ block, previousParagraphIndent, onChange, o
 }
 
 function BlockFieldContent({ htmlEditorBlockId, renderBlockControls, block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, previousParagraphIndent, spacerOrientation = "vertical", writable = true, buttonPreview = null, pendingColumnsLayoutBlockId, onColumnsLayoutSelected, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onOpenNestedInserter, onInsertNestedBlock, onChange }: BlockFieldProps) {
-  const footnoteNumbers = useContext(FootnoteNumbersContext);
+  const footnoteNumbers = useFootnoteNumbers();
   const documentContext: DocumentRenderContext = document ?? { kind: "page" };
   if (
     block.type === "reading-time" && !documentFieldVisible(documentContext, "readingTime") ||
@@ -2930,7 +2928,7 @@ function EmbedUrlField({ block, rootBlocks, selected, writable, mediaUrls, onTex
   onLinkActivate: BlockFieldProps["onLinkActivate"];
   onChange: BlockFieldProps["onChange"];
 }) {
-  const footnoteNumbers = useContext(FootnoteNumbersContext);
+  const footnoteNumbers = useFootnoteNumbers();
   const inputId = useId();
   const helpId = useId();
   const errorId = useId();
@@ -3061,7 +3059,7 @@ export type RichTextEditorProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
 };
 
 export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls = {}, onChange: onContentChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onKeyDown: onKeyDownProp, className, fitText = false, fitTextSignature = "", navigationRootRef, withoutInteractiveFormatting = false, ...props }: RichTextEditorProps) {
-  const footnoteNumbers = useContext(FootnoteNumbersContext);
+  const footnoteNumbers = useFootnoteNumbers();
   const editable = useRichTextEditing(props.contentEditable);
   const activateMath = useMathActivation();
   const activateImage = useImageActivation();

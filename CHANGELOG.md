@@ -553,6 +553,8 @@
 
 ### Fixed
 
+- Footnotes in the Blocks Library now share the editor’s document numbering context, so references and editable notes show matching numbers in Edit and Preview.
+
 - Image Additional CSS now uses the same wrapper target in Edit and Preview, with border and shadow retained on the image itself.
 
 - Quote citations now follow authored block typography in Edit and Preview, retain compact defaults after reset and preserve inner-block overrides.

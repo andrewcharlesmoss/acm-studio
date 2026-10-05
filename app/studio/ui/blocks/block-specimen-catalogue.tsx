@@ -14,6 +14,7 @@ import { BlockRenderer } from "../../../components/content";
 import { createBlock, type InsertableBlockType, type StudioDocument } from "../../editor-model";
 import { TableCaptionControl, TableCaptionProvider } from "../../table-caption-control";
 import { BlockField } from "../../studio-canvas";
+import { FootnoteNumbersProvider } from "../../footnote-numbers-context";
 import { BlockInspector } from "../../studio-inspectors";
 import { StudioIcon } from "../../studio-icons";
 import { BlockLibraryIcon } from "../../block-library-icons";
@@ -419,7 +420,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
                   ? <TemplateSurface set={exampleTemplateSet}><TemplateNodes set={exampleTemplateSet} document={data.document} nodes={templateNodesFromBlocks(data.blocks)} content={<BlockRenderer blocks={data.blocks[0]?.type === "group" ? data.blocks[0].children : []} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={data.document} />} mediaUrls={mediaUrls} templatePreview /></TemplateSurface>
                 : <BlockRenderer blocks={data.blocks} mediaUrls={mediaUrls} variant="studio" showMissingMetadata={false} document={data.document} buttonPreview={buttonPreview} />}
   </>;
-  return <TableCaptionProvider key={`${type}-${resetRevision}`}><section className="ui-blocks-main ui-page-intro ui-block-detail-page" aria-labelledby="ui-block-detail-title">
+  return <FootnoteNumbersProvider blocks={data.blocks}><TableCaptionProvider key={`${type}-${resetRevision}`}><section className="ui-blocks-main ui-page-intro ui-block-detail-page" aria-labelledby="ui-block-detail-title">
       <p className="rl-eyebrow"><button type="button" onClick={onBack}>Blocks</button> / {entryTitle}</p>
       <h1 id="ui-block-detail-title">{entryTitle}</h1>
       <p>{entry.description}</p>
@@ -465,5 +466,5 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
         {type === "component" ? <p>Components remain inactive because the library does not invoke product integrations.</p> : null}
         {type === "template-content" ? <p>Content is a template projection element, not a typed ContentBlock. This route shows a temporary document body passing through that slot.</p> : null}
       </details>
-    </section></TableCaptionProvider>;
+    </section></TableCaptionProvider></FootnoteNumbersProvider>;
 }

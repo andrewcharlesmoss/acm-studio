@@ -2,7 +2,7 @@
 
 ## Scope and working baseline
 
-Snapshot: 5 October 2026, local branch `codex/panel-library`, baseline HEAD `c9cda79`, with the bounded Image wrapper repair and Field acceptance recorded below. This is an inventory of the current working tree, not a release or an immutable source snapshot.
+Snapshot: 5 October 2026, local branch `codex/panel-library`, baseline HEAD `66b231b`, with the shared Footnotes numbering repair and bounded pane acceptance recorded below. This is an inventory of the current working tree, not a release or an immutable source snapshot.
 
 Andrew’s revised priority is to finish the inventory, fix the highest-impact broken behaviours, reuse accepted evidence unless related code changes, run focused checks after each fix and the full suite once near the end, and defer lower-priority visual differences.
 
@@ -140,11 +140,11 @@ records remain separate availability outcomes.
 
 | Block-control outcome | Rows |
 | --- | --- |
-| Unverified | 332 |
+| Unverified | 319 |
 | Configuration exclusion | 9 |
 | Intentionally hidden | 5 |
 | Bounded accepted | 33 |
-| Partial | 37 |
+| Partial | 50 |
 | No exposed control | 10 |
 | Total | 426 |
 
@@ -955,19 +955,19 @@ This section is a source inventory generated from the current capability profile
 
 | Control | Source / placement / availability | Owned fields | Condition | Outcome | Evidence / current behaviour | Remaining acceptance / change |
 | --- | --- | --- | --- | --- | --- | --- |
-| Colour (colour) | gutenberg; inspector | textColor |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Size (size) | gutenberg; inspector | fontSize, fontSizeCustom |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Appearance (appearance) | gutenberg; inspector | appearance |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Line height (line-height) | gutenberg; inspector | lineHeight |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Background colour or gradient (background) | gutenberg; inspector | backgroundColor, backgroundGradient |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Padding (padding) | gutenberg; inspector | padding |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Margin (margin) | gutenberg; inspector | margin |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Border (border) | gutenberg; inspector | borderColor, borderStyle, borderWidth |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Radius (radius) | gutenberg; inspector | borderRadius |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Shadow (shadow) | gutenberg; inspector | shadow |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Link colour (link-colour) | gutenberg; inspector | linkColor, linkHoverColor |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| HTML anchor, CSS classes and Additional CSS (advanced) | gutenberg; inspector | visualStyle.anchor, visualStyle.className, visualStyle.additionalCss |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
-| Editable note text (footnote-notes) | gutenberg; canvas | notes[].id, notes[].text |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
+| Colour (colour) | gutenberg; inspector | textColor |  | Partial | Alert palette colour reaches note text in Edit/Preview; Typography Reset all and history preserve the note. | Other colours/custom values, individual reset, persistence/export, other owners and input/viewport contexts. |
+| Size (size) | gutenberg; inspector | fontSize, fontSizeCustom |  | Partial | XXL gives 32px note text in Edit/Preview; Typography reset/history restores size while retaining note text. | Other presets/units, individual reset and persistence/owners. Default Edit 16px versus Preview 14.4px remains a deferred visual difference. |
+| Appearance (appearance) | gutenberg; inspector | appearance |  | Partial | Medium italic gives weight 500 and italic note text in both modes; Typography reset/history preserves note text. | Other weights/styles, individual reset, persistence/export, other owners and input/viewport contexts. |
+| Line height (line-height) | gutenberg; inspector | lineHeight |  | Partial | Line height 2 gives 64px note text in both modes; Typography reset/history preserves note text. | Other values/units, individual reset, persistence/export, other owners and input/viewport contexts. |
+| Background colour or gradient (background) | gutenberg; inspector | backgroundColor, backgroundGradient |  | Partial | Subtle surface colour and Pale ocean gradient at 45 degrees reach the wrapper in Edit/Preview without losing text. | Custom stops/types, reset/history, persistence/export, other owners and input/viewport contexts. |
+| Padding (padding) | gutenberg; inspector | padding |  | Partial | Linked 12px padding reaches the note wrapper in both modes. | Separate sides/units, reset/history, persistence/export, other owners and input/viewport contexts. |
+| Margin (margin) | gutenberg; inspector | margin |  | Partial | 8px vertical and 0px horizontal margin reaches the wrapper in both modes. | Other axes/sides/units, reset/history, persistence/export, other owners and input/viewport contexts. |
+| Border (border) | gutenberg; inspector | borderColor, borderStyle, borderWidth |  | Partial | 2px Solid Accent border reaches the wrapper in both modes; Space opens the style disclosure and selecting Solid works. | Pointer disclosure activation, other styles/sides/units, reset/history, persistence/export and other owners/input contexts. |
+| Radius (radius) | gutenberg; inspector | borderRadius |  | Partial | Linked 10px radius reaches the wrapper in both modes. | Separate corners/units, reset/history, persistence/export, other owners and input/viewport contexts. |
+| Shadow (shadow) | gutenberg; inspector | shadow |  | Partial | Soft shadow reaches the wrapper in both modes. | Other presets, reset/history, persistence/export, other owners and input/viewport contexts. |
+| Link colour (link-colour) | gutenberg; inspector | linkColor, linkHoverColor |  | Partial | Green normal colour applies to the Preview backlink; authored blue Hover value reaches its CSS custom property. | Actual hover/input state, clearing/reset/history, Edit backlink presentation, persistence/export, other owners and viewport contexts. |
+| HTML anchor, CSS classes and Additional CSS (advanced) | gutenberg; inspector | visualStyle.anchor, visualStyle.className, visualStyle.additionalCss |  | Partial | Anchor sources, class source-notes and safe green outline reach the wrapper in both modes. | Other declarations, clearing/history, persistence/export, other owners and input/viewport contexts. |
+| Editable note text (footnote-notes) | gutenberg; canvas | notes[].id, notes[].text |  | Partial | Shared document context numbers the real Library reference and note as 1 in both modes; direct note edits and Undo/Redo retain note ownership. | Multiple-note mounted order, owner loss, keyboard history, persistence/export and other owners. Edit marker baseline remains a deferred visual difference. |
 
 ### Buttons (buttons)
 

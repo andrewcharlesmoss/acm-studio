@@ -3004,3 +3004,55 @@ Verifier reviewed the schema, projections and final rendering ownership.
   screenshots and bounded documentation with no blocker. Native evidence is
   Builder replay with independent source/screenshot review; this does not
   close the remaining owner, persistence, responsive or 200% acceptance gaps.
+
+## 5 October 2026 — Shared Footnotes numbering and pane acceptance
+
+- Baseline `66b231b`. Main Explorer reproduced a Library defect: the real
+  reference showed a dagger and its note was labelled Unreferenced in Edit,
+  while Preview correctly numbered both as 1. The standalone specimen omitted
+  the main canvas's private numbering context. The read-only Explorer service
+  encountered model capacity; main completed the investigation and remained
+  the sole Builder, with a separate read-only Verifier.
+- Extracted the existing memoised document numbering provider and its consumer
+  hook into `app/studio/footnote-numbers-context.tsx`. Main Canvas keeps the
+  same complete-document input. Library specimens now supply their complete
+  temporary document too. Rich text, captions and notes share the same context;
+  no reference migration, command, model, storage or write-ownership changes.
+- Native Library Edit/Preview now show reference 1 and Footnote 1. Direct note
+  editing reaches Preview; visible Undo restores original text and Redo
+  restores the edit. Notes remain attached to the original ID.
+- Native palette colour/XXL/Medium italic/line-height 2 give red 32px, weight
+  500 italic and 64px line height in both modes. Subtle background colour and
+  the Pale ocean gradient at 45 degrees reach the wrapper. Padding 12px,
+  vertical margin 8px, 2px Solid Accent border, radius 10px and Soft shadow
+  match across modes. Anchor, class and safe Additional CSS match too. Normal
+  Link green applies to the Preview backlink; Hover blue reaches its variable,
+  but actual pointer hover was not checked.
+- Typography Reset all, Undo and Redo preserve edited note text and restore
+  or remove the four authored typography fields. Native Space opens the border
+  style disclosure and selecting Solid works. Pointer click did not open it
+  through the browser tool; pointer activation remains unverified rather than
+  being treated as a confirmed source defect.
+- Two lower-priority visual differences are explicitly deferred: default note
+  text is 16px/24px in Edit versus 14.4px/21.6px in Preview; Edit's list marker
+  aligns near the textarea bottom. Screenshot:
+  `/private/tmp/acm-footnote-context-browser.png`.
+- Four regression tests cover the actual provider/BlockField, reading order,
+  hidden references, orphan preservation, read-only markup, independent
+  document scopes and caller wiring. The initial full catalogue import met a
+  cycle in the focused loader; the Library caller test uses source wiring
+  evidence, with mounted behaviour checked separately by the Builder in the
+  browser.
+- Focused Footnotes/pipeline/Library checks pass 105/105 in
+  `/private/tmp/acm-footnote-context-focused.log`; build/typecheck pass in
+  `acm-footnote-context-build.log` and `acm-footnote-context-typecheck.log`.
+  The independent review found an unused import left by extraction; the same
+  Builder removed it before final lint/review. Full suite remains deferred.
+- Thirteen Footnotes rows gain Partial evidence. Block-control totals are
+  319 Unverified and 50 Partial; all 426 identities and the wider 977-record
+  inventory remain intact. Other values/units, individual resets, frame and
+  spacing history, actual hover, persistence/export, other owners, responsive
+  presentation and actual 200% zoom remain open. No whole-block acceptance is
+  claimed.
+- Reset Example restores the original numbered note and disables Undo/Redo;
+  the temporary tab was closed. Product documents and preferences were untouched.
