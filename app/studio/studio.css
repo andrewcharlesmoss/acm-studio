@@ -1327,7 +1327,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .paragraph-background-option-actions button:disabled { color: var(--muted); cursor: default; opacity: .55; }
 .paragraph-background-option-actions .paragraph-background-reset-button:disabled { opacity: 0; pointer-events: none; }
 .paragraph-background-contrast-help { border-top: 1px solid #d1cfc7; color: var(--muted); font-size: var(--studio-ui-size); line-height: 1.45; margin: 0; padding: 10px 12px; }
-.paragraph-background-mode-swatch { background: linear-gradient(135deg, transparent 47%, #b9b9b6 48%, #b9b9b6 52%, transparent 53%); border: 1px solid #c9c9c9; border-radius: 50%; box-sizing: border-box; display: inline-block; flex: 0 0 24px; height: 24px; width: 24px; }
+.paragraph-background-mode-swatch { background: linear-gradient(135deg, transparent 47%, #b9b9b6 48%, #b9b9b6 52%, transparent 53%); border: 1px solid #c9c9c9; border-radius: 50%; box-sizing: border-box; display: inline-block; flex: 0 0 20px; height: 20px; width: 20px; }
 .paragraph-background-mode-swatch.has-colour { background-image: none; }
 .paragraph-background-mode-swatch.has-gradient { border-color: #a8a8a8; }
 .paragraph-gradient-options { display: grid; gap: 12px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
