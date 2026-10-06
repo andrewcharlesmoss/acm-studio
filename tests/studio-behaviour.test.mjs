@@ -258,7 +258,7 @@ test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped pa
   assert.match(advancedControl, /Learn more about anchors/);
   assert.match(advancedControl, /Separate multiple classes with spaces\./);
   assert.match(advancedControl, /Add your own CSS to customise the appearance of the \{blockName\} block/);
-  assert.match(advancedControl, /e\.g\. <code>colour: red;<\/code>/);
+  assert.match(advancedControl, /e\.g\. <code>color: red;<\/code>/);
   assert.doesNotMatch(advancedControl, /Studio applies safe declarations to this block/);
   assert.match(advancedInspector, /block\.type === "paragraph" \|\| block\.type === "columns" \|\| block\.type === "column"\) onChange\(\{ \.\.\.block, style:/);
 });
