@@ -179,6 +179,16 @@ values retain their measurement and unset values display Default. Disabled
 ranges do not show a label. Native range keyboard semantics and caller handlers
 remain intact. This follows the behaviour of Gutenberg's
 [RangeControl](https://github.com/WordPress/gutenberg/tree/trunk/packages/components/src/range-control).
+Custom padding and margin sliders use a 0–300 scale for px, 0–10 with 0.1 steps
+for em/rem, and 0–100 with whole-number steps for percentage and viewport units.
+Studio's supported ch unit uses the same 0–100 fallback scale. Controls that
+allow negative margins mirror the range below zero. These are slider scales,
+not limits on saved dimensions: numeric entry may exceed them, and changing a
+unit preserves the number without converting it. An out-of-range measurement
+stays in the numeric field while the slider thumb and label use the nearest
+endpoint; adjusting the slider writes a value within its current unit's scale.
+Radius and other controls retain their own bounds. The spacing reference is
+Gutenberg's [SpacingInputControl](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-editor/src/components/spacing-sizes-control/input-controls/spacing-input-control.js).
 The shared accent also applies to
 standard `.studio-range-control` inputs. Focus outlines follow the Studio
 Focus Outline preference and focus tokens. Pointer hover uses

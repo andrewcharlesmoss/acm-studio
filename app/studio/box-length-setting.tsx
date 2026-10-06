@@ -4,8 +4,9 @@ import { RangeControl } from "./controls/range-control";
 
 import { useId, useState, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
-import { compactBoxLengths, expandBoxLengths } from "../content/box-lengths";
+import { compactBoxLengths, expandBoxLengths, validBoxLengths } from "../content/box-lengths";
 import { SpacingRangeControl } from "./controls/spacing-range-control";
+import { spacingRangeSettings } from "./controls/spacing-range-settings";
 import { StudioIcon } from "./studio-icons";
 
 type BoxLengthSettingProps = {
@@ -50,18 +51,33 @@ function BoxLengthRow({ label, settingLabel, value, min, max, allowPercent, onCh
   const [customOpen, setCustomOpen] = useState(() => Boolean(presets && value && (unit !== "px" || !presets.includes(amount))));
   const sideIcon = sideIcons[label as keyof typeof sideIcons];
   const [draft, setDraft] = useState<string | null>(null);
+  const spacingRange = !corners && !compact ? spacingRangeSettings(unit, min < 0) : undefined;
+  const rangeMin = spacingRange?.min ?? min;
+  const rangeMax = spacingRange?.max ?? max;
+  const rangeStep = spacingRange?.step ?? 1;
+  const sliderValue = Math.max(rangeMin, Math.min(rangeMax, amount));
+  // A unit switch changes the suffix, never converts or silently truncates the measurement.
+  const entryMin = spacingRange ? min < 0 ? undefined : 0 : min;
+  const entryMax = spacingRange ? undefined : max;
+  const boundedEntry = (amount: number) => spacingRange ? Math.max(entryMin ?? -Infinity, amount) : Math.max(min, Math.min(max, amount));
+  function updateAmount(next: number, nextUnit = unit) {
+    if (!Number.isFinite(next)) return;
+    const nextValue = `${boundedEntry(next)}${nextUnit}`;
+    // The content contract accepts decimal CSS lengths, not exponent notation.
+    if (validBoxLengths(nextValue, min < 0)) onChange(nextValue);
+  }
   function commit() {
     if (draft === null) return;
     if (draft === "") { setDraft(null); onChange(undefined); return; }
     const parsed = Number(draft);
     setDraft(null);
-    if (Number.isFinite(parsed)) onChange(`${Math.max(min, Math.min(max, parsed))}${unit}`);
+    updateAmount(parsed);
   }
   const inline = compact || corners || customOpen;
   return <div className={`box-length-row${compact ? " is-compact" : ""}${customOpen && !compact && !corners ? " is-custom-spacing" : ""}`}>
     {corners ? <span className={`box-length-corner${cornerIcon ? " is-single" : ""}`} aria-hidden="true"><AcmIcon name="layout.corners" scale="Regular-M" size={24} />{cornerIcon ? <AcmIcon className="box-length-active-corner" name={cornerIcon} scale="Regular-M" size={24} /> : null}</span> : !compact ? <span className={`box-length-indicator${label !== "All" ? " is-single" : ""}`} aria-hidden="true"><AcmIcon name="layout.sides-all" scale="Regular-M" size={24} />{label !== "All" && sideIcon ? <AcmIcon name={sideIcon} className="box-length-active-side" scale="Regular-M" size={24} /> : null}</span> : null}
-    {inline ? <label className="box-length-inline-value" id={customId}><span className="visually-hidden">{label} value</span><input disabled={disabled} aria-label={`${settingLabel} ${label} value`} type="number" min={min} max={max} step="any" value={draft ?? (!mixed && value ? amount : "")} placeholder={mixed ? "Mixed" : ""} onChange={event => setDraft(event.target.value)} onBlur={() => { if (draft === "") { setDraft(null); onChange(undefined); } else commit(); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select disabled={disabled} aria-label={`${settingLabel} ${label} unit`} value={unit} onChange={event => { const nextAmount = draft === null ? amount : Number(draft); setDraft(null); if (Number.isFinite(nextAmount)) onChange(`${Math.max(min, Math.min(max, nextAmount))}${event.target.value}`); }}>{[...(!allowPercent && unit === "%" ? ["%"] : []), ...units.filter(option => allowPercent || option !== "%")].map(option => <option key={option} value={option}>{option}</option>)}</select></label> : null}
-    {!inline ? presets ? <SpacingRangeControl disabled={disabled} label={`${settingLabel} ${label} amount`} value={value ? amount : undefined} valueText={mixed ? "Mixed" : value ? `${amount} ${unit}${unit !== "px" || !presets.includes(amount) ? ", custom value" : ""}` : "Default"} presets={presets} onChange={next => onChange(next === undefined ? undefined : `${next}px`)} /> : <RangeControl tooltipText={mixed ? "Mixed" : value ? String(amount) : "Default"} className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} min={min} max={max} step="1" value={Math.max(min, Math.min(max, amount))} onChange={event => onChange(`${event.target.value}${unit}`)} /> : <RangeControl tooltipText={mixed ? "Mixed" : value ? String(amount) : "Default"} className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} min={min} max={max} step="1" value={Math.max(min, Math.min(max, amount))} onChange={event => { setDraft(null); onChange(`${event.target.value}${unit}`); }} />}
+    {inline ? <label className="box-length-inline-value" id={customId}><span className="visually-hidden">{label} value</span><input disabled={disabled} aria-label={`${settingLabel} ${label} value`} type="number" min={entryMin} max={entryMax} step="any" value={draft ?? (!mixed && value ? amount : "")} placeholder={mixed ? "Mixed" : ""} onChange={event => setDraft(event.target.value)} onBlur={() => { if (draft === "") { setDraft(null); onChange(undefined); } else commit(); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select disabled={disabled} aria-label={`${settingLabel} ${label} unit`} value={unit} onChange={event => { const nextAmount = draft === null ? amount : Number(draft); setDraft(null); updateAmount(nextAmount, event.target.value); }}>{[...(!allowPercent && unit === "%" ? ["%"] : []), ...units.filter(option => allowPercent || option !== "%")].map(option => <option key={option} value={option}>{option}</option>)}</select></label> : null}
+    {!inline ? presets ? <SpacingRangeControl disabled={disabled} label={`${settingLabel} ${label} amount`} value={value ? amount : undefined} valueText={mixed ? "Mixed" : value ? `${amount} ${unit}${unit !== "px" || !presets.includes(amount) ? ", custom value" : ""}` : "Default"} presets={presets} onChange={next => onChange(next === undefined ? undefined : `${next}px`)} /> : <RangeControl tooltipText={mixed ? "Mixed" : value ? String(sliderValue) : "Default"} className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} min={rangeMin} max={rangeMax} step={rangeStep} value={sliderValue} onChange={event => onChange(`${event.target.value}${unit}`)} /> : <RangeControl tooltipText={mixed ? "Mixed" : value ? String(sliderValue) : "Default"} className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} min={rangeMin} max={rangeMax} step={rangeStep} value={sliderValue} onChange={event => { setDraft(null); onChange(`${event.target.value}${unit}`); }} />}
     {!compact && !corners ? <button disabled={disabled} type="button" className="box-length-custom-trigger" aria-label={`${settingLabel} ${label} custom value`} aria-controls={customOpen ? customId : undefined} aria-expanded={customOpen} aria-pressed={customOpen} title={customOpen ? `Use ${settingLabel.toLowerCase()} ${label.toLowerCase()} presets` : `Set custom ${settingLabel.toLowerCase()} ${label.toLowerCase()}`} onClick={() => setCustomOpen(open => !open)}><AcmIcon name="action.adjust" scale="Regular-M" size={24} /></button> : null}
     {mixed && !inline ? <span className="box-length-mixed" aria-hidden="true">Mixed</span> : null}
   </div>;

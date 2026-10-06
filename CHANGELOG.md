@@ -51,6 +51,8 @@
 
 ### Changed
 
+- Padding and margin sliders use unit-specific custom ranges: 300px, 10em/rem and 100 for percentage, viewport and ch units. Numeric entry and unit switches preserve measurements outside the slider range.
+
 - Padding and margin custom fields now fit five digits plus their unit instead of stretching across the pane.
 
 - Dimensions now use vertical/horizontal spacing rows, inline custom measurements and shared catalogue side indicators. Padding and margin resets live in the Dimensions options menu instead of separate row buttons.
