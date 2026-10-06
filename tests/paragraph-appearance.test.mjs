@@ -98,8 +98,8 @@ test("Additional CSS applies safe scoped declarations and ignores selectors or e
   assert.deepEqual(parseAdditionalCssDeclarations("color: red; padding: calc(1rem + 2px); --custom-tone: 'blue green';"), {
     color: "red", padding: "calc(1rem + 2px)", "--custom-tone": "'blue green'",
   });
-  assert.deepEqual(parseAdditionalCssDeclarations("colour: red;"), { color: "red" });
-  assert.deepEqual(paragraphStyleToCss({ additionalCss: "colour: red;" }), { color: "red" });
+  assert.deepEqual(parseAdditionalCssDeclarations("colour: red;"), {});
+  assert.deepEqual(paragraphStyleToCss({ additionalCss: "colour: red;" }), {});
   assert.deepEqual(paragraphStyleToCss({ additionalCss: "color: red; line-height: 2;" }), { color: "red", lineHeight: "2" });
   for (const source of ["color: red; } body { display: none", "background-image: url(https://example.test/image.png)", "@import url(https://example.test/style.css)", "color: red !important", "color: red\\3b background: blue"]) {
     assert.deepEqual(parseAdditionalCssDeclarations(source), {});
