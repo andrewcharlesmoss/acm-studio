@@ -38,8 +38,14 @@ export function paragraphBackgroundGradientCss(gradient: NonNullable<ParagraphSt
 
 type OpaqueRgb = [red: number, green: number, blue: number];
 
-function parseOpaqueHexColour(value?: string): OpaqueRgb | null {
+function parseOpaqueColour(value?: string): OpaqueRgb | null {
   if (!value) return null;
+  const rgb = value.trim().match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*([\d.]+))?\s*\)$/i);
+  if (rgb) {
+    if (rgb[4] !== undefined && Number(rgb[4]) !== 1) return null;
+    const channels = rgb.slice(1, 4).map(Number);
+    return channels.every(channel => channel <= 255) ? channels as OpaqueRgb : null;
+  }
   const hex = value.trim().match(/^#([\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i)?.[1];
   if (!hex) return null;
   if (hex.length === 4 && hex[3].toLowerCase() !== "f") return null;
@@ -83,10 +89,10 @@ function contrastFontWeightValue(value?: number | string) {
   return namedWeights[value] ?? (Number(value) || 400);
 }
 
-/** Returns null when either colour cannot be assessed as an opaque hex value. */
+/** Returns null when either colour cannot be assessed as an opaque colour. */
 export function paragraphTextColourHasPoorContrast(textColour: string | undefined, backgroundColour: string | undefined, fontSize?: string, fontWeight?: number | string): boolean | null {
-  const foreground = parseOpaqueHexColour(textColour);
-  const background = parseOpaqueHexColour(backgroundColour);
+  const foreground = parseOpaqueColour(textColour);
+  const background = parseOpaqueColour(backgroundColour);
   if (!foreground || !background) return null;
   const pixels = contrastFontSizePixels(fontSize);
   const largeText = pixels >= 24 || (pixels >= 18.66 && contrastFontWeightValue(fontWeight) >= 700);
@@ -95,7 +101,7 @@ export function paragraphTextColourHasPoorContrast(textColour: string | undefine
 
 function gradientHasPoorContrast(foreground: OpaqueRgb, gradient: NonNullable<ParagraphStyle["backgroundGradient"]>) {
   const stopValues = (paragraphBackgroundGradientCss(gradient) ?? "").match(/#[\da-f]{3,8}\b/gi) ?? [];
-  const stops = stopValues.map(parseOpaqueHexColour);
+  const stops = stopValues.map(parseOpaqueColour);
   if (stops.length < 2 || stops.some(stop => stop === null)) return null;
   const colours = stops as OpaqueRgb[];
   for (let stopIndex = 0; stopIndex < colours.length - 1; stopIndex += 1) {
@@ -112,10 +118,10 @@ function gradientHasPoorContrast(foreground: OpaqueRgb, gradient: NonNullable<Pa
 
 /** Returns null when the active background cannot be assessed as an opaque colour. */
 export function paragraphLinkColourHasPoorContrast(colour: string | undefined, style: ParagraphStyle | undefined, defaultBackground = "#FFFFFF"): boolean | null {
-  const foreground = parseOpaqueHexColour(colour);
+  const foreground = parseOpaqueColour(colour);
   if (!foreground || style?.backgroundImageMediaId) return null;
   if (style?.backgroundGradient) return gradientHasPoorContrast(foreground, style.backgroundGradient);
-  const background = parseOpaqueHexColour(style?.backgroundColor ?? defaultBackground);
+  const background = parseOpaqueColour(style?.backgroundColor ?? defaultBackground);
   return background ? contrastRatio(foreground, background) < 4.5 : null;
 }
 

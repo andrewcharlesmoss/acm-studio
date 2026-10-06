@@ -27,7 +27,7 @@ export function BackgroundSelection({ mode, colour, gradient, textColour, fontSi
   const contrastHelpId = useId();
   const lowContrast = Boolean(assessTextContrast && colour && !hasBackgroundImage && paragraphTextColourHasPoorContrast(textColour ?? UNIVERSAL_STYLE_PRESET.palette.textPrimary, colour, fontSize, fontWeight));
   return <div className="paragraph-background-control">
-    <ColourPicker label="Background colour" value={colour} onChange={onColourChange} clearLabel="Clear background colour" wrapperClassName="paragraph-background-picker" disabled={disabled} trigger={({ disabled: isDisabled, expanded, controls, onClick, close }) => <div className="paragraph-background-modes" role="group" aria-label="Background type">
+    <ColourPicker label="Background colour" value={colour} onChange={onColourChange} clearLabel="Clear background colour" wrapperClassName="paragraph-background-picker" disabled={disabled} defaultWarning={lowContrast} trigger={({ disabled: isDisabled, expanded, controls, onClick, close }) => <div className="paragraph-background-modes" role="group" aria-label="Background type">
       {imageControl ? <div className="paragraph-background-option-row">{imageControl}</div> : null}
       <div className="paragraph-background-option-row">
         <button type="button" className="paragraph-background-option" disabled={isDisabled} aria-pressed={mode === "colour"} aria-expanded={expanded} aria-controls={controls} onClick={() => { onModeChange("colour"); onClick(); }}>

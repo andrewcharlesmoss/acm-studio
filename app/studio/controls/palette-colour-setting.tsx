@@ -1,5 +1,6 @@
 "use client";
 
+import { AcmIcon } from "@acm/icons/react";
 import { ColourPicker, ColourValueSwatch } from "./colour-picker";
 
 export function PaletteColourSetting({ label, row = false, value, onChange, hoverValue, onHoverChange, warningStates, warningDescriptionId, defaultWarning, hoverWarning }: {
@@ -14,5 +15,6 @@ export function PaletteColourSetting({ label, row = false, value, onChange, hove
   defaultWarning?: boolean;
   hoverWarning?: boolean;
 }) {
-  return <ColourPicker label={label} trigger={row ? ({ expanded, controls, onClick }) => <button type="button" className="inspector-colour-row" aria-label={`Choose ${label}`} aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={value} /><span>{label}</span></button> : undefined} wrapperClassName={row ? "inspector-colour-row-setting" : undefined} value={value} onChange={onChange} hoverValue={hoverValue} onHoverChange={onHoverChange} warningStates={warningStates} descriptionId={warningDescriptionId} defaultWarning={defaultWarning} hoverWarning={hoverWarning} />;
+  const warning = warningStates || defaultWarning;
+  return <ColourPicker label={label} trigger={row ? ({ expanded, controls, onClick }) => <button type="button" className="inspector-colour-row" aria-label={`Choose ${label}${warning ? `. Low contrast${warningStates ? ` for ${warningStates.toLowerCase()} state` : ""}.` : ""}`} aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={value} /><span>{label}</span>{warning ? <span className="paragraph-palette-warning-icon" aria-hidden="true"><AcmIcon name="state.warning" size={18} /></span> : null}</button> : undefined} wrapperClassName={row ? "inspector-colour-row-setting" : undefined} value={value} onChange={onChange} hoverValue={hoverValue} onHoverChange={onHoverChange} warningStates={warningStates} descriptionId={warningDescriptionId} defaultWarning={defaultWarning} hoverWarning={hoverWarning} />;
 }

@@ -77,7 +77,8 @@ test("Paragraph Link colour contrast warns only when an opaque foreground is bel
   assert.equal(paragraphLinkColourHasPoorContrast("#FF8D28", { backgroundColor: "#1C1C1E" }), false);
   assert.equal(paragraphLinkColourHasPoorContrast("#FFFFFF", { backgroundGradient: "ocean" }), true);
   assert.equal(paragraphLinkColourHasPoorContrast("#1C1C1E", { backgroundGradient: "ocean" }), false);
-  assert.equal(paragraphLinkColourHasPoorContrast("rgba(255, 56, 60, 1)", undefined), null);
+  assert.equal(paragraphLinkColourHasPoorContrast("rgba(255, 56, 60, 1)", undefined), true);
+  assert.equal(paragraphLinkColourHasPoorContrast("rgba(255, 56, 60, 0.5)", undefined), null);
   assert.equal(paragraphLinkColourHasPoorContrast("#FF383C", { backgroundImageMediaId: "media-1" }), null);
 });
 
@@ -87,7 +88,9 @@ test("Background text contrast follows WCAG AA thresholds and accounts for large
   assert.equal(paragraphTextColourHasPoorContrast("#ffffff", "#777777", "20px", "bold"), false);
   assert.equal(paragraphTextColourHasPoorContrast("#ffffff", "#777777", "1.5rem", "regular"), false);
   assert.equal(paragraphTextColourHasPoorContrast("#ffffff", "#777777", "20px", "semi-bold"), true);
-  assert.equal(paragraphTextColourHasPoorContrast("rgba(255, 255, 255, 1)", "#777777"), null);
+  assert.equal(paragraphTextColourHasPoorContrast("rgb(255, 255, 255)", "rgb(119, 119, 119)"), true);
+  assert.equal(paragraphTextColourHasPoorContrast("rgba(255, 255, 255, 1)", "#777777"), true);
+  assert.equal(paragraphTextColourHasPoorContrast("rgba(255, 255, 255, 0.5)", "#777777"), null);
   assert.equal(paragraphTextColourHasPoorContrast("#1C1C1E", undefined), null);
 });
 

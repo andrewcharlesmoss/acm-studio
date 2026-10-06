@@ -152,7 +152,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
         <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={false} />
       </div> : null}
-      {hasHoverState && activeWarning ? <div className="paragraph-colour-contrast-warning" role="status"><AcmIcon name="state.warning" size={18} /><span>This link colour has poor contrast against the background. Consider increasing contrast.</span></div> : null}
+      {activeWarning ? <div className="paragraph-colour-contrast-warning" role="status"><AcmIcon name="state.warning" size={18} /><span>{hasHoverState ? "This link colour has poor contrast against the background. Consider increasing contrast." : "This colour combination has poor contrast. Consider increasing contrast between background and foreground."}</span></div> : null}
     </div>, document.body) : null}
   </div>;
 }
