@@ -1724,17 +1724,17 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 
 /* Gutenberg spacing scales use discrete, unfilled segments and a round thumb. */
 .studio-range-control.studio-spacing-range,
-.group-block-inspector .box-length-row > .studio-range-control {
+.group-block-inspector .box-length-row > .studio-range-wrapper > .studio-range-control {
   appearance: none; -webkit-appearance: none; background: transparent; border: 0; box-shadow: none; cursor: pointer; height: 40px; min-width: 0; padding: 0; width: 100%;
 }
 .studio-spacing-range::-webkit-slider-runnable-track { background: repeating-linear-gradient(to right, #ddd 0, #ddd calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments))); border-radius: 2px; height: 4px; }
 .studio-spacing-range::-moz-range-track { background: repeating-linear-gradient(to right, #ddd 0, #ddd calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments))); border-radius: 2px; height: 4px; }
-.group-block-inspector .box-length-row > .studio-range-control:not(.studio-spacing-range)::-webkit-slider-runnable-track { background: #ddd; border-radius: 2px; height: 4px; }
-.group-block-inspector .box-length-row > .studio-range-control:not(.studio-spacing-range)::-moz-range-track { background: #ddd; border-radius: 2px; height: 4px; }
+.group-block-inspector .box-length-row > .studio-range-wrapper > .studio-range-control:not(.studio-spacing-range)::-webkit-slider-runnable-track { background: #ddd; border-radius: 2px; height: 4px; }
+.group-block-inspector .box-length-row > .studio-range-wrapper > .studio-range-control:not(.studio-spacing-range)::-moz-range-track { background: #ddd; border-radius: 2px; height: 4px; }
 .studio-spacing-range::-webkit-slider-thumb,
-.group-block-inspector .box-length-row > .studio-range-control::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; background: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); border: 0; border-radius: 50%; height: 12px; margin-top: -4px; width: 12px; }
+.group-block-inspector .box-length-row > .studio-range-wrapper > .studio-range-control::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; background: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); border: 0; border-radius: 50%; height: 12px; margin-top: -4px; width: 12px; }
 .studio-spacing-range::-moz-range-thumb,
-.group-block-inspector .box-length-row > .studio-range-control::-moz-range-thumb { background: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); border: 0; border-radius: 50%; height: 12px; width: 12px; }
+.group-block-inspector .box-length-row > .studio-range-wrapper > .studio-range-control::-moz-range-thumb { background: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); border: 0; border-radius: 50%; height: 12px; width: 12px; }
 .studio-spacing-range:hover::-webkit-slider-thumb { background: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)); }
 .studio-spacing-range:active::-webkit-slider-thumb { background: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 77%, black)); }
 .studio-spacing-range:hover::-moz-range-thumb { background: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)); }
@@ -1956,3 +1956,9 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
   font-family: var(--studio-ui-font);
   font-size: var(--studio-ui-size);
 }
+
+/* Shared range value labels float below the thumb without changing row spacing. */
+.studio-range-wrapper { display: flex; align-items: center; min-width: 0; position: relative; width: 100%; }
+.studio-range-wrapper > .studio-range-control { flex: 1; margin: 0; min-width: 0; width: 100%; }
+.studio-range-value-label { background: #333; border-radius: 2px; color: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); left: var(--range-label-position); padding: 4px 8px; pointer-events: none; position: absolute; top: calc(50% + 15px); transform: translateX(-50%); white-space: nowrap; z-index: 5; }
+@media (forced-colors: active) { .studio-range-value-label { background: CanvasText; color: Canvas; } }

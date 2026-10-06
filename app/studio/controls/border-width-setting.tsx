@@ -1,5 +1,7 @@
 "use client";
 
+import { RangeControl } from "./range-control";
+
 import { useState } from "react";
 import type { ParagraphBorderStyle } from "../../content/model";
 import { compactBoxLengths, expandBoxLengths, validBoxLengths } from "../../content/box-lengths";
@@ -70,7 +72,7 @@ export function BorderWidthSetting(props: Props) {
     {split ? <div className="studio-border-diagram" aria-hidden="true" /> : null}
     {split ? sides.map((side, index) => <BorderWidthInput key={side} {...props} label={side} value={props.value ? parts[index] : undefined} onChange={value => updateSide(index, value)} />) : <>
       <BorderWidthInput {...props} label="All" value={props.value ? parts[0] : undefined} mixed={mixed} />
-      <input className="studio-range-control" type="range" disabled={props.disabled} aria-label="Border width" aria-valuetext={mixed ? "Mixed" : props.value ? `${amount}${unit}` : "Default"} min={0} max={Number.isFinite(amount) ? Math.max(100, amount) : 100} step="1" value={Number.isFinite(amount) ? amount : 0} onChange={event => { const width = supportedWidth(Number(event.target.value), unit); if (width !== undefined) props.onChange(width); }} />
+      <RangeControl className="studio-range-control" disabled={props.disabled} aria-label="Border width" aria-valuetext={mixed ? "Mixed" : props.value ? `${amount}${unit}` : "Default"} min={0} max={Number.isFinite(amount) ? Math.max(100, amount) : 100} step="1" value={Number.isFinite(amount) ? amount : 0} onChange={event => { const width = supportedWidth(Number(event.target.value), unit); if (width !== undefined) props.onChange(width); }} />
     </>}
     <button className="studio-border-link" type="button" disabled={props.disabled} aria-label={split ? "Link border sides" : "Unlink border sides"} title={split ? "Link border sides" : "Edit border sides separately"} aria-pressed={!split} onClick={() => setSplitOverride(!split)}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button>
   </div>;

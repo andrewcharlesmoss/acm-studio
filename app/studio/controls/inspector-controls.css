@@ -44,17 +44,17 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .studio-border-width.is-split .studio-border-input { justify-self: center; max-width: 100%; width: var(--border-input-width); }
 .studio-border-width.is-split .studio-border-link { grid-area: 1 / 4 / 2 / 5; justify-self: end; }
 .studio-border-diagram { border: 8px solid #e0e0e0; box-sizing: border-box; inset: 20px 16%; pointer-events: none; position: absolute; }
-:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-control[type="range"] { appearance: none; -webkit-appearance: none; background: transparent; border: 0; height: 40px; min-width: 0; padding: 0; width: 100%; }
-:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-control::-webkit-slider-runnable-track { background: #ddd; border-radius: 2px; height: 4px; }
-:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-control::-moz-range-track { background: #ddd; border-radius: 2px; height: 4px; }
-:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-control::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; background: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); border: 0; border-radius: 50%; height: 12px; margin-top: -4px; width: 12px; }
-:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-control::-moz-range-thumb { background: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); border: 0; border-radius: 50%; height: 12px; width: 12px; }
+:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-wrapper > .studio-range-control[type="range"] { appearance: none; -webkit-appearance: none; background: transparent; border: 0; height: 40px; min-width: 0; padding: 0; width: 100%; }
+:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-wrapper > .studio-range-control::-webkit-slider-runnable-track { background: #ddd; border-radius: 2px; height: 4px; }
+:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-wrapper > .studio-range-control::-moz-range-track { background: #ddd; border-radius: 2px; height: 4px; }
+:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-wrapper > .studio-range-control::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; background: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); border: 0; border-radius: 50%; height: 12px; margin-top: -4px; width: 12px; }
+:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-wrapper > .studio-range-control::-moz-range-thumb { background: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); border: 0; border-radius: 50%; height: 12px; width: 12px; }
 @media (hover: hover) and (pointer: fine) {
-  :is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-control:not(:disabled):hover::-webkit-slider-thumb { background: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)); }
-  :is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-control:not(:disabled):hover::-moz-range-thumb { background: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)); }
+  :is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-wrapper > .studio-range-control:not(:disabled):hover::-webkit-slider-thumb { background: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)); }
+  :is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-wrapper > .studio-range-control:not(:disabled):hover::-moz-range-thumb { background: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)); }
 }
-:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-control:not(:disabled):active::-webkit-slider-thumb { background: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)) 88%, black)); }
-:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-control:not(:disabled):active::-moz-range-thumb { background: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)) 88%, black)); }
+:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-wrapper > .studio-range-control:not(:disabled):active::-webkit-slider-thumb { background: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)) 88%, black)); }
+:is(.studio-border-width, .box-length-setting.is-radius .box-length-row) > .studio-range-wrapper > .studio-range-control:not(:disabled):active::-moz-range-thumb { background: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)) 88%, black)); }
 .studio-border-input:focus-within { border-color: var(--gutenberg-accent, #3858e9); }
 .studio-border-colour:focus-visible, .studio-border-link:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -2px; }
 .studio-border-width :disabled { cursor: default; opacity: .5; }
@@ -68,7 +68,7 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 
 /* Radius keeps direct numeric entry beside every linked or individual corner slider. */
 .box-length-setting.is-radius .box-length-row { grid-template-columns: 24px minmax(72px, 104px) minmax(0, 1fr); gap: 8px; }
-.box-length-setting.is-radius .box-length-row > .studio-range-control { min-width: 0; width: 100%; }
+.box-length-setting.is-radius .box-length-row > .studio-range-wrapper > .studio-range-control { min-width: 0; width: 100%; }
 .inspector-sections .box-length-setting.is-radius .box-length-inline-value { box-sizing: border-box; gap: 0; min-width: 0; width: 100%; }
 .inspector-sections .box-length-setting.is-radius .box-length-inline-value input[type="number"] { appearance: textfield; box-sizing: border-box; flex: 1 1 0; height: 38px; min-width: 0; padding: 0 10px; width: 0; }
 .box-length-setting.is-radius .box-length-inline-value input[type="number"]::-webkit-inner-spin-button,
@@ -98,4 +98,4 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .box-length-mixed { color: var(--muted); font-size: var(--studio-ui-size); grid-column: 2; grid-row: 2; }
 
 .box-length-setting.is-spacing .box-length-row.is-custom-spacing { grid-template-columns: 24px minmax(0, calc(5ch + 54px)) minmax(0, 1fr) 40px; }
-.box-length-setting.is-spacing .box-length-row.is-custom-spacing > .studio-range-control { min-width: 0; width: 100%; }
+.box-length-setting.is-spacing .box-length-row.is-custom-spacing > .studio-range-wrapper > .studio-range-control { min-width: 0; width: 100%; }

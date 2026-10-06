@@ -1,5 +1,7 @@
 "use client";
 
+import { RangeControl } from "./range-control";
+
 import { useState, type ReactNode } from "react";
 
 export function ParagraphLengthSetting({ label, value, min, max, onChange, disabled = false }: { label: ReactNode; value?: string; min: number; max: number; onChange: (value: string | undefined) => void; disabled?: boolean }) {
@@ -28,5 +30,5 @@ export function ParagraphLengthSetting({ label, value, min, max, onChange, disab
   }
   const rangeMin = Math.min(min, number);
   const rangeMax = Math.max(max, number);
-  return <div className="paragraph-length-setting"><span>{label}</span><div className="paragraph-length-controls"><input className="studio-range-control" disabled={disabled} aria-label={`${label} amount`} type="range" min={rangeMin} max={rangeMax} step="0.1" value={number} onChange={(event) => setNumber(Number(event.target.value))} /><input disabled={disabled} aria-label={`${label} value`} type="number" min={min} max={max} step="0.1" value={displayedDraft} placeholder="0" onChange={(event) => setDraft(event.target.value)} onBlur={commitDraft} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select aria-label={`${label} unit`} value={unit} onChange={(event) => { const nextUnit = event.target.value; if (match) onChange(`${number}${nextUnit}`); }} disabled={disabled || !match}>{units.map((option) => <option key={option} value={option}>{option}</option>)}</select><button type="button" className="paragraph-reset-button" onClick={() => { setDraft(null); onChange(undefined); }} disabled={disabled || !value}>Reset</button></div></div>;
+  return <div className="paragraph-length-setting"><span>{label}</span><div className="paragraph-length-controls"><RangeControl className="studio-range-control" disabled={disabled} aria-label={`${label} amount`} min={rangeMin} max={rangeMax} step="0.1" value={number} onChange={(event) => setNumber(Number(event.target.value))} /><input disabled={disabled} aria-label={`${label} value`} type="number" min={min} max={max} step="0.1" value={displayedDraft} placeholder="0" onChange={(event) => setDraft(event.target.value)} onBlur={commitDraft} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /><select aria-label={`${label} unit`} value={unit} onChange={(event) => { const nextUnit = event.target.value; if (match) onChange(`${number}${nextUnit}`); }} disabled={disabled || !match}>{units.map((option) => <option key={option} value={option}>{option}</option>)}</select><button type="button" className="paragraph-reset-button" onClick={() => { setDraft(null); onChange(undefined); }} disabled={disabled || !value}>Reset</button></div></div>;
 }

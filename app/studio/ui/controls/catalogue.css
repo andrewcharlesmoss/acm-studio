@@ -93,7 +93,7 @@
 }
 @media(max-width:400px) {
   .ui-controls-page .paragraph-length-controls { grid-template-columns:minmax(0,1fr) 68px auto; }
-  .ui-controls-page .paragraph-length-controls input[type="range"] { grid-column:1 / -1; width:100%; min-width:0; }
+  .ui-controls-page .paragraph-length-controls > .studio-range-wrapper { grid-column:1 / -1; width:100%; min-width:0; }
   .ui-controls-page .paragraph-length-controls input[type="number"] { width:100%; }
 }
 

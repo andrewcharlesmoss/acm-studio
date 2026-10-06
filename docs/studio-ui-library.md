@@ -171,6 +171,15 @@ swatch geometry, popover positioning and dismissal. Text actions such as Clear
 use the shared semantic Accent token as described below. The gradient angle dial marker uses `--gutenberg-accent` for Gutenberg's
 accent blue.
 The Slider foundation owns `--studio-range-accent`, the shared accent for
+standard sliders. Inspector ranges compose `RangeControl` for a value label
+beneath the thumb while it is hovered, focused or dragged. Labels do not change
+row spacing or saved values. Shared spacing controls name the standard presets
+(None, 2X-Small, X-Small, Small, Medium, Large, X-Large and 2X-Large); custom
+values retain their measurement and unset values display Default. Disabled
+ranges do not show a label. Native range keyboard semantics and caller handlers
+remain intact. This follows the behaviour of Gutenberg's
+[RangeControl](https://github.com/WordPress/gutenberg/tree/trunk/packages/components/src/range-control).
+The shared accent also applies to
 standard `.studio-range-control` inputs. Focus outlines follow the Studio
 Focus Outline preference and focus tokens. Pointer hover uses
 `--studio-range-hover-accent`, which defaults to a 12% darker shade of the shared
