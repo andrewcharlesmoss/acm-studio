@@ -1747,6 +1747,10 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .group-block-inspector .inspector-tools-trigger svg { transform: rotate(90deg); }
 .inspector-colour-row-setting.inspector-colour-setting { display: block; }
 .inspector-sections .inspector-colour-setting button.inspector-colour-row { align-items: center; background: white; border: 1px solid #ddd; border-radius: 2px; color: var(--ink); cursor: pointer; display: flex; font: inherit; font-weight: 600; gap: 10px; min-height: 42px; padding: 8px 12px; width: 100%; }
+/* Gutenberg Elements uses 20px indicators with an 8px overlap, Hover in front. */
+.inspector-colour-row-swatches { align-items: center; display: inline-flex; flex: 0 0 auto; }
+.inspector-colour-row-swatches > .studio-colour-value-swatch { border-color: rgba(0, 0, 0, .2); flex: 0 0 20px; height: 20px; position: relative; width: 20px; }
+.inspector-colour-row-swatches > .studio-colour-value-swatch.is-overlapped { margin-inline-start: -8px; z-index: 1; }
 .inspector-colour-row:focus-visible, .box-border-colour-trigger:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -2px; }
 .group-block-inspector .paragraph-font-size-options { border-color: #ddd; border-radius: 2px; }
 .group-block-inspector .paragraph-font-size-options button { border-right: 0; }
