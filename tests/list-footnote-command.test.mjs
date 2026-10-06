@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
 import ts from "typescript";
@@ -13,7 +13,7 @@ const commands = await load("../app/studio/footnote-command.ts");
 const lists = await load("../app/studio/list-structure.ts");
 const itemText = await load("../app/content/list-item-text.ts");
 const model = await load("../app/content/model.ts");
-const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const source = readStudioSource("app/studio/studio-canvas.tsx");
 const tree = ts.createSourceFile("canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const functions = new Map();
 function collect(node) {

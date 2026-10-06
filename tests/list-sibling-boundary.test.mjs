@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { loadProductionModule } from './production-module.mjs';
@@ -98,7 +98,7 @@ for (const stale of ['document', 'source', 'following', 'none']) test(`deferred 
   if (stale !== 'none') assert.equal(next, current);
 });
 
-const source = await readFile(new URL('../app/studio/studio-canvas.tsx', import.meta.url), 'utf8');
+const source = readStudioSource("app/studio/studio-canvas.tsx");
 const syntax = ts.createSourceFile('canvas.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 let field, handler;
 function collect(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === 'ListField') field = node; ts.forEachChild(node, collect); }

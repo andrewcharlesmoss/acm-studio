@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
@@ -95,7 +95,7 @@ test("cross-host character extension respects emoji and combining character boun
   assert.equal(selection.listTextArrowOffset(text, 3, -1), 1);
 });
 
-const canvas = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const canvas = readStudioSource("app/studio/studio-canvas.tsx");
 const ast = ts.createSourceFile("canvas.tsx", canvas, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const listField = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "ListField");
 function actualHandler(name, owner = listField) {

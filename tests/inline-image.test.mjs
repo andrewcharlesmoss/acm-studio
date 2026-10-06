@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
+import { readStudioSource } from "./studio-module-source.mjs";
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const image = await load("../app/content/inline-image.ts");
 const rich = await load("../app/content/rich-text.ts");
@@ -137,12 +138,12 @@ test("template package import remaps atoms, legacy marks, fixed cover and layout
 // Run both production parsers against explicit DOM boundary fixtures. Native
 // browser parsing and interaction are a separate rendered acceptance gate.
 async function parser(path, name, bindings) {
-  const source = await readFile(new URL(path, import.meta.url), "utf8");
+  const source = path.endsWith("studio-canvas.tsx") ? readStudioSource("app/studio/studio-canvas.tsx") : await readFile(new URL(path, import.meta.url), "utf8");
   const tree = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let declaration;
   function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === name) declaration = node; ts.forEachChild(node, visit); }
   visit(tree); assert.ok(declaration);
-  const code = ts.transpileModule(declaration.getText(tree) + `\nglobalThis.actual = ${name};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const code = ts.transpileModule(declaration.getText(tree).replace(/^export\s+/, "") + `\nglobalThis.actual = ${name};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const scope = { ...image, ...rich, Node: { TEXT_NODE: 3, ELEMENT_NODE: 1 }, HTMLElement: class {}, ...bindings };
   runInNewContext(code, scope);
   return scope.actual;

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import ts from "typescript";
@@ -38,7 +39,7 @@ test("styled empty items remain editable records without stale text formatting",
 });
 
 test("the two actual Canvas update paths consume the same List Item contract", async () => {
-  const canvas = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /return updateListItem\(block, listId, itemIndex, item => listItemWithTextRuns\(item, text, runs\)\)/);
   assert.match(canvas, /onChange\(updateListItem\(block, list.id, index, item => listItemWithTextRuns\(item, value, runs\)\)\)/);
   assert.match(canvas, /nextItems\[index\] = listItemWithTextRuns\(item, plainTextFromRuns\(beforeRuns\), beforeRuns\)/);

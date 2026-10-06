@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
@@ -847,7 +848,7 @@ test("the clipboard writer rejects a valid selection above its reader limit befo
 });
 
 test("the actual async Canvas Cut keeps changed companion notes and stale document ownership", async () => {
-  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-canvas.tsx");
   const tree = ts.createSourceFile("studio-canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let handler;
   function visit(node) {
@@ -896,7 +897,7 @@ test("the actual async Canvas Cut keeps changed companion notes and stale docume
 });
 
 test("the actual Canvas paste attaches companions outside restricted parents and honours read-only mode", async () => {
-  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-canvas.tsx");
   const tree = ts.createSourceFile("studio-canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let handler;
   function visit(node) {
@@ -1034,7 +1035,7 @@ test("one Canvas editing policy disables all descendant rich fields while preser
 });
 
 test("the actual Canvas cleanup survives rapid ownership restoration and skips unmounted state", async () => {
-  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-canvas.tsx");
   const tree = ts.createSourceFile("studio-canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let callback;
   function visit(node) {

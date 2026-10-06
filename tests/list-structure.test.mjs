@@ -1,4 +1,5 @@
 import test from "node:test";
+import { readStudioSource } from "./studio-module-source.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
@@ -234,7 +235,7 @@ for (const [start, reversed] of [[100000, false], [-100000, true]]) {
 }
 
 test("the actual List toolbar and keyboard paths supply document-wide ID context", async () => {
-  const canvas = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /<ListField[^>]*rootBlocks=\{rootBlocks\}/);
   assert.match(canvas, /<ListItemIndentControls[^>]*rootBlocks=\{rootBlocks\}/);
   assert.equal((canvas.match(/outdentListItem\(block, list\.id, (?:selection\.itemIndex|index), rootBlocks\)/g) ?? []).length, 4);

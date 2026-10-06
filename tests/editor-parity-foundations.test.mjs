@@ -5,6 +5,7 @@ import { resolve, dirname } from "node:path";
 import { createRequire } from "node:module";
 import vm from "node:vm";
 import ts from "typescript";
+import { readStudioSource } from "./studio-module-source.mjs";
 
 const require = createRequire(import.meta.url);
 function load(file, overrides = {}, cache = new Map()) {
@@ -60,7 +61,7 @@ test("collapsed rich-text replacement inserts at the caret and preserves surroun
 });
 
 test("actual Button destination callback rejects stale or unavailable owners and skips no-op history", () => {
-  const source = readFileSync("app/studio/studio-canvas.tsx", "utf8");
+  const source = readStudioSource("app/studio/studio-canvas.tsx");
   const body = source.match(/onApply=\{\(draft, baseline\) => \{([\s\S]*?)\}\} onUnlink=/)?.[1];
   assert.ok(body);
   const button = { id: "owned-button", type: "button", label: "Continue", labelRuns: [{ text: "Continue", marks: ["bold"] }], url: "/next", opensInNewTab: false, rel: "", title: "Keep title" };
@@ -131,7 +132,7 @@ test("inline images in nested Button labels are included in media references", (
 });
 
 test("inserted Button focus hand-off preserves a caret already placed in a pasted child", () => {
-  const compiled = ts.transpileModule(readFileSync("app/studio/studio-canvas.tsx", "utf8"), { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const compiled = ts.transpileModule(readStudioSource("app/studio/studio-canvas.tsx"), { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const effect = compiled.match(/const previous = previousButtonIdsRef\.current;([\s\S]*?)\}, \[activeDocument\.blocks, activeDocument\.id, previewing, selectedBlockId, writable\]\);/);
   assert.ok(effect, "exercise the actual insertion-focus effect body");
   const first = { id: "first", type: "button" };
@@ -304,7 +305,7 @@ test("caret boundary affinity matches Gutenberg default: outside formatted edges
   assert.deepEqual(plain(marksAtCaret(runs,8)),[]);
   assert.equal(highlightRangeAtCaret(runs,8),null);
   assert.deepEqual(plain(marksAtCaret([{text:"all",marks:[red]}],3)),[]);
-  const source=readFileSync("app/studio/studio-canvas.tsx","utf8");
+  const source=readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(source,/key=\{JSON\.stringify\(\[block\.id, headerRowCount, footerRowCount, block\.rows\.map/);
 });
 
@@ -355,7 +356,7 @@ test("all insertion copies clear anchors and remap bundled notes and descendant 
 });
 
 test("nested toolbar consumers share the renderer, duplication and table focus contract", () => {
-  const canvas=readFileSync("app/studio/studio-canvas.tsx","utf8");
+  const canvas=readStudioSource("app/studio/studio-canvas.tsx");
   const css=readFileSync("app/studio/studio.css","utf8");
   assert.equal((canvas.match(/className=\{`canvas-block-toolbar/g)||[]).length,1);
   assert.match(canvas,/function renderBlockControls\(block: ContentBlock\)/);
@@ -398,7 +399,7 @@ test("copied Column and Social Link fragments retain content and acquire require
 
 test("nested HTML edits validate the document proposal and Social children share hidden presentation", () => {
   const html=readFileSync("app/studio/studio-html-editor.ts","utf8");
-  const canvas=readFileSync("app/studio/studio-canvas.tsx","utf8");
+  const canvas=readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(html,/contextBlocks \? editBlockSiblings\(contextBlocks, original\.id/);
   assert.match(html,/validContentBlocks\(proposal\)/);
   assert.match(canvas,/parseHtmlToBlock\(htmlEditor\.draft, block, activeDocument\.blocks\)/);
@@ -419,7 +420,7 @@ test("all proposal paths enforce allowed children while retaining existing exclu
   assert.equal(permitsBlockTreeChanges([columns],[{...columns,children:[{...columns.children[0],children:[p,oldHeading,{...oldHeading,id:"new"}]}]}]),false);
   const newGroup={id:"new-group",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[oldHeading]};
   assert.equal(permitsBlockTreeChanges([], [newGroup]),false);
-  assert.match(readFileSync("app/studio/studio-canvas.tsx","utf8"),/!permitsBlockTreeChanges\(activeDocument\.blocks, blocks\)/);
+  assert.match(readStudioSource("app/studio/studio-canvas.tsx"),/!permitsBlockTreeChanges\(activeDocument\.blocks, blocks\)/);
 });
 
 
@@ -513,8 +514,8 @@ test("all duplication entry points share fresh IDs and anchor clearing", () => {
 });
 
 test("nested List edit, preview, outline and specimens share identity and presentation contracts", () => {
-  const canvas = readFileSync("app/studio/studio-canvas.tsx", "utf8");
-  const renderer = readFileSync("app/components/content.tsx", "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
+  const renderer = readStudioSource("app/components/content.tsx");
   const specimen = readFileSync("app/studio/ui/blocks/block-specimen-catalogue.tsx", "utf8");
   assert.match(canvas, /list-field-nested studio-nested-block/);
   assert.match(canvas, /data-studio-block-id=\{list.id\}/);

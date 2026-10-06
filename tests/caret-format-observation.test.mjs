@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
 import ts from "typescript";
@@ -10,7 +10,7 @@ const commands = await load("../app/studio/caret-formatting-command.ts");
 const rich = await load("../app/content/rich-text.ts");
 const caret = await load("../app/content/caret-formatting.ts");
 const tableStructure = await load("../app/studio/table-structure-selection.ts");
-const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const source = readStudioSource("app/studio/studio-canvas.tsx");
 const tree = ts.createSourceFile("canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const declarations = new Map();
 let caretEffect;
@@ -27,7 +27,9 @@ function bind(names, scope) {
   const code = names.map(name => {
     assert.ok(declarations.has(name), `Actual production ${name} exists`);
     const node = declarations.get(name);
-    return ts.isVariableDeclaration(node) ? `const ${name} = ${node.initializer.arguments[0].getText(tree)};` : node.getText(tree);
+    return ts.isVariableDeclaration(node)
+      ? `const ${name} = ${node.initializer.arguments[0].getText(tree)};`
+      : node.getText(tree).replace(/^export\s+/, "");
   }).join("\n") + `\nObject.assign(globalThis, {${names.join(",")}});`;
   runInNewContext(ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
 }

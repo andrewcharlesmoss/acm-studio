@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
@@ -149,7 +150,7 @@ test('typed Footnote, Image and Math survive first-item extraction once', () => 
   assert.deepEqual(h.blocks()[2], notes);
 });
 
-const canvas = await readFile(new URL('../app/studio/studio-canvas.tsx', import.meta.url), 'utf8');
+const canvas = readStudioSource("app/studio/studio-canvas.tsx");
 const tree = ts.createSourceFile('canvas.tsx', canvas, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 let field, handler;
 function find(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === 'ListField') field = node; ts.forEachChild(node, find); }

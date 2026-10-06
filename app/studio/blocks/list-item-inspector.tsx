@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ListBlock, ListItem, ParagraphStyle } from "../../content/model";
 import { InspectorAccordionSection } from "../inspector-accordion";
-import { ParagraphInspector } from "../studio-inspectors";
+import { ParagraphInspector } from "./inspectors/paragraph-inspector";
 import { AdvancedFieldsControl } from "../controls/advanced-fields-control";
 import { findListBlock, updateListItem } from "../list-structure";
 import { BlockLibraryIcon } from "../block-library-icons";

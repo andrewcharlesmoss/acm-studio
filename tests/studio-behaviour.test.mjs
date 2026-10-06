@@ -7,6 +7,7 @@ import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { studioHistoryShortcut, handleStudioHistoryShortcut } from "../app/studio/studio-history-shortcuts.mjs";
 import { moveDesignLayer, reorderDesignLayers } from "../app/studio/design-layer-operations.mjs";
 import { blockCapabilityProfiles, capabilityProfileFor } from "../app/studio/blocks/capability-profiles.ts";
@@ -129,7 +130,7 @@ test("new table blocks start with the creation placeholder", async () => {
 });
 
 test("custom font size stays selected and updates continuously while its slider moves", async () => {
-  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-inspectors.tsx");
   const customFontSize = await readFile(new URL("../app/studio/controls/custom-font-size-setting.tsx", import.meta.url), "utf8");
   const fontSizeAppearance = await readFile(new URL("../app/studio/controls/font-size-appearance-setting.tsx", import.meta.url), "utf8");
   const templateSource = await readFile(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8");
@@ -182,7 +183,7 @@ test("Studio range controls share the Gutenberg-accented slider style", async ()
     "../app/studio/controls/paragraph-length-setting.tsx",
     "../app/studio/design-editor.tsx",
     "../app/studio/ribbon/ribbon-preview.tsx",
-    "../app/studio/studio-inspectors.tsx",
+    "../app/studio/blocks/inspectors/paragraph-inspector.tsx",
   ];
   for (const path of controls) {
     const source = await readFile(new URL(path, import.meta.url), "utf8");
@@ -191,7 +192,7 @@ test("Studio range controls share the Gutenberg-accented slider style", async ()
 });
 
 test("shared inspector control defaults follow each Gutenberg block declaration", async () => {
-  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-inspectors.tsx");
   const expectedDefaults = {
     heading: { typography: ["colour", "size"] },
     quote: { typography: ["colour", "size"], border: ["border", "radius"] },
@@ -221,7 +222,7 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
 });
 
 test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped paths", async () => {
-  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-inspectors.tsx");
   const advancedControl = await readFile(new URL("../app/studio/controls/advanced-fields-control.tsx", import.meta.url), "utf8");
   const stylesheet = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const advancedFields = source.slice(source.indexOf("function advancedFieldsForBlock"), source.indexOf("function AdvancedFieldsInspector"));
@@ -276,7 +277,7 @@ test("shadow controls match mapped Gutenberg block support", async () => {
 });
 
 test("Cover Image exposes Gutenberg shared border, radius and shadow styling", async () => {
-  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-inspectors.tsx");
   const profile = capabilityProfileFor("cover-image");
   const inspector = source.slice(source.indexOf("const sharedStyleSectionContent"), source.indexOf("const orderedSharedStyleSections"));
   const borderSettings = await readFile(new URL("../app/studio/controls/border-settings.tsx", import.meta.url), "utf8");
@@ -290,7 +291,7 @@ test("Cover Image exposes Gutenberg shared border, radius and shadow styling", a
 });
 
 test("the block inspector has one settings panel while document tabs and popovers remain", async () => {
-  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-inspectors.tsx");
   const blockInspector = source.slice(source.indexOf("export function BlockInspector"), source.indexOf("type AdvancedFields"));
   assert.match(source, /<div className="inspector-sections">\{blockSettings\}\{requiredSettings\}<\/div>/);
   assert.doesNotMatch(blockInspector, /<PaneTabs|<PaneTabPanel|hasStudioOptions|studioSettings|defaultTab/);
@@ -302,7 +303,7 @@ test("the block inspector has one settings panel while document tabs and popover
 });
 
 test("table editing exposes row and column actions from the toolbar menu", async () => {
-  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(source, /aria-label="Table options"/);
   assert.match(source, /Insert row before/);
   assert.match(source, /Delete column/);
@@ -310,7 +311,7 @@ test("table editing exposes row and column actions from the toolbar menu", async
 
 test("block options expose a safe Gutenberg-style Edit as HTML action", async () => {
   const [canvas, htmlEditor, styles, blockMenu, anchoredMenu, menu] = await Promise.all([
-    readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
+    Promise.resolve(readStudioSource("app/studio/studio-canvas.tsx")),
     readFile(new URL("../app/studio/studio-html-editor.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/block-options-menu.tsx", import.meta.url), "utf8"),
@@ -343,7 +344,7 @@ test("block options expose a safe Gutenberg-style Edit as HTML action", async ()
 
 test("the shared canvas exposes a recursive List View for block structure", async () => {
   const [canvas, styles, presentation] = await Promise.all([
-    readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
+    Promise.resolve(readStudioSource("app/studio/studio-canvas.tsx")),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url), "utf8"),
   ]);
@@ -405,13 +406,13 @@ test("the shared canvas exposes a document-level Gutenberg-style code editor", a
 });
 
 test("the block appender exposes Gutenberg's slash prompt and add control", async () => {
-  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(source, /placeholder="Type \/ to choose a block"/);
   assert.match(source, /aria-label="Add block"/);
 });
 
 test("the cover image exposes a between-block inserter", async () => {
-  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(source, /aria-label="Add block below cover image"/);
   assert.match(source, /toggleInserter\(-1\)/);
 });
@@ -491,7 +492,7 @@ test("template cover actions only render when handlers are available", async () 
 });
 
 test("document cover actions only render when handlers are available", async () => {
-  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(source, /\{onOpenCoverMediaLibrary \|\| onRemoveCoverImage \? <div className="canvas-cover-actions">/);
   assert.match(source, /onOpenCoverMediaLibrary \? <button className="cover-action-button"/);
   assert.match(source, /onRemoveCoverImage \? <button className="cover-action-button is-destructive"/);
@@ -551,7 +552,7 @@ test("the document bar keeps a fixed, vertically centred layout", async () => {
 
 test("the document inspector exposes Gutenberg-style status and publish date controls", async () => {
   const [source, styles] = await Promise.all([
-    readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8"),
+    Promise.resolve(readStudioSource("app/studio/studio-inspectors.tsx")),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
   assert.match(source, /Status &amp; visibility/);
@@ -579,7 +580,7 @@ test("the document inspector exposes Gutenberg-style status and publish date con
 
 test("post excerpts open in a Gutenberg-style pane beside the inspector", async () => {
   const [source, styles] = await Promise.all([
-    readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8"),
+    Promise.resolve(readStudioSource("app/studio/studio-inspectors.tsx")),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
   assert.match(source, /document\.excerpt\.trim\(\) \? "Edit excerpt" : "Add an excerpt…"/);
@@ -600,7 +601,7 @@ test("post excerpts open in a Gutenberg-style pane beside the inspector", async 
 });
 
 test("Gutenberg controls use the single block inspector and nonessential ACM options stay hidden", async () => {
-  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-inspectors.tsx");
   const inspectorStart = source.indexOf("export function BlockInspector");
   const blockStart = source.indexOf("const blockSettings", inspectorStart);
   const requiredStart = source.indexOf("const requiredSettings", blockStart);
@@ -615,7 +616,7 @@ test("Gutenberg controls use the single block inspector and nonessential ACM opt
   assert.equal((socialLinkSettings.match(/<span>Link rel<\/span>/g) ?? []).length, 1, "standalone social links render one rel field");
   assert.doesNotMatch(blockSettings, /Code language|Divider colour|Studio cover options|Studio responsive layout|Studio spacer width/);
   assert.match(requiredSettings, /<span>Profile URL<\/span>/, "standalone social links remain editable");
-  const canvas = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /aria-label="Embed player title"[^>]*value=\{block\.title\}[^>]*onChange=\{event => onChange\(\{ \.\.\.block, title: event\.target\.value \}\)\}/, "safe Embed player title remains editable on the canvas");
   assert.match(canvas, /function EmbedUrlField\(\{ block, rootBlocks, selected, writable, mediaUrls, onTextSelection, onLinkActivate, onChange \}/, "Embed editing receives the canvas parent policy, write permission and shared rich-text handlers");
   assert.match(canvas, /EmbedUrlField key=\{`\$\{block\.id\}-\$\{block\.url\}`\}/, "undo and redo remount the URL form from saved block state");
@@ -632,7 +633,7 @@ test("Gutenberg controls use the single block inspector and nonessential ACM opt
 });
 
 test("Paragraph Typography follows Gutenberg options and hides ACM-only controls", async () => {
-  const inspector = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const inspector = readStudioSource("app/studio/studio-inspectors.tsx");
   const profileSource = await readFile(new URL("../app/studio/blocks/capability-profiles.ts", import.meta.url), "utf8");
   const colourControl = await readFile(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
   const toolsSection = await readFile(new URL("../app/studio/inspector-tools-section.tsx", import.meta.url), "utf8");
@@ -685,13 +686,13 @@ test("Background colour row exposes Gutenberg-style reset and contrast actions o
   assert.match(backgroundControl, /role="status" hidden=\{!showContrastHelp\}/);
   assert.match(styles, /\.paragraph-background-option-actions button:hover/);
   assert.match(styles, /\.paragraph-background-option-actions button:focus-visible/);
-  const inspector = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const inspector = readStudioSource("app/studio/studio-inspectors.tsx");
   assert.match(inspector, /const contrastStyle = block\.type === "button" && interactionState !== "default" \? \{ \.\.\.baseVisualStyle, \.\.\.style \} : style/);
   assert.match(inspector, /assessTextContrast=\{\["paragraph", "heading"/);
 });
 
 test("the selected block summary stays above the single inspector panel", async () => {
-  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-inspectors.tsx");
   const inspectorStart = source.indexOf("export function BlockInspector");
   const summaryStart = source.indexOf("className=\"inspector-block-summary\"", inspectorStart);
   const settingsStart = source.indexOf("{blockSettings}{requiredSettings}", summaryStart);
@@ -706,7 +707,7 @@ test("the selected block summary stays above the single inspector panel", async 
 });
 
 test("selected document title and subtitle show their block summary in the Block tab", async () => {
-  const source = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-inspectors.tsx");
   assert.match(source, /selectedDocumentField === "title" \? "document-title" : "document-subtitle"/);
   assert.match(source, /selectedDocumentFieldInfo\?\.label \?\? `Document \$\{selectedDocumentField\}`/);
   assert.match(source, /<BlockLibraryIcon type=\{selectedDocumentFieldBlockType\} \/>/);
@@ -716,7 +717,7 @@ test("selected document title and subtitle show their block summary in the Block
 
 test("document settings keep WordPress-like fields separate from Studio-specific controls", async () => {
   const [source, styles, paneComponents] = await Promise.all([
-    readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8"),
+    Promise.resolve(readStudioSource("app/studio/studio-inspectors.tsx")),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/panes/pane-components.tsx", import.meta.url), "utf8"),
   ]);
@@ -737,7 +738,7 @@ test("document settings keep WordPress-like fields separate from Studio-specific
 
 test("text block hover controls use shared ACM icons", async () => {
   const [canvas, transforms, styles, blockIcons] = await Promise.all([
-    readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
+    Promise.resolve(readStudioSource("app/studio/studio-canvas.tsx")),
     readFile(new URL("../app/studio/block-transforms.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/block-library-icons.tsx", import.meta.url), "utf8"),
@@ -801,7 +802,7 @@ test("Studio globe and zoom controls use catalogue symbols with recorded consume
 });
 
 test("auto-height fields avoid observing the element they resize", async () => {
-  const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-canvas.tsx");
   assert.equal((source.match(/observer\.observe\(observedElement\)/g) ?? []).length, 2);
   assert.ok((source.match(/requestAnimationFrame\(/g) ?? []).length >= 2);
   assert.match(source, /cancelAnimationFrame\(animationFrame\)/);
@@ -896,7 +897,7 @@ test("List View stays blue while hovered and selected canvas blocks use red outl
 
 test("nested editor hover and selection use red inset outlines", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   const presentation = readFileSync(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url), "utf8");
   assert.match(css, /\.block-canvas :is\(\.studio-nested-block, \[data-studio-selected\]\):not\(\[data-studio-selected="true"\]\):is\(:hover, \[data-studio-hovered="true"\]\) \{ outline: 1px solid #8f8f8f; outline-offset: -1px;/);
   assert.match(css, /\[data-studio-selected="true"\] \{ outline: 1px solid var\(--acm-color-alert, #FF383C\); outline-offset: -1px;/);
@@ -907,7 +908,7 @@ test("nested editor hover and selection use red inset outlines", () => {
 
 
 test("List View pointer hover marks its matching top-level or nested canvas block", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   const presentation = readFileSync(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url), "utf8");
   assert.match(canvas, /onPointerEnter=\{\(\) => onHoverBlock\(block.id\)\}/);
   assert.match(canvas, /onPointerLeave=\{\(\) => onHoverBlock\(null\)\}/);
@@ -919,7 +920,7 @@ test("List View pointer hover marks its matching top-level or nested canvas bloc
 
 
 test("closing List View clears cross-highlighting on toggle, Preview, Code and unmount", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /setHoveredBlockId\(null\); onSetShowInserter\(false\); setListViewOpen\(\(current\) => !current\)/);
   assert.match(canvas, /setHoveredBlockId\(null\); setListViewOpen\(false\); onSetShowInserter\(false\); onPreviewChange\(true\)/);
   assert.match(canvas, /function openCodeEditor[\s\S]*?setHoveredBlockId\(null\);\s*setListViewOpen\(false\)/);
@@ -930,7 +931,7 @@ test("closing List View clears cross-highlighting on toggle, Preview, Code and u
 
 test("between-block and drag insertion cues stay centred in the reserved gap", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(css, /\.block-position \{ display: flow-root; position: relative; \}/);
   assert.match(css, /\.block-position \+ \.block-position \.canvas-block \{ margin-top: var\(--studio-block-gap\); \}/);
   assert.match(css, /\.block-position \+ \.block-position \.between-blocks \{ top: calc\(\(\(var\(--studio-block-gap\) - var\(--studio-block-grid-gap, 0px\)\) \/ 2\) - 15px\); \}/);
@@ -1780,7 +1781,7 @@ test("shared editor toolbar owns history controls and docks a dismissible List V
 });
 
 test("list items split their rich text on Return without a permanent Add item control", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
   assert.match(listField, /onSplitParagraph=\{\(beforeRuns, afterRuns\) =>/);
   assert.match(listField, /nextItems\.splice\(index \+ 1, 0, listItemAfterSplit\(item, plainTextFromRuns\(afterRuns\), afterRuns\)\)/);
@@ -1792,7 +1793,7 @@ test("list items split their rich text on Return without a permanent Add item co
 });
 
 test("Backspace removes an empty list item and keeps text editing intact", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
   assert.match(listField, /const backward = event\.key === "Backspace"/);
   assert.match(listField, /mergeListItemBoundary\(block, list\.id, index, backward \? "backward" : "forward", rootBlocks\)/);
@@ -1804,12 +1805,12 @@ test("Backspace removes an empty list item and keeps text editing intact", () =>
 });
 
 test("selected List Items expose accessible indent and outdent actions backed by the shared structure operations", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
-  const controls = canvas.slice(canvas.indexOf("function ListItemIndentControls"), canvas.indexOf("function caretRangeAtPoint"));
+  const listEditor = readFileSync(new URL("../app/studio/blocks/editors/list.tsx", import.meta.url), "utf8");
+  const controls = listEditor.slice(listEditor.indexOf("function ListItemIndentControls"), listEditor.indexOf("export function ListField"));
   const profiles = readFileSync(new URL("../app/studio/blocks/capability-profiles.ts", import.meta.url), "utf8");
   const compatibility = readFileSync(new URL("../docs/block-inspector-compatibility.md", import.meta.url), "utf8");
   const icons = readFileSync(new URL("../app/studio/ui/icons-catalogue.tsx", import.meta.url), "utf8");
-  const listField = canvas.slice(canvas.indexOf("function ListField"), canvas.indexOf("export function TableField"));
+  const listField = listEditor.slice(listEditor.indexOf("export function ListField"));
   assert.match(controls, /role="group" aria-label="List item indentation"/);
   assert.match(controls, /aria-label="Outdent list item"/);
   assert.match(controls, /aria-label="Indent list item"/);
@@ -1880,7 +1881,7 @@ test("Command or Control-S publishes the active post like Update", () => {
 
 
 test("full document counts sit beside Code and collapse before crowding the toolbar", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   const actions = canvas.slice(canvas.indexOf('className="editor-document-actions"'), canvas.indexOf('{publishFeedback ?'));
   assert.match(actions, /Code<\/button>[\s\S]*className="editor-document-counts"/);
   assert.match(actions, /<strong>\{displayedWordCount\} words · \{displayedCharacterCount\} characters · \{displayedBlockCount\} blocks<\/strong>/);
@@ -1896,7 +1897,7 @@ test("full document counts sit beside Code and collapse before crowding the tool
 
 
 test("block library shares the docked work area and excludes List View", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /className="editor-work-area">\s*\{showInserter && !previewing && !codeEditor \? <BlockInserter/);
   assert.match(canvas, /!previewing && !showInserter && listViewOpen \? <StudioListView/);
   assert.match(canvas, /function openInserter[^}]*setListViewOpen\(false\);[^}]*onOpenInserter\(afterIndex, query, parentId \?\? undefined\)/);
@@ -1976,7 +1977,7 @@ test("between-block inserters use a grey line and black add control", () => {
 
 
 test("Preview and Code transitions dismiss the block library", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /onSetShowInserter\(false\); onPreviewChange\(true\)/);
   assert.match(canvas, /function openCodeEditor\(\) \{[\s\S]*?onSetShowInserter\(false\)/);
   assert.match(canvas, /showInserter && !previewing && !codeEditor \? <BlockInserter/);
@@ -1988,14 +1989,14 @@ test("the block library slides in on each mount and respects reduced motion", ()
   assert.match(css, /\.block-inserter\.pane \{ animation: studio-inserter-enter 180ms ease-out/);
   assert.match(css, /@keyframes studio-inserter-enter \{\s*from \{ opacity: 0; transform: translateX\(-100%\); \}\s*to \{ opacity: 1; transform: translateX\(0\); \}/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.block-inserter\.pane, \.block-inserter\.is-closing \{ animation: none; \}/);
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /onClick=\{\(\) => showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)\}/);
   assert.match(canvas, /showInserter && !previewing && !codeEditor \? <BlockInserter/);
 });
 
 
 test("Add block toggles the library so reopening remounts its slide-in", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   const button = canvas.slice(canvas.indexOf('className="editor-add-block"'), canvas.indexOf('name="add" size={20}'));
   assert.match(button, /onClick=\{\(\) => showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)\}/);
   assert.match(button, /aria-pressed=\{showInserter && !inserterClosing && !previewing && !codeEditor\}/);
@@ -2004,7 +2005,7 @@ test("Add block toggles the library so reopening remounts its slide-in", () => {
 
 
 test("library dismissal waits for its own exit animation except with reduced motion", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /function dismissInserter\(\) \{\s*if \(window.matchMedia\("\(prefers-reduced-motion: reduce\)"\).matches\) finishInserterClose\(\);\s*else setInserterClosing\(true\)/);
   assert.match(canvas, /onDismiss=\{dismissInserter\}/);
   assert.match(canvas, /event.target instanceof HTMLElement && event.target.classList.contains\("block-inserter"\) && event.animationName === "studio-inserter-exit"\) onCloseAnimationEnd\(\)/);
@@ -2016,7 +2017,7 @@ test("library dismissal waits for its own exit animation except with reduced mot
 
 
 test("Add block cancels an exit in progress and restores the entry animation", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)/);
   assert.match(canvas, /function openInserter[^}]*setInserterClosing\(false\)/);
   assert.match(canvas, /className=\{`block-inserter\$\{closing \? " is-closing" : ""\}`\}/);
@@ -2025,7 +2026,7 @@ test("Add block cancels an exit in progress and restores the entry animation", (
 
 
 test("between-block add controls toggle the shared block library", () => {
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /function toggleInserter\(afterIndex: number \| null, query\?: string\) \{\s*if \(showInserter && !inserterClosing\) \{\s*dismissInserter\(\);/);
   assert.match(canvas, /className="between-blocks cover-inserter"[^>]*onClick=\{\(\) => toggleInserter\(-1\)\}/);
   assert.match(canvas, /className="between-blocks"[^>]*onClick=\{\(\) => toggleInserter\(index - 1\)\}/);

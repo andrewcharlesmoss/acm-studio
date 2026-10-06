@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { readStudioSource } from "./studio-module-source.mjs";
 
-const read = (path) => readFileSync(resolve(path), "utf8");
+const read = (path) => readStudioSource(path);
 
 test("Controls renders catalogue entry anchors and resolves grouped navigation", async () => {
   const { createRequire } = await import("node:module");

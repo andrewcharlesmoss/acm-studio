@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readStudioSource } from "./studio-module-source.mjs";
 import { runInNewContext } from 'node:vm';
 import test from 'node:test';
 import ts from 'typescript';
@@ -12,11 +12,11 @@ const caret = await load('../app/content/caret-formatting.ts');
 const math = await load('../app/content/math-runs.ts');
 const footnote = await load('../app/content/footnote-runs.ts');
 const image = await load('../app/content/inline-image.ts');
-const canvas = await readFile(new URL('../app/studio/studio-canvas.tsx', import.meta.url), 'utf8');
+const canvas = readStudioSource("app/studio/studio-canvas.tsx");
 const tree = ts.createSourceFile('canvas.tsx', canvas, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const functions = new Map();
 function find(node) {
-  if (ts.isFunctionDeclaration(node) && node.name) functions.set(node.name.text, node.getText(tree));
+  if (ts.isFunctionDeclaration(node) && node.name) functions.set(node.name.text, node.getText(tree).replace(/^export\s+/, ""));
   ts.forEachChild(node, find);
 }
 find(tree);

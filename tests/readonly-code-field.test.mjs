@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { createElement } from "react";
@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
 
 const { BlockField } = await loadProductionModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url));
-const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const source = readStudioSource("app/studio/studio-canvas.tsx");
 const syntax = ts.createSourceFile("studio-canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const handlers = [];
 function inspect(node, owner = "") {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
@@ -14,7 +14,7 @@ const rich = await load("../app/content/rich-text.ts");
 const itemText = await load("../app/content/list-item-text.ts");
 const { validContentBlocks } = await load("../app/studio/workspace-validation.ts");
 const list = (items, id = "list") => ({ id, type: "list", style: "unordered", items });
-const canvas = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const canvas = readStudioSource("app/studio/studio-canvas.tsx");
 const tree = ts.createSourceFile("canvas.tsx", canvas, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 let listField, keyHandler;
 function find(node) {

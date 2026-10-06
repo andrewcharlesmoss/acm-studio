@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
 import ts from "typescript";
 import { capabilityProfileFor } from "../app/studio/blocks/capability-profiles.ts";
 import { loadProductionModule } from "./production-module.mjs";
 const { blockCatalogueDocumentation } = await loadProductionModule(new URL("../app/studio/blocks/catalogue-documentation.ts", import.meta.url));
 
-const source = readFileSync(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+const source = readStudioSource("app/studio/studio-inspectors.tsx");
 const ast = ts.createSourceFile("studio-inspectors.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const declaration = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "DividerInspector");
 assert.ok(declaration, "exercise the actual Separator inspector");

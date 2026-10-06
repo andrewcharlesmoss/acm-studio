@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { createRequire } from "node:module";
@@ -56,7 +57,7 @@ test("block identities use recognisable semantic glyphs while generic formatting
 });
 
 test("all editor identities use the central mapping without system-block fallback remapping", () => {
-  const canvas = readFileSync("app/studio/studio-canvas.tsx", "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   const identities = canvas.slice(canvas.indexOf("function TransformIcon"), canvas.indexOf("function BlockInserter"));
   assert.match(identities, /BlockLibraryIcon type=\{transform.target\}/);
   assert.match(identities, /BlockLibraryIcon type=\{type\}/);

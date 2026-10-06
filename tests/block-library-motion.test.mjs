@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
@@ -9,7 +10,7 @@ import { loadProductionModule } from "./production-module.mjs";
 
 const { Pane } = await loadProductionModule(new URL("../app/studio/panes/pane-components.tsx", import.meta.url));
 const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-const source = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const source = readStudioSource("app/studio/studio-canvas.tsx");
 const tree = ts.createSourceFile("canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 let dismiss, animation;
 function visit(node) {

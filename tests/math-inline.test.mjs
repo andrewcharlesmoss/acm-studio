@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
@@ -89,7 +89,7 @@ test("workspace, publication and template gates retain Footnote predecessors but
 // Exercise the production Canvas handlers with isolated document/history state.
 // The browser replay remains the evidence for native selection and focus.
 const { runInNewContext } = await import("node:vm");
-const canvasSource = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const canvasSource = readStudioSource("app/studio/studio-canvas.tsx");
 const canvasTree = ts.createSourceFile("studio-canvas.tsx", canvasSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const declarations = new Map();
 function collect(node) { if (ts.isFunctionDeclaration(node) && node.name) declarations.set(node.name.text, node); ts.forEachChild(node, collect); }

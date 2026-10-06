@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
 import ts from "typescript";
@@ -23,7 +23,7 @@ const { normaliseBlockSelection, orderedBlockEntries } = await import("../app/st
 const paragraph = id => ({ id, type: "paragraph", text: id, style: { anchor: `${id}-anchor` } });
 const plain = value => JSON.parse(JSON.stringify(value));
 
-const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const source = readStudioSource("app/studio/studio-canvas.tsx");
 const tree = ts.createSourceFile("studio-canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const functions = new Map();
 let pointerHandler;

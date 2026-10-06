@@ -19,7 +19,7 @@ async function componentTree(path, name) {
 }
 
 const surface = await componentTree("../app/studio/template-renderer.tsx", "TemplateSurface");
-const richEditor = await componentTree("../app/studio/studio-canvas.tsx", "RichTextEditor");
+const richEditor = await componentTree("../app/studio/blocks/editors/rich-text.tsx", "RichTextEditor");
 function handler(component, name, scope) {
   const attribute = component.attributes.find(node => node.name.getText(component.tree) === name);
   if (!attribute) return null;

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
@@ -117,9 +117,10 @@ test("restoring an unavailable position clamps to a valid editor boundary", () =
 });
 
 // Exercise the production parser body, not a second interpretation of it.
-const canvas = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const canvas = readStudioSource("app/studio/studio-canvas.tsx");
 const parserStart = canvas.indexOf("function editorToRuns(editor: HTMLElement)");
-const parserBody = ts.transpileModule(canvas.slice(parserStart, canvas.indexOf("\nfunction AlignmentIcon", parserStart)), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+const parserEnd = canvas.indexOf("\nexport function AlignmentIcon", parserStart);
+const parserBody = ts.transpileModule(canvas.slice(parserStart, parserEnd), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 class FixtureElement { static [Symbol.hasInstance](value) { return value.nodeType === 1; } }
 const editorToRuns = new Function("normaliseTextRuns", "safeImageSource", "safeTextLink", "HTMLElement", "Node", "validFootnoteId", "footnoteReferenceRun", "mathObjectFromData", "legacyMathFromData", "mathRun", "inlineImageFromData", "inlineImageRun", "isRichTextLineBreakFiller", "richTextTrailingSeparatorLength", `${parserBody}; return editorToRuns;`)(rich.normaliseTextRuns, rich.safeImageSource, rich.safeTextLink, FixtureElement, { TEXT_NODE: 3, ELEMENT_NODE: 1 }, footnote.validFootnoteId, footnote.footnoteReferenceRun, math.mathObjectFromData, math.legacyMathFromData, math.mathRun, image.inlineImageFromData, image.inlineImageRun, isRichTextLineBreakFiller, richTextTrailingSeparatorLength);
 

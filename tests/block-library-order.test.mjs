@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -59,7 +60,7 @@ test("docked tiles use three equal columns and retain descriptions without visib
   assert.match(css, /\.inserter-group > div\s*\{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
   const responsive = readFileSync(new URL("../app/studio/responsive.css", import.meta.url), "utf8");
   for (const [, rule] of responsive.matchAll(/\.inserter-group > div\s*\{([^}]+)\}/g)) assert.match(rule, /repeat\(3, minmax\(0, 1fr\)\)/);
-  const source = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const source = readStudioSource("app/studio/studio-canvas.tsx");
   const inserter = source.slice(source.indexOf("function BlockInserter("), source.indexOf("function ColumnsLayoutChooser("));
   assert.match(inserter, /blockCatalogueGroups\.map/);
   assert.match(inserter, /title=\{item\.description\}/);

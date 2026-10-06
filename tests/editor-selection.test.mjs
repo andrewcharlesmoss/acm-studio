@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readStudioSource } from "./studio-module-source.mjs";
 import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
@@ -7,8 +7,8 @@ import { loadProductionModule } from "./production-module.mjs";
 
 const { richTextPointAtOffset } = await loadProductionModule(new URL("../app/studio/rich-text-dom.ts", import.meta.url));
 
-const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
-const source = canvas.slice(canvas.indexOf("function restoreEditorSelection("), canvas.indexOf("function escapeHtml("));
+const canvas = readStudioSource("app/studio/studio-canvas.tsx");
+const source = canvas.slice(canvas.indexOf("function restoreEditorSelection("), canvas.indexOf("function escapeHtml(")).replace(/^export\s+/gm, "");
 const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 
 function fixture(values) {

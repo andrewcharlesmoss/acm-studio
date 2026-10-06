@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
@@ -19,7 +20,7 @@ const tablePresentation = await load('../app/content/table-presentation.ts');
 const tableMetadata = await load('../app/content/table-cell-metadata.ts');
 const embedConversion = await load('../app/studio/embed-link-conversion.ts');
 const operations = await import('../app/studio/studio-command-operations.mjs');
-const source = await readFile(new URL('../app/studio/studio-canvas.tsx', import.meta.url), 'utf8');
+const source = readStudioSource("app/studio/studio-canvas.tsx");
 const ast = ts.createSourceFile('canvas.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const declarations = new Map();
 function collect(node) { if (ts.isFunctionDeclaration(node) && node.name) declarations.set(node.name.text, node); ts.forEachChild(node, collect); }

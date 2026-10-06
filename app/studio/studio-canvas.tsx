@@ -1,25 +1,20 @@
 "use client";
-import { mathRenderEntries, mathRun, mathObjectFromData, legacyMathFromData, validMathRun, mathAtRange, legacyMathAtRange, createMathFromRange, replaceRichTextRuns, restoreMathSource, mathSource } from "../content/math-runs";
-import { readMathClipboardRuns } from "./math-clipboard";
-import { mathObjectHtml, legacyMathHtml } from "../content/math-presentation";
-import { inlineImageHtml, inlineImageFromData, inlineImageRun, validInlineImageRun, inlineImageAtRange, insertInlineImage } from "../content/inline-image";
-import { footnoteReferenceRun, footnoteReferenceAtRange, insertFootnoteReference, validFootnoteId, validFootnoteReference } from "../content/footnote-runs";
+import { mathRun, mathAtRange, legacyMathAtRange, createMathFromRange, replaceRichTextRuns, restoreMathSource, mathSource } from "../content/math-runs";
+import { inlineImageRun, validInlineImageRun, inlineImageAtRange, insertInlineImage } from "../content/inline-image";
+import { footnoteReferenceAtRange, insertFootnoteReference } from "../content/footnote-runs";
 import { orderedFootnoteEntries } from "../content/footnote-blocks";
 import { FootnoteNumbersProvider, useFootnoteNumbers } from "./footnote-numbers-context";
 import { canRemoveFootnoteOwners, preservesReferencedFootnotes, reconcileFootnoteBlocks } from "../content/footnote-reconciliation";
-import { RichTextEditingProvider, useRichTextEditing, useMathActivation, useImageActivation, useRichTextFeedback, useCaretFormatsChange } from "./rich-text-editing-context";
+import { RichTextEditingProvider } from "./rich-text-editing-context";
 import { InlineImagePicker, type InlineImageLibrary } from "./inline-image-picker";
 import { InlineImagePopover } from "./inline-image-popover";
 import { addDocumentFootnote, addDocumentFootnotes } from "./footnote-command";
 import { tableRowSections } from "../content/table-row-sections";
-
 import { editBlockSiblings, moveBlockAmongSiblings, reorderBlockAmongSiblings } from "./block-sibling-operations";
 import { moveBlockToTarget } from "./block-placement";
 import { columnDropPosition } from "./column-drop-position";
 import { fieldSelectOptions } from "../content/field-options";
-import { richTextOffset, richTextPointAtOffset, richTextTrailingSeparatorLength } from "./rich-text-dom";
-import { mergeListItemBoundary } from "./list-boundary";
-import { AUTHORED_LINE_BREAK_HTML, LINE_BREAK_FILLER_HTML, isRichTextLineBreakFiller, insertRichTextLineBreak } from "./rich-text-line-break";
+import { richTextPointAtOffset } from "./rich-text-dom";
 import { navigateStudioMenu } from "./overlays/menu";
 import { StudioAnchoredMenu } from "./overlays/anchored-menu";
 import { StudioAnchoredPopover } from "./overlays/anchored-popover";
@@ -27,8 +22,8 @@ import { PopoverHeading } from "./overlays/popover-heading";
 import { applyTextLink, removeTextLink, textLinkAtRange } from "../content/text-link";
 import { BlockOptionsMenu, type BlockMenuAction, type BlockMenuItem } from "./block-options-menu";
 import { BlockEditorialDialog } from "./block-editorial-dialog";
-import { marksAtCaret, changeCaretMark, formatCaretInsertion } from "../content/caret-formatting";
-import { caretFormats, observedCaretFormats, CARET_FORMAT_EVENT, type CaretFormatRequest, type CaretFormatSnapshot } from "./caret-formatting-command";
+import { marksAtCaret, changeCaretMark } from "../content/caret-formatting";
+import { caretFormats, observedCaretFormats, type CaretFormatSnapshot } from "./caret-formatting-command";
 import { LanguagePopover } from "./language-popover";
 import { languageAtRange, languageRangeAtCaret, validLanguageCode, type LanguageMark } from "../content/language-runs";
 import { MathPopover } from "./math-popover";
@@ -47,18 +42,15 @@ import { childContentBlocks } from "../content/block-tree";
 import { validContentBlocks } from "./workspace-validation";
 import { resolveEmbedProvider } from "../content/embed-provider";
 import { buttonItemPresentation, buttonsPresentationStyle } from "../content/buttons-presentation";
-
 import { EmbedContent } from "../components/embed-content";
-import { TableCaptionControl, TableCaptionProvider, useTableCaption } from "./table-caption-control";
+import { TableCaptionControl, TableCaptionProvider } from "./table-caption-control";
 import { tablePresentation } from "../content/table-presentation";
 import { changedTableStructures, staleTableTextSelection } from "./table-structure-selection";
-import { useCallback, useId, useLayoutEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type DragEvent, type FormEvent, type HTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject, type TextareaHTMLAttributes } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
 import { blockSelectionRange, normaliseBlockSelection, orderedBlockEntries } from "./block-selection.mjs";
 import { blockSelectionPointerTarget, markBlockSelectionHosts } from "./block-selection-dom";
-import { AcmIcon } from "@acm/icons/react";
 import type { IconName } from "@acm/icons";
 import { BlockRenderer, renderText } from "../components/content";
-import { useFitText } from "../components/fit-text-paragraph";
 import { ArticleMetaIcon } from "../components/article-meta-icon";
 import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { readingTimeDisplay } from "../content/reading-time";
@@ -66,7 +58,7 @@ import { imageDisplayStyle, imageWrapperStyle } from "../content/image-style";
 import { resolveImageSource } from "../content/image-source";
 import { dividerRuleStyle } from "../content/divider-style";
 import { highlightCode } from "../content/code-highlighting.mjs";
-import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, listItemTextStyle, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
+import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../content/spacer";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
 import { BlockLibraryIcon } from "./block-library-icons";
@@ -77,9 +69,8 @@ import { blockCatalogueGroups, socialIconCatalogue, createBlock } from "./editor
 import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, socialIconsGapStyle } from "../components/social-icons";
 import { StudioIcon } from "./studio-icons";
 import { Pane } from "./panes/pane-components";
-import { TableActionIcon, TableIcon, type TableAction } from "./table-icons";
-import { isInteractiveTextMark, normaliseTextRuns, plainTextFromRuns, replaceTextRange, safeImageSource, safeTextLink, textToRuns, updateTextMark, withoutInteractiveTextMarks } from "../content/rich-text";
-import { listItemText, listMarker, normaliseTableColumnWidths, type ButtonInteractionState, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
+import { isInteractiveTextMark, plainTextFromRuns, safeImageSource, safeTextLink, textToRuns, updateTextMark, withoutInteractiveTextMarks } from "../content/rich-text";
+import { listItemText, type ButtonInteractionState, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
 import { listItemWithTextRuns } from "../content/list-item-text";
 import type { StudioDocument, InsertableBlockType, BlockLibraryItemType } from "./editor-model";
 import type { StudioEditableBlockOptions, StudioPresentation } from "./studio-presentation";
@@ -87,21 +78,24 @@ import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBloc
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
 import { COLUMN_LAYOUT_PRESETS, columnsLayoutStyle, setColumnsLayout } from "../content/columns";
 import { blockAlignmentClass, blockAlignmentOptions, contentBlockAlignment } from "../content/block-alignment";
-import { validTableActiveCell, applyTableStructureAction } from "../content/table-actions";
-import { tableCellMetadataAt, tableCellScopeFor, tableCellTagFor } from "../content/table-cell-metadata";
+import { validTableActiveCell } from "../content/table-actions";
 import { tableCellForTextTarget, type TableCell, type TableTextTarget } from "./table-text-target";
 import { findBlockById } from "./studio-command-operations.mjs";
 import { TemplateContentLayout, TemplateContentSlot } from "./template-content-slot";
 import { embedLinkParagraph } from "./embed-link-conversion";
 import { blockInserterOptions, containsTemplateContent, groupAllowsChild, parentOfNestedBlock, permitsBlockTreeChanges } from "./block-inserter-options";
-import { findListBlock, indentListItem, listItemAfterSplit, listItemIsEmpty, outdentListItem, replaceListItems, updateListItem } from "./list-structure";
-import { extendListTextSelection, formatListText, listTextContainsFootnotes, listTextEditor, listTextMarkState, listTextSegments, readListTextSelection, replaceListText, restoreListTextSelection, type ListTextSelection } from "./list-text-selection";
-import { sliceTextRuns } from "../content/math-runs";
-import { scheduleBlockCommandFocus, type BlockCommandFocusTarget } from "./block-command-focus";
-
-function StudioHoverIcon({ name, size = 24, vertical = false }: { name: IconName; size?: number; vertical?: boolean }) {
-  return <AcmIcon className={vertical ? "studio-hover-icon is-vertical" : "studio-hover-icon"} name={name} scale="Regular-M" size={size} />;
-}
+import { findListBlock, updateListItem } from "./list-structure";
+import { formatListText, listTextEditor, listTextMarkState, listTextSegments, readListTextSelection, restoreListTextSelection, type ListTextSelection } from "./list-text-selection";
+import { type BlockCommandFocusTarget } from "./block-command-focus";
+import { RichTextEditor, preserveTextSelection, caretRangeAtPoint, editorOffset, selectionWithinEditor, restoreEditorSelection, applyCrossBlockSelection, focusRichTextEditorAtOffset, AlignmentIcon, useFittedTextHeight, AutoResizeTextarea } from "./blocks/editors/rich-text";
+import { ListField } from "./blocks/editors/list";
+import { TableField, TableControls } from "./blocks/editors/table";
+import { ParagraphEditField } from "./blocks/paragraph/edit-field";
+import { StudioHoverIcon } from "./studio-hover-icon";
+import { HiddenBlockPlaceholder } from "./blocks/hidden-block-placeholder";
+export { RichTextEditor, type RichTextEditorProps } from "./blocks/editors/rich-text";
+export { TableField, TableControls } from "./blocks/editors/table";
+export { ParagraphEditField } from "./blocks/paragraph/edit-field";
 
 function blockLabel(type: ContentBlock["type"]) {
   if (type === "column") return "Column";
@@ -2369,7 +2363,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                     }}
                   >
                     {renderBlockControls(block)}
-                      {block.editorial?.hidden ? <HiddenBlockPlaceholder block={block} writable={writable} onShow={() => onUpdateBlock(block.id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} /> : htmlEditor?.blockId === block.id ? null : presentation?.renderBlock?.({ document: activeDocument, block, mediaUrls: mediaBlockUrls, mode: "edit", writable, selectedBlockId, hoveredBlockId, onTextSelection: recordTextSelection, onLinkActivate: activateTextLink, onTableCellFocus: (blockId, rowIndex, columnIndex) => { setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })); setTableTextTargets(current => ({ ...current, [blockId]: { kind: "cell", rowIndex, columnIndex } })); }, onSelectBlock, onSelectListItem, onUpdateBlock, renderBlockControls, renderEditableBlock, onDocumentFieldChange, onFocusDocumentField, onSplitParagraphs, onExitList }) ?? renderEditableBlock(block, {}, index)}
+                      {block.editorial?.hidden ? <HiddenBlockPlaceholder label={blockOutlineLabel(block)} writable={writable} onShow={() => onUpdateBlock(block.id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} /> : htmlEditor?.blockId === block.id ? null : presentation?.renderBlock?.({ document: activeDocument, block, mediaUrls: mediaBlockUrls, mode: "edit", writable, selectedBlockId, hoveredBlockId, onTextSelection: recordTextSelection, onLinkActivate: activateTextLink, onTableCellFocus: (blockId, rowIndex, columnIndex) => { setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })); setTableTextTargets(current => ({ ...current, [blockId]: { kind: "cell", rowIndex, columnIndex } })); }, onSelectBlock, onSelectListItem, onUpdateBlock, renderBlockControls, renderEditableBlock, onDocumentFieldChange, onFocusDocumentField, onSplitParagraphs, onExitList }) ?? renderEditableBlock(block, {}, index)}
                   </article>
                 </div>
               ))}
@@ -2517,10 +2511,6 @@ function StudioCodeEditor({ document, writable, state, inputRef, onChange, onFor
       <div className="html-editor-actions"><StudioButton variant="secondary" type="button" onClick={onExit}>Cancel</StudioButton><StudioButton className="html-editor-apply" type="button" onClick={onApply} disabled={!writable}>Apply</StudioButton></div>
     </div>
   </div>;
-}
-
-function HiddenBlockPlaceholder({ block, writable, onShow }: { block: ContentBlock; writable: boolean; onShow: () => void }) {
-  return <div className="hidden-block-placeholder"><StudioIcon name="visibility-off" size={18} /><span>{blockOutlineLabel(block)} is hidden</span><button type="button" disabled={!writable} onClick={onShow}>Show</button></div>;
 }
 
 function StudioListView({ blocks, selectedBlockId, onSelectBlock, onHoverBlock, onClose, onMoveItem, canMoveItem, onRemoveBlock, writable, onShowBlock }: {
@@ -2774,13 +2764,13 @@ function SocialIconsEditorBlock({ htmlEditorBlockId, renderBlockControls, block,
     requestAnimationFrame(() => triggerRef.current?.focus());
   }
 
-  return <nav className={socialIconsBlockClassName(block, true)} style={socialIconsColourStyle(block)} aria-label="Social links"><ul style={socialIconsGapStyle(block)}>{block.children.map(child => <li id={paragraphStyleAnchor(child.visualStyle)} className={`studio-nested-block${paragraphStyleClassName(child.visualStyle) ? ` ${paragraphStyleClassName(child.visualStyle)}` : ""}`} style={paragraphStyleToCss(child.visualStyle) as React.CSSProperties} data-block-align={"blockAlign" in child ? child.blockAlign : undefined} data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} tabIndex={0} aria-label={`${blockLabel(child.type)} icon block`} key={child.id}>{renderBlockControls?.(child)}{htmlEditorBlockId === child.id ? null : child.editorial?.hidden ? <HiddenBlockPlaceholder block={child} writable={writable} onShow={() => onChange({ ...block, children: block.children.map(candidate => candidate.id === child.id ? { ...candidate, editorial: { ...candidate.editorial, hidden: false } } : candidate) })} /> : <SocialIconView block={child} showLabel={block.showLabels} editing />}</li>)}<li className="social-icons-appender"><button ref={triggerRef} className="social-icons-add" type="button" disabled={!writable || !onInsert} onClick={() => { setOpen(value => !value); setQuery(""); }} aria-haspopup="dialog" aria-expanded={open} aria-controls={`social-icon-picker-${block.id}`} aria-label="Add social icon" title="Add social icon"><StudioIcon name="add" size={18} /></button>{open ? <div ref={popoverRef} id={`social-icon-picker-${block.id}`} className="social-icon-picker" role="dialog" aria-label="Choose a social icon"><div className="social-icon-picker-header"><input ref={searchRef} type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search" aria-label="Search social icons" /><button type="button" aria-label="Close social icon picker" title="Close" onClick={() => { setOpen(false); setQuery(""); requestAnimationFrame(() => triggerRef.current?.focus()); }}><StudioIcon name="close" size={18} /></button></div><div className="social-icon-picker-options">{choices.map(item => <button type="button" key={item.type} disabled={!writable || !onInsert} onClick={() => insert(item.type as InsertableBlockType)}><BlockTypeIcon type={item.type} /><strong>{item.label}</strong></button>)}{choices.length === 0 ? <p>No social icons found.</p> : null}</div></div> : null}</li></ul></nav>;
+  return <nav className={socialIconsBlockClassName(block, true)} style={socialIconsColourStyle(block)} aria-label="Social links"><ul style={socialIconsGapStyle(block)}>{block.children.map(child => <li id={paragraphStyleAnchor(child.visualStyle)} className={`studio-nested-block${paragraphStyleClassName(child.visualStyle) ? ` ${paragraphStyleClassName(child.visualStyle)}` : ""}`} style={paragraphStyleToCss(child.visualStyle) as React.CSSProperties} data-block-align={"blockAlign" in child ? child.blockAlign : undefined} data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} tabIndex={0} aria-label={`${blockLabel(child.type)} icon block`} key={child.id}>{renderBlockControls?.(child)}{htmlEditorBlockId === child.id ? null : child.editorial?.hidden ? <HiddenBlockPlaceholder label={blockOutlineLabel(child)} writable={writable} onShow={() => onChange({ ...block, children: block.children.map(candidate => candidate.id === child.id ? { ...candidate, editorial: { ...candidate.editorial, hidden: false } } : candidate) })} /> : <SocialIconView block={child} showLabel={block.showLabels} editing />}</li>)}<li className="social-icons-appender"><button ref={triggerRef} className="social-icons-add" type="button" disabled={!writable || !onInsert} onClick={() => { setOpen(value => !value); setQuery(""); }} aria-haspopup="dialog" aria-expanded={open} aria-controls={`social-icon-picker-${block.id}`} aria-label="Add social icon" title="Add social icon"><StudioIcon name="add" size={18} /></button>{open ? <div ref={popoverRef} id={`social-icon-picker-${block.id}`} className="social-icon-picker" role="dialog" aria-label="Choose a social icon"><div className="social-icon-picker-header"><input ref={searchRef} type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search" aria-label="Search social icons" /><button type="button" aria-label="Close social icon picker" title="Close" onClick={() => { setOpen(false); setQuery(""); requestAnimationFrame(() => triggerRef.current?.focus()); }}><StudioIcon name="close" size={18} /></button></div><div className="social-icon-picker-options">{choices.map(item => <button type="button" key={item.type} disabled={!writable || !onInsert} onClick={() => insert(item.type as InsertableBlockType)}><BlockTypeIcon type={item.type} /><strong>{item.label}</strong></button>)}{choices.length === 0 ? <p>No social icons found.</p> : null}</div></div> : null}</li></ul></nav>;
 }
 
 export function BlockField(props: BlockFieldProps) {
   const { block } = props;
   if (props.htmlEditorBlockId === block.id) return null;
-  if (block.editorial?.hidden) return <HiddenBlockPlaceholder block={block} writable={props.writable ?? true} onShow={() => props.onChange({ ...block, editorial: { ...block.editorial, hidden: false } })} />;
+  if (block.editorial?.hidden) return <HiddenBlockPlaceholder label={blockOutlineLabel(block)} writable={props.writable ?? true} onShow={() => props.onChange({ ...block, editorial: { ...block.editorial, hidden: false } })} />;
   if (props.templatePlaceholder && block.type === "group" && block.data?.templateElement === "content") return <TemplateContentLayout layout={block} visualStyle={block.visualStyle} align={block.data.align === "centre" || block.data.align === "right" ? block.data.align : "left"} mediaUrls={props.mediaUrls} editorFocusable><TemplateContentSlot /></TemplateContentLayout>;
   if (block.type === "group" && block.children.length === 0) return <section className="group-layout-empty" aria-labelledby={`group-layout-title-${block.id}`}>
     <div className="group-layout-empty-heading"><span aria-hidden="true"><BlockLibraryIcon type="group" /></span><strong id={`group-layout-title-${block.id}`}>Group</strong></div>
@@ -2802,23 +2792,6 @@ export function BlockField(props: BlockFieldProps) {
   return <div id={paragraphStyleAnchor(style)} className={className} style={css}>{content}</div>;
 }
 
-export function ParagraphEditField({ block, previousParagraphIndent, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, navigationRootRef, mediaUrls = {}, ariaLabel = "Paragraph text" }: {
-  block: Extract<ContentBlock, { type: "paragraph" }>;
-  previousParagraphIndent?: string;
-  onChange: (block: Extract<ContentBlock, { type: "paragraph" }>) => void;
-  onSelectionChange: RichTextEditorProps["onSelectionChange"];
-  onLinkActivate: RichTextEditorProps["onLinkActivate"];
-  onSplitParagraph?: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null;
-  onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null;
-  onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null; onExitList?: (blockId: string, itemIndex: number, operation?: "return" | "backward" | "forward", listId?: string) => BlockCommandFocusTarget;
-  navigationRootRef?: RefObject<HTMLElement | null>;
-  mediaUrls?: Record<string, string>;
-  ariaLabel?: string;
-}) {
-  const classes = paragraphStyleClassName(block.style, block.align);
-  return <RichTextEditor mediaUrls={mediaUrls} id={paragraphStyleAnchor(block.style)} className={`block-textarea paragraph-field align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${classes ? ` ${classes}` : ""}`} style={paragraphStyleToCss(block.style, undefined, previousParagraphIndent) as React.CSSProperties} fitText={fitTextEnabled(block.style)} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onSelectionChange} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph ? (beforeRuns, afterRuns) => onSplitParagraph(block.id, beforeRuns, afterRuns) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} navigationRootRef={navigationRootRef} data-studio-block-id={block.id} data-placeholder="Paragraph" aria-label={ariaLabel} />;
-}
-
 function BlockFieldContent({ htmlEditorBlockId, renderBlockControls, block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, previousParagraphIndent, spacerOrientation = "vertical", writable = true, buttonPreview = null, pendingColumnsLayoutBlockId, onColumnsLayoutSelected, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onOpenNestedInserter, onInsertNestedBlock, onChange }: BlockFieldProps) {
   const footnoteNumbers = useFootnoteNumbers();
   const documentContext: DocumentRenderContext = document ?? { kind: "page" };
@@ -2827,7 +2800,7 @@ function BlockFieldContent({ htmlEditorBlockId, renderBlockControls, block, root
     block.type === "post-author" && !documentFieldVisible(documentContext, "author") ||
     block.type === "post-date" && !documentFieldVisible(documentContext, "publicationDate")
   ) return null;
-  if (block.type === "paragraph") return <ParagraphEditField block={block} previousParagraphIndent={previousParagraphIndent} onChange={onChange} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onExitList={onExitList} mediaUrls={mediaUrls} />;
+  if (block.type === "paragraph") return <ParagraphEditField block={block} previousParagraphIndent={previousParagraphIndent} onChange={onChange} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} mediaUrls={mediaUrls} />;
   if (block.type === "heading") return <RichTextEditor mediaUrls={mediaUrls} className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${fitTextEnabled(block.visualStyle) ? " has-fit-text" : ""}`} fitText={fitTextEnabled(block.visualStyle)} fitTextSignature={JSON.stringify(block.visualStyle ?? {})} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} onSplitParagraph={onSplitParagraph ? (before, after) => onSplitParagraph(block.id, before, after) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} data-placeholder="Heading" aria-label="Heading text" />;
   if (block.type === "quote") return <QuoteEditorBlock {...{ block, rootBlocks, document, buttonPreview, selectedBlockId, hoveredBlockId, writable, mediaUrls, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onOpenNestedInserter, onInsertNestedBlock, onChange, renderBlockControls, htmlEditorBlockId }} />;
   if (block.type === "buttons") return <div className={`content-buttons${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={buttonsPresentationStyle(block)}>{block.children.map(child => {
@@ -2838,7 +2811,7 @@ function BlockFieldContent({ htmlEditorBlockId, renderBlockControls, block, root
     </div>;
   })}<button type="button" className="nested-add-block" aria-label="Add button" disabled={!writable || block.children.length >= 100} onClick={() => onInsertNestedBlock?.("button", block.id)}><StudioIcon name="add" size={16} /></button></div>;
 
-  if (block.type === "list") return <ListField htmlEditorBlockId={htmlEditorBlockId} renderBlockControls={renderBlockControls} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} onExitList={onExitList} block={block} rootBlocks={rootBlocks} mediaUrls={mediaUrls} writable={writable} onSelectionChange={onListItemSelection} onLinkActivate={onListItemLinkActivate} onChange={onChange} />;
+  if (block.type === "list") return <ListField htmlEditorBlockId={htmlEditorBlockId} renderBlockControls={renderBlockControls} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} onExitList={onExitList} block={block} rootBlocks={rootBlocks} mediaUrls={mediaUrls} writable={writable} onSelectionChange={onListItemSelection} onLinkActivate={onListItemLinkActivate} onChange={onChange} labelForBlock={blockOutlineLabel} />;
   if (block.type === "table") return <TableField block={block} mediaUrls={mediaUrls} writable={writable} showCaptionControl={!renderBlockControls && selectedBlockId === block.id && !rootBlocks.some(root => root.id === block.id)} onCellFocus={onTableCellFocus} onCaptionFocus={() => onTextSelection(null)} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={onChange} />;
   if (block.type === "code") return <CodeEditor className={blockAlignmentClass(block)} value={block.code} language={block.language} writable={writable} onChange={(code) => onChange({ ...block, code })} />;
   // User-supplied URLs cannot be known to Next's image optimiser in this local editor.
@@ -3053,1069 +3026,4 @@ function CodeEditor({ value, language, className, writable, onChange }: { value:
       />
     </div>
   );
-}
-
-export type RichTextEditorProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
-  withoutInteractiveFormatting?: boolean;
-  fitText?: boolean;
-  fitTextSignature?: string;
-  as?: "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "span" | "dt" | "dd";
-  text: string;
-  runs?: RichTextRun[];
-  mediaUrls?: Record<string, string>;
-  onChange: (text: string, runs: RichTextRun[]) => void;
-  onSelectionChange: (selection: TextSelection | null) => void;
-  onLinkActivate: (selection: TextSelection) => void;
-  onSplitParagraph?: (beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => BlockCommandFocusTarget;
-  onMergeParagraphBackward?: () => { blockId: string; offset: number } | null;
-  onSplitParagraphs?: (paragraphs: RichTextRun[][]) => string[] | null;
-  navigationRootRef?: RefObject<HTMLElement | null>;
-};
-
-export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls = {}, onChange: onContentChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onKeyDown: onKeyDownProp, className, fitText = false, fitTextSignature = "", navigationRootRef, withoutInteractiveFormatting = false, ...props }: RichTextEditorProps) {
-  const footnoteNumbers = useFootnoteNumbers();
-  const editable = useRichTextEditing(props.contentEditable);
-  const activateMath = useMathActivation();
-  const activateImage = useImageActivation();
-  const reportFeedback = useRichTextFeedback();
-  const reportCaretFormats = useCaretFormatsChange();
-  const Tag = elementName as "div";
-  const editorRef = useRef<HTMLDivElement>(null);
-  const normalizationAttemptRef = useRef<string | null>(null);
-  const pendingFormatsRef = useRef<CaretFormatSnapshot | null>(null);
-  const editorScope = () => navigationRootRef?.current ?? document;
-  const sourceRuns = runs?.length ? runs : textToRuns(text);
-  const renderedRuns = withoutInteractiveFormatting ? withoutInteractiveTextMarks(sourceRuns) : sourceRuns;
-  function publishCaretFormats(editor = editorRef.current) {
-    if (editor) reportCaretFormats?.(editor, pendingFormatsRef.current);
-  }
-  function onChange(nextText: string, nextRuns: RichTextRun[]) {
-    const cleanRuns = withoutInteractiveFormatting ? withoutInteractiveTextMarks(nextRuns) : nextRuns;
-    onContentChange(withoutInteractiveFormatting ? plainTextFromRuns(cleanRuns) : nextText, cleanRuns);
-  }
-  useFitText(editorRef, fitText, typeof props.style?.fontSize === "string" ? props.style.fontSize : "", `${text}|${className}|${fitTextSignature}|${props.style?.fontFamily}|${props.style?.fontWeight}|${props.style?.fontStyle}|${props.style?.letterSpacing}|${props.style?.lineHeight}`);
-
-  useLayoutEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    const html = runsToEditorHtml(renderedRuns, mediaUrls, footnoteNumbers);
-    // Compare browser-normalised markup. Replacing an identical image node on
-    // pointer-up would prevent its following click from reaching that node.
-    const expected = document.createElement("template");
-    expected.innerHTML = html;
-    if (editor.innerHTML === expected.innerHTML) return;
-    // Colour palettes own focus while updating the captured range.
-    const selection = document.activeElement === editor ? selectionWithinEditor(editor) : null;
-    editor.innerHTML = expected.innerHTML;
-    if (selection) restoreEditorSelection(editor, selection);
-  }, [renderedRuns, mediaUrls, footnoteNumbers]);
-
-  useLayoutEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    if (pendingFormatsRef.current && (!editable || pendingFormatsRef.current.text !== text || pendingFormatsRef.current.baseline !== JSON.stringify(sourceRuns))) {
-      pendingFormatsRef.current = null;
-      publishCaretFormats(editor);
-    }
-    const handle = (event: Event) => {
-      const request = (event as CustomEvent<CaretFormatRequest>).detail;
-      const pending = pendingFormatsRef.current;
-      const requestedMarks = withoutInteractiveFormatting ? request.marks?.filter(mark => !isInteractiveTextMark(mark)) : request.marks;
-      if (requestedMarks) {
-        pendingFormatsRef.current = { offset: request.offset, marks: requestedMarks, text, baseline: JSON.stringify(sourceRuns) };
-        publishCaretFormats(editor);
-      }
-      request.result = requestedMarks ?? (pending?.offset === request.offset ? pending.marks : marksAtCaret(renderedRuns, request.offset));
-    };
-    editor.addEventListener(CARET_FORMAT_EVENT, handle);
-    return () => editor.removeEventListener(CARET_FORMAT_EVENT, handle);
-  });
-
-  useLayoutEffect(() => {
-    const editor = editorRef.current;
-    return () => { if (editor) reportCaretFormats?.(editor, null); };
-  }, [reportCaretFormats]);
-
-  function readSelection() {
-    const editor = editorRef.current;
-    const selection = window.getSelection();
-    if (!editor || !selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) {
-      onSelectionChange(null);
-      return;
-    }
-    const range = selection.getRangeAt(0);
-    const start = editorOffset(editor, range.startContainer, range.startOffset);
-    const end = editorOffset(editor, range.endContainer, range.endOffset);
-    if (pendingFormatsRef.current && (start !== end || start !== pendingFormatsRef.current.offset)) {
-      pendingFormatsRef.current = null;
-      publishCaretFormats(editor);
-    }
-    const selected = start <= end ? { start, end } : { start: end, end: start };
-    onSelectionChange(selected);
-    if (editable) activateImage?.(editor, selected);
-    if (editable) activateMath?.(editor, selected);
-  }
-
-  function handleMathPaste(event: ReactClipboardEvent<HTMLDivElement>) {
-    props.onPaste?.(event);
-    if (event.defaultPrevented || !editable) return;
-    const result = readMathClipboardRuns(event.clipboardData.getData("text/html"), editorToRuns);
-    if (!result.handled) return;
-    event.preventDefault();
-    if ("error" in result) { reportFeedback?.(result.error); return; }
-    const editor = editorRef.current;
-    const selection = editor && selectionWithinEditor(editor);
-    if (!editor || !selection) return;
-    const next = replaceRichTextRuns(editorToRuns(editor), selection.start, selection.end, result.runs);
-    if (!next) { reportFeedback?.("This inline content could not be pasted into the selected text."); return; }
-    const clean = withoutInteractiveFormatting ? withoutInteractiveTextMarks(next) : next;
-    const offset = selection.start + plainTextFromRuns(result.runs).length;
-    pendingFormatsRef.current = null;
-    publishCaretFormats(editor);
-    editor.innerHTML = runsToEditorHtml(clean, mediaUrls, footnoteNumbers);
-    onChange(plainTextFromRuns(clean), clean);
-    restoreEditorSelection(editor, { start: offset, end: offset });
-    onSelectionChange({ start: offset, end: offset });
-  }
-
-  function handleInput() {
-    if (!editable) return;
-    const editor = editorRef.current;
-    if (!editor) return;
-    let nextRuns = editorToRuns(editor);
-    if (withoutInteractiveFormatting) nextRuns = withoutInteractiveTextMarks(nextRuns);
-    const pending = pendingFormatsRef.current;
-    if (pending) {
-      const insertion = formatCaretInsertion(pending.text, nextRuns, pending.offset, pending.marks);
-      if (insertion) { nextRuns = insertion.runs; pendingFormatsRef.current = { ...pending, offset: insertion.offset, text: insertion.text, baseline: JSON.stringify(nextRuns) }; }
-      else pendingFormatsRef.current = null;
-      publishCaretFormats(editor);
-    }
-    normalizationAttemptRef.current = null;
-    onChange(plainTextFromRuns(nextRuns), nextRuns);
-    readSelection();
-  }
-
-  function handleLineBreak(event: InputEvent) {
-    if (!editable || event.defaultPrevented || event.isComposing || event.inputType !== "insertLineBreak") return;
-    const editor = editorRef.current;
-    const selection = editor && selectionWithinEditor(editor);
-    if (!editor || !selection) return;
-    const current = editorToRuns(editor);
-    const pending = pendingFormatsRef.current;
-    const pendingMarks = pending && selection.start === selection.end && pending.offset === selection.start
-      && pending.text === plainTextFromRuns(current) ? pending.marks : undefined;
-    const inserted = insertRichTextLineBreak(current, selection.start, selection.end, pendingMarks);
-    if (!inserted) return;
-    event.preventDefault();
-    const next = withoutInteractiveFormatting ? withoutInteractiveTextMarks(inserted) : inserted;
-    const nextText = plainTextFromRuns(next);
-    const offset = selection.start + 1;
-    const continuationMarks = pendingMarks ?? marksAtCaret(current, selection.start);
-    pendingFormatsRef.current = { offset, marks: withoutInteractiveFormatting ? continuationMarks.filter(mark => !isInteractiveTextMark(mark)) : continuationMarks, text: nextText, baseline: JSON.stringify(next) };
-    normalizationAttemptRef.current = nextText;
-    editor.innerHTML = runsToEditorHtml(next, mediaUrls, footnoteNumbers);
-    onChange(nextText, next);
-    restoreEditorSelection(editor, { start: offset, end: offset });
-    publishCaretFormats(editor);
-    onSelectionChange({ start: offset, end: offset });
-  }
-
-  // React's beforeinput abstraction does not expose native inputType reliably.
-  // Owning the native operation also covers virtual keyboard line breaks.
-  useLayoutEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    editor.addEventListener("beforeinput", handleLineBreak);
-    return () => editor.removeEventListener("beforeinput", handleLineBreak);
-  });
-
-  function splitLegacyParagraphsOnFocus(editor: HTMLElement) {
-    if (!editable) return;
-    if (!onSplitParagraphs) return;
-    // Modern runs contain authored soft breaks; only legacy plain text may
-    // need its old blank-line paragraph projection normalising on focus.
-    if (runs?.length) return;
-    const sourceRuns = editorToRuns(editor);
-    const sourceText = plainTextFromRuns(sourceRuns);
-    if (normalizationAttemptRef.current === sourceText) return;
-    const paragraphs = splitRunsAtBlankLines(sourceRuns);
-    if (paragraphs.length < 2) return;
-    const blockId = editor.dataset.studioBlockId ?? editor.dataset.blockId;
-    if (!blockId) return;
-    normalizationAttemptRef.current = sourceText;
-    const selection = window.getSelection();
-    const focusOffset = selection?.focusNode && editor.contains(selection.focusNode)
-      ? editorTextOffset(editor, selection.focusNode, selection.focusOffset)
-      : 0;
-    let targetIndex = paragraphs.findIndex(part => focusOffset <= part.end);
-    if (targetIndex < 0) targetIndex = paragraphs.length - 1;
-    const targetOffset = Math.max(0, focusOffset - paragraphs[targetIndex].start);
-    const ids = onSplitParagraphs(paragraphs.map(part => part.runs));
-    if (!ids || ids.length !== paragraphs.length) return;
-    onSelectionChange(null);
-    window.requestAnimationFrame(() => {
-      const target = [...editorScope().querySelectorAll<HTMLElement>(".rich-text-editor")]
-        .find(candidate => candidate.dataset.studioBlockId === ids[targetIndex] || candidate.dataset.blockId === ids[targetIndex]);
-      if (target) focusRichTextEditorAtOffset(target, targetOffset);
-    });
-  }
-
-  function moveCaretBetweenEditors(event: ReactKeyboardEvent<HTMLDivElement>) {
-    const editor = editorRef.current;
-    if (!editor || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return false;
-    if (event.key === "ArrowRight") {
-      const selection = window.getSelection();
-      if (!editor.classList.contains("paragraph-field") || !selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
-      const caretOffset = editorTextOffset(editor, selection.focusNode, selection.focusOffset);
-      const editorEnd = editorTextOffset(editor, editor, editor.childNodes.length);
-      if (caretOffset !== editorEnd) return false;
-      const paragraphs = [...editorScope().querySelectorAll<HTMLElement>(".rich-text-editor.paragraph-field[data-studio-block-id]")]
-        .filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
-      const target = paragraphs[paragraphs.indexOf(editor) + 1];
-      if (!target) {
-        const blockPosition = editor.closest(".block-position");
-        const nextPosition = blockPosition?.nextElementSibling;
-        const appender = nextPosition?.classList.contains("canvas-appender")
-          ? nextPosition.querySelector<HTMLInputElement>("input[placeholder='Type / to choose a block']")
-          : null;
-        if (!appender) return false;
-        event.preventDefault();
-        appender.focus({ preventScroll: true });
-        appender.setSelectionRange(appender.value.length, appender.value.length);
-        return true;
-      }
-      event.preventDefault();
-      focusRichTextEditorAtOffset(target, 0);
-      return true;
-    }
-    if (event.key === "ArrowLeft") {
-      const selection = window.getSelection();
-      if (!editor.classList.contains("paragraph-field") || !selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
-      const caretOffset = editorTextOffset(editor, selection.focusNode, selection.focusOffset);
-      if (caretOffset !== 0) return false;
-      const paragraphs = [...editorScope().querySelectorAll<HTMLElement>(".rich-text-editor.paragraph-field[data-studio-block-id]")]
-        .filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
-      const target = paragraphs[paragraphs.indexOf(editor) - 1];
-      if (!target) return false;
-      const targetEnd = editorTextOffset(target, target, target.childNodes.length);
-      event.preventDefault();
-      focusRichTextEditorAtOffset(target, targetEnd);
-      return true;
-    }
-    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return false;
-    const selection = window.getSelection();
-    if (!selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
-    const caret = document.createRange();
-    caret.setStart(selection.focusNode, selection.focusOffset);
-    caret.collapse(true);
-    const caretRect = caret.getBoundingClientRect();
-    const content = document.createRange();
-    content.selectNodeContents(editor);
-    const lineRects = [...content.getClientRects()].filter(rect => rect.height > 0);
-    const editorRect = editor.getBoundingClientRect();
-    const firstLineTop = lineRects.length ? Math.min(...lineRects.map(rect => rect.top)) : editorRect.top;
-    const lastLineBottom = lineRects.length ? Math.max(...lineRects.map(rect => rect.bottom)) : editorRect.bottom;
-    const direction = event.key === "ArrowUp" ? -1 : 1;
-    const editorLineHeight = Number.parseFloat(getComputedStyle(editor).lineHeight) || caretRect.height;
-    const edgeTolerance = Math.max(3, Math.min(caretRect.height, editorLineHeight * 0.7));
-    const atEdge = direction < 0
-      ? caretRect.top <= firstLineTop + edgeTolerance
-      : caretRect.bottom >= lastLineBottom - edgeTolerance;
-    if (!atEdge) return false;
-    const editors = [...editorScope().querySelectorAll<HTMLElement>(".rich-text-editor")].filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
-    const target = editors[editors.indexOf(editor) + direction];
-    const blockPosition = editor.closest(".block-position");
-    const nextIsAppender = direction > 0 && blockPosition?.nextElementSibling?.classList.contains("canvas-appender");
-    const appender = nextIsAppender
-      ? blockPosition?.nextElementSibling?.querySelector<HTMLInputElement>("input[placeholder='Type / to choose a block']")
-      : null;
-    if (appender && (!target || target.closest(".block-position") !== blockPosition)) {
-      event.preventDefault();
-      appender.focus({ preventScroll: true });
-      appender.setSelectionRange(appender.value.length, appender.value.length);
-      return true;
-    }
-    if (!target) return false;
-    const targetRect = target.getBoundingClientRect();
-    const lineHeight = Number.parseFloat(getComputedStyle(target).lineHeight) || caretRect.height || 20;
-    const x = Math.max(targetRect.left + 1, Math.min(caretRect.left, targetRect.right - 1));
-    const y = direction < 0 ? targetRect.bottom - lineHeight / 2 : targetRect.top + lineHeight / 2;
-    const targetDocument = target.ownerDocument as Document & {
-      caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
-      caretRangeFromPoint?: (x: number, y: number) => Range | null;
-    };
-    const caretPosition = targetDocument.caretPositionFromPoint?.(x, y);
-    const point = caretPosition && target.contains(caretPosition.offsetNode)
-      ? { node: caretPosition.offsetNode, offset: caretPosition.offset }
-      : (() => {
-          const range = targetDocument.caretRangeFromPoint?.(x, y);
-          return range && target.contains(range.startContainer) ? { node: range.startContainer, offset: range.startOffset } : null;
-        })();
-    if (!point) return false;
-    event.preventDefault();
-    target.focus({ preventScroll: true });
-    const nextRange = document.createRange();
-    nextRange.setStart(point.node, point.offset);
-    nextRange.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(nextRange);
-    return true;
-  }
-
-  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-    if (!editable || event.defaultPrevented || event.nativeEvent?.isComposing) return;
-    // A selected inline object's form owns Tab before List indentation.
-    if (event.key === "Tab" && !event.shiftKey) {
-      const editor = editorRef.current;
-      const selection = editor ? selectionWithinEditor(editor) : null;
-      if (editor && selection && inlineImageAtRange(renderedRuns, selection.start, selection.end)) {
-        event.preventDefault(); activateImage?.(editor, selection, true);
-        requestAnimationFrame(() => document.querySelector<HTMLInputElement>("[data-inline-image-width]")?.focus()); return;
-      }
-      if (editor && selection && selection.start !== selection.end && (mathAtRange(renderedRuns, selection.start, selection.end) || legacyMathAtRange(renderedRuns, selection.start, selection.end))) {
-        event.preventDefault(); activateMath?.(editor, selection, true);
-        requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>("[data-math-syntax]")?.focus()); return;
-      }
-    }
-    onKeyDownProp?.(event);
-    if (event.defaultPrevented) return;
-    if (moveCaretBetweenEditors(event)) return;
-    if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && ["b", "i"].includes(event.key.toLowerCase())) {
-      const editor = editorRef.current;
-      const selection = editor ? selectionWithinEditor(editor) : null;
-      if (editor && selection) {
-        event.preventDefault();
-        const mark = event.key.toLowerCase() === "b" ? "bold" : "italic";
-        if (selection.start === selection.end) {
-          const marks = caretFormats(editor, selection.start) ?? [];
-          caretFormats(editor, selection.start, changeCaretMark(marks, mark));
-          readSelection();
-        } else {
-          const next = updateTextMark(editorToRuns(editor), selection.start, selection.end, mark);
-          onChange(plainTextFromRuns(next), next);
-        }
-      }
-      return;
-    }
-    if (event.key === "Backspace" && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && onMergeParagraphBackward) {
-      const editor = editorRef.current;
-      const selection = window.getSelection();
-      if (editor && selection?.isCollapsed && selection.rangeCount > 0 && editor.contains(selection.anchorNode) && editor.contains(selection.focusNode)) {
-        const range = selection.getRangeAt(0);
-        if (editorTextOffset(editor, range.startContainer, range.startOffset) === 0) {
-          const merged = onMergeParagraphBackward();
-          if (merged) {
-            event.preventDefault();
-            onSelectionChange(null);
-            window.requestAnimationFrame(() => {
-              const target = [...editorScope().querySelectorAll<HTMLElement>(".rich-text-editor")]
-                .find((candidate) => candidate.dataset.studioBlockId === merged.blockId || candidate.dataset.blockId === merged.blockId);
-              if (target) focusRichTextEditorAtOffset(target, merged.offset);
-            });
-            return;
-          }
-        }
-      }
-    }
-    if (event.key !== "Enter" || event.shiftKey || !onSplitParagraph) return;
-    const editor = editorRef.current;
-    const selection = window.getSelection();
-    if (!editor || !selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return;
-    event.preventDefault();
-
-    const range = selection.getRangeAt(0);
-    const sourceRuns = editorToRuns(editor);
-    const sourceLength = plainTextFromRuns(sourceRuns).length;
-    const firstOffset = Math.min(editorTextOffset(editor, range.startContainer, range.startOffset), sourceLength);
-    const secondOffset = Math.min(editorTextOffset(editor, range.endContainer, range.endOffset), sourceLength);
-    const selectionStart = Math.min(firstOffset, secondOffset);
-    const selectionEnd = Math.max(firstOffset, secondOffset);
-    const beforeRuns = sliceRichRuns(sourceRuns, 0, selectionStart);
-    const afterRuns = sliceRichRuns(sourceRuns, selectionEnd, plainTextFromRuns(sourceRuns).length);
-    const focusTarget = onSplitParagraph(beforeRuns, afterRuns);
-    onSelectionChange(null);
-    if (!focusTarget) return;
-
-    scheduleBlockCommandFocus(editor, focusTarget, editorScope(), nextEditor => focusRichTextEditorAtOffset(nextEditor, 0));
-  }
-
-  // Select links in-place and show their Gutenberg-style controls instead of navigating away from Studio.
-  return <Tag {...props} ref={editorRef} className={`${className ?? ""} rich-text-editor`} contentEditable={editable} aria-readonly={!editable || undefined} role="textbox" tabIndex={0} aria-multiline="true" suppressContentEditableWarning onInput={handleInput} onPaste={handleMathPaste} onKeyDown={handleKeyDown} onSelect={readSelection} onKeyUp={readSelection} onMouseUp={(event) => { readSelection(); splitLegacyParagraphsOnFocus(event.currentTarget); }} onFocus={(event) => { props.onFocus?.(event); readSelection(); const editor = event.currentTarget; window.requestAnimationFrame(() => { if (document.activeElement === editor) splitLegacyParagraphsOnFocus(editor); }); }} onClick={(event) => {
-    if (event.defaultPrevented) return;
-    const image = (event.target as HTMLElement).closest<HTMLElement>("[data-image-object]");
-    if (image && editorRef.current?.contains(image) && editable) {
-      event.preventDefault();
-      const range = document.createRange(); range.selectNode(image);
-      const selected = { start: editorOffset(editorRef.current, range.startContainer, range.startOffset), end: editorOffset(editorRef.current, range.endContainer, range.endOffset) };
-      const native = window.getSelection(); native?.removeAllRanges(); native?.addRange(range);
-      onSelectionChange(selected); activateImage?.(editorRef.current, selected, true); return;
-    }
-    const equation = (event.target as HTMLElement).closest<HTMLElement>("[data-math-object], [data-math-legacy]");
-    if (equation && editorRef.current?.contains(equation) && editable) {
-      event.preventDefault();
-      const range = document.createRange(); range.selectNode(equation);
-      const start = editorOffset(editorRef.current, range.startContainer, range.startOffset), end = editorOffset(editorRef.current, range.endContainer, range.endOffset);
-      const selected = { start, end }; const native = window.getSelection(); native?.removeAllRanges(); native?.addRange(range);
-      onSelectionChange(selected); activateMath?.(editorRef.current, selected, true); return;
-    }
-    const link = (event.target as HTMLElement).closest("a");
-    if (!link || !editorRef.current?.contains(link)) return;
-    event.preventDefault();
-    const range = document.createRange();
-    range.selectNodeContents(link);
-    const nextSelection = { start: editorOffset(editorRef.current, range.startContainer, range.startOffset), end: editorOffset(editorRef.current, range.endContainer, range.endOffset) };
-    const nativeSelection = window.getSelection();
-    nativeSelection?.removeAllRanges();
-    nativeSelection?.addRange(range);
-    onSelectionChange(nextSelection);
-    onLinkActivate(nextSelection);
-  }} />;
-}
-
-function preserveTextSelection(event: ReactMouseEvent<HTMLButtonElement>) {
-  event.preventDefault();
-}
-
-function ListItemIndentControls({ block, rootBlocks, selection, writable, onChange, onSelectionChange }: {
-  block: EditableListBlock;
-  rootBlocks: ContentBlock[];
-  selection: { listId: string; itemIndex: number };
-  writable: boolean;
-  onChange: (block: EditableListBlock) => void;
-  onSelectionChange: (list: EditableListBlock, itemIndex: number) => void;
-}) {
-  const list = findListBlock(block, selection.listId);
-  if (!list) return null;
-  const canIndent = selection.itemIndex > 0 && selection.itemIndex < list.items.length;
-  const canOutdent = list.id !== block.id && Boolean(outdentListItem(block, list.id, selection.itemIndex, rootBlocks));
-
-  function move(direction: "indent" | "outdent") {
-    if (!list) return;
-    const moved = direction === "indent"
-      ? indentListItem(block, list.id, selection.itemIndex, () => `list-${crypto.randomUUID()}`)
-      : outdentListItem(block, list.id, selection.itemIndex, rootBlocks);
-    if (!moved) return;
-    onChange(moved.block);
-    const movedList = findListBlock(moved.block, moved.listId);
-    if (movedList) onSelectionChange(movedList, moved.itemIndex);
-    requestAnimationFrame(() => {
-      const item = [...document.querySelectorAll<HTMLElement>("[data-studio-block-id][data-list-context-id][data-list-item-index]")]
-        .find(element => element.dataset.studioBlockId === moved.listId && element.dataset.listContextId === moved.listId && element.dataset.listItemIndex === String(moved.itemIndex));
-      item?.focus();
-    });
-  }
-
-  return <div className="list-item-indent-controls" role="group" aria-label="List item indentation">
-    <button type="button" onMouseDown={preserveTextSelection} onClick={event => { event.stopPropagation(); move("outdent"); }} disabled={!writable || !canOutdent} aria-label="Outdent list item" title="Outdent"><StudioHoverIcon name="arrange.outdent" size={20} /></button>
-    <button type="button" onMouseDown={preserveTextSelection} onClick={event => { event.stopPropagation(); move("indent"); }} disabled={!writable || !canIndent} aria-label="Indent list item" title="Indent"><StudioHoverIcon name="arrange.indent" size={20} /></button>
-  </div>;
-}
-
-function caretRangeAtPoint(x: number, y: number) {
-  const target = document.elementFromPoint(x, y);
-  if (!(target instanceof Element) || !target.closest(".canvas-block") || target.closest(".canvas-block-toolbar, button, input, textarea, select, [role=\"button\"]")) return null;
-  const browserDocument = document as Document & {
-    caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
-    caretRangeFromPoint?: (x: number, y: number) => Range | null;
-  };
-  const caret = browserDocument.caretPositionFromPoint?.(x, y);
-  if (caret) {
-    const range = document.createRange();
-    range.setStart(caret.offsetNode, caret.offset);
-    range.collapse(true);
-    return range;
-  }
-  const range = browserDocument.caretRangeFromPoint?.(x, y) ?? null;
-  if (!range) return null;
-  range.collapse(true);
-  return range;
-}
-
-function editorOffset(root: HTMLElement, container: Node, offset: number) {
-  return richTextOffset(root, container, offset) ?? 0;
-}
-
-function editorTextOffset(root: HTMLElement, container: Node, offset: number) {
-  return richTextOffset(root, container, offset) ?? 0;
-}
-
-function selectionWithinEditor(editor: HTMLElement): TextSelection | null {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return null;
-  const range = selection.getRangeAt(0);
-  const start = editorOffset(editor, range.startContainer, range.startOffset);
-  const end = editorOffset(editor, range.endContainer, range.endOffset);
-  return start <= end ? { start, end } : { start: end, end: start };
-}
-
-function restoreEditorSelection(editor: HTMLElement, selection: TextSelection) {
-  const start = editorPointAtOffset(editor, selection.start);
-  const end = selection.start === selection.end ? start : richTextPointAtOffset(editor, selection.end, "backward");
-  if (!start || !end) return;
-  const range = document.createRange();
-  const safeOffset = (point: { node: Node; offset: number }) => Math.min(Math.max(0, point.offset), point.node.nodeType === Node.TEXT_NODE ? point.node.nodeValue?.length ?? 0 : point.node.childNodes.length);
-  range.setStart(start.node, safeOffset(start));
-  range.setEnd(end.node, safeOffset(end));
-  const nativeSelection = window.getSelection();
-  if (!nativeSelection) return;
-  nativeSelection.removeAllRanges();
-  nativeSelection.addRange(range);
-}
-
-function editorPointAtOffset(editor: HTMLElement, targetOffset: number) {
-  return richTextPointAtOffset(editor, targetOffset);
-}
-
-function applyCrossBlockSelection(start: Range, end: Range) {
-  const selection = window.getSelection();
-  if (!selection) return;
-  if (selection.setBaseAndExtent) {
-    selection.setBaseAndExtent(start.startContainer, start.startOffset, end.startContainer, end.startOffset);
-    return;
-  }
-  const range = document.createRange();
-  if (start.compareBoundaryPoints(Range.START_TO_START, end) <= 0) {
-    range.setStart(start.startContainer, start.startOffset);
-    range.setEnd(end.startContainer, end.startOffset);
-  } else {
-    range.setStart(end.startContainer, end.startOffset);
-    range.setEnd(start.startContainer, start.startOffset);
-  }
-  selection.removeAllRanges();
-  selection.addRange(range);
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-function runsToEditorHtml(runs: RichTextRun[], mediaUrls: Record<string, string> = {}, footnoteNumbers: Map<string, number> = new Map()) {
-  const html = mathRenderEntries(runs).map(({ run, legacyRuns }) => {
-    if (validInlineImageRun(run)) return inlineImageHtml(run.inline, mediaUrls, true);
-    if (validMathRun(run)) return mathObjectHtml(run.inline, true);
-    const legacyMath = legacyRuns ? legacyMathHtml(legacyRuns, true) : null;
-    if (legacyMath) return legacyMath;
-    if (run.inline && validFootnoteReference(run)) return `<sup contenteditable="false" data-footnote-object="${escapeHtml(run.inline.id)}"><a href="#footnote-${escapeHtml(run.inline.id)}" aria-label="Footnote ${footnoteNumbers.get(run.inline.id) ?? ""}">${footnoteNumbers.get(run.inline.id) ?? "†"}</a></sup>`;
-    let html = escapeHtml(run.text).replace(/\n/g, AUTHORED_LINE_BREAK_HTML);
-    for (const mark of run.marks ?? []) {
-      if (mark === "bold") html = `<strong>${html}</strong>`;
-      else if (mark === "italic") html = `<em>${html}</em>`;
-      else if (mark === "strikethrough") html = `<s>${html}</s>`;
-      else if (mark === "inline-code") html = `<code>${html}</code>`;
-      else if (mark === "subscript") html = `<sub>${html}</sub>`;
-      else if (mark === "superscript") html = `<sup>${html}</sup>`;
-      else if (mark === "keyboard") html = `<kbd>${html}</kbd>`;
-      else if (typeof mark !== "string" && mark.type === "highlight") {
-        const style = `color:${escapeHtml(mark.textColor ?? "inherit")};background-color:${escapeHtml(mark.backgroundColor ?? "transparent")}`;
-        html = `<mark${style ? ` style="${style}"` : ""}>${html}</mark>`;
-      } else if (typeof mark !== "string" && mark.type === "language") html = `<bdo lang="${escapeHtml(mark.language)}" dir="${mark.direction}">${html}</bdo>`;
-      else if (typeof mark !== "string" && mark.type === "math") html = `<span data-inline-math="true"${mark.latex ? ` data-math-latex="${escapeHtml(mark.latex)}"` : ""}${mark.mathml ? ` data-mathml="${escapeHtml(mark.mathml)}"` : ""} data-math-alt="${escapeHtml(mark.alternativeText)}">${html}</span>`;
-      else if (typeof mark !== "string" && mark.type === "inline-image") {
-        const source = mark.mediaId ? safeImageSource(mediaUrls[mark.mediaId] ?? "", { allowBlob: true }) : null;
-        const fallbackSource = source ?? safeImageSource(mark.src ?? "");
-        const image = fallbackSource ? `<img src="${escapeHtml(fallbackSource)}" alt="${escapeHtml(mark.alt)}"${mark.width ? ` width="${mark.width}"` : ""} />` : `<span>${escapeHtml(mark.alt)}</span>`;
-        html = `<span contenteditable="false" class="rich-text-inline-image" data-inline-image="true"${mark.mediaId ? ` data-media-id="${escapeHtml(mark.mediaId)}"` : ""}${mark.src ? ` data-image-src="${escapeHtml(mark.src)}"` : ""} data-inline-text="${escapeHtml(run.text)}" data-image-alt="${escapeHtml(mark.alt)}"${mark.width ? ` data-image-width="${mark.width}"` : ""}>${image}<span class="rich-text-inline-image-offset" aria-hidden="true">${escapeHtml(run.text)}</span></span>`;
-      } else if (typeof mark !== "string" && mark.type === "footnote") html = `<span data-footnote-ref="${escapeHtml(mark.id)}">${html}<sup data-footnote-marker="true">${footnoteNumbers.get(mark.id) ?? "†"}</sup></span>`;
-      else {
-        const href = safeTextLink(mark.url);
-        if (href) html = `<a href="${escapeHtml(href)}"${mark.opensInNewTab ? " target=\"_blank\" rel=\"noopener noreferrer\"" : ""}>${html}</a>`;
-      }
-    }
-    return html;
-  }).join("");
-  return html + (plainTextFromRuns(runs).endsWith("\n") ? LINE_BREAK_FILLER_HTML : "");
-}
-
-function sliceRichRuns(runs: RichTextRun[], start: number, end: number) {
-  let offset = 0;
-  return normaliseTextRuns(runs.flatMap((run) => {
-    const runStart = offset;
-    const runEnd = runStart + run.text.length;
-    offset = runEnd;
-    const sliceStart = Math.max(start, runStart);
-    const sliceEnd = Math.min(end, runEnd);
-    if (sliceEnd <= sliceStart) return [];
-    return [{ ...run, text: run.text.slice(sliceStart - runStart, sliceEnd - runStart), marks: run.marks?.length ? [...run.marks] : undefined }];
-  }));
-}
-
-function splitRunsAtBlankLines(runs: RichTextRun[]) {
-  const text = plainTextFromRuns(runs);
-  const parts: { runs: RichTextRun[]; start: number; end: number }[] = [];
-  const separators = /\n[\t ]*\n+/g;
-  let start = 0;
-  for (const match of text.matchAll(separators)) {
-    const separatorStart = match.index ?? start;
-    if (separatorStart > start) parts.push({ runs: sliceRichRuns(runs, start, separatorStart), start, end: separatorStart });
-    start = separatorStart + match[0].length;
-  }
-  if (start < text.length) parts.push({ runs: sliceRichRuns(runs, start, text.length), start, end: text.length });
-  return parts;
-}
-
-function focusRichTextEditorAtOffset(editor: HTMLElement, requestedOffset: number) {
-  const point = richTextPointAtOffset(editor, requestedOffset);
-  editor.focus({ preventScroll: true });
-  const range = document.createRange();
-  range.setStart(point.node, point.offset);
-  range.collapse(true);
-  const selection = window.getSelection();
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-}
-
-function editorToRuns(editor: HTMLElement) {
-  const runs: RichTextRun[] = [];
-  function visit(node: Node, inheritedMarks: TextMark[]) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      if (node.textContent) runs.push({ text: node.textContent, marks: inheritedMarks.length ? inheritedMarks : undefined });
-      return;
-    }
-    if (node.nodeType !== Node.ELEMENT_NODE) return;
-    const element = node as HTMLElement;
-    if (element.tagName === "BR") {
-      if (!isRichTextLineBreakFiller(element)) runs.push({ text: "\n", marks: inheritedMarks.length ? inheritedMarks : undefined });
-      return;
-    }
-    if (element.dataset.imageObject !== undefined) {
-      const image = inlineImageFromData(element.dataset.imageObject);
-      if (!image) throw new Error("Invalid saved inline image. Original content has been retained.");
-      runs.push(inlineImageRun(image));
-      return;
-    }
-    if (element.dataset.mathObject !== undefined || element.dataset.mathLegacy !== undefined) {
-      const math = mathObjectFromData(element.dataset.mathObject);
-      const legacy = legacyMathFromData(element.dataset.mathLegacy);
-      if (math) runs.push(mathRun(math));
-      else if (legacy) runs.push(...legacy);
-      else throw new Error("Invalid saved mathematical expression. Original content has been retained.");
-      return;
-    }
-    if (element.dataset.footnoteObject !== undefined) {
-      if (validFootnoteId(element.dataset.footnoteObject)) runs.push(footnoteReferenceRun(element.dataset.footnoteObject));
-      return;
-    }
-    if (element.dataset.inlineImage === "true") {
-      const src = safeImageSource(element.dataset.imageSrc ?? "");
-      const mediaId = element.dataset.mediaId;
-      if (mediaId || src) runs.push({ text: element.dataset.inlineText ?? "", marks: [...inheritedMarks, { type: "inline-image", mediaId: mediaId || undefined, src: src ?? undefined, alt: element.dataset.imageAlt ?? "", width: Number(element.dataset.imageWidth) || undefined }] });
-      return;
-    }
-    if (element.tagName === "MATH") {
-      const latex = element.getAttribute("data-latex");
-      const math = mathObjectFromData(JSON.stringify({ type: "math", ...(latex !== null ? { latex } : { mathml: element.outerHTML }), alternativeText: element.getAttribute("aria-label") ?? "" }));
-      if (!math) throw new Error("Unsupported mathematical markup. Original content has been retained.");
-      runs.push(mathRun(math));
-      return;
-    }
-    const marks = [...inheritedMarks];
-    if (element.tagName === "STRONG" || element.tagName === "B") marks.push("bold");
-    if (element.tagName === "EM" || element.tagName === "I") marks.push("italic");
-    if (["S", "STRIKE", "DEL"].includes(element.tagName)) marks.push("strikethrough");
-    if (element.tagName === "CODE") marks.push("inline-code");
-    if (element.tagName === "SUB") marks.push("subscript");
-    if (element.tagName === "SUP") marks.push("superscript");
-    if (element.tagName === "KBD") marks.push("keyboard");
-    if (element.dataset.inlineMath === "true") marks.push({ type: "math", latex: element.dataset.mathLatex, mathml: element.dataset.mathml, alternativeText: element.dataset.mathAlt ?? element.textContent ?? "" });
-    if (element.dataset.footnoteRef) marks.push({ type: "footnote", id: element.dataset.footnoteRef });
-    if (element.tagName === "MARK") marks.push({ type: "highlight", textColor: element.style.color && element.style.color !== "inherit" ? element.style.color : undefined, backgroundColor: element.style.backgroundColor && element.style.backgroundColor !== "transparent" ? element.style.backgroundColor : undefined });
-    if (element.lang || element.tagName === "BDO" && element.hasAttribute("dir")) marks.push({ type: "language", language: element.lang, direction: element.dir === "rtl" ? "rtl" : "ltr" });
-    if (element.tagName === "A") {
-      const href = safeTextLink(element.getAttribute("href") ?? "");
-      if (href) marks.push({ type: "link", url: href, opensInNewTab: element.getAttribute("target") === "_blank" || undefined });
-    }
-    element.childNodes.forEach((child) => {
-      if (child instanceof HTMLElement && child.dataset.footnoteMarker === "true") return;
-      visit(child, marks);
-    });
-    if (element.tagName === "DIV" || element.tagName === "P") runs.push({ text: "\n" });
-  }
-  editor.childNodes.forEach((node) => visit(node, []));
-  const nextRuns = normaliseTextRuns(runs);
-  const last = nextRuns[nextRuns.length - 1];
-  if (richTextTrailingSeparatorLength(editor) && last?.text.endsWith("\n")) last.text = last.text.slice(0, -1);
-  return normaliseTextRuns(nextRuns);
-}
-
-function AlignmentIcon({ align }: { align: TextAlignment }) {
-  const icons: Record<TextAlignment, IconName> = { left: "text.align-left", centre: "text.align-centre", right: "text.align-right" };
-  return <StudioHoverIcon name={icons[align]} />;
-}
-
-// Native textareas include glyph overflow in their height. Apply the same
-// measurement to preview headings so later fields cannot shift between modes.
-// Observe the stable wrapper instead of the element whose height is mutated;
-// this avoids a ResizeObserver feedback loop during layout changes.
-function useFittedTextHeight<T extends HTMLElement>(value: unknown, active = true) {
-  const textRef = useRef<T>(null);
-  useLayoutEffect(() => {
-    const element = textRef.current;
-    if (!element || !active) return;
-    const resize = () => {
-      element.style.height = "0px";
-      // scrollHeight excludes borders, whereas our fields use border-box sizing.
-      element.style.height = `${element.scrollHeight + element.offsetHeight - element.clientHeight}px`;
-    };
-    let animationFrame = 0;
-    const scheduleResize = () => {
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(() => {
-        animationFrame = 0;
-        resize();
-      });
-    };
-    scheduleResize();
-    let width = element.clientWidth;
-    const observedElement = element.parentElement ?? element;
-    const observer = new ResizeObserver(() => {
-      if (element.clientWidth !== width) { width = element.clientWidth; scheduleResize(); }
-    });
-    observer.observe(observedElement);
-    return () => {
-      observer.disconnect();
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-    };
-  }, [value, active]);
-  return textRef;
-}
-
-function AutoResizeTextarea({ value, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  const textareaRef = useFittedTextHeight<HTMLTextAreaElement>(value);
-  return <textarea {...props} ref={textareaRef} rows={1} value={value} />;
-}
-
-function ListField({ htmlEditorBlockId, renderBlockControls, selectedBlockId, hoveredBlockId, block, rootBlocks, mediaUrls, writable, onExitList, onSelectionChange, onLinkActivate, onChange }: { htmlEditorBlockId?: string; renderBlockControls?: (block: ContentBlock) => ReactNode; selectedBlockId?: string | null; hoveredBlockId?: string | null; block: EditableListBlock; rootBlocks: ContentBlock[]; mediaUrls: Record<string, string>; writable: boolean; onExitList?: (blockId: string, itemIndex: number, operation?: "return" | "backward" | "forward", listId?: string) => BlockCommandFocusTarget; onSelectionChange?: (block: EditableListBlock, index: number, selection: TextSelection | null) => void; onLinkActivate?: (block: EditableListBlock, index: number, selection: TextSelection) => void; onChange: (block: ContentBlock, requireSourceMatch?: boolean) => void }) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const feedback = useRichTextFeedback();
-  const currentRef = useRef({ block, writable, onChange });
-  useLayoutEffect(() => { currentRef.current = { block, writable, onChange }; });
-  const [activeItem, setActiveItem] = useState<{ listId: string; itemIndex: number } | null>(null);
-  const [compositionRevision, setCompositionRevision] = useState(0);
-  const listCompositionRef = useRef<ListTextSelection | null>(null);
-  const blockedListInputRef = useRef(false);
-
-  function textRange() { return listRef.current && readListTextSelection(currentRef.current.block, listRef.current); }
-
-  function replaceSelection(selection: ListTextSelection, replacement: RichTextRun[]) {
-    const current = currentRef.current;
-    if (!current.writable) return false;
-    const result = replaceListText(current.block, selection, replacement);
-    if (!result) { feedback?.("Text across nested Lists can be selected, copied and formatted. Edit each List Item separately to change its content."); return false; }
-    current.onChange(result.block);
-    requestAnimationFrame(() => {
-      if (listRef.current && currentRef.current.block.id === selection.rootId) restoreListTextSelection(listRef.current, { anchor: result.caret, focus: result.caret });
-    });
-    return true;
-  }
-
-  // Separate contenteditable hosts cannot safely perform a native replacement:
-  // its input event would save just one item. Capture the operation at the List.
-  useLayoutEffect(() => {
-    const element = listRef.current;
-    if (!element) return;
-    const beforeInput = (event: InputEvent) => {
-      if (listCompositionRef.current) return; // IME DOM changes are staged until compositionend.
-      const selection = textRange();
-      if (!selection || !/^(insert|delete|format)/.test(event.inputType)) return;
-      if (!event.cancelable) {
-        blockedListInputRef.current = true;
-        feedback?.("Place the caret within one List Item for this input method.");
-        return;
-      }
-      event.preventDefault(); event.stopPropagation();
-      if (!currentRef.current.writable) return;
-      if (["insertText", "insertReplacementText"].includes(event.inputType)) {
-        const text = event.data ?? event.dataTransfer?.getData("text/plain");
-        if (text === undefined || text === null) { feedback?.("This replacement did not include text. The selected List Items were retained."); return; }
-        replaceSelection(selection, textToRuns(text));
-      }
-      else if (event.inputType.startsWith("delete")) replaceSelection(selection, []);
-      else feedback?.("Choose a text-formatting control, or edit within one List Item for this operation.");
-    };
-    element.addEventListener("beforeinput", beforeInput, true);
-    return () => element.removeEventListener("beforeinput", beforeInput, true);
-  });
-
-  function copySelection(event: ReactClipboardEvent<HTMLDivElement>, cut = false) {
-    const selection = textRange();
-    if (!selection) return;
-    event.preventDefault(); event.stopPropagation();
-    if (listTextContainsFootnotes(currentRef.current.block, selection)) { feedback?.("Use the List block’s Copy or Cut action to include its Footnote text."); return; }
-    const segments = listTextSegments(currentRef.current.block, selection);
-    if (!segments) return;
-    const selectedRuns = segments.map(segment => sliceTextRuns(segment.runs, segment.start, segment.end));
-    const plain = selectedRuns.map(plainTextFromRuns).join("\n");
-    event.clipboardData.setData("text/plain", plain);
-    event.clipboardData.setData("text/html", blockToHtml({ id: "selected-list-text", type: "list", style: currentRef.current.block.style, items: selectedRuns.map(runs => listItemWithTextRuns("", plainTextFromRuns(runs), runs)) }));
-    // Source removal is allowed only after both clipboard representations exist.
-    if (cut) replaceSelection(selection, []);
-  }
-  function selectItem(list: EditableListBlock, index: number, selection: TextSelection | null = null) {
-    setActiveItem({ listId: list.id, itemIndex: index });
-    onSelectionChange?.(list, index, selection);
-  }
-
-  function focusItem(listId: string, index: number, offset = 0) {
-    requestAnimationFrame(() => {
-      const target = [...(listRef.current?.querySelectorAll<HTMLElement>("[data-list-context-id][data-list-item-index]") ?? [])]
-        .find(element => element.dataset.listContextId === listId && element.dataset.listItemIndex === String(index));
-      if (target) focusRichTextEditorAtOffset(target, offset);
-    });
-  }
-
-  function updateItem(list: EditableListBlock, index: number, value: string, runs: RichTextRun[]) {
-    onChange(updateListItem(block, list.id, index, item => listItemWithTextRuns(item, value, runs)));
-  }
-
-  function renderList(list: EditableListBlock, depth: number): ReactNode {
-    const items = list.items.length ? list.items : [""];
-    return <div className={`list-field-editor is-${list.style}${depth ? " is-nested" : ""}${blockAlignmentClass(list) ? ` ${blockAlignmentClass(list)}` : ""}`} data-list-context-id={list.id}>
-      {items.map((item, index) => {
-        const children = typeof item === "string" ? [] : item.children ?? [];
-        const label = `${list.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}${depth ? `, level ${depth + 1}` : ""}`;
-        const itemStyle = typeof item === "string" ? undefined : item.style;
-        return <div id={paragraphStyleAnchor(itemStyle)} className={`list-field-row${itemStyle ? ` ${visualStyleClassName(itemStyle)}` : ""}`} style={paragraphStyleToCss(itemStyle) as React.CSSProperties} key={`${list.id}-item-${index}`}>
-          <span className="list-field-marker" aria-hidden="true">{list.style === "ordered" ? listMarker(list, index) : "•"}</span>
-          <div className="list-field-item-content">
-            <RichTextEditor key={JSON.stringify([block.id, list.id, list.items.length, compositionRevision])} className="list-item-editor" style={listItemTextStyle(itemStyle) as React.CSSProperties} data-studio-block-id={list.id} data-list-context-id={list.id} data-list-item-index={index} text={listItemText(item)} runs={typeof item === "string" ? undefined : item.runs} mediaUrls={mediaUrls} onChange={(text, runs) => updateItem(list, index, text, runs)} onFocus={() => selectItem(list, index)} onSelectionChange={(selection) => selectItem(list, index, selection)} onLinkActivate={(selection) => onLinkActivate?.(list, index, selection)} onSplitParagraph={(beforeRuns, afterRuns) => {
-              if (listItemIsEmpty(item)) {
-                if (depth > 0) {
-                  const moved = outdentListItem(block, list.id, index, rootBlocks);
-                  if (moved) { onChange(moved.block); focusItem(moved.listId, moved.itemIndex); }
-                  return null;
-                }
-                return onExitList?.(block.id, index) ?? null;
-              }
-              const nextItems = [...items];
-              nextItems[index] = listItemWithTextRuns(item, plainTextFromRuns(beforeRuns), beforeRuns);
-              nextItems.splice(index + 1, 0, listItemAfterSplit(item, plainTextFromRuns(afterRuns), afterRuns));
-              onChange(replaceListItems(block, list.id, nextItems));
-              focusItem(list.id, index + 1);
-              return null;
-            }} onKeyDown={(event) => {
-              if (!writable || event.defaultPrevented || event.nativeEvent?.isComposing) return;
-              if (event.key === "Tab") {
-                const moved = event.shiftKey
-                  ? outdentListItem(block, list.id, index, rootBlocks)
-                  : indentListItem(block, list.id, index, () => `list-${crypto.randomUUID()}`);
-                if (moved) { event.preventDefault(); onChange(moved.block); focusItem(moved.listId, moved.itemIndex); }
-                return;
-              }
-              if (!["Backspace", "Delete"].includes(event.key) || event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) return;
-              const selection = window.getSelection();
-              const editor = event.currentTarget;
-              if (!selection?.isCollapsed || !selection.anchorNode || !editor.contains(selection.anchorNode)) return;
-              const offset = editorTextOffset(editor, selection.anchorNode, selection.anchorOffset);
-              const backward = event.key === "Backspace";
-              if ((backward && offset !== 0) || (!backward && offset !== listItemText(item).length)) return;
-              if (backward && list.id === block.id && index === 0) {
-                event.preventDefault();
-                const focusTarget = onExitList?.(block.id, index, "backward");
-                if (focusTarget) scheduleBlockCommandFocus(editor, focusTarget, listRef.current ?? document,
-                  target => focusRichTextEditorAtOffset(target, typeof focusTarget === "string" ? 0 : focusTarget.offset ?? 0));
-                return;
-              }
-              const merged = mergeListItemBoundary(block, list.id, index, backward ? "backward" : "forward", rootBlocks);
-              if (!merged) {
-                event.preventDefault();
-                const focusTarget = !backward ? onExitList?.(block.id, index, "forward", list.id) : null;
-                if (focusTarget) scheduleBlockCommandFocus(editor, focusTarget, listRef.current ?? document,
-                  target => focusRichTextEditorAtOffset(target, typeof focusTarget === "string" ? 0 : focusTarget.offset ?? 0));
-                return;
-              }
-              event.preventDefault(); onChange(merged.block, true);
-              scheduleBlockCommandFocus(editor, { blockId: merged.listId, listItemIndex: merged.itemIndex,
-                isAccepted: () => currentRef.current.writable && JSON.stringify(currentRef.current.block) === JSON.stringify(merged.block),
-              }, listRef.current ?? document, target => focusRichTextEditorAtOffset(target, merged.offset));
-
-            }} aria-label={label} data-placeholder="List item" />
-            {activeItem?.listId === list.id && activeItem.itemIndex === index ? <ListItemIndentControls block={block} rootBlocks={rootBlocks} selection={activeItem} writable={writable} onChange={next => onChange(next)} onSelectionChange={(nextList, nextIndex) => selectItem(nextList, nextIndex)} /> : null}
-            {children.map(child => <div className="list-field-nested studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}>
-              {renderBlockControls?.(child)}
-              {htmlEditorBlockId === child.id ? null : child.editorial?.hidden ? <HiddenBlockPlaceholder block={child} writable={writable} onShow={() => onChange(editBlockSiblings([block], child.id, (siblings, position) => siblings.map((candidate, siblingIndex) => siblingIndex === position ? { ...candidate, editorial: { ...candidate.editorial, hidden: false } } : candidate))[0])} /> : <div id={paragraphStyleAnchor(child.visualStyle)} className={child.visualStyle ? visualStyleClassName(child.visualStyle) : undefined} style={paragraphStyleToCss(child.visualStyle) as React.CSSProperties}>{renderList(child, depth + 1)}</div>}
-            </div>)}
-          </div>
-        </div>;
-      })}
-    </div>;
-  }
-
-  return <div ref={listRef} className="list-field-root" data-list-root-id={block.id} onCompositionStartCapture={() => { listCompositionRef.current = textRange(); }} onCompositionEndCapture={event => {
-    const selection = listCompositionRef.current;
-    if (!selection) return;
-    listCompositionRef.current = null;
-    blockedListInputRef.current = true;
-    if (event.data) replaceSelection(selection, textToRuns(event.data));
-    // Remount the hosts even after cancellation/rejection to discard unsaved
-    // composition DOM, including a native edit in a different item host.
-    setCompositionRevision(revision => revision + 1);
-    requestAnimationFrame(() => { blockedListInputRef.current = false; });
-  }} onInputCapture={event => {
-    if (!listCompositionRef.current && !blockedListInputRef.current) return;
-    event.stopPropagation();
-    if (!listCompositionRef.current) { blockedListInputRef.current = false; setCompositionRevision(revision => revision + 1); }
-  }} onCopyCapture={event => copySelection(event)} onCutCapture={event => copySelection(event, true)} onPasteCapture={event => {
-    const selection = textRange();
-    if (!selection) return;
-    event.preventDefault(); event.stopPropagation();
-    if (!currentRef.current.writable) return;
-    if (readBlockClipboardPayload(event.clipboardData.getData("text/html")) || readBlockClipboardPayload(event.clipboardData.getData("text/plain"))) { feedback?.("Paste copied blocks at a block boundary. Place the caret within one List Item to paste text."); return; }
-    const parsed = readMathClipboardRuns(event.clipboardData.getData("text/html"), editorToRuns);
-    if (parsed.handled && "error" in parsed) { feedback?.(parsed.error); return; }
-    const runs = parsed.handled ? parsed.runs : textToRuns(event.clipboardData.getData("text/plain"));
-    replaceSelection(selection, runs);
-  }} onKeyDownCapture={event => {
-    if (event.target instanceof Element && !event.target.closest(".list-item-editor")) return;
-    if (event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) && listRef.current && extendListTextSelection(listRef.current, event.key, currentRef.current.block)) {
-      event.preventDefault(); event.stopPropagation(); return;
-    }
-    const selection = textRange();
-    if (!selection) return;
-    const primary = event.metaKey || event.ctrlKey;
-    if (primary && !event.altKey && !event.shiftKey && ["b", "i"].includes(event.key.toLowerCase())) {
-      event.preventDefault(); event.stopPropagation();
-      if (!currentRef.current.writable) return;
-      const next = formatListText(currentRef.current.block, selection, event.key.toLowerCase() === "b" ? "bold" : "italic");
-      currentRef.current.onChange(next);
-      requestAnimationFrame(() => { if (listRef.current && currentRef.current.block.id === selection.rootId) restoreListTextSelection(listRef.current, selection); });
-    } else if (!event.nativeEvent.isComposing && ["Backspace", "Delete"].includes(event.key)) {
-      event.preventDefault(); event.stopPropagation(); replaceSelection(selection, []);
-    } else if (!event.shiftKey && !primary && !event.altKey && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Escape"].includes(event.key)) {
-      const segments = listTextSegments(currentRef.current.block, selection);
-      const backward = ["ArrowLeft", "ArrowUp", "Escape"].includes(event.key);
-      const edge = backward ? segments?.[0] : segments?.at(-1);
-      if (edge && listRef.current) {
-        event.preventDefault(); event.stopPropagation();
-        const caret = { listId: edge.listId, itemIndex: edge.itemIndex, offset: backward ? edge.start : edge.end };
-        restoreListTextSelection(listRef.current, { anchor: caret, focus: caret });
-      }
-    } else if (["Enter", "Tab"].includes(event.key)) {
-      event.preventDefault(); event.stopPropagation(); feedback?.("Place the caret within one List Item to split or indent it.");
-    }
-  }}>{renderList(block, 0)}</div>;
-}
-
-export function TableField({ block, mediaUrls = {}, writable = true, showCaptionControl = false, onCellFocus, onCaptionFocus, onTextSelection, onLinkActivate, onChange }: { block: Extract<ContentBlock, { type: "table" }>; mediaUrls?: Record<string, string>; writable?: boolean; showCaptionControl?: boolean; onCellFocus: (rowIndex: number, columnIndex: number) => void; onCaptionFocus: () => void; onTextSelection: (selection: TextSelection | null, rowIndex?: number, columnIndex?: number) => void; onLinkActivate: (selection: TextSelection, rowIndex?: number, columnIndex?: number) => void; onChange: (block: ContentBlock) => void }) {
-  const rows = block.rows.length ? block.rows : [[""]];
-  const columnCount = Math.max(1, ...rows.map((row) => row.length));
-  const normalisedRows = rows.map((row) => Array.from({ length: columnCount }, (_, index) => row[index] ?? ""));
-  const captionId = useId();
-  const captionRef = useRef<HTMLElement>(null);
-  const caption = useTableCaption(block);
-  useLayoutEffect(() => {
-    if (caption.focusRequested && caption.visible) {
-      captionRef.current?.querySelector<HTMLElement>(".table-caption-editor")?.focus();
-      caption.focusHandled();
-    }
-  }, [caption]);
-  const tableRef = useRef<HTMLTableElement>(null);
-  const [initialColumnCount, setInitialColumnCount] = useState("2");
-  const [initialRowCount, setInitialRowCount] = useState("2");
-  const columnWidths = normaliseTableColumnWidths(columnCount, block.columnWidths);
-  const rowHeights = block.rowHeights;
-  const { headerRowCount, footerRowCount, bodyStart, bodyEnd } = tableRowSections(block);
-
-  function updateCell(rowIndex: number, columnIndex: number, value: string, runs: RichTextRun[]) {
-    const nextRows = normalisedRows.map((row) => [...row]);
-    nextRows[rowIndex][columnIndex] = value;
-    const nextCellRuns = block.rows.map((row, sourceRow) => row.map((_cell, sourceColumn) => block.cellRuns?.[sourceRow]?.[sourceColumn] ?? textToRuns(block.rows[sourceRow][sourceColumn])));
-    nextCellRuns[rowIndex][columnIndex] = runs;
-    const hasMarks = nextCellRuns.some((row) => row.some((cellRuns) => cellRuns.some((run) => run.inline || run.marks?.length)));
-    onChange({ ...block, rows: nextRows, cellRuns: hasMarks ? nextCellRuns : undefined });
-  }
-
-  function renderRow(row: string[], rowIndex: number, section: "header" | "body" | "footer") {
-    const defaultTag = section === "header" ? "th" : "td";
-    return (
-      <tr key={`row-${rowIndex}`} style={rowHeights?.[rowIndex] ? { height: rowHeights[rowIndex] } : undefined}>
-        {row.map((cell, columnIndex) => {
-          const metadata = tableCellMetadataAt(block.cellMetadata, rowIndex, columnIndex);
-          const Cell = tableCellTagFor(metadata, defaultTag) === "th" ? "th" : "td";
-          return <Cell key={columnIndex} scope={tableCellScopeFor(metadata, defaultTag)} style={{ textAlign: block.columnAlignments?.[columnIndex] === "centre" ? "center" : block.columnAlignments?.[columnIndex] ?? "left" }}>
-            <RichTextEditor
-              key={JSON.stringify([block.id, headerRowCount, footerRowCount, block.rows.map(row => row.length)])}
-              className="table-cell-editor"
-              mediaUrls={mediaUrls}
-              text={cell}
-              runs={block.cellRuns?.[rowIndex]?.[columnIndex]}
-              onFocus={() => { onCellFocus(rowIndex, columnIndex); onTextSelection(null, rowIndex, columnIndex); }}
-              onChange={(text, runs) => updateCell(rowIndex, columnIndex, text, runs)}
-              onSelectionChange={(selection) => onTextSelection(selection, rowIndex, columnIndex)}
-              onLinkActivate={(selection) => onLinkActivate(selection, rowIndex, columnIndex)}
-              data-studio-block-id={block.id}
-              data-table-cell-row={rowIndex}
-              data-table-cell-column={columnIndex}
-              data-placeholder={section === "header" ? "Header label" : section === "footer" ? "Footer label" : undefined}
-              aria-label={section === "body" ? `Table row ${rowIndex - bodyStart + 1}, column ${columnIndex + 1}` : (section === "header" ? headerRowCount : footerRowCount) > 1 ? `Table ${section} row ${rowIndex - (section === "footer" ? bodyEnd : 0) + 1}, column ${columnIndex + 1}` : `Table ${section} ${columnIndex + 1}`}
-            />
-          </Cell>;
-        })}
-      </tr>
-    );
-  }
-
-  if (!block.rows.length) return <div className="table-placeholder" data-studio-nested-block-id={block.id}>
-    <div className="table-placeholder-heading"><AcmIcon name="block.table" scale="Regular-M" size={24} /><strong>Table</strong></div>
-    <p>Insert a table for sharing data.</p>
-    <form onSubmit={event => {
-      event.preventDefault();
-      const columns = Number(initialColumnCount || 2);
-      const rowCount = Number(initialRowCount || 2);
-      if (!Number.isInteger(columns) || !Number.isInteger(rowCount) || columns < 1 || rowCount < 1 || columns > 100 || rowCount > 100) return;
-      onChange({ ...block, rows: Array.from({ length: rowCount }, () => Array.from({ length: columns }, () => "")), hasHeader: undefined, hasFooter: undefined, headerRowCount: undefined, footerRowCount: undefined, cellRuns: undefined, cellMetadata: undefined, columnWidths: undefined, rowHeights: undefined, columnAlignments: undefined });
-      requestAnimationFrame(() => tableRef.current?.querySelector<HTMLElement>(".table-cell-editor")?.focus());
-    }}>
-      <label><span>Column count</span><input type="number" min="1" max="100" step="1" value={initialColumnCount} onChange={event => setInitialColumnCount(event.target.value)} /></label>
-      <label><span>Row count</span><input type="number" min="1" max="100" step="1" value={initialRowCount} onChange={event => setInitialRowCount(event.target.value)} /></label>
-      <button type="submit">Create Table</button>
-    </form>
-  </div>;
-
-  return (
-    <figure className={`table-field${tablePresentation(block.visualStyle).hasBorder ? " has-table-border" : ""}${block.tableStyle === "stripes" ? " is-striped" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} data-studio-nested-block-id={block.id}>
-      {showCaptionControl ? <div className="table-caption-actions"><TableCaptionControl block={block} writable={writable} onChange={onChange} /></div> : null}
-      <table className={`table-field-grid${block.fixedWidth === false ? " is-auto-layout" : ""}`} style={tablePresentation(block.visualStyle).table} aria-labelledby={block.caption ? captionId : undefined} ref={tableRef}>
-        {block.fixedWidth !== false ? <colgroup>{columnWidths.map((width, index) => <col key={`column-${index}`} style={{ width: `${width}%` }} />)}</colgroup> : null}
-        {headerRowCount ? <thead>{normalisedRows.slice(0, headerRowCount).map((row, index) => renderRow(row, index, "header"))}</thead> : null}
-        <tbody>{normalisedRows.slice(bodyStart, bodyEnd).map((row, index) => renderRow(row, index + bodyStart, "body"))}</tbody>
-        {footerRowCount ? <tfoot>{normalisedRows.slice(bodyEnd).map((row, index) => renderRow(row, index + bodyEnd, "footer"))}</tfoot> : null}
-      </table>
-        {caption.visible ? <figcaption id={captionId} ref={captionRef}><RichTextEditor mediaUrls={mediaUrls} as="span" className="table-caption-editor" text={block.caption ?? ""} runs={block.captionRuns} onFocus={onCaptionFocus} onChange={(caption, captionRuns) => onChange({ ...block, caption: caption || undefined, captionRuns: captionRuns.length ? captionRuns : undefined })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Add caption" aria-label="Table caption" /></figcaption> : null}
-    </figure>
-  );
-}
-
-/** The same Gutenberg-style table action menu used by top-level tables. */
-function focusTableCell(blockId: string, cell: TableCell) {
-  requestAnimationFrame(() => {
-    const editor = [...document.querySelectorAll<HTMLElement>(".table-cell-editor[data-studio-block-id]")].find(element =>
-      element.dataset.studioBlockId === blockId && element.dataset.tableCellRow === String(cell.rowIndex) && element.dataset.tableCellColumn === String(cell.columnIndex));
-    if (editor) focusRichTextEditorAtOffset(editor, 0);
-  });
-}
-
-export function TableControls({ block, activeCell, writable = true, protectEdges = false, onActiveCellChange, onChange }: { block: Extract<ContentBlock, { type: "table" }>; activeCell?: TableCell | null; writable?: boolean; protectEdges?: boolean; onActiveCellChange?: (cell: TableCell | null) => void; onChange: (block: ContentBlock) => void }) {
-  const [open, setOpen] = useState(false);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const selected = validTableActiveCell(block, activeCell);
-  const { bodyStart, bodyEnd } = tableRowSections(block);
-  const rowProtected = selected && protectEdges && (activeCell.rowIndex < bodyStart || activeCell.rowIndex >= bodyEnd);
-  const columnProtected = selected && protectEdges && (activeCell.columnIndex === 0 || activeCell.columnIndex === block.rows[0].length - 1);
-  function apply(action: TableAction) {
-    if (!writable || !selected || (action === "delete-row" && rowProtected) || (action === "delete-column" && columnProtected)) return;
-    const result = applyTableStructureAction(block, action, activeCell);
-    if (!result) return;
-    onChange(result.block);
-    onActiveCellChange?.(result.activeCell);
-    setOpen(false);
-    trigger.current?.focus();
-    if (result.activeCell) focusTableCell(block.id, result.activeCell);
-  }
-  const actions: Array<[TableAction, string]> = [["insert-row-before", "Insert row before"], ["insert-row-after", "Insert row after"], ["delete-row", "Delete row"], ["insert-column-before", "Insert column before"], ["insert-column-after", "Insert column after"], ["delete-column", "Delete column"]];
-  if (!block.rows.length) return null;
-  return <div className="table-control"><button ref={trigger} className={`table-control-button${open ? " is-active" : ""}`} type="button" onMouseDown={event => event.preventDefault()} onClick={() => { setOpen(!open); if (open) trigger.current?.focus(); }} aria-haspopup="menu" aria-expanded={open} aria-label="Table options" title="Table options"><TableIcon /></button>{open ? <StudioAnchoredMenu anchor={() => trigger.current} className="table-menu" aria-label="Table options" onClose={restoreFocus => { setOpen(false); if (restoreFocus !== false) trigger.current?.focus(); }}>{actions.map(([action, label]) => {
-    const protectedAction = (action === "delete-row" && rowProtected) || (action === "delete-column" && columnProtected);
-    return <button type="button" role="menuitem" key={action} onMouseDown={event => event.preventDefault()} onClick={() => apply(action)} disabled={!writable || !selected || protectedAction} title={protectedAction ? "Scorecard header, footer and boundary columns are kept intact." : undefined}><TableActionIcon action={action} /><span>{label}</span></button>;
-  })}</StudioAnchoredMenu> : null}</div>;
 }

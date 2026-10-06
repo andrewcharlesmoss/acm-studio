@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { webcrypto } from "node:crypto";
@@ -931,7 +932,7 @@ test("template zoom controls and canvas wiring apply consistently to Edit and Pr
   assert.match(html, /aria-label="Zoom in"/);
   assert.match(html, /style="width:1200px;zoom:1"/);
   const editor = readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
-  const canvas = readFileSync(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(editor, /canvasZoom: zoom/);
   assert.match(editor, /document\.addEventListener\("keydown", onKeyDown, true\)/);
   assert.match(canvas, /canvasZoom\?: number/);

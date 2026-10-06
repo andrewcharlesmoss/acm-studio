@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import ts from "typescript";
 import { blockCapabilityProfiles, capabilityProfileFor, hasScopedStyleControls, listItemCapabilityProfile, listItemSupportedStyleFields, resetInspectorStyleFields, retainedLegacyStyleControls, scopedStyleSectionIds } from "../app/studio/blocks/capability-profiles.ts";
 import { studioControlEntries, studioControlEntryById } from "../app/studio/controls/library-catalogue.ts";
+import { readStudioSource } from "./studio-module-source.mjs";
 
-const read = path => readFileSync(resolve(path), "utf8");
+const read = path => readStudioSource(path);
 
 test("all typed blocks and template Content have complete, ordered inspector capability profiles", () => {
   const profiles = Object.values(blockCapabilityProfiles);

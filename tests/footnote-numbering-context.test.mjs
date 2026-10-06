@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { createElement } from "react";
@@ -36,7 +37,7 @@ test("Library and main editor supply their complete document to the shared provi
   // The catalogue import graph is cyclic for the focused module loader;
   // mounted Library behaviour is checked separately in the browser.
   const library = await readFile(new URL("../app/studio/ui/blocks/block-specimen-catalogue.tsx", import.meta.url), "utf8");
-  const canvas = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+  const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(library, /return <FootnoteNumbersProvider blocks=\{data\.blocks\}><TableCaptionProvider/);
   assert.match(canvas, /<FootnoteNumbersProvider blocks=\{props\.activeDocument\.blocks\}>/);
   assert.doesNotMatch(canvas, /const FootnoteNumbersContext/);

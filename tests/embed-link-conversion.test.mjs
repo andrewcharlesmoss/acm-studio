@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { createElement } from "react";
@@ -56,7 +56,7 @@ test("missing or changed root source refuses a stale proposal", () => {
   assert.equal(embedLinkParagraph(block, [{ ...block, title: "Changed" }]), null);
 });
 
-const canvasSource = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const canvasSource = readStudioSource("app/studio/studio-canvas.tsx");
 const syntax = ts.createSourceFile("studio-canvas.tsx", canvasSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 let callback;
 function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === "convertToLink") callback = node.getText(syntax); ts.forEachChild(node, visit); }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
 import ts from "typescript";
@@ -62,7 +62,7 @@ test("editor export and Preview use bdo for directional override", () => {
   assert.match(html.blockToHtml(block), /<bdo lang="" dir="rtl">x<\/bdo>/);
   assert.match(renderToStaticMarkup(React.createElement(content.BlockRenderer, { blocks: [block], variant: "studio" })), /<bdo lang="" dir="rtl">x<\/bdo>/);
 });
-const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const source = readStudioSource("app/studio/studio-canvas.tsx");
 const tree = ts.createSourceFile("canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const declarations = new Map();
 function collect(node) { if (ts.isFunctionDeclaration(node) && node.name) declarations.set(node.name.text, node); ts.forEachChild(node, collect); }

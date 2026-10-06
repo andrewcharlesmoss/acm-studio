@@ -130,7 +130,7 @@ test('actual Main, Mini Golf, Template and Library callbacks dispatch the canoni
 });
 
 test('actual Columns inspector disables a refused reduction and exposes its reason',async()=>{
-  const ast=await astOf('../app/studio/studio-inspectors.tsx');const owner=nodes(ast,n=>ts.isFunctionDeclaration(n)&&n.name?.text==='ColumnsInspector')[0];
+  const ast=await astOf('../app/studio/blocks/inspectors/block-inspector.tsx');const owner=nodes(ast,n=>ts.isFunctionDeclaration(n)&&n.name?.text==='ColumnsInspector')[0];
   const context={React,useId:()=> 'count-help',proposeColumnCountChange,InspectorAccordionSection:()=>null,AcmIcon:()=>null};
   const code=ts.transpileModule(`${owner.getText(ast)}\nColumnsInspector;`,{compilerOptions:{target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.React}}).outputText;
   const Inspector=vm.runInNewContext(code,context);const blocked=fixture();blocked.children[0].allowedBlocks=['heading'];

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readStudioSource } from "./studio-module-source.mjs";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import ts from "typescript";
@@ -7,7 +7,7 @@ import { loadProductionModule } from "./production-module.mjs";
 
 const datesUrl = new URL("../app/studio/publication-date.ts", import.meta.url);
 const dates = await loadProductionModule(datesUrl);
-const inspectorSource = await readFile(new URL("../app/studio/studio-inspectors.tsx", import.meta.url), "utf8");
+const inspectorSource = readStudioSource("app/studio/studio-inspectors.tsx");
 const inspectorTree = ts.createSourceFile("inspector.tsx", inspectorSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const dateHandlers = new Map();
 function collectDateHandlers(node) {
@@ -94,7 +94,7 @@ test("publication calendar retains Monday-first padding and leap days", () => {
 
 test("Publish picker labels its existing local calendar fields with the selected-date offset", async () => {
   const source = inspectorSource;
-  assert.match(source, /from "\.\/publication-date"/);
+  assert.match(source, /from "\.\.\/\.\.\/publication-date"/);
   assert.match(source, /className="publish-timezone" title="Local time on this device">\{formatPublicationTimezone\(selectedDate\)\}/);
   assert.doesNotMatch(source, />UTC\+0<\/span>/);
   assert.match(source, /selectedDate\.getHours\(\)/);

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
@@ -53,7 +54,7 @@ test("block pointer hit testing selects the deepest owner and ignores detached o
   assert.equal(blockSelectionPointerTarget(null, 80, 90), null);
 });
 
-const source = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const source = readStudioSource("app/studio/studio-canvas.tsx");
 const ast = ts.createSourceFile("canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const owner = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "StudioCanvasContent");
 function handler(name, scope) {

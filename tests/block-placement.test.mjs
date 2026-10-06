@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
+import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
@@ -92,7 +92,7 @@ test("column geometry measures direct children and compensates transformed canva
   assert.equal(columnDropPosition(canvas, element, 140, 130).height, 24);
 });
 
-const canvasSource = await readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8");
+const canvasSource = readStudioSource("app/studio/studio-canvas.tsx");
 const canvasAst = ts.createSourceFile("canvas.tsx", canvasSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const owner = canvasAst.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "StudioCanvasContent");
 const handler = name => ts.transpileModule(`globalThis.handler = ${owner.body.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === name).getText(canvasAst)}`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
