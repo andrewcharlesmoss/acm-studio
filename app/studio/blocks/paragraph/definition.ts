@@ -10,7 +10,7 @@ export const paragraphBlockDefinition = {
   description: paragraphInspectorProfile.description ?? "Start with the basic building block of all narrative.",
   libraryHref: "/studio/ui/blocks/paragraph",
   librarySummary: "Ordinary prose with inline formatting and Gutenberg-focused block settings.",
-  create: (id: string): Extract<ContentBlock, { type: "paragraph" }> => ({ id, type: "paragraph", text: "Start writing here." }),
+  create: (id: string): Extract<ContentBlock, { type: "paragraph" }> => ({ id, type: "paragraph", text: "" }),
   inspector: {
     ...paragraphInspectorProfile,
     transforms: availableBlockTransforms({ id: "paragraph-library", type: "paragraph", text: "" } as ContentBlock).map(transform => ({ type: transform.target, label: transform.label })),
