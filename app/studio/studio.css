@@ -1284,12 +1284,8 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .paragraph-custom-font-size-input { align-items: stretch; background: white; border: 1px solid #8d8d8d; border-radius: 2px; display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 40px; position: relative; }
 .paragraph-custom-font-size-input input[type="number"],.paragraph-length-controls input[type="number"],.box-length-custom input[type="number"] { font-family: var(--studio-ui-font); font-size: var(--studio-ui-size); }
 .paragraph-custom-font-size-input input[type="number"] { background: transparent; border: 0; border-radius: 0; min-width: 0; outline: 0; padding: 8px 4px 8px 12px; width: var(--studio-number-field-width); }
-.paragraph-custom-font-size-unit { background: transparent; border: 0; border-radius: 0; color: var(--ink); cursor: pointer; font: inherit; min-width: 42px; padding: 8px 12px 8px 5px; }
+.paragraph-custom-font-size-unit { appearance: none; background: transparent; border: 0; border-radius: 0; color: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); cursor: pointer; font: inherit; min-width: 32px; padding: 4px; width: 32px; }
 .paragraph-custom-font-size-unit:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -2px; }
-.paragraph-custom-font-size-unit-menu { background: white; border: 1px solid #d1cfc7; border-radius: 10px; box-shadow: 0 8px 24px #0002; display: grid; min-width: 104px; overflow: auto; padding: 5px; position: fixed; z-index: 85; }
-.paragraph-custom-font-size-unit-menu button { align-items: center; background: transparent; border: 0; border-radius: 5px; color: var(--ink); cursor: pointer; display: grid; font: inherit; grid-template-columns: 18px 1fr; min-height: 34px; padding: 6px 8px; text-align: left; }
-.paragraph-custom-font-size-unit-menu button:hover, .paragraph-custom-font-size-unit-menu button:focus-visible { background: #eeece7; outline: 0; }
-.paragraph-custom-font-size-unit-check { align-items: center; display: inline-flex; height: 18px; justify-content: center; width: 18px; }
 .paragraph-custom-font-size-input:focus-within:has(:focus-visible) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 /* Shared Gutenberg-style treatment for value sliders; colour spectrum inputs keep their specialist tracks. */
 .studio-range-control[type="range"] { accent-color: var(--studio-range-accent, var(--gutenberg-accent)); appearance: auto; -webkit-appearance: auto; background: transparent; border: 0; cursor: pointer; min-height: 20px; min-width: 0; padding: 0; }
