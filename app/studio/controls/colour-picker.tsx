@@ -37,6 +37,9 @@ type ColourPickerProps = {
   warningStates?: string;
   defaultWarning?: boolean;
   hoverWarning?: boolean;
+  warningMessage?: string;
+  hoverWarningMessage?: string;
+  announceWarning?: boolean;
   descriptionId?: string;
   wrapperClassName?: string;
   paletteClassName?: string;
@@ -46,7 +49,7 @@ type ColourPickerProps = {
   additionalControls?: ReactNode;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, disabled = false, additionalControls }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, disabled = false, additionalControls }: ColourPickerProps) {
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
   const [customOpen, setCustomOpen] = useState(false);
@@ -66,6 +69,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const activeValue = activeState === "hover" && hasHoverState ? hoverValue : value;
   const activeChange = activeState === "hover" && hasHoverState ? onHoverChange! : onChange;
   const activeWarning = activeState === "hover" ? hoverWarning : defaultWarning;
+  const activeWarningMessage = activeState === "hover" ? hoverWarningMessage : warningMessage;
   const savedPaletteRole = selectedPaletteRoles[activeState];
   const matchingPaletteRoles = paletteRoles.filter(({ key }) => activeValue?.toLowerCase() === UNIVERSAL_STYLE_PRESET.palette[key].toLowerCase());
   const selectedPaletteRole = savedPaletteRole && savedPaletteRole.value.toLowerCase() === activeValue?.toLowerCase()
@@ -130,7 +134,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <ColourValueSwatch value={value} className="paragraph-palette-default-swatch" />
         {hasHoverState ? <ColourValueSwatch value={hoverValue} overlap className="paragraph-palette-hover-swatch" /> : null}
         {hasHoverState ? <span className="paragraph-palette-trigger-label">{label}</span> : null}
-        {warningStates ? <span className="paragraph-palette-warning-icon" title={`Low contrast: ${warningStates.toLowerCase()} link colour`}><AcmIcon name="state.warning" size={18} /><span className="visually-hidden" id={descriptionId}>Low contrast for {warningStates.toLowerCase()} link colour.</span></span> : null}
+        {warningStates ? <span className="paragraph-palette-warning-icon" title={`Colour warning: ${warningStates.toLowerCase()} link colour`}><AcmIcon name="state.warning" size={18} /><span className="visually-hidden" id={descriptionId}>Colour warning for {warningStates.toLowerCase()} link colour.</span></span> : null}
       </button>
       {!hasHoverState && !clearLabel ? <button type="button" aria-label={`Reset ${label} colour`} onClick={() => onChange(undefined)} disabled={disabled || !value}>Reset</button> : null}
     </div>}
@@ -152,7 +156,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
         <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={false} />
       </div> : null}
-      {activeWarning ? <div className="paragraph-colour-contrast-warning" role="status"><AcmIcon name="state.warning" size={18} /><span>{hasHoverState ? "This link colour has poor contrast against the background. Consider increasing contrast." : "This colour combination has poor contrast. Consider increasing contrast between background and foreground."}</span></div> : null}
+      {activeWarning ? <div className="paragraph-colour-contrast-warning" role={announceWarning ? "status" : undefined}><AcmIcon name="state.warning" size={18} /><span>{activeWarningMessage ?? (hasHoverState ? "This link colour has poor contrast against the background. Consider increasing contrast." : "This colour combination has poor contrast. Consider increasing contrast between background and foreground.")}</span></div> : null}
     </div>, document.body) : null}
   </div>;
 }

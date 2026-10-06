@@ -38,21 +38,25 @@ export function paragraphBackgroundGradientCss(gradient: NonNullable<ParagraphSt
 
 type OpaqueRgb = [red: number, green: number, blue: number];
 
-function parseOpaqueColour(value?: string): OpaqueRgb | null {
+function parseColour(value?: string): { channels: OpaqueRgb; alpha: number } | null {
   if (!value) return null;
   const rgb = value.trim().match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*([\d.]+))?\s*\)$/i);
   if (rgb) {
-    if (rgb[4] !== undefined && Number(rgb[4]) !== 1) return null;
     const channels = rgb.slice(1, 4).map(Number);
-    return channels.every(channel => channel <= 255) ? channels as OpaqueRgb : null;
+    const alpha = rgb[4] === undefined ? 1 : Number(rgb[4]);
+    return channels.every(channel => channel <= 255) && alpha >= 0 && alpha <= 1 ? { channels: channels as OpaqueRgb, alpha } : null;
   }
   const hex = value.trim().match(/^#([\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i)?.[1];
   if (!hex) return null;
-  if (hex.length === 4 && hex[3].toLowerCase() !== "f") return null;
-  if (hex.length === 8 && hex.slice(6).toLowerCase() !== "ff") return null;
+  const alpha = hex.length === 4 ? Number.parseInt(hex[3] + hex[3], 16) / 255 : hex.length === 8 ? Number.parseInt(hex.slice(6), 16) / 255 : 1;
   const opaqueHex = hex.length === 4 ? hex.slice(0, 3) : hex.length === 8 ? hex.slice(0, 6) : hex;
   const expanded = opaqueHex.length === 3 ? opaqueHex.split("").map(character => character + character).join("") : opaqueHex;
-  return [0, 2, 4].map(offset => Number.parseInt(expanded.slice(offset, offset + 2), 16)) as OpaqueRgb;
+  return { channels: [0, 2, 4].map(offset => Number.parseInt(expanded.slice(offset, offset + 2), 16)) as OpaqueRgb, alpha };
+}
+
+function parseOpaqueColour(value?: string): OpaqueRgb | null {
+  const colour = parseColour(value);
+  return colour?.alpha === 1 ? colour.channels : null;
 }
 
 function relativeLuminance([red, green, blue]: OpaqueRgb) {
@@ -97,6 +101,44 @@ export function paragraphTextColourHasPoorContrast(textColour: string | undefine
   const pixels = contrastFontSizePixels(fontSize);
   const largeText = pixels >= 24 || (pixels >= 18.66 && contrastFontWeightValue(fontWeight) >= 700);
   return contrastRatio(foreground, background) < (largeText ? 3 : 4.5);
+}
+
+export type BlockContrastWarning = { message: string; target: "text" | "link"; kind: "contrast" | "transparency" };
+
+/** Gutenberg-style block warning: text takes priority over the first nonempty link, with AA small text by default. */
+export function blockContrastWarning({ backgroundColor, textColor, linkColor, fontSize, isLargeText, enableAlphaChecker = false }: {
+  backgroundColor?: string | null;
+  textColor?: string;
+  linkColor?: string;
+  fontSize?: number;
+  isLargeText?: boolean;
+  enableAlphaChecker?: boolean;
+}): BlockContrastWarning | null {
+  const background = parseColour(backgroundColor ?? undefined);
+  if (!background || background.alpha < 1) return null;
+  const threshold = isLargeText || (isLargeText !== false && fontSize !== undefined && fontSize >= 24) ? 3 : 4.5;
+  let transparencyWarning: BlockContrastWarning | null = null;
+  for (const [target, value] of [["text", textColor], ["link", linkColor]] as const) {
+    const foreground = parseColour(value);
+    if (!foreground) continue;
+    if (contrastRatio(foreground.channels, background.channels) < threshold) {
+      if (foreground.alpha < 1) continue;
+      const textDescription = target === "link" ? "link colour" : "text colour";
+      const darkerBackground = brightness(background.channels) < brightness(foreground.channels);
+      return {
+        target, kind: "contrast",
+        message: darkerBackground
+          ? `This colour combination may be hard for people to read. Try using a darker background colour and/or a brighter ${textDescription}.`
+          : `This colour combination may be hard for people to read. Try using a brighter background colour and/or a darker ${textDescription}.`,
+      };
+    }
+    if (foreground.alpha < 1 && enableAlphaChecker) transparencyWarning = { target, kind: "transparency", message: "Transparent text may be hard for people to read." };
+  }
+  return transparencyWarning;
+}
+
+function brightness([red, green, blue]: OpaqueRgb) {
+  return red * 0.299 + green * 0.587 + blue * 0.114;
 }
 
 function gradientHasPoorContrast(foreground: OpaqueRgb, gradient: NonNullable<ParagraphStyle["backgroundGradient"]>) {

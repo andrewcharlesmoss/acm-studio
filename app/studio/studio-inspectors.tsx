@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { AcmIcon } from "@acm/icons/react";
 import { GROUP_ALLOWED_BLOCK_TYPES } from "../content/model";
 import type { ButtonInteractionState, ButtonWidth, ColumnBlock, ContentBlock, DocumentDisplayField, GroupAllowedBlockType, GroupLayoutOptions, DocumentTitleLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../content/model";
-import { paragraphLinkColourHasPoorContrast, paragraphTextColourHasPoorContrast } from "../content/paragraph-styles";
+import { blockContrastWarning, paragraphLinkColourHasPoorContrast } from "../content/paragraph-styles";
 import { formatDocumentDate } from "../content/document-metadata";
 import { contentWordCount, readingTimeMinutes } from "../content/reading-time";
 import type { LayoutMode } from "../content/model";
@@ -27,7 +27,6 @@ import { findColumnsParent, maximumColumnWidth } from "../content/columns";
 import { proposeColumnCountChange } from "./columns-count-change";
 import { SPACER_SIZE_LIMIT, SPACER_UNITS, spacerOrientationFor, type SpacerOrientation } from "../content/spacer";
 import { safeTextLink } from "../content/rich-text";
-import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
 import { inspectorStyleHasValues, resetSupportedInspectorStyleFields, setInspectorFitText, setInspectorFontSize } from "./blocks/inspector-style-actions";
 import { FontFamilySetting } from "./controls/font-family-setting";
 import { resetGroupDimensionFields } from "./blocks/group-dimensions";
@@ -946,11 +945,8 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
   const style: ParagraphStyle = block.type === "button" && interactionState !== "default"
     ? block.interactionStyles?.[interactionState] ?? {}
     : baseVisualStyle;
-  const contrastStyle = block.type === "button" && interactionState !== "default" ? { ...baseVisualStyle, ...style } : style;
-  const contrastFontSize = contrastStyle.fontSizeCustom
-    ?? (contrastStyle.fontSize ? ({ small: "14px", medium: "16px", large: "20px", "x-large": "24px", "xx-large": "32px" } as const)[contrastStyle.fontSize] : undefined)
-    ?? (block.type === "heading" ? ({ 1: "40px", 2: "30px", 3: "23px", 4: "20px", 5: "18px", 6: "16px" } as const)[block.level ?? 2] : undefined);
-  const textContrastWarning = Boolean(renderedColours?.background && paragraphTextColourHasPoorContrast(renderedColours.text, renderedColours.background, renderedColours.fontSize, renderedColours.fontWeight));
+  const textContrastWarning = blockContrastWarning({ backgroundColor: renderedColours?.background, textColor: renderedColours?.text, enableAlphaChecker: true });
+  const blockWarning = blockContrastWarning({ backgroundColor: renderedColours?.background, textColor: renderedColours?.text, linkColor: renderedColours?.link, enableAlphaChecker: true });
   const buttonWidth = block.type === "button"
     ? interactionState === "default" ? block.width : block.interactionStyles?.[interactionState]?.width
     : undefined;
@@ -1072,7 +1068,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
   }
   const sharedStyleSectionContent: Record<string, ReactNode> = {
     typography: <InspectorToolsSection title="Typography" options={typographyMenuOptions} visible={typographyVisible} canReset={optionalTypographyOptions.some(option => typographyVisible.has(option.id)) || inspectorStyleHasValues(style, typographyVisible, styleControls)} menuOptions={paragraphMenuOptions} onMenuOptionSelect={id => { if (id === "reset-size") updateFontSize(undefined, "presets"); else if (id === "reset-colour") updateStyle("textColor", undefined); }} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
-      {typographyVisible.has("colour") ? <PaletteColourSetting label="Colour" row value={style.textColor} onChange={(value) => updateStyle("textColor", value)} defaultWarning={textContrastWarning} /> : null}
+      {typographyVisible.has("colour") ? <PaletteColourSetting label="Colour" row value={style.textColor} onChange={(value) => updateStyle("textColor", value)} defaultWarning={Boolean(textContrastWarning)} warningMessage={textContrastWarning?.message} announceWarning={false} /> : null}
       {(typographyVisible.has("size") || typographyVisible.has("family") || typographyVisible.has("appearance")) ? <FontSizeAppearanceSetting size={style.fontSize} customSize={style.fontSizeCustom} appearance={style.appearance} mode={fontSizeMode} onModeChange={onFontSizeViewModeChange} onSizeChange={value => updateFontSize(value, "presets")} onCustomSizeChange={value => updateFontSize(value, "custom")} onAppearanceChange={value => updateStyle("appearance", value)} paragraphLabels={paragraphSpecificOptions || ["heading", "list", "quote", "table", "code"].includes(block.type)} showSize={typographyVisible.has("size")} showAppearance={typographyVisible.has("appearance")} fontControl={typographyVisible.has("family") ? <FontFamilySetting label={paragraphSpecificOptions ? "Font" : "Font family"} value={style.fontFamily} onChange={value => updateStyle("fontFamily", value)} /> : null} /> : null}
       {typographyVisible.has("line-height") ? <LineHeightSetting value={style.lineHeight} onChange={value => updateStyle("lineHeight", value)} /> : null}
       {typographyVisible.has("letter-spacing") ? <label><span>Letter spacing</span><input value={style.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label> : null}
@@ -1086,7 +1082,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
       {typographyVisible.has("text-shadow") ? <label><span>Text shadow</span><select value={style.textShadow ?? ""} onChange={event => updateStyle("textShadow", (event.target.value || undefined) as ParagraphStyle["textShadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
     </InspectorToolsSection>,
     background: showBackground ? <GroupBackgroundSection group canReset={inspectorStyleHasValues(style, ["background"], styleControls)} onReset={() => writeStyle(resetSupportedInspectorStyleFields(style, ["background"], styleControls))}>
-      <BackgroundSelection imageControl={backgroundImageControls} mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} textColour={renderedColours?.text ?? contrastStyle.textColor} fontSize={renderedColours?.fontSize ?? contrastFontSize} fontWeight={renderedColours?.fontWeight ?? contrastStyle.appearance?.replace(/-italic$/, "")} assessTextContrast={Boolean(renderedColours) && ["paragraph", "heading", "quote", "list", "table", "button"].includes(block.type)} hasBackgroundImage={Boolean(style.backgroundImageMediaId || (renderedColours && !renderedColours.background))} onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
+      <BackgroundSelection imageControl={backgroundImageControls} mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} contrastWarning={blockWarning?.message ?? null} announceWarning={false} onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
       {backgroundImageOptions}
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </GroupBackgroundSection> : null,
@@ -1122,7 +1118,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
   const orderedSharedStyleSections = scopedStyleSectionIds(profile, style, visibleSource)
     .filter(sectionId => sectionId in sharedStyleSectionContent)
     .flatMap(sectionId => [<Fragment key={sectionId}>{sharedStyleSectionContent[sectionId]}</Fragment>, ...(sectionId === "background" && groupLayoutControls ? [<Fragment key="group-layout">{groupLayoutControls}</Fragment>] : [])]);
-  return <div ref={inspectorRef} className={`inspector-sections${block.type === "group" ? " group-block-inspector" : ""}`}>{orderedSharedStyleSections}</div>;
+  return <div ref={inspectorRef} className={`inspector-sections${block.type === "group" ? " group-block-inspector" : ""}`}>{orderedSharedStyleSections}{blockWarning ? <div className="paragraph-colour-contrast-warning inspector-block-contrast-warning" role="status"><AcmIcon name="state.warning" size={18} /><span>{blockWarning.message}</span></div> : null}</div>;
 }
 
 type ManagedBackgroundImageBlock = Extract<ContentBlock, { type: "quote" | "group" | "heading" | "code" | "document-title" }>;
@@ -1163,14 +1159,22 @@ function LinkColourSetting({ style, renderedColours, defaultValue, hoverValue, o
   onDefaultChange: (value: string | undefined) => void;
   onHoverChange: (value: string | undefined) => void;
 }) {
-  const contrastFor = (colour?: string) => renderedColours && !style.backgroundGradient
-    ? paragraphTextColourHasPoorContrast(colour, renderedColours.linkBackground ?? undefined, renderedColours.linkFontSize, renderedColours.linkFontWeight)
-    : paragraphLinkColourHasPoorContrast(colour, style, UNIVERSAL_STYLE_PRESET.palette.surface);
-  const defaultWarning = contrastFor(defaultValue) === true;
-  const hoverWarning = contrastFor(hoverValue) === true;
+  // Keep Studio's existing gradient-stop safeguard where one sampled stop may
+  // make a link hard to read; the rendered-colour check cannot resolve gradients.
+  const gradientWarning = (colour?: string) => style.backgroundGradient && paragraphLinkColourHasPoorContrast(colour, style) === true
+    ? { message: "This link colour may be hard to read over parts of the gradient." }
+    : null;
+  const defaultWarning = style.backgroundGradient
+    ? gradientWarning(defaultValue)
+    : blockContrastWarning({ backgroundColor: renderedColours?.background, linkColor: renderedColours?.link, enableAlphaChecker: true });
+  const hoverWarning = style.backgroundGradient
+    ? gradientWarning(hoverValue)
+    : renderedColours?.link && hoverValue
+      ? blockContrastWarning({ backgroundColor: renderedColours.background, linkColor: hoverValue, enableAlphaChecker: true })
+      : null;
   const warningDescriptionId = useId();
   const warningStates = [defaultWarning && "Default", hoverWarning && "Hover"].filter(Boolean).join(" and ");
-  return <PaletteColourSetting row label="Link" value={defaultValue} onChange={onDefaultChange} hoverValue={hoverValue} onHoverChange={onHoverChange} warningStates={warningStates} warningDescriptionId={warningDescriptionId} defaultWarning={defaultWarning} hoverWarning={hoverWarning} />;
+  return <PaletteColourSetting row label="Link" value={defaultValue} onChange={onDefaultChange} hoverValue={hoverValue} onHoverChange={onHoverChange} warningStates={warningStates} warningDescriptionId={warningDescriptionId} defaultWarning={Boolean(defaultWarning)} hoverWarning={Boolean(hoverWarning)} warningMessage={defaultWarning?.message} hoverWarningMessage={hoverWarning?.message} announceWarning={false} />;
 }
 
 

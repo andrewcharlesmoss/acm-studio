@@ -1466,6 +1466,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .paragraph-colour-clear { justify-self: end; }
 .paragraph-colour-contrast-warning { align-items: flex-start; background: #fff6e5; border: 1px solid #edc77a; border-radius: 8px; color: #3e2b13; display: flex; gap: 10px; line-height: 1.45; padding: 12px; }
 .paragraph-colour-contrast-warning svg { color: #9a6300; flex: 0 0 auto; }
+.inspector-block-contrast-warning { margin: 12px 18px; }
 .paragraph-palette-setting { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
 .paragraph-colour-swatches { display: grid; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); justify-items: center; }
 .paragraph-colour-swatch { align-items: center; background: transparent; border: 0; border-radius: 50%; color: var(--ink); cursor: pointer; display: inline-flex; font: inherit; height: 36px; justify-content: center; min-width: 36px; padding: 3px; width: 36px; }
