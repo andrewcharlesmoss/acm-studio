@@ -589,6 +589,9 @@
 
 ### Fixed
 
+- New category entry receives focus when opened without automatic page-load focus. Design and template listeners use current editor state, and delayed page renames preserve other edits and respect editing availability.
+- Restore clean test and lint checks after block modularisation, including sibling source paths, current inspector contracts and Style Guide provenance tied to guide changes rather than unrelated governance commits.
+
 - Custom padding and margin values retain a continuous slider beside the compact value field.
 
 - Padding and margin sliders retain their view while dragging, use eight preset positions, and preserve side values when switching between axis and individual controls.

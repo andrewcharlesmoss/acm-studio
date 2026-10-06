@@ -639,14 +639,18 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   const toolsSection = await readFile(new URL("../app/studio/inspector-tools-section.tsx", import.meta.url), "utf8");
   const studioTypography = capabilityProfileFor("paragraph").controls.filter(control => control.section === "typography" && control.source === "studio").map(control => control.id);
   const enabledBlockTypography = capabilityProfileFor("paragraph").controls.filter(control => control.section === "typography" && control.source === "gutenberg" && control.enabled !== false).map(control => control.id);
-  assert.deepEqual(enabledBlockTypography, ["colour", "size", "appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "letter-case", "drop-cap", "fit-text"]);
+  assert.deepEqual(enabledBlockTypography, ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "letter-case", "drop-cap", "fit-text"]);
   assert.equal(capabilityProfileFor("paragraph").controls.some(control => control.id === "text-shadow"), false, "Paragraph has no Text shadow Typography option");
   assert.deepEqual(studioTypography, []);
-  for (const id of ["family", "orientation"]) {
+  for (const id of ["orientation"]) {
     const control = capabilityProfileFor("paragraph").controls.find(item => item.id === id);
     assert.equal(control?.source, "gutenberg", `${id} is a Gutenberg capability`);
     assert.equal(control?.enabled, false, `${id} is gated out of the current Gutenberg reference profile`);
   }
+  const fontControl = capabilityProfileFor("paragraph").controls.find(control => control.id === "family");
+  assert.equal(fontControl.label, "Font");
+  assert.notEqual(fontControl.enabled, false);
+  assert.equal(fontControl.availableWhen, undefined, "Studio fonts are always available");
   assert.match(profileSource, /paragraph: paragraphInspectorProfile/);
   assert.match(inspector, /const profile = capabilityProfileFor\(block\.type\)/);
   assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
@@ -655,11 +659,11 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   assert.match(inspector, /<FontSizeAppearanceSetting/);
   assert.match(inspector, /<BackgroundSelection/);
   assert.doesNotMatch(inspector.slice(inspector.indexOf("export function BlockInspector"), inspector.indexOf("type AdvancedFields")), /<PaneTabs/);
-  assert.match(inspector, /paragraphLinkColourHasPoorContrast\(defaultValue, style/);
-  assert.match(inspector, /paragraphLinkColourHasPoorContrast\(hoverValue, style/);
+  assert.match(inspector, /gradientWarning\(defaultValue\)/);
+  assert.match(inspector, /gradientWarning\(hoverValue\)/);
   assert.match(inspector, /return <PaletteColourSetting row label="Link" value=\{defaultValue\} onChange=\{onDefaultChange\} hoverValue=\{hoverValue\}/);
   const paletteSetting = await readFile(new URL("../app/studio/controls/palette-colour-setting.tsx", import.meta.url), "utf8");
-  assert.match(inspector, /import \{ PaletteColourSetting \} from "\.\/controls\/palette-colour-setting"/);
+  assert.match(inspector, /import \{ PaletteColourSetting \} from "\.\.\/\.\.\/controls\/palette-colour-setting"/);
   assert.match(paletteSetting, /return <ColourPicker label=\{label\}[\s\S]*value=\{value\} onChange=\{onChange\} hoverValue=\{hoverValue\} onHoverChange=\{onHoverChange\}/);
   assert.match(colourControl, /Escape/);
   assert.match(colourControl, /onHoverChange/);
@@ -683,12 +687,12 @@ test("Background colour row exposes Gutenberg-style reset and contrast actions o
   assert.match(backgroundControl, /assessTextContrast && colour && !hasBackgroundImage/);
   assert.match(backgroundControl, /paragraphTextColourHasPoorContrast\(textColour \?\? UNIVERSAL_STYLE_PRESET\.palette\.textPrimary, colour, fontSize, fontWeight\)/);
   assert.match(backgroundControl, /aria-expanded=\{showContrastHelp\}/);
-  assert.match(backgroundControl, /role="status" hidden=\{!showContrastHelp\}/);
+  assert.match(backgroundControl, /role=\{announceWarning === false \? undefined : "status"\} hidden=\{!showContrastHelp\}/);
   assert.match(styles, /\.paragraph-background-option-actions button:hover/);
   assert.match(styles, /\.paragraph-background-option-actions button:focus-visible/);
   const inspector = readStudioSource("app/studio/studio-inspectors.tsx");
-  assert.match(inspector, /const contrastStyle = block\.type === "button" && interactionState !== "default" \? \{ \.\.\.baseVisualStyle, \.\.\.style \} : style/);
-  assert.match(inspector, /assessTextContrast=\{\["paragraph", "heading"/);
+  assert.match(inspector, /blockContrastWarning\(\{ backgroundColor: renderedColours\?\.background, textColor: renderedColours\?\.text, linkColor: renderedColours\?\.link, enableAlphaChecker: true \}\)/);
+  assert.match(inspector, /contrastWarning=\{blockWarning\?\.message \?\? null\} announceWarning=\{false\}/);
 });
 
 test("the selected block summary stays above the single inspector panel", async () => {

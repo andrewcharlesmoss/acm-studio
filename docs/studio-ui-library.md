@@ -220,7 +220,7 @@ any pinned selection in the source details and written guide. Preview
 specimens have no additional selection outline or marker. Focus Outline controls
 their shared grey focus indicators.
 Mapped guide lines use the same focus tokens, with system colours retained in
-forced-colours mode. The guide view records its source commit and
+forced-colours mode. The guide view records the latest commit that changed the guide and its
 content digest. Its generated line index is bundled with Studio, so the hosted
 page does not read another repository at runtime. After committing a guide
 change, run `npm run styles:source` from the ACM Studio root to refresh that

@@ -10,7 +10,6 @@ import { readStudioSource } from "./studio-module-source.mjs";
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const image = await load("../app/content/inline-image.ts");
 const rich = await load("../app/content/rich-text.ts");
-const math = await load("../app/content/math-runs.ts");
 const validation = await load("../app/content/rich-text-validation.ts");
 const media = await load("../app/content/media-references.ts");
 const workspace = await load("../app/studio/workspace-validation.ts");
@@ -52,7 +51,7 @@ test("insertion replaces the selected range immutably; only one selected slot is
 });
 
 test("HTML escapes descriptors, keeps blank alt, ignores unsafe resolved URLs and renders missing files", () => {
-  const value = { ...descriptor, alt: '\"<img onerror=x>&' };
+  const value = { ...descriptor, alt: '"<img onerror=x>&' };
   const markup = image.inlineImageHtml(value, { "source-image": "blob:resolved-file" }, true);
   assert.match(markup, /contenteditable="false"/);
   assert.match(markup, /alt="&quot;&lt;img onerror=x&gt;&amp;"/);
@@ -122,7 +121,7 @@ test("template package import remaps atoms, legacy marks, fixed cover and layout
   const set = templates.createTemplateSet();
   const legacy = { text: "authored", marks: [{ type: "inline-image", mediaId: "source-image", alt: "" }] };
   set.parts[0].nodes = [{ id: "package-columns", type: "columns", style: { backgroundImageMediaId: "source-image" }, children: [{ id: "package-column", type: "column", style: { backgroundImageMediaId: "source-image" }, children: [paragraph, { id: "package-list", type: "list", style: "unordered", items: [{ text: "authored", runs: [legacy] }] }] }] }];
-  set.templates[0].nodes.find(node => node.type === "element" && node.element === "cover-image") ?? set.templates[0].nodes.push({ id: "fixed-cover", type: "element", element: "cover-image", fixedImage: { mediaId: "source-image", src: "", alt: "" } });
+  if (!set.templates[0].nodes.some(node => node.type === "element" && node.element === "cover-image")) set.templates[0].nodes.push({ id: "fixed-cover", type: "element", element: "cover-image", fixedImage: { mediaId: "source-image", src: "", alt: "" } });
   const input = freeze({ format: "acm-studio-template-set", version: "0.25.0", set, media: [{ id: "source-image", name: "Source.png", type: "image/png", size: 1, createdAt: "2026-10-04T12:00:00Z", updatedAt: "2026-10-04T12:00:00Z", altText: "", caption: "", folderId: null, dataBase64: "AA==" }] });
   const previousWindow = globalThis.window;
   let imported;

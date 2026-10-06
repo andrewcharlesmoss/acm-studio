@@ -77,7 +77,9 @@ test('stale invalidation frame cannot be cancelled by restoring state or close a
   assert.ok(node); const callback=node.expression.arguments[0].getText(ast);
   for(const fresh of [false,true]) { const h=harness(); h.scope.openInlineImagePicker(); h.scope.imageVisible=false; runInNewContext(ts.transpileModule(`globalThis.invalidate=${callback}`,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,h.scope); h.scope.invalidate(); if(fresh) h.scope.openInlineImagePicker(); h.scope.imageVisible=true; h.flush(); assert.equal(Boolean(h.scope.imageTarget),fresh); }
 });
-const common={...rich,...table,...tablePresentation,...tableMetadata,...embedConversion,React,useContext:()=>({}),useFootnoteNumbers:()=>new Map(),useId:()=> 'caption',useRef:()=>({current:null}),useLayoutEffect:()=>{},useState:value=>[value,()=>{}],useTableCaption:()=>({visible:true}),FootnoteNumbersContext:{},normaliseTableColumnWidths:count=>Array(count).fill(100/count),blockAlignmentClass:()=>'',imageDisplayStyle:()=>({}),resolveEmbedProvider:()=>true,EmbedContent:()=>React.createElement('div'),renderText:(text,runs,urls)=>React.createElement('span',{dangerouslySetInnerHTML:{__html:runs.map(run=>run.inline?.type==='image'?image.inlineImageHtml(run.inline,urls,true):run.text).join('')}}),RichTextEditor:({runs=[],mediaUrls, ...props})=>React.createElement('span',{'aria-label':props['aria-label'],dangerouslySetInnerHTML:{__html:runs.map(run=>run.inline?.type==='image'?image.inlineImageHtml(run.inline,mediaUrls,true):run.text).join('')}})};
+// The dynamically evaluated renderer receives production props rather than a public component contract.
+// eslint-disable-next-line react/prop-types
+const common={...rich,...table,...tablePresentation,...tableMetadata,...embedConversion,React,useContext:()=>({}),useFootnoteNumbers:()=>new Map(),useId:()=> 'caption',useRef:()=>({current:null}),useLayoutEffect:()=>{},useState:value=>[value,()=>{}],useTableCaption:()=>({visible:true}),FootnoteNumbersContext:{},normaliseTableColumnWidths:count=>Array(count).fill(100/count),blockAlignmentClass:()=>'',imageDisplayStyle:()=>({}),resolveEmbedProvider:()=>true,EmbedContent:()=>React.createElement('div'),renderText:(text,runs,urls)=>React.createElement('span',{dangerouslySetInnerHTML:{__html:runs.map(run=>run.inline?.type==='image'?image.inlineImageHtml(run.inline,urls,true):run.text).join('')}}),RichTextEditor:props=>React.createElement('span',{'aria-label':props['aria-label'],dangerouslySetInnerHTML:{__html:(props.runs ?? []).map(run=>run.inline?.type==='image'?image.inlineImageHtml(run.inline,props.mediaUrls,true):run.text).join('')}})};
 bind(['TableField','EmbedUrlField','BlockFieldContent'],common);
 test('actual field renderers pass managed images into Table cells and all captions',()=>{
  const runs=[image.inlineImageRun(descriptor)],urls={managed:'blob:owned'};
@@ -106,7 +108,7 @@ test('actual image form uses changed-only Apply, validates widths and retains bl
  }
 });
 test('actual image measurement caps natural width and rejects load failures',async()=>{
- let instance; const bindings={Image:class{constructor(){instance=this;}},window:{setTimeout:()=>1,clearTimeout(){}}};
+ let instance; const bindings={Image:function(){return instance={};},window:{setTimeout:()=>1,clearTimeout(){}}};
  const measure=await uiFunction('../app/studio/inline-image-picker.tsx','measureInlineImage',bindings);
  for(const naturalWidth of [80,500]){const result=measure('/fixture.svg');instance.naturalWidth=naturalWidth;instance.onload();assert.equal(await result,Math.min(naturalWidth,150));}
  const failed=measure('/broken.svg');instance.onerror();await assert.rejects(failed,/Image unavailable/);
@@ -118,7 +120,7 @@ test('actual picker cancels late decoding and resets a changed media-provider se
  const provider=async()=>[];
  function render(loadImages=provider){hook=0;return picker({loadImages,replacing:false,returnFocus:{},onChoose:()=>{accepted++;return true;},onClose:()=>{closed++;}});}
  let element=render(),cleanup=effect();await new Promise(resolve=>setImmediate(resolve));
- widthPromise=new Promise(resolve=>chooseComplete=resolve);element=render();const form=descendants(element).find(el=>el.type==='form');
+ widthPromise=new Promise(resolve=>chooseComplete=resolve);element=render();
  // Set URL through the real input, then rerender to capture its current value.
  descendants(element).find(el=>el.type==='input'&&el.props.inputMode==='url').props.onChange({target:{value:'/fixture.svg'}});element=render();descendants(element).find(el=>el.type==='form').props.onSubmit({preventDefault(){}});
  cleanup();element=render(async()=>[]);cleanup=effect();await new Promise(resolve=>setImmediate(resolve));chooseComplete(150);await new Promise(resolve=>setImmediate(resolve));assert.equal(accepted,0);

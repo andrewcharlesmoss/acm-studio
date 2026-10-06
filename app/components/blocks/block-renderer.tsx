@@ -126,6 +126,8 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           if (!document || !documentFieldVisible(document, "coverImage") || !document.coverImage) return null;
           const source = resolveImageSource(document.coverImage, mediaUrls);
           const href = document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          // Managed cover images can resolve to browser-local blob URLs.
+          // eslint-disable-next-line @next/next/no-img-element
           const image = source ? <img className="document-featured-image" src={source} alt={document.coverImage.alt} style={imageDisplayStyle(block, { includeFrame: false })} /> : <div className="image-placeholder" role="img" aria-label={document.coverImage.alt || "Cover image placeholder"}>Cover image</div>;
           // eslint-disable-next-line react/jsx-no-target-blank
           return <figure className={`document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{block.isLink && href ? <a href={href} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={[block.rel, block.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image}</figure>;

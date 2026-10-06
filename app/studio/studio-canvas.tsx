@@ -1038,10 +1038,6 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     requestAnimationFrame(() => codeEditorToggleRef.current?.focus());
   }
 
-  function overlayBelongsToBlock(block: ContentBlock, targetId: string | undefined) {
-    return block.id === targetId;
-  }
-
   function formattingTarget(block: EditableRichTextBlock): EditableRichTextBlock {
     const targetId = nestedRichTextTargets[block.id];
     const target = targetId ? findBlockById(activeDocument.blocks, targetId) : null;
@@ -1305,6 +1301,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   const highlightedContent = highlightTarget && highlightedField ? richTextContent(highlightedField.block, highlightTarget.itemIndex, highlightTarget.listId, highlightTarget.cell) : null;
   const highlightVisible = writable && highlightTarget && selectedBlockId === highlightTarget.ownerId && highlightedContent && !previewing && !codeEditor && highlightedContent.text.length >= highlightTarget.selection.end;
   useLayoutEffect(() => {
+    // Revoke a detached or unavailable editor target before another paint.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (highlightTarget && (!highlightVisible || !highlightTarget.editor.isConnected)) closeHighlight(false);
   }, [highlightTarget, highlightVisible, closeHighlight]);
 
@@ -1814,6 +1812,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   useLayoutEffect(() => {
     if (linkEditor && !linkVisible) {
       richFormSelectionEpochRef.current++;
+      // Selection and write ownership can invalidate the external editor target.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLinkEditor(null);
       setLinkError(null);
     }
@@ -2729,6 +2729,8 @@ function SocialIconsEditorBlock({ htmlEditorBlockId, renderBlockControls, block,
 
   useLayoutEffect(() => {
     if (writable && onInsert) return;
+    // Close the picker before paint when insertion ownership is revoked.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(false);
     setQuery("");
   }, [writable, onInsert]);
@@ -2764,7 +2766,7 @@ function SocialIconsEditorBlock({ htmlEditorBlockId, renderBlockControls, block,
     requestAnimationFrame(() => triggerRef.current?.focus());
   }
 
-  return <nav className={socialIconsBlockClassName(block, true)} style={socialIconsColourStyle(block)} aria-label="Social links"><ul style={socialIconsGapStyle(block)}>{block.children.map(child => <li id={paragraphStyleAnchor(child.visualStyle)} className={`studio-nested-block${paragraphStyleClassName(child.visualStyle) ? ` ${paragraphStyleClassName(child.visualStyle)}` : ""}`} style={paragraphStyleToCss(child.visualStyle) as React.CSSProperties} data-block-align={"blockAlign" in child ? child.blockAlign : undefined} data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} tabIndex={0} aria-label={`${blockLabel(child.type)} icon block`} key={child.id}>{renderBlockControls?.(child)}{htmlEditorBlockId === child.id ? null : child.editorial?.hidden ? <HiddenBlockPlaceholder label={blockOutlineLabel(child)} writable={writable} onShow={() => onChange({ ...block, children: block.children.map(candidate => candidate.id === child.id ? { ...candidate, editorial: { ...candidate.editorial, hidden: false } } : candidate) })} /> : <SocialIconView block={child} showLabel={block.showLabels} editing />}</li>)}<li className="social-icons-appender"><button ref={triggerRef} className="social-icons-add" type="button" disabled={!writable || !onInsert} onClick={() => { setOpen(value => !value); setQuery(""); }} aria-haspopup="dialog" aria-expanded={open} aria-controls={`social-icon-picker-${block.id}`} aria-label="Add social icon" title="Add social icon"><StudioIcon name="add" size={18} /></button>{open ? <div ref={popoverRef} id={`social-icon-picker-${block.id}`} className="social-icon-picker" role="dialog" aria-label="Choose a social icon"><div className="social-icon-picker-header"><input ref={searchRef} type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search" aria-label="Search social icons" /><button type="button" aria-label="Close social icon picker" title="Close" onClick={() => { setOpen(false); setQuery(""); requestAnimationFrame(() => triggerRef.current?.focus()); }}><StudioIcon name="close" size={18} /></button></div><div className="social-icon-picker-options">{choices.map(item => <button type="button" key={item.type} disabled={!writable || !onInsert} onClick={() => insert(item.type as InsertableBlockType)}><BlockTypeIcon type={item.type} /><strong>{item.label}</strong></button>)}{choices.length === 0 ? <p>No social icons found.</p> : null}</div></div> : null}</li></ul></nav>;
+  return <nav className={socialIconsBlockClassName(block, true)} style={socialIconsColourStyle(block)} aria-label="Social links"><ul style={socialIconsGapStyle(block)}>{block.children.map(child => <li id={paragraphStyleAnchor(child.visualStyle)} className={`studio-nested-block${paragraphStyleClassName(child.visualStyle) ? ` ${paragraphStyleClassName(child.visualStyle)}` : ""}`} style={paragraphStyleToCss(child.visualStyle) as React.CSSProperties} data-block-align={"blockAlign" in child ? child.blockAlign : undefined} data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} tabIndex={0 /* eslint-disable-line jsx-a11y/no-noninteractive-tabindex -- Block frames expose keyboard selection while preserving nested controls. */} aria-label={`${blockLabel(child.type)} icon block`} key={child.id}>{renderBlockControls?.(child)}{htmlEditorBlockId === child.id ? null : child.editorial?.hidden ? <HiddenBlockPlaceholder label={blockOutlineLabel(child)} writable={writable} onShow={() => onChange({ ...block, children: block.children.map(candidate => candidate.id === child.id ? { ...candidate, editorial: { ...candidate.editorial, hidden: false } } : candidate) })} /> : <SocialIconView block={child} showLabel={block.showLabels} editing />}</li>)}<li className="social-icons-appender"><button ref={triggerRef} className="social-icons-add" type="button" disabled={!writable || !onInsert} onClick={() => { setOpen(value => !value); setQuery(""); }} aria-haspopup="dialog" aria-expanded={open} aria-controls={`social-icon-picker-${block.id}`} aria-label="Add social icon" title="Add social icon"><StudioIcon name="add" size={18} /></button>{open ? <div ref={popoverRef} id={`social-icon-picker-${block.id}`} className="social-icon-picker" role="dialog" aria-label="Choose a social icon"><div className="social-icon-picker-header"><input ref={searchRef} type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search" aria-label="Search social icons" /><button type="button" aria-label="Close social icon picker" title="Close" onClick={() => { setOpen(false); setQuery(""); requestAnimationFrame(() => triggerRef.current?.focus()); }}><StudioIcon name="close" size={18} /></button></div><div className="social-icon-picker-options">{choices.map(item => <button type="button" key={item.type} disabled={!writable || !onInsert} onClick={() => insert(item.type as InsertableBlockType)}><BlockTypeIcon type={item.type} /><strong>{item.label}</strong></button>)}{choices.length === 0 ? <p>No social icons found.</p> : null}</div></div> : null}</li></ul></nav>;
 }
 
 export function BlockField(props: BlockFieldProps) {
@@ -2815,11 +2817,12 @@ function BlockFieldContent({ htmlEditorBlockId, renderBlockControls, block, root
   if (block.type === "table") return <TableField block={block} mediaUrls={mediaUrls} writable={writable} showCaptionControl={!renderBlockControls && selectedBlockId === block.id && !rootBlocks.some(root => root.id === block.id)} onCellFocus={onTableCellFocus} onCaptionFocus={() => onTextSelection(null)} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={onChange} />;
   if (block.type === "code") return <CodeEditor className={blockAlignmentClass(block)} value={block.code} language={block.language} writable={writable} onChange={(code) => onChange({ ...block, code })} />;
   // User-supplied URLs cannot be known to Next's image optimiser in this local editor.
-  // eslint-disable-next-line @next/next/no-img-element
   if (block.type === "image") {
     const imageSource = block.mediaId ? safeImageSource(mediaUrl ?? "", { allowBlob: true }) : safeImageSource(block.src);
     const linkDestination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
     const imageLink = linkDestination === "media" ? imageSource : linkDestination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
+    // Managed browser-local images must retain their resolved blob URLs.
+    // eslint-disable-next-line @next/next/no-img-element
     const image = imageSource ? <img draggable={false} src={imageSource} alt={block.decorative ? "" : block.alt} title={block.title} style={imageDisplayStyle(block)} /> : null;
     return <figure className={`image-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined} onClick={(event) => event.preventDefault()}>{image}</a> : image) : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}<figcaption><RichTextEditor mediaUrls={mediaUrls} as="span" className="image-caption-editor" text={block.caption ?? ""} runs={block.captionRuns} onChange={(caption, captionRuns) => onChange({ ...block, caption: caption || undefined, captionRuns: captionRuns.length ? captionRuns : undefined })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Write caption…" aria-label="Image caption" /></figcaption></figure>;
   }

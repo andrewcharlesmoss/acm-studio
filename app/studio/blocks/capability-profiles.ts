@@ -241,7 +241,7 @@ const paraSections = [
 ] as const;
 const paragraphControls: InspectorControlProfile[] = [
   ...(["colour", "size"] as StyleControlId[]).map(id => makeStyleControl(id)),
-  { ...makeStyleControl("family"), label: "Font", availableWhen: "Studio provides its supported font families independently of the WordPress theme." },
+  { ...makeStyleControl("family"), label: "Font" },
   ...(["appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "letter-case", "drop-cap", "fit-text"] as StyleControlId[]).map(id => makeStyleControl(id)),
   { ...makeStyleControl("orientation"), enabled: false, availableWhen: "Gutenberg writing mode is enabled in editor settings; not enabled in Andrew's current reference.", dependency: "writing-mode-setting" },
   { ...makeSpecificControl("background", "Background colour or gradient", "background"), fields: ["backgroundColor", "backgroundGradient"], resetFields: ["backgroundColor", "backgroundGradient"] },

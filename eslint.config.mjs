@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "public/background-removal-runtime/**",
     "next-env.d.ts",
+    // Untracked numbered copies are local artefacts, not canonical source files.
+    "**/* [23].{ts,tsx,mjs,css,json}",
   ]),
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

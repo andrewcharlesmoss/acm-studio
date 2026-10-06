@@ -3,7 +3,7 @@ import { exportStudioJson } from "./studio-json-export";
 import { writeStudioNavigation } from "./use-studio-screen-navigation";
 
 import { loadStoredInlineImages } from "./inline-image-library";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useStudioWorkspace } from "./use-studio-workspace";
 import { useTemplates } from "./use-templates";
 import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";
@@ -69,6 +69,7 @@ export function TemplateWorkspacePanel({ workspace, templates, selection, onSele
     if (selection) onSelectionChange?.(next);
     else setLocalSelection(next);
   }
+  const changeSelectionFromEffect = useEffectEvent(changeSelection);
   const [showTemplateSets, setShowTemplateSets] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -115,7 +116,7 @@ export function TemplateWorkspacePanel({ workspace, templates, selection, onSele
   useEffect(() => {
     const syncTargetFromLocation = () => {
       const nextQuery = new URLSearchParams(window.location.search);
-      changeSelection({ setId: nextQuery.get("set"), targetId: nextQuery.get("target") });
+      changeSelectionFromEffect({ setId: nextQuery.get("set"), targetId: nextQuery.get("target") });
       setMediaTarget(null);
       setShowTemplateSets(false);
     };
@@ -135,7 +136,7 @@ export function TemplateWorkspacePanel({ workspace, templates, selection, onSele
     const first = templates.store.sets[0];
     const id = first.templates[0]?.id ?? null;
     queueMicrotask(() => {
-      changeSelection({ setId: first.id, targetId: id ?? null });
+      changeSelectionFromEffect({ setId: first.id, targetId: id ?? null });
     });
   }, [setId, templates.ready, templates.store.sets]);
   function closeDialog() { setDialog(null); }

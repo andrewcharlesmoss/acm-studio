@@ -81,6 +81,7 @@ export function DocumentInspector({ panel, documentControls, document, resolvedD
   const categoriesContentId = useId();
   const statusPopoverId = useId();
   const excerptPopoverId = useId();
+  const newCategoryNameRef = useRef<HTMLInputElement>(null);
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryParentId, setNewCategoryParentId] = useState("");
@@ -282,9 +283,9 @@ export function DocumentInspector({ panel, documentControls, document, resolvedD
             <h2><button type="button" className="post-categories-heading" aria-expanded={categoriesOpen} aria-controls={categoriesContentId} onClick={() => setCategoriesOpen(open => !open)}><span>Categories</span><StudioIcon name={categoriesOpen ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
             <div id={categoriesContentId} className="inspector-accordion-content" hidden={!categoriesOpen}>
               <div className="post-category-list" aria-label="Categories">{renderCategoryOptions() || <p className="setting-note">No categories yet.</p>}</div>
-              <button type="button" className="post-category-add-toggle" aria-expanded={addCategoryOpen} onClick={() => setAddCategoryOpen(open => !open)}>{addCategoryOpen ? "Cancel" : "Add category"}</button>
+              <button type="button" className="post-category-add-toggle" aria-expanded={addCategoryOpen} onClick={() => { setAddCategoryOpen(open => !open); if (!addCategoryOpen) requestAnimationFrame(() => newCategoryNameRef.current?.focus()); }}>{addCategoryOpen ? "Cancel" : "Add category"}</button>
               {addCategoryOpen ? <form className="post-category-form" onSubmit={submitNewCategory}>
-                <label><span>New category name</span><input autoFocus required maxLength={200} value={newCategoryName} onChange={event => setNewCategoryName(event.target.value)} /></label>
+                <label><span>New category name</span><input ref={newCategoryNameRef} required maxLength={200} value={newCategoryName} onChange={event => setNewCategoryName(event.target.value)} /></label>
                 <label><span>Parent category</span><select value={newCategoryParentId} onChange={event => setNewCategoryParentId(event.target.value)}><option value="">— Parent category —</option>{categoryParentOptions().map(({ category, depth }) => <option key={category.id} value={category.id}>{`${"— ".repeat(depth)}${category.name}`}</option>)}</select></label>
                 <button className="post-category-submit" type="submit" disabled={!categoryName || duplicateCategory}>Add category</button>
               </form> : null}
@@ -355,7 +356,7 @@ function PostTagsEditor({ tags, suggestions, onChange }: { tags: string[]; sugge
     <h2><button type="button" className="post-taxonomy-heading" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen(value => !value)}><span>Tags</span><StudioIcon name={open ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
     <div id={contentId} className="inspector-accordion-content" hidden={!open}>
       <label className="post-tags-label" htmlFor={inputId}>ADD TAG</label>
-      <div className="post-tags-input-area" onClick={() => inputRef.current?.focus()}>
+      <div className="post-tags-input-area" role="presentation" onClick={() => inputRef.current?.focus()}>
         {tags.map((tag, index) => <span className="post-tag-chip" key={`${tag.toLocaleLowerCase("en-GB")}-${index}`}>
           <span>{tag}</span><button type="button" aria-label={`Remove ${tag} tag`} onClick={event => { event.stopPropagation(); removeTag(index); }}><StudioIcon name="close" size={16} /></button>
         </span>)}

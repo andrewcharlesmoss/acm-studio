@@ -26,8 +26,6 @@ function Control({ control, state, setState, rememberTrigger }: ControlProps) {
   </div>;
   if (["text", "number", "select", "range"].includes(control.kind)) {
     const value = state.values[control.id] as string | number;
-    const min = control.min ?? 0;
-    const max = control.max ?? 100;
     return <RibbonField data-region={control.id} className="rl-field">
       <span>{control.label}</span>
       {control.kind === "select" ? <select aria-label={control.label} value={value} disabled={Boolean(reason)} onChange={(event) => run(event.target.value)}>{control.options?.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select> :

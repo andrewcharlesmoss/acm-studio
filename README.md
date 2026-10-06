@@ -163,6 +163,8 @@ from Studio's installed dependencies for shared packages consumed as source.
 The runtime/build configuration stays in `tsconfig.json`. The obsolete
 `app/studio/ui/blocks/paragraph/page 2.tsx` copy is preserved but excluded from
 typechecking; the active Paragraph route is `page.tsx`.
+ESLint also excludes local numbered copies ending in ` 2` or ` 3`; canonical
+source and test files remain covered by the normal lint command.
 
 ## Documentation
 

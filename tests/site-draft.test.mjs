@@ -86,8 +86,8 @@ test("Mini Golf environments remain separate editor targets within one dashboard
   const { studioProjects } = await loadProductionModule(new URL("../app/studio/project-registry.ts", import.meta.url));
   const miniGolf = studioProjects.filter(project => project.id === "mini-golf-scorecard");
   assert.equal(miniGolf.length, 1);
-  assert.deepEqual(miniGolf[0].environments.map(environment => environment.name), ["Production", "Staging"]);
-  assert.deepEqual(miniGolf[0].environments.map(environment => environment.links.find(link => link.label === "Edit Site").href), ["/studio/sites/mini-golf-scorecard", "/studio/sites/mini-golf-scorecard-staging"]);
+  assert.deepEqual(miniGolf[0].environments.map(environment => environment.name), ["Staging", "Production"]);
+  assert.deepEqual(miniGolf[0].environments.map(environment => environment.links.find(link => link.label === "Edit Site").href), ["/studio/sites/mini-golf-scorecard-staging", "/studio/sites/mini-golf-scorecard"]);
   const editor = readFileSync(new URL("../app/studio/mini-golf-site-editor.tsx", import.meta.url), "utf8");
   assert.match(registry, /miniGolfSites = \[miniGolfStagingSite, miniGolfSite\]/);
   assert.match(editor, /Staging is the working copy for this build/);
@@ -98,7 +98,7 @@ test("the dashboard catalogue includes only actual sites alphabetically", async 
   const { studioProjects } = await loadProductionModule(new URL("../app/studio/project-registry.ts", import.meta.url));
   assert.deepEqual(studioProjects.map(project => project.id), ["acm-account", "acm-studio", "andrew-moss", "habit-tracker", "lid-angle", "loquafy", "loquage", "mini-golf-scorecard"]);
   for (const id of ["acm-account", "habit-tracker", "loquafy", "mini-golf-scorecard"]) {
-    assert.deepEqual(studioProjects.find(project => project.id === id).environments.map(environment => environment.name), ["Production", "Staging"]);
+    assert.deepEqual(studioProjects.find(project => project.id === id).environments.map(environment => environment.name), ["Staging", "Production"]);
   }
   for (const project of studioProjects) {
     const links = [...project.links, ...(project.environments ?? []).flatMap(environment => environment.links)];

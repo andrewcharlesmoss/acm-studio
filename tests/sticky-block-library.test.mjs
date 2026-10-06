@@ -6,7 +6,7 @@ import { findBlockById, updateBlockById } from "../app/studio/studio-command-ope
 import { loadProductionModule } from "./production-module.mjs";
 
 const { insertedBlockSelectionId } = await loadProductionModule(new URL("../app/studio/button-insertion.ts", import.meta.url));
-const { useStudioBlockCommands } = await loadProductionModule(new URL("../app/studio/use-studio-block-commands.ts", import.meta.url));
+const { useStudioBlockCommands: createBlockCommands } = await loadProductionModule(new URL("../app/studio/use-studio-block-commands.ts", import.meta.url));
 const templateModel = await loadProductionModule(new URL("../app/studio/template-model.ts", import.meta.url));
 const { createBlock } = await loadProductionModule(new URL("../app/studio/editor-model.ts", import.meta.url));
 const { insertTemplateContent } = await loadProductionModule(new URL("../app/studio/template-content-insertion.ts", import.meta.url));
@@ -37,7 +37,7 @@ function stateFixture() {
     setPendingColumnsLayoutBlockId() {}, setDocumentFieldSelection() {}, setSelectedDocumentField() {},
     setSelectedBlockId(id) { state.selected = id; }, setInspectorTab() {},
     blockCommands: { insertBlock(type, after, parentId) {
-      return useStudioBlockCommands({ activeDocument: state.document, updateActiveDocument(update) { state.document = update(state.document); } }).insertBlock(type, after, parentId);
+      return createBlockCommands({ activeDocument: state.document, updateActiveDocument(update) { state.document = update(state.document); } }).insertBlock(type, after, parentId);
     } },
   };
   return state;

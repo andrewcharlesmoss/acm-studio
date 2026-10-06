@@ -15,9 +15,9 @@ test("fit text bounds measured width and preserves server-rendered content", () 
   assert.deepEqual(largestFittingFontSize(size => size * 4 <= 200), { size: 49.9, wraps: false });
   assert.deepEqual(largestFittingFontSize(size => size * 20 <= 200), { size: 13, wraps: true });
   assert.deepEqual(largestFittingFontSize(size => size * 0.2 <= 200), { size: 120, wraps: false });
-  const html = renderToStaticMarkup(createElement(FitTextParagraph, { className: "has-fit-text", children: "Accessible paragraph" }));
+  const html = renderToStaticMarkup(createElement(FitTextParagraph, { className: "has-fit-text" }, "Accessible paragraph"));
   assert.match(html, /class="has-fit-text"/);
   assert.match(html, />Accessible paragraph<\/p>/);
-  const heading = renderToStaticMarkup(createElement(FitTextHeading, { level: 2, className: "has-fit-text", styleSignature: '{"fontFamily":"inter"}', children: "Responsive heading" }));
+  const heading = renderToStaticMarkup(createElement(FitTextHeading, { level: 2, className: "has-fit-text", styleSignature: '{"fontFamily":"inter"}' }, "Responsive heading"));
   assert.match(heading, /<h2 class="has-fit-text">Responsive heading<\/h2>/);
 });

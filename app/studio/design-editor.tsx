@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
+import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
 import type { BackgroundRemovalMode } from "./background-removal-models";
 import { formatRotationAngle, resizeRotatedObject, rotationCursorCss } from "./design-transform";
@@ -954,6 +954,8 @@ export function DesignEditor() {
     setEditingTextId(null);
   }
 
+  const reorderPageFromListener = useEffectEvent((sourceId: string, targetId: string, position: "before" | "after") => reorderPage(sourceId, targetId, position));
+  const selectPageSetFromListener = useEffectEvent((pageId: string, event: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; checked: boolean }) => selectPageSet(pageId, event));
   useEffect(() => {
     const panel = document.getElementById("design-pages-tabpanel");
     if (!panel) return;
@@ -978,7 +980,7 @@ export function DesignEditor() {
       const page = design?.pages[index];
       if (!page) return;
       const modifiers = { metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey, checked: true };
-      if (event.metaKey || event.ctrlKey || event.shiftKey) selectPageSet(page.id, modifiers);
+      if (event.metaKey || event.ctrlKey || event.shiftKey) selectPageSetFromListener(page.id, modifiers);
     };
     const handlePageSelectionChange = (event: Event) => {
       const target = event.target;
@@ -991,7 +993,7 @@ export function DesignEditor() {
       event.stopPropagation();
       const modifiers = pageSelectionModifiersRef.current;
       pageSelectionModifiersRef.current = { metaKey: false, ctrlKey: false, shiftKey: false };
-      selectPageSet(page.id, { ...modifiers, checked: target.checked });
+      selectPageSetFromListener(page.id, { ...modifiers, checked: target.checked });
     };
     const handleDragOver = (event: globalThis.DragEvent) => {
       event.preventDefault();
@@ -1052,7 +1054,7 @@ export function DesignEditor() {
         setDraggedPageId(null);
         return;
       }
-      reorderPage(draggedPageId, dropTarget.id, dropTarget.position);
+      reorderPageFromListener(draggedPageId, dropTarget.id, dropTarget.position);
       setDraggedPageId(null);
     };
     document.addEventListener("dragover", handleDragOver);
@@ -1211,7 +1213,7 @@ export function DesignEditor() {
     params.set("designId", design.id);
     if (activePage) params.set("pageId", activePage.id);
     window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
-  }, [activePage?.id, design?.id, loaded]);
+  }, [activePage, design, loaded]);
 
   const persist = useCallback(async (next: DesignProject, nextDesigns = designs) => {
     const baseDesigns = nextDesigns === designs ? designsRef.current : nextDesigns;
@@ -1781,6 +1783,11 @@ export function DesignEditor() {
     window.setTimeout(() => pageNameInputRef.current?.focus(), 0);
   }
 
+  const renamePageFromListener = useEffectEvent((pageId: string, name: string) => {
+    const page = design?.pages.find(item => item.id === pageId);
+    if (!design || !writable || !page || page.locked || page.name === name) return;
+    updateDesign({ ...design, pages: design.pages.map(item => item.id === pageId ? { ...item, name } : item) });
+  });
   useEffect(() => {
     function handlePageTitleDoubleClick(event: MouseEvent) {
       const target = event.target instanceof HTMLElement ? event.target.closest<HTMLElement>(".design-thumbnail-button > span") : null;
@@ -1802,7 +1809,7 @@ export function DesignEditor() {
         input.removeEventListener("blur", finish);
         const name = cancelled ? page.name : input.value.trim();
         target.textContent = `${index + 1}. ${name}`;
-        if (!cancelled && name !== page.name) updateDesign({ ...design, pages: design.pages.map((item) => item.id === page.id ? { ...item, name } : item) });
+        if (!cancelled && name !== page.name) renamePageFromListener(page.id, name);
       };
       input.addEventListener("blur", finish);
       input.addEventListener("keydown", (keyEvent) => {
@@ -2283,6 +2290,8 @@ export function DesignEditor() {
             </div></div>
           </div> : null}{selectedObject.type === "text" || selectedObject.type === "step" ? <><label>Text<textarea value={selectedObject.text} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, text: event.target.value }))} /></label><ColourControl label="Text colour" value={selectedObject.colour} opacity={selectedObject.colourOpacity ?? 1} disabled={!writable} onChange={(value) => updateSelected((object) => ({ ...object, colour: value }))} onOpacityChange={(value) => updateSelected((object) => ({ ...object, colourOpacity: value }))} /><label>Font size<input type="number" min="8" max="240" value={selectedObject.fontSize} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, fontSize: Math.max(8, Number(event.target.value) || 8) }))} /></label><label>Font<select value={selectedObject.fontFamily} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, fontFamily: event.target.value }))}>{fontOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label>Weight<select value={selectedObject.fontWeight} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, fontWeight: Number(event.target.value) }))}><option value="400">Regular</option><option value="600">Semibold</option><option value="700">Bold</option></select></label><label>Alignment<select value={selectedObject.align} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, align: event.target.value as "left" | "center" | "right" }))}><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select></label>{selectedObject.type === "text" ? <label className="design-text-wrap-setting"><span>Word wrap</span><input type="checkbox" checked={selectedObject.wordWrap !== false} disabled={!writable} onChange={(event) => updateSelected((object) => object.type === "text" ? { ...object, wordWrap: event.target.checked } : object)} /></label> : null}{selectedObject.type === "step" ? <ColourControl label="Step fill" value={selectedObject.fill ?? "#cc1818"} opacity={selectedObject.fillOpacity ?? 1} disabled={!writable} onChange={(value) => updateSelected((object) => ({ ...object, fill: value }))} onOpacityChange={(value) => updateSelected((object) => ({ ...object, fillOpacity: value }))} /> : null}</> : null}{selectedObject.type === "arrow" ? <><ColourControl label="Line colour" value={selectedObject.stroke} opacity={selectedObject.strokeOpacity ?? 1} disabled={!writable} onChange={(value) => updateSelected((object) => ({ ...(object as DesignArrowObject), stroke: value }))} onOpacityChange={(value) => updateSelected((object) => ({ ...(object as DesignArrowObject), strokeOpacity: value }))} /><label>Line width<input type="number" min="1" max="80" value={selectedObject.strokeWidth} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignArrowObject), strokeWidth: Math.max(1, Number(event.target.value) || 1) }))} /></label><label>Start arrowhead<select value={selectedObject.startArrowhead ? "yes" : "no"} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignArrowObject), startArrowhead: event.target.value === "yes" }))}><option value="yes">Shown</option><option value="no">Hidden</option></select></label><label>End arrowhead<select value={selectedObject.arrowhead ? "yes" : "no"} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignArrowObject), arrowhead: event.target.value === "yes" }))}><option value="yes">Shown</option><option value="no">Hidden</option></select></label><label>Arrowhead size ({Math.round((selectedObject.arrowheadScale ?? 1) * 100)}%)<input aria-label="Arrowhead size" className="studio-range-control" type="range" min={DESIGN_ARROWHEAD_SCALE_MIN * 100} max={DESIGN_ARROWHEAD_SCALE_MAX * 100} step="1" value={Math.round((selectedObject.arrowheadScale ?? 1) * 100)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignArrowObject), arrowheadScale: Math.max(DESIGN_ARROWHEAD_SCALE_MIN, Math.min(DESIGN_ARROWHEAD_SCALE_MAX, Number(event.target.value) / 100)) }))} /></label><label>Line style<select value={selectedObject.lineStyle ?? "solid"} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignArrowObject), lineStyle: event.target.value as "solid" | "dotted" }))}><option value="solid">Solid</option><option value="dotted">Dotted</option></select></label></> : null}{["rectangle", "ellipse", "highlight"].includes(selectedObject.type) ? <><ColourControl label="Fill" value={(selectedObject as DesignShapeObject).fill === "transparent" ? "#ffffff" : (selectedObject as DesignShapeObject).fill} opacity={(selectedObject as DesignShapeObject).fill === "transparent" ? 0 : (selectedObject as DesignShapeObject).fillOpacity ?? 1} disabled={!writable} onChange={(value) => updateSelected((object) => ({ ...(object as DesignShapeObject), fill: value, fillOpacity: (object as DesignShapeObject).fill === "transparent" ? 1 : (object as DesignShapeObject).fillOpacity }))} onOpacityChange={(value) => updateSelected((object) => ({ ...(object as DesignShapeObject), fillOpacity: value }))} /><ColourControl label="Outline" value={(selectedObject as DesignShapeObject).stroke === "none" ? "#ffffff" : (selectedObject as DesignShapeObject).stroke} opacity={(selectedObject as DesignShapeObject).stroke === "none" ? 0 : (selectedObject as DesignShapeObject).strokeOpacity ?? 1} disabled={!writable} onChange={(value) => updateSelected((object) => ({ ...(object as DesignShapeObject), stroke: value, strokeOpacity: (object as DesignShapeObject).stroke === "none" ? 1 : (object as DesignShapeObject).strokeOpacity }))} onOpacityChange={(value) => updateSelected((object) => ({ ...(object as DesignShapeObject), strokeOpacity: value }))} /><label>Outline width<input type="number" min="0" max="80" value={(selectedObject as DesignShapeObject).strokeWidth} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignShapeObject), strokeWidth: Math.max(0, Number(event.target.value) || 0) }))} /></label>{selectedObject.type === "rectangle" ? <label>Corner radius<input type="number" min="0" max="200" value={(selectedObject as DesignShapeObject).radius ?? 0} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignShapeObject), radius: Math.max(0, Number(event.target.value) || 0) }))} /></label> : null}</> : null}{selectedIds.length > 1 ? <div className="design-object-actions"><button type="button" onClick={groupSelected} disabled={!writable}>Group</button><button type="button" onClick={ungroupSelected} disabled={!writable}>Ungroup</button><button type="button" onClick={() => alignSelected("left")} disabled={!writable}>Align left</button><button type="button" onClick={() => alignSelected("right")} disabled={!writable}>Align right</button><button type="button" onClick={() => alignSelected("top")} disabled={!writable}>Align top</button><button type="button" onClick={() => alignSelected("bottom")} disabled={!writable}>Align bottom</button><button type="button" onClick={() => alignSelected("centre")} disabled={!writable}>Centre</button><button type="button" onClick={() => alignSelected("middle")} disabled={!writable}>Middle</button></div> : null}<div className="design-object-actions">{selectedObject.type === "image" && activePage.objects.length === 1 ? <button type="button" onClick={fitPageToSelectedImage} disabled={!writable}>Fit page to image</button> : null}<button type="button" onClick={copySelected} disabled={!writable}>Copy</button><button type="button" onClick={pasteSelected} disabled={!writable}>Paste</button><button type="button" onClick={duplicateSelected} disabled={!writable}>Duplicate</button><button type="button" onClick={() => moveSelectedLayer("backward")} disabled={!writable || selectedObject.locked}>Send backward</button><button type="button" onClick={() => moveSelectedLayer("forward")} disabled={!writable || selectedObject.locked}>Bring forward</button><button type="button" onClick={() => moveSelectedLayer("back")} disabled={!writable || selectedObject.locked}>Send to back</button><button type="button" onClick={() => moveSelectedLayer("front")} disabled={!writable || selectedObject.locked}>Bring to front</button><button type="button" onClick={() => updateSelected((object) => ({ ...object, locked: !object.locked }))} disabled={!writable}>{selectedObject.locked ? "Unlock" : "Lock"}</button><button type="button" onClick={() => { updatePage((page) => ({ ...page, objects: page.objects.filter((object) => object.id !== selectedObject.id) })); selectObjects([]); }} disabled={!writable}>Delete</button></div></div> : <div className="design-inspector-empty"><p>Select an object to edit its position, size and style.</p><p>Redaction is opaque in rendered exports. Keep editable backups private because the original image remains in the design source.</p></div>}</Pane>
     </div>
+    {/* Managed local files use blob URLs directly in this media chooser. */}
+    {/* eslint-disable-next-line @next/next/no-img-element */}
     {showMedia ? <div className="design-media-dialog" role="dialog" aria-modal="true" aria-labelledby="design-media-title"><div className="design-media-panel"><header><h2 id="design-media-title">Choose from Studio files</h2><button type="button" onClick={() => setShowMedia(false)} aria-label="Close">×</button></header>{mediaAssets.length ? <div className="design-media-list">{mediaAssets.map((asset) => <button type="button" key={asset.id} onClick={() => void addMediaAsset(asset)}><img src={URL.createObjectURL(asset.blob)} alt="" /><span>{asset.name}</span></button>)}</div> : <p>No image files are available in Studio yet.</p>}</div></div> : null}
   </div>;
 }

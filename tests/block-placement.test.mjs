@@ -7,7 +7,7 @@ import { loadProductionModule } from "./production-module.mjs";
 import { commitHistory, undoHistory, redoHistory } from "../app/studio/studio-command-operations.mjs";
 const { moveBlockToTarget, insertBlockAtTarget } = await loadProductionModule(new URL("../app/studio/block-placement.ts", import.meta.url));
 const { columnDropPosition } = await loadProductionModule(new URL("../app/studio/column-drop-position.ts", import.meta.url));
-const { useStudioBlockCommands } = await loadProductionModule(new URL("../app/studio/use-studio-block-commands.ts", import.meta.url));
+const { useStudioBlockCommands: createBlockCommands } = await loadProductionModule(new URL("../app/studio/use-studio-block-commands.ts", import.meta.url));
 const { validContentBlocks } = await loadProductionModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
 const p = id => ({ id, type: "paragraph", text: id });
 const fixture = () => [p("root"), { id: "columns", type: "columns", children: [{ id: "left", type: "column", children: [p("a"), p("b"), p("c")] }, { id: "right", type: "column", children: [] }] }, p("after")];
@@ -67,7 +67,7 @@ test("reader-valid non-owning children metadata remains untouched by placement a
 test("positioned library insertion uses the shared command once and preserves wrapper rules", () => {
   for (const type of ["paragraph", "button", "social-linkedin"]) {
     let document = { blocks: fixture() }, commits = 0;
-    const commands = useStudioBlockCommands({ activeDocument: document, updateActiveDocument: update => { document = update(document); commits++; } });
+    const commands = createBlockCommands({ activeDocument: document, updateActiveDocument: update => { document = update(document); commits++; } });
     const inserted = commands.insertBlock(type, null, "left", 1);
     assert.ok(inserted); assert.equal(commits, 1);
     const children = document.blocks[1].children[0].children;

@@ -25,7 +25,8 @@ const moduleGroups = {
 };
 
 export function readStudioSource(path, encoding = "utf8") {
-  const normalisedPath = path.replaceAll("\\", "/").replace(/^\.\.\//, "");
+  // Callers use project-relative paths. Preserve .. for sibling packages.
+  const normalisedPath = path.replaceAll("\\", "/");
   const paths = moduleGroups[normalisedPath] ?? [normalisedPath];
   return paths.map(modulePath => readFileSync(new URL(`../${modulePath}`, import.meta.url), encoding)).join("\n");
 }

@@ -72,7 +72,8 @@ for (const stylePath of stylePaths) {
   mappings[stylePath] = { ...reference, rowPath };
 }
 
-const sourceRevision = execFileSync("git", ["-C", governanceDirectory, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+// Unrelated governance commits must not invalidate an unchanged guide bundle.
+const sourceRevision = execFileSync("git", ["-C", governanceDirectory, "log", "-1", "--format=%H", "--", "STYLE_GUIDE.md"], { encoding: "utf8" }).trim();
 const document = lines.join("\n");
 const output = {
   schemaVersion: 1,

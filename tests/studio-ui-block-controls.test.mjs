@@ -102,7 +102,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
     assert.equal(gridSetting?.dependency, "layout");
     assert.match(gridSetting?.availableWhen ?? "", /layout is Grid/);
   }
-  const layoutInspector = inspectorSource.slice(inspectorSource.indexOf("function LayoutInspector"), inspectorSource.indexOf("type ColumnsBlock"));
+  const layoutInspector = inspectorSource.slice(inspectorSource.indexOf("function LayoutInspector"), inspectorSource.indexOf("function ColumnsInspector"));
   assert.match(inspectorSource, /<p className="setting-note">\{blockDescription\}<\/p>\{block.type === "heading"[^\n]+?\}\{block.type === "group" && !contentSlot \? <GroupLayoutSelection/, "Group layout variations remain below the description after the mutually exclusive Heading control");
   assert.doesNotMatch(layoutInspector, /GroupLayoutSelection/, "Group layout variations are not repeated in Dimensions");
   assert.match(layoutInspector, /block\.layout === "flow" \|\| block\.layout === "stack"/);
@@ -123,7 +123,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(groupDimensions, /<legend>Block spacing<\/legend>/);
   assert.match(inspectorSource, /resetGroupDimensionFields\(block, nextStyle, \{ padding: selectedIds.includes\("padding"\), layout: resetGroupLayout \}\)/);
   assert.match(inspectorSource, /title="Position" options=\{\[\{ id: "position", label: "Position" \}\]\}/);
-  const groupPositionInspector = inspectorSource.slice(inspectorSource.indexOf("function GroupPositionInspector"), inspectorSource.indexOf("type ColumnsBlock"));
+  const groupPositionInspector = inspectorSource.slice(inspectorSource.indexOf("function GroupPositionInspector"), inspectorSource.indexOf("function ColumnsInspector"));
   assert.match(groupPositionInspector, /configuredPosition: block\.position, visible: Boolean\(block\.position\)/);
   assert.match(groupPositionInspector, /positionVisibility\.configuredPosition === block\.position/);
   assert.doesNotMatch(groupPositionInspector, /alwaysShow/, "Group Position stays optional until selected or already configured");

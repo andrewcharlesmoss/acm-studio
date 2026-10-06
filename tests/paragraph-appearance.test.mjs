@@ -104,6 +104,12 @@ test("Additional CSS applies safe scoped declarations and ignores selectors or e
   for (const source of ["color: red; } body { display: none", "background-image: url(https://example.test/image.png)", "@import url(https://example.test/style.css)", "color: red !important", "color: red\\3b background: blue"]) {
     assert.deepEqual(parseAdditionalCssDeclarations(source), {});
   }
+  for (const code of [0, 1, 8, 11, 12, 14, 31]) {
+    assert.deepEqual(parseAdditionalCssDeclarations(`color: r${String.fromCharCode(code)}ed;`), {});
+  }
+  for (const whitespace of ["\t", "\n", "\r"]) {
+    assert.deepEqual(parseAdditionalCssDeclarations(`padding: calc(1rem${whitespace}+ 2px);`), { padding: `calc(1rem${whitespace}+ 2px)` });
+  }
 });
 
 test("legacy additional classes remain in output when the Gutenberg-disabled control is hidden", () => {

@@ -212,7 +212,11 @@ export function parseAdditionalCssDeclarations(source?: string): Record<string, 
     const property = declaration.slice(0, colon).trim();
     const value = declaration.slice(colon + 1).trim();
     if (!/^--[a-zA-Z0-9_-]+$/.test(property) && !/^-?[a-zA-Z][a-zA-Z0-9-]*$/.test(property)) continue;
-    if (!value || /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(value)) continue;
+    const hasControlCharacter = Array.from(value).some(character => {
+      const code = character.charCodeAt(0);
+      return code <= 8 || code === 11 || code === 12 || (code >= 14 && code <= 31);
+    });
+    if (!value || hasControlCharacter) continue;
     const reactProperty = property.startsWith("--") ? property : property.toLowerCase() === "colour" ? "color" : property === "float" ? "cssFloat" : property.replace(/^-([a-z])/i, (_match, letter: string) => letter.toUpperCase()).replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase());
     css[reactProperty] = value;
   }

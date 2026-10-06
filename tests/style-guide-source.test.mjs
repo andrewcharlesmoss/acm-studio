@@ -14,7 +14,7 @@ const preset = JSON.parse(fs.readFileSync(presetPath, "utf8"));
 
 test("bundled Style Guide matches its committed canonical source", () => {
   const guide = fs.readFileSync(guidePath, "utf8").replace(/\r\n/g, "\n");
-  const revision = execFileSync("git", ["-C", path.dirname(guidePath), "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const revision = execFileSync("git", ["-C", path.dirname(guidePath), "log", "-1", "--format=%H", "--", "STYLE_GUIDE.md"], { encoding: "utf8" }).trim();
   assert.equal(source.document, guide);
   assert.equal(source.sourceRevision, revision);
   assert.equal(source.sourceDigest, crypto.createHash("sha256").update(guide).digest("hex"));

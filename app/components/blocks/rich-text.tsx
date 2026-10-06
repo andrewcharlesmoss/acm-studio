@@ -53,6 +53,8 @@ function renderMark(content: ReactNode, mark: TextMark, mediaUrls: Record<string
   }
   if (typeof mark !== "string" && mark.type === "inline-image") {
     const src = safeImageSource(mark.mediaId ? mediaUrls[mark.mediaId] ?? "" : "", { allowBlob: true }) ?? safeImageSource(mark.src ?? "");
+    // Legacy managed images can resolve to browser-local blob URLs.
+    // eslint-disable-next-line @next/next/no-img-element
     return src ? <img className="inline-rich-image" src={src} alt={mark.alt} width={mark.width} /> : <span className="inline-rich-image-fallback">{mark.alt}</span>;
   }
   if (typeof mark !== "string" && mark.type === "footnote") {
