@@ -1919,12 +1919,15 @@ test("editor shells retain the desktop workspace when the browser is narrow", ()
   const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const templates = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
+  const responsive = readFileSync(new URL("../app/studio/responsive.css", import.meta.url), "utf8");
   assert.match(prototype, /className=\{`studio-shell studio-desktop-only/);
   assert.doesNotMatch(templates, /className="studio-shell/);
   assert.match(prototype, /<TemplateWorkspacePanel/);
   assert.match(styles, /\.studio-desktop-only \{ min-width: 1130px; \}/);
   assert.match(styles, /\.studio-desktop-only \.studio-workspace \{ display: grid; grid-template-columns: var\(--studio-library-width\) minmax\(540px, 1fr\) var\(--studio-inspector-width\);/);
   assert.match(styles, /\.studio-desktop-only \.studio-library, \.studio-desktop-only \.studio-inspector \{ display: flex;/);
+  assert.match(responsive, /\.studio-shell:not\(\.studio-desktop-only\) \.studio-library-track, \.studio-shell:not\(\.studio-desktop-only\) \.studio-inspector-track \{ display: none; \}/);
+  assert.doesNotMatch(responsive, /(?:^|\n)\s*\.studio-library-track, \.studio-inspector-track \{ display: none;/);
 });
 
 

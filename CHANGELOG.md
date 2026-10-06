@@ -589,6 +589,7 @@
 
 ### Fixed
 
+- Studio Navigation and Editor Inspector remain available through horizontal scrolling at mobile viewport widths.
 - New category entry receives focus when opened without automatic page-load focus. Design and template listeners use current editor state, and delayed page renames preserve other edits and respect editing availability.
 - Restore clean test and lint checks after block modularisation, including sibling source paths, current inspector contracts and Style Guide provenance tied to guide changes rather than unrelated governance commits.
 

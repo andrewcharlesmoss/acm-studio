@@ -66,7 +66,7 @@
   .studio-breadcrumbs, .studio-actions .icon-button { display: none; }
   .studio-notice { padding-left: 14px; padding-right: 14px; text-align: left; }
   .studio-workspace { display: block; height: auto; min-height: calc(100dvh - 101px); }
-  .studio-library-track, .studio-inspector-track { display: none; }
+  .studio-shell:not(.studio-desktop-only) .studio-library-track, .studio-shell:not(.studio-desktop-only) .studio-inspector-track { display: none; }
   .block-editor { border-right: 0; height: calc(100dvh - 101px); min-height: calc(100dvh - 101px); }
   .editor-code-toggle { font-size: 0 !important; padding: 0 !important; width: 40px; }
   .editor-list-toggle { font-size: 0 !important; padding: 0 !important; width: 40px; }
