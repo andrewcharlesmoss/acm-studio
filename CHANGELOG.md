@@ -593,6 +593,8 @@
 
 ### Fixed
 
+- Font Size and Border share consistent number/unit fields without spinners and Gutenberg-sized slider thumbs; custom font sliders use a 100px scale.
+
 - Link in Elements displays overlapping Default and Hover colour indicators, following Gutenberg's arrangement.
 - Studio Navigation and Editor Inspector remain available through horizontal scrolling at mobile viewport widths.
 - New category entry receives focus when opened without automatic page-load focus. Design and template listeners use current editor state, and delayed page renames preserve other edits and respect editing availability.

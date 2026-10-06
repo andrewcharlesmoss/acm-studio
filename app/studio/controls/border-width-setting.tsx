@@ -1,5 +1,6 @@
 "use client";
 
+import { NumberUnitField } from "./number-unit-field";
 import { RangeControl } from "./range-control";
 
 import { useState } from "react";
@@ -45,15 +46,18 @@ function BorderWidthInput({ label, value, mixed = false, colour, borderStyle, di
       if (width !== undefined) onChange(width);
     }
   }
-  return <div className={`studio-border-input is-${label.toLowerCase()}`}>
+  return <NumberUnitField className={`studio-border-input is-${label.toLowerCase()}`}
+    leadingControl={
     <ColourPicker label="Border colour" value={colour} disabled={disabled} onChange={onColourChange}
       additionalControls={<><label className="studio-border-style"><span>Border style</span><select aria-label="Border style" value={borderStyle ?? "none"} disabled={disabled} onChange={event => onStyleChange(event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label><p className="studio-border-shared-note">Colour and style apply to all sides.</p></>}
       trigger={({ expanded, controls, onClick }) => <button className="studio-border-colour" type="button" disabled={disabled} aria-label={`Choose border colour for all sides (${label} control)`} title="Border colour and style for all sides" aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={colour} /></button>} />
-    <input type="number" aria-label={`Border ${label} width`} disabled={disabled} min={0} step="any" placeholder={mixed ? "Mixed" : ""} value={draft ?? (value && !mixed ? amount : "")} onChange={event => setDraft(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} />
-    <select aria-label={`Border ${label} unit`} disabled={disabled} value={unit} onChange={event => { const next = draft === null || draft === "" ? amount : Number(draft); setDraft(null); const width = supportedWidth(next, event.target.value); if (width !== undefined) onChange(width); }}>
-      {[...(unit === "%" ? ["%"] : []), ...units].map(option => <option key={option} value={option}>{option}</option>)}
-    </select>
-  </div>;
+    }
+    inputProps={{ "aria-label": `Border ${label} width`, disabled, min: 0, step: "any", placeholder: mixed ? "Mixed" : "", value: draft ?? (value && !mixed ? amount : ""),
+      onChange: event => setDraft(event.target.value), onBlur: commit,
+      onKeyDown: event => { if (event.key === "Enter") event.currentTarget.blur(); } }}
+    unitProps={{ "aria-label": `Border ${label} unit`, disabled, value: unit,
+      onChange: event => { const next = draft === null || draft === "" ? amount : Number(draft); setDraft(null); const width = supportedWidth(next, event.target.value); if (width !== undefined) onChange(width); } }}
+    units={[...(unit === "%" ? ["%"] : []), ...units]} />;
 }
 
 /** Widths use the existing CSS shorthand; linking the view never discards mixed values. */

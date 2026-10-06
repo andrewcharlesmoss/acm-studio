@@ -1,0 +1,8 @@
+.studio-number-unit-field { align-items: stretch; background: white; border: 1px solid #949494; border-radius: 2px; box-sizing: border-box; display: flex; height: 40px; min-width: 0; }
+.studio-number-unit-field > input[type="number"], .inspector-sections .studio-number-unit-field > input[type="number"] { appearance: textfield; background: transparent; border: 0; border-radius: 0; box-shadow: none; box-sizing: border-box; flex: 1 1 0; font: inherit; height: 38px; min-width: 0; padding: 0 8px; width: 0; }
+.studio-number-unit-field > input[type="number"]::-webkit-inner-spin-button, .studio-number-unit-field > input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; display: none; margin: 0; }
+.studio-number-unit-field > select, .inspector-sections .studio-number-unit-field > select { appearance: none; background: transparent; border: 0; border-radius: 0; box-shadow: none; box-sizing: border-box; color: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); cursor: pointer; flex: 0 0 32px; font: inherit; height: 38px; min-width: 0; padding: 0 4px; width: 32px; }
+.studio-number-unit-field:focus-within { border-color: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); }
+.studio-number-unit-field > :is(input, select):focus-visible { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #3858e9); outline-offset: -2px; }
+.studio-number-unit-field > :disabled { cursor: not-allowed; opacity: .55; }
+@media (forced-colors: active) { .studio-number-unit-field:focus-within { border-color: Highlight; } }

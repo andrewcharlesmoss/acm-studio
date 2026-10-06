@@ -1281,16 +1281,24 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .paragraph-font-size-mode:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
 .paragraph-custom-font-size { align-items: center; display: grid; gap: 16px; grid-template-columns: calc(var(--studio-number-field-width) + 44px) minmax(90px, 1fr); }
 .paragraph-custom-font-size > * { min-width: 0; }
-.paragraph-custom-font-size-input { align-items: stretch; background: white; border: 1px solid #8d8d8d; border-radius: 2px; display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 40px; position: relative; }
-.paragraph-custom-font-size-input input[type="number"],.paragraph-length-controls input[type="number"],.box-length-custom input[type="number"] { font-family: var(--studio-ui-font); font-size: var(--studio-ui-size); }
-.paragraph-custom-font-size-input input[type="number"] { background: transparent; border: 0; border-radius: 0; min-width: 0; outline: 0; padding: 8px 4px 8px 12px; width: var(--studio-number-field-width); }
-.paragraph-custom-font-size-unit { appearance: none; background: transparent; border: 0; border-radius: 0; color: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); cursor: pointer; font: inherit; min-width: 32px; padding: 4px; width: 32px; }
-.paragraph-custom-font-size-unit:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -2px; }
-.paragraph-custom-font-size-input:focus-within:has(:focus-visible) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.paragraph-length-controls input[type="number"], .box-length-custom input[type="number"] { font-family: var(--studio-ui-font); font-size: var(--studio-ui-size); }
 /* Shared Gutenberg-style treatment for value sliders; colour spectrum inputs keep their specialist tracks. */
 .studio-range-control[type="range"] { accent-color: var(--studio-range-accent, var(--gutenberg-accent)); appearance: auto; -webkit-appearance: auto; background: transparent; border: 0; cursor: pointer; min-height: 20px; min-width: 0; padding: 0; }
 @media (hover: hover) and (pointer: fine) { .studio-range-control[type="range"]:not(:disabled):hover { accent-color: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 88%, black)); } }
 .studio-range-control[type="range"]:not(:disabled):active { accent-color: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 88%, black)) 88%, black)); }
+.studio-range-wrapper > .studio-range-control[type="range"] { accent-color: var(--studio-range-accent, var(--gutenberg-accent)); appearance: none; -webkit-appearance: none; background: transparent; border: 0; cursor: pointer; height: 40px; min-width: 0; padding: 0; }
+.studio-range-wrapper > .studio-range-control::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--studio-range-accent, var(--gutenberg-accent)) var(--range-label-position, 0%), #ddd var(--range-label-position, 0%)); border-radius: 2px; height: 4px; }
+.studio-range-wrapper > .studio-range-control::-moz-range-track { background: linear-gradient(to right, var(--studio-range-accent, var(--gutenberg-accent)) var(--range-label-position, 0%), #ddd var(--range-label-position, 0%)); border-radius: 2px; height: 4px; }
+.studio-range-wrapper > .studio-range-control::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; background: var(--studio-range-accent, var(--gutenberg-accent)); border: 0; border-radius: 50%; height: var(--range-thumb-size); margin-top: -4px; width: var(--range-thumb-size); }
+.studio-range-wrapper > .studio-range-control::-moz-range-thumb { background: var(--studio-range-accent, var(--gutenberg-accent)); border: 0; border-radius: 50%; height: var(--range-thumb-size); width: var(--range-thumb-size); }
+.studio-range-wrapper > .studio-range-control:not(:disabled):is(:hover, :focus-visible, :active)::-webkit-slider-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 40%, transparent); }
+.studio-range-wrapper > .studio-range-control:not(:disabled):is(:hover, :focus-visible, :active)::-moz-range-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 40%, transparent); }
+@media (hover: hover) and (pointer: fine) {
+  .studio-range-wrapper > .studio-range-control:not(:disabled):hover::-webkit-slider-thumb { background: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 88%, black)); }
+  .studio-range-wrapper > .studio-range-control:not(:disabled):hover::-moz-range-thumb { background: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 88%, black)); }
+}
+.studio-range-wrapper > .studio-range-control:not(:disabled):active::-webkit-slider-thumb { background: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 88%, black)) 88%, black)); }
+.studio-range-wrapper > .studio-range-control:not(:disabled):active::-moz-range-thumb { background: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 88%, black)) 88%, black)); }
 .studio-range-control:focus-visible { outline: var(--focus-ring-width) solid var(--studio-range-accent, var(--gutenberg-accent)); outline-offset: 3px; }
 .studio-range-control:disabled { cursor: not-allowed; opacity: .55; }
 .paragraph-custom-font-size-slider { width: 100%; }
@@ -1719,22 +1727,8 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .paragraph-colour-preview:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -3px; }
 
 /* Gutenberg spacing scales use discrete, unfilled segments and a round thumb. */
-.studio-range-control.studio-spacing-range,
-.group-block-inspector .box-length-row > .studio-range-wrapper > .studio-range-control {
-  appearance: none; -webkit-appearance: none; background: transparent; border: 0; box-shadow: none; cursor: pointer; height: 40px; min-width: 0; padding: 0; width: 100%;
-}
-.studio-spacing-range::-webkit-slider-runnable-track { background: repeating-linear-gradient(to right, #ddd 0, #ddd calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments))); border-radius: 2px; height: 4px; }
-.studio-spacing-range::-moz-range-track { background: repeating-linear-gradient(to right, #ddd 0, #ddd calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments))); border-radius: 2px; height: 4px; }
-.group-block-inspector .box-length-row > .studio-range-wrapper > .studio-range-control:not(.studio-spacing-range)::-webkit-slider-runnable-track { background: #ddd; border-radius: 2px; height: 4px; }
-.group-block-inspector .box-length-row > .studio-range-wrapper > .studio-range-control:not(.studio-spacing-range)::-moz-range-track { background: #ddd; border-radius: 2px; height: 4px; }
-.studio-spacing-range::-webkit-slider-thumb,
-.group-block-inspector .box-length-row > .studio-range-wrapper > .studio-range-control::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; background: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); border: 0; border-radius: 50%; height: 12px; margin-top: -4px; width: 12px; }
-.studio-spacing-range::-moz-range-thumb,
-.group-block-inspector .box-length-row > .studio-range-wrapper > .studio-range-control::-moz-range-thumb { background: var(--studio-range-accent, var(--gutenberg-accent, #3858e9)); border: 0; border-radius: 50%; height: 12px; width: 12px; }
-.studio-spacing-range:hover::-webkit-slider-thumb { background: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)); }
-.studio-spacing-range:active::-webkit-slider-thumb { background: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 77%, black)); }
-.studio-spacing-range:hover::-moz-range-thumb { background: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 88%, black)); }
-.studio-spacing-range:active::-moz-range-thumb { background: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent, #3858e9)) 77%, black)); }
+.studio-range-wrapper > .studio-spacing-range::-webkit-slider-runnable-track { background: repeating-linear-gradient(to right, #ddd 0, #ddd calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments))); border-radius: 2px; height: 4px; }
+.studio-range-wrapper > .studio-spacing-range::-moz-range-track { background: repeating-linear-gradient(to right, #ddd 0, #ddd calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments) - 2px), transparent calc(100% / var(--spacing-segments))); border-radius: 2px; height: 4px; }
 .studio-spacing-range:disabled { cursor: default; opacity: .5; }
 .studio-spacing-range:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: 2px; }
 .studio-inspector:has(.group-block-inspector) { background: white; }

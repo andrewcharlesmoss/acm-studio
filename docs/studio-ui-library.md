@@ -179,6 +179,15 @@ values retain their measurement and unset values display Default. Disabled
 ranges do not show a label. Native range keyboard semantics and caller handlers
 remain intact. This follows the behaviour of Gutenberg's
 [RangeControl](https://github.com/WordPress/gutenberg/tree/trunk/packages/components/src/range-control).
+`RangeControl` owns the 12px thumb, 4px track, progress fill and interaction halo
+for composed inspector sliders. Font Size and Border share `NumberUnitField`:
+a 40px field with no visible number spinner and a blue native unit selector.
+Border supplies its colour button through the optional leading-control slot;
+value validation and supported units remain with each setting. Font Size's
+slider ends at 100px or 10 in relative units, independently of the larger
+numeric-entry limits retained for saved-content compatibility. Border's default
+slider ends at 100 and expands to accommodate a larger entered width. Raw range
+inputs retain their native presentation until they adopt `RangeControl`.
 Custom padding and margin sliders use a 0–300 scale for px, 0–10 with 0.1 steps
 for em/rem, and 0–100 with whole-number steps for percentage and viewport units.
 Studio's supported ch unit uses the same 0–100 fallback scale. Controls that

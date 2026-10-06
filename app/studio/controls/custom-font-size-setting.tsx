@@ -1,5 +1,6 @@
 "use client";
 
+import { NumberUnitField } from "./number-unit-field";
 import { RangeControl } from "./range-control";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -18,7 +19,7 @@ export function CustomFontSizeSetting({ value, onChange }: { value?: string; onC
   const displayedValue = draft ?? match?.[1] ?? "";
   const relativeUnit = unit !== "px";
   const sliderMinimum = relativeUnit ? 0.1 : 1;
-  const sliderMaximum = customFontSizeMaximum(unit);
+  const sliderMaximum = relativeUnit ? 10 : 100;
   const sliderDisplayedValue = sliderDraft ?? displayedValue;
   const numericValue = Number(sliderDisplayedValue);
   const sliderValue = sliderDisplayedValue && Number.isFinite(numericValue) ? Math.max(sliderMinimum, Math.min(numericValue, sliderMaximum)) : relativeUnit ? 1 : 16;
@@ -59,12 +60,11 @@ export function CustomFontSizeSetting({ value, onChange }: { value?: string; onC
     if (displayedValue) commit(displayedValue, nextUnit);
   }
   return <div className="paragraph-custom-font-size">
-    <div className="paragraph-custom-font-size-input">
-      <input aria-label="Custom font size" type="number" min={sliderMinimum} max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={displayedValue} onChange={event => setDraft(event.target.value)} onBlur={() => { if (draft !== null) commit(draft); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} />
-      <select className="paragraph-custom-font-size-unit" aria-label="Custom font size unit" value={unit} onChange={event => selectUnit(event.target.value as CustomFontSizeUnit)}>
-        {units.map(option => <option key={option} value={option}>{option}</option>)}
-      </select>
-    </div>
+    <NumberUnitField className="paragraph-custom-font-size-input" units={units}
+      inputProps={{ "aria-label": "Custom font size", min: sliderMinimum, max: customFontSizeMaximum(unit), step: relativeUnit ? "0.1" : "1", value: displayedValue,
+        onChange: event => setDraft(event.target.value), onBlur: () => { if (draft !== null) commit(draft); },
+        onKeyDown: event => { if (event.key === "Enter") event.currentTarget.blur(); } }}
+      unitProps={{ "aria-label": "Custom font size unit", value: unit, onChange: event => selectUnit(event.target.value as CustomFontSizeUnit) }} />
     <RangeControl className="studio-range-control paragraph-custom-font-size-slider" aria-label="Custom font size slider" min={sliderMinimum} max={sliderMaximum} step={relativeUnit ? "0.1" : "1"} value={sliderValue} onPointerDown={event => startSliderDrag(event.pointerId)} onPointerUp={event => finishSliderDrag(event.pointerId)} onPointerCancel={event => finishSliderDrag(event.pointerId)} onLostPointerCapture={event => finishSliderDrag(event.pointerId)} onBlur={() => finishSliderDrag()} onChange={event => { const nextValue = event.currentTarget.value; if (sliderDraggingRef.current) setSliderDraft(nextValue); commit(nextValue); }} />
   </div>;
 }
