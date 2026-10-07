@@ -2007,9 +2007,9 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .group-alignment-control, .group-grid-mode { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
 .group-alignment-control legend, .group-grid-mode legend, .group-grid-minimum > span, .group-grid-columns > label { font-size: var(--studio-ui-size); font-weight: 500; margin-bottom: 8px; display: block; }
 .group-alignment-control > div, .group-grid-mode > div { display: flex; gap: 4px; }
-.group-alignment-control button { width: 36px; height: 36px; padding: 6px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--ink); border-radius: 2px; }
+.group-alignment-control button { width: 36px; height: 36px; padding: 6px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: #757575; border-radius: 2px; }
 .group-alignment-control button { border: 1px solid transparent; }
-.group-alignment-control button[aria-pressed="true"] { border-color: #757575; background: #f0f0f0; }
+.group-alignment-control button[aria-pressed="true"] { border-color: #757575; background: #f0f0f0; color: var(--ink); }
 .group-flex-layout-controls { display: flex; justify-content: space-between; gap: 8px; }
 .group-flex-layout-controls legend { text-transform: uppercase; }
 .group-flex-layout-controls button[data-value="stack"] svg { transform: rotate(90deg); }
