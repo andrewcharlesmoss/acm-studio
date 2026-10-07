@@ -1962,3 +1962,11 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-range-wrapper > .studio-range-control { flex: 1; margin: 0; min-width: 0; width: 100%; }
 .studio-range-value-label { background: #333; border-radius: 2px; color: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); left: var(--range-label-position); padding: 4px 8px; pointer-events: none; position: absolute; top: calc(50% + 15px); transform: translateX(-50%); white-space: nowrap; z-index: 5; }
 @media (forced-colors: active) { .studio-range-value-label { background: CanvasText; color: Canvas; } }
+
+.test-site-editor .site-draft-library form{display:grid;gap:12px;margin:20px 0}.test-site-editor .site-draft-library textarea{width:100%;resize:vertical;min-height:120px;font:inherit;border:1px solid var(--acm-color-border,#d1d1d6);border-radius:4px;padding:8px}.test-site-editor .site-draft-library p{font:inherit;line-height:1.5}.test-site-editor .test-site-revision{overflow-wrap:anywhere}.test-site-editor-surface .test-site-page{min-height:600px}.test-site-editor-surface .test-site-page>.studio-document-body{display:contents}.test-site-editor .test-site-loading{padding:32px}
+
+.test-site-editor-surface .test-site-page[data-test-mode="edit"]{display:block}.test-site-editor-surface .test-site-page>.canvas-blocks{display:grid;grid-template-rows:auto 1fr auto;min-height:600px}.test-site-editor-surface .test-site-page>.canvas-blocks>.block-position:has(main){align-content:center}.test-site-editor-surface .test-site-page :is(.canvas-block,.studio-nested-block){margin-block:0}
+
+.test-site-settings{border:0;padding:0;margin:0;min-width:0}.test-site-editor .studio-local-site{text-decoration:none;color:inherit}.test-site-editor .inspector-block-summary h2{text-transform:capitalize}
+
+.test-site-editor.studio-desktop-only{min-width:1130px}.test-site-editor .site-draft-workspace{display:grid;grid-template-columns:230px minmax(600px,1fr) 300px;min-width:1130px}.test-site-editor .site-draft-library{grid-column:auto}.test-site-editor .studio-inspector-track{grid-column:auto}

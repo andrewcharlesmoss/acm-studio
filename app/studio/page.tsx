@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function StudioPage({ searchParams }: { searchParams: Promise<{ preview?: string | string[]; documentId?: string | string[]; viewport?: string | string[]; template?: string | string[] }> }) {
+export default async function StudioPage({ searchParams }: { searchParams: Promise<{ preview?: string | string[]; documentId?: string | string[]; viewport?: string | string[]; template?: string | string[]; site?: string | string[] }> }) {
   const query = await searchParams;
   const preview = Array.isArray(query.preview) ? query.preview[0] : query.preview;
   const documentId = Array.isArray(query.documentId) ? query.documentId[0] : query.documentId;
@@ -16,6 +16,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
   const template = Array.isArray(query.template) ? query.template[0] : query.template;
   return <StudioPrototype initialView={{
     preview: preview === "1",
+    site: query.site === "test" ? "test" : null,
     documentId: documentId ?? null,
     viewport: viewport === "tablet" || viewport === "mobile" ? viewport : "desktop",
     showTemplate: template !== "0",

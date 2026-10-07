@@ -61,7 +61,7 @@ export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
   const [opening, setOpening] = useState(false);
   const project = snapshot?.projects.find(project => project.id === id);
   const canVisit = Boolean(local && snapshot?.available && project?.status === "running");
-  const editHref = local && id === "acm-studio" ? "/studio" : undefined;
+  const editHref = local && id === "acm-studio" ? "/studio" : local && id === "test" ? "/studio?site=test" : undefined;
   async function openLocal() {
     setOpening(true);
     try {
@@ -86,7 +86,7 @@ export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
   </div>;
 }
 
-export function ProjectLocalSiteNavigation({ id, name }: { id: string; name: string }) {
+export function ProjectLocalSiteNavigation({ id, name, onSelectTest }: { id: string; name: string; onSelectTest?: () => void }) {
   const { local, snapshot, refreshSnapshot } = useContext(LocalProjectsContext);
   const [opening, setOpening] = useState(false);
   const project = snapshot?.projects.find(project => project.id === id);
@@ -112,10 +112,11 @@ export function ProjectLocalSiteNavigation({ id, name }: { id: string; name: str
 
   return <section className="studio-local-sites" aria-labelledby="studio-local-sites-title">
     <h2 id="studio-local-sites-title">Sites</h2>
-    <button type="button" className="studio-local-site" disabled={!canVisit || opening} onClick={() => void openLocal()} aria-label={`Open ${name} local site`}>
+    <a className="studio-local-site" href={id === "test" ? "/studio?site=test" : "/studio"} aria-label={`Edit ${name} local site`} onClick={event => { if (id === "test" && onSelectTest) { event.preventDefault(); onSelectTest(); } }}>
       <span className="studio-local-site-mark" aria-hidden="true">{name.slice(0, 1)}</span>
       <span className="studio-local-site-copy"><strong>{name}</strong><small role="status">{localStatus(snapshot, project)}</small></span>
-    </button>
+    </a>
+    <button type="button" className="text-button" disabled={!canVisit || opening} onClick={() => void openLocal()} aria-label={`Open ${name} local preview`}>Open Local Site <StudioIcon name="external" size={16} /></button>
   </section>;
 }
 

@@ -17,7 +17,7 @@ export type { StudioPresentation, StudioPresentationContext } from "./studio-pre
  * canvas and inspector remain one implementation for every workspace.
  */
 export type StudioEditorProps = {
-  target?: { kind: "template" | "part"; id: string; name: string; blocks: ContentBlock[]; inspector: ReactNode | ((selectedListItem: ListItemSelection | null) => ReactNode) };
+  target?: { kind: "template" | "part" | "site"; id: string; name: string; blocks: ContentBlock[]; inspector: ReactNode | ((selectedListItem: ListItemSelection | null) => ReactNode) };
   writable?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;

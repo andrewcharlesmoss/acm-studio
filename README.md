@@ -186,3 +186,10 @@ The same ownership covers drafts, local publications and media. Restore pauses
 new writes and waits for current media operations before capturing recovery
 state. A successful restore requires a reload before editing; incomplete
 rollback keeps editing paused so the remaining data is not overwritten.
+
+## Test local website integration
+
+Select Test in Studio's Sites navigation to edit its local header, body and
+footer inside the existing editor, using the normal block library and inspector.
+The disk document and local preview share revision-checked saves. Prompts are deferred. See [Test integration](docs/test-site-integration.md)
+for configuration, supported blocks, verification and recovery.

@@ -4,6 +4,10 @@
 
 ### Added
 
+- Edit the local Test website inside Studio using its standard block library
+  and inspector, with revision checks, history and standalone preview.
+
+
 - Added Test to the editor's Sites area, with a live local-service status and an open action when Project Ports reports it running.
 
 - Shared inspector sliders show a value label beneath the thumb on hover, focus and adjustment, using spacing preset names or the current numeric value.

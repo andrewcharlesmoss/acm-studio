@@ -13,7 +13,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
   studioSection, writable, exclusiveWritable, codeEditorDirty, addDocument, addDocumentFromTemplate,
   openMediaLibrary, selectDocument, canDeleteDocument, requestRenameDocument, duplicateDocument,
   requestDeleteDocument, onOpenBackup, onOpenBin, onOpenTemplates, onSelectLibraryKind,
-  onSelectTemplate, onExportContent,
+  onSelectTemplate, onExportContent, onSelectTest,
 }: {
   workspace: StudioWorkspace; activeDocument: StudioDocument;
   templateSession: Pick<ReturnType<typeof useTemplates>, "store" | "writable">;
@@ -23,13 +23,13 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
   setLibraryPaneWidth: (width: number) => void; setLibraryPaneCollapsed: (collapsed: boolean) => void;
   studioSection: string; writable: boolean; exclusiveWritable: boolean; codeEditorDirty: boolean;
   addDocument: (kind: StudioDocumentKind) => void; addDocumentFromTemplate: () => void;
-  openMediaLibrary: () => void; selectDocument: (document: StudioDocument) => boolean;
+  openMediaLibrary: () => void; selectDocument: (document: StudioDocument) => boolean | Promise<boolean>;
   canDeleteDocument: (document: StudioDocument | undefined) => boolean;
   requestRenameDocument: (documentId: string, opener: HTMLElement | null) => void;
   duplicateDocument: (documentId: string) => void; requestDeleteDocument: (documentId: string) => void;
   onOpenBackup: () => void; onOpenBin: () => void; onOpenTemplates: () => void;
   onSelectLibraryKind: (kind: StudioDocumentKind | "templates") => void;
-  onSelectTemplate: (setId: string, targetId: string) => void; onExportContent: () => void;
+  onSelectTemplate: (setId: string, targetId: string) => void; onExportContent: () => void; onSelectTest?: () => void;
 }) {
   const libraryTabsId = useId();
   const documentContextMenuTriggerRef = useRef<HTMLElement | null>(null);
@@ -51,7 +51,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
             <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={onOpenBackup}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
             <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" onClick={onOpenBin}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.bin.length + templateSession.store.bin.length} deleted items</small></button>
           </div></>}
-          tabs={<><ProjectLocalSiteNavigation id="test" name="Test" /><div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
+          tabs={<><ProjectLocalSiteNavigation id="test" name="Test" onSelectTest={onSelectTest} /><div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
             { id: "page", label: "Pages" }, { id: "post", label: "Posts" }, { id: "templates", label: "Templates" },
           ]} active={libraryKind} onChange={id => onSelectLibraryKind(id as StudioDocumentKind | "templates")} renderLabel={(tab) => <><span className="library-tab-label">{tab.label}</span><span>{tab.id === "templates" ? templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0) : workspace.documents.filter((item) => item.kind === tab.id).length}</span></>} /></div></>}
           footer={<div className="library-footer"><button type="button" onClick={() => onExportContent()}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>}>
@@ -68,7 +68,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
                 <button className="button-secondary" type="button" onClick={onOpenTemplates}>Open Template Editor</button>
                 {!templateSession.store.sets.some(set => set.templates.length || set.parts.length) ? <p className="document-list-empty">No templates yet.</p> : null}
               </> : workspace.documents.filter((document) => document.kind === kind).map((document) => (
-                  <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} aria-haspopup="menu" aria-expanded={documentContextMenu?.id === document.id} onClick={() => selectDocument(document)} onContextMenu={(event) => { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; setDocumentContextMenu({ id: document.id, label: document.title, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); if (!selectDocument(document)) return; documentContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); setDocumentContextMenu({ id: document.id, label: document.title, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
+                  <button className={`document-item${document.id === activeDocument.id ? " is-active" : ""}`} type="button" key={document.id} aria-haspopup="menu" aria-expanded={documentContextMenu?.id === document.id} onClick={() => selectDocument(document)} onContextMenu={async (event) => { event.preventDefault(); const opener = event.currentTarget; const x = event.clientX; const y = event.clientY; if (!await selectDocument(document)) return; documentContextMenuTriggerRef.current = opener; setDocumentContextMenu({ id: document.id, label: document.title, x, y }); }} onKeyDown={async (event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); const opener = event.currentTarget; if (!await selectDocument(document)) return; documentContextMenuTriggerRef.current = opener; const rect = opener.getBoundingClientRect(); setDocumentContextMenu({ id: document.id, label: document.title, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
                   <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span>
                   <span><strong>{document.title}</strong><small>/{document.slug}</small></span>
                   <span className={`document-status is-${document.status}`}>{document.status.charAt(0).toUpperCase() + document.status.slice(1)}</span>

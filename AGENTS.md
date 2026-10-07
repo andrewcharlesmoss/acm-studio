@@ -300,3 +300,25 @@ opening rechecks the current port. Multiple running web addresses require a
 choice in Project Ports. No registry-file fallback guesses running state.
 The bridge is absent from production builds; ACM Studio itself retains its
 relative `/studio` link on every host.
+
+## Test local website editing
+
+Andrew has authorised the local Test integration inside `/studio?site=test` and
+changes to the sibling `test` project for this fixture. The canonical source is
+Test's `content/site.json` v2 (backwards-readable v1); visual edits use one
+revision-checked gateway. The original Studio navigation and browser workspace
+remain separate; the Test projection is never inserted into their stores.
+The existing Studio session owns the Web Lock and the Test adapter borrows it.
+The normal block library and inspector are reused. Prompts are deferred with no
+prompt panel in the current editor. `dist/index.html` is generated using Studio's
+canonical BlockRenderer and Test's scoped styles. Do not add another authoritative
+browser store or enable unrestricted writes in the Mini Golf Codex bridge.
+
+The dev-only Test gateway requires exact local-origin checks, expiring session
+tokens, browser write ownership, server leases/process guard, document validation,
+CAS revisions and recoverable output transactions. Prompt sessions are ephemeral,
+run in an empty temporary directory with verified tools/connectors disabled and
+read-only network-denied permissions; only structured proposals reach the gateway.
+No hosted publishing or external editor synchronisation is authorised by this
+local integration. See `docs/test-site-integration.md` for configuration, supported
+capabilities, commands, conflict handling, protocol details and recovery.
