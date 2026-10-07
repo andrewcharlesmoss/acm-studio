@@ -75,7 +75,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
     style.lineHeight && "line-height", style.letterSpacing && "letter-spacing", style.textIndent && "line-indent",
     style.textColumns && "columns", style.textDecoration && "decoration", style.textTransform && "letter-case", style.dropCap && "drop-cap", style.fitText && "fit-text", style.orientation && "orientation",
   ].filter((value): value is string => Boolean(value) && scopedTypographyIds.has(value as string))]);
-  const dimensionsVisible = new Set([...defaultDimensions, ...[...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin", style.minHeight && "min-height", style.minWidth && "min-width", block.type === "button" && buttonWidth && "width"].filter((value): value is string => Boolean(value))].filter(id => scopedDimensionIds.has(id))]);
+  const dimensionsVisible = new Set([...defaultDimensions, ...[...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin", style.minHeight && "min-height", style.minWidth && "min-width", block.type === "button" && buttonWidth && "width", block.type === "group" && (block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined) && "gaps"].filter((value): value is string => Boolean(value))].filter(id => scopedDimensionIds.has(id))]);
   const borderVisible = new Set([...defaultBorder, ...borderUserVisible, ...[
     (style.borderStyle || style.borderColor || style.borderWidth) && "border",
     style.borderRadius && "radius", style.shadow && "shadow",
@@ -108,8 +108,8 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
   function clearTools(ids: Iterable<string>, resetGroupLayout = false) {
     const selectedIds = [...ids];
     const nextStyle = resetSupportedInspectorStyleFields(style, selectedIds, styleControls);
-    if (block.type === "group" && (resetGroupLayout || selectedIds.includes("padding"))) {
-      onChange(resetGroupDimensionFields(block, nextStyle, { padding: selectedIds.includes("padding"), layout: resetGroupLayout }));
+    if (block.type === "group" && (resetGroupLayout || selectedIds.includes("padding") || selectedIds.includes("gaps"))) {
+      onChange(resetGroupDimensionFields(block, nextStyle, { padding: selectedIds.includes("padding"), layout: resetGroupLayout || selectedIds.includes("gaps") }));
       return;
     }
     if (block.type === "columns" && resetGroupLayout) {
@@ -176,7 +176,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
       {backgroundImageOptions}
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </GroupBackgroundSection> : null,
-    dimensions: <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} canReset={optionalDimensionOptions.some(option => dimensionsVisible.has(option.id)) || inspectorStyleHasValues(style, dimensionsVisible, styleControls) || Boolean((block.type === "group" || block.type === "columns") && (block.paddingX !== undefined || block.paddingY !== undefined || block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined))} alwaysShow={Boolean(groupDimensionControls)} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible, true); if (block.type !== "group" && block.type !== "columns") onResetGroupDimensions?.(); setDimensionsVisible(new Set()); }}>
+    dimensions: <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} canReset={optionalDimensionOptions.some(option => dimensionsVisible.has(option.id)) || inspectorStyleHasValues(style, dimensionsVisible, styleControls) || Boolean((block.type === "group" || block.type === "columns") && (block.paddingX !== undefined || block.paddingY !== undefined || block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined))} alwaysShow={block.type !== "group" && Boolean(groupDimensionControls)} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible, true); if (block.type !== "group" && block.type !== "columns") onResetGroupDimensions?.(); setDimensionsVisible(new Set()); }}>
       {block.type === "button" && dimensionsVisible.has("width") ? <label><span>Width</span><select aria-label="Button width" value={buttonWidth ?? ""} onChange={event => {
         const width = event.target.value ? Number(event.target.value) as ButtonWidth : undefined;
         if (interactionState === "default") onChange({ ...block, width });
@@ -194,7 +194,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
       {dimensionsVisible.has("margin") ? <BoxLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} layout={block.type === "group" || ["paragraph", "heading", "list", "quote", "table"].includes(block.type) ? "all" : marginLayout} presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
       {dimensionsVisible.has("min-height") ? <ParagraphLengthSetting key={`${block.id}-min-height`} label="Minimum height" value={style.minHeight} min={0} max={4000} onChange={(value) => updateStyle("minHeight", value)} /> : null}
       {dimensionsVisible.has("min-width") ? <ParagraphLengthSetting key={`${block.id}-min-width`} label="Minimum width" value={style.minWidth} min={0} max={4000} onChange={(value) => updateStyle("minWidth", value)} /> : null}
-      {groupDimensionControls}
+      {block.type !== "group" || dimensionsVisible.has("gaps") ? groupDimensionControls : null}
     </InspectorToolsSection>,
     border: <InspectorToolsSection title="Border" options={optionalBorderOptions} visible={borderVisible} canReset={optionalBorderOptions.some(option => borderVisible.has(option.id)) || inspectorStyleHasValues(style, borderVisible, styleControls)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools(borderVisible); setBorderVisible(new Set()); }}>
       {borderVisible.has("border") ? <BorderSettings style={style} compact idPrefix={block.id} includeRadius={false} includeShadow={false} onChange={changes => { const nextStyle = { ...style, ...changes }; for (const key of Object.keys(nextStyle) as (keyof ParagraphStyle)[]) if (!nextStyle[key]) delete nextStyle[key]; writeStyle(nextStyle); }} /> : null}

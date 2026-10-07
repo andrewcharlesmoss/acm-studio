@@ -7,10 +7,11 @@ import { ToggleSetting } from "../controls/toggle-setting";
 import { NumberUnitField } from "../controls/number-unit-field";
 
 import { RangeControl } from "../controls/range-control";
+import { changeGroupLayout } from "./group-variations";
 
 type GroupBlock = Extract<ContentBlock, { type: "group" }>;
 function AlignmentChoices({ label, choices, value, onChange }: { label: string; choices: Choice[]; value: string; onChange: (value: string) => void }) {
-  return <fieldset className="group-alignment-control"><legend>{label}</legend><div role="group" aria-label={label}>{choices.map(choice => <button key={choice.value} type="button" aria-label={`${label}: ${choice.label}`} title={choice.label} aria-pressed={value === choice.value} onClick={() => onChange(choice.value)}><AcmIcon name={choice.icon} size={24} /></button>)}</div></fieldset>;
+  return <fieldset className="group-alignment-control"><legend>{label}</legend><div role="group" aria-label={label}>{choices.map(choice => <button key={choice.value} type="button" data-value={choice.value} aria-label={`${label}: ${choice.label}`} title={choice.label} aria-pressed={value === choice.value} onClick={() => onChange(choice.value)}><AcmIcon name={choice.icon} size={24} /></button>)}</div></fieldset>;
 }
 function ContentWidthControl({ label, value, onChange }: { label: string; value?: string; onChange: (value: string | undefined) => void }) {
   const match = value?.match(/^(\d+(?:\.\d+)?)(px|rem|em|%|ch|vw|vh)$/);
@@ -23,18 +24,21 @@ export function GroupLayoutControls({ block, onChange }: { block: GroupBlock; on
   const update = (changes: Partial<GroupBlock>) => onChange({ ...block, ...changes });
   const [requestedVisible, setVisible] = useState(() => new Set<string>([
     ...(block.contentSize ? ["content-width"] : []), ...(block.wideSize ? ["wide-width"] : []),
-    ...(block.allowWrap !== undefined ? ["wrapping"] : []),
+    ...(block.allowWrap === true ? ["wrapping"] : []),
+    ...(block.verticalAlign !== undefined ? ["alignment"] : []),
     ...(block.columns && block.gridMode !== "manual" ? ["max-columns"] : []),
   ]));
   const visible = new Set([...requestedVisible,
+    ...(block.layout === "row" || block.layout === "stack" ? ["justification", "orientation"] : []),
     ...(block.contentSize ? ["content-width"] : []), ...(block.wideSize ? ["wide-width"] : []),
     ...(block.allowWrap === true ? ["wrapping"] : []),
+    ...(block.verticalAlign !== undefined ? ["alignment"] : []),
     ...(block.columns && block.gridMode !== "manual" ? ["max-columns"] : []),
   ]);
   const options = block.layout === "flow" ? [{ id: "content-width", label: "Content width" }, { id: "wide-width", label: "Wide width" }]
-    : block.layout === "row" ? [{ id: "wrapping", label: "Allow wrapping" }]
+    : block.layout === "row" || block.layout === "stack" ? [{ id: "alignment", label: "Alignment" }, ...(block.layout === "row" ? [{ id: "wrapping", label: "Wrapping" }] : [])]
     : block.layout === "grid" && block.gridMode !== "manual" ? [{ id: "max-columns", label: "Max. columns" }] : [];
-  function wrap(children: React.ReactNode) { return <InspectorToolsSection title="Layout" options={options} visible={visible} alwaysShow canReset={[block.horizontalAlign, block.verticalAlign, block.contentSize, block.wideSize, block.columns, block.minColumnWidth, block.allowWrap].some(value => value !== undefined) || block.contentWidth === "full" || block.inheritLayout === false || block.gridMode === "manual" || block.minColumnWidthUnit !== undefined} onToggle={id => { if (visible.has(id)) { setVisible(current => { const next = new Set(current); next.delete(id); return next; }); const field = ({ "content-width": "contentSize", "wide-width": "wideSize", wrapping: "allowWrap", "max-columns": "columns" } as const)[id as "content-width" | "wide-width" | "wrapping" | "max-columns"]; if (field === "allowWrap") update({ allowWrap: false }); else if (field) update({ [field]: undefined }); } else setVisible(current => new Set([...current, id])); }} onReset={() => { setVisible(new Set()); update({ horizontalAlign: undefined, verticalAlign: undefined, contentSize: undefined, wideSize: undefined, columns: undefined, minColumnWidth: block.layout === "grid" ? 12 : undefined, minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined, gridMode: block.layout === "grid" ? "auto" : undefined, allowWrap: block.layout === "row" ? false : undefined, inheritLayout: true, contentWidth: undefined }); }}>{children}</InspectorToolsSection>; }
+  function wrap(children: React.ReactNode) { return <InspectorToolsSection title="Layout" options={options} visible={visible} alwaysShow canReset={[block.horizontalAlign, block.verticalAlign, block.contentSize, block.wideSize, block.columns, block.minColumnWidth, block.allowWrap].some(value => value !== undefined) || block.contentWidth === "full" || block.inheritLayout === false || block.gridMode === "manual" || block.minColumnWidthUnit !== undefined} onToggle={id => { if (visible.has(id)) { setVisible(current => { const next = new Set(current); next.delete(id); return next; }); const field = ({ "content-width": "contentSize", "wide-width": "wideSize", wrapping: "allowWrap", alignment: "verticalAlign", "max-columns": "columns" } as const)[id as "content-width" | "wide-width" | "wrapping" | "alignment" | "max-columns"]; if (field === "allowWrap") update({ allowWrap: false }); else if (field) update({ [field]: undefined }); } else setVisible(current => new Set([...current, id])); }} onReset={() => { setVisible(new Set()); update({ horizontalAlign: undefined, verticalAlign: undefined, contentSize: undefined, wideSize: undefined, columns: undefined, minColumnWidth: block.layout === "grid" ? 12 : undefined, minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined, gridMode: block.layout === "grid" ? "auto" : undefined, allowWrap: block.layout === "row" ? false : undefined, inheritLayout: true, contentWidth: undefined }); }}>{children}</InspectorToolsSection>; }
   if (block.layout === "columns") return wrap(<p className="setting-note">This saved Group uses the legacy Columns arrangement. Select Group, Row, Stack or Grid above to change its layout.</p>);
   if (block.layout === "flow") return wrap(<>
     <ToggleSetting label="Inner blocks use content width" checked={groupUsesContentWidth(block)} onChange={checked => update({ contentWidth: checked ? "constrained" : "full", inheritLayout: block.inheritLayout ?? true })} />
@@ -57,8 +61,27 @@ export function GroupLayoutControls({ block, onChange }: { block: GroupBlock; on
   const row = block.layout === "row";
   const alignment = groupFlexAlignment(block);
   return wrap(<>
-    <AlignmentChoices label={alignment.horizontal.label} choices={alignment.horizontal.choices} value={alignment.horizontal.value} onChange={value => update({ horizontalAlign: value as GroupBlock["horizontalAlign"] })} />
-    <AlignmentChoices label={alignment.vertical.label} choices={alignment.vertical.choices} value={alignment.vertical.value} onChange={value => update({ verticalAlign: value as GroupBlock["verticalAlign"] })} />
+    <div className="group-flex-layout-controls">
+    <AlignmentChoices label="Justification" choices={alignment.horizontal.choices.map(choice => choice.value === "stretch" ? { ...choice, label: "Stretch items" } : choice)} value={alignment.horizontal.value} onChange={value => update({ horizontalAlign: value as GroupBlock["horizontalAlign"] })} />
+    <AlignmentChoices label="Orientation" choices={[
+      { value: "row", label: "Horizontal", icon: "navigation.forward" },
+      { value: "stack", label: "Vertical", icon: "navigation.forward" },
+    ]} value={block.layout} onChange={value => {
+      const layout = value as "row" | "stack";
+      if (layout === block.layout) return;
+      const next = changeGroupLayout(block, layout);
+      // Flex orientations support different distribution values on each axis.
+      if (layout === "row") {
+        if (next.horizontalAlign === "stretch") next.horizontalAlign = "left";
+        if (next.verticalAlign === "space-between") next.verticalAlign = "centre";
+      } else {
+        if (next.horizontalAlign === "space-between") next.horizontalAlign = "left";
+        if (next.verticalAlign === "stretch") next.verticalAlign = "top";
+      }
+      onChange(next);
+    }} />
+    </div>
+    {visible.has("alignment") ? <AlignmentChoices label="Alignment" choices={alignment.vertical.choices.map(choice => choice.value === "space-between" ? { ...choice, label: "Space between" } : choice)} value={alignment.vertical.value} onChange={value => update({ verticalAlign: value as GroupBlock["verticalAlign"] })} /> : null}
     {row && visible.has("wrapping") ? <ToggleSetting label="Allow to wrap to multiple lines" checked={block.allowWrap !== false} onChange={allowWrap => update({ allowWrap })} /> : null}
   </>);
 }
