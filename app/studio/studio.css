@@ -969,6 +969,17 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .group-layout-empty-heading strong { font-weight: inherit; }
 .group-layout-empty-heading > span { display: inline-flex; }
 .group-layout-empty > p { margin: 0; }
+.group-layout-chooser { display: grid; gap: 20px; padding: 28px 32px; border: 1px solid var(--studio-border, #8c8f94); background: var(--studio-surface, #fff); }
+.group-layout-chooser > p { margin: 0; }
+.group-layout-chooser-options { display: flex; flex-wrap: wrap; gap: 12px; }
+.group-layout-chooser-options button { display: inline-flex; align-items: center; justify-content: center; min-width: 104px; min-height: 80px; padding: 8px; border: 1px solid transparent; border-radius: 3px; background: transparent; color: inherit; cursor: pointer; }
+.group-layout-chooser-options button:hover { background: #f0f0f0; }
+.group-layout-chooser-options button:focus-visible { outline: 2px solid var(--gutenberg-accent, #3858e9); outline-offset: 2px; }
+.group-layout-preview { display: grid; width: 80px; height: 52px; gap: 4px; }
+.group-layout-preview i { min-width: 0; min-height: 0; border-radius: 2px; background: #949494; }
+.group-layout-preview.is-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.group-layout-preview.is-stack { grid-template-rows: repeat(2, minmax(0, 1fr)); }
+.group-layout-preview.is-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); }
 .group-layout-selection { display: flex; gap: 4px; align-items: stretch; }
 .group-layout-selection button { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 40px; padding: 7px 9px; border: 1px solid transparent; border-radius: 2px; background: transparent; color: inherit; cursor: pointer; }
 .group-layout-selection button:hover { background: #f0f0f0; }

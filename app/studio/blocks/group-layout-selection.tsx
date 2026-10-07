@@ -12,3 +12,17 @@ export function GroupLayoutSelection({ value, onChange }: { value: LayoutMode; o
     {value === "columns" ? <button type="button" aria-label="Columns" aria-pressed="true" title="Columns" className="is-active" onClick={() => onChange("flow")}><AcmIcon name="layout.columns" size={24} /></button> : null}
   </div>;
 }
+
+export function GroupLayoutChooser({ onSelect }: { onSelect: (value: LayoutMode) => void }) {
+  return <section className="group-layout-chooser">
+    <p>Group blocks together. Select a layout:</p>
+    <div className="group-layout-chooser-options" role="group" aria-label="Choose a Group layout">
+      {groupVariations.map(variation => {
+        const itemCount = variation.layout === "flow" ? 1 : variation.layout === "grid" ? 4 : 2;
+        return <button type="button" key={variation.layout} aria-label={`${variation.label} layout`} title={variation.label} onClick={() => onSelect(variation.layout)}>
+          <span className={`group-layout-preview is-${variation.layout}`} aria-hidden="true">{Array.from({ length: itemCount }, (_, index) => <i key={index} />)}</span>
+        </button>;
+      })}
+    </div>
+  </section>;
+}
