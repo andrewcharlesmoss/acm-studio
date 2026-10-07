@@ -2,7 +2,7 @@
 import { useId, useRef, useState } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
-import { SiteNavigation } from "./site-navigation";
+import { ProjectLocalLinksProvider, ProjectLocalSiteNavigation } from "./project-local-links";
 import { StudioIcon } from "./studio-icons";
 import { StudioListContextMenu, type StudioListContextMenuTarget } from "./studio-list-context-menu";
 import type { StudioDocument, StudioDocumentKind, StudioWorkspace } from "./editor-model";
@@ -38,7 +38,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
     setDocumentContextMenu(null);
     requestAnimationFrame(() => documentContextMenuTriggerRef.current?.isConnected && documentContextMenuTriggerRef.current.focus());
   }
-  return (
+  return <ProjectLocalLinksProvider>
         <Pane trackClassName="studio-library-track" className="studio-library" bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={libraryPaneWidth} onWidthChange={setLibraryPaneWidth} minWidth={270} maxWidth={480} collapsed={libraryPaneCollapsed} onCollapsedChange={setLibraryPaneCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
           header={<><div className="library-create">
             <button type="button" disabled={!writable} onClick={() => addDocument("post")}><StudioIcon name="add" size={16} /> New post</button>
@@ -51,10 +51,10 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
             <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={onOpenBackup}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
             <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" onClick={onOpenBin}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.bin.length + templateSession.store.bin.length} deleted items</small></button>
           </div></>}
-          tabs={<div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
+          tabs={<><ProjectLocalSiteNavigation id="test" name="Test" /><div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
             { id: "page", label: "Pages" }, { id: "post", label: "Posts" }, { id: "templates", label: "Templates" },
-          ]} active={libraryKind} onChange={id => onSelectLibraryKind(id as StudioDocumentKind | "templates")} renderLabel={(tab) => <><span className="library-tab-label">{tab.label}</span><span>{tab.id === "templates" ? templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0) : workspace.documents.filter((item) => item.kind === tab.id).length}</span></>} /></div>}
-          footer={<><SiteNavigation /><div className="library-footer"><button type="button" onClick={() => onExportContent()}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div></>}>
+          ]} active={libraryKind} onChange={id => onSelectLibraryKind(id as StudioDocumentKind | "templates")} renderLabel={(tab) => <><span className="library-tab-label">{tab.label}</span><span>{tab.id === "templates" ? templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0) : workspace.documents.filter((item) => item.kind === tab.id).length}</span></>} /></div></>}
+          footer={<div className="library-footer"><button type="button" onClick={() => onExportContent()}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>}>
           {(["page", "post", "templates"] as const).map((kind) => <PaneTabPanel key={kind} id={libraryTabsId} tab={kind} active={libraryKind}>
             <div className="document-list">
               {kind === "templates" ? <>
@@ -90,5 +90,5 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
             return <StudioListContextMenu target={documentContextMenu} actions={actions} canDelete={canDelete} disabledReason={disabledReason} returnFocusRef={documentContextMenuTriggerRef} onDelete={() => requestDeleteDocument(documentContextMenu.id)} onClose={closeDocumentContextMenu} />;
           })() : null}
         </Pane>
-  );
+  </ProjectLocalLinksProvider>;
 }

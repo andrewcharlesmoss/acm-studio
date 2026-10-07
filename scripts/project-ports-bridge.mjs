@@ -4,7 +4,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { isLocalStudioRequest } from "./codex-history-bridge.mjs";
 
-const projectIDs = new Set(["acm-account", "acm-studio", "andrew-moss", "habit-tracker", "lid-angle", "loquafy", "loquage", "mini-golf-scorecard"]);
+const projectIDs = new Set(["acm-account", "acm-studio", "andrew-moss", "habit-tracker", "lid-angle", "loquafy", "loquage", "mini-golf-scorecard", "test"]);
 
 export function localServiceURL(template, port) {
   if (typeof template !== "string" || !Number.isInteger(port) || port < 1024 || port > 65535) return null;

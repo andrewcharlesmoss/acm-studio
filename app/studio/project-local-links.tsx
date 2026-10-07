@@ -86,6 +86,39 @@ export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
   </div>;
 }
 
+export function ProjectLocalSiteNavigation({ id, name }: { id: string; name: string }) {
+  const { local, snapshot, refreshSnapshot } = useContext(LocalProjectsContext);
+  const [opening, setOpening] = useState(false);
+  const project = snapshot?.projects.find(project => project.id === id);
+  const canVisit = Boolean(local && snapshot?.available && project?.status === "running" && project.href);
+
+  async function openLocal() {
+    if (opening || !canVisit) return;
+    setOpening(true);
+    try {
+      const fresh = await readLocalProjects();
+      refreshSnapshot(fresh);
+      const href = fresh.projects.find(item => item.id === id && item.status === "running")?.href;
+      const url = href ? new URL(href) : null;
+      if (url && ["http:", "https:"].includes(url.protocol) && url.hostname === "localhost" && !url.username && !url.password) {
+        window.location.assign(url.href);
+      }
+    } catch {
+      refreshSnapshot({ available: false, projects: [] });
+    } finally {
+      setOpening(false);
+    }
+  }
+
+  return <section className="studio-local-sites" aria-labelledby="studio-local-sites-title">
+    <h2 id="studio-local-sites-title">Sites</h2>
+    <button type="button" className="studio-local-site" disabled={!canVisit || opening} onClick={() => void openLocal()} aria-label={`Open ${name} local site`}>
+      <span className="studio-local-site-mark" aria-hidden="true">{name.slice(0, 1)}</span>
+      <span className="studio-local-site-copy"><strong>{name}</strong><small role="status">{localStatus(snapshot, project)}</small></span>
+    </button>
+  </section>;
+}
+
 export function ProjectLocalStatus({ id }: { id: string }) {
   const { local, snapshot } = useContext(LocalProjectsContext);
   const project = snapshot?.projects.find(project => project.id === id);

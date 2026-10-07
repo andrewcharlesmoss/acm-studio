@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added Test to the editor's Sites area, with a live local-service status and an open action when Project Ports reports it running.
+
 - Shared inspector sliders show a value label beneath the thumb on hover, focus and adjustment, using spacing preset names or the current numeric value.
 
 - Shared Text action buttons keep Clear and inspector Reset All consistently linked to the shared semantic Accent token, with readable text colour, central hover, pressed, focus and disabled states and a working Controls specimen.
