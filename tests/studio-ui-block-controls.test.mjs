@@ -10,8 +10,8 @@ const read = path => readStudioSource(path);
 test("all typed blocks and template Content have complete, ordered inspector capability profiles", () => {
   const profiles = Object.values(blockCapabilityProfiles);
   const typedProfiles = profiles.filter(profile => profile.type !== "template-content");
-  assert.equal(typedProfiles.length, 28);
-  assert.equal(profiles.length, 29);
+  assert.equal(typedProfiles.length, 31);
+  assert.equal(profiles.length, 32);
   assert.equal(new Set(profiles.map(profile => profile.type)).size, 29);
 
   for (const profile of profiles) {
@@ -41,6 +41,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.equal(heading.controls.find(control => control.id === "block-alignment")?.placement, "canvas");
   assert.equal(heading.sections.some(section => section.id === "canvas"), false);
   const inspectorSource = read("app/studio/studio-inspectors.tsx");
+  const groupLayoutControlsSource = read("app/studio/blocks/group-layout-controls.tsx");
   const headingPaneControls = heading.controls.filter(control => control.section === "content" && control.placement !== "canvas").map(control => control.id);
   assert.deepEqual(headingPaneControls, ["level"]);
 
@@ -89,7 +90,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
     assert.deepEqual(profile.controls.find(control => control.id === "alignment")?.fields, ["horizontalAlign", "verticalAlign"], `${type} alignment fields`);
     assert.deepEqual(profile.controls.find(control => control.id === "gaps")?.fields, ["gap", "columnGap", "rowGap"], `${type} gap fields`);
     assert.deepEqual(profile.controls.find(control => control.id === "padding")?.fields, ["paddingX", "paddingY"], `${type} padding fields`);
-    assert.deepEqual(profile.controls.find(control => control.id === "content-width")?.fields, type === "group" ? ["inheritLayout", "contentSize", "wideSize"] : ["contentWidth"], `${type} content width fields`);
+    assert.deepEqual(profile.controls.find(control => control.id === "content-width")?.fields, type === "group" ? ["contentWidth", "inheritLayout", "contentSize", "wideSize"] : ["contentWidth"], `${type} content width fields`);
     const columnsSetting = profile.controls.find(control => control.id === "columns" && control.section === "layout");
     assert.deepEqual(columnsSetting?.fields, ["columns"], `${type} column count fields`);
     if (type === "group") assert.equal(columnsSetting?.availability, "model-only");
@@ -105,21 +106,17 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   const layoutInspector = inspectorSource.slice(inspectorSource.indexOf("function LayoutInspector"), inspectorSource.indexOf("function ColumnsInspector"));
   assert.match(inspectorSource, /<p className="setting-note">\{blockDescription\}<\/p>\{block.type === "heading"[^\n]+?\}\{block.type === "group" && !contentSlot \? <GroupLayoutSelection/, "Group layout variations remain below the description after the mutually exclusive Heading control");
   assert.doesNotMatch(layoutInspector, /GroupLayoutSelection/, "Group layout variations are not repeated in Dimensions");
-  assert.match(layoutInspector, /block\.layout === "flow" \|\| block\.layout === "stack"/);
-  assert.match(layoutInspector, /block\.layout === "columns"\) return null/);
-  assert.match(layoutInspector, /row \? "Justification" : "Horizontal alignment"/);
-  assert.match(layoutInspector, /row \? "Vertical alignment" : "Justification"/);
-  assert.match(layoutInspector, /row \? \["left", "centre", "right", "space-between"\] : \["left", "centre", "right", "stretch"\]/);
-  assert.match(layoutInspector, /row \? \["top", "centre", "bottom", "stretch"\] : \["top", "centre", "bottom", "space-between"\]/);
-  assert.match(layoutInspector, /value === "space-between" \? "Space between"/);
-  assert.match(layoutInspector, /block\.layout === "grid"/);
-  const groupLayoutInspector = layoutInspector.slice(0, layoutInspector.indexOf("const controls = <>"));
-  assert.doesNotMatch(groupLayoutInspector, /<span>Content width<\/span>/, "ACM content width is not shown in Group's Block pane");
+  assert.match(layoutInspector, /return <GroupLayoutControls key=/);
+  assert.match(groupLayoutControlsSource, /if \(block\.layout === "flow"\)/);
+  assert.match(groupLayoutControlsSource, /if \(block\.layout === "grid"\)/);
+  assert.match(groupLayoutControlsSource, /const row = block\.layout === "row"/);
   const groupDimensions = inspectorSource.slice(inspectorSource.indexOf("function GroupDimensionsInspector"), inspectorSource.indexOf("function GroupPositionInspector"));
   assert.match(inspectorSource, /label="Padding" value=\{style.padding/);
+  assert.match(groupDimensions, /block\.layout === "flow" \? <fieldset/);
+  assert.match(groupDimensions, /label="Block spacing" value=\{block\.rowGap \?\? block\.gap\}/);
   assert.match(groupDimensions, /label="Horizontal gap"/);
   assert.match(groupDimensions, /label="Vertical gap"/);
-  assert.doesNotMatch(groupDimensions, /block\.layout !== "flow"/);
+  assert.match(groupDimensions, /: <fieldset className="group-layout-dimension-group"><legend>Block spacing<\/legend><div className="inspector-two-column">/);
   assert.match(groupDimensions, /<legend>Block spacing<\/legend>/);
   assert.match(inspectorSource, /resetGroupDimensionFields\(block, nextStyle, \{ padding: selectedIds.includes\("padding"\), layout: resetGroupLayout \}\)/);
   assert.match(inspectorSource, /title="Position" options=\{\[\{ id: "position", label: "Position" \}\]\}/);

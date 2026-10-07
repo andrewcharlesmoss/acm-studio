@@ -364,10 +364,13 @@ function LayoutGapsInspector({ block, onChange }: { block: Extract<ContentBlock,
 function GroupDimensionsInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "group" }>; onChange: (block: ContentBlock) => void }) {
   const update = (changes: Partial<Extract<ContentBlock, { type: "group" }>>) => onChange({ ...block, ...changes });
   return <>
-    <fieldset className="group-layout-dimension-group"><legend>Block spacing</legend><div className="inspector-two-column">
+    {block.layout === "flow" ? <fieldset className="group-layout-dimension-group">
+      <legend>Block spacing</legend>
+      <LayoutSpacingSetting label="Block spacing" value={block.rowGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={value => update({ rowGap: value, ...(value === undefined ? { gap: undefined } : {}) })} />
+    </fieldset> : <fieldset className="group-layout-dimension-group"><legend>Block spacing</legend><div className="inspector-two-column">
       <LayoutSpacingSetting label="Horizontal gap" value={block.columnGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={columnGap => update({ columnGap })} />
       <LayoutSpacingSetting label="Vertical gap" value={block.rowGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={rowGap => update({ rowGap })} />
-    </div></fieldset>
+    </div></fieldset>}
   </>;
 }
 
