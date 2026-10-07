@@ -4,19 +4,19 @@ import type { ContentBlock } from "../../content/model";
 export type GroupBlock = Extract<ContentBlock, { type: "group" }>;
 export type GroupAlignmentChoice = { value: string; label: string; icon: IconName };
 export const groupHorizontalChoices: GroupAlignmentChoice[] = [
-  { value: "left", label: "Left", icon: "layout.justify-left" },
-  { value: "centre", label: "Centre", icon: "layout.justify-centre" },
-  { value: "right", label: "Right", icon: "layout.justify-right" },
+  { value: "left", label: "Justify items left", icon: "layout.justify-left" },
+  { value: "centre", label: "Justify items center", icon: "layout.justify-centre" },
+  { value: "right", label: "Justify items right", icon: "layout.justify-right" },
 ];
 export const groupVerticalChoices: GroupAlignmentChoice[] = [
-  { value: "top", label: "Top", icon: "layout.align-top" },
-  { value: "centre", label: "Centre", icon: "layout.align-middle" },
-  { value: "bottom", label: "Bottom", icon: "layout.align-bottom" },
+  { value: "top", label: "Align top", icon: "layout.align-top" },
+  { value: "centre", label: "Align middle", icon: "layout.align-middle" },
+  { value: "bottom", label: "Align bottom", icon: "layout.align-bottom" },
 ];
-const horizontalSpaceBetween: GroupAlignmentChoice = { value: "space-between", label: "Space between", icon: "layout.justify-space-between" };
-const verticalSpaceBetween: GroupAlignmentChoice = { value: "space-between", label: "Space between", icon: "layout.align-space-between" };
-const horizontalStretch: GroupAlignmentChoice = { value: "stretch", label: "Stretch", icon: "layout.justify-stretch" };
-const verticalStretch: GroupAlignmentChoice = { value: "stretch", label: "Stretch", icon: "layout.align-stretch" };
+const horizontalSpaceBetween: GroupAlignmentChoice = { value: "space-between", label: "Space between items", icon: "layout.justify-space-between" };
+const verticalSpaceBetween: GroupAlignmentChoice = { value: "space-between", label: "Space between items", icon: "layout.align-space-between" };
+const horizontalStretch: GroupAlignmentChoice = { value: "stretch", label: "Stretch to fill", icon: "layout.justify-stretch" };
+const verticalStretch: GroupAlignmentChoice = { value: "stretch", label: "Stretch to fill", icon: "layout.align-stretch" };
 export function groupFlexAlignment(block: GroupBlock) {
   const row = block.layout === "row";
   return {
