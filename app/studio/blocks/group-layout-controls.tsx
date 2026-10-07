@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { InspectorToolsSection } from "../inspector-tools-section";
 import { AcmIcon } from "@acm/icons/react";
-import type { IconName } from "@acm/icons";
+import { groupFlexAlignment, groupHorizontalChoices as horizontal, groupUsesContentWidth, type GroupAlignmentChoice as Choice } from "./group-layout-alignment";
 import type { ContentBlock } from "../../content/model";
 import { ToggleSetting } from "../controls/toggle-setting";
 import { NumberUnitField } from "../controls/number-unit-field";
@@ -9,22 +9,9 @@ import { NumberUnitField } from "../controls/number-unit-field";
 import { RangeControl } from "../controls/range-control";
 
 type GroupBlock = Extract<ContentBlock, { type: "group" }>;
-type Choice = { value: string; label: string; icon: IconName };
-const horizontal: Choice[] = [
-  { value: "left", label: "Left", icon: "arrange.align-left" },
-  { value: "centre", label: "Centre", icon: "arrange.align-centre-horizontal" },
-  { value: "right", label: "Right", icon: "arrange.align-right" },
-];
-const vertical: Choice[] = [
-  { value: "top", label: "Top", icon: "arrange.align-top" },
-  { value: "centre", label: "Centre", icon: "arrange.align-centre-vertical" },
-  { value: "bottom", label: "Bottom", icon: "arrange.align-bottom" },
-];
 function AlignmentChoices({ label, choices, value, onChange }: { label: string; choices: Choice[]; value: string; onChange: (value: string) => void }) {
   return <fieldset className="group-alignment-control"><legend>{label}</legend><div role="group" aria-label={label}>{choices.map(choice => <button key={choice.value} type="button" aria-label={`${label}: ${choice.label}`} title={choice.label} aria-pressed={value === choice.value} onClick={() => onChange(choice.value)}><AcmIcon name={choice.icon} size={24} /></button>)}</div></fieldset>;
 }
-const spaceBetween: Choice = { value: "space-between", label: "Space between", icon: "text.justify" };
-const stretch: Choice = { value: "stretch", label: "Stretch", icon: "layout.columns" };
 function ContentWidthControl({ label, value, onChange }: { label: string; value?: string; onChange: (value: string | undefined) => void }) {
   const match = value?.match(/^(\d+(?:\.\d+)?)(px|rem|em|%|ch|vw|vh)$/);
   const [emptyUnit, setUnit] = useState("px");
@@ -50,9 +37,9 @@ export function GroupLayoutControls({ block, onChange }: { block: GroupBlock; on
   function wrap(children: React.ReactNode) { return <InspectorToolsSection title="Layout" options={options} visible={visible} alwaysShow canReset={[block.horizontalAlign, block.verticalAlign, block.contentSize, block.wideSize, block.columns, block.minColumnWidth, block.allowWrap].some(value => value !== undefined) || block.contentWidth === "full" || block.inheritLayout === false || block.gridMode === "manual" || block.minColumnWidthUnit !== undefined} onToggle={id => { if (visible.has(id)) { setVisible(current => { const next = new Set(current); next.delete(id); return next; }); const field = ({ "content-width": "contentSize", "wide-width": "wideSize", justification: "horizontalAlign", wrapping: "allowWrap", "max-columns": "columns" } as const)[id as "content-width" | "wide-width" | "justification" | "wrapping" | "max-columns"]; if (field === "allowWrap") update({ allowWrap: false }); else if (field) update({ [field]: undefined }); } else setVisible(current => new Set([...current, id])); }} onReset={() => { setVisible(new Set()); update({ horizontalAlign: undefined, verticalAlign: undefined, contentSize: undefined, wideSize: undefined, columns: undefined, minColumnWidth: block.layout === "grid" ? 12 : undefined, minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined, gridMode: block.layout === "grid" ? "auto" : undefined, allowWrap: block.layout === "row" ? false : undefined, inheritLayout: true, contentWidth: undefined }); }}>{children}</InspectorToolsSection>; }
   if (block.layout === "columns") return wrap(<p className="setting-note">This saved Group uses the legacy Columns arrangement. Select Group, Row, Stack or Grid above to change its layout.</p>);
   if (block.layout === "flow") return wrap(<>
-    <ToggleSetting label="Inner blocks use content width" checked={block.contentWidth !== "full" && block.inheritLayout !== undefined} onChange={checked => update({ contentWidth: checked ? "constrained" : "full", inheritLayout: block.inheritLayout ?? true })} />
+    <ToggleSetting label="Inner blocks use content width" checked={groupUsesContentWidth(block)} onChange={checked => update({ contentWidth: checked ? "constrained" : "full", inheritLayout: block.inheritLayout ?? true })} />
     <p className="setting-note">Nested blocks use content width with options for wide and full widths.</p>
-    {block.contentWidth !== "full" && block.inheritLayout !== undefined ? <>
+    {groupUsesContentWidth(block) ? <>
       <div className="group-content-width-controls">{visible.has("content-width") ? <ContentWidthControl label="Content width" value={block.contentSize} onChange={contentSize => update({ contentSize, inheritLayout: false })} /> : null}{visible.has("wide-width") ? <ContentWidthControl label="Wide width" value={block.wideSize} onChange={wideSize => update({ wideSize, inheritLayout: false })} /> : null}</div>
       <p className="setting-note">Leave widths empty to inherit the enclosing layout.</p>
       {visible.has("justification") ? <AlignmentChoices label="Justification" choices={horizontal} value={block.horizontalAlign ?? "centre"} onChange={value => update({ horizontalAlign: value as GroupBlock["horizontalAlign"] })} /> : null}
@@ -69,9 +56,10 @@ export function GroupLayoutControls({ block, onChange }: { block: GroupBlock; on
     </>);
   }
   const row = block.layout === "row";
+  const alignment = groupFlexAlignment(block);
   return wrap(<>
-    <AlignmentChoices label={row ? "Justification" : "Horizontal alignment"} choices={row ? [...horizontal, spaceBetween] : [...horizontal, stretch]} value={block.horizontalAlign ?? (row ? "left" : "stretch")} onChange={value => update({ horizontalAlign: value as GroupBlock["horizontalAlign"] })} />
-    <AlignmentChoices label={row ? "Vertical alignment" : "Justification"} choices={row ? [...vertical, stretch] : [...vertical, spaceBetween]} value={block.verticalAlign ?? (row ? "centre" : "top")} onChange={value => update({ verticalAlign: value as GroupBlock["verticalAlign"] })} />
+    <AlignmentChoices label={alignment.horizontal.label} choices={alignment.horizontal.choices} value={alignment.horizontal.value} onChange={value => update({ horizontalAlign: value as GroupBlock["horizontalAlign"] })} />
+    <AlignmentChoices label={alignment.vertical.label} choices={alignment.vertical.choices} value={alignment.vertical.value} onChange={value => update({ verticalAlign: value as GroupBlock["verticalAlign"] })} />
     {row && visible.has("wrapping") ? <ToggleSetting label="Allow to wrap to multiple lines" checked={block.allowWrap !== false} onChange={allowWrap => update({ allowWrap })} /> : null}
   </>);
 }

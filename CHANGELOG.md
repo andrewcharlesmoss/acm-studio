@@ -4,6 +4,8 @@
 
 ### Added
 
+- Group floating toolbars now follow the chosen layout: content justification for constrained Group, both alignment axes for Row and Stack, and no incompatible alignment menus for Grid.
+
 - Group, Row, Stack and Grid are separate block choices with mutual transforms,
   consistent labels and icons, and shared Gutenberg-style layout controls.
 

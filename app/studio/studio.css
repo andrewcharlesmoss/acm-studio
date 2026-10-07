@@ -1992,3 +1992,9 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .group-grid-columns > div { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 12px; align-items: center; }
 .group-grid-columns input { width: 100%; appearance: textfield; }
 .group-grid-columns input::-webkit-inner-spin-button { appearance: none; }
+
+.group-layout-toolbar:empty { display: none; }
+.group-layout-toolbar { gap: 2px; }
+.group-layout-toolbar-menu button { align-items: center; display: flex; gap: 8px; }
+.studio-anchored-menu.group-layout-toolbar-menu button.is-active { background: var(--studio-toolbar-active, #e7e7e5); }
+.studio-anchored-menu.group-layout-toolbar-menu button.group-layout-menu-close { border-top: 1px solid var(--studio-toolbar-divider, #d5d3cb); margin-top: 4px; }

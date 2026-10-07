@@ -594,3 +594,23 @@ space, grid counts above six, template locking, flex child Fill/Fit/fixed sizes,
 grid child spans/manual placement, descendant element colours beyond links and
 theme-dependent background-image presets. These need further persisted contracts
 or theme/child context; no inactive control is presented for them.
+
+### Group floating toolbar layout controls
+
+Group, Row, Stack and Grid share the existing transform, movement, block-width
+alignment and More controls. Their additional layout menus follow the pinned
+[Gutenberg layout implementations](https://github.com/WordPress/gutenberg/tree/e3ac73cd69d472341b66c43cb77be36e838f868e/packages/block-editor/src/layouts):
+constrained Group offers left, centre and right content justification; Row offers
+horizontal left/centre/right/space-between and vertical top/centre/bottom/stretch;
+Stack offers horizontal left/centre/right/stretch and vertical
+top/centre/bottom/space-between. Grid has no parent layout alignment menu.
+Unrestricted and legacy Columns Groups do not expose constrained justification.
+Orientation and wrapping remain inspector controls. The menus and inspector use
+one alignment choice inventory and the existing typed values; changing layout
+preserves inactive values without displaying incompatible choices.
+
+The generic More menu does not yet include Gutenberg's Create pattern,
+device-specific visibility or applying locks to all descendants. Studio has no
+reusable pattern or per-device visibility contract; its Lock action applies
+movement/removal locks to the selected block only. Ungroup remains available
+for each Group variation. These limits are separate from the layout menus.
