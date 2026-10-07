@@ -1,10 +1,12 @@
 "use client";
+import { GroupLayoutControls } from "../group-layout-controls";
+import { changeGroupLayout, groupVariationFor } from "../group-variations";
 
 import { AdvancedFieldsControl, type AdvancedFields } from "../../controls/advanced-fields-control";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { GROUP_ALLOWED_BLOCK_TYPES } from "../../../content/model";
-import type { ButtonInteractionState, ColumnBlock, ContentBlock, GroupAllowedBlockType, GroupLayoutOptions, DocumentTitleLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../../../content/model";
+import type { ButtonInteractionState, ColumnBlock, ContentBlock, GroupAllowedBlockType, DocumentTitleLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../../../content/model";
 import type { LayoutMode } from "../../../content/model";
 import { LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS } from "../../../content/layout";
 import { blockCatalogue } from "../../editor-model";
@@ -55,8 +57,8 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
   const selectedFontSizeModeKey = fontSizeModeKey(fontSizeModeScope, block);
   const profile = capabilityProfileFor(contentSlot ? "template-content" : block.type);
   const blockInfo = blockCatalogue.find((item) => item.type === block.type);
-  const blockName = contentSlot ? "Content" : block.type === "heading" ? `Heading ${block.level}` : blockInfo?.label ?? profile.label ?? blockLabel(block.type);
-  const blockDescription = contentSlot ? "Displays the current document body in this template." : blockInfo?.description ?? profile.description ?? `Configure this ${blockName.toLowerCase()} block.`;
+  const blockName = contentSlot ? "Content" : block.type === "group" ? groupVariationFor(block).label : block.type === "heading" ? `Heading ${block.level}` : blockInfo?.label ?? profile.label ?? blockLabel(block.type);
+  const blockDescription = contentSlot ? "Displays the current document body in this template." : (block.type === "group" ? groupVariationFor(block).description : blockInfo?.description) ?? profile.description ?? `Configure this ${blockName.toLowerCase()} block.`;
   if (block.type === "list" && selectedListItem?.blockId === block.id) return <ListItemInspector key={`${selectedListItem.listId}-${selectedListItem.itemIndex}`} block={block} listId={selectedListItem.listId} itemIndex={selectedListItem.itemIndex} onChange={onChange} />;
   const alignedBlock = block.type === "document-title" ? block : null;
   const alignment = alignedBlock?.align ?? null;
@@ -101,7 +103,7 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
     </>
   );
   return <div className={`block-inspector-settings${block.type === "embed" ? " embed-block-inspector" : block.type === "table" ? " table-block-inspector" : ""}`}>
-    <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span aria-hidden="true">{block.type === "heading" ? <HeadingLevelIcon level={block.level} /> : <BlockLibraryIcon type={block.type} />}</span><h2>{blockName}</h2></div>{block.type === "button" ? <div className="inspector-button-state-controls"><label><span>State</span><select aria-label="Button state" value={buttonState} onChange={event => setButtonState(event.target.value as ButtonInteractionState | "default")}><option value="default">Default</option><option value="hover">Hover</option><option value="focus">Focus</option><option value="active">Active</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={showButtonStatePreview} disabled={buttonState === "default"} onChange={event => setShowButtonStatePreview(event.target.checked)} /><span>Show state on canvas</span></label></div> : null}<p className="setting-note">{blockDescription}</p>{block.type === "heading" ? <HeadingLevelSetting value={block.level} onChange={level => onChange({ ...block, level })} /> : null}{block.type === "group" && !contentSlot ? <GroupLayoutSelection value={block.layout} onChange={layout => onChange({ ...block, layout, allowWrap: layout === "row" ? block.allowWrap ?? false : block.allowWrap })} /> : null}</section></div>
+    <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span aria-hidden="true">{block.type === "heading" ? <HeadingLevelIcon level={block.level} /> : <BlockLibraryIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} />}</span><h2>{blockName}</h2></div>{block.type === "button" ? <div className="inspector-button-state-controls"><label><span>State</span><select aria-label="Button state" value={buttonState} onChange={event => setButtonState(event.target.value as ButtonInteractionState | "default")}><option value="default">Default</option><option value="hover">Hover</option><option value="focus">Focus</option><option value="active">Active</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={showButtonStatePreview} disabled={buttonState === "default"} onChange={event => setShowButtonStatePreview(event.target.checked)} /><span>Show state on canvas</span></label></div> : null}<p className="setting-note">{blockDescription}</p>{block.type === "heading" ? <HeadingLevelSetting value={block.level} onChange={level => onChange({ ...block, level })} /> : null}{block.type === "group" && !contentSlot ? <GroupLayoutSelection value={block.layout} onChange={layout => onChange(changeGroupLayout(block, layout))} /> : null}</section></div>
     {block.type === "table" ? <>
       <PaneTabs id={tableInspectorId} label="Table inspector" className="table-inspector-tabs" indicatorVariant="selected" tabs={[{ id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]} active={tableTab} onChange={tab => setTableTabSelection({ blockId: block.id, tab })} renderLabel={tab => <><AcmIcon name={tab.id === "settings" ? "action.settings" : "view.styles"} scale="Regular-M" size={24} /><span className="table-inspector-tab-label">{tab.label}</span></>} />
       <PaneTabPanel id={tableInspectorId} tab="settings" active={tableTab} className="inspector-sections table-inspector-tab-panel">
@@ -287,29 +289,7 @@ function DividerInspector({ block, onChange }: { block: Extract<ContentBlock, { 
 function LayoutInspector({ block, onChange, heading, note }: { block: LayoutBlock; onChange: (block: ContentBlock) => void; heading: string; note: string }) {
   const update = (changes: Partial<LayoutBlock>) => onChange({ ...block, ...changes } as ContentBlock);
   if (block.type === "group") {
-    if (block.layout === "flow" || block.layout === "stack") return <InspectorAccordionSection title={heading}>
-      <label className="checkbox-setting"><input type="checkbox" checked={block.inheritLayout === true} onChange={event => update({ inheritLayout: event.target.checked })} /><span>Inherit content and wide widths</span></label>
-      {block.inheritLayout === undefined ? <button type="button" onClick={() => update({ inheritLayout: false })}>Customise content widths</button> : null}
-      {block.inheritLayout === false ? <div className="layout-content-widths"><ParagraphLengthSetting label="Content width" value={block.contentSize} min={0} max={4000} onChange={contentSize => update({ contentSize })} /><ParagraphLengthSetting label="Wide width" value={block.wideSize} min={0} max={4000} onChange={wideSize => update({ wideSize })} /></div> : null}
-      <p className="setting-note">{block.inheritLayout === undefined ? "This saved Group uses its legacy unrestricted width. Enable inheritance or customise widths." : "Content and wide widths inherit from the enclosing layout until customised."} Full-width children use the container width.</p>
-      {block.layout === "stack" ? <><label><span>Horizontal alignment</span><select value={block.horizontalAlign ?? "stretch"} onChange={event => update({ horizontalAlign: event.target.value as GroupLayoutOptions["horizontalAlign"] })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option><option value="stretch">Stretch</option></select></label><label><span>Justification</span><select value={block.verticalAlign ?? "top"} onChange={event => update({ verticalAlign: event.target.value as GroupLayoutOptions["verticalAlign"] })}><option value="top">Top</option><option value="centre">Centre</option><option value="bottom">Bottom</option><option value="space-between">Space between</option></select></label></> : null}
-    </InspectorAccordionSection>;
-    if (block.layout === "columns") return null;
-    const row = block.layout === "row";
-    const horizontalAlignments = row ? ["left", "centre", "right", "space-between"] : ["left", "centre", "right", "stretch"];
-    const verticalAlignments = row ? ["top", "centre", "bottom", "stretch"] : ["top", "centre", "bottom", "space-between"];
-    return <InspectorAccordionSection title={heading}>
-      {block.layout === "grid" ? <>
-        <label><span>Grid arrangement</span><select value={block.gridMode ?? "auto"} onChange={event => update({ gridMode: event.target.value as "auto" | "manual" })}><option value="auto">Auto</option><option value="manual">Manual</option></select></label>
-        <label><span>{block.gridMode === "manual" ? "Columns" : "Max. columns"}</span><select value={block.columns ?? 3} onChange={event => update({ columns: Number(event.target.value) })}>{[1, 2, 3, 4, 5, 6].map(count => <option value={count} key={count}>{count}</option>)}</select></label>
-        {block.gridMode !== "manual" ? <><PresetNumberSetting label="Min. column width" value={block.minColumnWidth ?? 192} presets={block.minColumnWidthUnit && block.minColumnWidthUnit !== "px" ? [8, 12, 16, 20] : [120, 160, 192, 240, 320]} min={block.minColumnWidthUnit && block.minColumnWidthUnit !== "px" ? 1 : 80} max={600} onChange={minColumnWidth => update({ minColumnWidth })} /><label><span>Minimum column width unit</span><select value={block.minColumnWidthUnit ?? "px"} onChange={event => update({ minColumnWidthUnit: event.target.value as GroupLayoutOptions["minColumnWidthUnit"], minColumnWidth: event.target.value === "px" ? 192 : 12 })}>{["px", "em", "rem", "vw"].map(unit => <option key={unit}>{unit}</option>)}</select></label></> : null}
-        <p className="setting-note">Auto fits columns to the available width. Manual uses the selected column count.</p>
-      </> : <div className="inspector-two-column">
-        <label><span>{row ? "Justification" : "Horizontal alignment"}</span><select value={block.horizontalAlign ?? ""} onChange={event => update({ horizontalAlign: (event.target.value || undefined) as LayoutBlock["horizontalAlign"] })}><option value="">Default</option>{horizontalAlignments.map(value => <option value={value} key={value}>{value === "centre" ? "Centre" : value === "space-between" ? "Space between" : value.charAt(0).toUpperCase() + value.slice(1)}</option>)}</select></label>
-        <label><span>{row ? "Vertical alignment" : "Justification"}</span><select value={block.verticalAlign ?? ""} onChange={event => update({ verticalAlign: (event.target.value || undefined) as LayoutBlock["verticalAlign"] })}><option value="">Default</option>{verticalAlignments.map(value => <option value={value} key={value}>{value === "centre" ? "Centre" : value === "space-between" ? "Space between" : value.charAt(0).toUpperCase() + value.slice(1)}</option>)}</select></label>
-      </div>}
-      {row ? <label className="checkbox-setting"><input type="checkbox" checked={block.allowWrap !== false} onChange={event => update({ allowWrap: event.target.checked })} /><span>Allow wrapping to multiple lines</span></label> : null}
-    </InspectorAccordionSection>;
+    return <GroupLayoutControls key={`${block.id}:${block.layout}`} block={block} onChange={onChange} />;
   }
   const controls = <>
       {block.type === "section" ? <label>

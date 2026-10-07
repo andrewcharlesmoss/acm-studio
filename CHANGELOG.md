@@ -4,6 +4,9 @@
 
 ### Added
 
+- Group, Row, Stack and Grid are separate block choices with mutual transforms,
+  consistent labels and icons, and shared Gutenberg-style layout controls.
+
 - Edit the local Test website inside Studio using its standard block library
   and inspector, with revision checks, history and standalone preview.
 

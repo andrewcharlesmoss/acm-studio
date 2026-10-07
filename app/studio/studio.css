@@ -1970,3 +1970,16 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .test-site-settings{border:0;padding:0;margin:0;min-width:0}.test-site-editor .studio-local-site{text-decoration:none;color:inherit}.test-site-editor .inspector-block-summary h2{text-transform:capitalize}
 
 .test-site-editor.studio-desktop-only{min-width:1130px}.test-site-editor .site-draft-workspace{display:grid;grid-template-columns:230px minmax(600px,1fr) 300px;min-width:1130px}.test-site-editor .site-draft-library{grid-column:auto}.test-site-editor .studio-inspector-track{grid-column:auto}
+
+/* Group variations share the same compact Gutenberg-style layout controls. */
+.group-alignment-control, .group-grid-mode { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
+.group-alignment-control legend, .group-grid-mode legend, .group-grid-minimum > span, .group-grid-columns > label { font-size: var(--studio-ui-size); font-weight: 500; margin-bottom: 8px; display: block; }
+.group-alignment-control > div, .group-grid-mode > div { display: flex; gap: 4px; }
+.group-alignment-control button { width: 36px; height: 36px; padding: 6px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--ink); border-radius: 2px; }
+.group-alignment-control button[aria-pressed="true"], .group-grid-mode button[aria-pressed="true"] { background: var(--ink); color: white; }
+.group-grid-mode > div { border: 1px solid #949494; gap: 0; }
+.group-grid-mode button { flex: 1; border: 0; border-radius: 0; background: transparent; min-height: 36px; }
+.group-grid-minimum, .group-grid-columns { margin-bottom: 16px; }
+.group-grid-columns > div { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 12px; align-items: center; }
+.group-grid-columns input { width: 100%; appearance: textfield; }
+.group-grid-columns input::-webkit-inner-spin-button { appearance: none; }

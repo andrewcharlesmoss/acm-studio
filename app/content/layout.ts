@@ -6,11 +6,12 @@ export const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: 
 export const LAYOUT_BREAKPOINTS = { tablet: 780, mobile: 620 } as const;
 
 type RenderableLayoutOptions = GroupLayoutOptions & {
+  type?: string;
   horizontalAlign?: LayoutHorizontalAlignment | GroupLayoutHorizontalAlignment;
   verticalAlign?: LayoutVerticalAlignment | GroupLayoutVerticalAlignment;
 };
 
-export function layoutStyleProperties(options: RenderableLayoutOptions & { position?: "sticky" }): CSSProperties {
+export function layoutStyleProperties(options: RenderableLayoutOptions & { position?: "sticky"; layout?: LayoutMode }): CSSProperties {
   const maxColumns = options.columns ?? 3;
   const columnGap = options.columnGap ?? options.gap ?? 0;
   return {
@@ -24,17 +25,23 @@ export function layoutStyleProperties(options: RenderableLayoutOptions & { posit
     ...(options.paddingY === undefined ? {} : { "--block-layout-padding-y": `${options.paddingY}px` }),
     ...(options.columns === undefined ? {} : { "--block-layout-columns": String(options.columns) }),
     "--block-layout-min-column-width": `${options.minColumnWidth ?? 192}${options.minColumnWidthUnit ?? "px"}`,
-    "--block-layout-max-column-width": `calc((100% - ${columnGap * (maxColumns - 1)}px) / ${maxColumns})`,
-    ...(options.horizontalAlign === undefined ? {} : { "--block-layout-horizontal-align": cssHorizontalAlignment(options.horizontalAlign) }),
-    ...(options.verticalAlign === undefined ? {} : { "--block-layout-vertical-align": cssVerticalAlignment(options.verticalAlign) }),
+    "--block-layout-max-column-width": options.layout === "grid" && options.gridMode === "auto" && options.columns === undefined ? "0px" : `calc((100% - ${columnGap * (maxColumns - 1)}px) / ${maxColumns})`,
+    // Group Grid tracks stretch their children. Retain inactive flex/constrained alignment
+    // in the record, but prevent it (or an ancestor's variable) from affecting Grid.
+    ...(options.type === "group" && options.layout === "grid" ? { "--block-layout-horizontal-align": "stretch", "--block-layout-vertical-align": "stretch" } : {
+      ...(options.horizontalAlign === undefined ? {} : { "--block-layout-horizontal-align": cssHorizontalAlignment(options.horizontalAlign) }),
+      ...(options.verticalAlign === undefined ? {} : { "--block-layout-vertical-align": cssVerticalAlignment(options.verticalAlign) }),
+    }),
   } as CSSProperties;
 }
 
 export function layoutDataAttributes(options: RenderableLayoutOptions & { layout?: LayoutMode }): Record<string, string> {
   return {
-    ...(options.inheritLayout !== undefined && (options.layout === undefined || options.layout === "flow" || options.layout === "stack") ? { "data-layout-constrained": "true" } : {}),
+    ...(options.contentWidth !== "full" && options.inheritLayout !== undefined && (options.layout === undefined || options.layout === "flow" || options.layout === "stack") ? { "data-layout-constrained": "true" } : {}),
     ...(options.allowWrap !== undefined ? { "data-layout-wrap": String(options.allowWrap) } : {}),
     ...(options.gridMode ? { "data-layout-grid-mode": options.gridMode } : {}),
+    ...(options.horizontalAlign && !(options.type === "group" && options.layout === "grid") ? { "data-layout-horizontal-align": options.horizontalAlign } : {}),
+    ...(options.horizontalAlign && options.layout === "flow" ? { "data-layout-justification": options.horizontalAlign } : {}),
     ...(options.contentWidth ? { "data-layout-width": options.contentWidth } : {}),
     ...(options.stackAt ? { "data-layout-stack-at": options.stackAt } : {}),
   };

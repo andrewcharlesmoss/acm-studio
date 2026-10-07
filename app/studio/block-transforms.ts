@@ -1,10 +1,11 @@
+import { changeGroupLayout, groupVariations, groupVariationFor } from "./blocks/group-variations";
 import { listTextLines, listTextRuns, type ContentBlock, type HeadingLevel, type ListItem, type RichTextRun, type TextAlignment } from "../content/model";
 import { blockAlignmentOptions } from "../content/block-alignment";
 import { normaliseTextRuns } from "../content/rich-text";
 import type { StudioIconName } from "./studio-icons";
 import { groupAllowsChild } from "./block-inserter-options";
 
-export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote"; level?: HeadingLevel };
+export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "group"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel };
 
 function textFromBlock(block: ContentBlock): string {
   if (block.type === "quote" && block.children) return block.children.map(textFromBlock).join("\n");
@@ -32,6 +33,7 @@ function textBlockTransforms(block: ContentBlock): BlockTransform[] {
 
 /** A transform must remain a valid child of its current container. */
 export function availableBlockTransforms(block: ContentBlock, parent?: ContentBlock | null): BlockTransform[] {
+  if (block.type === "group" && !block.data?.templateElement && !block.data?.templatePart) return groupVariations.filter(variation => variation.type !== groupVariationFor(block).type).map(variation => ({ id: variation.type, label: variation.label, target: "group", icon: "block", layout: variation.layout as "flow" | "row" | "stack" | "grid" }));
   return textBlockTransforms(block).filter(transform => !parent || groupAllowsChild(parent, transform.target));
 }
 
@@ -56,6 +58,7 @@ function listItemsFromRuns(runs: RichTextRun[]): ListItem[] {
 }
 
 export function transformBlock(block: ContentBlock, transform: BlockTransform): ContentBlock {
+  if (block.type === "group" && transform.target === "group" && transform.layout) return changeGroupLayout(block, transform.layout);
   const text = textFromBlock(block);
   const sourceRuns = block.type === "quote" && block.children ? block.children.flatMap((child, index) => [...(index ? [{ text: "\n" }] : []), ...(child.type === "list" ? listTextRuns(child.items) : "runs" in child && child.runs?.length ? child.runs : [{ text: textFromBlock(child) }])])
     : block.type === "list" ? listTextRuns(block.items)

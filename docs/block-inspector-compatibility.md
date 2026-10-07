@@ -557,3 +557,40 @@ The current full-scope control inventory, corrections, verification evidence and
 remaining work are tracked in [Editor Gutenberg parity progress](editor-parity-progress.md).
 That record distinguishes source comparison from rendered verification and does
 not supersede the intentional product boundaries documented here.
+
+## Group variations — 7 October 2026
+
+Group, Row, Stack and Grid are separate inserter, slash and drag choices. They
+share the portable `group` record and retain their content, identity, styles and
+inactive layout settings when transformed. The inspector, toolbar, empty chooser
+and List View use the active variation's label and ACM icon. Group allowed-block
+policies apply to all four choices through the canonical stored type.
+
+The existing repeatable baseline remains the pinned Gutenberg v24.1.0-rc.1
+source identified above. The fresh comparison inspected the current upstream
+[Group variation declaration](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/group/variations.js),
+with the [WordPress Group documentation](https://wordpress.org/documentation/article/group-block/)
+and [Layout settings overview](https://wordpress.org/documentation/article/layout-settings-overview/)
+checked on 7 October 2026. The current documentation describes WordPress 7.1;
+it can change independently of the pinned source.
+
+The shared Layout pane provides the content-width toggle, optional content/wide
+widths and justification; Row justification, vertical alignment and wrapping;
+Stack horizontal alignment and vertical justification; and Grid Auto/Manual,
+minimum column width and optional maximum column count. Its options and Reset all
+use the existing inspector menu. Length fields use the shared blue unit control
+without number spinners. A disabled content-width toggle fills the enclosing
+container; custom widths remain separate from inherited width policy. Legacy
+Groups with no inherited-width setting retain their unrestricted presentation.
+Legacy Columns arrangements and authored Grid caps remain readable. Inactive
+Group/Row/Stack alignment values remain stored during a transform, while Grid
+stretches children into its tracks consistently in Edit and Preview.
+
+Typography, colours, backgrounds, dimensions, border/radius/shadow, links, root
+sticky position, semantic element, ARIA label and allowed blocks reuse existing
+controls. This is parent-layout parity within the current model. The following
+remain unsupported and are stated in the capability catalogue: Grid Fill available
+space, grid counts above six, template locking, flex child Fill/Fit/fixed sizes,
+grid child spans/manual placement, descendant element colours beyond links and
+theme-dependent background-image presets. These need further persisted contracts
+or theme/child context; no inactive control is presented for them.

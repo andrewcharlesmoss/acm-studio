@@ -28,7 +28,7 @@ test("supported block tiles follow Gutenberg category and registration order", (
   assert.deepEqual(plain(model.blockCatalogueGroups), ["Text", "Media", "Design", "Widgets", "Theme", "Embeds", "Other"]);
   const expected = {
     Text: ["paragraph", "heading", "list", "quote", "code", "table"], Media: ["image"],
-    Design: ["buttons", "button", "columns", "group", "divider", "spacer"],
+    Design: ["buttons", "button", "columns", "group", "row", "stack", "grid", "divider", "spacer"],
     Widgets: ["social-icons", "social-linkedin", "social-tiktok"],
     Theme: ["document-title", "cover-image", "post-author", "post-date"],
     Embeds: ["embed"], Other: ["section", "field", "reading-time", "document-subtitle"],
@@ -37,9 +37,9 @@ test("supported block tiles follow Gutenberg category and registration order", (
   assert.deepEqual(plain([...new Set(model.blockCatalogue.map(entry => entry.group))]), plain(model.blockCatalogueGroups));
 });
 
-test("catalogue retains exactly the existing supported insertion types and template slot stays separate", () => {
+test("catalogue includes the four Group variations and keeps the template slot separate", () => {
   const types = model.blockCatalogue.map(entry => entry.type);
-  assert.equal(types.length, 25); assert.equal(new Set(types).size, 25);
+  assert.equal(types.length, 28); assert.equal(new Set(types).size, 28);
   assert.equal(types.includes("template-content"), false);
   for (const unsupported of ["gallery", "audio", "video", "details", "file", "pullquote", "preformatted", "verse"]) assert.equal(types.includes(unsupported), false);
   assert.equal(model.templateContentBlock.group, "Theme");

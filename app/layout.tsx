@@ -10,6 +10,7 @@ import "./studio/site-draft.css";
 import "./studio/design.css";
 import "./studio/templates.css";
 import "./studio/content-slot-layout.css";
+import "./content/group-layout.css";
 import "./content/buttons.css";
 import "./content/featured-image.css";
 

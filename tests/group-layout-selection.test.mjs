@@ -1,3 +1,4 @@
+import { loadProductionModule } from "./production-module.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -20,8 +21,9 @@ function loadDeclarations(path, names, environment) {
   return new Function(...Object.keys(environment), `${javascript}; return { ${names.join(", ")} };`)(...Object.values(environment));
 }
 
-const { GroupLayoutSelection } = loadDeclarations("../app/studio/blocks/group-layout-selection.tsx", ["layoutOptions", "GroupLayoutSelection"], { React, AcmIcon: () => null });
-const { BlockField } = loadDeclarations("../app/studio/studio-canvas.tsx", ["BlockField"], { React, GroupLayoutSelection, BlockLibraryIcon: () => null });
+const { groupVariations, groupVariationFor, changeGroupLayout } = await loadProductionModule(new URL("../app/studio/blocks/group-variations.ts", import.meta.url));
+const { GroupLayoutSelection } = loadDeclarations("../app/studio/blocks/group-layout-selection.tsx", ["layoutOptions", "GroupLayoutSelection"], { React, groupVariations, AcmIcon: () => null });
+const { BlockField } = loadDeclarations("../app/studio/studio-canvas.tsx", ["BlockField"], { React, GroupLayoutSelection, groupVariationFor, changeGroupLayout, BlockLibraryIcon: () => null });
 
 for (const menuInitiallyOpen of [false, true]) {
   test(`empty Group layout choices preserve a ${menuInitiallyOpen ? "open" : "closed"} block menu`, () => {
@@ -40,7 +42,12 @@ for (const menuInitiallyOpen of [false, true]) {
     assert.deepEqual(buttons.map(button => button.props["aria-label"]), ["Group", "Row", "Stack", "Grid"]);
     for (const [index, layout] of ["flow", "row", "stack", "grid"].entries()) {
       buttons[index].props.onClick();
-      assert.deepEqual(changedBlock, { ...block, layout, allowWrap: layout === "row" ? false : undefined });
+      assert.equal(changedBlock.layout, layout);
+      assert.equal(changedBlock.id, block.id);
+      assert.deepEqual(changedBlock.visualStyle, block.visualStyle);
+      assert.equal(changedBlock.gap, 24);
+      if (layout === "row") assert.equal(changedBlock.allowWrap, false);
+      if (layout === "grid") assert.equal(changedBlock.minColumnWidthUnit, "rem");
       assert.equal(changedBlock.children, block.children);
       assert.equal(insertionRequests, 0);
       assert.deepEqual(menu, { open: menuInitiallyOpen, parentId: "existing-target" });

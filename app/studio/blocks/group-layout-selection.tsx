@@ -1,13 +1,8 @@
 import { AcmIcon } from "@acm/icons/react";
-import type { IconName } from "@acm/icons";
+import { groupVariations } from "./group-variations";
 import type { LayoutMode } from "../../content/model";
 
-const layoutOptions: { value: Extract<LayoutMode, "flow" | "row" | "stack" | "grid">; label: string; icon: IconName }[] = [
-  { value: "flow", label: "Group", icon: "layout.flow" },
-  { value: "row", label: "Row", icon: "layout.row" },
-  { value: "stack", label: "Stack", icon: "layout.stack" },
-  { value: "grid", label: "Grid", icon: "layout.grid" },
-];
+const layoutOptions = groupVariations.map(variation => ({ value: variation.layout, label: variation.label, icon: variation.icon }));
 
 export function GroupLayoutSelection({ value, onChange }: { value: LayoutMode; onChange: (value: LayoutMode) => void }) {
   return <div className="group-layout-selection" role="group" aria-label="Group layout">

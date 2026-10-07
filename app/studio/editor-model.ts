@@ -1,3 +1,4 @@
+import { createGroupVariation, groupVariations, isGroupVariation, type GroupVariationType } from "./blocks/group-variations";
 import type { ContentBlock, DocumentDisplayField, DocumentDisplayMode } from "../content/model";
 import { createColumnsBlock } from "../content/columns";
 import { createButtonForInsertion } from "./button-insertion";
@@ -65,7 +66,7 @@ export type StudioBinnedDocument = {
 };
 
 
-export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column">;
+export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column"> | GroupVariationType;
 export type BlockLibraryItemType = InsertableBlockType | "template-content";
 
 export const blockCatalogueGroups = ["Text", "Media", "Design", "Widgets", "Theme", "Embeds", "Other"] as const;
@@ -87,7 +88,7 @@ export const blockCatalogue: Array<{
   { type: "buttons", label: "Buttons", description: "Prompt visitors to take action with a group of buttons.", group: "Design" },
   { type: "button", label: "Button", description: "Add a call to action.", group: "Design" },
   { type: "columns", label: "Columns", description: "Arrange blocks in adjustable, responsive columns.", group: "Design" },
-  { type: "group", label: "Group", description: "Gather blocks in a layout container.", group: "Design" },
+  ...groupVariations.map(variation => ({ type: variation.type, label: variation.label, description: variation.description, group: "Design" as const })),
   { type: "divider", label: "Separator", description: "Separate two sections.", group: "Design" },
   { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design" },
   { type: "social-icons", label: "Social Icons", description: "Add links to your social profiles.", group: "Widgets" },
@@ -231,7 +232,7 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "paragraph") return paragraphBlockDefinition.create(id);
   if (type === "social-icons") return { id, type, children: [] };
   if (type === "social-linkedin" || type === "social-tiktok") return { id, type, url: "" };
-  if (type === "group") return { id, type, layout: "flow", inheritLayout: true, children: [] };
+  if (isGroupVariation(type)) return createGroupVariation(type, id);
   if (type === "columns") return createColumnsBlock(id);
   if (type === "section") return { id, type, layout: "stack", children: [] };
   if (type === "heading") return { id, type, level: 2, text: "" };

@@ -1,5 +1,7 @@
 "use client";
 
+import { createGroupVariation, groupVariationFor, isGroupVariation } from "../../blocks/group-variations";
+
 import { childContentBlocks } from "../../../content/block-tree";
 import { findColumnsParent, maximumColumnWidth } from "../../../content/columns";
 import { editBlockSiblings } from "../../block-sibling-operations";
@@ -137,19 +139,19 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
   } else if (type === "component") {
     blocks = [{ id, type, component: "mini-golf-scorecard", data: { heading: "Sample scorecard", player1: "Player one", player2: "Player two" } }];
     note = "The component is displayed in its supported inactive state. Its real integration is not invoked by a library fixture.";
-  } else if (type === "group" || type === "section") {
+  } else if (isGroupVariation(type) || type === "section") {
     const children: ContentBlock[] = [
       { id: `${type}-child-heading`, type: "heading", level: 3, text: "Selectable child heading" },
       paragraph(`${type}-child-copy`, "Edit this child independently from its containing block."),
     ];
-    blocks = type === "group"
+    blocks = isGroupVariation(type)
       ? [
-        { id, type, layout: "flow", inheritLayout: true, children: [] },
-        { id: "group-row-example", type, layout: "row", gap: 20, columnGap: 20, rowGap: 12, stackAt: "mobile", children },
+        createGroupVariation(type, id),
+        { ...createGroupVariation(type === "group" ? "row" : type, type === "group" ? "group-row-example" : `${type}-populated-example`), gap: 20, columnGap: 20, rowGap: 12, stackAt: "mobile", children },
       ]
       : [{ id, type, layout: "stack", children }];
-    note = type === "group"
-      ? "The first Group starts empty so you can try the layout chooser. The second Group has editable children and a responsive Row layout."
+    note = isGroupVariation(type)
+      ? `The first ${groupVariationFor(createGroupVariation(type, id)).label} starts empty so you can try the layout chooser. The second example has editable children. Transform either container without losing its children.`
       : "Select either nested child above the specimen to inspect it. The container and child edits share local history.";
   } else if (type === "columns") {
     const columnsBlock = createBlock("columns", id);
@@ -184,6 +186,7 @@ function replaceBlock(blocks: ContentBlock[], replacement: ContentBlock): Conten
 }
 
 function specimenLabel(block: ContentBlock): string {
+  if (block.type === "group" && !block.data?.templateElement) return `${block.children.length ? "" : "Empty "}${groupVariationFor(block).label}`;
   if (block.type === "paragraph") return block.text.length > 42 ? `${block.text.slice(0, 42).trimEnd()}…` : block.text || "Paragraph";
   if (block.type === "heading") return block.text || "Heading";
   if (block.type === "table") return !block.rows.length ? "Empty Table" : (block.headerRowCount ?? 0) > 1 || (block.footerRowCount ?? 0) > 1 ? "Table with sections" : "Populated Table";

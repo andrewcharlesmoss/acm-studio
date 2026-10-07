@@ -1,3 +1,4 @@
+import { storedBlockType } from "./group-variations";
 import { blockCatalogue, templateContentBlock } from "../editor-model";
 import { blockCapabilityProfiles } from "./capability-profiles";
 
@@ -14,7 +15,7 @@ const baseEntries = blockCatalogue.map(editorEntry => ({
   description: editorEntry.type === "paragraph" ? "Ordinary prose with inline formatting and Gutenberg-focused block settings." : editorEntry.description,
   group: editorEntry.group,
   href: editorEntry.type === "paragraph" ? "/studio/ui/blocks/paragraph" : `/studio/ui/blocks/${editorEntry.type}`,
-  profile: blockCapabilityProfiles[editorEntry.type],
+  profile: blockCapabilityProfiles[storedBlockType(editorEntry.type) as keyof typeof blockCapabilityProfiles],
 }));
 
 export const blockLibraryEntries = [

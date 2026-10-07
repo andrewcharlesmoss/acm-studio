@@ -1,13 +1,17 @@
+import type { GroupVariationType } from "./blocks/group-variations";
 import type { IconName, IconScale } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import type { ContentBlock } from "../content/model";
 
 type SharedSymbol = { source: "ACM Icons"; symbol: IconName };
 type BlockSymbol = SharedSymbol;
-export type BlockIconType = ContentBlock["type"] | "template-content";
+export type BlockIconType = ContentBlock["type"] | "template-content" | GroupVariationType;
 
 const blockSymbols: Record<BlockIconType, BlockSymbol> = {
   "template-content": { source: "ACM Icons", symbol: "document.content" },
+  row: { source: "ACM Icons", symbol: "layout.row" },
+  stack: { source: "ACM Icons", symbol: "layout.stack" },
+  grid: { source: "ACM Icons", symbol: "layout.grid" },
   group: { source: "ACM Icons", symbol: "layout.flow" },
   columns: { source: "ACM Icons", symbol: "layout.columns" },
   column: { source: "ACM Icons", symbol: "layout.column" },

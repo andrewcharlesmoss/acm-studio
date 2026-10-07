@@ -22,7 +22,7 @@ test("Group wrapping and content width depend on layout", () => {
   assert.equal(wrapping.dependency, "layout");
   assert.equal(wrapping.availableWhen, "When the layout is Row.");
   assert.equal(width.dependency, "layout");
-  assert.equal(width.availableWhen, "When the layout is Group or Stack.");
+  assert.equal(width.availableWhen, "When the layout is Group.");
   assert.equal(width.source, "gutenberg");
 });
 

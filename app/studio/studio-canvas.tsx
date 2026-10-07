@@ -1,4 +1,5 @@
 "use client";
+import { changeGroupLayout, groupVariationFor, groupVariations } from "./blocks/group-variations";
 import { mathRun, mathAtRange, legacyMathAtRange, createMathFromRange, replaceRichTextRuns, restoreMathSource, mathSource } from "../content/math-runs";
 import { inlineImageRun, validInlineImageRun, inlineImageAtRange, insertInlineImage } from "../content/inline-image";
 import { footnoteReferenceAtRange, insertFootnoteReference } from "../content/footnote-runs";
@@ -133,7 +134,7 @@ function blockOutlineLabel(block: ContentBlock) {
   if (block.siteRole) return `${block.siteRole.replaceAll("-", " ")}: ${"text" in block ? block.text.slice(0, 36) : "label" in block ? block.label : block.type}`;
   if (block.type === "heading") return `Heading ${block.level}`;
   if (block.type === "component") return block.component.replace("mini-golf-", "Mini Golf ");
-  return blockLabel(block.type);
+  return block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type);
 }
 
 type TextSelection = { start: number; end: number };
@@ -1856,7 +1857,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                         onSetDragOverIndex(null);
                         // Let the browser capture the source before collapsing its toolbar space.
                         requestAnimationFrame(() => { if (draggingIndexRef.current !== null || nestedDragBlockIdRef.current) beginBlockDrag(); });
-                      }} onDragEnd={finishBlockDrag} aria-label={`Drag to reorder ${blockLabel(block.type)} block`} title="Drag to reorder block"><StudioHoverIcon name="arrange.reorder" /></button>
+                      }} onDragEnd={finishBlockDrag} aria-label={`Drag to reorder ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)} block`} title="Drag to reorder block"><StudioHoverIcon name="arrange.reorder" /></button>
                       <div className="block-move-controls" role="group" aria-label="Move block">
                         <button className="move-block-up" type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, -1); }} disabled={!canMove(block, -1)} aria-label="Move block up" title="Move up"><StudioHoverIcon name="arrange.move-up" /></button>
                         <button type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, 1); }} disabled={!canMove(block, 1)} aria-label="Move block down" title="Move down"><StudioHoverIcon name="arrange.move-down" /></button>
@@ -2325,13 +2326,13 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                 <div className="block-position" key={block.id} data-block-align={contentBlockAlignment(block)}
                 >
                   {dragOverIndex === index ? <div className="drop-indicator" aria-hidden="true" /> : null}
-                  {index > 0 ? <button className="between-blocks" type="button" disabled={!writable} onClick={() => toggleInserter(index - 1)} aria-label={`Add block before ${blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
+                  {index > 0 ? <button className="between-blocks" type="button" disabled={!writable} onClick={() => toggleInserter(index - 1)} aria-label={`Add block before ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
                   <article
                     className={`canvas-block is-${block.type}${contentBlockAlignment(block) ? ` has-block-align-${contentBlockAlignment(block)}` : ""}${selectedBlockId === block.id ? " is-selected" : ""}`}
                     style={block.type === "group" && block.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : undefined}
                     data-studio-block-anchor-id={block.id}
                     tabIndex={0 /* eslint-disable-line jsx-a11y/no-noninteractive-tabindex -- Block frames expose keyboard range selection while preserving editable children. */}
-                    aria-label={`${blockLabel(block.type)} block`}
+                    aria-label={`${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)} block`}
                     role="group"
                     data-studio-hovered={hoveredBlockId === block.id}
                     onPointerDown={(event) => {
@@ -2545,7 +2546,7 @@ function StudioListView({ blocks, selectedBlockId, onSelectBlock, onHoverBlock, 
       <div className={`studio-list-item${selectedBlockId === block.id ? " is-selected" : ""}`} onPointerEnter={() => onHoverBlock(block.id)} onPointerLeave={() => onHoverBlock(null)}>
         {children.length ? <button className={`studio-list-disclosure${expanded ? " is-expanded" : ""}`} type="button" aria-label={`${expanded ? "Collapse" : "Expand"} ${blockOutlineLabel(block)}`} aria-expanded={expanded} onClick={() => toggleExpanded(block.id)}><StudioIcon name="chevron-right" size={16} /></button> : <span className="studio-list-disclosure-spacer" aria-hidden="true" />}
         <button className="studio-list-select" type="button" aria-current={selectedBlockId === block.id ? "true" : undefined} onClick={() => onSelectBlock(block.id)}>
-          <span className="studio-list-icon" aria-hidden="true"><BlockTypeIcon type={block.type} /></span>
+          <span className="studio-list-icon" aria-hidden="true"><BlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} /></span>
           <span>{blockOutlineLabel(block)}{block.editorial?.hidden ? " (hidden)" : ""}</span>{block.editorial?.lock?.move || block.editorial?.lock?.remove ? <StudioIcon name="lock" size={16} /> : null}
         </button>
         {selectedBlockId === block.id ? <div className="studio-list-actions">
@@ -2633,19 +2634,20 @@ function BlockTransformControl({ block, parent, writable, open, onOpenChange, on
   }, [open, onOpenChange]);
 
   if (!transforms.length) return block.type === "table" ? <div className="table-block-type" aria-hidden="true"><HoverBlockTypeIcon type="table" /></div> : null;
-  return <div className="transform-control"><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockLabel(block.type)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <div className="transform-menu" role="menu" aria-label="Transform block"><strong>Transform to</strong>{transforms.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onTransform(transform)}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</div> : null}</div>;
+  return <div className="transform-control"><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <div className="transform-menu" role="menu" aria-label="Transform block"><strong>Transform to</strong>{transforms.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onTransform(transform)}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</div> : null}</div>;
 }
 
 function TransformIcon({ transform }: { transform: BlockTransform }) {
+  if (transform.target === "group" && transform.layout) return <BlockLibraryIcon type={groupVariations.find(variation => variation.layout === transform.layout)?.type ?? "group"} />;
   if (transform.target === "heading" && transform.level) return <HeadingLevelIcon level={transform.level} />;
   return <BlockLibraryIcon type={transform.target} />;
 }
 
-function BlockTypeIcon({ type }: { type: ContentBlock["type"] | "template-content" }) {
+function BlockTypeIcon({ type }: { type: import("./block-library-icons").BlockIconType }) {
   return <BlockLibraryIcon type={type} />;
 }
 
-function HoverBlockTypeIcon({ type, headingLevel }: { type: ContentBlock["type"] | "template-content"; headingLevel?: HeadingLevel }) {
+function HoverBlockTypeIcon({ type, headingLevel }: { type: import("./block-library-icons").BlockIconType; headingLevel?: HeadingLevel }) {
   if (type === "heading") return <HeadingLevelIcon level={headingLevel ?? 2} />;
   return <BlockTypeIcon type={type} />;
 }
@@ -2775,9 +2777,9 @@ export function BlockField(props: BlockFieldProps) {
   if (block.editorial?.hidden) return <HiddenBlockPlaceholder label={blockOutlineLabel(block)} writable={props.writable ?? true} onShow={() => props.onChange({ ...block, editorial: { ...block.editorial, hidden: false } })} />;
   if (props.templatePlaceholder && block.type === "group" && block.data?.templateElement === "content") return <TemplateContentLayout layout={block} visualStyle={block.visualStyle} align={block.data.align === "centre" || block.data.align === "right" ? block.data.align : "left"} mediaUrls={props.mediaUrls} editorFocusable><TemplateContentSlot /></TemplateContentLayout>;
   if (block.type === "group" && block.children.length === 0) return <section className="group-layout-empty" aria-labelledby={`group-layout-title-${block.id}`}>
-    <div className="group-layout-empty-heading"><span aria-hidden="true"><BlockLibraryIcon type="group" /></span><strong id={`group-layout-title-${block.id}`}>Group</strong></div>
+    <div className="group-layout-empty-heading"><span aria-hidden="true"><BlockLibraryIcon type={groupVariationFor(block).type} /></span><strong id={`group-layout-title-${block.id}`}>{groupVariationFor(block).label}</strong></div>
     <p>Group blocks together. Select a layout:</p>
-    <GroupLayoutSelection value={block.layout} onChange={layout => props.onChange({ ...block, layout, allowWrap: layout === "row" ? block.allowWrap ?? false : block.allowWrap })} />
+    <GroupLayoutSelection value={block.layout} onChange={layout => props.onChange(changeGroupLayout(block, layout))} />
   </section>;
   const content = <BlockFieldContent {...props} />;
   if (!block.visualStyle || block.type === "spacer") return content;

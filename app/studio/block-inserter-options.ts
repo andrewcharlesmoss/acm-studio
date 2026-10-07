@@ -1,3 +1,4 @@
+import { storedBlockType } from "./blocks/group-variations";
 import type { ContentBlock, GroupAllowedBlockType } from "../content/model";
 import type { BlockLibraryItemType } from "./editor-model";
 import { childContentBlocks } from "../content/block-tree.ts";
@@ -25,7 +26,7 @@ export function groupAllowsChild(parent: ContentBlock, childType: string): boole
   if (parent.type === "social-icons") return childType === "social-linkedin" || childType === "social-tiktok";
   if (parent.type === "list") return childType === "list";
   if (parent.type === "quote") return ["paragraph", "heading", "list", "quote", "image"].includes(childType);
-  const storedType = childType === "template-content" ? "group" : childType === "button" ? "buttons" : childType === "social-linkedin" || childType === "social-tiktok" ? "social-icons" : childType;
+  const storedType = childType === "template-content" ? "group" : childType === "button" ? "buttons" : childType === "social-linkedin" || childType === "social-tiktok" ? "social-icons" : storedBlockType(childType);
   return (parent.type !== "group" && parent.type !== "column") || parent.allowedBlocks === undefined
     || parent.allowedBlocks.includes(storedType as GroupAllowedBlockType) || childType === "button" && parent.allowedBlocks.includes("button");
 }
