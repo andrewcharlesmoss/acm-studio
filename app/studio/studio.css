@@ -966,6 +966,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-nested-group.has-layout-options.layout-flow > .studio-nested-block + .studio-nested-block, .content-group.has-layout-options.layout-flow > * + * { margin-block-start: var(--block-layout-row-gap, var(--block-layout-gap, 0px)); }
 .group-layout-empty { display: grid; gap: 12px; padding: 20px 24px; border: 1px solid var(--studio-border, #8c8f94); background: var(--studio-surface, #fff); }
 .group-layout-empty-heading { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.group-layout-empty-heading strong { font-weight: inherit; }
 .group-layout-empty-heading > span { display: inline-flex; }
 .group-layout-empty > p { margin: 0; }
 .group-layout-selection { display: flex; gap: 4px; align-items: stretch; }
