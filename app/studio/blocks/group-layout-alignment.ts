@@ -4,22 +4,24 @@ import type { ContentBlock } from "../../content/model";
 export type GroupBlock = Extract<ContentBlock, { type: "group" }>;
 export type GroupAlignmentChoice = { value: string; label: string; icon: IconName };
 export const groupHorizontalChoices: GroupAlignmentChoice[] = [
-  { value: "left", label: "Left", icon: "arrange.align-left" },
-  { value: "centre", label: "Centre", icon: "arrange.align-centre-horizontal" },
-  { value: "right", label: "Right", icon: "arrange.align-right" },
+  { value: "left", label: "Left", icon: "layout.justify-left" },
+  { value: "centre", label: "Centre", icon: "layout.justify-centre" },
+  { value: "right", label: "Right", icon: "layout.justify-right" },
 ];
 export const groupVerticalChoices: GroupAlignmentChoice[] = [
-  { value: "top", label: "Top", icon: "arrange.align-top" },
-  { value: "centre", label: "Centre", icon: "arrange.align-centre-vertical" },
-  { value: "bottom", label: "Bottom", icon: "arrange.align-bottom" },
+  { value: "top", label: "Top", icon: "layout.align-top" },
+  { value: "centre", label: "Centre", icon: "layout.align-middle" },
+  { value: "bottom", label: "Bottom", icon: "layout.align-bottom" },
 ];
-const spaceBetween: GroupAlignmentChoice = { value: "space-between", label: "Space between", icon: "text.justify" };
-const stretch: GroupAlignmentChoice = { value: "stretch", label: "Stretch", icon: "layout.columns" };
+const horizontalSpaceBetween: GroupAlignmentChoice = { value: "space-between", label: "Space between", icon: "layout.justify-space-between" };
+const verticalSpaceBetween: GroupAlignmentChoice = { value: "space-between", label: "Space between", icon: "layout.align-space-between" };
+const horizontalStretch: GroupAlignmentChoice = { value: "stretch", label: "Stretch", icon: "layout.justify-stretch" };
+const verticalStretch: GroupAlignmentChoice = { value: "stretch", label: "Stretch", icon: "layout.align-stretch" };
 export function groupFlexAlignment(block: GroupBlock) {
   const row = block.layout === "row";
   return {
-    horizontal: { label: row ? "Justification" : "Horizontal alignment", choices: [...groupHorizontalChoices, row ? spaceBetween : stretch], value: block.horizontalAlign ?? (row ? "left" : "stretch") },
-    vertical: { label: row ? "Vertical alignment" : "Justification", choices: [...groupVerticalChoices, row ? stretch : spaceBetween], value: block.verticalAlign ?? (row ? "centre" : "top") },
+    horizontal: { label: row ? "Justification" : "Horizontal alignment", choices: [...groupHorizontalChoices, row ? horizontalSpaceBetween : horizontalStretch], value: block.horizontalAlign ?? (row ? "left" : "stretch") },
+    vertical: { label: row ? "Vertical alignment" : "Justification", choices: [...groupVerticalChoices, row ? verticalStretch : verticalSpaceBetween], value: block.verticalAlign ?? (row ? "centre" : "top") },
   };
 }
 export function groupUsesContentWidth(block: GroupBlock) {
