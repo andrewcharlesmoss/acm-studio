@@ -1,7 +1,7 @@
 /* Shared Group justification in Edit, Preview, templates and local publication. */
-:is(.studio-nested-group, .content-group, .template-group).layout-flow[data-layout-constrained="true"][data-layout-justification="left"] > :not(.nested-add-block) { margin-inline: 0 auto; }
-:is(.studio-nested-group, .content-group, .template-group).layout-flow[data-layout-constrained="true"][data-layout-justification="right"] > :not(.nested-add-block) { margin-inline: auto 0; }
+:is(.studio-nested-group, .content-group, .template-group).layout-flow[data-layout-constrained="true"][data-layout-justification="left"] > :not(.nested-add-block, .group-empty-appender, .group-empty-grid-guides) { margin-inline: 0 auto; }
+:is(.studio-nested-group, .content-group, .template-group).layout-flow[data-layout-constrained="true"][data-layout-justification="right"] > :not(.nested-add-block, .group-empty-appender, .group-empty-grid-guides) { margin-inline: auto 0; }
 
-:is(.studio-nested-group, .content-group, .template-group).layout-stack.has-layout-options[data-layout-horizontal-align="left"] > :not(.nested-add-block),
-:is(.studio-nested-group, .content-group, .template-group).layout-stack.has-layout-options[data-layout-horizontal-align="centre"] > :not(.nested-add-block),
-:is(.studio-nested-group, .content-group, .template-group).layout-stack.has-layout-options[data-layout-horizontal-align="right"] > :not(.nested-add-block) { width: fit-content; margin-inline: 0; }
+:is(.studio-nested-group, .content-group, .template-group).layout-stack.has-layout-options[data-layout-horizontal-align="left"] > :not(.nested-add-block, .group-empty-appender, .group-empty-grid-guides),
+:is(.studio-nested-group, .content-group, .template-group).layout-stack.has-layout-options[data-layout-horizontal-align="centre"] > :not(.nested-add-block, .group-empty-appender, .group-empty-grid-guides),
+:is(.studio-nested-group, .content-group, .template-group).layout-stack.has-layout-options[data-layout-horizontal-align="right"] > :not(.nested-add-block, .group-empty-appender, .group-empty-grid-guides) { width: fit-content; margin-inline: 0; }

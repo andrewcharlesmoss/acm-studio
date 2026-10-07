@@ -215,7 +215,7 @@
 :is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-grid-mode="manual"].layout-grid { grid-template-columns: repeat(var(--block-layout-columns, 3), minmax(0, 1fr)); }
 :is(.studio-nested-group, .content-group, .template-group).has-layout-options.layout-flow > * + * { margin-block-start: var(--block-layout-row-gap, var(--block-layout-gap, 0px)); }
 :is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-constrained="true"] { width: 100%; max-width: none; }
-:is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-constrained="true"] > :not(.nested-add-block) { box-sizing: border-box; width: 100%; max-width: var(--block-content-size, var(--template-content-width, 1040px)); margin-inline: auto; }
+:is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-constrained="true"] > :not(.nested-add-block, .group-empty-appender, .group-empty-grid-guides) { box-sizing: border-box; width: 100%; max-width: var(--block-content-size, var(--template-content-width, 1040px)); margin-inline: auto; }
 :is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-constrained="true"] > :is([data-block-align="wide"], .block-align-wide) { max-width: var(--block-wide-size, 1280px); }
 :is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-constrained="true"] > :is([data-block-align="full"], .block-align-full) { max-width: none; }
 

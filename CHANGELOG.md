@@ -4,7 +4,8 @@
 
 ### Added
 
-- Group floating toolbars now follow the chosen layout: content justification for constrained Group, both alignment axes for Row and Stack, and no incompatible alignment menus for Grid.
+- Group floating toolbars now follow the chosen layout: block alignment for Group and Grid, and both layout alignment axes for Row and Stack.
+- Empty Group layouts now use Gutenberg-style insertion areas: a full-width Group button, horizontal Row and vertical Stack placeholders, and responsive Grid track guides with a compact insertion button. Empty unselected Groups show a dashed boundary; these guides remain editor-only.
 
 - Group, Row, Stack and Grid are separate block choices with mutual transforms,
   consistent labels and icons, and shared Gutenberg-style layout controls.
