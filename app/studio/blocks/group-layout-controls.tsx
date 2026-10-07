@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { InspectorToolsSection } from "../inspector-tools-section";
 import { AcmIcon } from "@acm/icons/react";
-import { groupFlexAlignment, groupHorizontalChoices as horizontal, groupUsesContentWidth, type GroupAlignmentChoice as Choice } from "./group-layout-alignment";
+import { groupFlexAlignment, groupUsesContentWidth, type GroupAlignmentChoice as Choice } from "./group-layout-alignment";
 import type { ContentBlock } from "../../content/model";
 import { ToggleSetting } from "../controls/toggle-setting";
 import { NumberUnitField } from "../controls/number-unit-field";
@@ -23,18 +23,18 @@ export function GroupLayoutControls({ block, onChange }: { block: GroupBlock; on
   const update = (changes: Partial<GroupBlock>) => onChange({ ...block, ...changes });
   const [requestedVisible, setVisible] = useState(() => new Set<string>([
     ...(block.contentSize ? ["content-width"] : []), ...(block.wideSize ? ["wide-width"] : []),
-    ...(block.horizontalAlign ? ["justification"] : []), ...(block.allowWrap !== undefined ? ["wrapping"] : []),
+    ...(block.allowWrap !== undefined ? ["wrapping"] : []),
     ...(block.columns && block.gridMode !== "manual" ? ["max-columns"] : []),
   ]));
   const visible = new Set([...requestedVisible,
     ...(block.contentSize ? ["content-width"] : []), ...(block.wideSize ? ["wide-width"] : []),
-    ...(block.horizontalAlign ? ["justification"] : []), ...(block.allowWrap === true ? ["wrapping"] : []),
+    ...(block.allowWrap === true ? ["wrapping"] : []),
     ...(block.columns && block.gridMode !== "manual" ? ["max-columns"] : []),
   ]);
-  const options = block.layout === "flow" ? [{ id: "content-width", label: "Content width" }, { id: "wide-width", label: "Wide width" }, { id: "justification", label: "Justification" }]
+  const options = block.layout === "flow" ? [{ id: "content-width", label: "Content width" }, { id: "wide-width", label: "Wide width" }]
     : block.layout === "row" ? [{ id: "wrapping", label: "Allow wrapping" }]
     : block.layout === "grid" && block.gridMode !== "manual" ? [{ id: "max-columns", label: "Max. columns" }] : [];
-  function wrap(children: React.ReactNode) { return <InspectorToolsSection title="Layout" options={options} visible={visible} alwaysShow canReset={[block.horizontalAlign, block.verticalAlign, block.contentSize, block.wideSize, block.columns, block.minColumnWidth, block.allowWrap].some(value => value !== undefined) || block.contentWidth === "full" || block.inheritLayout === false || block.gridMode === "manual" || block.minColumnWidthUnit !== undefined} onToggle={id => { if (visible.has(id)) { setVisible(current => { const next = new Set(current); next.delete(id); return next; }); const field = ({ "content-width": "contentSize", "wide-width": "wideSize", justification: "horizontalAlign", wrapping: "allowWrap", "max-columns": "columns" } as const)[id as "content-width" | "wide-width" | "justification" | "wrapping" | "max-columns"]; if (field === "allowWrap") update({ allowWrap: false }); else if (field) update({ [field]: undefined }); } else setVisible(current => new Set([...current, id])); }} onReset={() => { setVisible(new Set()); update({ horizontalAlign: undefined, verticalAlign: undefined, contentSize: undefined, wideSize: undefined, columns: undefined, minColumnWidth: block.layout === "grid" ? 12 : undefined, minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined, gridMode: block.layout === "grid" ? "auto" : undefined, allowWrap: block.layout === "row" ? false : undefined, inheritLayout: true, contentWidth: undefined }); }}>{children}</InspectorToolsSection>; }
+  function wrap(children: React.ReactNode) { return <InspectorToolsSection title="Layout" options={options} visible={visible} alwaysShow canReset={[block.horizontalAlign, block.verticalAlign, block.contentSize, block.wideSize, block.columns, block.minColumnWidth, block.allowWrap].some(value => value !== undefined) || block.contentWidth === "full" || block.inheritLayout === false || block.gridMode === "manual" || block.minColumnWidthUnit !== undefined} onToggle={id => { if (visible.has(id)) { setVisible(current => { const next = new Set(current); next.delete(id); return next; }); const field = ({ "content-width": "contentSize", "wide-width": "wideSize", wrapping: "allowWrap", "max-columns": "columns" } as const)[id as "content-width" | "wide-width" | "wrapping" | "max-columns"]; if (field === "allowWrap") update({ allowWrap: false }); else if (field) update({ [field]: undefined }); } else setVisible(current => new Set([...current, id])); }} onReset={() => { setVisible(new Set()); update({ horizontalAlign: undefined, verticalAlign: undefined, contentSize: undefined, wideSize: undefined, columns: undefined, minColumnWidth: block.layout === "grid" ? 12 : undefined, minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined, gridMode: block.layout === "grid" ? "auto" : undefined, allowWrap: block.layout === "row" ? false : undefined, inheritLayout: true, contentWidth: undefined }); }}>{children}</InspectorToolsSection>; }
   if (block.layout === "columns") return wrap(<p className="setting-note">This saved Group uses the legacy Columns arrangement. Select Group, Row, Stack or Grid above to change its layout.</p>);
   if (block.layout === "flow") return wrap(<>
     <ToggleSetting label="Inner blocks use content width" checked={groupUsesContentWidth(block)} onChange={checked => update({ contentWidth: checked ? "constrained" : "full", inheritLayout: block.inheritLayout ?? true })} />
@@ -42,7 +42,6 @@ export function GroupLayoutControls({ block, onChange }: { block: GroupBlock; on
     {groupUsesContentWidth(block) ? <>
       <div className="group-content-width-controls">{visible.has("content-width") ? <ContentWidthControl label="Content width" value={block.contentSize} onChange={contentSize => update({ contentSize, inheritLayout: false })} /> : null}{visible.has("wide-width") ? <ContentWidthControl label="Wide width" value={block.wideSize} onChange={wideSize => update({ wideSize, inheritLayout: false })} /> : null}</div>
       <p className="setting-note">Leave widths empty to inherit the enclosing layout.</p>
-      {visible.has("justification") ? <AlignmentChoices label="Justification" choices={horizontal} value={block.horizontalAlign ?? "centre"} onChange={value => update({ horizontalAlign: value as GroupBlock["horizontalAlign"] })} /> : null}
     </> : null}
   </>);
   if (block.layout === "grid") {
