@@ -308,7 +308,13 @@ changes to the sibling `test` project for this fixture. The canonical source is
 Test's `content/site.json` v2 (backwards-readable v1); visual edits use one
 revision-checked gateway. The original Studio navigation and browser workspace
 remain separate; the Test projection is never inserted into their stores.
-The existing Studio session owns the Web Lock and the Test adapter borrows it.
+The existing Studio session owns the Web Lock and the Test saving adapter borrows
+it. Andrew authorised multiple ordinary editor tabs to edit local Test on
+7 October 2026: peers submit validated transactions through the existing typed
+tab-synchronisation contract, while only the owner saves under the server lease
+and revision checks. Tokens remain private to each tab. Keep independent-edit
+merging, explicit overlap choices, pending-draft preservation and fresh-source
+handover; never grant peer tabs direct gateway write access.
 The normal block library and inspector are reused. Prompts are deferred with no
 prompt panel in the current editor. `dist/index.html` is generated using Studio's
 canonical BlockRenderer and Test's scoped styles. Do not add another authoritative

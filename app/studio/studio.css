@@ -29,6 +29,10 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
   min-height: 100dvh;
 }
 
+.studio-shell.studio-test-context { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.studio-test-context > :is(.studio-header, .studio-notice, .studio-test-notices) { flex: none; }
+.studio-shell.studio-test-context > .studio-workspace { flex: 1; height: auto; min-height: 0; }
+
 .studio-header {
   align-items: center;
   background: #f9f8f4;

@@ -19,8 +19,10 @@ Test is never inserted into browser Pages, Posts, Templates or publications.
 Visual changes use the revision-checked disk gateway. Switching to a browser
 document or template waits for a successful Test save; a failed save keeps the
 Test draft visible. Files and Back to Content retain the selected canvas target.
-The editor borrows the current Studio session's exclusive write ownership and
-claims only the Test server lease. It does not acquire a second Web Lock.
+Multiple ordinary Studio editor tabs can edit Test on the same browser origin.
+The saving tab borrows the current Studio session's exclusive write ownership
+and claims only the Test server lease. Other tabs submit validated changes to
+that tab; they never write directly to the gateway. No second Web Lock is acquired.
 
 The browser holds only a session and unsaved draft. `dist/index.html` is generated
 with the shared Studio BlockRenderer, document context and existing block
@@ -62,8 +64,8 @@ Sites project binding remains the separate publishing target.
 ## Saving, history and conflicts
 
 A browser session uses an expiring random token, exact local origin checks and
-Test-only operations. The Studio Web Lock keeps browser editing in one tab; the
-server's renewable owner lease and process guard coordinate file writes.
+Test-only operations. The Studio Web Lock permits one persistence coordinator;
+the server's renewable owner lease and process guard coordinate file writes.
 `.studio/writer.lock` contains a process identity; a second Studio process fails
 closed while it exists. The service removes only its own lock on clean shutdown.
 
@@ -76,9 +78,30 @@ interruption, reconnecting regenerates output only when the source and output
 match a known pending state. Unknown external file changes stop editing and are
 preserved. Do not edit generated HTML directly.
 
-`.studio/history/` retains up to 100 source revisions. In-session visual changes share Undo/Redo.
-Reloading or loading an external saved revision clears obsolete in-session
-history. This prevents old history from overwriting new work.
+Test uses a separate room in the existing typed tab-synchronisation system.
+Session tokens are never broadcast. Edits to independent block properties merge
+automatically; overlapping changes require **Use Other Change** or **Use My
+Change**. Paragraph text is one property, so simultaneous edits to the same
+paragraph require review rather than character-by-character merging. A choice
+uses the latest saved state and retains unrelated changes from other tabs.
+
+The saving tab continues serving Test while it switches to browser Pages, Posts
+or Templates. Another ordinary editor tab can take over when that tab closes,
+loading the current source and rebasing pending edits before saving. Tabs retain
+their own navigation, selection and unsaved draft. The owner renews its lease in
+the background; browser suspension can pause synchronisation safely. A paused
+tab offers **Reconnect** and **Export Draft**. Unknown save failures are not
+retried automatically.
+
+This initial arrangement covers ordinary `/studio` editor tabs on the same
+origin. It does not synchronise separate browsers, different ports or hosted
+sites. If another full-page Studio route owns the global lock without a Test
+broker, Test remains safely paused until an editor tab can own saving.
+
+`.studio/history/` retains up to 100 source revisions. In-session visual changes
+share Undo/Redo within each tab. Reloading, handover or receiving another tab's
+saved changes clears obsolete in-session history, preventing old Undo snapshots
+from overwriting newer work.
 
 On a connection failure or conflict, the current draft remains in memory.
 **Export Draft** downloads the draft, base revision and any preserved prompt
@@ -126,8 +149,10 @@ pane retains its tools, tab labels, counts and browser document lists. Verify th
 full block library and standard inspector, visual edits saved to the actual local
 website, ordinary blocks such as List / Table / Separator, Edit / Preview
 agreement, reload persistence, Undo / Redo and switching to browser documents
-without contamination. Verify failed saves retain the draft, second-tab ownership
-and the recovery boundary. Use representative desktop and narrow views with
+without contamination. Verify two editable tabs, independent-edit merging,
+overlap choices against newer saved changes, latest-keystroke preservation,
+owner handover, failed saves retaining drafts and the recovery boundary.
+Use representative desktop and narrow views with
 Studio's declared horizontal-scroll behaviour.
 
 Prompt evidence from the earlier implementation is historical and deferred; it

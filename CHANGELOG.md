@@ -4,6 +4,9 @@
 
 ### Added
 
+- Local Test can be edited in multiple Studio tabs, with shared updates,
+  independent-change merging, overlap choices and automatic save handover.
+
 - Group floating toolbars now follow the chosen layout: block alignment for Group and Grid, and both layout alignment axes for Row and Stack.
 - Empty Group layouts now use Gutenberg-style insertion areas: a full-width Group button, horizontal Row and vertical Stack placeholders, and responsive Grid track guides with a compact insertion button. Empty unselected Groups show a dashed boundary; these guides remain editor-only.
 
