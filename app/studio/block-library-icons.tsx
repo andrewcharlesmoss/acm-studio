@@ -48,7 +48,8 @@ export function blockLibrarySymbol(type: BlockIconType): BlockSymbol {
 
 export function BlockLibraryIcon({ type }: { type: BlockIconType }) {
   const entry = blockSymbols[type];
-  return <AcmIcon name={entry.symbol} scale="Regular-M" size={24} />;
+  const scale = type === "group" || type === "row" || type === "stack" || type === "grid" ? "Regular-L" : "Regular-M";
+  return <AcmIcon name={entry.symbol} scale={scale} size={24} />;
 }
 
 export function BlockLibraryIconSample({ type, size, scale }: { type: BlockIconType; size: number; scale: IconScale }) {
