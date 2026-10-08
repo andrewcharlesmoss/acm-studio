@@ -608,6 +608,9 @@
 
 ### Fixed
 
+- Between-block insertion controls no longer intercept pointer input over block
+  content in compact site layouts.
+
 - Route primary editor actions, featured-image selection, post publishing and
   block insertion, Files, Backup and Design Library controls through the shared
   button colours and hover states.

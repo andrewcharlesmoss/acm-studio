@@ -1,4 +1,5 @@
 "use client";
+import { useBlockInsertionGaps } from "./use-block-insertion-gaps";
 import { GroupEmptyAppender } from "./blocks/group-empty-appender";
 import { GroupLayoutToolbar } from "./blocks/group-layout-toolbar";
 import { changeGroupLayout, groupVariationFor, groupVariations } from "./blocks/group-variations";
@@ -312,6 +313,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   const dragSessionRef = useRef<{ documentId: string; baseline: string; libraryType?: BlockLibraryItemType } | null>(null);
   const crossBlockSelectionRef = useRef<{ pointerId: number; blockIdentity: Element; blockId: string | null; start: Range | null; last: Range | null; endBlockId: string | null; active: boolean; pointerStart?: { x: number; y: number }; listRoot?: HTMLElement; listEditor?: HTMLElement; listText?: boolean } | null>(null);
   const canvasScrollRef = useRef<HTMLDivElement>(null);
+  useBlockInsertionGaps(canvasScrollRef);
   const selectionAnchorRef = useRef<string | null>(null);
   const selectionFocusRef = useRef<string | null>(null);
   const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);

@@ -2033,3 +2033,6 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-anchored-menu.group-layout-toolbar-menu button.group-layout-menu-close { border-top: 1px solid var(--studio-toolbar-divider, #d5d3cb); margin-top: 4px; }
 
 .table-placeholder button:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
+
+/* A measured gap owns the hit area; visual overhang must not intercept block text. */
+.between-blocks[data-measured-gap] > span { pointer-events: none; }
