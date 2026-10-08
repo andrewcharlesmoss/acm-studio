@@ -1,5 +1,14 @@
 # Studio UI Library
 
+## Tool navigation icons
+
+`app/studio/studio-tool-icon.tsx` owns tool icon mappings for the homepage and
+editor navigation. Both surfaces render the same `@acm/icons` catalogue artwork
+at the Regular-M optical scale. Files uses `library.files`, Design Canvas uses
+`library.designs`, Backup uses `output.backup`, and Bin uses `action.delete`.
+Templates uses `component.block`, Content Studio uses `action.edit`, and Studio
+UI Library uses `layout.columns`. Their surrounding surfaces may differ.
+
 ## Purpose and organisation
 
 Open `/studio/ui` from the Studio dashboard or its content and template tools.

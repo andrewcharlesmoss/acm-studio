@@ -4,6 +4,7 @@ import { useState } from "react";
 import { iconNames, iconMetadata, iconScales, iconAddedAt, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { AcmStudioIcon } from "../acm-studio-icons";
+import { studioToolIcons } from "../studio-tool-icon";
 import { blockLibraryEntries } from "../blocks/library-catalogue";
 import { BlockLibraryIconSample, blockLibrarySymbol, type BlockIconType } from "../block-library-icons";
 import { commandInventory } from "../ribbon/catalogue-model";
@@ -12,6 +13,15 @@ import { KeyboardCatalogue } from "./keyboard-catalogue";
 import { formatIconAddedAt, sortIconsByAddedAt, type IconSortOrder } from "./icon-sort";
 
 const blockLibraryCatalogue = blockLibraryEntries;
+const toolIconConsumers = [
+  { icon: studioToolIcons.templates, label: "Templates tool", href: "/studio?mode=templates" },
+  { icon: studioToolIcons.designs, label: "Design Canvas tool", href: "/studio/designs" },
+  { icon: studioToolIcons.uiLibrary, label: "Studio UI Library tool", href: "/studio/ui" },
+  { icon: studioToolIcons.content, label: "Content Studio tool", href: "/studio" },
+  { icon: studioToolIcons.files, label: "Files tool in editor navigation", href: "/studio" },
+  { icon: studioToolIcons.backup, label: "Backup tool in editor navigation", href: "/studio" },
+  { icon: studioToolIcons.bin, label: "Bin tool in editor navigation", href: "/studio" },
+];
 const studioIconConsumers: Partial<Record<IconName, Array<{ label: string; href: string }>>> = {
   "text.caption": [{ label: "Table caption visibility control", href: "/studio/ui/blocks/table" }],
   "view.styles": [{ label: "Table inspector Styles tab", href: "/studio/ui/blocks/table" }],
@@ -104,7 +114,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
     const symbol = blockLibrarySymbol(item.type);
     return symbol.source === "ACM Icons" && symbol.symbol === icon;
   }).map(item => ({ label: `Block Library symbol — ${item.label}`, href: `/studio/ui/icons?collection=blocks&block=${encodeURIComponent(item.type)}` }));
-  const studioConsumers = [...new Map([...(studioIconConsumers[icon] ?? []), ...blockConsumers].map(consumer => [`${consumer.href}:${consumer.label}`, consumer])).values()];
+  const studioConsumers = [...new Map([...(studioIconConsumers[icon] ?? []), ...toolIconConsumers.filter(consumer => consumer.icon === icon), ...blockConsumers].map(consumer => [`${consumer.href}:${consumer.label}`, consumer])).values()];
 
   async function downloadIcon(scale: typeof iconScales[number], size: number, format: "svg" | "png") {
     try {

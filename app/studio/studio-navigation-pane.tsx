@@ -1,6 +1,6 @@
 "use client";
 import { useId, useRef, useState } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { StudioToolIcon } from "./studio-tool-icon";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { ProjectLocalLinksProvider, ProjectLocalSiteNavigation } from "./project-local-links";
 import { StudioIcon } from "./studio-icons";
@@ -45,11 +45,11 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
             <button type="button" disabled={!writable} onClick={() => addDocument("page")}><StudioIcon name="add" size={16} /> New page</button>
             <button type="button" disabled={!writable || !templateSession.writable} onClick={addDocumentFromTemplate}>New from template</button>
           </div><div className="library-tools">
-            <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
-            <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design Canvas</strong><small>Create and annotate images</small></a>
-            <a className="library-tool-button" href="/studio/ui"><span><AcmIcon name="layout.columns" /></span><strong>Studio UI Library</strong><small>Workspace, Ribbon, panes and shared icons</small></a>
-            <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={onOpenBackup}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
-            <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" onClick={onOpenBin}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.bin.length + templateSession.store.bin.length} deleted items</small></button>
+            <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioToolIcon tool="files" /></span><strong>Files</strong><small>Images and documents</small></button>
+            <a className="library-tool-button" href="/studio/designs"><span><StudioToolIcon tool="designs" /></span><strong>Design Canvas</strong><small>Create and annotate images</small></a>
+            <a className="library-tool-button" href="/studio/ui"><span><StudioToolIcon tool="uiLibrary" /></span><strong>Studio UI Library</strong><small>Workspace, Ribbon, panes and shared icons</small></a>
+            <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={onOpenBackup}><span><StudioToolIcon tool="backup" /></span><strong>Backup</strong><small>Export and restore</small></button>
+            <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" onClick={onOpenBin}><span><StudioToolIcon tool="bin" /></span><strong>Bin</strong><small>{workspace.bin.length + templateSession.store.bin.length} deleted items</small></button>
           </div></>}
           tabs={<><ProjectLocalSiteNavigation id="test" name="Test" onSelectTest={onSelectTest} /><div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
             { id: "page", label: "Pages" }, { id: "post", label: "Posts" }, { id: "templates", label: "Templates" },

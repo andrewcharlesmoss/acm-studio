@@ -2,6 +2,7 @@ import { studioProjects, type StudioProject, type StudioProjectLink } from "./pr
 import { ProjectLocalLink, ProjectLocalLinksProvider, ProjectLocalStatus } from "./project-local-links";
 import { AcmIcon } from "@acm/icons/react";
 import { StudioIcon } from "./studio-icons";
+import { StudioToolIcon } from "./studio-tool-icon";
 
 function ProjectLinks({ links, context }: { links: StudioProjectLink[]; context: string }) {
   return <div className="dashboard-project-links">{links.map((link, index) => {
@@ -68,12 +69,12 @@ export function StudioDashboard() {
         <section className="dashboard-section dashboard-tools" aria-labelledby="tools-title">
           <div className="dashboard-section-heading"><div><p className="eyebrow">Working tools</p><h2 id="tools-title">Continue building</h2></div><p>The foundation is deliberately local while the shared architecture is being established.</p></div>
           <div className="dashboard-tool-grid">
-            <a className="dashboard-tool-card" href="/studio?mode=templates"><span className="dashboard-tool-icon" aria-hidden="true"><StudioIcon name="block" /></span><span><strong>Templates</strong><small>Create consistent page and post designs with shared headers and footers.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
-            <a className="dashboard-tool-card" href="/studio/designs"><span className="dashboard-tool-icon" aria-hidden="true"><StudioIcon name="image" /></span><span><strong>Design Canvas</strong><small>Create and annotate images for your content.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
-            <a className="dashboard-tool-card" href="/studio/ui"><span className="dashboard-tool-icon" aria-hidden="true"><AcmIcon name="layout.columns" /></span><span><strong>Studio UI Library</strong><small>Explore the workspace, Ribbon, panes and shared icons.</small></span><span aria-hidden="true" style={{ transform: "rotate(-90deg)" }}><AcmIcon name="navigation.disclosure" /></span></a>
-            <a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioIcon name="pencil" /></span><span><strong>Content Studio</strong><small>Create and edit pages and posts with portable blocks.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
-            <a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioIcon name="image" /></span><span><strong>Files and media</strong><small>Manage the local media library from the Studio.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
-            <a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioIcon name="archive" /></span><span><strong>Backup and restore</strong><small>Protect local content before the persistence layer arrives.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
+            <a className="dashboard-tool-card" href="/studio?mode=templates"><span className="dashboard-tool-icon" aria-hidden="true"><StudioToolIcon tool="templates" /></span><span><strong>Templates</strong><small>Create consistent page and post designs with shared headers and footers.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
+            <a className="dashboard-tool-card" href="/studio/designs"><span className="dashboard-tool-icon" aria-hidden="true"><StudioToolIcon tool="designs" /></span><span><strong>Design Canvas</strong><small>Create and annotate images for your content.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
+            <a className="dashboard-tool-card" href="/studio/ui"><span className="dashboard-tool-icon" aria-hidden="true"><StudioToolIcon tool="uiLibrary" /></span><span><strong>Studio UI Library</strong><small>Explore the workspace, Ribbon, panes and shared icons.</small></span><span aria-hidden="true" style={{ transform: "rotate(-90deg)" }}><AcmIcon name="navigation.disclosure" /></span></a>
+            <a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioToolIcon tool="content" /></span><span><strong>Content Studio</strong><small>Create and edit pages and posts with portable blocks.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
+            <a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioToolIcon tool="files" /></span><span><strong>Files and media</strong><small>Manage the local media library from the Studio.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
+            <a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioToolIcon tool="backup" /></span><span><strong>Backup and restore</strong><small>Protect local content before the persistence layer arrives.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>
           </div>
         </section>
 

@@ -608,6 +608,9 @@
 
 ### Fixed
 
+- Dashboard and editor navigation now share catalogue-backed tool icons, with
+  distinct symbols for Files, Design Canvas, Backup and Bin.
+
 - Between-block insertion controls no longer intercept pointer input over block
   content in compact site layouts.
 
