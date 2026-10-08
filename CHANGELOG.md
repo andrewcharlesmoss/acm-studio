@@ -608,8 +608,8 @@
 
 ### Fixed
 
-- Route primary editor actions and block insertion controls through the shared
-  button colours, including matching hover states.
+- Route primary editor actions, featured-image selection, post publishing and
+  block insertion controls through the shared button colours and hover states.
 
 - Delayed workspace autosaves no longer revert newer typing and create false
   text/runs conflicts. Unsaved owner input also survives incoming peer updates

@@ -27,6 +27,10 @@ test("Studio primary actions use the universal ACM button colour tokens", () => 
   assert.match(css, /\.canvas-appender-button \{[^}]*background: var\(--studio-shared-button-background\);[^}]*color: var\(--studio-shared-button-foreground\);/);
   assert.match(css, /\.between-blocks > span \{[^}]*background: var\(--studio-shared-button-background\);[^}]*color: var\(--studio-shared-button-foreground\);/);
   assert.match(css, /\.between-blocks:hover:not\(:disabled\) > span, \.between-blocks:focus-visible > span \{ background: var\(--studio-shared-button-hover-background\); color: var\(--studio-shared-button-hover-foreground\); \}/);
+  assert.match(css, /\.choose-media-button \{[^}]*background: var\(--studio-shared-button-background\);[^}]*color: var\(--studio-shared-button-foreground\);/);
+  assert.match(css, /\.choose-media-button:hover:not\(:disabled\) \{ background: var\(--studio-shared-button-hover-background\); color: var\(--studio-shared-button-hover-foreground\); \}/);
+  assert.match(css, /\.publishing-actions \.publish-action \{ background: var\(--studio-shared-button-background\); border-color: var\(--studio-shared-button-border\); color: var\(--studio-shared-button-foreground\);/);
+  assert.match(css, /\.publishing-actions \.publish-action:hover:not\(:disabled\) \{ background: var\(--studio-shared-button-hover-background\); color: var\(--studio-shared-button-hover-foreground\); \}/);
   assert.doesNotMatch(design, /\.design-conflict-actions \.button-primary \{/);
   assert.doesNotMatch(media, /\.media-dialog-actions \.button-primary \{/);
 });

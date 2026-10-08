@@ -1628,7 +1628,8 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .library-tool-button.is-active > span { background: var(--accent-soft); color: var(--accent-strong); }
 .library-tool-button strong { font-size: var(--studio-ui-size); font-weight: 650; }
 .library-tool-button small { color: var(--muted); font-size: var(--studio-ui-size); }
-.choose-media-button { background: var(--ink); border: 0; border-radius: 7px; color: white; cursor: pointer; font-size: var(--studio-ui-size); font-weight: 650; padding: 9px 10px; }
+.choose-media-button { background: var(--studio-shared-button-background); border: 0; border-radius: 7px; color: var(--studio-shared-button-foreground); cursor: pointer; font-size: var(--studio-ui-size); font-weight: 650; padding: 9px 10px; }
+.choose-media-button:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .page-featured-image { display: grid; gap: 7px; }
 .page-featured-image > span { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 620; }
 .page-featured-image > div { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1710,7 +1711,8 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .setting-reset-button:disabled { cursor: default; opacity: .45; }
 .publishing-actions { display: grid; gap: 6px; }
 .publishing-actions button { background: white; border: 1px solid #d1cfc7; border-radius: 7px; cursor: pointer; font-size: var(--studio-ui-size); padding: 9px; }
-.publishing-actions .publish-action { background: var(--ink); border-color: var(--ink); color: white; font-weight: 650; }
+.publishing-actions .publish-action { background: var(--studio-shared-button-background); border-color: var(--studio-shared-button-border); color: var(--studio-shared-button-foreground); font-weight: 650; }
+.publishing-actions .publish-action:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 
 .local-writing-group { background: #f1f0eb; border: 1px solid #d8d6ce; border-radius: 12px; margin-bottom: 16px; overflow: hidden; padding: 0 16px 4px; }
 .local-writing-label { align-items: center; border-bottom: 1px solid #d8d6ce; color: #4f5050; display: flex; justify-content: space-between; padding: 12px 0; }
