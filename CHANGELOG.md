@@ -608,6 +608,10 @@
 
 ### Fixed
 
+- Delayed workspace autosaves no longer revert newer typing and create false
+  text/runs conflicts. Unsaved owner input also survives incoming peer updates
+  before React renders, while genuine overlapping edits remain reviewable.
+
 - Studio now recovers local saving after delayed background heartbeats or
   replies. Try Editing Here reconnects the saving channel, and status messages
   no longer assume another visible tab. Overlapping mounts retain the existing

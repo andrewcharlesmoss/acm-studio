@@ -23,6 +23,7 @@ function fixture(t) {
   function open() {
     const windowListeners = new Map();
     const slots = []; const cache = new Map(); let cursor = 0; let dirty = true; let effects = []; let state; let closed = false;
+    let deferEffects = false; let deferredEffects = [];
     const react = {
       useState(initial) {
         const id = cursor++;
@@ -75,6 +76,8 @@ function fixture(t) {
     const tab = {
       load, get state() { return state; },
       focus() { windowListeners.get("focus")?.forEach(listener => listener()); },
+      deferEffects(value) { deferEffects = value; },
+      runEffects() { const pending = deferredEffects; deferredEffects = []; pending.forEach(effect => effect()); },
       render() {
         if (!dirty || closed) return;
         dirty = false; cursor = 0;
@@ -83,7 +86,8 @@ function fixture(t) {
         // eslint-disable-next-line react-hooks/rules-of-hooks -- Same mount structure as useDocumentTemplates.
         const templates = useTemplates(workspace.ownershipGeneration, workspace.writable);
         state = { workspace, templates };
-        const pending = effects; effects = []; pending.forEach(effect => effect());
+        const pending = effects; effects = [];
+        if (deferEffects) deferredEffects.push(...pending); else pending.forEach(effect => effect());
       },
       close() { closed = true; slots.forEach(slot => slot?.cleanup?.()); },
     };
@@ -96,6 +100,7 @@ function fixture(t) {
 }
 
 const active = tab => tab.state.workspace.workspace.documents.find(doc => doc.id === tab.state.workspace.workspace.activeDocumentId);
+const microticks = async count => { for (let tick = 0; tick < count; tick++) await Promise.resolve(); };
 async function pair(t) {
   const f = fixture(t); const owner = f.open(); await f.until(() => owner.state?.workspace.writable && owner.state?.templates.ready);
   const model = owner.load("app/studio/template-model.ts");
@@ -104,6 +109,92 @@ async function pair(t) {
   const peer = f.open(); await f.until(() => peer.state?.workspace.writable && peer.state?.templates.writable);
   return { ...f, owner, peer };
 }
+
+test("delayed owner effects cannot save an older heading over newer peer typing", async t => {
+  const f = await pair(t);
+  const headingId = active(f.peer).blocks.find(block => block.type === "heading").id;
+  const heading = tab => active(tab).blocks.find(block => block.id === headingId);
+  const type = text => f.peer.state.workspace.updateActiveDocument(doc => ({ ...doc,
+    blocks: doc.blocks.map(block => block.id === headingId ? { ...block, text, runs: [{ text }] } : block),
+  }));
+  f.owner.deferEffects(true);
+  type("T"); f.peer.render(); await microticks(60);
+  f.owner.render(); // Capture T in a render before its passive effects run.
+  f.peer.render();
+  type("Te"); f.peer.render();
+  await new Promise(resolve => setTimeout(resolve, 30)); await microticks(80);
+  type("Test heading"); // New input is still awaiting a render/save effect.
+  f.owner.runEffects(); await microticks(80);
+  f.owner.deferEffects(false); await f.flush();
+  assert.equal(f.peer.state.workspace.syncConflict, null);
+  await f.until(() => heading(f.owner).text === "Test heading");
+  assert.equal(heading(f.peer).text, "Test heading");
+  assert.deepEqual(Array.from(heading(f.owner).runs, run => run.text), ["Test heading"]);
+  const ownerClient = f.messages.find(message => message.kind === "update" && message.revision === 1 && message.storeKey === "workspace").senderId;
+  assert.equal(f.messages.filter(message => message.kind === "update" && message.storeKey === "workspace" && message.transaction.clientId === ownerClient).length, 0,
+    "receiving peer input must not turn a stale render into an owner edit");
+  const reopened = f.open(); await f.until(() => reopened.state?.workspace.writable);
+  assert.equal(active(reopened).blocks.find(block => block.id === headingId).text, "Test heading");
+});
+
+for (const role of ["owner", "peer"]) {
+  test(`${role}: newer input supersedes a save before its submission microtask`, async t => {
+    const f = await pair(t); const editor = f[role];
+    const before = f.messages.length;
+    editor.state.workspace.updateActiveField("subtitle", "Older render");
+    editor.render(); // The effect schedules its write, which has not started.
+    editor.state.workspace.updateActiveField("subtitle", "Newest input");
+    await microticks(80);
+    assert.equal(f.messages.slice(before).filter(message => message.storeKey === "workspace"
+      && ["operation", "update"].includes(message.kind)).length, 0,
+    "a superseded render must not update the pending draft or start a save");
+    await f.until(() => active(f.owner).subtitle === "Newest input" && active(f.peer).subtitle === "Newest input");
+    assert.equal(editor.state.workspace.syncConflict, null);
+    const reopened = f.open(); await f.until(() => reopened.state?.workspace.writable);
+    assert.equal(active(reopened).subtitle, "Newest input");
+  });
+}
+
+for (const competing of [false, true]) {
+  test(`owner input before rendering ${competing ? "retains a genuine overlap for review" : "merges an independent peer edit"}`, async t => {
+    const f = await pair(t);
+    f.owner.state.workspace.updateActiveField("subtitle", "Newest owner input");
+    f.peer.state.workspace.updateActiveField(competing ? "subtitle" : "category", "Peer input");
+    f.peer.render(); await microticks(80); await f.flush();
+    assert.equal(active(f.owner).subtitle, "Newest owner input");
+    if (competing) {
+      assert.ok(f.owner.state.workspace.syncConflict);
+      assert.equal(active(f.peer).subtitle, "Peer input");
+      await f.owner.state.workspace.resolveSyncConflict("mine");
+      await f.until(() => active(f.peer).subtitle === "Newest owner input");
+    } else {
+      await f.until(() => active(f.peer).subtitle === "Newest owner input");
+      assert.equal(active(f.owner).category, "Peer input");
+      assert.equal(f.owner.state.workspace.syncConflict, null);
+    }
+    const reopened = f.open(); await f.until(() => reopened.state?.workspace.writable);
+    assert.equal(active(reopened).subtitle, "Newest owner input");
+  });
+}
+
+test("a failed owner save preserves input and waits for an explicit retry", async t => {
+  const f = await pair(t);
+  const repository = f.owner.load("app/studio/workspace-repository.ts").browserWorkspaceRepository;
+  const save = repository.save; let writes = 0; let fail = true;
+  repository.save = snapshot => { writes++; if (fail) throw new Error("quota"); return save(snapshot); };
+  f.owner.state.workspace.updateActiveField("subtitle", "Retain my unsaved input");
+  await f.flush(); await f.flush();
+  assert.equal(writes, 1, "rendering the retained draft must not repeatedly retry a failed save");
+  assert.equal(active(f.owner).subtitle, "Retain my unsaved input");
+  assert.match(f.owner.state.workspace.saveLabel, /quota|Could not save locally/);
+  assert.doesNotMatch(f.owner.state.workspace.saveLabel, /Saved locally/);
+  fail = false; await f.flush();
+  assert.equal(writes, 1, "storage recovery alone must not mask the failure by silently retrying");
+  assert.equal(f.owner.state.workspace.requestSave(), true);
+  await f.until(() => active(f.peer).subtitle === "Retain my unsaved input");
+  assert.equal(writes, 2);
+  assert.match(f.owner.state.workspace.saveLabel, /Saved locally/);
+});
 
 test("retry and foreground recovery probe the existing sync session while retaining the real owner", async t => {
   const f = await pair(t);

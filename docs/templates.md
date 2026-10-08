@@ -286,6 +286,10 @@ reconnection never steals the writer lock or discards a pending draft/conflict.
 Workspace input, Undo and Redo register their pending draft synchronously,
 before React renders or starts an automatic save. A reconnect reply arriving
 in that gap rebases the draft rather than replacing the newest keystrokes.
+This also applies to the saving owner: incoming peer updates merge independent
+changes and retain genuine overlaps for review. Delayed render effects cannot
+replace the current snapshot or submit an older version as a new edit. Saving
+checks the current snapshot again immediately before submitting it.
 
 When a conflict is resolved in favour of the local version, Studio applies the
 local changes to the latest saved version while retaining unrelated edits from
