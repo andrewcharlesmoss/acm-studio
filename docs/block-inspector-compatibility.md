@@ -90,7 +90,7 @@ The profiles and table below describe Gutenberg-owned pane controls. Gaps that
 depend on missing content structures or media services remain explicit; do not
 add controls that cannot preserve and apply their values.
 
-The earlier audit consolidated Quote attribution and List type,
+The earlier audit consolidated Quote attribution,
 Document Title level, Post Author and Post Date alignment, LinkedIn and TikTok
 profile URLs, and Columns/Column vertical alignment into the unified Block
 inspector because these are available in Gutenberg's block interface.
@@ -98,7 +98,7 @@ This is a capability comparison, not a claim of identical placement. Gutenberg
 puts List type and Quote text alignment, Document Title level, Post Author/Post
 Date alignment and Columns/Column vertical alignment in canvas BlockControls;
 Studio intentionally consolidates those Gutenberg-owned settings in its one
-block settings panel. Quote text alignment remains in its block toolbar so the
+block settings panel. List type now follows Gutenberg’s canvas toolbar placement. Quote text alignment remains in its block toolbar so the
 same action is not repeated in both places. Quote attribution and Table caption are canvas content
 fields in Gutenberg. Studio provides rich citation editing on the canvas and retains a plain pane field
 for compatibility; Table caption is edited on the canvas.
@@ -362,11 +362,11 @@ its visibility, even before a value has been entered.
 | --- | --- | --- |
 | Paragraph | Colour/Size; optional Font, Appearance, Line height, Letter spacing, Line indent, Columns, Decoration, Letter case, Drop cap and Fit text; Colour/Gradient background; optional Padding/Margin, Border/Radius and Link Default/Hover; Advanced anchor/classes/safe declarations. | Font uses Studio’s supported families independently of the theme; Orientation and Text shadow remain hidden. Drop cap is disabled for aligned text. Line indent follows the adjacent-paragraph rule. Safe declarations exclude selectors and executable/external CSS. |
 | Heading | H1–H6 summary buttons and selected-level header; common typography plus Fit text; Colour/Gradient background with existing image controls retained; optional Padding/Margin and Border/Radius/Shadow; Link Default/Hover and Advanced. | Level is changed in the summary or toolbar; text alignment remains in the toolbar. Font, Orientation and Text shadow follow the captured theme configuration. Studio owns bounded fit measurement rather than WordPress metrics. |
-| List | Common typography; Colour/Gradient background; optional Padding/Margin, Border/Radius and Link Default/Hover; Advanced. Ordered lists additionally expose marker style, signed Start value and Reverse order through the shared Settings tools panel. | List type remains in the pane. Start accepts integers from −100000 to 100000; blank removes the explicit start and reverse-off removes the explicit flag. Existing recursive List editing is retained. No image background, shadow or minimum height controls are added. |
+| List | Common typography; image/Colour/Gradient background; optional Padding/Margin, Border/Radius/Shadow and Link Default/Hover; Advanced. Ordered lists additionally expose marker style, signed Start value and Reverse order through the shared Settings tools panel. | Ordered/Unordered is in the canvas toolbar. Start accepts integers from −100000 to 100000; blank removes the explicit start and reverse-off removes the explicit flag. Switching type retains dormant numbering settings. No minimum height control is added. |
 | Quote | [Quote](https://wordpress.org/documentation/article/quote-block/) | Editable inner Paragraph, Heading, List, Quote and Image blocks; rich citation; Default/Plain style; shared typography, dimensions, background, border and Advanced settings. | Heading Elements and a configurable allowed-block policy remain unsupported. Citation supports guarded inline-image insertion and editing; footnote insertion is unavailable. |
 | Table | Settings/Styles icon tabs. Settings contains Fixed width cells, Header/Footer when created, and full Advanced fields. Styles contains plain Default/Stripes buttons, common typography, Colour/Gradient background, optional Padding/Margin and default Border. New tables use Column count and Row count (2 each) followed by Create Table. | Header/footer move existing first/last rows without discarding cell content; local history supports undo. Caption remains canvas content outside the styled table. Spacing applies to the figure; typography, colour, border and safe text declarations apply to the table. No radius, shadow, image or Link controls. Cell spanning and direct inspector tag/scope editing remain unsupported. |
 | Code | Full common typography; Image/Colour/Gradient background; optional Padding and independently linked/split Top/Bottom Margin; default Border, optional Radius/Shadow and Advanced. | None/Wide outer alignment only. Existing horizontal margin values remain retained when Top/Bottom are edited. Language highlighting is an ACM capability hidden from the Block pane. No Link, minimum dimensions or Fit text. |
-| Selected List Item | Shared item-owned typography, background, dimensions, border/radius and Link Default/Hover; Advanced anchor/classes/safe declarations. | Text colour and CSS fields are ACM extensions. Item updates preserve sibling items, nested lists and parent List styling. |
+| Selected List Item | Shared item-owned typography, image/colour/gradient background, dimensions, border/radius/shadow and Link Default/Hover; Advanced anchor/classes/safe declarations. | Text colour and CSS fields are ACM extensions. Item updates preserve sibling items, nested lists and parent List styling. |
 
 The shared native `ToggleSetting` owns drop cap, Fit text, table section/layout,
 reverse-order and image-repeat switches. `StyleVariationSetting` owns the two
@@ -624,3 +624,40 @@ device-specific visibility or applying locks to all descendants. Studio has no
 reusable pattern or per-device visibility contract; its Lock action applies
 movement/removal locks to the selected block only. Ungroup remains available
 for each Group variation. These limits are separate from the layout menus.
+
+
+### List interaction comparison — 9 October 2026
+
+The List-specific reference is Gutenberg commit
+[`e18aef5783a49c7a34835268d575b953bb4778d1`](https://github.com/WordPress/gutenberg/tree/e18aef5783a49c7a34835268d575b953bb4778d1/packages/block-library/src/list),
+inspected on 9 October 2026. This supplements the catalogue’s earlier baseline;
+it does not refresh unrelated block comparisons.
+
+- The floating toolbar distinguishes a selected List Item from its parent List.
+  The parent selector selects the List. The item switcher reports No transforms
+  inside a List because its allowed children are List Items; it must not
+  transform the whole List through the item button. This follows
+  [the parent selector](https://github.com/WordPress/gutenberg/blob/e18aef5783a49c7a34835268d575b953bb4778d1/packages/block-editor/src/components/block-parent-selector/index.jsx)
+  and [context-filtered transforms](https://github.com/WordPress/gutenberg/blob/e18aef5783a49c7a34835268d575b953bb4778d1/packages/block-editor/src/store/selectors.js).
+- Ordered/Unordered and indentation use the shared toolbar. Item move,
+  duplicate and remove actions target that item and its subtree. Select the
+  parent List for whole-block transforms, alignment and block options.
+- [Tab and Space](https://github.com/WordPress/gutenberg/blob/e18aef5783a49c7a34835268d575b953bb4778d1/packages/block-library/src/list-item/hooks/use-tab.js)
+  indent at the start of an item; Shift outdents. Tab also accepts an entirely
+  selected item or sibling-item range. Modifier keys and composition retain
+  their input owner. Root outdent is unavailable.
+- Native insertParagraph input splits an item through the same typed operation
+  as Enter. Empty items retain their full inspector. Background images, image
+  size/repeat/position and Shadow are available for Lists and individual items,
+  using existing style fields and media ownership.
+- ACM retains multiple child List wrappers with separate style and metadata
+  owners. Range outdent attaches the tail to the final moved item to preserve
+  reading order; the upstream range operation attaches it to the first. Moves
+  that would discard an authored wrapper anchor, name, note or lock are refused.
+  Delayed focus waits for accepted content in its original document and yields
+  to subsequent input.
+
+Keyboard, structural, stale-media and focus guards have regression coverage.
+Rendered checks cover the shared List editor, empty-item pane and Edit/Preview
+styling. These do not establish identical WordPress theme output, mobile virtual
+keyboard operation or completion of every Gutenberg block.

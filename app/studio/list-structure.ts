@@ -61,10 +61,6 @@ function findNestedListOwner(list: ListBlock, targetId: string): NestedListOwner
   return null;
 }
 
-function removeItemAt(list: ListBlock, itemIndex: number): ListBlock {
-  return { ...list, items: list.items.filter((_, index) => index !== itemIndex) };
-}
-
 function insertAfter(root: ListBlock, listId: string, itemIndex: number, item: ListItem): ListBlock {
   return mapList(root, listId, list => {
     const items = [...list.items];
@@ -83,24 +79,31 @@ function hasCompatibleListMarkers(first: ListBlock, second: ListBlock, nextNumbe
 }
 
 export function indentListItem(root: ListBlock, listId: string, itemIndex: number, createId: () => string): { block: ListBlock; listId: string; itemIndex: number } | null {
+  return indentListItems(root, listId, itemIndex, itemIndex, createId);
+}
+
+export function indentListItems(root: ListBlock, listId: string, first: number, lastIndex: number, createId: () => string): { block: ListBlock; listId: string; itemIndex: number } | null {
   const list = findListBlock(root, listId);
-  if (!list || itemIndex <= 0 || itemIndex >= list.items.length) return null;
-  const item = list.items[itemIndex];
-  const itemNumber = list.style === "ordered" ? listNumber(list, itemIndex) : undefined;
-  let next = mapList(root, listId, current => removeItemAt(current, itemIndex));
+  if (!list || !Number.isInteger(first) || !Number.isInteger(lastIndex) || first <= 0 || lastIndex < first || lastIndex >= list.items.length) return null;
+  const items = list.items.slice(first, lastIndex + 1);
+  const itemNumber = list.style === "ordered" ? listNumber(list, first) : undefined;
+  let next = mapList(root, listId, current => ({ ...current, items: current.items.filter((_, index) => index < first || index > lastIndex) }));
   let nestedListId = "";
-  next = updateListItem(next, list.id, itemIndex - 1, current => {
+  let nestedItemIndex = 0;
+  next = updateListItem(next, list.id, first - 1, current => {
     const parentItem = typeof current === "string" ? { text: current } : current;
     const children = [...(parentItem.children ?? [])];
     const last = children.at(-1);
     if (last && hasCompatibleListMarkers(last, list, itemNumber)) {
       nestedListId = last.id;
-      children[children.length - 1] = { ...last, items: [...last.items, item] };
+      nestedItemIndex = last.items.length;
+      children[children.length - 1] = { ...last, items: [...last.items, ...items] };
       return { ...parentItem, children };
     }
     const nested: ListBlock = {
       id: createId(), type: "list", style: list.style,
-      items: [item],
+      items,
+      ...(list.visualStyle ? { visualStyle: { ...list.visualStyle, anchor: undefined } } : {}),
       ...(list.marker ? { marker: list.marker } : {}),
       ...(itemNumber !== undefined ? { start: itemNumber } : {}),
       ...(list.reversed ? { reversed: true } : {}),
@@ -110,17 +113,27 @@ export function indentListItem(root: ListBlock, listId: string, itemIndex: numbe
     children.push(nested);
     return { ...parentItem, children };
   });
-  return { block: next, listId: nestedListId, itemIndex: 0 };
+  return { block: next, listId: nestedListId, itemIndex: nestedItemIndex };
 }
 
 export function outdentListItem(root: ListBlock, listId: string, itemIndex: number, contextBlocks: ContentBlock[] = [root]): { block: ListBlock; listId: string; itemIndex: number } | null {
+  return outdentListItems(root, listId, itemIndex, itemIndex, contextBlocks);
+}
+
+export function outdentListItems(root: ListBlock, listId: string, itemIndex: number, lastItemIndex: number, contextBlocks: ContentBlock[] = [root]): { block: ListBlock; listId: string; itemIndex: number } | null {
   const owner = findNestedListOwner(root, listId);
-  if (!owner || itemIndex < 0 || itemIndex >= Math.max(1, owner.nestedList.items.length)) return null;
-  const moved = owner.nestedList.items[itemIndex] ?? "";
+  if (!owner || !Number.isInteger(itemIndex) || !Number.isInteger(lastItemIndex) || itemIndex < 0 || lastItemIndex < itemIndex || lastItemIndex >= Math.max(1, owner.nestedList.items.length)) return null;
+  const moved = owner.nestedList.items[lastItemIndex] ?? "";
+  const precedingMoved = owner.nestedList.items.slice(itemIndex, lastItemIndex);
   const precedingItems = owner.nestedList.items.slice(0, itemIndex);
-  const followingItems = owner.nestedList.items.slice(itemIndex + 1);
+  const followingItems = owner.nestedList.items.slice(lastItemIndex + 1);
+  const wrapper = owner.nestedList;
+  if (!precedingItems.length && !followingItems.length && (wrapper.visualStyle?.anchor || ("siteRole" in wrapper && wrapper.siteRole)
+    || wrapper.editorial?.name || wrapper.editorial?.note || wrapper.editorial?.hidden
+    || wrapper.editorial?.lock?.move || wrapper.editorial?.lock?.remove)) return null;
+
   const prefixStart = owner.nestedList.style === "ordered" ? listNumber(owner.nestedList, 0) : undefined;
-  const tailStart = owner.nestedList.style === "ordered" ? listNumber(owner.nestedList, itemIndex + 1) : undefined;
+  const tailStart = owner.nestedList.style === "ordered" ? listNumber(owner.nestedList, lastItemIndex + 1) : undefined;
   // Refuse numbering that the persisted content contract cannot represent.
   if ((precedingItems.length && prefixStart !== undefined && !validListStart(prefixStart))
     || (followingItems.length && tailStart !== undefined && !validListStart(tailStart))) return null;
@@ -130,7 +143,7 @@ export function outdentListItem(root: ListBlock, listId: string, itemIndex: numb
   const movedChildren = typeof moved === "string" ? [] : moved.children ?? [];
   const children = [...movedChildren];
 
-  // Following items travel with the outdented item, preserving reading order.
+  // Following items travel with the last outdented item, preserving reading order.
   // ACM may also have later child Lists on the parent; carry those after the
   // source tail instead of leaving them above the moved item.
   if (followingItems.length) {
@@ -163,7 +176,7 @@ export function outdentListItem(root: ListBlock, listId: string, itemIndex: numb
     else delete record.children;
     return record;
   });
-  next = insertAfter(next, owner.parentList.id, owner.parentItemIndex, movedItem);
+  [...precedingMoved, movedItem].forEach((item, index) => { next = insertAfter(next, owner.parentList.id, owner.parentItemIndex + index, item); });
   return { block: next, listId: owner.parentList.id, itemIndex: owner.parentItemIndex + 1 };
 }
 

@@ -12,58 +12,21 @@ import { listItemText, listMarker, type ContentBlock, type RichTextRun } from ".
 import { listItemWithTextRuns } from "../../../content/list-item-text";
 import { blockToHtml } from "../../studio-html-editor";
 import { blockAlignmentClass } from "../../../content/block-alignment";
-import { findListBlock, indentListItem, listItemAfterSplit, listItemIsEmpty, outdentListItem, replaceListItems, updateListItem } from "../../list-structure";
+import { indentListItem, indentListItems, listItemAfterSplit, listItemIsEmpty, outdentListItem, outdentListItems, replaceListItems, updateListItem } from "../../list-structure";
 import { extendListTextSelection, formatListText, listTextContainsFootnotes, listTextSegments, readListTextSelection, replaceListText, restoreListTextSelection, type ListTextSelection } from "../../list-text-selection";
 import { sliceTextRuns } from "../../../content/math-runs";
 import { scheduleBlockCommandFocus, type BlockCommandFocusTarget } from "../../block-command-focus";
-import { editorToRuns, editorTextOffset, focusRichTextEditorAtOffset, preserveTextSelection, RichTextEditor } from "./rich-text";
-import { StudioHoverIcon } from "../../studio-hover-icon";
+import { editorToRuns, editorTextOffset, focusRichTextEditorAtOffset, RichTextEditor } from "./rich-text";
 import { HiddenBlockPlaceholder } from "../hidden-block-placeholder";
 
 type TextSelection = { start: number; end: number };
 type EditableListBlock = Extract<ContentBlock, { type: "list" }>;
-
-function ListItemIndentControls({ block, rootBlocks, selection, writable, onChange, onSelectionChange }: {
-  block: EditableListBlock;
-  rootBlocks: ContentBlock[];
-  selection: { listId: string; itemIndex: number };
-  writable: boolean;
-  onChange: (block: EditableListBlock) => void;
-  onSelectionChange: (list: EditableListBlock, itemIndex: number) => void;
-}) {
-  const list = findListBlock(block, selection.listId);
-  if (!list) return null;
-  const canIndent = selection.itemIndex > 0 && selection.itemIndex < list.items.length;
-  const canOutdent = list.id !== block.id && Boolean(outdentListItem(block, list.id, selection.itemIndex, rootBlocks));
-
-  function move(direction: "indent" | "outdent") {
-    if (!list) return;
-    const moved = direction === "indent"
-      ? indentListItem(block, list.id, selection.itemIndex, () => `list-${crypto.randomUUID()}`)
-      : outdentListItem(block, list.id, selection.itemIndex, rootBlocks);
-    if (!moved) return;
-    onChange(moved.block);
-    const movedList = findListBlock(moved.block, moved.listId);
-    if (movedList) onSelectionChange(movedList, moved.itemIndex);
-    requestAnimationFrame(() => {
-      const item = [...document.querySelectorAll<HTMLElement>("[data-studio-block-id][data-list-context-id][data-list-item-index]")]
-        .find(element => element.dataset.studioBlockId === moved.listId && element.dataset.listContextId === moved.listId && element.dataset.listItemIndex === String(moved.itemIndex));
-      item?.focus();
-    });
-  }
-
-  return <div className="list-item-indent-controls" role="group" aria-label="List item indentation">
-    <button type="button" onMouseDown={preserveTextSelection} onClick={event => { event.stopPropagation(); move("outdent"); }} disabled={!writable || !canOutdent} aria-label="Outdent list item" title="Outdent"><StudioHoverIcon name="arrange.outdent" size={20} /></button>
-    <button type="button" onMouseDown={preserveTextSelection} onClick={event => { event.stopPropagation(); move("indent"); }} disabled={!writable || !canIndent} aria-label="Indent list item" title="Indent"><StudioHoverIcon name="arrange.indent" size={20} /></button>
-  </div>;
-}
 
 export function ListField({ htmlEditorBlockId, renderBlockControls, selectedBlockId, hoveredBlockId, block, rootBlocks, mediaUrls, writable, onExitList, onSelectionChange, onLinkActivate, onChange, labelForBlock }: { htmlEditorBlockId?: string; renderBlockControls?: (block: ContentBlock) => ReactNode; selectedBlockId?: string | null; hoveredBlockId?: string | null; block: EditableListBlock; rootBlocks: ContentBlock[]; mediaUrls: Record<string, string>; writable: boolean; onExitList?: (blockId: string, itemIndex: number, operation?: "return" | "backward" | "forward", listId?: string) => BlockCommandFocusTarget; onSelectionChange?: (block: EditableListBlock, index: number, selection: TextSelection | null) => void; onLinkActivate?: (block: EditableListBlock, index: number, selection: TextSelection) => void; onChange: (block: ContentBlock, requireSourceMatch?: boolean) => void; labelForBlock: (block: ContentBlock) => string }) {
   const listRef = useRef<HTMLDivElement>(null);
   const feedback = useRichTextFeedback();
   const currentRef = useRef({ block, writable, onChange });
   useLayoutEffect(() => { currentRef.current = { block, writable, onChange }; });
-  const [activeItem, setActiveItem] = useState<{ listId: string; itemIndex: number } | null>(null);
   const [compositionRevision, setCompositionRevision] = useState(0);
   const listCompositionRef = useRef<ListTextSelection | null>(null);
   const blockedListInputRef = useRef(false);
@@ -125,16 +88,13 @@ export function ListField({ htmlEditorBlockId, renderBlockControls, selectedBloc
     if (cut) replaceSelection(selection, []);
   }
   function selectItem(list: EditableListBlock, index: number, selection: TextSelection | null = null) {
-    setActiveItem({ listId: list.id, itemIndex: index });
     onSelectionChange?.(list, index, selection);
   }
 
-  function focusItem(listId: string, index: number, offset = 0) {
-    requestAnimationFrame(() => {
-      const target = [...(listRef.current?.querySelectorAll<HTMLElement>("[data-list-context-id][data-list-item-index]") ?? [])]
-        .find(element => element.dataset.listContextId === listId && element.dataset.listItemIndex === String(index));
-      if (target) focusRichTextEditorAtOffset(target, offset);
-    });
+  function focusItem(listId: string, index: number, accepted: EditableListBlock, source: HTMLElement, offset = 0) {
+    scheduleBlockCommandFocus(source, { blockId: listId, listItemIndex: index,
+      isAccepted: () => currentRef.current.writable && JSON.stringify(currentRef.current.block) === JSON.stringify(accepted),
+    }, listRef.current ?? document, target => focusRichTextEditorAtOffset(target, offset));
   }
 
   function updateItem(list: EditableListBlock, index: number, value: string, runs: RichTextRun[]) {
@@ -143,19 +103,20 @@ export function ListField({ htmlEditorBlockId, renderBlockControls, selectedBloc
 
   function renderList(list: EditableListBlock, depth: number): ReactNode {
     const items = list.items.length ? list.items : [""];
-    return <div className={`list-field-editor is-${list.style}${depth ? " is-nested" : ""}${blockAlignmentClass(list) ? ` ${blockAlignmentClass(list)}` : ""}`} data-list-context-id={list.id}>
+    const ListTag = list.style === "ordered" ? "ol" : "ul";
+    return <ListTag role="list" type={list.style === "ordered" ? list.marker : undefined} start={list.style === "ordered" ? list.start : undefined} reversed={list.style === "ordered" ? list.reversed || undefined : undefined} className={`list-field-editor is-${list.style}${depth ? " is-nested" : ""}${blockAlignmentClass(list) ? ` ${blockAlignmentClass(list)}` : ""}`} data-list-context-id={list.id}>
       {items.map((item, index) => {
         const children = typeof item === "string" ? [] : item.children ?? [];
         const label = `${list.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}${depth ? `, level ${depth + 1}` : ""}`;
         const itemStyle = typeof item === "string" ? undefined : item.style;
-        return <div id={paragraphStyleAnchor(itemStyle)} className={`list-field-row${itemStyle ? ` ${visualStyleClassName(itemStyle)}` : ""}`} style={paragraphStyleToCss(itemStyle) as React.CSSProperties} key={`${list.id}-item-${index}`}>
+        return <li id={paragraphStyleAnchor(itemStyle)} className={`list-field-row${itemStyle ? ` ${visualStyleClassName(itemStyle)}` : ""}`} style={paragraphStyleToCss(itemStyle, itemStyle?.backgroundImageMediaId ? mediaUrls[itemStyle.backgroundImageMediaId] : undefined) as React.CSSProperties} key={`${list.id}-item-${index}`}>
           <span className="list-field-marker" aria-hidden="true">{list.style === "ordered" ? listMarker(list, index) : "•"}</span>
           <div className="list-field-item-content">
             <RichTextEditor key={JSON.stringify([block.id, list.id, list.items.length, compositionRevision])} className="list-item-editor" style={listItemTextStyle(itemStyle) as React.CSSProperties} data-studio-block-id={list.id} data-list-context-id={list.id} data-list-item-index={index} text={listItemText(item)} runs={typeof item === "string" ? undefined : item.runs} mediaUrls={mediaUrls} onChange={(text, runs) => updateItem(list, index, text, runs)} onFocus={() => selectItem(list, index)} onSelectionChange={(selection) => selectItem(list, index, selection)} onLinkActivate={(selection) => onLinkActivate?.(list, index, selection)} onSplitParagraph={(beforeRuns, afterRuns) => {
               if (listItemIsEmpty(item)) {
                 if (depth > 0) {
                   const moved = outdentListItem(block, list.id, index, rootBlocks);
-                  if (moved) { onChange(moved.block); focusItem(moved.listId, moved.itemIndex); }
+                  if (moved) { onChange(moved.block, true); focusItem(moved.listId, moved.itemIndex, moved.block, listRef.current!); }
                   return null;
                 }
                 return onExitList?.(block.id, index) ?? null;
@@ -163,16 +124,25 @@ export function ListField({ htmlEditorBlockId, renderBlockControls, selectedBloc
               const nextItems = [...items];
               nextItems[index] = listItemWithTextRuns(item, plainTextFromRuns(beforeRuns), beforeRuns);
               nextItems.splice(index + 1, 0, listItemAfterSplit(item, plainTextFromRuns(afterRuns), afterRuns));
-              onChange(replaceListItems(block, list.id, nextItems));
-              focusItem(list.id, index + 1);
+              const next = replaceListItems(block, list.id, nextItems);
+              onChange(next, true);
+              focusItem(list.id, index + 1, next, listRef.current!);
               return null;
             }} onKeyDown={(event) => {
               if (!writable || event.defaultPrevented || event.nativeEvent?.isComposing) return;
-              if (event.key === "Tab") {
+              if (["Tab", " "].includes(event.key) && !event.altKey && !event.metaKey && !event.ctrlKey) {
+                const selection = window.getSelection();
+                const editor = event.currentTarget;
+                if (!selection?.anchorNode || !selection.focusNode || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return;
+                const start = editorTextOffset(editor, selection.anchorNode, selection.anchorOffset);
+                const end = editorTextOffset(editor, selection.focusNode, selection.focusOffset);
+                const atStart = start === 0 && end === 0;
+                const entirelySelected = Math.min(start, end) === 0 && Math.max(start, end) === listItemText(item).length;
+                if (!atStart && !(event.key === "Tab" && entirelySelected)) return;
                 const moved = event.shiftKey
                   ? outdentListItem(block, list.id, index, rootBlocks)
                   : indentListItem(block, list.id, index, () => `list-${crypto.randomUUID()}`);
-                if (moved) { event.preventDefault(); onChange(moved.block); focusItem(moved.listId, moved.itemIndex); }
+                if (moved) { event.preventDefault(); onChange(moved.block, true); focusItem(moved.listId, moved.itemIndex, moved.block, editor); }
                 return;
               }
               if (!["Backspace", "Delete"].includes(event.key) || event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) return;
@@ -203,15 +173,14 @@ export function ListField({ htmlEditorBlockId, renderBlockControls, selectedBloc
               }, listRef.current ?? document, target => focusRichTextEditorAtOffset(target, merged.offset));
 
             }} aria-label={label} data-placeholder="List item" />
-            {activeItem?.listId === list.id && activeItem.itemIndex === index ? <ListItemIndentControls block={block} rootBlocks={rootBlocks} selection={activeItem} writable={writable} onChange={next => onChange(next)} onSelectionChange={(nextList, nextIndex) => selectItem(nextList, nextIndex)} /> : null}
             {children.map(child => <div className="list-field-nested studio-nested-block" data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}>
               {renderBlockControls?.(child)}
-              {htmlEditorBlockId === child.id ? null : child.editorial?.hidden ? <HiddenBlockPlaceholder label={labelForBlock(child)} writable={writable} onShow={() => onChange(editBlockSiblings([block], child.id, (siblings, position) => siblings.map((candidate, siblingIndex) => siblingIndex === position ? { ...candidate, editorial: { ...candidate.editorial, hidden: false } } : candidate))[0])} /> : <div id={paragraphStyleAnchor(child.visualStyle)} className={child.visualStyle ? visualStyleClassName(child.visualStyle) : undefined} style={paragraphStyleToCss(child.visualStyle) as React.CSSProperties}>{renderList(child, depth + 1)}</div>}
+              {htmlEditorBlockId === child.id ? null : child.editorial?.hidden ? <HiddenBlockPlaceholder label={labelForBlock(child)} writable={writable} onShow={() => onChange(editBlockSiblings([block], child.id, (siblings, position) => siblings.map((candidate, siblingIndex) => siblingIndex === position ? { ...candidate, editorial: { ...candidate.editorial, hidden: false } } : candidate))[0])} /> : <div id={paragraphStyleAnchor(child.visualStyle)} className={child.visualStyle ? visualStyleClassName(child.visualStyle) : undefined} style={paragraphStyleToCss(child.visualStyle, child.visualStyle?.backgroundImageMediaId ? mediaUrls[child.visualStyle.backgroundImageMediaId] : undefined) as React.CSSProperties}>{renderList(child, depth + 1)}</div>}
             </div>)}
           </div>
-        </div>;
+        </li>;
       })}
-    </div>;
+    </ListTag>;
   }
 
   return <div ref={listRef} className="list-field-root" data-list-root-id={block.id} onCompositionStartCapture={() => { listCompositionRef.current = textRange(); }} onCompositionEndCapture={event => {
@@ -263,8 +232,29 @@ export function ListField({ htmlEditorBlockId, renderBlockControls, selectedBloc
         const caret = { listId: edge.listId, itemIndex: edge.itemIndex, offset: backward ? edge.start : edge.end };
         restoreListTextSelection(listRef.current, { anchor: caret, focus: caret });
       }
-    } else if (["Enter", "Tab"].includes(event.key)) {
-      event.preventDefault(); event.stopPropagation(); feedback?.("Place the caret within one List Item to split or indent it.");
+    } else if (event.key === "Tab" && currentRef.current.writable && !event.defaultPrevented && !event.altKey && !primary && !event.nativeEvent.isComposing) {
+      const segments = listTextSegments(currentRef.current.block, selection);
+      if (!segments?.length) return;
+      const first = segments[0], last = segments.at(-1)!;
+      if (first.listId !== last.listId) { event.preventDefault(); event.stopPropagation(); feedback?.("Select sibling List Items to change their indentation together."); return; }
+      const moved = event.shiftKey
+        ? outdentListItems(block, first.listId, first.itemIndex, last.itemIndex, rootBlocks)
+        : indentListItems(block, first.listId, first.itemIndex, last.itemIndex, () => `list-${crypto.randomUUID()}`);
+      if (!moved) return;
+      event.preventDefault(); event.stopPropagation();
+      onChange(moved.block, true);
+      scheduleBlockCommandFocus(event.target as HTMLElement, {
+        blockId: moved.listId, listItemIndex: moved.itemIndex,
+        isAccepted: () => currentRef.current.writable && JSON.stringify(currentRef.current.block) === JSON.stringify(moved.block),
+      }, listRef.current ?? document, () => {
+        if (!listRef.current) return;
+        const forward = selection.anchor.listId === first.listId && selection.anchor.itemIndex === first.itemIndex;
+        const start = { listId: moved.listId, itemIndex: moved.itemIndex, offset: first.start };
+        const end = { listId: moved.listId, itemIndex: moved.itemIndex + last.itemIndex - first.itemIndex, offset: last.end };
+        restoreListTextSelection(listRef.current, forward ? { anchor: start, focus: end } : { anchor: end, focus: start });
+      });
+    } else if (event.key === "Enter") {
+      event.preventDefault(); event.stopPropagation(); feedback?.("Place the caret within one List Item to split it.");
     }
   }}>{renderList(block, 0)}</div>;
 }

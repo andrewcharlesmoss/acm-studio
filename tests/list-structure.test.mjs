@@ -237,8 +237,8 @@ for (const [start, reversed] of [[100000, false], [-100000, true]]) {
 test("the actual List toolbar and keyboard paths supply document-wide ID context", async () => {
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /<ListField[^>]*rootBlocks=\{rootBlocks\}/);
-  assert.match(canvas, /<ListItemIndentControls[^>]*rootBlocks=\{rootBlocks\}/);
-  assert.equal((canvas.match(/outdentListItem\(block, list\.id, (?:selection\.itemIndex|index), rootBlocks\)/g) ?? []).length, 4);
+  assert.match(canvas, /<ListToolbarControls[^>]*contextBlocks=\{activeDocument.blocks\}/);
+  assert.equal((canvas.match(/outdentListItem\(block, list\.id, index, rootBlocks\)/g) ?? []).length, 2);
   assert.match(canvas, /mergeListItemBoundary\(block, list\.id, index, backward \? "backward" : "forward", rootBlocks\)/);
 });
 

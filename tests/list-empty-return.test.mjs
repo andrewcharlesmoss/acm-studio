@@ -51,7 +51,7 @@ function splitFixture(root, listId, index, depth = 0) {
   const source = structure.findListBlock(root, listId), items = source.items.length ? source.items : [""];
   const calls = [], focuses = [], exits = [];
   const scope = { ...structure, ...rich, ...itemText, block: root, rootBlocks: [root], list: source, index, depth,
-    item: items[index], items, onChange: block => calls.push(block), focusItem: (...args) => focuses.push(args),
+    item: items[index], items, onChange: block => calls.push(block), listRef: { current: {} }, focusItem: (...args) => focuses.push(args.slice(0, 2)),
     onExitList: (...args) => { exits.push(args); return "paragraph-target"; },
   };
   runInNewContext(compiledSplit, scope);

@@ -23,7 +23,7 @@ find(tree);
 const compile = name => ts.transpileModule(`${functions.get(name)}\nglobalThis.handler = ${name};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 
 function handlerFixture({ runs = [{ text: 'first' }], selection = { start: 5, end: 5 }, pending = null, editable = true, clean = false } = {}) {
-  const calls = [], editor = { innerHTML: 'initial' };
+  const calls = [], editor = { innerHTML: 'initial', classList: { contains: () => false } };
   const scope = { editable, editorRef: { current: editor }, selectionWithinEditor: () => selection,
     editorToRuns: () => runs, pendingFormatsRef: { current: pending }, ...rich, ...caret, ...lineBreak,
     withoutInteractiveFormatting: clean, normalizationAttemptRef: { current: null }, mediaUrls: {}, footnoteNumbers: new Map(),
@@ -140,4 +140,31 @@ test('ordinary forms, overlays and unowned rich text retain native history', () 
     const event = { target: historyTarget(flags), key: 'z', metaKey: true, preventDefault() { throw new Error('Native editing intercepted'); } };
     assert.equal(handleStudioHistoryShortcut(event, 'MacIntel', () => { throw new Error('Wrong history'); }, () => {}), false);
   }
+});
+
+for (const options of [{}, { editable: false }, { defaultPrevented: true }, { isComposing: true }]) test(`native List paragraph insertion respects editing ownership ${JSON.stringify(options)}`, () => {
+  const fixture = handlerFixture(options);
+  fixture.editor.classList.contains = name => name === 'list-item-editor';
+  let split = 0;
+  fixture.scope.onSplitParagraph = () => {};
+  fixture.scope.splitAtSelection = event => { split++; event.preventDefault(); };
+  const prevented = fixture.run({ inputType: 'insertParagraph', ...options });
+  assert.equal(split, Object.keys(options).length ? 0 : 1);
+  assert.equal(prevented, !Object.keys(options).length);
+});
+
+test('native List split preserves marked text on either side of the selection', () => {
+  const editor = { contains: () => true };
+  let split, focused;
+  const scope = { onSplitParagraph: (before, after) => { split = [before, after]; return 'next'; }, editorRef: { current: editor },
+    window: { getSelection: () => ({ rangeCount: 1, anchorNode: {}, focusNode: {}, getRangeAt: () => ({ startContainer: {}, startOffset: 2, endContainer: {}, endOffset: 4 }) }) },
+    editorToRuns: () => [{ text: 'abcdef', marks: ['bold'] }], ...rich, sliceRichRuns: math.sliceTextRuns, editorTextOffset: (_editor, _node, offset) => offset,
+    onSelectionChange: () => {}, editorScope: () => ({}), scheduleBlockCommandFocus: (_editor, target) => { focused = target; },
+  };
+  runInNewContext(compile('splitAtSelection'), scope);
+  let prevented = false;
+  scope.handler({ preventDefault() { prevented = true; } });
+  assert.equal(prevented, true);
+  assert.deepEqual(structuredClone(split), [[{ text: 'ab', marks: ['bold'] }], [{ text: 'ef', marks: ['bold'] }]]);
+  assert.equal(focused, 'next');
 });

@@ -297,11 +297,12 @@ for (const path of ['mini-golf-presentation.tsx']) test(`actual ${path} adapter 
     assert.equal(scope.blocks, document.blocks);
   }
 });
-function handlerFixture(root, listId, index, { writable = true, accepted = true, collapsed = true, offset = 0 } = {}) {
+function handlerFixture(root, listId, index, { writable = true, accepted = true, collapsed = true, offset = 0, endOffset = offset } = {}) {
   const current = structure.findListBlock(root, listId), items = current.items.length ? current.items : [''];
   const calls = [], focus = [], editor = { contains: () => true };
   const scope = { block: root, rootBlocks: [root], list: current, item: items[index], children: typeof items[index] === 'string' ? [] : items[index].children ?? [], items, index, writable,
-    currentRef: { current: { block: root, writable } }, listRef: { current: {} }, window: { getSelection: () => ({ isCollapsed: collapsed, anchorNode: {}, anchorOffset: offset }) }, editorTextOffset: () => offset,
+    currentRef: { current: { block: root, writable } }, listRef: { current: {} }, window: { getSelection: () => ({ isCollapsed: collapsed, anchorNode: {}, anchorOffset: offset, focusNode: {}, focusOffset: endOffset }) }, editorTextOffset: (_editor, _node, value) => value,
+    crypto: { randomUUID: () => "keyboard-nested" }, focusItem: (...args) => focus.push(args),
     ...structure, listItemText, mergeListItemBoundary, onChange: (next, requireSourceMatch) => { calls.push(next); scope.requiredSourceMatch = requireSourceMatch; if (accepted) scope.currentRef.current.block = next; },
     scheduleBlockCommandFocus: (_editor, target) => focus.push(target), focusRichTextEditorAtOffset: () => {},
   };
@@ -360,4 +361,60 @@ test('accepted List focus resolves exactly the requested item, within its owner'
   globalThis.requestAnimationFrame = handle => { callback = handle; };
   try { scheduleBlockCommandFocus(source, { blockId: 'list', listItemIndex: 1, isAccepted: () => true }, document, target => { focused = target; }); callback(); assert.equal(focused, candidates[1]); }
   finally { if (previous === undefined) delete globalThis.requestAnimationFrame; else globalThis.requestAnimationFrame = previous; }
+});
+
+for (const key of ['Tab', ' ']) test(`actual ${JSON.stringify(key)} at item start indents; ordinary text and modifiers stay native`, () => {
+  const source = list(['First', 'Second']);
+  const start = handlerFixture(source, 'root', 1);
+  assert.equal(start.run(key), true);
+  assert.deepEqual(textLines(start.calls[0]), ['First', 'Second']);
+  assert.equal(start.calls[0].items[0].children[0].id, 'list-keyboard-nested');
+  assert.equal(start.scope.requiredSourceMatch, true);
+  for (const options of [{ offset: 1 }, { writable: false }]) {
+    const fixture = handlerFixture(source, 'root', 1, options);
+    assert.equal(fixture.run(key), false);
+    assert.equal(fixture.calls.length, 0);
+  }
+  for (const event of [{ altKey: true }, { metaKey: true }, { ctrlKey: true }, { nativeEvent: { isComposing: true } }]) {
+    const fixture = handlerFixture(source, 'root', 1);
+    assert.equal(fixture.run(key, event), false);
+    assert.equal(fixture.calls.length, 0);
+  }
+});
+
+test('actual Tab accepts an entire item selection; Space requires a caret at the start', () => {
+  const source = list(['First', 'Second']);
+  assert.equal(handlerFixture(source, 'root', 1, { collapsed: false, endOffset: 6 }).run('Tab'), true);
+  assert.equal(handlerFixture(source, 'root', 1, { collapsed: false, endOffset: 6 }).run(' '), false);
+  assert.equal(handlerFixture(source, 'root', 1, { collapsed: false, offset: 1, endOffset: 5 }).run('Tab'), false);
+});
+
+for (const key of ['Tab', ' ']) test(`actual Shift+${JSON.stringify(key)} outdents only nested items`, () => {
+  const root = list([{ text: 'Parent', children: [list(['Child'], 'child')] }, 'After']);
+  const fixture = handlerFixture(root, 'child', 0);
+  assert.equal(fixture.run(key, { shiftKey: true }), true);
+  assert.deepEqual(fixture.calls[0].items.map(listItemText), ['Parent', 'Child', 'After']);
+  const outer = handlerFixture(list(['First', 'Second']), 'root', 1);
+  assert.equal(outer.run(key, { shiftKey: true }), false);
+  assert.equal(outer.calls.length, 0);
+});
+
+let capture;
+function findCapture(node) { if (ts.isJsxAttribute(node) && node.name.text === 'onKeyDownCapture') capture = node.initializer.expression; ts.forEachChild(node, findCapture); }
+findCapture(field);
+const compiledCapture = ts.transpileModule(`globalThis.handle = (${capture.getText(tree)});`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+test('actual multi-item Tab moves sibling range together and respects read-only and composition', () => {
+  const source = list(['Parent', 'One', 'Two', 'After']);
+  const selection = { anchor: { listId: 'root', itemIndex: 1, offset: 0 }, focus: { listId: 'root', itemIndex: 2, offset: 3 } };
+  for (const event of [{}, { readonly: true }, { nativeEvent: { isComposing: true } }]) {
+    const calls = [];
+    const scope = { Element: class {}, block: source, rootBlocks: [source], currentRef: { current: { block: source, writable: !event.readonly } }, textRange: () => selection,
+      ...structure, listTextSegments: () => [{ listId: 'root', itemIndex: 1, start: 0 }, { listId: 'root', itemIndex: 2, end: 3 }],
+      crypto: { randomUUID: () => 'range' }, onChange: next => calls.push(next), listRef: { current: {} }, scheduleBlockCommandFocus: () => {},
+    };
+    runInNewContext(compiledCapture, scope);
+    scope.handle({ key: 'Tab', target: {}, nativeEvent: {}, preventDefault() {}, stopPropagation() {}, ...event });
+    assert.equal(calls.length, Object.keys(event).length ? 0 : 1);
+    if (calls[0]) assert.deepEqual(textLines(calls[0]), ['Parent', 'One', 'Two', 'After']);
+  }
 });

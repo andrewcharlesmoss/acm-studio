@@ -90,9 +90,10 @@ import { embedLinkParagraph } from "./embed-link-conversion";
 import { blockInserterOptions, containsTemplateContent, groupAllowsChild, parentOfNestedBlock, permitsBlockTreeChanges } from "./block-inserter-options";
 import { findListBlock, updateListItem } from "./list-structure";
 import { formatListText, listTextEditor, listTextMarkState, listTextSegments, readListTextSelection, restoreListTextSelection, type ListTextSelection } from "./list-text-selection";
-import { type BlockCommandFocusTarget } from "./block-command-focus";
+import { scheduleBlockCommandFocus, type BlockCommandFocusTarget } from "./block-command-focus";
 import { RichTextEditor, preserveTextSelection, caretRangeAtPoint, editorOffset, selectionWithinEditor, restoreEditorSelection, applyCrossBlockSelection, focusRichTextEditorAtOffset, AlignmentIcon, useFittedTextHeight, AutoResizeTextarea } from "./blocks/editors/rich-text";
 import { ListField } from "./blocks/editors/list";
+import { ListItemSwitcher, ListToolbarControls, ListItemActions } from "./blocks/list-toolbar";
 import { TableField, TableControls } from "./blocks/editors/table";
 import { ParagraphEditField } from "./blocks/paragraph/edit-field";
 import { StudioHoverIcon } from "./studio-hover-icon";
@@ -1863,10 +1864,34 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     const rangeRoot = listTextRange && findBlockById(activeDocument.blocks, listTextRange.rootId);
     const acrossListItems = Boolean(listTextRange && rangeRoot?.type === "list" && listTextSegments(rangeRoot, listTextRange));
     const singleItemHint = acrossListItems ? "Select text within one List Item for this action." : undefined;
+    const itemSelection = block.type === "list" && selectedBlockId === block.id ? activeListItems[block.id] : undefined;
+    let listRoot = block.type === "list" ? block : null;
+    while (listRoot) {
+      const parent = parentOfNestedBlock(activeDocument.blocks, listRoot.id);
+      if (parent?.type !== "list") break;
+      listRoot = parent;
+    }
+    const changeList = (result: { block: EditableListBlock; listId: string; itemIndex: number }, focus?: number) => {
+      if (!listRoot) return false;
+      const proposed = editBlockSiblings(activeDocument.blocks, listRoot.id, siblings => siblings.map(candidate => candidate.id === listRoot.id ? result.block : candidate));
+      const source = canvasScrollRef.current?.querySelector<HTMLElement>(`.rich-text-editor[data-studio-block-id="${CSS.escape(itemSelection?.listId ?? block.id)}"]`);
+      if (!applyBlockList(proposed)) return false;
+      if (focus !== undefined) {
+        setActiveListItems(current => ({ ...current, [result.listId]: { listId: result.listId, itemIndex: result.itemIndex } }));
+        onSelectBlock(result.listId);
+        onSelectListItem?.({ blockId: result.listId, listId: result.listId, itemIndex: result.itemIndex });
+        if (source) scheduleBlockCommandFocus(source, {
+          blockId: result.listId, listItemIndex: result.itemIndex,
+          isAccepted: () => writableRef.current && currentDocumentRef.current.id === activeDocument.id
+            && JSON.stringify(findBlockById(currentDocumentRef.current.blocks, result.block.id)) === JSON.stringify(result.block),
+        }, canvasScrollRef.current ?? document, editor => focusRichTextEditorAtOffset(editor, focus));
+      }
+      return true;
+    };
     return <>
                     <div className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}`}>
-                      <BlockTransformControl block={block} parent={parentOfNestedBlock(activeDocument.blocks, block.id)} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} />
-                      <button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} onClick={() => selectBlockBoundary(block.id)} onDragStart={(event) => {
+                      {itemSelection ? <ListItemSwitcher onSelectParent={() => { selectBlockBoundary(itemSelection.listId); setTransformMenuBlockId(null); }} /> : <BlockTransformControl block={block} parent={parentOfNestedBlock(activeDocument.blocks, block.id)} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} />}
+                      {!itemSelection ? <><button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} onClick={() => selectBlockBoundary(block.id)} onDragStart={(event) => {
                         event.stopPropagation();
                         const index = activeDocument.blocks.findIndex(root => root.id === block.id);
                         draggingIndexRef.current = index >= 0 ? index : null;
@@ -1905,6 +1930,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                           })}
                         </div> : null}
                       </div> : null}
+                      </> : null}
+                      {block.type === "list" && listRoot ? <ListToolbarControls root={listRoot} list={block} selection={itemSelection} contextBlocks={activeDocument.blocks} writable={writable} onChange={changeList} /> : null}
                       {block.type === "group" ? <GroupLayoutToolbar block={block} writable={writable} onUpdate={update => { if (writable) onUpdateBlock(block.id, current => current.type === "group" ? update(current) : current); }} /> : null}
                       {block.type === "table" && block.rows.length ? <><div className="alignment-control"><button ref={element => { tableAlignmentTriggerRefs.current[block.id] = element; }} className={`alignment-button${tableAlignmentMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => { if (tableAlignmentMenuBlockId === block.id) { setTableAlignmentMenuBlockId(null); tableAlignmentTriggerRefs.current[block.id]?.focus(); } else setTableAlignmentMenuBlockId(block.id); }} aria-haspopup="menu" aria-expanded={tableAlignmentMenuBlockId === block.id} aria-label="Align column content" title="Align column content" disabled={!writable || !validTableActiveCell(block, tableCellSelections[block.id])}><AlignmentIcon align={block.columnAlignments?.[tableCellSelections[block.id]?.columnIndex ?? 0] ?? "left"} /><StudioHoverIcon name="navigation.disclosure" size={16} /></button>{tableAlignmentMenuBlockId === block.id ? <StudioAnchoredMenu anchor={() => tableAlignmentTriggerRefs.current[block.id]} className="alignment-menu" aria-label="Align column content" onClose={restoreFocus => { setTableAlignmentMenuBlockId(null); if (restoreFocus !== false) tableAlignmentTriggerRefs.current[block.id]?.focus(); }}>{(["left", "centre", "right"] as TextAlignment[]).map(alignment => { const columnIndex = tableCellSelections[block.id]?.columnIndex ?? 0; const active = (block.columnAlignments?.[columnIndex] ?? "left") === alignment; return <button className={active ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={active} key={alignment} onMouseDown={preserveTextSelection} onClick={() => { if (!writable || !validTableActiveCell(block, tableCellSelections[block.id])) return; const count = block.rows[0].length; const columnAlignments = Array.from({ length: count }, (_, index) => block.columnAlignments?.[index] ?? "left" as TextAlignment); columnAlignments[columnIndex] = alignment; onUpdateBlock(block.id, () => ({ ...block, columnAlignments })); setTableAlignmentMenuBlockId(null); requestAnimationFrame(() => tableAlignmentTriggerRefs.current[block.id]?.focus()); }}><AlignmentIcon align={alignment} /><span>Align column {alignment}</span></button>; })}</StudioAnchoredMenu> : null}</div><TableControls key={JSON.stringify([block.id, tableRowSections(block), block.rows.map(row => row.length), writable])} block={block} writable={writable} activeCell={tableCellSelections[block.id]} onActiveCellChange={cell => {
                         setTableCellSelections(current => cell ? { ...current, [block.id]: cell } : Object.fromEntries(Object.entries(current).filter(([id]) => id !== block.id)));
@@ -1976,14 +2003,14 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                         </StudioAnchoredMenu> : null}
 </div>
                       </div> : null}
-                      <div className="canvas-block-actions">
+                      {itemSelection && listRoot ? <ListItemActions root={listRoot} selection={itemSelection} writable={writable} onChange={changeList} /> : <div className="canvas-block-actions">
                         <button type="button" onClick={(event) => { event.stopPropagation(); void runBlockMenuAction("duplicate", block); }} disabled={blockMenuItems(block).find(item => item.action === "duplicate")?.disabled} aria-label="Duplicate block" title="Duplicate block"><StudioHoverIcon name="action.duplicate" /></button>
                         <button type="button" onClick={(event) => { event.stopPropagation(); void runBlockMenuAction("delete", block); }} disabled={blockMenuItems(block).find(item => item.action === "delete")?.disabled} aria-label="Remove block" title={blockMenuItems(block).find(item => item.action === "delete")?.disabledReason ?? "Remove block"}><StudioHoverIcon name="action.close" /></button>
                         <div className="block-options-control">
                           <button ref={(element) => { if (element && !hasMultiSelection && blockMenuBlockId === block.id) htmlEditorTriggerRef.current = element; }} className={`block-options-trigger${blockMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={(event) => { event.stopPropagation(); htmlEditorTriggerRef.current = event.currentTarget; if (blockMenuBlockId === block.id) closeBlockMenu(); else setBlockMenuBlockId(block.id); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); setBlockMenuBlockId(null); } }} aria-haspopup="menu" aria-expanded={blockMenuBlockId === block.id} aria-label="More block options" title="More options"><StudioHoverIcon name="action.more" vertical /></button>
                           {!hasMultiSelection && blockMenuBlockId === block.id ? <BlockOptionsMenu items={blockMenuItems(block)} trigger={htmlEditorTriggerRef} onClose={closeBlockMenu} onAction={action => { void runBlockMenuAction(action, block); }} /> : null}
                         </div>
-                      </div>
+                      </div>}
                       </div>
                       {isEditableRichTextBlock(block) && linkEditor?.ownerId === block.id && linkVisible ? <StudioAnchoredPopover key={`${linkEditor.documentId}:${linkEditor.ownerId}:${linkEditor.blockId}`} anchor={() => linkEditor.editor} anchorRect={() => linkEditor.range?.getBoundingClientRect() ?? null} label={linkEditor.mode === "preview" ? "Link options" : linkEditor.existingUrl ? "Edit link" : "Add hyperlink"} focusOnMount={linkEditor.mode === "edit"} ignoreOutside={target => Boolean(linkTriggerRefs.current[block.id]?.contains(target))} onClose={closeLink} className="rich-link-popover">
                       {linkEditor.mode === "preview" ? <LinkPreviewPopover editor={linkEditor} onEdit={() => setLinkEditor({ ...linkEditor, mode: "edit" })} onRemove={removeLink} onClose={() => closeLink(true)} /> : <form className="link-editor-popover" onSubmit={applyLink}>
@@ -2362,7 +2389,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                       const nestedBlockId = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]")?.dataset.studioNestedBlockId : undefined;
                       const targetId = nestedBlockId ?? block.id;
                       if (targetId !== selectedBlockId || !event.target.closest(".canvas-block-toolbar, .rich-text-editor, button, input, textarea, select, a")) selectBlockBoundary(targetId);
-                      else onSelectBlock(targetId);
+                      else if (!event.target.closest(".canvas-block-toolbar")) onSelectBlock(targetId);
                       if (!(event.target instanceof Element) || !event.target.closest(".alignment-control")) setAlignmentMenuBlockId(null);
                       if (!(event.target instanceof Element) || !event.target.closest(".block-alignment-control")) setBlockAlignmentMenuBlockId(null);
                       if (!(event.target instanceof Element) || !event.target.closest(".rich-text-format-control")) setRichTextMenuBlockId(null);
@@ -2380,7 +2407,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                       const nestedBlockId = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]")?.dataset.studioNestedBlockId : undefined;
                       const targetId = nestedBlockId ?? block.id;
                       if (targetId !== selectedBlockId || event.target === event.currentTarget) selectBlockBoundary(targetId);
-                      else onSelectBlock(targetId);
+                      else if (!event.target.closest(".canvas-block-toolbar")) onSelectBlock(targetId);
                     }}
                   >
                     {renderBlockControls(block)}
@@ -2800,7 +2827,7 @@ export function BlockField(props: BlockFieldProps) {
   const content = <BlockFieldContent {...props} />;
   if (!block.visualStyle || block.type === "spacer") return content;
   const style = block.visualStyle;
-  const backgroundImageUrl = ["quote", "group", "heading", "code", "document-title"].includes(block.type) && style.backgroundImageMediaId ? props.mediaUrls?.[style.backgroundImageMediaId] : undefined;
+  const backgroundImageUrl = ["quote", "group", "heading", "code", "list", "document-title"].includes(block.type) && style.backgroundImageMediaId ? props.mediaUrls?.[style.backgroundImageMediaId] : undefined;
   const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
   if (block.type === "buttons") delete css.textDecoration;
   if (block.type === "social-icons" || block.type === "divider") { delete css.backgroundColor; delete css.backgroundImage; }

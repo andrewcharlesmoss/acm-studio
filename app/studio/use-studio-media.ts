@@ -6,6 +6,8 @@ import type { StudioCoverImage, StudioDocument } from "./editor-model";
 import { getMediaAsset, type MediaAsset } from "./media-store";
 import { contentMediaIds } from "../content/media-references";
 
+import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "./list-item-background";
+
 export function useStudioMedia({
   documents,
   activeDocument,
@@ -13,6 +15,7 @@ export function useStudioMedia({
   updateBlock,
   onSelectBlock,
   onReturnToDocument,
+  onFeedback,
 }: {
   documents: StudioDocument[];
   activeDocument: StudioDocument;
@@ -20,10 +23,12 @@ export function useStudioMedia({
   updateBlock: (blockId: string, update: (block: ContentBlock) => ContentBlock) => void;
   onSelectBlock: (blockId: string) => void;
   onReturnToDocument: (target: "document" | "block") => void;
+  onFeedback?: (message: string) => void;
 }) {
   const [targetBlockId, setTargetBlockId] = useState<string | null>(null);
   const [targetCover, setTargetCover] = useState(false);
   const [targetBackground, setTargetBackground] = useState(false);
+  const [backgroundOwner, setBackgroundOwner] = useState<{ documentId: string; item?: ListItemBackgroundTarget } | null>(null);
   const [blockUrls, setBlockUrls] = useState<Record<string, string>>({});
   const blockUrlsRef = useRef<Record<string, string>>({});
   const referencedMediaKey = useMemo(() => documents
@@ -69,7 +74,8 @@ export function useStudioMedia({
     setTargetBackground(false);
   }
 
-  function targetBlockBackground(blockId: string) {
+  function targetBlockBackground(blockId: string, item?: ListItemBackgroundTarget) {
+    setBackgroundOwner({ documentId: activeDocument.id, item });
     setTargetBlockId(blockId);
     setTargetCover(false);
     setTargetBackground(true);
@@ -104,12 +110,21 @@ export function useStudioMedia({
     }
     if (insertAsBackground) {
       if (!destinationBlockId) return;
+      if (backgroundOwner?.documentId !== activeDocument.id) { onFeedback?.("The background image target changed. Select it and try again."); return; }
+      let staleItem = false;
       updateBlock(destinationBlockId, block => {
-        if (block.type !== "quote" && block.type !== "group" && block.type !== "heading" && block.type !== "code" && block.type !== "document-title") return block;
+        if (backgroundOwner.item) {
+          const next = block.type === "list" ? setListItemBackgroundImage(block, backgroundOwner.item, asset.id) : null;
+          if (!next) staleItem = true;
+          return next ?? block;
+        }
+        if (block.type !== "list" && block.type !== "quote" && block.type !== "group" && block.type !== "heading" && block.type !== "code" && block.type !== "document-title") return block;
         return { ...block, visualStyle: { ...block.visualStyle, backgroundImageMediaId: asset.id } };
       });
+      if (staleItem) { onFeedback?.("The List Items changed while choosing an image. Select the item and try again."); return; }
       setTargetBlockId(null);
       setTargetBackground(false);
+      setBackgroundOwner(null);
       onSelectBlock(destinationBlockId);
       onReturnToDocument("block");
       return;

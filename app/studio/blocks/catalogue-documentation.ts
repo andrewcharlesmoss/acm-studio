@@ -27,7 +27,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   list: {
     nesting: "Contains item-scoped List Items. An item may contain a nested List; List Item is not a top-level ContentBlock.",
     context: "Selecting an item exposes its own style and Advanced settings. Ordered-list settings depend on the parent List type.",
-    notes: ["Bullets/numbers are in List; ordered numbering, start and reverse order are in Settings.", "List Item permits both ACM and Gutenberg-origin style controls. Footnote and inline-image insertion target a single item; their forms are unavailable across multiple items.", "Nested Lists share the parent’s recursive item model; not every nested container selection exposes the full formatting toolbar."],
+    notes: ["Ordered/Unordered and indentation are in the canvas toolbar; ordered numbering, start and reverse order are in Settings.", "List Item permits both ACM and Gutenberg-origin style controls. Footnote and inline-image insertion target a single item; their forms are unavailable across multiple items.", "The item toolbar targets one item. Its parent selector exposes the List toolbar; the item switcher has no transforms within a List. List and item backgrounds support images, and both offer Shadow."],
   },
   quote: {
     nesting: "Contains recursively editable Paragraph, Heading, List, Quote and Image children. Editing legacy flat quote text materialises Paragraph children.",

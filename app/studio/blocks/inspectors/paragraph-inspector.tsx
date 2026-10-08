@@ -211,7 +211,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
   return <div ref={inspectorRef} className={`inspector-sections${block.type === "group" ? " group-block-inspector" : ""}`}>{orderedSharedStyleSections}{blockWarning ? <div className="paragraph-colour-contrast-warning inspector-block-contrast-warning" role="status"><AcmIcon name="state.warning" size={18} /><span>{blockWarning.message}</span></div> : null}</div>;
 }
 
-type ManagedBackgroundImageBlock = Extract<ContentBlock, { type: "quote" | "group" | "heading" | "code" | "document-title" }>;
+type ManagedBackgroundImageBlock = Extract<ContentBlock, { type: "quote" | "group" | "heading" | "code" | "list" | "document-title" }>;
 
 export function ManagedBackgroundImageInspector({ block, onChange, onOpenBackgroundMedia, embedded = false, detailsOnly = false }: {
   block: ManagedBackgroundImageBlock;

@@ -134,6 +134,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     updateActiveDocument,
     updateBlock: blockCommands.updateBlock,
     onSelectBlock: setSelectedBlockId,
+    onFeedback: message => publishing.setPublishFeedback(message),
     onReturnToDocument: (target) => {
       setInspectorTab(target);
       setStudioSection("content");
@@ -229,9 +230,9 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     setPreviewing(false);
   }
 
-  function openBackgroundMediaLibrary(targetBlockId: string) {
+  function openBackgroundMediaLibrary(targetBlockId: string, item?: import("./list-item-background").ListItemBackgroundTarget) {
     if (!confirmCodeEditorDiscard()) return;
-    media.targetBlockBackground(targetBlockId);
+    media.targetBlockBackground(targetBlockId, item);
     setStudioSection("files");
     setPreviewing(false);
   }

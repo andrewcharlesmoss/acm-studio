@@ -162,8 +162,37 @@ export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls 
     readSelection();
   }
 
+  function splitAtSelection(event: { preventDefault: () => void }) {
+    if (!onSplitParagraph) return;
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return;
+    event.preventDefault();
+
+    const range = selection.getRangeAt(0);
+    const sourceRuns = editorToRuns(editor);
+    const sourceLength = plainTextFromRuns(sourceRuns).length;
+    const firstOffset = Math.min(editorTextOffset(editor, range.startContainer, range.startOffset), sourceLength);
+    const secondOffset = Math.min(editorTextOffset(editor, range.endContainer, range.endOffset), sourceLength);
+    const selectionStart = Math.min(firstOffset, secondOffset);
+    const selectionEnd = Math.max(firstOffset, secondOffset);
+    const beforeRuns = sliceRichRuns(sourceRuns, 0, selectionStart);
+    const afterRuns = sliceRichRuns(sourceRuns, selectionEnd, plainTextFromRuns(sourceRuns).length);
+    const focusTarget = onSplitParagraph(beforeRuns, afterRuns);
+    onSelectionChange(null);
+    if (!focusTarget) return;
+
+    scheduleBlockCommandFocus(editor, focusTarget, editorScope(), nextEditor => focusRichTextEditorAtOffset(nextEditor, 0));
+  }
+
+
   function handleLineBreak(event: InputEvent) {
-    if (!editable || event.defaultPrevented || event.isComposing || event.inputType !== "insertLineBreak") return;
+    if (!editable || event.defaultPrevented || event.isComposing) return;
+    if (event.inputType === "insertParagraph" && editorRef.current?.classList.contains("list-item-editor") && onSplitParagraph) {
+      splitAtSelection(event);
+      return;
+    }
+    if (event.inputType !== "insertLineBreak") return;
     const editor = editorRef.current;
     const selection = editor && selectionWithinEditor(editor);
     if (!editor || !selection) return;
@@ -385,26 +414,9 @@ export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls 
       }
     }
     if (event.key !== "Enter" || event.shiftKey || !onSplitParagraph) return;
-    const editor = editorRef.current;
-    const selection = window.getSelection();
-    if (!editor || !selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return;
-    event.preventDefault();
-
-    const range = selection.getRangeAt(0);
-    const sourceRuns = editorToRuns(editor);
-    const sourceLength = plainTextFromRuns(sourceRuns).length;
-    const firstOffset = Math.min(editorTextOffset(editor, range.startContainer, range.startOffset), sourceLength);
-    const secondOffset = Math.min(editorTextOffset(editor, range.endContainer, range.endOffset), sourceLength);
-    const selectionStart = Math.min(firstOffset, secondOffset);
-    const selectionEnd = Math.max(firstOffset, secondOffset);
-    const beforeRuns = sliceRichRuns(sourceRuns, 0, selectionStart);
-    const afterRuns = sliceRichRuns(sourceRuns, selectionEnd, plainTextFromRuns(sourceRuns).length);
-    const focusTarget = onSplitParagraph(beforeRuns, afterRuns);
-    onSelectionChange(null);
-    if (!focusTarget) return;
-
-    scheduleBlockCommandFocus(editor, focusTarget, editorScope(), nextEditor => focusRichTextEditorAtOffset(nextEditor, 0));
+    splitAtSelection(event);
   }
+
 
   // Select links in-place and show their Gutenberg-style controls instead of navigating away from Studio.
   return <Tag {...props} ref={editorRef} className={`${className ?? ""} rich-text-editor`} contentEditable={editable} aria-readonly={!editable || undefined} role="textbox" tabIndex={0} aria-multiline="true" suppressContentEditableWarning onInput={handleInput} onPaste={handleMathPaste} onKeyDown={handleKeyDown} onSelect={readSelection} onKeyUp={readSelection} onMouseUp={(event) => { readSelection(); splitLegacyParagraphsOnFocus(event.currentTarget); }} onFocus={(event) => { props.onFocus?.(event); readSelection(); const editor = event.currentTarget; window.requestAnimationFrame(() => { if (document.activeElement === editor) splitLegacyParagraphsOnFocus(editor); }); }} onClick={(event) => {

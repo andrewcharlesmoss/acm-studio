@@ -1,5 +1,7 @@
 "use client";
 
+import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "../../list-item-background";
+
 import { createGroupVariation, groupVariationFor, isGroupVariation } from "../../blocks/group-variations";
 
 import { childContentBlocks } from "../../../content/block-tree";
@@ -326,9 +328,13 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
     publish({ ...dataRef.current, document: { ...dataRef.current.document, ...patch } }, key);
   }, [publish]);
 
-  const chooseFixtureMedia = useCallback(() => {
+  const chooseFixtureMedia = useCallback((item?: ListItemBackgroundTarget) => {
     const target = allBlocks(dataRef.current.blocks).find(block => block.id === selectedId);
-    if (target?.type === "image") {
+    if (target?.type === "list") {
+      const mediaId = "library-local-image";
+      const next = item ? setListItemBackgroundImage(target, item, mediaId) : { ...target, visualStyle: { ...target.visualStyle, backgroundImageMediaId: mediaId } };
+      if (next) updateBlock(next);
+    } else if (target?.type === "image") {
       const mediaId = target.mediaId === "library-local-image" ? "library-local-image-two" : "library-local-image";
       updateBlock({ ...target, src: "", mediaId, alt: mediaId === "library-local-image" ? "Illustrated green hill with a blue sky" : "Illustrated flower in a warm field", caption: mediaId === "library-local-image" ? "A local landscape sample" : "A local flower sample", decorative: false });
     } else if (target?.type === "quote" || target?.type === "group" || target?.type === "heading" || target?.type === "code" || target?.type === "document-title") {
@@ -443,7 +449,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
             {useTemplateStyles ? <TemplateSurface set={exampleTemplateSet} editing={mode === "edit"}>{specimenContent}</TemplateSurface> : specimenContent}
             {type === "template-content" ? <p className="ui-template-projection-note">Edit the temporary document body above. Preview renders that body through the production template Content slot.</p> : null}
           </div>
-          {inspectorBlock ? <aside data-inspector-popover-owner="" className="ui-block-inspector" aria-label={`${specimenLabel(inspectorBlock)} settings`}><BlockInspector contentSlot={type === "template-content" && inspectorBlock?.id === `${type}-library-specimen`} key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} canSetSticky={inspectorBlock.type === "group" && data.blocks.some(block => block.id === inspectorBlock.id)} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} onChange={next => updateBlock(next)} onColumnCountChange={inspectorBlock.type === "columns" ? count => commands.updateColumnCount(inspectorBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => commands.updateColumnWidth(selectedColumnParent, columnId, width) : undefined} onButtonPreviewChange={setButtonPreview} onOpenFiles={chooseFixtureMedia} canOpenFiles={inspectorBlock.type === "image"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} /></aside> : null}
+          {inspectorBlock ? <aside data-inspector-popover-owner="" className="ui-block-inspector" aria-label={`${specimenLabel(inspectorBlock)} settings`}><BlockInspector contentSlot={type === "template-content" && inspectorBlock?.id === `${type}-library-specimen`} key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} canSetSticky={inspectorBlock.type === "group" && data.blocks.some(block => block.id === inspectorBlock.id)} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} onChange={next => updateBlock(next)} onColumnCountChange={inspectorBlock.type === "columns" ? count => commands.updateColumnCount(inspectorBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => commands.updateColumnWidth(selectedColumnParent, columnId, width) : undefined} onButtonPreviewChange={setButtonPreview} onOpenFiles={() => chooseFixtureMedia()} canOpenFiles={inspectorBlock.type === "image"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} /></aside> : null}
         </div>
         <p className="ui-block-sample-note">{fixture.note}</p>
         <p className="ui-block-isolation-note">Undo and Redo apply to the temporary block and example document, including rich text. Form fields keep the browser’s native text history. This specimen does not access Studio documents, browser storage or the write-ownership lock.</p>

@@ -12,7 +12,7 @@ export function renderListBlock(block: Extract<ContentBlock, { type: "list" }>, 
     const content = typeof item === "string" ? item : renderText(listItemText(item), item.runs, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "list-item", itemIndex: index });
     const nestedLists = typeof item === "string" ? null : item.children?.filter(child => !child.editorial?.hidden).map(child => renderChild(child));
     const itemStyle = typeof item === "string" ? undefined : item.style;
-    const itemPresentation = { id: paragraphStyleAnchor(itemStyle), className: paragraphStyleClassName(itemStyle) || undefined, style: paragraphStyleToCss(itemStyle) as React.CSSProperties };
+    const itemPresentation = { id: paragraphStyleAnchor(itemStyle), className: paragraphStyleClassName(itemStyle) || undefined, style: paragraphStyleToCss(itemStyle, itemStyle?.backgroundImageMediaId ? mediaUrls[itemStyle.backgroundImageMediaId] : undefined) as React.CSSProperties };
     const itemTextStyle = listItemTextStyle(itemStyle) as React.CSSProperties;
     return studio
       ? <li {...itemPresentation} className={`list-field-row${itemStyle ? ` ${visualStyleClassName(itemStyle)}` : ""}`} key={`${block.id}-${index}`}><span className="list-field-marker" aria-hidden="true">{block.style === "ordered" ? listMarker(block, index) : "•"}</span><div className="list-field-item-content"><span className="list-item-text" style={itemTextStyle}>{content}</span>{nestedLists}</div></li>

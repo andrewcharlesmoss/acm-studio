@@ -1,5 +1,6 @@
 "use client";
 import { useId, useState, type ReactNode } from "react";
+import type { ListItemBackgroundTarget } from "./list-item-background";
 import type { ButtonInteractionState, ContentBlock, ListItemSelection } from "../content/model";
 import { blockCatalogue, type StudioCategory, type StudioDocument, type StudioDocumentStatus } from "./editor-model";
 import { StudioIcon } from "./studio-icons";
@@ -45,7 +46,7 @@ export type StudioInspectorProps = {
   onColumnCountChange?: (parent: ColumnsBlock, count: number) => void;
   onButtonPreviewChange?: (preview: { blockId: string; state: ButtonInteractionState } | null) => void;
   onOpenFiles: () => void;
-  onOpenBackgroundMedia?: (blockId: string) => void;
+  onOpenBackgroundMedia?: (blockId: string, item?: ListItemBackgroundTarget) => void;
   onOpenCoverMediaLibrary?: () => void;
   onRemoveCoverImage?: () => void;
   onPublish: () => void;
@@ -58,6 +59,7 @@ export type StudioInspectorProps = {
   onFieldOverride?: (field: "author" | "category" | "tags" | "parentPageId", useTemplate: boolean) => void;
   onSaveAsTemplate?: () => void;
 };
+
 
 export function StudioInspector({ siteContext = false, writable = true, paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, inspectorTab, selectedBlock, selectedListItem = null, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onColumnWidthChange, onColumnCountChange, onButtonPreviewChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
@@ -90,7 +92,7 @@ export function StudioInspector({ siteContext = false, writable = true, paneWidt
             </InspectorAccordionSection>
           </div>
         ) : selectedBlock ? (
-          <BlockInspector key={selectedBlock.id} block={selectedBlock} selectedListItem={selectedListItem?.blockId === selectedBlock.id ? selectedListItem : null} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnCountChange={selectedBlock.type === "columns" && onColumnCountChange ? count => onColumnCountChange(selectedBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.length ?? 2)} onButtonPreviewChange={onButtonPreviewChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 && onColumnWidthChange ? (columnId, width) => onColumnWidthChange(selectedColumnParent, columnId, width) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? () => onOpenBackgroundMedia(selectedBlock.id) : undefined} canOpenFiles={canOpenFiles} />
+          <BlockInspector key={selectedBlock.id} block={selectedBlock} selectedListItem={selectedListItem?.blockId === selectedBlock.id ? selectedListItem : null} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnCountChange={selectedBlock.type === "columns" && onColumnCountChange ? count => onColumnCountChange(selectedBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.length ?? 2)} onButtonPreviewChange={onButtonPreviewChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 && onColumnWidthChange ? (columnId, width) => onColumnWidthChange(selectedColumnParent, columnId, width) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? item => onOpenBackgroundMedia(selectedBlock.id, item) : undefined} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}

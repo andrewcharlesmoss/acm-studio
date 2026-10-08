@@ -4,6 +4,13 @@
 
 ### Added
 
+- List toolbars distinguish items from their parent List, with ordered/unordered
+  controls, item move/duplicate/remove actions and Gutenberg-style indentation.
+  Empty items retain their inspector; Lists and items now support background
+  images and shadows. Sibling-range indentation preserves reading order, and
+  delayed focus yields to subsequent input.
+
+
 - Local Test can be edited in multiple Studio tabs, with shared updates,
   independent-change merging, overlap choices and automatic save handover.
 

@@ -1,4 +1,7 @@
 "use client";
+import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "./list-item-background";
+import type { ListBlock } from "../content/model";
+import { findListBlock } from "./list-structure";
 import { exportStudioJson } from "./studio-json-export";
 import { writeStudioNavigation } from "./use-studio-screen-navigation";
 
@@ -73,7 +76,7 @@ export function TemplateWorkspacePanel({ workspace, templates, selection, onSele
   const [showTemplateSets, setShowTemplateSets] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [mediaTarget, setMediaTarget] = useState<{ blockId: string | null; logo: boolean; background?: boolean } | null>(null);
+  const [mediaTarget, setMediaTarget] = useState<{ blockId: string | null; logo: boolean; background?: boolean; item?: ListItemBackgroundTarget; targetId: string; setId: string } | null>(null);
   const [dialog, setDialog] = useState<NameDialog | null>(null);
   const [templateContextMenu, setTemplateContextMenu] = useState<(StudioListContextMenuTarget & { setId: string; targetId: string }) | null>(null);
   const [templateSetContextMenu, setTemplateSetContextMenu] = useState<(StudioListContextMenuTarget & { setId: string }) | null>(null);
@@ -307,11 +310,24 @@ export function TemplateWorkspacePanel({ workspace, templates, selection, onSele
   }
   function insertMedia(asset: MediaAsset, _destination?: unknown, altText?: string) {
     if (!set || !target || !mediaTarget || !writable) return;
+    if (target.id !== mediaTarget.targetId || set.id !== mediaTarget.setId) { setFeedback("The media target changed. Select it and try again."); return; }
     if (mediaTarget.logo) changeSet({ ...set, identity: { ...set.identity, logo: { src: "", mediaId: asset.id, alt: altText || asset.altText || asset.name } } });
     else {
       const nodes = copyTemplateData(target.nodes);
       let found = false;
       visitTemplateNodes(nodes, node => {
+        if (mediaTarget.background && node.type === "list") {
+          const selected = mediaTarget.blockId ? findListBlock(node, mediaTarget.blockId) : null;
+          if (!selected) return;
+          if (mediaTarget.item) {
+            const next = setListItemBackgroundImage(node, mediaTarget.item, asset.id);
+            if (next) { Object.assign(node, next); found = true; }
+          } else {
+            (selected as ListBlock).visualStyle = { ...selected.visualStyle, backgroundImageMediaId: asset.id };
+            found = true;
+          }
+          return;
+        }
         if (node.id !== mediaTarget.blockId) return;
         if (mediaTarget.background) {
           if (node.type === "group" || node.type === "quote" || node.type === "heading" || node.type === "code" || node.type === "document-title" || node.type === "element" && (node.element === "content" || node.element === "document-title")) { node.visualStyle = { ...node.visualStyle, backgroundImageMediaId: asset.id }; found = true; }
@@ -365,7 +381,7 @@ export function TemplateWorkspacePanel({ workspace, templates, selection, onSele
       <a className="library-tool-button" href="/studio?mode=bin"><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
       <button className="library-tool-button is-active" type="button" onClick={library}><span><StudioIcon name="block" /></span><strong>Templates</strong><small>Shared presentation</small></button>
     </aside>}
-    {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : mediaTarget.background ? "Background image" : "Template image"} targetKind={mediaTarget.background ? "background" : "block"} onInsertImage={insertMedia} /></section> : !showTemplateSets && set && target ? <TemplateEditor key={target.id} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} loadInlineImages={loadStoredInlineImages} writable={writable} onChange={changeSet} onEditPart={id => openSet(set, id)} onOpenMedia={(blockId, logo = false, background = false) => setMediaTarget({ blockId, logo, background })} inspectorTab={inspectorTab} onInspectorTabChange={onInspectorTabChange} inspectorPaneWidth={resolvedInspectorPaneWidth} onInspectorPaneWidthChange={setResolvedInspectorPaneWidth} inspectorPaneCollapsed={resolvedInspectorPaneCollapsed} onInspectorPaneCollapsedChange={setResolvedInspectorPaneCollapsed} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Site templates</h1><p>Create a consistent page and post design. Each set has its own shared parts, identity and styles.</p><div className="template-library-actions"><button className="button-primary" type="button" disabled={!writable} onClick={createSet}><StudioIcon name="add" />Create Template Set</button><button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button></div><div className="template-set-grid">{templates.store.sets.map(renderTemplateSetCard)}</div>{!templates.store.sets.length && templates.ready ? <p>No template sets yet. Create one to start with the neutral ACM design.</p> : null}{templateSetContextMenu ? (() => { const item = templates.store.sets.find(candidate => candidate.id === templateSetContextMenu.setId); const blockedReason = item ? templateSetDeleteBlockReason(item.id) : "This template set is no longer available."; return <TemplateSetActionsMenu target={templateSetContextMenu} canDelete={Boolean(item && writable && !blockedReason)} disabledReason={!writable ? "Editing is unavailable in this tab." : blockedReason} onDelete={() => { if (item) deleteSetFromContextMenu(item); }} onClose={closeTemplateSetContextMenu} />; })() : null}</section>}
+    {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : mediaTarget.background ? "Background image" : "Template image"} targetKind={mediaTarget.background ? "background" : "block"} onInsertImage={insertMedia} /></section> : !showTemplateSets && set && target ? <TemplateEditor key={target.id} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} loadInlineImages={loadStoredInlineImages} writable={writable} onChange={changeSet} onEditPart={id => openSet(set, id)} onOpenMedia={(blockId, logo = false, background = false, item) => setMediaTarget({ blockId, logo, background, item, targetId: target.id, setId: set.id })} inspectorTab={inspectorTab} onInspectorTabChange={onInspectorTabChange} inspectorPaneWidth={resolvedInspectorPaneWidth} onInspectorPaneWidthChange={setResolvedInspectorPaneWidth} inspectorPaneCollapsed={resolvedInspectorPaneCollapsed} onInspectorPaneCollapsedChange={setResolvedInspectorPaneCollapsed} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Site templates</h1><p>Create a consistent page and post design. Each set has its own shared parts, identity and styles.</p><div className="template-library-actions"><button className="button-primary" type="button" disabled={!writable} onClick={createSet}><StudioIcon name="add" />Create Template Set</button><button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button></div><div className="template-set-grid">{templates.store.sets.map(renderTemplateSetCard)}</div>{!templates.store.sets.length && templates.ready ? <p>No template sets yet. Create one to start with the neutral ACM design.</p> : null}{templateSetContextMenu ? (() => { const item = templates.store.sets.find(candidate => candidate.id === templateSetContextMenu.setId); const blockedReason = item ? templateSetDeleteBlockReason(item.id) : "This template set is no longer available."; return <TemplateSetActionsMenu target={templateSetContextMenu} canDelete={Boolean(item && writable && !blockedReason)} disabledReason={!writable ? "Editing is unavailable in this tab." : blockedReason} onDelete={() => { if (item) deleteSetFromContextMenu(item); }} onClose={closeTemplateSetContextMenu} />; })() : null}</section>}
     <input ref={importRef} hidden type="file" accept=".json,application/json" onChange={event => { void importFile(event.target.files?.[0]); event.target.value = ""; }} />
   </>;
   const dialogElement = dialog ? <StudioDialog title={dialog.title} className="template-dialog" returnFocus={dialogOpener} selectInitialText onClose={closeDialog}>
