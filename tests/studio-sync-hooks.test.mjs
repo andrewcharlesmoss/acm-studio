@@ -198,6 +198,42 @@ test("owner displays peer changes when selection and timestamps differ", async t
   assert.equal(f.owner.state.workspace.syncConflict, null);
 });
 
+test("reconnection recognises saved heading keystrokes before rebasing newer typing", async t => {
+  const f = await pair(t);
+  const headingId = active(f.peer).blocks.find(block => block.type === "heading").id;
+  const heading = tab => active(tab).blocks.find(block => block.id === headingId);
+  const type = text => f.peer.state.workspace.updateActiveDocument(doc => ({ ...doc,
+    blocks: doc.blocks.map(block => block.id === headingId ? { ...block, text, runs: [{ text }] } : block),
+  }));
+  f.hold(message => message.storeKey === "workspace" && message.revision === 1
+    && ["update", "ack"].includes(message.kind));
+  type("A"); await f.until(() => heading(f.owner).text === "A");
+  type("AB"); await f.flush();
+  f.owner.state.workspace.updateActiveField("category", "Independent change");
+  await f.flush(); // Revision 2 arrives before 1, causing a fresh welcome.
+  assert.equal(f.peer.state.workspace.syncConflict, null);
+  assert.equal(heading(f.peer).text, "AB");
+  await f.until(() => heading(f.owner).text === "AB");
+  f.hold(() => false); f.release(); await f.flush();
+  assert.equal(f.peer.state.workspace.syncConflict, null);
+  assert.equal(active(f.peer).category, "Independent change");
+  const reopened = f.open(); await f.until(() => reopened.state?.workspace.writable);
+  assert.equal(heading(reopened).text, "AB");
+  assert.deepEqual(JSON.parse(JSON.stringify(heading(reopened).runs)), [{ text: "AB" }]);
+});
+
+test("typing after an own update but before its ACK uses the current saved revision", async t => {
+  const f = await pair(t);
+  f.hold(message => message.storeKey === "workspace" && message.kind === "ack" && message.revision === 1);
+  f.peer.state.workspace.updateActiveField("subtitle", "A");
+  await f.until(() => active(f.owner).subtitle === "A");
+  f.peer.state.workspace.updateActiveField("subtitle", "AB"); await f.flush();
+  f.hold(() => false); f.release();
+  await f.until(() => active(f.owner).subtitle === "AB");
+  assert.equal(f.peer.state.workspace.syncConflict, null);
+  assert.equal(active(f.peer).subtitle, "AB");
+});
+
 test("three tabs accept owner Category after the peer's saved Subtitle without a competing edit", async t => {
   const f = await pair(t);
   assert.equal(active(f.owner).category, undefined);

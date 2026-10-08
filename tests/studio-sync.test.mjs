@@ -69,6 +69,111 @@ function outOfOrderChannelBus() {
 
 async function settle() { for (let index = 0; index < 10; index += 1) await Promise.resolve(); }
 
+function delayedReceiptsBus(hold) {
+  const rooms = new Map(); const delayed = []; let delaying = true;
+  const factory = name => {
+    const listeners = new Set(); const room = rooms.get(name) ?? new Set();
+    room.add(listeners); rooms.set(name, room);
+    return {
+      postMessage(message) {
+        for (const peer of room) if (peer !== listeners) {
+          const deliver = () => peer.forEach(listener => listener({ data: structuredClone(message) }));
+          if (delaying && hold(message)) delayed.push(deliver); else queueMicrotask(deliver);
+        }
+      },
+      addEventListener(type, listener) { if (type === "message") listeners.add(listener); },
+      removeEventListener(_type, listener) { listeners.delete(listener); },
+      close() { room.delete(listeners); listeners.clear(); },
+    };
+  };
+  return { factory, release() { delaying = false; delayed.splice(0).forEach(deliver => deliver()); } };
+}
+
+test("welcome receipt IDs are optional, bounded and unique", () => {
+  const sync = load("app/studio/studio-sync.ts");
+  const welcome = { protocol: sync.STUDIO_SYNC_PROTOCOL, scope: "main-studio", storeKey: "workspace", senderId: "owner", kind: "welcome", requestId: "hello", brokerEpoch: "epoch", revision: 1, snapshot: {} };
+  const validate = value => sync.validateStudioSyncMessage(value, "workspace", snapshot => snapshot);
+  assert.ok(validate(welcome));
+  assert.ok(validate({ ...welcome, acceptedTransactionIds: ["own"] }));
+  for (const ids of [["own", "own"], [null], "own", Array.from({ length: 501 }, (_, i) => `id-${i}`)]) {
+    assert.equal(validate({ ...welcome, acceptedTransactionIds: ids }), null);
+  }
+});
+
+for (const scenario of ["delayed ACK", "timed-out submission", "genuine competing edit"]) {
+  test(`saved keystrokes and newer typing survive ${scenario}`, async t => {
+    const operationTimers = [];
+    const sync = load("app/studio/studio-sync.ts", { setTimeout(callback, delay) {
+      if (delay !== 5000) return setTimeout(callback, delay);
+      const handle = setTimeout(() => {}, 100_000);
+      operationTimers.push({ callback, handle }); return handle;
+    } });
+    const transport = delayedReceiptsBus(message => message.kind === "ack"
+      || scenario !== "delayed ACK" && message.kind === "update" && message.revision === 1);
+    let persisted = { text: "", category: "" }; let displayed;
+    const primary = sync.createStudioSync({ clientId: "owner", storeKey: "workspace", initialSnapshot: persisted, role: "primary", channelFactory: transport.factory, validateSnapshot: value => value, onSnapshot() {}, persistPrimary: next => { persisted = next; } });
+    const acknowledgements = [];
+    const peer = sync.createStudioSync({ clientId: "peer", storeKey: "workspace", initialSnapshot: persisted, role: "peer", channelFactory: transport.factory, validateSnapshot: value => value, onSnapshot: snapshot => { displayed = snapshot; }, onCommittedSnapshot(_snapshot, commit) { if (commit.acknowledgedTransaction) acknowledgements.push(commit.acknowledgedTransaction.transactionId); }, persistPrimary() { assert.fail("peer must never persist directly"); } });
+    t.after(() => { primary.close(); peer.close(); operationTimers.forEach(timer => clearTimeout(timer.handle)); });
+    await settle();
+    const first = peer.submit({ text: "A", category: "" }).catch(error => error);
+    await settle(); assert.equal(persisted.text, "A");
+    const inFlightTimer = operationTimers.at(-1);
+    const second = peer.submit({ text: "AB", category: "" }).catch(error => error);
+    if (scenario === "timed-out submission") {
+      inFlightTimer.callback(); await first;
+      await new Promise(resolve => setTimeout(resolve, 25));
+      assert.equal(peer.getStatus(), "disconnected");
+    }
+    if (scenario !== "delayed ACK") {
+      await primary.commitPrimary({ text: scenario === "genuine competing edit" ? "Other" : "A", category: "Independent" });
+      await settle();
+    }
+    if (scenario === "genuine competing edit") {
+      assert.ok(peer.getConflict());
+      assert.equal(peer.getConflict().localSnapshot.text, "AB");
+      assert.equal(persisted.text, "Other");
+      return;
+    }
+    assert.equal(peer.getConflict(), null);
+    transport.release();
+    await second; await settle();
+    assert.equal(persisted.text, "AB");
+    assert.equal(peer.getConflict(), null);
+    if (scenario !== "delayed ACK") assert.equal(displayed.category, "Independent");
+    assert.equal(new Set(acknowledgements).size, acknowledgements.length, "each accepted operation is acknowledged only once");
+  });
+}
+
+for (const reconnect of [false, true]) {
+  test(`newer typing survives an accepted resolution's ${reconnect ? "welcome" : "ACK"}`, async t => {
+    const sync = load("app/studio/studio-sync.ts");
+    let holdResolution = false;
+    const transport = delayedReceiptsBus(message => holdResolution && message.revision === 2 && ["update", "ack"].includes(message.kind));
+    let persisted = { title: "Initial", category: "" }; let displayed;
+    const primary = sync.createStudioSync({ clientId: "owner", storeKey: "workspace", initialSnapshot: persisted, role: "primary", channelFactory: transport.factory, validateSnapshot: value => value, onSnapshot() {}, persistPrimary: next => { persisted = next; } });
+    const peer = sync.createStudioSync({ clientId: "peer", storeKey: "workspace", initialSnapshot: persisted, role: "peer", channelFactory: transport.factory, validateSnapshot: value => value, onSnapshot: snapshot => { displayed = snapshot; }, persistPrimary() { assert.fail("peer persisted"); } });
+    t.after(() => { primary.close(); peer.close(); });
+    await settle();
+    await Promise.allSettled([primary.commitPrimary({ title: "Other", category: "" }), peer.submit({ title: "Mine", category: "" })]);
+    assert.ok(peer.getConflict());
+    await new Promise(resolve => setTimeout(resolve, 25));
+    holdResolution = true;
+    const resolution = peer.resolveConflict("mine"); await settle();
+    assert.equal(persisted.title, "Mine");
+    const typing = peer.submit({ title: "Mine plus typing", category: "" });
+    if (reconnect) {
+      await primary.commitPrimary({ title: "Mine", category: "Independent" }); await settle();
+      assert.equal(displayed.title, "Mine plus typing");
+      assert.equal(displayed.category, "Independent");
+    }
+    transport.release(); await Promise.all([resolution, typing]); await settle();
+    assert.equal(displayed.title, "Mine plus typing");
+    assert.equal(persisted.title, "Mine plus typing");
+    assert.equal(peer.getConflict(), null);
+  });
+}
+
 test("shared conflict descriptions name fields, hide record IDs and bound long lists", () => {
   const { studioConflictDetails } = load("app/studio/studio-sync-description.ts");
   const describe = paths => studioConflictDetails({ conflicts: paths.map(path => ({ change: { path } })) });

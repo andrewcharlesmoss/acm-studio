@@ -608,6 +608,10 @@
 
 ### Fixed
 
+- Reconnecting Studio tabs recognise their own saved keystrokes before merging
+  newer typing, avoiding false text conflicts. Delayed acknowledgements no
+  longer cause subsequent edits to be rejected as a future revision.
+
 - Row and Stack inspectors show Justification and Orientation, with optional Alignment and Wrapping. Group block spacing is optional and remains visible when saved values exist.
 
 - Font Size and Border share consistent number/unit fields without spinners and Gutenberg-sized slider thumbs; custom font sliders use a 100px scale.

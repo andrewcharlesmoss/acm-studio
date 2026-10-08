@@ -266,6 +266,12 @@ updates. Each accepted local transaction advances the pending-edit baseline;
 only the remaining changes are rebased during writer handover. Selection IDs
 and timestamps do not count as unsaved shared content. Welcome replies are
 matched to the requesting session, so opening another tab cannot reset a peer.
+Welcome replies include up to 500 recent accepted transaction IDs. A peer uses
+receipts for its own submissions in the same coordinator session to recognise
+saved keystrokes before rebasing newer typing, including after a transport
+timeout. Missing receipts remain conservative; actual competing edits still
+require review. Queued edits use the committed revision known when dispatched,
+so an update arriving before its acknowledgement cannot create a future revision.
 Storage keys, sync protocol v2 and the lifetime writer lock are unchanged.
 
 When a conflict is resolved in favour of the local version, Studio applies the

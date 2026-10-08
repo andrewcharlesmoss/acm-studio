@@ -56,7 +56,7 @@ export type StudioSyncChannel = {
 type StudioSyncMessageBase = { protocol: typeof STUDIO_SYNC_PROTOCOL; scope: string; storeKey: string; senderId: string };
 export type StudioSyncMessage =
   | (StudioSyncMessageBase & { kind: "hello"; requestId: string })
-  | (StudioSyncMessageBase & { kind: "welcome"; requestId: string; brokerEpoch: string; revision: number; snapshot: unknown })
+  | (StudioSyncMessageBase & { kind: "welcome"; requestId: string; brokerEpoch: string; revision: number; snapshot: unknown; acceptedTransactionIds?: string[] })
   | (StudioSyncMessageBase & { kind: "operation"; requestId: string; transaction: StudioSyncTransaction; resolution?: true })
   | (StudioSyncMessageBase & { kind: "update"; updateId: string; revision: number; transaction: StudioSyncTransaction })
   | (StudioSyncMessageBase & { kind: "ack"; requestId: string; revision: number; snapshot?: unknown })
@@ -368,7 +368,12 @@ export function validateStudioSyncMessage<T>(value: unknown, storeKey: string, v
   if (!isRecord(value) || value.protocol !== STUDIO_SYNC_PROTOCOL || value.scope !== scope || value.storeKey !== storeKey || !validId(value.senderId) || !validId(value.kind)) return null;
   try { if (JSON.stringify(value).length > MAX_SYNC_BYTES) return null; } catch { return null; }
   if (value.kind === "hello" && validId(value.requestId)) return value as StudioSyncMessage;
-  if (value.kind === "welcome" && validId(value.requestId) && validId(value.brokerEpoch) && validRevision(value.revision)) { try { validateSnapshot(value.snapshot); return value as StudioSyncMessage; } catch { return null; } }
+  if (value.kind === "welcome" && validId(value.requestId) && validId(value.brokerEpoch) && validRevision(value.revision)) {
+    if (value.acceptedTransactionIds !== undefined && (!Array.isArray(value.acceptedTransactionIds)
+      || value.acceptedTransactionIds.length > 500 || !value.acceptedTransactionIds.every(validId)
+      || new Set(value.acceptedTransactionIds).size !== value.acceptedTransactionIds.length)) return null;
+    try { validateSnapshot(value.snapshot); return value as StudioSyncMessage; } catch { return null; }
+  }
   if (value.kind === "operation" && validId(value.requestId) && validTransaction(value.transaction) && (value.resolution === undefined || value.resolution === true)) return value as StudioSyncMessage;
   if (value.kind === "update" && validId(value.updateId) && validRevision(value.revision) && validTransaction(value.transaction)) return value as StudioSyncMessage;
   if (value.kind === "ack" && validId(value.requestId) && validRevision(value.revision)) { try { if (value.snapshot !== undefined) validateSnapshot(value.snapshot); return value as StudioSyncMessage; } catch { return null; } }
@@ -404,6 +409,9 @@ export class StudioSyncSession<T> {
   private helloTimer: ReturnType<typeof setTimeout> | null = null;
   private helloRequestId: string | null = null;
   private acknowledgedTransactions = new Set<string>();
+  // Transport timeouts reject promises, but cannot prove an operation was not
+  // saved. Retain bounded receipt candidates until the owner confirms them.
+  private unacknowledgedSubmissions = new Map<string, { transaction: StudioSyncTransaction; resolution?: true }>();
   private brokerTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private closed = false;
@@ -556,6 +564,7 @@ export class StudioSyncSession<T> {
   private notifyCommitted(source: StudioSyncSnapshotSource, transaction?: StudioSyncTransaction) {
     let acknowledgedTransaction: StudioSyncTransaction | undefined;
     if (transaction?.clientId === this.clientId && !this.acknowledgedTransactions.has(transaction.transactionId)) {
+      this.unacknowledgedSubmissions.delete(transaction.transactionId);
       acknowledgedTransaction = transaction;
       this.acknowledgedTransactions.add(transaction.transactionId);
       if (this.acknowledgedTransactions.size > 500) this.acknowledgedTransactions.delete(this.acknowledgedTransactions.values().next().value!);
@@ -619,10 +628,9 @@ export class StudioSyncSession<T> {
           const missedRemoteChanges = message.revision > this.revision && this.makeTransaction(accepted.snapshot, authoritative, this.revision).changes.length > 0;
           this.snapshot = authoritative;
           this.revision = message.revision;
-          if (operation.resolution) this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
-          else if (!rebased.conflicts.length) this.optimisticSnapshot = this.validate(rebased.snapshot);
+          if (!rebased.conflicts.length) this.optimisticSnapshot = this.validate(rebased.snapshot);
           this.notifyCommitted("commit", operation.transaction);
-          if (!operation.resolution && missedRemoteChanges) {
+          if (missedRemoteChanges) {
             if (rebased.conflicts.length) this.openConflict(remaining, { snapshot: authoritative, conflicts: rebased.conflicts }, operation, "Studio changes conflict with your local changes.");
             else this.options.onSnapshot(this.optimisticSnapshot, "update");
           }
@@ -642,7 +650,10 @@ export class StudioSyncSession<T> {
     }
     if (message.kind === "reject") this.receiveReject(message);
   }
-  private sendWelcome(message: Extract<StudioSyncMessage, { kind: "hello" }>) { this.send({ ...this.base(), kind: "welcome", requestId: message.requestId, brokerEpoch: this.brokerEpoch, revision: this.revision, snapshot: this.snapshot }); }
+  private sendWelcome(message: Extract<StudioSyncMessage, { kind: "hello" }>) {
+    const acceptedTransactionIds = [...this.completed].filter(([, result]) => result.accepted).map(([transactionId]) => transactionId);
+    this.send({ ...this.base(), kind: "welcome", requestId: message.requestId, brokerEpoch: this.brokerEpoch, revision: this.revision, snapshot: this.snapshot, acceptedTransactionIds });
+  }
   private receiveWelcome(message: Extract<StudioSyncMessage, { kind: "welcome" }>) {
     if (this.role !== "peer" || message.requestId !== this.helloRequestId) return;
     if (this.brokerEpoch && this.brokerEpoch !== message.brokerEpoch && this.status === "synced") return;
@@ -651,7 +662,19 @@ export class StudioSyncSession<T> {
     const interruptedConflict = this.conflict ?? this.pendingResumedConflict;
     this.conflict = null;
     this.pendingResumedConflict = null;
-    const unsaved = this.makeTransaction(this.snapshot, this.optimisticSnapshot, this.revision);
+    const receipts = new Set(message.acceptedTransactionIds ?? []);
+    const candidates = new Map(this.unacknowledgedSubmissions);
+    this.pending.forEach(operation => candidates.set(operation.transaction.transactionId, operation));
+    const accepted = [...candidates.values()].filter(operation => receipts.has(operation.transaction.transactionId)
+      && operation.transaction.clientId === this.clientId && operation.transaction.brokerEpoch === message.brokerEpoch);
+    let committedBase = this.snapshot;
+    for (const operation of accepted) {
+      const applied = applyStudioTransaction(committedBase, operation.transaction, operation.resolution === true);
+      if (!applied.conflicts.length) committedBase = this.validate(applied.snapshot);
+    }
+    // Only owner receipts can distinguish our saved keystrokes from another
+    // tab's edits. Rebase the typing that remains after those accepted edits.
+    const unsaved = this.makeTransaction(committedBase, this.optimisticSnapshot, this.revision);
     this.brokerEpoch = message.brokerEpoch; this.revision = message.revision; this.snapshot = this.validate(message.snapshot);
     const rebased = applyStudioTransaction(this.snapshot, unsaved);
     if (!rebased.conflicts.length) this.optimisticSnapshot = this.validate(rebased.snapshot);
@@ -660,11 +683,17 @@ export class StudioSyncSession<T> {
     // Install the authoritative snapshot before exposing a writable peer. A
     // newly opened tab may have loaded older browser storage while it waited
     // for the primary tab to answer.
-    this.notifyCommitted("welcome");
+    if (accepted.length) accepted.forEach(operation => this.notifyCommitted("welcome", operation.transaction));
+    else this.notifyCommitted("welcome");
     this.options.onSnapshot(this.optimisticSnapshot, "welcome");
     this.setStatus("synced");
     if (interruptedConflict) this.installResumedConflict(interruptedConflict);
     else if (rebased.conflicts.length) this.openConflict(unsaved, { snapshot: this.snapshot, conflicts: rebased.conflicts }, null, "Studio changes conflict with your local changes.");
+    for (const [requestId, operation] of this.pending) {
+      if (!receipts.has(operation.transaction.transactionId) || operation.transaction.brokerEpoch !== message.brokerEpoch) continue;
+      this.pending.delete(requestId); clearTimeout(operation.timer); operation.resolve();
+    }
+    void this.processPeerQueue();
   }
   private async receiveOperation(message: Extract<StudioSyncMessage, { kind: "operation" }>) {
     const transaction = message.transaction; const previous = this.completed.get(transaction.transactionId);
@@ -758,6 +787,7 @@ export class StudioSyncSession<T> {
     // Rejects are broadcast to every tab; only the submitting tab owns this request.
     if (!operation) return;
     const unsavedSnapshot = this.cloneSnapshot(this.optimisticSnapshot);
+    this.unacknowledgedSubmissions.delete(operation.transaction.transactionId);
     this.pending.delete(message.requestId); clearTimeout(operation.timer); operation.reject(new Error(message.reason));
     this.revision = message.revision;
     this.snapshot = this.validate(message.snapshot);
@@ -781,7 +811,15 @@ export class StudioSyncSession<T> {
     if (this.processingPeer || !this.isConnectedPeer()) return; this.processingPeer = true;
     try {
       while (this.peerQueue.length && this.isConnectedPeer()) {
-        const operation = this.peerQueue.shift()!; this.pending.set(operation.requestId, operation); this.send({ ...this.base(), kind: "operation", requestId: operation.requestId, transaction: operation.transaction, ...(operation.resolution ? { resolution: true } : {}) });
+        const operation = this.peerQueue.shift()!;
+        // Own updates may arrive before ACKs. Queue length is not a count of
+        // future committed revisions; use the revision known at dispatch.
+        operation.transaction = { ...operation.transaction, baseRevision: this.revision };
+        clearTimeout(operation.timer);
+        operation.timer = setTimeout(() => this.failPeer(operation.requestId, new Error("The primary Studio tab stopped responding.")), OPERATION_TIMEOUT_MS);
+        this.unacknowledgedSubmissions.set(operation.transaction.transactionId, { transaction: operation.transaction, resolution: operation.resolution });
+        if (this.unacknowledgedSubmissions.size > 500) this.unacknowledgedSubmissions.delete(this.unacknowledgedSubmissions.keys().next().value!);
+        this.pending.set(operation.requestId, operation); this.send({ ...this.base(), kind: "operation", requestId: operation.requestId, transaction: operation.transaction, ...(operation.resolution ? { resolution: true } : {}) });
         await new Promise<void>(resolve => { const check = () => { if (!this.pending.has(operation.requestId)) resolve(); else setTimeout(check, 20); }; check(); });
       }
     } finally { this.processingPeer = false; }
