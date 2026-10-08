@@ -919,6 +919,16 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     });
   }
 
+  function selectListParent(blockId: string) {
+    selectBlockBoundary(blockId);
+    setTransformMenuBlockId(null);
+    // The item opener disappears when selecting its parent; retain a keyboard
+    // focus boundary without entering a child item and selecting it again.
+    const frame = canvasScrollRef.current?.querySelector<HTMLElement>(`[data-studio-block-anchor-id="${CSS.escape(blockId)}"], [data-studio-nested-block-id="${CSS.escape(blockId)}"]`);
+    if (frame && !frame.hasAttribute("tabindex")) frame.tabIndex = -1;
+    (frame ?? canvasScrollRef.current)?.focus();
+  }
+
   function finishInserterClose() {
     setInserterClosing(false);
     onSetShowInserter(false);
@@ -1890,7 +1900,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     };
     return <>
                     <div className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}`}>
-                      {itemSelection ? <ListItemSwitcher onSelectParent={() => { selectBlockBoundary(itemSelection.listId); setTransformMenuBlockId(null); }} /> : <BlockTransformControl block={block} parent={parentOfNestedBlock(activeDocument.blocks, block.id)} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} />}
+                      {itemSelection && listRoot && block.type === "list" ? <ListItemSwitcher root={listRoot} list={block} selection={itemSelection} writable={writable} onChange={changeList} onSelectParent={() => selectListParent(itemSelection.listId)} /> : <BlockTransformControl block={block} parent={parentOfNestedBlock(activeDocument.blocks, block.id)} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} />}
                       {!itemSelection ? <><button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} onClick={() => selectBlockBoundary(block.id)} onDragStart={(event) => {
                         event.stopPropagation();
                         const index = activeDocument.blocks.findIndex(root => root.id === block.id);

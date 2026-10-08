@@ -615,6 +615,8 @@
 
 ### Fixed
 
+- A selected List Item now shows Ordered/Unordered only after opening its far-left List menu, which also retains parent List selection.
+
 - Dashboard and editor navigation now share catalogue-backed tool icons, with
   distinct symbols for Files, Design Canvas, Backup and Bin.
 

@@ -12,15 +12,33 @@ import { preserveTextSelection } from "./editors/rich-text";
 type ItemSelection = { listId: string; itemIndex: number };
 type MoveResult = { block: ListBlock; listId: string; itemIndex: number };
 
-export function ListItemSwitcher({ onSelectParent }: { onSelectParent: () => void }) {
-  const [open, setOpen] = useState(false);
+export function ListItemSwitcher({ root, list, selection, writable, onChange, onSelectParent }: {
+  root: ListBlock; list: ListBlock; selection: ItemSelection; writable: boolean;
+  onChange: (result: MoveResult) => boolean; onSelectParent: () => void;
+}) {
+  const [open, setOpen] = useState<"list" | "item" | null>(null);
+  const listTriggerRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  function close(restore = true) {
+    setOpen(null);
+    if (restore) (open === "list" ? listTriggerRef : triggerRef).current?.focus();
+  }
   return <>
-    <button type="button" onMouseDown={preserveTextSelection} onClick={onSelectParent} aria-label="Select parent block: List" title="Select parent block: List"><StudioHoverIcon name="block.list" /></button>
     <div className="transform-control">
-      <button ref={triggerRef} type="button" onMouseDown={preserveTextSelection} onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label="Change List Item block type or style" title="List Item"><StudioHoverIcon name="text.list-bulleted" /></button>
-      {open ? <StudioAnchoredMenu anchor={() => triggerRef.current} className="transform-menu" aria-label="List Item transforms" onClose={restore => { setOpen(false); if (restore !== false) triggerRef.current?.focus(); }}>
-        <button type="button" role="menuitem" aria-label="Close List Item transforms" onClick={() => { setOpen(false); triggerRef.current?.focus(); }}><StudioHoverIcon name="action.close" /><span>Close</span></button>
+      <button ref={listTriggerRef} type="button" onMouseDown={preserveTextSelection} onClick={() => { if (open === "list") close(); else setOpen("list"); }} aria-haspopup="menu" aria-expanded={open === "list"} aria-label="List options" title="List"><StudioHoverIcon name={list.style === "ordered" ? "text.list-numbered" : "block.list"} /></button>
+      {open === "list" ? <StudioAnchoredMenu anchor={() => listTriggerRef.current} className="rich-text-format-menu" aria-label="List options" onClose={close}>
+        <button type="button" role="menuitem" aria-label="Close List options" onClick={() => close()}><StudioHoverIcon name="action.close" /><span>Close</span></button>
+        {(["unordered", "ordered"] as const).map(style => <button key={style} type="button" role="menuitemradio" disabled={!writable} aria-checked={list.style === style} className={list.style === style ? "is-active" : ""} onMouseDown={preserveTextSelection} onClick={() => {
+          if (!writable) return;
+          if (list.style === style || onChange({ block: replaceListType(root, list.id, style), listId: list.id, itemIndex: selection.itemIndex })) close();
+        }}><StudioHoverIcon name={style === "ordered" ? "text.list-numbered" : "text.list-bulleted"} /><span>{style === "ordered" ? "Ordered" : "Unordered"}</span></button>)}
+        <button type="button" role="menuitem" aria-label="Select parent block: List" onMouseDown={preserveTextSelection} onClick={() => { close(false); onSelectParent(); }}><StudioHoverIcon name="block.list" /><span>Select List</span></button>
+      </StudioAnchoredMenu> : null}
+    </div>
+    <div className="transform-control">
+      <button ref={triggerRef} type="button" onMouseDown={preserveTextSelection} onClick={() => { if (open === "item") close(); else setOpen("item"); }} aria-haspopup="menu" aria-expanded={open === "item"} aria-label="Change List Item block type or style" title="List Item"><StudioHoverIcon name="text.list-bulleted" /></button>
+      {open === "item" ? <StudioAnchoredMenu anchor={() => triggerRef.current} className="rich-text-format-menu" aria-label="List Item transforms" onClose={close}>
+        <button type="button" role="menuitem" aria-label="Close List Item transforms" onClick={() => close()}><StudioHoverIcon name="action.close" /><span>Close</span></button>
         <p>No transforms.</p>
       </StudioAnchoredMenu> : null}
     </div>
@@ -40,7 +58,7 @@ export function ListToolbarControls({ root, list, selection, contextBlocks, writ
     if (moved) onChange(moved, 0);
   }
   return <div className="list-toolbar-controls" role="group" aria-label="List controls">
-    {(["unordered", "ordered"] as const).map(style => <button key={style} type="button" onMouseDown={preserveTextSelection} disabled={!writable} aria-label={style === "ordered" ? "Convert to ordered list" : "Convert to unordered list"} title={style === "ordered" ? "Ordered" : "Unordered"} aria-pressed={list.style === style} className={list.style === style ? "is-active" : ""} onClick={() => onChange({ block: replaceListType(root, list.id, style), listId: list.id, itemIndex: first })}><StudioHoverIcon name={style === "ordered" ? "text.list-numbered" : "text.list-bulleted"} /></button>)}
+    {!selection ? (["unordered", "ordered"] as const).map(style => <button key={style} type="button" onMouseDown={preserveTextSelection} disabled={!writable} aria-label={style === "ordered" ? "Convert to ordered list" : "Convert to unordered list"} title={style === "ordered" ? "Ordered" : "Unordered"} aria-pressed={list.style === style} className={list.style === style ? "is-active" : ""} onClick={() => onChange({ block: replaceListType(root, list.id, style), listId: list.id, itemIndex: first })}><StudioHoverIcon name={style === "ordered" ? "text.list-numbered" : "text.list-bulleted"} /></button>) : null}
     <button type="button" onMouseDown={preserveTextSelection} disabled={!writable || !outdent} aria-label="Outdent list item" title={selection ? "Outdent (Shift+Tab)" : "Outdent List"} onClick={() => move("outdent")}><StudioHoverIcon name="arrange.outdent" /></button>
     {selection ? <button type="button" onMouseDown={preserveTextSelection} disabled={!writable || first <= 0} aria-label="Indent list item" title="Indent (Tab)" onClick={() => move("indent")}><StudioHoverIcon name="arrange.indent" /></button> : null}
   </div>;

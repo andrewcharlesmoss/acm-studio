@@ -4,6 +4,7 @@ import ts from 'typescript';
 import { runInNewContext } from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
+import * as jsxRuntime from 'react/jsx-runtime';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
 const load = path => loadProductionModule(new URL(path, import.meta.url));
@@ -18,6 +19,87 @@ const list = (items, id = 'root', extra = {}) => ({ id, type: 'list', style: 'un
 const lines = root => root.items.flatMap(item => [typeof item === 'string' ? item : item.text, ...(typeof item === 'string' ? [] : (item.children ?? []).flatMap(lines))]);
 function buttons(node) { return Array.isArray(node) ? node.flatMap(buttons) : !node?.props ? [] : node.type === 'button' ? [node] : buttons(node.props.children); }
 function action(node, label) { const button = buttons(node).find(value => value.props['aria-label'] === label); assert.ok(button, label); return button; }
+
+// Exercise the production component's state transitions without mounting its portal.
+const toolbarSource = readFileSync(new URL('../app/studio/blocks/list-toolbar.tsx', import.meta.url), 'utf8');
+const toolbarTree = ts.createSourceFile('list-toolbar.tsx', toolbarSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const switcherFunctions = toolbarTree.statements.filter(node => ts.isFunctionDeclaration(node) && ['ListItemSwitcher', 'replaceListType'].includes(node.name?.text)).map(node => node.getText(toolbarTree).replace(/^export /, '')).join('\n');
+const compiledSwitcher = ts.transpileModule(`${switcherFunctions}\nglobalThis.render = ListItemSwitcher;`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+function switcherHarness(props) {
+  let open = null, refIndex = 0;
+  const focus = [0, 0], refs = focus.map((_, index) => ({ current: { focus: () => focus[index]++ } }));
+  const scope = { exports: {}, require: () => jsxRuntime, useState: () => [open, value => { open = value; }], useRef: () => refs[refIndex++],
+    StudioAnchoredMenu: 'menu-fixture', StudioHoverIcon: 'icon-fixture', preserveTextSelection() {} };
+  runInNewContext(compiledSwitcher, scope);
+  return { focus, render: () => { refIndex = 0; return scope.render(props); } };
+}
+function menu(node) { return Array.isArray(node) ? node.flatMap(menu) : !node?.props ? [] : node.type === 'menu-fixture' ? [node] : menu(node.props.children); }
+
+test('List Item type options appear only after opening the far-left menu; item transforms stay separate', () => {
+  const root = list(['One', 'Two']);
+  const selection = { listId: root.id, itemIndex: 1 };
+  const props = { root, list: root, selection, writable: true, onChange: () => true, onSelectParent() {} };
+  const harness = switcherHarness(props);
+  assert.equal(menu(harness.render()).length, 0);
+  const toolbar = ListToolbarControls({ ...props, contextBlocks: [root] });
+  assert.equal(buttons(toolbar).some(button => button.props['aria-label']?.startsWith('Convert to')), false);
+  action(harness.render(), 'List options').props.onClick();
+  const options = menu(harness.render())[0];
+  const choices = buttons(options).filter(button => button.props.role === 'menuitemradio');
+  assert.deepEqual(Array.from(choices, button => button.props.children[1].props.children), ['Unordered', 'Ordered']);
+  assert.deepEqual(Array.from(choices, button => button.props['aria-checked']), [true, false]);
+  options.props.onClose();
+  assert.equal(menu(harness.render()).length, 0);
+  assert.deepEqual(harness.focus, [1, 0]);
+  action(harness.render(), 'List options').props.onClick();
+  action(harness.render(), 'List options').props.onClick();
+  assert.equal(menu(harness.render()).length, 0);
+  assert.deepEqual(harness.focus, [2, 0]);
+  action(harness.render(), 'Change List Item block type or style').props.onClick();
+  assert.equal(menu(harness.render())[0].props['aria-label'], 'List Item transforms');
+  assert.equal(buttons(menu(harness.render())[0]).some(button => button.props.role === 'menuitemradio'), false);
+  action(harness.render(), 'Change List Item block type or style').props.onClick();
+  assert.equal(menu(harness.render()).length, 0);
+  assert.deepEqual(harness.focus, [2, 1]);
+});
+
+for (const mode of ['accepted', 'rejected', 'readonly']) test(`List options conversion ${mode} retains the selected nested owner and numbering settings`, () => {
+  const nested = list(['Selected', 'Sibling'], 'nested', { style: 'ordered', start: 0, reversed: true, marker: 'a' });
+  const root = list([{ text: 'Parent', children: [nested] }, 'After']);
+  const changes = [];
+  const harness = switcherHarness({ root, list: nested, selection: { listId: 'nested', itemIndex: 0 }, writable: mode !== 'readonly',
+    onChange: value => { changes.push(value); return mode === 'accepted'; }, onSelectParent() {} });
+  action(harness.render(), 'List options').props.onClick();
+  const choice = buttons(menu(harness.render())[0]).find(button => button.props.role === 'menuitemradio' && !button.props['aria-checked']);
+  assert.equal(choice.props.disabled, mode === 'readonly');
+  choice.props.onClick();
+  assert.equal(changes.length, mode === 'readonly' ? 0 : 1);
+  if (changes[0]) {
+    const target = structure.findListBlock(changes[0].block, 'nested');
+    assert.equal(changes[0].listId, 'nested');
+    assert.equal(changes[0].itemIndex, 0);
+    assert.equal(changes[0].block.style, 'unordered');
+    assert.equal(target.style, 'unordered');
+    assert.deepEqual([target.start, target.reversed, target.marker], [0, true, 'a']);
+    assert.deepEqual(lines(changes[0].block), lines(root));
+  }
+  assert.equal(menu(harness.render()).length, mode === 'accepted' ? 0 : 1);
+  assert.equal(nested.style, 'ordered');
+});
+
+test('the List menu retains parent selection and a current-type choice closes without a history write', () => {
+  const root = list(['One']); let writes = 0, parents = 0;
+  const harness = switcherHarness({ root, list: root, selection: { listId: root.id, itemIndex: 0 }, writable: true,
+    onChange: () => { writes++; return true; }, onSelectParent: () => parents++ });
+  action(harness.render(), 'List options').props.onClick();
+  buttons(menu(harness.render())[0]).find(button => button.props['aria-checked']).props.onClick();
+  assert.equal(writes, 0);
+  assert.equal(menu(harness.render()).length, 0);
+  action(harness.render(), 'List options').props.onClick();
+  action(menu(harness.render())[0], 'Select parent block: List').props.onClick();
+  assert.equal(parents, 1);
+  assert.equal(menu(harness.render()).length, 0);
+});
 
 test('range indentation appends the entire range in order and returns its actual first item', () => {
   const source = list([{ text: 'Parent', children: [list(['Existing'], 'nested')] }, 'One', 'Two', 'After']);
@@ -89,8 +171,9 @@ test('editor uses semantic lists and empty List Items retain their complete insp
     assert.match(pane, /Background/);
     assert.match(pane, /Border/);
   }
-  const switcher = renderToStaticMarkup(createElement(ListItemSwitcher, { onSelectParent() {} }));
-  assert.match(switcher, /Select parent block: List/);
+  const switcher = renderToStaticMarkup(createElement(ListItemSwitcher, { root, list: root, selection: { listId: root.id, itemIndex: 0 }, writable: true, onChange: () => true, onSelectParent() {} }));
+  assert.match(switcher, /List options/);
+  assert.doesNotMatch(switcher, /menuitemradio|Convert to|Select parent block/);
   assert.match(switcher, /Change List Item block type or style/);
 });
 
@@ -132,6 +215,23 @@ const { editBlockSiblings } = await load('../app/studio/block-sibling-operations
 const { findBlockById } = await import('../app/studio/studio-command-operations.mjs');
 const source = readFileSync(new URL('../app/studio/studio-canvas.tsx', import.meta.url), 'utf8');
 const tree = ts.createSourceFile('canvas.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+let selectListParent;
+function findParentSelect(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === 'selectListParent') selectListParent = node; ts.forEachChild(node, findParentSelect); }
+findParentSelect(tree);
+const compiledParentSelect = ts.transpileModule(`${selectListParent.getText(tree)};globalThis.select = selectListParent;`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+for (const owner of ['root', 'nested', 'missing']) test(`Select List returns focus to its ${owner} boundary without selecting child text`, () => {
+  let focus = 0, canvasFocus = 0, selected, closed = false;
+  const frame = { hasAttribute: () => owner === 'root', focus: () => focus++ };
+  const scope = { selectBlockBoundary: id => { selected = id; }, setTransformMenuBlockId: value => { closed = value === null; },
+    CSS: { escape: value => value }, canvasScrollRef: { current: { querySelector: () => owner === 'missing' ? null : frame, focus: () => canvasFocus++ } } };
+  runInNewContext(compiledParentSelect, scope);
+  scope.select('list');
+  assert.equal(selected, 'list');
+  assert.equal(closed, true);
+  assert.equal(focus, owner === 'missing' ? 0 : 1);
+  assert.equal(canvasFocus, owner === 'missing' ? 1 : 0);
+  assert.equal(frame.tabIndex, owner === 'nested' ? -1 : undefined);
+});
 let changeList;
 function findChange(node) { if (ts.isVariableDeclaration(node) && node.name.getText(tree) === 'changeList') changeList = node.initializer; ts.forEachChild(node, findChange); }
 findChange(tree);

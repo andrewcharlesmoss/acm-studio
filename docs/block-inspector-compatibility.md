@@ -634,12 +634,15 @@ inspected on 9 October 2026. This supplements the catalogue’s earlier baseline
 it does not refresh unrelated block comparisons.
 
 - The floating toolbar distinguishes a selected List Item from its parent List.
-  The parent selector selects the List. The item switcher reports No transforms
+  At Andrew’s direction, the far-left List button opens Ordered/Unordered
+  options only on demand, with Select List available in that menu. This is an
+  intentional adaptation of the reference parent selector. The item switcher reports No transforms
   inside a List because its allowed children are List Items; it must not
   transform the whole List through the item button. This follows
   [the parent selector](https://github.com/WordPress/gutenberg/blob/e18aef5783a49c7a34835268d575b953bb4778d1/packages/block-editor/src/components/block-parent-selector/index.jsx)
   and [context-filtered transforms](https://github.com/WordPress/gutenberg/blob/e18aef5783a49c7a34835268d575b953bb4778d1/packages/block-editor/src/store/selectors.js).
-- Ordered/Unordered and indentation use the shared toolbar. Item move,
+- Ordered/Unordered remains inline when the List itself is selected; for a
+  List Item it appears only in the far-left menu. Indentation uses the shared toolbar. Item move,
   duplicate and remove actions target that item and its subtree. Select the
   parent List for whole-block transforms, alignment and block options.
 - [Tab and Space](https://github.com/WordPress/gutenberg/blob/e18aef5783a49c7a34835268d575b953bb4778d1/packages/block-library/src/list-item/hooks/use-tab.js)
