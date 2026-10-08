@@ -103,7 +103,7 @@
 .template-header .template-navigation { justify-content: flex-end; }
 .template-footer { margin-top: var(--template-spacing); border-top: var(--template-border-width) solid var(--template-border); }
 .template-editing .template-node:has(> .template-node-selectable > .template-footer), .template-editing .template-footer { margin-top: 0; }
-.template-surface .template-footer > .template-part-content > div > :is(.template-group.layout-columns, .template-node-selectable > .template-group.layout-columns):is(:not([style*="--block-layout-columns"]), [style*="--block-layout-columns: 3"]) { grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr); }
+.template-surface .template-footer .template-group.layout-columns:has(.template-copyright):not(:has(:is(.template-group, .studio-nested-group).layout-columns)):is(:not([style*="--block-layout-columns"]), [style*="--block-layout-columns: 3"]) { grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr); }
 .template-footer .template-copyright { margin: 0; text-align: center; font-size: 1.0625rem; }
 .template-footer .template-social { justify-content: flex-end; }
 .template-surface :is(h1, h2, h3, h4, h5, h6) { color: inherit; }
@@ -154,7 +154,7 @@
   .template-surface .template-group.has-layout-options[data-layout-stack-at="mobile"].layout-grid { grid-template-columns: 1fr; }
   .template-surface .template-columns[data-layout-stack-at="mobile"] { grid-template-columns: 1fr; }
   .template-surface .template-group.layout-columns { grid-template-columns: 1fr; }
-  .template-surface .template-footer > .template-part-content > div > :is(.template-group.layout-columns, .template-node-selectable > .template-group.layout-columns):is(:not([style*="--block-layout-columns"]), [style*="--block-layout-columns: 3"]) { grid-template-columns: minmax(0, 1fr); }
+  .template-surface .template-footer .template-group.layout-columns:has(.template-copyright):not(:has(:is(.template-group, .studio-nested-group).layout-columns)):is(:not([style*="--block-layout-columns"]), [style*="--block-layout-columns: 3"]) { grid-template-columns: minmax(0, 1fr); }
   .template-header .template-group.layout-row { flex-direction: column; align-items: stretch; gap: 16px; }
   .template-header .template-group.layout-row > div { flex-basis: auto; }
   .template-header .template-navigation { justify-content: flex-start; gap: 4px 12px; }
