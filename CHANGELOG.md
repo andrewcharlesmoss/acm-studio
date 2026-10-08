@@ -608,6 +608,9 @@
 
 ### Fixed
 
+- Route primary editor actions and block insertion controls through the shared
+  button colours, including matching hover states.
+
 - Delayed workspace autosaves no longer revert newer typing and create false
   text/runs conflicts. Unsaved owner input also survives incoming peer updates
   before React renders, while genuine overlapping edits remain reviewable.

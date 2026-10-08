@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
+import { UNIVERSAL_STYLE_PRESET, universalStylePresetToCssVariables } from "@acm/styles";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import "@acm/styles/styles.css";
@@ -22,6 +24,17 @@ export const metadata: Metadata = {
   description: "Projects, experiments and useful writing by Andrew Charles Moss.",
 };
 
+const universalStyleTokens = universalStylePresetToCssVariables(UNIVERSAL_STYLE_PRESET) as Record<string, string>;
+const universalStyleVariables = {
+  ...universalStyleTokens,
+  // Editor controls must keep the shared action colours inside authored style scopes.
+  "--studio-shared-button-background": universalStyleTokens["--acm-button-base-background"],
+  "--studio-shared-button-foreground": universalStyleTokens["--acm-button-base-foreground"],
+  "--studio-shared-button-border": universalStyleTokens["--acm-button-base-border"],
+  "--studio-shared-button-hover-background": universalStyleTokens["--acm-button-base-hover-background"],
+  "--studio-shared-button-hover-foreground": universalStyleTokens["--acm-button-base-hover-foreground"],
+} as CSSProperties;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-GB">
-      <body>{children}</body>
+      <body style={universalStyleVariables}>{children}</body>
     </html>
   );
 }

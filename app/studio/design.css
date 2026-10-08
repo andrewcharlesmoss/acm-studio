@@ -271,7 +271,6 @@
 .design-conflict-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 4px; }
 .design-conflict-actions button, .design-notice button { border: 1px solid #c8c6be; border-radius: 5px; cursor: pointer; font: inherit; padding: 8px 12px; }
 .design-conflict-actions .button-secondary { background: #fff; color: var(--ink); }
-.design-conflict-actions .button-primary { background: #1c1c1e; color: #fff; }
 .design-notice button { background: #fff; color: inherit; margin-left: 5px; }
 @media (max-width: 980px) {
   .design-workspace { grid-template-columns: var(--design-pages-width) minmax(0, 1fr) var(--design-inspector-width); }

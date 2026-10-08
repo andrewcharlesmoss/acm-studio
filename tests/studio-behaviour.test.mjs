@@ -1864,11 +1864,6 @@ test("successful publication feedback dismisses itself", () => {
   assert.match(publishing, /clearTimeout\(timeout\)/);
 });
 
-test("the main Add block control uses the black primary treatment", () => {
-  const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(css, /\.editor-history-actions button\.editor-add-block \{ background: var\(--ink\); border-color: var\(--ink\); color: white; \}/);
-});
-
 test("text alignment controls use neutral selected states", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(css, /\.alignment-menu button:hover, \.alignment-menu button\.is-active,[^{]*\{ background: #f0f0f0 !important; color: #1e1e1e !important; \}/);

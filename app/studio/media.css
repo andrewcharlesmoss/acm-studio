@@ -98,7 +98,6 @@
 .media-alt-dialog textarea { border: 1px solid #d1cfc7; border-radius: 7px; font: inherit; font-size: var(--studio-ui-size); min-height: 88px; padding: 9px; resize: vertical; width: 100%; }
 .media-dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .media-dialog-actions button { background: white; border: 1px solid #d1cfc7; border-radius: 7px; cursor: pointer; font-size: var(--studio-ui-size); padding: 8px 12px; }
-.media-dialog-actions .button-primary { background: var(--accent); border-color: var(--accent); color: white; }
 .folder-detail label { display: grid; gap: 6px; justify-self: stretch; text-align: left; }
 .folder-detail label > span { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 620; }
 .folder-detail input { background: white; border: 1px solid #d1cfc7; border-radius: 7px; font: inherit; font-size: var(--studio-ui-size); padding: 9px; width: 100%; }
