@@ -184,6 +184,24 @@ test("cancelled acquisition cannot request a stale writer lock during effect rep
   release();
 });
 
+test("an overlapping acquisition cannot demote or release this document's existing owner", async () => {
+  const { StudioWriteOwnership } = modules()("app/studio/write-ownership.ts");
+  const manager = locks(); const owner = new StudioWriteOwnership();
+  const release = await own(owner, manager);
+  const token = owner.captureWriteToken();
+  const releaseOverlap = owner.acquire(() => assert.fail("must not load a second owning editor"), manager);
+  await tick();
+  assert.equal(owner.getState(), "writable");
+  assert.equal(owner.canWrite(token), true);
+  assert.equal(manager.requests(), 1);
+  releaseOverlap(); await tick();
+  assert.equal(owner.canWrite(token), true);
+  assert.equal(manager.held(), true);
+  release(); await tick();
+  assert.equal(owner.canWrite(), false);
+  assert.equal(manager.held(), false);
+});
+
 test("replacing the ownership module releases its old Web Lock after pending work", async () => {
   const browserGlobal = {};
   const manager = locks();
@@ -323,6 +341,7 @@ function controlledStudioSync({ deferPeerSubmissions = false } = {}) {
           },
           getConflict() { return activeConflict; },
           getStatus() { return status; },
+          retryConnection() {},
           isAvailable() { return true; },
           isConnectedPeer() { return status === "synced"; },
           isPrimary() { return options.role === "primary"; },
@@ -373,13 +392,13 @@ test("peer installs the owner snapshot before editing and does not echo stale lo
   const peerTab = hookTab(peerStorage, manager, sync.module);
   let peer = await peerTab.flush();
   assert.equal(peer.writable, false);
-  assert.equal(peer.saveLabel, "Connecting to another ACM Studio tab…");
+  assert.equal(peer.saveLabel, "Reconnecting local saving…");
   assert.notEqual(peer.workspace.documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, "Authoritative owner title");
 
   sync.welcome();
   peer = await peerTab.flush();
   assert.equal(peer.writable, true);
-  assert.equal(peer.saveLabel, "Synced with another ACM Studio tab");
+  assert.equal(peer.saveLabel, "Local workspace connected");
   assert.equal(peer.workspace.documents.find(document => document.id === owner.workspace.activeDocumentId)?.title, "Authoritative owner title");
   assert.equal(sync.operations, 0, "the welcome snapshot must not be echoed as a peer edit");
   assert.equal(peerRaw, null, "a peer must never write its own browser store directly");

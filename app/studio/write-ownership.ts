@@ -33,6 +33,9 @@ export class StudioWriteOwnership {
   }
 
   acquire(onLoad: (token: symbol) => void, locks: LockManagerLike | undefined = globalThis.navigator?.locks) {
+    // An overlapping mount in this document must not demote the existing
+    // owner while that owner's lifetime lock remains held.
+    if (this.owner) return () => {};
     let cancelled = false;
     let token: symbol | null = null;
     if (!locks) this.notify("unavailable");
@@ -66,7 +69,7 @@ export class StudioWriteOwnership {
   }
   canWrite(token?: symbol | null) { return this.owner !== null && this.state === "writable" && (token === undefined || token === this.owner); }
   assertWritable(token?: symbol | null) {
-    if (!this.canWrite(token)) throw new Error("This Studio tab is read-only. Close the other editing tab, then try editing here.");
+    if (!this.canWrite(token)) throw new Error("This Studio window is read-only while local saving is unavailable. Try editing here again.");
   }
   captureWriteToken(): symbol {
     this.assertWritable();
@@ -121,7 +124,7 @@ ownershipGlobal.__acmStudioWriteOwnershipV1 = studioWriteOwnership;
 
 export function ownershipMessage(state: OwnershipState) {
   if (state === "unavailable") return "Read-only: this browser could not coordinate safe local editing.";
-  if (state === "waiting") return "Read-only: another Studio tab may be editing. Close it, then try editing here.";
+  if (state === "waiting") return "Waiting for safe local saving. Try editing here again.";
   if (state === "loading") return "Loading the latest local workspace…";
   if (state === "restoring") return "Restoring backup. Editing is paused.";
   if (state === "blocked") return "Editing is paused. Reload after a successful restore; retain your backup if recovery failed.";

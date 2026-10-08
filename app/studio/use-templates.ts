@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { copyTemplateData, emptyTemplateStore, type TemplateStore } from "./template-model";
 import { loadTemplates, saveTemplates } from "./template-store";
 import { studioWriteOwnership } from "./write-ownership";
-import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus, type StudioSyncTransaction } from "./studio-sync";
+import { createStudioSync, createStudioTransaction, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus, type StudioSyncTransaction } from "./studio-sync";
 import { reconcileStudioPendingSave, type StudioPendingSave } from "./studio-pending-save";
 import { validateTemplateStore } from "./template-model";
 
@@ -59,8 +59,8 @@ export function useTemplates(generation: number, writable: boolean) {
     const updateSyncStatus = (status: StudioSyncStatus) => {
       setSyncStatus(status);
       if (primary) return;
-      if (status === "connecting") setSaveLabel("Connecting to another ACM Studio tab…");
-      else if (status === "disconnected") setSaveLabel("Connection lost — template editing is paused");
+      if (status === "connecting") setSaveLabel("Reconnecting local saving…");
+      else if (status === "disconnected") setSaveLabel("Local saving unavailable — template editing is paused");
       else if (status === "unsupported") setSaveLabel("Read-only: this browser cannot synchronise Studio tabs");
     };
     const session = createStudioSync<TemplateStore>({
@@ -78,11 +78,13 @@ export function useTemplates(generation: number, writable: boolean) {
       onSnapshot: (snapshot, source) => {
         if (closed || (pendingConflictRef.current && source !== "commit" && source !== "conflict")) return;
         const view = pendingPeerSaveRef.current?.snapshot ?? snapshot;
+        const unchangedWelcome = source === "welcome" && !createStudioTransaction(current.current, view,
+          { clientId: "history", transactionId: "history", brokerEpoch: "history", baseRevision: 0 }).changes.length;
         current.current = view;
         setSyncSnapshotReady(true);
         setStore(view);
-        if (!primary && (source === "welcome" || source === "update" || source === "commit")) setSaveLabel("Synced with another ACM Studio tab");
-        if (source === "update" || source === "welcome" || source === "failover" || source === "recovery") {
+        if (!primary && (source === "welcome" || source === "update" || source === "commit")) setSaveLabel("Local workspace connected");
+        if (source === "update" || (source === "welcome" && !unchangedWelcome) || source === "failover" || source === "recovery") {
           history.current = [];
           future.current = [];
           setAvailability({ undo: false, redo: false });
@@ -151,7 +153,7 @@ export function useTemplates(generation: number, writable: boolean) {
       current.current = next; setStore(next); setError(null); setSaveLabel("Saving…");
       void save.then(() => {
         if (syncRef.current !== session || sequence.current !== saveSequence) return;
-        timer.current = setTimeout(() => { if (sequence.current === saveSequence) setSaveLabel(primaryWritable ? "Saved locally" : "Synced with another ACM Studio tab"); }, 500);
+        timer.current = setTimeout(() => { if (sequence.current === saveSequence) setSaveLabel("Saved locally"); }, 500);
       }).catch((reason) => {
         if (syncRef.current !== session || sequence.current !== saveSequence) return;
         if (timer.current) { clearTimeout(timer.current); timer.current = null; }
@@ -193,11 +195,11 @@ export function useTemplates(generation: number, writable: boolean) {
       pendingConflictRef.current = null;
       setSyncConflict(null);
       setError(null);
-      setSaveLabel(primaryWritable ? "Saved locally" : "Synced with another ACM Studio tab");
+      setSaveLabel("Saved locally");
     } catch (reason) {
       pendingPeerSaveRef.current = pendingPeerSave;
       setError(reason instanceof Error ? reason.message : "The choice could not be saved. Your template changes remain available for another attempt.");
     }
   }
-  return { store, ready: ready && loadedGeneration === generation, error, saveLabel, syncStatus, syncConflict, resolveSyncConflict, commit, undo, redo, canUndo: editable && availability.undo, canRedo: editable && availability.redo, writable: editable && ready && loadedGeneration === generation, exclusiveWritable: primaryWritable };
+  return { store, ready: ready && loadedGeneration === generation, error, saveLabel, syncStatus, syncConflict, resolveSyncConflict, retryConnection: () => syncRef.current?.retryConnection(), commit, undo, redo, canUndo: editable && availability.undo, canRedo: editable && availability.redo, writable: editable && ready && loadedGeneration === generation, exclusiveWritable: primaryWritable };
 }

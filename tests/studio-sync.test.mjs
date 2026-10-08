@@ -69,6 +69,150 @@ function outOfOrderChannelBus() {
 
 async function settle() { for (let index = 0; index < 10; index += 1) await Promise.resolve(); }
 
+function connectionFixture(t) {
+  let now = 0; let sequence = 0; const timers = new Map(); const rooms = new Map();
+  const messages = []; let drop = () => false; let welcomeDelay = 0;
+  const schedule = (callback, delay, interval = false) => {
+    const handle = ++sequence; timers.set(handle, { callback, at: now + delay, delay, interval }); return handle;
+  };
+  const sync = load("app/studio/studio-sync.ts", {
+    setTimeout: (callback, delay) => schedule(callback, delay), clearTimeout: handle => timers.delete(handle),
+    setInterval: (callback, delay) => schedule(callback, delay, true), clearInterval: handle => timers.delete(handle),
+  });
+  const factory = name => {
+    const room = rooms.get(name) ?? new Set(); rooms.set(name, room);
+    const listeners = new Set(); room.add(listeners);
+    return {
+      postMessage(message) {
+        messages.push(structuredClone(message));
+        if (drop(message)) return;
+        const deliver = () => { for (const peer of room) if (peer !== listeners) queueMicrotask(() => peer.forEach(listener => listener({ data: structuredClone(message) }))); };
+        if (message.kind === "welcome" && welcomeDelay) schedule(deliver, welcomeDelay); else deliver();
+      },
+      addEventListener(type, listener) { if (type === "message") listeners.add(listener); },
+      removeEventListener(_type, listener) { listeners.delete(listener); },
+      close() { room.delete(listeners); listeners.clear(); },
+    };
+  };
+  let persisted = { text: "Initial" }; let displayed; const states = []; const sessions = [];
+  const owner = () => {
+    const session = sync.createStudioSync({ storeKey: "workspace", initialSnapshot: persisted, role: "primary", channelFactory: factory, validateSnapshot: value => value, onSnapshot() {}, persistPrimary: snapshot => { persisted = snapshot; } });
+    sessions.push(session); return session;
+  };
+  const primary = owner();
+  const peer = sync.createStudioSync({ storeKey: "workspace", initialSnapshot: persisted, role: "peer", channelFactory: factory, validateSnapshot: value => value, onSnapshot: snapshot => { displayed = snapshot; }, onStatus: status => states.push(status), persistPrimary() { assert.fail("peer must retain exclusive-owner protection"); } });
+  sessions.push(peer);
+  t.after(async () => {
+    sessions.forEach(session => session.close());
+    // Let the existing ordered-operation drain observe that close removed its
+    // pending operation. Connection timers themselves must already be gone.
+    for (const [handle, timer] of timers) if (timer.delay === 20) { timers.delete(handle); timer.callback(); }
+    await settle();
+    assert.equal(timers.size, 0, "closing must remove reconnect and heartbeat timers");
+  });
+  return {
+    primary, peer, owner, states, messages, persisted: () => persisted, displayed: () => displayed,
+    drop(predicate) { drop = predicate; }, delayWelcome(delay) { welcomeDelay = delay; },
+    async advance(duration) {
+      const end = now + duration;
+      await settle();
+      while (true) {
+        const next = [...timers].filter(([, timer]) => timer.at <= end).sort((a, b) => a[1].at - b[1].at)[0];
+        if (!next) break;
+        const [handle, timer] = next; now = timer.at;
+        if (timer.interval) timer.at += timer.delay; else timers.delete(handle);
+        timer.callback(); await settle();
+      }
+      now = end; await settle();
+    },
+  };
+}
+
+test("a missed background heartbeat probes responsive saving without pausing editing", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  assert.equal(f.peer.getStatus(), "synced");
+  f.drop(message => message.kind === "status");
+  await f.advance(12_000);
+  assert.equal(f.peer.getStatus(), "synced");
+  assert.equal(f.states.includes("disconnected"), false);
+  await f.peer.submit({ text: "Typing after a missing heartbeat" });
+  assert.equal(f.persisted().text, "Typing after a missing heartbeat");
+});
+
+test("repeated heartbeats do not invalidate a delayed welcome", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  f.drop(message => message.kind === "status" || message.kind === "welcome");
+  await f.advance(6_000);
+  assert.equal(f.peer.getStatus(), "disconnected");
+  f.drop(() => false); f.delayWelcome(1500);
+  await f.advance(10_000);
+  assert.equal(f.peer.getStatus(), "synced");
+});
+
+test("automatic and explicit reconnect work without resumed heartbeats and never make a peer the owner", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  f.drop(message => message.kind === "status" || message.kind === "welcome");
+  await f.advance(10_000);
+  assert.equal(f.peer.getStatus(), "disconnected");
+  f.drop(message => message.kind === "status");
+  f.peer.retryConnection(); await f.advance(4_000);
+  assert.equal(f.peer.getStatus(), "synced");
+  assert.equal(f.peer.isPrimary(), false);
+  assert.equal(f.primary.isPrimary(), true);
+  await f.peer.submit({ text: "Recovered" });
+  assert.equal(f.persisted().text, "Recovered");
+  f.drop(message => message.kind === "status" || message.kind === "welcome");
+  await f.advance(6_000);
+  f.drop(message => message.kind === "status");
+  await f.advance(4_000);
+  assert.equal(f.peer.getStatus(), "synced", "recovery must not depend on a click or owner heartbeat");
+});
+
+test("a new owner's heartbeat recovers a missed announcement at a lower revision", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  await f.primary.commitPrimary({ text: "Old owner revision one" }); await settle();
+  f.primary.close();
+  f.drop(message => message.kind === "announce" || message.kind === "status");
+  const replacement = f.owner(); await f.advance(0);
+  f.drop(message => message.kind === "announce");
+  await f.advance(1500);
+  assert.equal(f.peer.getStatus(), "synced");
+  await f.peer.submit({ text: "New owner revision one" });
+  assert.equal(f.persisted().text, "New owner revision one");
+  assert.equal(replacement.isPrimary(), true);
+});
+
+test("role transitions cancel a pending handshake so a demoted session can reconnect", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  f.primary.close();
+  f.peer.retryConnection();
+  f.peer.setRole("primary"); await f.advance(3000);
+  const hellos = () => f.messages.filter(message => message.kind === "hello").length;
+  const before = hellos();
+  f.peer.setRole("peer");
+  assert.equal(hellos(), before + 1, "the previous peer handshake must not block the new one");
+  f.owner(); await f.advance(0);
+  assert.equal(f.peer.getStatus(), "synced");
+});
+
+test("an unreachable owner remains paused and reconnect preserves an unresolved local conflict", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  f.drop(message => message.kind === "update");
+  await f.primary.commitPrimary({ text: "Other edit" });
+  await assert.rejects(f.peer.submit({ text: "My edit" })); await settle();
+  assert.ok(f.peer.getConflict());
+  f.drop(message => message.kind === "status" || message.kind === "welcome");
+  await f.advance(10_000);
+  assert.equal(f.peer.getStatus(), "disconnected");
+  assert.equal(f.peer.getConflict().localSnapshot.text, "My edit");
+  assert.equal(f.persisted().text, "Other edit");
+  f.drop(message => message.kind === "status");
+  f.peer.retryConnection(); await f.advance(4_000);
+  assert.equal(f.peer.getStatus(), "conflict");
+  assert.equal(f.peer.getConflict().localSnapshot.text, "My edit");
+  assert.equal(f.persisted().text, "Other edit");
+});
+
 function delayedReceiptsBus(hold) {
   const rooms = new Map(); const delayed = []; let delaying = true;
   const factory = name => {

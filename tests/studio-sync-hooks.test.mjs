@@ -21,6 +21,7 @@ function fixture(t) {
     try { return await callback({}); } finally { lockHeld = false; }
   } };
   function open() {
+    const windowListeners = new Map();
     const slots = []; const cache = new Map(); let cursor = 0; let dirty = true; let effects = []; let state; let closed = false;
     const react = {
       useState(initial) {
@@ -58,7 +59,10 @@ function fixture(t) {
       const exports = {}; cache.set(filename, exports);
       const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
       vm.runInNewContext(source, { exports, Error, Event, crypto, structuredClone, queueMicrotask, setTimeout, clearTimeout, setInterval, clearInterval, BroadcastChannel,
-        navigator: { locks }, window: { localStorage: storage, dispatchEvent() {} }, require(name) {
+        navigator: { locks }, window: { localStorage: storage, dispatchEvent() {},
+          addEventListener(name, listener) { const listeners = windowListeners.get(name) ?? new Set(); listeners.add(listener); windowListeners.set(name, listeners); },
+          removeEventListener(name, listener) { windowListeners.get(name)?.delete(listener); },
+        }, require(name) {
           if (name === "react") return react;
           if (!name.startsWith(".")) return require(name);
           return load(path.resolve(path.dirname(filename), /\.(ts|mjs)$/.test(name) ? name : `${name}.ts`));
@@ -70,6 +74,7 @@ function fixture(t) {
     const { useTemplates } = load("app/studio/use-templates.ts");
     const tab = {
       load, get state() { return state; },
+      focus() { windowListeners.get("focus")?.forEach(listener => listener()); },
       render() {
         if (!dirty || closed) return;
         dirty = false; cursor = 0;
@@ -100,12 +105,53 @@ async function pair(t) {
   return { ...f, owner, peer };
 }
 
+test("retry and foreground recovery probe the existing sync session while retaining the real owner", async t => {
+  const f = await pair(t);
+  const helloCount = () => f.messages.filter(message => message.kind === "hello" && message.storeKey === "workspace").length;
+  const beforeRetry = helloCount();
+  f.peer.state.workspace.retryEditing(); await f.flush();
+  assert.ok(helloCount() > beforeRetry, "retry must probe the channel, not just the writer lock");
+  const beforeFocus = helloCount();
+  f.peer.focus(); await f.flush();
+  assert.ok(helloCount() > beforeFocus);
+  assert.equal(f.peer.state.workspace.writable, true);
+  assert.equal(f.peer.state.workspace.exclusiveWritable, false);
+  assert.equal(f.owner.state.workspace.exclusiveWritable, true);
+  f.peer.state.workspace.updateActiveField("subtitle", "Recovered foreground editing");
+  await f.until(() => active(f.owner).subtitle === "Recovered foreground editing");
+});
+
+test("input arriving during a reconnect survives before React renders or runs the save effect", async t => {
+  const f = await pair(t);
+  f.peer.state.workspace.retryEditing();
+  f.peer.state.workspace.updateActiveField("subtitle", "First keystroke");
+  f.peer.state.workspace.updateActiveField("subtitle", "Newest keystrokes");
+  // Deliver the welcome ahead of React's next render and passive effects.
+  for (let tick = 0; tick < 40; tick++) await Promise.resolve();
+  await f.until(() => active(f.owner).subtitle === "Newest keystrokes");
+  assert.equal(active(f.peer).subtitle, "Newest keystrokes");
+  assert.equal(f.peer.state.workspace.syncConflict, null);
+  assert.equal(f.peer.state.workspace.canUndo, true);
+});
+
 for (const storeKey of ["workspace", "templates"]) {
   const edit = (tab, value) => storeKey === "workspace"
     ? tab.state.workspace.updateActiveField("subtitle", value)
     : tab.state.templates.commit(store => ({ ...store, sets: store.sets.map(set => ({ ...set, name: value })) }));
   const value = tab => storeKey === "workspace" ? active(tab).subtitle : tab.state.templates.store.sets[0].name;
   const conflict = tab => tab.state[storeKey].syncConflict;
+
+  test(`${storeKey}: a reconnect with unchanged shared content preserves Undo and Redo`, async t => {
+    const f = await pair(t); const original = value(f.peer);
+    edit(f.peer, "My saved edit"); await f.until(() => value(f.owner) === "My saved edit");
+    assert.equal(f.peer.state[storeKey].canUndo, true);
+    f.peer.state.workspace.retryEditing(); f.peer.state.templates.retryConnection(); await f.flush();
+    assert.equal(f.peer.state[storeKey].canUndo, true);
+    f.peer.state[storeKey].undo(); await f.until(() => value(f.owner) === original);
+    assert.equal(f.peer.state[storeKey].canRedo, true);
+    f.peer.state.workspace.retryEditing(); f.peer.state.templates.retryConnection(); await f.flush();
+    assert.equal(f.peer.state[storeKey].canRedo, true);
+  });
 
   test(`${storeKey}: ACK advances baseline, overlapping edits survive handover and owner sees accepted edits`, async t => {
     const f = await pair(t);

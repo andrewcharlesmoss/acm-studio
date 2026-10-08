@@ -408,12 +408,14 @@ export class StudioSyncSession<T> {
   private pendingResumedConflict: StudioSyncConflict | null = null;
   private helloTimer: ReturnType<typeof setTimeout> | null = null;
   private helloRequestId: string | null = null;
+  private helloBrokerEpoch: string | null = null;
   private acknowledgedTransactions = new Set<string>();
   // Transport timeouts reject promises, but cannot prove an operation was not
   // saved. Retain bounded receipt candidates until the owner confirms them.
   private unacknowledgedSubmissions = new Map<string, { transaction: StudioSyncTransaction; resolution?: true }>();
   private brokerTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private closed = false;
 
   private readonly onMessage = (event: { data: unknown }) => {
@@ -451,6 +453,11 @@ export class StudioSyncSession<T> {
   getStatus() { return this.status; }
   getConflict() { return this.conflict; }
 
+  retryConnection() {
+    if (this.closed || !this.channel || this.role !== "peer") return;
+    this.sendHello();
+  }
+
   resumeConflict(previous: StudioSyncConflict) {
     if (this.closed) return;
     if (this.role === "peer" && this.status !== "synced") {
@@ -474,6 +481,11 @@ export class StudioSyncSession<T> {
 
   setRole(role: StudioSyncRole) {
     if (this.closed || this.role === role) return;
+    if (this.helloTimer) clearTimeout(this.helloTimer);
+    if (this.brokerTimer) clearTimeout(this.brokerTimer);
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.helloTimer = null; this.brokerTimer = null; this.reconnectTimer = null;
+    this.helloRequestId = null; this.helloBrokerEpoch = null;
     this.role = role;
     if (!this.channel) { this.setStatus("unsupported"); return; }
     if (role === "primary") this.becomePrimary();
@@ -551,6 +563,7 @@ export class StudioSyncSession<T> {
     this.closed = true;
     if (this.helloTimer) clearTimeout(this.helloTimer);
     if (this.brokerTimer) clearTimeout(this.brokerTimer);
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.stopHeartbeat();
     this.pending.forEach(operation => { clearTimeout(operation.timer); operation.reject(new Error("The Studio sync session closed.")); });
     this.peerQueue.forEach(operation => { clearTimeout(operation.timer); operation.reject(new Error("The Studio sync session closed.")); });
@@ -573,7 +586,21 @@ export class StudioSyncSession<T> {
   }
   private makeTransaction(before: T, after: T, baseRevision: number) { return createStudioTransaction(before, after, { transactionId: id("transaction"), clientId: this.clientId, brokerEpoch: this.brokerEpoch, baseRevision }); }
   private notifyStatus() { this.options.onStatus?.(this.status); }
-  private setStatus(status: StudioSyncStatus) { if (this.status === status) return; this.status = status; this.notifyStatus(); if (status === "disconnected") this.failPending(new Error("The primary Studio tab stopped responding.")); }
+  private setStatus(status: StudioSyncStatus) {
+    if (this.status === status) return;
+    this.status = status; this.notifyStatus();
+    if (status === "disconnected") {
+      this.failPending(new Error("The primary Studio tab stopped responding."));
+      this.scheduleReconnect();
+    }
+  }
+  private scheduleReconnect() {
+    if (this.closed || !this.channel || this.role !== "peer" || this.reconnectTimer) return;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (this.status === "disconnected") this.sendHello();
+    }, HEARTBEAT_MS);
+  }
   private failPending(error: Error) { this.pending.forEach(operation => { clearTimeout(operation.timer); operation.reject(error); }); this.pending.clear(); }
   private failPeer(requestId: string, error: Error) { const operation = this.pending.get(requestId); if (!operation) return; this.pending.delete(requestId); clearTimeout(operation.timer); operation.reject(error); this.setStatus("disconnected"); }
   private remember(transactionId: string, accepted: boolean, revision: number, reason?: string) { this.completed.set(transactionId, { accepted, revision, reason }); if (this.completed.size > 500) this.completed.delete(this.completed.keys().next().value!); }
@@ -602,15 +629,44 @@ export class StudioSyncSession<T> {
   }
   private stopHeartbeat() { if (this.heartbeatTimer) clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }
   private sendHello() {
+    // Heartbeats and foreground/retry events can overlap. Keep one request
+    // alive so a delayed welcome is not invalidated by the next heartbeat.
+    if (this.closed || this.helloRequestId) return;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
     const requestId = id("hello"); this.helloRequestId = requestId; this.send({ ...this.base(), kind: "hello", requestId });
     if (this.helloTimer) clearTimeout(this.helloTimer);
-    this.helloTimer = setTimeout(() => { if (this.role === "peer" && this.status === "connecting") this.setStatus("disconnected"); }, HELLO_TIMEOUT_MS);
+    this.helloTimer = setTimeout(() => {
+      this.helloTimer = null;
+      if (this.role !== "peer" || this.helloRequestId !== requestId) return;
+      this.helloRequestId = null;
+      this.setStatus("disconnected");
+      this.scheduleReconnect();
+    }, HELLO_TIMEOUT_MS);
   }
-  private refreshBrokerTimer() { if (this.brokerTimer) clearTimeout(this.brokerTimer); this.brokerTimer = setTimeout(() => { if (this.role === "peer") this.setStatus("disconnected"); }, BROKER_TIMEOUT_MS); }
+  private refreshBrokerTimer() {
+    if (this.brokerTimer) clearTimeout(this.brokerTimer);
+    this.brokerTimer = setTimeout(() => {
+      // Background timers can be suspended while message delivery still works.
+      // Probe the owner before pausing editing for a missing heartbeat.
+      if (this.role === "peer") this.sendHello();
+    }, BROKER_TIMEOUT_MS);
+  }
   private handleMessage(message: StudioSyncMessage) {
     if (message.kind === "hello") { if (this.isPrimary()) this.sendWelcome(message); return; }
-    if (message.kind === "announce") { if (this.role === "peer" && message.brokerEpoch !== this.brokerEpoch) { this.brokerEpoch = message.brokerEpoch; this.revision = message.revision; this.setStatus("connecting"); this.sendHello(); } return; }
-    if (message.kind === "status") { if (this.role === "peer" && (!this.brokerEpoch || message.brokerEpoch === this.brokerEpoch)) { this.brokerEpoch = message.brokerEpoch; this.refreshBrokerTimer(); if (this.status !== "synced" && this.status !== "conflict") this.sendHello(); } return; }
+    if (message.kind === "announce" || message.kind === "status") {
+      if (this.role !== "peer") return;
+      if (message.brokerEpoch !== this.brokerEpoch && message.brokerEpoch !== this.helloBrokerEpoch) {
+        // An owner can change while this tab is suspended, missing announce.
+        // Its next heartbeat must also start a fresh snapshot handshake.
+        this.helloBrokerEpoch = message.brokerEpoch;
+        this.helloRequestId = null;
+        if (this.helloTimer) clearTimeout(this.helloTimer);
+        this.setStatus("connecting"); this.sendHello();
+      } else if (this.status !== "synced" && this.status !== "conflict") this.sendHello();
+      this.refreshBrokerTimer();
+      return;
+    }
     if (message.kind === "welcome") { this.receiveWelcome(message); return; }
     if (message.kind === "operation") { if (this.isPrimary()) void this.receiveOperation(message); return; }
     if (message.kind === "update") { this.receiveUpdate(message); return; }
@@ -656,9 +712,15 @@ export class StudioSyncSession<T> {
   }
   private receiveWelcome(message: Extract<StudioSyncMessage, { kind: "welcome" }>) {
     if (this.role !== "peer" || message.requestId !== this.helloRequestId) return;
+    if (this.helloBrokerEpoch && message.brokerEpoch !== this.helloBrokerEpoch) return;
     if (this.brokerEpoch && this.brokerEpoch !== message.brokerEpoch && this.status === "synced") return;
-    if (message.brokerEpoch === this.brokerEpoch && message.revision < this.revision) { this.sendHello(); return; }
+    if (message.brokerEpoch === this.brokerEpoch && message.revision < this.revision) {
+      this.helloRequestId = null;
+      if (this.helloTimer) clearTimeout(this.helloTimer);
+      this.sendHello(); return;
+    }
     this.helloRequestId = null;
+    this.helloBrokerEpoch = null;
     const interruptedConflict = this.conflict ?? this.pendingResumedConflict;
     this.conflict = null;
     this.pendingResumedConflict = null;
@@ -679,6 +741,9 @@ export class StudioSyncSession<T> {
     const rebased = applyStudioTransaction(this.snapshot, unsaved);
     if (!rebased.conflicts.length) this.optimisticSnapshot = this.validate(rebased.snapshot);
     if (this.helloTimer) clearTimeout(this.helloTimer);
+    this.helloTimer = null;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
     this.refreshBrokerTimer();
     // Install the authoritative snapshot before exposing a writable peer. A
     // newly opened tab may have loaded older browser storage while it waited

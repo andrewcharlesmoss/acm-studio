@@ -8,7 +8,7 @@ import { commitHistory, redoHistory, undoHistory } from "./studio-command-operat
 import { browserWorkspaceRepository, type WorkspaceRepository } from "./workspace-repository";
 
 import { studioWriteOwnership, ownershipMessage, type OwnershipState, type StudioWriteOwnership } from "./write-ownership";
-import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus, type StudioSyncTransaction } from "./studio-sync";
+import { createStudioSync, createStudioTransaction, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus, type StudioSyncTransaction } from "./studio-sync";
 import { reconcileStudioPendingSave, type StudioPendingSave } from "./studio-pending-save";
 
 const MAX_HISTORY = 60;
@@ -177,6 +177,8 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         const activeDocumentId = view.documents.some(document => document.id === workspaceRef.current.activeDocumentId)
           ? workspaceRef.current.activeDocumentId : view.activeDocumentId;
         const displayed = { ...cloneWorkspace(view), activeDocumentId };
+        const unchangedWelcome = source === "welcome" && !createStudioTransaction(workspaceRef.current, displayed,
+          { clientId: "history", transactionId: "history", brokerEpoch: "history", baseRevision: 0 }).changes.length;
         workspaceRef.current = displayed;
         setSyncSnapshotReady(true);
         setWorkspace(displayed);
@@ -185,8 +187,8 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
           setSaveError(null);
           setSaveLabel(`Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
         }
-        if (!primary && (source === "welcome" || source === "update" || source === "commit")) setSaveLabel("Synced with another ACM Studio tab");
-        if (source === "update" || source === "welcome" || source === "failover" || source === "recovery") {
+        if (!primary && (source === "welcome" || source === "update" || source === "commit")) setSaveLabel("Local workspace connected");
+        if (source === "update" || (source === "welcome" && !unchangedWelcome) || source === "failover" || source === "recovery") {
           historyRef.current = [];
           futureRef.current = [];
           setHistoryAvailability({ undo: false, redo: false });
@@ -221,6 +223,20 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       setSyncStatus("disconnected");
     };
   }, [ready, loadError, ownershipState, loadedToken, repository, initialWorkspace, ownership, scope, validateSnapshot, reconcilePendingPeerSave, readOnly]);
+
+  useEffect(() => {
+    if (readOnly) return;
+    const reconnect = () => {
+      syncRef.current?.retryConnection();
+      if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt(value => value + 1);
+    };
+    window.addEventListener?.("focus", reconnect);
+    window.addEventListener?.("pageshow", reconnect);
+    return () => {
+      window.removeEventListener?.("focus", reconnect);
+      window.removeEventListener?.("pageshow", reconnect);
+    };
+  }, [ownership, readOnly]);
 
   const primaryWritable = ownership.canWrite(loadedToken);
   const peerWritable = !primaryWritable && syncStatus === "synced" && syncSnapshotReady;
@@ -293,7 +309,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
         await pending.completion;
         if (cancelled || !isCurrentWriter()) return;
         const updated = new Date();
-        message = primaryWritable ? `Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Synced with another ACM Studio tab";
+        message = `Saved locally ${updated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
         if (!pendingPeerSaveRef.current && JSON.stringify(workspaceRef.current) === snapshotKey) lastPersistedWorkspaceRef.current = snapshotKey;
       } catch (error) {
         failed = true;
@@ -321,50 +337,50 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
     return true;
   }
 
+  function installLocalSnapshot(next: StudioWorkspace) {
+    // A welcome can arrive before React's passive save effect. Register the
+    // draft synchronously, so that handshake cannot erase the newest input.
+    if (!primaryWritable) {
+      pendingPeerSaveRef.current = {
+        base: cloneWorkspace(pendingPeerSaveRef.current?.base ?? authoritativeWorkspaceRef.current),
+        snapshot: cloneWorkspace(next),
+      };
+    }
+    workspaceRef.current = next;
+    setWorkspace(next);
+  }
+
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
     if (!editable) return false;
-    let committed = true;
-    setWorkspace((current) => {
-      if (!editable) { committed = false; return current; }
-      const proposed = update(cloneWorkspace(current));
-      if (JSON.stringify(proposed) === JSON.stringify(current)) return current;
-      const nextHistory = commitHistory(current, historyRef.current, MAX_HISTORY);
-      historyRef.current = nextHistory.history;
-      futureRef.current = nextHistory.future;
-      setHistoryAvailability({ undo: nextHistory.history.length > 0, redo: nextHistory.future.length > 0 });
-      return proposed;
-    });
-    return committed;
+    const current = workspaceRef.current;
+    const proposed = update(cloneWorkspace(current));
+    if (JSON.stringify(proposed) === JSON.stringify(current)) return true;
+    const nextHistory = commitHistory(current, historyRef.current, MAX_HISTORY);
+    historyRef.current = nextHistory.history;
+    futureRef.current = nextHistory.future;
+    setHistoryAvailability({ undo: nextHistory.history.length > 0, redo: nextHistory.future.length > 0 });
+    installLocalSnapshot(proposed);
+    return true;
   }
 
   function undo() {
     if (!editable) return;
-    const result = undoHistory(workspace, historyRef.current, futureRef.current, MAX_HISTORY);
+    const result = undoHistory(workspaceRef.current, historyRef.current, futureRef.current, MAX_HISTORY);
     if (!result) return;
-    setWorkspace((current) => {
-      if (!editable) return current;
-      const next = undoHistory(current, historyRef.current, futureRef.current, MAX_HISTORY);
-      if (!next) return current;
-      historyRef.current = next.history;
-      futureRef.current = next.future;
-      setHistoryAvailability({ undo: next.history.length > 0, redo: next.future.length > 0 });
-      return next.workspace;
-    });
+    historyRef.current = result.history;
+    futureRef.current = result.future;
+    setHistoryAvailability({ undo: result.history.length > 0, redo: result.future.length > 0 });
+    installLocalSnapshot(result.workspace);
   }
 
   function redo() {
     if (!editable) return;
-    const result = redoHistory(workspace, historyRef.current, futureRef.current, MAX_HISTORY);
+    const result = redoHistory(workspaceRef.current, historyRef.current, futureRef.current, MAX_HISTORY);
     if (!result) return;
-    setWorkspace((current) => {
-      if (!editable) return current;
-      const next = redoHistory(current, historyRef.current, futureRef.current, MAX_HISTORY);
-      if (!next) return current;
-      historyRef.current = next.history;
-      futureRef.current = next.future;
-      setHistoryAvailability({ undo: next.history.length > 0, redo: next.future.length > 0 });
-      return next.workspace;
-    });
+    historyRef.current = result.history;
+    futureRef.current = result.future;
+    setHistoryAvailability({ undo: result.history.length > 0, redo: result.future.length > 0 });
+    installLocalSnapshot(result.workspace);
   }
 
   function updateDocument(documentId: string, update: (document: StudioDocument) => StudioDocument) {
@@ -381,7 +397,8 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   }
 
   function updateActiveDocument(update: (document: StudioDocument) => StudioDocument) {
-    const activeDocument = workspace.documents.find((item) => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
+    const current = workspaceRef.current;
+    const activeDocument = current.documents.find((item) => item.id === current.activeDocumentId) ?? current.documents[0];
     if (!activeDocument) return;
     updateDocument(activeDocument.id, update);
   }
@@ -391,7 +408,9 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   }
 
   function setActiveDocument(documentId: string) {
-    setWorkspace((current) => ({ ...current, activeDocumentId: documentId }));
+    const next = { ...workspaceRef.current, activeDocumentId: documentId };
+    workspaceRef.current = next;
+    setWorkspace(next);
   }
 
   async function resolveSyncConflict(choice: "mine" | "theirs") {
@@ -417,13 +436,13 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   const statusLabel = syncConflict
     ? "Resolve conflicting changes"
     : syncStatus === "disconnected" && !primaryWritable
-      ? "Connection lost — editing is paused"
+      ? "Local saving unavailable — editing is paused"
       : syncStatus === "unsupported" && !primaryWritable
         ? "Read-only: this browser cannot synchronise Studio tabs"
         : ownershipState === "waiting" && syncStatus === "connecting"
-          ? "Connecting to another ACM Studio tab…"
+          ? "Reconnecting local saving…"
           : null;
   const ownershipLabel = ownershipState === "waiting" && (peerWritable || syncStatus === "connecting") ? null : ownershipMessage(ownershipState);
   const canRetryEditing = ownershipState === "unavailable" || (ownershipState === "waiting" && ["unsupported", "disconnected"].includes(syncStatus));
-  return { workspace, ready, loadError, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing, retryEditing: () => { if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? statusLabel ?? ownershipLabel ?? saveError ?? saveLabel, setSaveLabel, requestSave, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
+  return { workspace, ready, loadError, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing, retryEditing: () => { syncRef.current?.retryConnection(); if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? statusLabel ?? ownershipLabel ?? saveError ?? saveLabel, setSaveLabel, requestSave, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
 }

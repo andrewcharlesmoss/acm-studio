@@ -63,6 +63,8 @@ export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspa
   }
   return {
     ...session, commit, updateActiveDocument, updateActiveField,
+    canRetryEditing: session.canRetryEditing || templates.syncStatus === "disconnected",
+    retryEditing: () => { session.retryEditing(); templates.retryConnection(); },
     undo: history.undo, redo: history.redo, canUndo: writable && history.canUndo, canRedo: writable && history.canRedo,
     templateSession: templates,
     templateControls, templatePresentation, hasTemplate: Boolean(snapshot), resolvedDocument: resolvedDocument ?? document, fieldUsage, templateSnapshot: snapshot, setFieldOverride,

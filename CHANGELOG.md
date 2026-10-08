@@ -608,6 +608,13 @@
 
 ### Fixed
 
+- Studio now recovers local saving after delayed background heartbeats or
+  replies. Try Editing Here reconnects the saving channel, and status messages
+  no longer assume another visible tab. Overlapping mounts retain the existing
+  writer's safe ownership state.
+- Keystrokes typed during reconnection remain in the draft, including before
+  the automatic save starts. An unchanged reconnect preserves Undo and Redo.
+
 - Reconnecting Studio tabs recognise their own saved keystrokes before merging
   newer typing, avoiding false text conflicts. Delayed acknowledgements no
   longer cause subsequent edits to be rejected as a future revision.

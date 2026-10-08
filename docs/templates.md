@@ -274,6 +274,19 @@ require review. Queued edits use the committed revision known when dispatched,
 so an update arriving before its acknowledgement cannot create a future revision.
 Storage keys, sync protocol v2 and the lifetime writer lock are unchanged.
 
+A missed heartbeat first probes the saving connection before pausing editing.
+Each connection keeps one outstanding snapshot handshake, so subsequent
+heartbeats cannot invalidate a delayed reply. Disconnected sessions retry
+automatically; Try Editing Here and returning to the window also probe the
+existing channel while retrying safe lock acquisition. A new owner's heartbeat
+can recover a missed announcement, including when its revision starts lower.
+The interface reports local saving state without assuming the saving runtime
+belongs to a visible second tab. Unresponsive saving still pauses editing;
+reconnection never steals the writer lock or discards a pending draft/conflict.
+Workspace input, Undo and Redo register their pending draft synchronously,
+before React renders or starts an automatic save. A reconnect reply arriving
+in that gap rebases the draft rather than replacing the newest keystrokes.
+
 When a conflict is resolved in favour of the local version, Studio applies the
 local changes to the latest saved version while retaining unrelated edits from
 the other tab. A failed save remains visible and retryable; a structural change
