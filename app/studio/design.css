@@ -7,8 +7,8 @@
 .design-library-heading p:not(.design-library-eyebrow) { color: var(--muted); margin: 10px 0 0; }
 .design-library-back, .design-library-primary { align-items: center; border: 1px solid #c8c6be; border-radius: 6px; color: var(--ink); display: inline-flex; gap: 7px; padding: 9px 12px; text-decoration: none; white-space: nowrap; }
 .design-library-back:hover, .design-library-back:focus-visible { background: #fff; border-color: #aaa89f; }
-.design-library-primary { background: var(--ink); border-color: var(--ink); color: #fff; }
-.design-library-primary:hover, .design-library-primary:focus-visible { background: #3f3f3f; }
+.design-library-primary { background: var(--studio-shared-button-background); border-color: var(--studio-shared-button-border); color: var(--studio-shared-button-foreground); }
+.design-library-primary:hover, .design-library-primary:focus-visible { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .design-library-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
 .design-library-card { background: #f9f8f4; border: 1px solid #d2d0c8; border-radius: 10px; color: var(--ink); display: grid; gap: 12px; padding: 12px; text-decoration: none; transition: border-color .12s ease, box-shadow .12s ease, transform .12s ease; }
 .design-library-card:hover, .design-library-card:focus-visible { border-color: #aaa89f; box-shadow: 0 8px 20px #17191c18; transform: translateY(-2px); }

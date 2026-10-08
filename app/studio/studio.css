@@ -1074,7 +1074,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .table-placeholder label { display: grid; gap: 8px; width: 112px; }
 .table-placeholder label > span { font-weight: 600; text-transform: uppercase; }
 .table-placeholder input { box-sizing: border-box; width: 100%; min-height: 40px; border: 1px solid #949494; border-radius: 2px; padding: 8px 12px; font: inherit; }
-.table-placeholder button { border: 0; border-radius: 2px; min-height: 40px; padding: 8px 16px; background: var(--studio-accent, #3858e9); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.table-placeholder button { border: 0; border-radius: 2px; min-height: 40px; padding: 8px 16px; background: var(--studio-shared-button-background); color: var(--studio-shared-button-foreground); font: inherit; font-weight: 600; cursor: pointer; }
 .table-block-inspector .inspector-tools-trigger svg { transform: rotate(90deg); }
 .table-inspector-tabs > button { flex: 1; height: 48px; }
 .table-inspector-tabs .pane-tab-label { display: inline-flex; align-items: center; justify-content: center; }
@@ -1127,8 +1127,8 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .embed-url-placeholder-form { align-items: stretch; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) auto; }
 .embed-url-placeholder-form input { background: #fff; border: 1px solid #8c8f94; border-radius: 2px; box-sizing: border-box; color: var(--ink); font-size: 17px; min-height: 52px; min-width: 0; padding: 10px 16px; width: 100%; }
 .embed-url-placeholder-form input:focus-visible { border-color: var(--gutenberg-accent); outline: 2px solid var(--gutenberg-accent); outline-offset: 1px; }
-.embed-url-placeholder-form button { background: var(--gutenberg-accent); border: 1px solid var(--gutenberg-accent); border-radius: 2px; color: #fff; cursor: pointer; font-size: 17px; font-weight: 650; min-height: 52px; padding: 0 22px; }
-.embed-url-placeholder-form button:hover { background: color-mix(in srgb, var(--gutenberg-accent) 86%, #000); border-color: color-mix(in srgb, var(--gutenberg-accent) 86%, #000); }
+.embed-url-placeholder-form button { background: var(--studio-shared-button-background); border: 1px solid var(--studio-shared-button-border); border-radius: 2px; color: var(--studio-shared-button-foreground); cursor: pointer; font-size: 17px; font-weight: 650; min-height: 52px; padding: 0 22px; }
+.embed-url-placeholder-form button:hover:not(:disabled, .embed-cancel-url) { background: var(--studio-shared-button-hover-background); border-color: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .embed-url-placeholder-form button:focus-visible { outline: 2px solid var(--gutenberg-accent); outline-offset: 2px; }
 .embed-url-placeholder-help { font-size: 17px; margin: 20px 0 0; }
 .embed-url-placeholder-help a { align-items: center; color: var(--gutenberg-accent); display: inline-flex; gap: 6px; text-decoration: underline; text-underline-offset: 2px; }
@@ -2031,3 +2031,5 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .group-layout-toolbar-menu button { align-items: center; display: flex; gap: 8px; }
 .studio-anchored-menu.group-layout-toolbar-menu button.is-active { background: var(--studio-toolbar-active, #e7e7e5); }
 .studio-anchored-menu.group-layout-toolbar-menu button.group-layout-menu-close { border-top: 1px solid var(--studio-toolbar-divider, #d5d3cb); margin-top: 4px; }
+
+.table-placeholder button:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }

@@ -16,7 +16,7 @@
 .backup-callout, .restore-warning { background: #fff7d8; border: 1px solid #e4d69e; border-radius: 8px; color: #63592f; padding: 12px; }
 .backup-callout strong, .restore-warning strong { font-size: var(--studio-ui-size); }
 .backup-callout p, .restore-warning p { font-size: var(--studio-ui-size); line-height: 1.45; margin-top: 4px; }
-.backup-primary-action, .restore-action { background: var(--ink); border: 0; border-radius: 8px; color: white; cursor: pointer; font-size: var(--studio-ui-size); font-weight: 650; margin-top: auto; padding: 11px 13px; width: 100%; }
+.backup-primary-action, .restore-action { background: var(--studio-shared-button-background); border: 0; border-radius: 8px; color: var(--studio-shared-button-foreground); cursor: pointer; font-size: var(--studio-ui-size); font-weight: 650; margin-top: auto; padding: 11px 13px; width: 100%; }
 .backup-primary-action:disabled, .restore-action:disabled { cursor: default; opacity: .45; }
 .backup-select-action { background: white; border: 1px dashed #aaa89f; border-radius: 8px; cursor: pointer; font-size: var(--studio-ui-size); font-weight: 620; margin-top: 24px; padding: 18px; width: 100%; }
 .backup-select-action:hover { border-color: var(--accent); color: var(--accent); }
@@ -33,8 +33,10 @@
 .restore-preview-heading small { color: var(--muted); font-size: var(--studio-ui-size); margin-top: 2px; }
 .restore-confirmation { align-items: flex-start; color: var(--muted); display: grid; font-size: var(--studio-ui-size); gap: 8px; grid-template-columns: auto 1fr; line-height: 1.45; }
 .restore-confirmation input { margin-top: 1px; }
-.restore-action { background: #8d3434; margin-top: 0; }
+.restore-action { margin-top: 0; }
 .restore-empty { align-items: center; color: var(--muted); display: flex; flex-direction: column; font-size: var(--studio-ui-size); gap: 10px; justify-content: center; min-height: 260px; padding: 30px; text-align: center; }
 .restore-empty > span { align-items: center; display: inline-flex; justify-content: center; }
 .restore-empty > span svg { height: 34px; width: 34px; }
 .backup-status { background: #f7f6f2; border: 1px solid #d2d0c8; border-radius: 8px; color: var(--muted); font-size: var(--studio-ui-size); margin: 16px auto 0; max-width: 1080px; padding: 9px 12px; }
+
+.backup-primary-action:hover:not(:disabled), .restore-action:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
