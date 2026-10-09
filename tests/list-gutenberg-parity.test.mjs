@@ -23,10 +23,10 @@ function action(node, label) { const button = buttons(node).find(value => value.
 // Exercise the production component's state transitions without mounting its portal.
 const toolbarSource = readFileSync(new URL('../app/studio/blocks/list-toolbar.tsx', import.meta.url), 'utf8');
 const toolbarTree = ts.createSourceFile('list-toolbar.tsx', toolbarSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-const switcherFunctions = toolbarTree.statements.filter(node => ts.isFunctionDeclaration(node) && ['ListItemSwitcher', 'replaceListType'].includes(node.name?.text)).map(node => node.getText(toolbarTree).replace(/^export /, '')).join('\n');
+const switcherFunctions = toolbarTree.statements.filter(node => ts.isFunctionDeclaration(node) && ['ListItemSwitcher'].includes(node.name?.text)).map(node => node.getText(toolbarTree).replace(/^export /, '')).join('\n');
 const compiledSwitcher = ts.transpileModule(`${switcherFunctions}\nglobalThis.render = ListItemSwitcher;`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
 function switcherHarness(props) {
-  let open = null, refIndex = 0;
+  let open = false, refIndex = 0;
   const focus = [0, 0], refs = focus.map((_, index) => ({ current: { focus: () => focus[index]++ } }));
   const scope = { exports: {}, require: () => jsxRuntime, useState: () => [open, value => { open = value; }], useRef: () => refs[refIndex++],
     StudioAnchoredMenu: 'menu-fixture', StudioHoverIcon: 'icon-fixture', preserveTextSelection() {} };
@@ -35,70 +35,37 @@ function switcherHarness(props) {
 }
 function menu(node) { return Array.isArray(node) ? node.flatMap(menu) : !node?.props ? [] : node.type === 'menu-fixture' ? [node] : menu(node.props.children); }
 
-test('List Item type options appear only after opening the far-left menu; item transforms stay separate', () => {
+test('the far-left List Item button directly selects its parent and only the parent toolbar has type controls', () => {
   const root = list(['One', 'Two']);
   const selection = { listId: root.id, itemIndex: 1 };
-  const props = { root, list: root, selection, writable: true, onChange: () => true, onSelectParent() {} };
-  const harness = switcherHarness(props);
+  let parentSelected = false;
+  const harness = switcherHarness({ onSelectParent: () => { parentSelected = true; } });
+  const parentButton = action(harness.render(), 'Select parent block: List');
+  assert.equal(parentButton.props['aria-haspopup'], undefined);
   assert.equal(menu(harness.render()).length, 0);
-  const toolbar = ListToolbarControls({ ...props, contextBlocks: [root] });
-  assert.equal(buttons(toolbar).some(button => button.props['aria-label']?.startsWith('Convert to')), false);
-  action(harness.render(), 'List options').props.onClick();
+  const props = { root, list: root, selection, writable: true, contextBlocks: [root], onChange: () => true };
+  assert.equal(buttons(ListToolbarControls(props)).some(button => button.props['aria-label']?.startsWith('Convert to')), false);
+  parentButton.props.onClick();
+  assert.equal(parentSelected, true);
+  assert.equal(menu(harness.render()).length, 0);
+  const parentToolbar = ListToolbarControls({ ...props, selection: undefined });
+  assert.equal(action(parentToolbar, 'Convert to unordered list').props['aria-pressed'], true);
+  assert.equal(action(parentToolbar, 'Convert to ordered list').props['aria-pressed'], false);
+});
+
+test('the separate List Item switcher retains contextual transforms and returns focus on dismissal', () => {
+  const harness = switcherHarness({ onSelectParent() {} });
+  action(harness.render(), 'Change List Item block type or style').props.onClick();
   const options = menu(harness.render())[0];
-  const choices = buttons(options).filter(button => button.props.role === 'menuitemradio');
-  assert.deepEqual(Array.from(choices, button => button.props.children[1].props.children), ['Unordered', 'Ordered']);
-  assert.deepEqual(Array.from(choices, button => button.props['aria-checked']), [true, false]);
+  assert.equal(options.props['aria-label'], 'List Item transforms');
+  assert.equal(buttons(options).some(button => button.props.role === 'menuitemradio'), false);
   options.props.onClose();
   assert.equal(menu(harness.render()).length, 0);
-  assert.deepEqual(harness.focus, [1, 0]);
-  action(harness.render(), 'List options').props.onClick();
-  action(harness.render(), 'List options').props.onClick();
-  assert.equal(menu(harness.render()).length, 0);
-  assert.deepEqual(harness.focus, [2, 0]);
+  assert.equal(harness.focus[0], 1);
   action(harness.render(), 'Change List Item block type or style').props.onClick();
-  assert.equal(menu(harness.render())[0].props['aria-label'], 'List Item transforms');
-  assert.equal(buttons(menu(harness.render())[0]).some(button => button.props.role === 'menuitemradio'), false);
   action(harness.render(), 'Change List Item block type or style').props.onClick();
   assert.equal(menu(harness.render()).length, 0);
-  assert.deepEqual(harness.focus, [2, 1]);
-});
-
-for (const mode of ['accepted', 'rejected', 'readonly']) test(`List options conversion ${mode} retains the selected nested owner and numbering settings`, () => {
-  const nested = list(['Selected', 'Sibling'], 'nested', { style: 'ordered', start: 0, reversed: true, marker: 'a' });
-  const root = list([{ text: 'Parent', children: [nested] }, 'After']);
-  const changes = [];
-  const harness = switcherHarness({ root, list: nested, selection: { listId: 'nested', itemIndex: 0 }, writable: mode !== 'readonly',
-    onChange: value => { changes.push(value); return mode === 'accepted'; }, onSelectParent() {} });
-  action(harness.render(), 'List options').props.onClick();
-  const choice = buttons(menu(harness.render())[0]).find(button => button.props.role === 'menuitemradio' && !button.props['aria-checked']);
-  assert.equal(choice.props.disabled, mode === 'readonly');
-  choice.props.onClick();
-  assert.equal(changes.length, mode === 'readonly' ? 0 : 1);
-  if (changes[0]) {
-    const target = structure.findListBlock(changes[0].block, 'nested');
-    assert.equal(changes[0].listId, 'nested');
-    assert.equal(changes[0].itemIndex, 0);
-    assert.equal(changes[0].block.style, 'unordered');
-    assert.equal(target.style, 'unordered');
-    assert.deepEqual([target.start, target.reversed, target.marker], [0, true, 'a']);
-    assert.deepEqual(lines(changes[0].block), lines(root));
-  }
-  assert.equal(menu(harness.render()).length, mode === 'accepted' ? 0 : 1);
-  assert.equal(nested.style, 'ordered');
-});
-
-test('the List menu retains parent selection and a current-type choice closes without a history write', () => {
-  const root = list(['One']); let writes = 0, parents = 0;
-  const harness = switcherHarness({ root, list: root, selection: { listId: root.id, itemIndex: 0 }, writable: true,
-    onChange: () => { writes++; return true; }, onSelectParent: () => parents++ });
-  action(harness.render(), 'List options').props.onClick();
-  buttons(menu(harness.render())[0]).find(button => button.props['aria-checked']).props.onClick();
-  assert.equal(writes, 0);
-  assert.equal(menu(harness.render()).length, 0);
-  action(harness.render(), 'List options').props.onClick();
-  action(menu(harness.render())[0], 'Select parent block: List').props.onClick();
-  assert.equal(parents, 1);
-  assert.equal(menu(harness.render()).length, 0);
+  assert.equal(harness.focus[0], 2);
 });
 
 test('range indentation appends the entire range in order and returns its actual first item', () => {
@@ -171,9 +138,9 @@ test('editor uses semantic lists and empty List Items retain their complete insp
     assert.match(pane, /Background/);
     assert.match(pane, /Border/);
   }
-  const switcher = renderToStaticMarkup(createElement(ListItemSwitcher, { root, list: root, selection: { listId: root.id, itemIndex: 0 }, writable: true, onChange: () => true, onSelectParent() {} }));
-  assert.match(switcher, /List options/);
-  assert.doesNotMatch(switcher, /menuitemradio|Convert to|Select parent block/);
+  const switcher = renderToStaticMarkup(createElement(ListItemSwitcher, { onSelectParent() {} }));
+  assert.match(switcher, /Select parent block: List/);
+  assert.doesNotMatch(switcher, /menuitemradio|Convert to|List options/);
   assert.match(switcher, /Change List Item block type or style/);
 });
 
@@ -215,6 +182,29 @@ const { editBlockSiblings } = await load('../app/studio/block-sibling-operations
 const { findBlockById } = await import('../app/studio/studio-command-operations.mjs');
 const source = readFileSync(new URL('../app/studio/studio-canvas.tsx', import.meta.url), 'utf8');
 const tree = ts.createSourceFile('canvas.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+let renderControls;
+function findRenderControls(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === 'renderBlockControls') renderControls = node; ts.forEachChild(node, findRenderControls); }
+findRenderControls(tree);
+const compiledControls = ts.transpileModule(`${renderControls.getText(tree)};globalThis.render = renderBlockControls;`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+test('the actual parent List toolbar contains List commands and More options without item formatting or inline deletion', () => {
+  const root = list(['One', 'Two']);
+  const scope = { exports: {}, require: () => jsxRuntime, activeDocument: { id: 'document', blocks: [root] }, findBlockById,
+    selectedBlockId: 'root', activeListItems: {}, listTextRange: null, parentOfNestedBlock: () => null,
+    writable: true, transformMenuBlockId: null, BlockTransformControl: 'transform-fixture', StudioHoverIcon: 'icon-fixture',
+    ListToolbarControls, finishBlockDrag() {}, blockLabel: () => 'List', canMove: () => true, isBlockAlignedBlock: () => true, isEditableTextBlock: () => false,
+    isEditableRichTextBlock: () => true, preserveTextSelection() {}, blockMenuItems: () => [], blockMenuBlockId: null,
+    hasMultiSelection: false, htmlEditorTriggerRef: { current: null }, linkEditor: null, htmlEditor: null };
+  runInNewContext(compiledControls, scope);
+  const toolbar = scope.render(root).props.children[0];
+  function expandedButtons(node) {
+    if (Array.isArray(node)) return Array.from(node).flatMap(expandedButtons);
+    if (!node?.props) return [];
+    if (node.type === ListToolbarControls) return expandedButtons(node.type(node.props));
+    return node.type === 'button' ? [node] : expandedButtons(node.props.children);
+  }
+  const labels = expandedButtons(toolbar).map(button => button.props['aria-label']);
+  assert.deepEqual(labels, ['Drag to reorder List block', 'Move block up', 'Move block down', 'Convert to unordered list', 'Convert to ordered list', 'Outdent list item', 'More block options']);
+});
 let selectListParent;
 function findParentSelect(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === 'selectListParent') selectListParent = node; ts.forEachChild(node, findParentSelect); }
 findParentSelect(tree);

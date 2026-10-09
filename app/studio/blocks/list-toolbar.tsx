@@ -12,32 +12,18 @@ import { preserveTextSelection } from "./editors/rich-text";
 type ItemSelection = { listId: string; itemIndex: number };
 type MoveResult = { block: ListBlock; listId: string; itemIndex: number };
 
-export function ListItemSwitcher({ root, list, selection, writable, onChange, onSelectParent }: {
-  root: ListBlock; list: ListBlock; selection: ItemSelection; writable: boolean;
-  onChange: (result: MoveResult) => boolean; onSelectParent: () => void;
-}) {
-  const [open, setOpen] = useState<"list" | "item" | null>(null);
-  const listTriggerRef = useRef<HTMLButtonElement>(null);
+export function ListItemSwitcher({ onSelectParent }: { onSelectParent: () => void }) {
+  const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   function close(restore = true) {
-    setOpen(null);
-    if (restore) (open === "list" ? listTriggerRef : triggerRef).current?.focus();
+    setOpen(false);
+    if (restore) triggerRef.current?.focus();
   }
   return <>
+    <button type="button" onMouseDown={preserveTextSelection} onClick={onSelectParent} aria-label="Select parent block: List" title="Select parent block: List"><StudioHoverIcon name="block.list" /></button>
     <div className="transform-control">
-      <button ref={listTriggerRef} type="button" onMouseDown={preserveTextSelection} onClick={() => { if (open === "list") close(); else setOpen("list"); }} aria-haspopup="menu" aria-expanded={open === "list"} aria-label="List options" title="List"><StudioHoverIcon name={list.style === "ordered" ? "text.list-numbered" : "block.list"} /></button>
-      {open === "list" ? <StudioAnchoredMenu anchor={() => listTriggerRef.current} className="rich-text-format-menu" aria-label="List options" onClose={close}>
-        <button type="button" role="menuitem" aria-label="Close List options" onClick={() => close()}><StudioHoverIcon name="action.close" /><span>Close</span></button>
-        {(["unordered", "ordered"] as const).map(style => <button key={style} type="button" role="menuitemradio" disabled={!writable} aria-checked={list.style === style} className={list.style === style ? "is-active" : ""} onMouseDown={preserveTextSelection} onClick={() => {
-          if (!writable) return;
-          if (list.style === style || onChange({ block: replaceListType(root, list.id, style), listId: list.id, itemIndex: selection.itemIndex })) close();
-        }}><StudioHoverIcon name={style === "ordered" ? "text.list-numbered" : "text.list-bulleted"} /><span>{style === "ordered" ? "Ordered" : "Unordered"}</span></button>)}
-        <button type="button" role="menuitem" aria-label="Select parent block: List" onMouseDown={preserveTextSelection} onClick={() => { close(false); onSelectParent(); }}><StudioHoverIcon name="block.list" /><span>Select List</span></button>
-      </StudioAnchoredMenu> : null}
-    </div>
-    <div className="transform-control">
-      <button ref={triggerRef} type="button" onMouseDown={preserveTextSelection} onClick={() => { if (open === "item") close(); else setOpen("item"); }} aria-haspopup="menu" aria-expanded={open === "item"} aria-label="Change List Item block type or style" title="List Item"><StudioHoverIcon name="text.list-bulleted" /></button>
-      {open === "item" ? <StudioAnchoredMenu anchor={() => triggerRef.current} className="rich-text-format-menu" aria-label="List Item transforms" onClose={close}>
+      <button ref={triggerRef} type="button" onMouseDown={preserveTextSelection} onClick={() => { if (open) close(); else setOpen(true); }} aria-haspopup="menu" aria-expanded={open} aria-label="Change List Item block type or style" title="List Item"><StudioHoverIcon name="text.list-bulleted" /></button>
+      {open ? <StudioAnchoredMenu anchor={() => triggerRef.current} className="rich-text-format-menu" aria-label="List Item transforms" onClose={close}>
         <button type="button" role="menuitem" aria-label="Close List Item transforms" onClick={() => close()}><StudioHoverIcon name="action.close" /><span>Close</span></button>
         <p>No transforms.</p>
       </StudioAnchoredMenu> : null}

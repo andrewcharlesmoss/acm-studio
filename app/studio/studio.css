@@ -886,6 +886,8 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .canvas-block-toolbar .block-move-controls button { border-radius: 2px; height: 18px; width: 26px; }
 .block-move-controls svg { height: 14px; width: 14px; }
 .list-toolbar-controls { align-items: center; display: flex; border-left: 1px solid var(--line); padding-left: 3px; }
+.list-toolbar-controls > button[aria-pressed="true"] { background: var(--studio-shared-button-background); color: var(--studio-shared-button-foreground); }
+.list-toolbar-controls > button[aria-pressed="true"]:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .block-textarea { background: transparent; border: 0; color: var(--ink); display: block; font-family: var(--font-sans); font-size: 16px; line-height: 1.65; outline: 0; overflow: hidden; padding: 0; resize: none; width: 100%; }
 .canvas-title, .canvas-subtitle, .block-textarea, .rich-text-editor, .list-field-row textarea { font-family: var(--font-sans); }
 .rich-text-editor, .preview-rich-text { min-height: 0; white-space: pre-wrap; word-break: break-word; }

@@ -615,7 +615,7 @@
 
 ### Fixed
 
-- A selected List Item now shows Ordered/Unordered only after opening its far-left List menu, which also retains parent List selection.
+- The far-left List Item toolbar button directly selects its parent List and shows that List’s Ordered/Unordered controls, matching Gutenberg; type controls remain hidden on the item toolbar.
 
 - Dashboard and editor navigation now share catalogue-backed tool icons, with
   distinct symbols for Files, Design Canvas, Backup and Bin.
