@@ -85,13 +85,20 @@ export function useStudioDocumentCommands({ workspace, activeDocument, commit, s
     const document = workspace.documents.find(item => item.id === documentId);
     if (!canDeleteDocument(document) || !document) return false;
     const assignment = templates.store.assignments.find(item => item.documentId === documentId);
+    const remainingActiveDocumentId = (current: StudioWorkspace) => {
+      if (current.activeDocumentId !== documentId) return current.activeDocumentId;
+      const remaining = current.documents.filter(item => item.id !== documentId);
+      return (remaining.find(item => item.kind === document.kind) ?? remaining[0])?.id ?? "";
+    };
     if (commitWithTemplates) {
+      let nextActiveDocumentId = workspace.activeDocumentId;
       const saved = commitWithTemplates((current, store) => ({
         workspace: { ...current, documents: current.documents.filter(item => item.id !== documentId),
           bin: [...current.bin, { id: templateId(), deletedAt: new Date().toISOString(), document, ...(assignment ? { assignment } : {}) }],
-          activeDocumentId: current.activeDocumentId === documentId ? (current.documents.find(item => item.id !== documentId)?.id ?? "") : current.activeDocumentId },
+          activeDocumentId: nextActiveDocumentId = remainingActiveDocumentId(current) },
         templates: { ...store, assignments: store.assignments.filter(item => item.documentId !== documentId) },
       }));
+      if (saved && workspace.activeDocumentId === documentId) setActiveDocument(nextActiveDocumentId);
       return saved;
     }
     let publication: ReturnType<DocumentPublications["capture"]> = undefined;
@@ -112,7 +119,7 @@ export function useStudioDocumentCommands({ workspace, activeDocument, commit, s
         ...current, documents: current.documents.filter(item => item.id !== documentId),
         bin: [...current.bin, { id: templateId(), deletedAt: new Date().toISOString(), document,
           ...(assignment ? { assignment } : {}), ...(publication ? { publication } : {}) }],
-        activeDocumentId: current.activeDocumentId === documentId ? (current.documents.find(item => item.id !== documentId)?.id ?? "") : current.activeDocumentId,
+        activeDocumentId: remainingActiveDocumentId(current),
       }));
       if (moved !== false) return true;
     } catch { /* Restore both stores when any part of the Bin transaction fails. */ }

@@ -629,6 +629,8 @@
 
 ### Fixed
 
+- Moving a document to the Bin keeps its Pages or Posts tab selected and opens another document of the same kind when available.
+
 - Test reconnects after an expired editing lease or session without discarding
   pending edits. Returning to the tab refreshes its connection; saved-source
   reconciliation and explicit overlap choices remain in place.

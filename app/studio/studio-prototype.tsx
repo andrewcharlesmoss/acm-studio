@@ -191,7 +191,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     confirmCodeEditorDiscard, feedback: publishing.setPublishFeedback,
     onDocumentCreated: kind => { setCodeEditorDirty(false); setLibraryKind(kind); setDocumentFieldSelection(null); setSelectedBlockId(null); setInspectorTab("document"); setStudioSection("content"); setPreviewing(false); if (!previewWindow) writeStudioNavigation("content"); },
     onDocumentDuplicated: () => setSelectedBlockId(null),
-    onDocumentRemoved: (documentId, kind) => { if (documentId !== activeDocument.id) return; if (kind) setLibraryKind(kind); setDocumentFieldSelection(null); setSelectedBlockId(null); setCodeEditorDirty(false); },
+    onDocumentRemoved: documentId => { if (documentId !== activeDocument.id) return; setDocumentFieldSelection(null); setSelectedBlockId(null); setCodeEditorDirty(false); },
   });
   const { addDocument, addDocumentFromTemplate, saveAsTemplate, duplicateDocument, requestRenameDocument, requestDeleteDocument: deleteDocumentAction } = documentActions;
   const requestDeleteDocument = (id = activeDocument.id) => { if (selectedSite && id === testContext.homeDocumentId) { setSiteFeedback(`The home page must remain in ${siteName}. Edit its content instead.`); return; } deleteDocumentAction(id); };
@@ -283,7 +283,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   }
 
   useStudioScreenNavigation({ setStudioSection, setLibraryKind, setPreviewing, setTemplateTarget, setShowInserter,
-    setDocumentFieldSelection, setSelectedBlockId, previewWindow, studioSection, activeDocument: workspaceDocument, publishing: selectedSite ? { publish: () => { void testSite.flush().catch(() => {}); } } : publishing, confirmCodeEditorDiscard });
+    setDocumentFieldSelection, setSelectedBlockId, previewWindow, workspaceReady: currentWorkspaceSession.ready, studioSection, activeDocument: workspaceDocument, publishing: selectedSite ? { publish: () => { void testSite.flush().catch(() => {}); } } : publishing, confirmCodeEditorDiscard });
 
   if (previewWindow && selectedSite && testSite.draft && (!previewDocumentId || !workspace.documents.some(document => document.id === previewDocumentId))) {
     return <main className="studio-preview-unavailable" role="alert"><h1>Document unavailable</h1><p>This document could not be found in {siteName}. Return to {siteName} and open its preview again.</p></main>;

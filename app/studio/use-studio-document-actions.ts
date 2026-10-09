@@ -17,7 +17,7 @@ export function useStudioDocumentActions({ workspace, activeDocument, resolvedDo
   templateSnapshot?: TemplateSnapshot; templateSession: DocumentTemplateSession;
   documentCommands: ReturnType<typeof useStudioDocumentCommands>; writable: boolean; codeEditorDirty: boolean;
   confirmCodeEditorDiscard: () => boolean; onDocumentCreated: (kind: StudioDocumentKind) => void;
-  onDocumentDuplicated: () => void; onDocumentRemoved: (documentId: string, kind?: StudioDocumentKind) => void;
+  onDocumentDuplicated: () => void; onDocumentRemoved: (documentId: string) => void;
   feedback: (message: string) => void;
 }) {
   const [saveTemplateDialog, setSaveTemplateDialog] = useState<SaveTemplateDraft>();
@@ -85,9 +85,7 @@ export function useStudioDocumentActions({ workspace, activeDocument, resolvedDo
   function requestDeleteDocument(documentId = activeDocument.id) {
     if (codeEditorDirty) { feedback("Apply or discard the code editor changes before moving this document to the Bin."); return; }
     if (!documentCommands.moveDocumentToBin(documentId)) return;
-    const remaining = workspace.documents.filter(item => item.id !== documentId);
-    const index = workspace.documents.findIndex(item => item.id === documentId);
-    onDocumentRemoved(documentId, remaining[Math.min(index, remaining.length - 1)]?.kind);
+    onDocumentRemoved(documentId);
   }
   return { saveTemplateDialog, setSaveTemplateDialog, newTemplateChoice, setNewTemplateChoice, renameDocumentDialog,
     setRenameDocumentDialog, actionError, addDocument, addDocumentFromTemplate, commitNewDocumentFromTemplate,

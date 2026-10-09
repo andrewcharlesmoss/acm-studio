@@ -44,17 +44,18 @@ export function writeStudioNavigation(mode: "content" | "templates" | "bin", tar
 }
 /** URL navigation and screen shortcuts stay independent of storage sessions. */
 export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, setPreviewing, setTemplateTarget,
-  setShowInserter, setDocumentFieldSelection, setSelectedBlockId, previewWindow, studioSection, activeDocument, publishing, confirmCodeEditorDiscard,
+  setShowInserter, setDocumentFieldSelection, setSelectedBlockId, previewWindow, workspaceReady, studioSection, activeDocument, publishing, confirmCodeEditorDiscard,
 }: {
   setStudioSection: (section: StudioSection) => void;
   setLibraryKind: (kind: "page" | "post" | "templates") => void; setPreviewing: (preview: boolean) => void;
   setTemplateTarget: (target: StudioTemplateTarget) => void;
   setShowInserter: (show: boolean) => void; setDocumentFieldSelection: (field: null) => void;
-  setSelectedBlockId: (id: null) => void; previewWindow: boolean; studioSection: StudioSection;
+  setSelectedBlockId: (id: null) => void; previewWindow: boolean; workspaceReady: boolean; studioSection: StudioSection;
   activeDocument: { kind: "page" | "post" }; publishing: { publish: () => void };
   confirmCodeEditorDiscard: () => boolean;
 }) {
   const acceptedLocation = useRef<{ path: string; index: number } | null>(null);
+  const initialNavigationApplied = useRef(false);
   const canNavigate = useEffectEvent(() => confirmCodeEditorDiscard());
   useEffect(() => {
     if (!previewWindow && !acceptedLocation.current) {
@@ -99,7 +100,10 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
     const navigation = readStudioNavigation(window.location.search);
     let mounted = true;
     queueMicrotask(() => {
-      if (!mounted || previewWindow) return;
+      if (!mounted || previewWindow || !workspaceReady || initialNavigationApplied.current) return;
+      // Initialise from loaded content once; document fallback after binning
+      // must not replace the person's chosen library tab.
+      initialNavigationApplied.current = true;
       setTemplateTarget(navigation.target);
       if (navigation.section === "templates") { setStudioSection("templates"); setLibraryKind("templates"); }
       else if (navigation.section === "bin") setStudioSection("bin");
@@ -112,7 +116,7 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
       window.removeEventListener("popstate", syncModeFromLocation, true);
       window.removeEventListener("studio-navigation", rememberLocation);
     };
-  }, [activeDocument.kind, previewWindow, setLibraryKind, setPreviewing, setStudioSection, setTemplateTarget]);
+  }, [activeDocument.kind, previewWindow, workspaceReady, setLibraryKind, setPreviewing, setStudioSection, setTemplateTarget]);
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
       // Menus claim their own Escape; native dialogs dismiss on the later cancel
