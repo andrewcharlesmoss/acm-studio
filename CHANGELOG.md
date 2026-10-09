@@ -87,7 +87,7 @@
 
 ### Changed
 
-- The Sites pane outlines the active site and marks its active local environment with a green dot and underline.
+- The Sites pane outlines the active site and marks its active local environment with a green dot.
 
 - Padding and margin sliders use unit-specific custom ranges: 300px, 10em/rem and 100 for percentage, viewport and ch units. Numeric entry and unit switches preserve measurements outside the slider range.
 
