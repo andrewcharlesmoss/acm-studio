@@ -112,11 +112,13 @@ export function ProjectLocalSiteNavigation({ id, name, onSelectTest }: { id: str
 
   return <section className="studio-local-sites" aria-labelledby="studio-local-sites-title">
     <h2 id="studio-local-sites-title">Sites</h2>
-    <a className="studio-local-site" href={id === "test" ? "/studio?site=test" : "/studio"} aria-label={`Edit ${name} local site`} onClick={event => { if (id === "test" && onSelectTest) { event.preventDefault(); onSelectTest(); } }}>
-      <span className="studio-local-site-mark" aria-hidden="true">{name.slice(0, 1)}</span>
-      <span className="studio-local-site-copy"><strong>{name}</strong><small role="status">{localStatus(snapshot, project)}</small></span>
-    </a>
-    <button type="button" className="text-button" disabled={!canVisit || opening} onClick={() => void openLocal()} aria-label={`Open ${name} local preview`}>Open Local Site <StudioIcon name="external" size={16} /></button>
+    <div className="studio-local-site-actions">
+      <a className="studio-local-site" href={id === "test" ? "/studio?site=test" : "/studio"} aria-label={`Edit ${name} local site`} onClick={event => { if (id === "test" && onSelectTest) { event.preventDefault(); onSelectTest(); } }}>
+        <span className="studio-local-site-mark" aria-hidden="true">{name.slice(0, 1)}</span>
+        <span className="studio-local-site-copy"><strong>{name}</strong><small role="status">{localStatus(snapshot, project)}</small></span>
+      </a>
+      <button type="button" className="studio-local-site-open" disabled={!canVisit || opening} onClick={() => void openLocal()} aria-label={`Visit Site — ${name} — Local${canVisit ? "" : " — local server unavailable"}`} title={`Visit Site — ${name} — Local`}><StudioIcon name="external" size={20} /></button>
+    </div>
   </section>;
 }
 

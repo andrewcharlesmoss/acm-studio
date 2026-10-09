@@ -464,10 +464,14 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-library .library-tools { padding: 8px 0; }
 .studio-local-sites { border-bottom: 1px solid #d8d6ce; padding: 12px 10px 8px; }
 .studio-local-sites h2 { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 650; margin: 0 8px 6px; }
-.studio-local-site { align-items: center; background: transparent; border: 0; border-radius: 8px; color: var(--ink); cursor: pointer; display: flex; gap: 9px; min-height: 48px; padding: 7px 8px; text-align: left; width: 100%; }
-.studio-local-site:hover:not(:disabled) { background: white; }
+.studio-local-site-actions { align-items: center; background: transparent; border-radius: 8px; display: flex; min-width: 0; }
+.studio-local-site-actions:hover, .studio-local-site-actions:focus-within { background: white; }
+.studio-local-site { align-items: center; background: transparent; border: 0; border-radius: 8px; color: var(--ink); cursor: pointer; display: flex; flex: 1; gap: 9px; min-height: 48px; min-width: 0; padding: 7px 8px; text-align: left; text-decoration: none; }
+.studio-local-site-open { align-items: center; background: transparent; border: 0; border-radius: 8px; color: var(--ink); cursor: pointer; display: inline-flex; flex: none; height: 36px; justify-content: center; margin-inline-end: 6px; padding: 0; width: 36px; }
+.studio-local-site-open:hover:not(:disabled) { background: #f1f0ed; }
+.studio-local-site-open:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: 2px; }
+.studio-local-site-open:disabled { color: var(--muted); cursor: not-allowed; opacity: .72; }
 .studio-local-site:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: 2px; }
-.studio-local-site:disabled { color: var(--ink); cursor: not-allowed; }
 .studio-local-site-mark { align-items: center; background: #e4e3dd; border-radius: 6px; display: inline-flex; flex: none; font-size: var(--studio-ui-size); font-weight: 750; height: 28px; justify-content: center; width: 28px; }
 .studio-local-site-copy { display: grid; gap: 2px; min-width: 0; }
 .studio-local-site-copy strong { font-size: var(--studio-ui-size); font-weight: 650; }
