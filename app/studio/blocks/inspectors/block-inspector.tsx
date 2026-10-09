@@ -121,7 +121,7 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
       <PaneTabs id={listInspectorId} label="List inspector" className="list-inspector-tabs" indicatorVariant="selected"
         tabs={[{ id: "content", label: "Content" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]}
         active={listTab} onChange={tab => setListTabSelection({ blockId: block.id, tab })}
-        renderLabel={tab => <><AcmIcon name={tab.id === "content" ? "document.content" : tab.id === "settings" ? "action.settings" : "view.styles"} scale="Regular-M" size={24} /><span className="table-inspector-tab-label">{tab.label}</span></>} />
+        renderLabel={tab => <><AcmIcon name={tab.id === "content" ? "view.list" : tab.id === "settings" ? "action.settings" : "view.styles"} scale="Regular-M" size={24} /><span className="table-inspector-tab-label">{tab.label}</span></>} />
       <PaneTabPanel id={listInspectorId} tab="content" active={listTab} className="list-inspector-tab-panel">
         <ListContentInspector block={block} onChange={onChange} />
       </PaneTabPanel>
