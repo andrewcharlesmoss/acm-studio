@@ -629,6 +629,8 @@
 
 ### Fixed
 
+- Local fixture shutdown and restart clean up their own writer locks, preventing stale guards from blocking Test and Test2 site switching.
+
 - Moving a document to the Bin keeps its Pages or Posts tab selected and opens another document of the same kind when available.
 
 - Test reconnects after an expired editing lease or session without discarding

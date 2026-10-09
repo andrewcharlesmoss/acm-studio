@@ -20,7 +20,12 @@ export function createTestPromptGateway({ store, propose, validate }) {
 }
 
 export function testSiteBridge() {
-  return { name: "studio-test-site", apply: "serve", configureServer(server) {
+  let closeStores = async () => {};
+  return { name: "studio-test-site", apply: "serve", async closeBundle() {
+    // Vite awaits this hook on restart and shutdown. An HTTP close event alone
+    // cannot keep the process alive until queued saves and guard cleanup finish.
+    await closeStores();
+  }, configureServer(server) {
     const roots = {
       test: path.resolve(process.env.STUDIO_TEST_PATH ?? path.resolve(server.config.root, "../test")),
       test2: path.resolve(process.env.STUDIO_TEST2_PATH ?? path.resolve(server.config.root, "../test2")),
@@ -38,7 +43,6 @@ export function testSiteBridge() {
     };
     const invalidateRenderer = file => { if (rendererDependencies.has(file)) loaded = undefined; };
     server.watcher.on("change", invalidateRenderer);
-    server.httpServer?.once("close", () => { server.watcher.off("change", invalidateRenderer); for (const { store } of stores.values()) void store.close(); });
     let validation;
     const stores = new Map(Object.entries(roots).map(([siteId, root]) => {
       const validate = document => document?.siteId === siteId && validation?.validTestSiteDocument(document) === true;
@@ -47,6 +51,19 @@ export function testSiteBridge() {
       const propose = createTestPromptGateway({ store, propose: (baseline, prompt) => prompts.propose(baseline, prompt), validate });
       return [siteId, { store, propose }];
     }));
+    let closingStores;
+    closeStores = () => {
+      closingStores ??= (async () => {
+        server.watcher.off("change", invalidateRenderer);
+        const results = await Promise.allSettled([...stores.values()].map(({ store }) => store.close()));
+        const failures = results.filter(result => result.status === "rejected").map(result => result.reason);
+        if (failures.length) throw new AggregateError(failures, "Local fixture lock cleanup failed.");
+      })();
+      return closingStores;
+    };
+    server.httpServer?.once("close", () => {
+      void closeStores().catch(() => server.config.logger.error("Local fixture lock cleanup failed. Review the writer locks before reconnecting."));
+    });
     server.middlewares.use("/__studio/test-site", async (request, response) => {
       response.setHeader("Cache-Control", "no-store"); response.setHeader("Content-Type", "application/json"); response.setHeader("X-Content-Type-Options", "nosniff");
       const address = server.httpServer?.address();

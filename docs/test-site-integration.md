@@ -99,7 +99,13 @@ A browser session uses an expiring random token, exact local origin checks and
 Test-only operations. The Studio Web Lock permits one persistence coordinator;
 the server's renewable owner lease and process guard coordinate file writes.
 `.studio/writer.lock` contains a process identity; a second Studio process fails
-closed while it exists. The service removes only its own lock on clean shutdown.
+closed while it exists. Vite's awaited close hook drains each fixture's queued
+saves and removes only its own lock before a clean shutdown or restart completes.
+An identity-checked synchronous exit fallback removes this process's own guards
+when the bundled Miniflare signal handler exits before asynchronous cleanup can
+finish. Source/output transaction recovery still applies to interrupted saves.
+Forced termination such as SIGKILL may leave a stale guard requiring the recovery
+procedure below.
 
 Each save includes the SHA-256 revision it was based on. The service validates the
 whole document, generates output, rejects source or output beyond the shared
@@ -148,7 +154,7 @@ changed draft. Do not rely on browser memory surviving a closed tab; export
 unsaved content before leaving.
 
 For a stale process guard after a crash, stop the owning Studio server and check
-its recorded PID against the running process list. Remove only Test's
+its recorded PID against the running process list. Remove only the affected fixture's
 `.studio/writer.lock` after establishing that its owning process is gone, then
 restart/reconnect. Never delete state, history or the source as a lock repair.
 Review externally changed files against source history before resolving a hash

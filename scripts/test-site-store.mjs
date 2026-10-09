@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { lstat, readFile, mkdir, realpath, rename, writeFile, unlink, readdir } from "node:fs/promises";
+import { lstatSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 export const revisionOf = document => createHash("sha256").update(JSON.stringify(document)).digest("hex");
@@ -20,8 +21,20 @@ export async function acquireTestFileGuard(root) {
   if (!entry.isDirectory() || entry.isSymbolicLink()) throw new TestSiteError(`The local site contains an unsafe recovery path.`, 503);
   const file = path.join(directory, "writer.lock");
   const identity = randomBytes(24).toString("hex");
-  try { await writeFile(file, JSON.stringify({ pid: process.pid, identity }), { flag: "wx", mode: 0o600 }); }
+  // Create the tiny guard and register its exit cleanup in the same JS turn.
+  try { writeFileSync(file, JSON.stringify({ pid: process.pid, identity }), { flag: "wx", mode: 0o600 }); }
   catch (error) { if (error.code === "EEXIST") throw new TestSiteError(`Another Studio server holds the local site's file lock. Stop that server, then review the lock before reconnecting.`, 423); throw error; }
+  const releaseAtExit = () => {
+    // Miniflare can call process.exit from its signal handler before Vite's
+    // asynchronous close completes. Exit handlers must finish synchronously.
+    try {
+      const current = lstatSync(file);
+      if (!current.isFile() || current.isSymbolicLink()) return;
+      const guard = JSON.parse(readFileSync(file, "utf8"));
+      if (guard.pid === process.pid && guard.identity === identity) unlinkSync(file);
+    } catch { /* Retain unreadable or changed guards for explicit recovery. */ }
+  };
+  process.once("exit", releaseAtExit);
   return async () => {
     try {
       const current = await lstat(file);
@@ -29,6 +42,7 @@ export async function acquireTestFileGuard(root) {
       const guard = JSON.parse(await readFile(file, "utf8"));
       if (guard.identity === identity) await unlink(file);
     } catch (error) { if (error.code !== "ENOENT") throw error; }
+    process.off("exit", releaseAtExit);
   };
 }
 
