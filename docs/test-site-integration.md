@@ -195,3 +195,29 @@ Studio's declared horizontal-scroll behaviour.
 
 Prompt evidence from the earlier implementation is historical and deferred; it
 does not establish acceptance of the current interface. Hosted publishing and independent hosted prompt editing remain outside this integration.
+
+## Test2 and switching between local fixtures
+
+The registered local fixtures are Test (`test`) and Test2 (`test2`). Test2 starts
+with a copy of Test's current collection and adjusted home/site identity; later
+edits are independent. Both appear in the Sites pane in content and template
+workspaces. Switching saves the current draft before a full context load; a
+failed save retains the current site and draft.
+
+Test2 source belongs to sibling `test2/content/site.json`, using v3 only. Legacy
+v1/v2 sources remain Test-only. The shared endpoint keeps its existing token
+header but selects one of two fixed stores. Browser input never selects a path.
+Source, recovery state, history, sessions, lease and process guard are separate.
+Server and browser validation require the document's site ID to match that store.
+Backup restore rejects another site's document. Wake and tab-sync channels are
+scoped to the site; both brokers mount in an ordinary Studio shell so the global
+Web Lock owner can serve peers from either site.
+
+`STUDIO_TEST2_PATH` optionally overrides the canonical Test2 root on the server;
+Test and Test2 roots must differ. From ACM Studio,
+`node scripts/render-test-site.mjs test2` performs approved initial bootstrap
+only. Do not copy `.studio`, Git metadata or Test's hosting binding. Project
+Ports manages Test2's `test2-web` static preview service, initially at
+`http://localhost:3006/`. Studio resolves its current port at visit time.
+Test2 has no staging or production target. Local saves, commits and previews
+do not publish.

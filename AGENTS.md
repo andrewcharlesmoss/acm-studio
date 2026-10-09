@@ -343,3 +343,17 @@ read-only network-denied permissions; only structured proposals reach the gatewa
 No hosted publishing or external editor synchronisation is authorised by this
 local integration. See `docs/test-site-integration.md` for configuration, supported
 capabilities, commands, conflict handling, protocol details and recovery.
+
+### Second local fixture
+
+Andrew authorised Test2 (`test2`) on 9 October 2026. `/studio?site=test2` uses
+the same local integration with an independent v3 source in sibling
+`test2/content/site.json`. Only fixed IDs `test` and `test2` are accepted.
+Each owns separate gateway sessions, leases, process guards, revisions, history,
+wake channels and synchronisation rooms. Every ordinary Studio shell retains
+both inactive brokers so its global Web Lock owner can save peers from either
+fixture. Backups must match the selected site. Switching flushes the current
+draft and loads the new context in a full page; failed saves stop the switch.
+Test2 is local-only, with no staging, hosted identity or publishing authority.
+Project Ports owns both preview services. `STUDIO_TEST2_PATH` is the optional
+server-only Test2 root override; roots must differ.

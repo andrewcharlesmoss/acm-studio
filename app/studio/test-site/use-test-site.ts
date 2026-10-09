@@ -1,6 +1,7 @@
 "use client";
+import { localFixtureName, type LocalFixtureSiteId } from "./sites";
 import { canApplyTestProposal, testDraftRecoveryEnvelope } from "./draft-recovery";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { studioWriteOwnership } from "../write-ownership";
 import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus } from "../studio-sync";
 import { reconcileStudioPendingSave, type StudioPendingSave } from "../studio-pending-save";
@@ -16,17 +17,15 @@ function expiredConnection(error: unknown) {
     || error.status === 423 && (error.code === "lease_expired" || error.message === expiredLeaseMessage)
   );
 }
-const WAKE_CHANNEL = "acm-studio-test-editing-v1";
-const WAKE_MESSAGE = { protocol: WAKE_CHANNEL, kind: "open", siteId: "test" } as const;
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
-function validateDocument(value: unknown): TestSiteDocument {
-  if (!validTestSiteDocument(value)) throw new Error("Test contains unsupported content. The draft was preserved.");
+function validateSiteDocument(value: unknown, siteId: LocalFixtureSiteId): TestSiteDocument {
+  if (!validTestSiteDocument(value) || value.siteId !== siteId) throw new Error("The selected site contains unsupported content or belongs to another site. The draft was preserved.");
   return testSiteCollection(value);
 }
-function validateSnapshot(value: unknown): TestSnapshot {
+function validateSiteSnapshot(value: unknown, siteId: LocalFixtureSiteId): TestSnapshot {
   const candidate = value as Partial<TestSnapshot> | null;
-  if (!candidate || typeof candidate.revision !== "string" || !/^[a-f0-9]{64}$/.test(candidate.revision) || candidate.previewRevision !== candidate.revision) throw new Error("Test returned an invalid saved revision.");
-  validateDocument(candidate.document);
+  if (!candidate || typeof candidate.revision !== "string" || !/^[a-f0-9]{64}$/.test(candidate.revision) || candidate.previewRevision !== candidate.revision) throw new Error("The selected site returned an invalid saved revision.");
+  validateSiteDocument(candidate.document, siteId);
   return candidate as TestSnapshot;
 }
 async function documentRevision(document: TestSiteDocument) {
@@ -34,7 +33,12 @@ async function documentRevision(document: TestSiteDocument) {
   return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
+export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId: LocalFixtureSiteId = "test") {
+  const siteName = localFixtureName(siteId);
+  const WAKE_CHANNEL = `acm-studio-${siteId}-editing-v1`;
+  const WAKE_MESSAGE = useMemo(() => ({ protocol: WAKE_CHANNEL, kind: "open", siteId }), [WAKE_CHANNEL, siteId]);
+  const validateDocument = useCallback((value: unknown) => validateSiteDocument(value, siteId), [siteId]);
+  const validateSnapshot = useCallback((value: unknown) => validateSiteSnapshot(value, siteId), [siteId]);
   // Once activated, retain the broker while this shell switches to browser content.
   const [activated, setActivated] = useState(enabled);
   const requested = enabled || activated;
@@ -42,7 +46,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
   const [draft, setDraft] = useState<TestSiteDocument | null>(null);
   const [past, setPast] = useState<TestSiteDocument[]>([]);
   const [future, setFuture] = useState<TestSiteDocument[]>([]);
-  const [label, setLabel] = useState("Loading Test…");
+  const [label, setLabel] = useState(`Loading ${siteName}…`);
   const [failure, setFailure] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<StudioSyncStatus>("connecting");
   const [syncConflict, setSyncConflict] = useState<StudioSyncConflict | null>(null);
@@ -74,11 +78,11 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
   const primary = Boolean(borrowedOwnership) && ownership === "writable" && isClaimed;
   const writable = enabled && (primary && syncStatus === "primary" || !borrowedOwnership && syncStatus === "synced") && !failure && !syncConflict && !promptRunning && !reconnecting && !editingPaused;
   const request = useCallback(async (input: Record<string, unknown>, connectionToken = token.current, keepalive = false) => {
-    const response = await fetch("/__studio/test-site", { method: "POST", headers: { "Content-Type": "application/json", "X-Studio-Client": "codex-history", ...(connectionToken ? { "X-Studio-Test-Token": connectionToken } : {}) }, body: JSON.stringify({ ...input, siteId: "test" }), keepalive });
+    const response = await fetch("/__studio/test-site", { method: "POST", headers: { "Content-Type": "application/json", "X-Studio-Client": "codex-history", ...(connectionToken ? { "X-Studio-Test-Token": connectionToken } : {}) }, body: JSON.stringify({ ...input, siteId }), keepalive });
     const result = await response.json();
-    if (!response.ok) throw new ConnectionError(result.error ?? "Test could not be loaded.", response.status, typeof result.code === "string" ? result.code : undefined);
+    if (!response.ok) throw new ConnectionError(result.error ?? `${siteName} could not be loaded.`, response.status, typeof result.code === "string" ? result.code : undefined);
     return result;
-  }, []);
+  }, [siteId, siteName]);
   const [preservedProposal, setPreservedProposal] = useState<unknown>(null);
   const fail = useCallback((message: string) => {
     live.current.failure = message;
@@ -92,7 +96,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
     const normalised = { ...saved, document };
     live.current.snapshot = normalised;
     setSnapshot(normalised);
-  }, []);
+  }, [validateDocument]);
   const recoverExpiredConnection = useCallback(() => {
     // Never replay an in-flight or uncertain save. Reconnect only connection authority;
     // pending edits retain their original base for the existing synchronisation rebase.
@@ -101,9 +105,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
     claimed.current = false;
     setIsClaimed(false); setReconnecting(true); setSyncStatus("connecting");
     sync.current?.close(); sync.current = null;
-    setLabel("Reconnecting Test — draft preserved");
+    setLabel(`Reconnecting ${siteName} — draft preserved`);
     setAttempt(value => value + 1);
-  }, []);
+  }, [siteName]);
 
   useEffect(() => {
     if (typeof BroadcastChannel !== "function") return;
@@ -118,7 +122,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
     const timer = window.setInterval(announce, 2000);
     if (enabled) queueMicrotask(() => setActivated(true));
     return () => { window.clearInterval(timer); channel.removeEventListener("message", wake); channel.close(); };
-  }, [enabled, borrowedOwnership]);
+  }, [enabled, borrowedOwnership, WAKE_CHANNEL, WAKE_MESSAGE]);
 
   useEffect(() => {
     if (!requested) return;
@@ -132,7 +136,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
       try {
         const result = await request({ action: "connect" });
         connectionToken = result.token;
-        if (typeof connectionToken !== "string" || !/^[a-f0-9]{64}$/.test(connectionToken)) throw new Error("Test returned an invalid editing session.");
+        if (typeof connectionToken !== "string" || !/^[a-f0-9]{64}$/.test(connectionToken)) throw new Error(`${siteName} returned an invalid editing session.`);
         const saved = validateSnapshot(result);
         if (cancelled) { releaseSession(); return; }
         token.current = connectionToken;
@@ -142,12 +146,12 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
         if (!pending.current) { live.current.draft = live.current.snapshot!.document; setDraft(live.current.draft); }
         setConnectionGeneration(value => value + 1);
         recoveringExpiry.current = false;
-        setLabel("Connecting Test tabs…"); setReconnecting(false);
-      } catch (error) { if (!cancelled) { recoveringExpiry.current = false; fail(error instanceof Error ? error.message : "Test could not be loaded."); setReconnecting(false); } }
+        setLabel(`Connecting ${siteName} tabs…`); setReconnecting(false);
+      } catch (error) { if (!cancelled) { recoveringExpiry.current = false; fail(error instanceof Error ? error.message : `${siteName} could not be loaded.`); setReconnecting(false); } }
     }
-    queueMicrotask(() => { if (!cancelled) { setIsClaimed(false); setLabel("Loading Test…"); void connect(); } });
+    queueMicrotask(() => { if (!cancelled) { setIsClaimed(false); setLabel(`Loading ${siteName}…`); void connect(); } });
     return () => { cancelled = true; mounted.current = false; claimed.current = false; token.current = null; window.removeEventListener("pagehide", releaseSession); releaseSession(); };
-  }, [attempt, request, requested, fail, installSaved]);
+  }, [attempt, request, requested, fail, installSaved, siteName, validateSnapshot]);
 
   useEffect(() => {
     if (!requested || !token.current) return;
@@ -168,13 +172,13 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
         if (cancelled) return;
         // A crashed previous tab's lease may remain briefly. No save is retried.
         if (error instanceof ConnectionError && error.status === 423) {
-          setLabel("Waiting for Test save handover…"); timer = setTimeout(() => void claim(), 1000);
-        } else fail(error instanceof Error ? error.message : "Test could not be claimed.");
+          setLabel(`Waiting for ${siteName} save handover…`); timer = setTimeout(() => void claim(), 1000);
+        } else fail(error instanceof Error ? error.message : `${siteName} could not be claimed.`);
       }
     }
     void claim();
     return () => { cancelled = true; if (timer) clearTimeout(timer); claimed.current = false; };
-  }, [requested, borrowedOwnership, connectionGeneration, request, fail, installSaved]);
+  }, [requested, borrowedOwnership, connectionGeneration, request, fail, installSaved, siteName, validateSnapshot]);
 
   useEffect(() => {
     if (!requested || !token.current || !live.current.snapshot || (borrowedOwnership && !isClaimed) || !["waiting", "writable"].includes(ownership)) return;
@@ -183,13 +187,13 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
     const owner = Boolean(borrowedOwnership) && isClaimed;
     const disk = { snapshot: live.current.snapshot };
     const reconcile = (document: TestSiteDocument, acknowledgedTransaction?: Parameters<typeof reconcileStudioPendingSave>[4]) => {
-      const next = reconcileStudioPendingSave(pending.current, document, validateDocument, "Test changes overlap with unsaved changes in this tab.", acknowledgedTransaction);
+      const next = reconcileStudioPendingSave(pending.current, document, validateDocument, `${siteName} changes overlap with unsaved changes in this tab.`, acknowledgedTransaction);
       pending.current = next.pending;
       if (next.conflict) { conflict.current = next.conflict; setSyncConflict(next.conflict); }
       return next;
     };
     const session = createStudioSync<TestSiteDocument>({
-      scope: "local-test", storeKey: "document", initialSnapshot: disk.snapshot.document,
+      scope: `local-${siteId}`, storeKey: "document", initialSnapshot: disk.snapshot.document,
       role: owner ? "primary" : "peer", validateSnapshot: validateDocument,
       loadAuthoritative: () => disk.snapshot.document,
       persistPrimary: async document => {
@@ -197,11 +201,11 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
         gatewayWriteGeneration.current += 1; gatewayWriting.current = true;
         try {
           const saved = await studioWriteOwnership.write(async () => {
-            if (!claimed.current || token.current !== connectionToken) throw new Error("Test's saving session changed. The draft was preserved.");
+            if (!claimed.current || token.current !== connectionToken) throw new Error(`${siteName}'s saving session changed. The draft was preserved.`);
             return validateSnapshot(await request({ action: "save", baseRevision: disk.snapshot.revision, document }, connectionToken));
           });
           disk.snapshot = saved;
-        } catch (error) { if (!closed) fail(error instanceof Error ? error.message : "Test could not be saved."); throw error; }
+        } catch (error) { if (!closed) fail(error instanceof Error ? error.message : `${siteName} could not be saved.`); throw error; }
         finally { gatewayWriting.current = false; gatewayWriteGeneration.current += 1; }
       },
       onCommittedSnapshot: (document, commit) => {
@@ -220,7 +224,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
         const displayed = pending.current?.snapshot ?? document;
         live.current.draft = displayed; setDraft(displayed);
         if (["update", "welcome", "failover", "recovery"].includes(source)) { live.current.past = []; live.current.future = []; setPast([]); setFuture([]); }
-        setLabel(pending.current ? "Unsaved changes" : owner ? "Saved locally" : "Synced with another Test tab");
+        setLabel(pending.current ? "Unsaved changes" : owner ? "Saved locally" : `Synced with another ${siteName} tab`);
       },
       onConflict: value => {
         if (closed) return;
@@ -232,26 +236,26 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
         if (!equal(value.localSnapshot, full.localSnapshot) || !equal(value.baseSnapshot, full.baseSnapshot)) {
           queueMicrotask(() => { if (!closed) session.resumeConflict(full); });
         }
-        setLabel("Conflicting Test changes — review required");
+        setLabel(`Conflicting ${siteName} changes — review required`);
       },
-      onStatus: status => { if (!closed) { setSyncStatus(status); if (status === "disconnected") setLabel("Test sync paused — reconnect to continue"); } },
+      onStatus: status => { if (!closed) { setSyncStatus(status); if (status === "disconnected") setLabel(`${siteName} sync paused — reconnect to continue`); } },
     });
     sync.current = session;
     setSyncStatus(session.getStatus());
     if (conflict.current) session.resumeConflict(conflict.current);
     return () => { closed = true; session.close(); if (sync.current === session) sync.current = null; };
-  }, [requested, connectionGeneration, borrowedOwnership, isClaimed, ownership, request, fail, installSaved]);
+  }, [requested, connectionGeneration, borrowedOwnership, isClaimed, ownership, request, fail, installSaved, siteId, siteName, validateDocument, validateSnapshot]);
 
   const installDraft = useCallback((next: TestSiteDocument, history = true) => {
     const current = live.current;
     const session = sync.current;
     if (editingPausedRef.current || !current.draft || !session || !(session.isConnectedPeer() || session.isPrimary() && claimed.current && studioWriteOwnership.canWrite()) || conflict.current || current.failure || current.promptRunning) return false;
-    if (!validTestSiteDocument(next)) { setPromptResult("This change uses a capability that Test does not support yet."); return false; }
+    if (!validTestSiteDocument(next) || next.siteId !== siteId) { setPromptResult(`This change uses a capability that ${siteName} does not support yet.`); return false; }
     if (equal(current.draft, next)) return true;
     if (history) { const previous = [...current.past.slice(-99), current.draft]; live.current.past = previous; live.current.future = []; setPast(previous); setFuture([]); }
     pending.current = { base: pending.current?.base ?? current.snapshot!.document, snapshot: next };
     live.current.draft = next; setDraft(next); setLabel("Unsaved changes"); return true;
-  }, []);
+  }, [siteId, siteName]);
   const updateDraft = (update: (current: TestSiteDocument) => TestSiteDocument) => {
     if (!live.current.draft) return false;
     return installDraft(update(structuredClone(live.current.draft)));
@@ -261,20 +265,20 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
     const current = live.current;
     if (!current.snapshot || !current.draft) return;
     if (current.failure) throw new Error(current.failure);
-    if (conflict.current) throw new Error("Review the conflicting Test changes before saving.");
+    if (conflict.current) throw new Error(`Review the conflicting ${siteName} changes before saving.`);
     if (!pending.current || equal(current.snapshot.document, current.draft)) return;
     const session = sync.current;
-    if (!session || !(session.isPrimary() && claimed.current && studioWriteOwnership.canWrite() || session.isConnectedPeer())) throw new Error("Test is waiting for its saving tab. Your draft has been preserved.");
+    if (!session || !(session.isPrimary() && claimed.current && studioWriteOwnership.canWrite() || session.isConnectedPeer())) throw new Error(`${siteName} is waiting for its saving tab. Your draft has been preserved.`);
     setLabel("Saving…");
     const operation = (session.isPrimary() ? session.commitPrimary(current.draft) : session.submit(current.draft)).then(() => {
-      if (mounted.current) setLabel(pending.current ? "Unsaved changes" : session.isPrimary() ? "Saved locally" : "Synced with another Test tab");
+      if (mounted.current) setLabel(pending.current ? "Unsaved changes" : session.isPrimary() ? "Saved locally" : `Synced with another ${siteName} tab`);
     }).catch(error => {
       if (mounted.current && sync.current === session && !conflict.current && !["connecting", "disconnected"].includes(session.getStatus())) fail(error instanceof Error ? error.message : "Save failed.");
       throw error;
     }).finally(() => { if (saving.current === operation) saving.current = null; });
     saving.current = operation;
     await operation;
-  }, [fail]);
+  }, [fail, siteName]);
   useEffect(() => {
     if (!dirty || !writable) return;
     const timer = window.setTimeout(() => { void flush().catch(() => {}); }, 600);
@@ -303,7 +307,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
         if (cancelled || !mounted.current || token.current !== connectionToken) return;
         const current = live.current;
         if (claimed.current && !gatewayWriting.current && !saving.current && gatewayWriteGeneration.current === beforeGeneration && current.snapshot?.revision === beforeRevision && fresh.revision !== beforeRevision) {
-          fail("Test changed outside its tab synchronisation session. Export your draft before reconnecting.");
+          fail(`${siteName} changed outside its tab synchronisation session. Export your draft before reconnecting.`);
         }
       } catch (error) {
         if (!cancelled && mounted.current && token.current === connectionToken) {
@@ -318,7 +322,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
     window.addEventListener("pageshow", refresh);
     document.addEventListener("visibilitychange", resume);
     return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("pageshow", refresh); document.removeEventListener("visibilitychange", resume); };
-  }, [request, requested, fail, recoverExpiredConnection]);
+  }, [request, requested, fail, recoverExpiredConnection, siteName, validateSnapshot]);
   useEffect(() => {
     const protect = (event: BeforeUnloadEvent) => { if (dirty || saving.current || promptRunning) { event.preventDefault(); event.returnValue = ""; } };
     window.addEventListener("beforeunload", protect);
@@ -349,7 +353,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
       live.current.past = []; live.current.future = []; setPast([]); setFuture([]);
       const saved = live.current.snapshot;
       if (saved) { live.current.draft = saved.document; setDraft(saved.document); }
-      setLabel(session.isPrimary() ? "Saved locally" : "Synced with another Test tab");
+      setLabel(session.isPrimary() ? "Saved locally" : `Synced with another ${siteName} tab`);
     } catch (error) { setSyncResolutionError(error instanceof Error ? error.message : "The conflict could not be resolved."); }
   }
   async function submitPrompt(prompt: string) {
@@ -374,18 +378,18 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
     const base = pending.current?.base ?? current.snapshot?.document;
     const revision = base ? legacyBase.current && equal(base, legacyBase.current.document) ? legacyBase.current.revision : await documentRevision(base) : undefined;
     const blob = new Blob([JSON.stringify(testDraftRecoveryEnvelope(current.draft, revision, preservedProposal), null, 2)], { type: "application/json" });
-    const href = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = href; link.download = "test-unsaved-draft.json"; link.click(); window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+    const href = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = href; link.download = `${siteId}-unsaved-draft.json`; link.click(); window.setTimeout(() => URL.revokeObjectURL(href), 1000);
   }
   async function reconnect() {
     if (reconnecting || promptRunning) return;
     if (live.current.failure && [expiredSessionMessage, expiredLeaseMessage].includes(live.current.failure)) { recoverExpiredConnection(); return; }
     setReconnecting(true);
     try { await saving.current; } catch { /* The user is reconnecting to inspect a failed or interrupted save. */ }
-    if ((pending.current || preservedProposal || conflict.current) && !window.confirm("Reload Test and discard the current draft? Export it first if you need to keep it.")) { setReconnecting(false); return; }
+    if ((pending.current || preservedProposal || conflict.current) && !window.confirm(`Reload ${siteName} and discard the current draft? Export it first if you need to keep it.`)) { setReconnecting(false); return; }
     pending.current = null; conflict.current = null; setSyncConflict(null); setPast([]); setFuture([]);
     setPreservedProposal(null); setSyncResolutionError(null);
-    live.current.failure = null; setFailure(null); setIsClaimed(false); setLabel("Connecting to Test…");
+    live.current.failure = null; setFailure(null); setIsClaimed(false); setLabel(`Connecting to ${siteName}…`);
     setAttempt(value => value + 1);
   }
-  return { snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, updateDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush, pauseEditing };
+  return { siteId, siteName, snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, updateDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush, pauseEditing };
 }

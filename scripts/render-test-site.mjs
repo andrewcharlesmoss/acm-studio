@@ -4,7 +4,9 @@ import { readFile, writeFile, realpath, lstat, rename } from "node:fs/promises";
 import path from "node:path";
 import { randomBytes, createHash } from "node:crypto";
 import { revisionOf, acquireTestFileGuard, checkedTestOutput, TEST_FILE_MAX_BYTES } from "./test-site-store.mjs";
-const root = path.resolve(process.env.STUDIO_TEST_PATH ?? "../test");
+const siteId = process.argv[2] ?? "test";
+if (siteId !== "test" && siteId !== "test2") throw new Error("Choose test or test2.");
+const root = path.resolve((siteId === "test2" ? process.env.STUDIO_TEST2_PATH : process.env.STUDIO_TEST_PATH) ?? `../${siteId}`);
 if (await realpath(root) !== root) throw new Error("Use Test's canonical project path.");
 for (const relative of ["content", "dist", "content/site.json", "dist/index.html"]) {
   const target = path.join(root, relative);
@@ -21,7 +23,7 @@ const { module: { validTestSiteDocument, renderTestSite } } = await runnerImport
   const source = await readFile(path.join(root, "content/site.json"), "utf8");
   if (Buffer.byteLength(source, "utf8") > TEST_FILE_MAX_BYTES) throw new Error("Test source is too large.");
   const document = JSON.parse(source);
-  if (!validTestSiteDocument(document)) throw new Error("Test document is invalid.");
+  if (!validTestSiteDocument(document) || document.siteId !== siteId) throw new Error("Test document is invalid.");
   const revision = revisionOf(document); const output = checkedTestOutput(renderTestSite(document, revision));
   if (await readFile(path.join(root, "content/site.json"), "utf8") !== source || await readFile(path.join(root, "dist/index.html"), "utf8") !== oldOutput) throw new Error("Test changed during bootstrap; its files were preserved.");
   await writeFile(path.join(root, ".studio/original-index.html"), oldOutput, { flag: "wx", mode: 0o600 });

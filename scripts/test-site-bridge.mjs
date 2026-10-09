@@ -21,7 +21,11 @@ export function createTestPromptGateway({ store, propose, validate }) {
 
 export function testSiteBridge() {
   return { name: "studio-test-site", apply: "serve", configureServer(server) {
-    const root = path.resolve(process.env.STUDIO_TEST_PATH ?? path.resolve(server.config.root, "../test"));
+    const roots = {
+      test: path.resolve(process.env.STUDIO_TEST_PATH ?? path.resolve(server.config.root, "../test")),
+      test2: path.resolve(process.env.STUDIO_TEST2_PATH ?? path.resolve(server.config.root, "../test2")),
+    };
+    if (roots.test === roots.test2) throw new Error("Local fixtures require distinct project roots.");
     let loaded;
     let rendererDependencies = new Set();
     const load = async () => {
@@ -34,11 +38,15 @@ export function testSiteBridge() {
     };
     const invalidateRenderer = file => { if (rendererDependencies.has(file)) loaded = undefined; };
     server.watcher.on("change", invalidateRenderer);
-    server.httpServer?.once("close", () => { server.watcher.off("change", invalidateRenderer); void store.close(); });
-    const store = createTestSiteStore({ root, validate: document => validation?.validTestSiteDocument(document) === true, render: async (document, revision) => (await load()).renderTestSite(document, revision) });
+    server.httpServer?.once("close", () => { server.watcher.off("change", invalidateRenderer); for (const { store } of stores.values()) void store.close(); });
     let validation;
-    const prompts = createTestPromptClient({ command: process.env.STUDIO_CODEX_BIN });
-    const propose = createTestPromptGateway({ store, propose: (baseline, prompt) => prompts.propose(baseline, prompt), validate: document => validation?.validTestSiteDocument(document) === true });
+    const stores = new Map(Object.entries(roots).map(([siteId, root]) => {
+      const validate = document => document?.siteId === siteId && validation?.validTestSiteDocument(document) === true;
+      const store = createTestSiteStore({ root, siteId, validate, render: async (document, revision) => (await load()).renderTestSite(document, revision) });
+      const prompts = createTestPromptClient({ command: process.env.STUDIO_CODEX_BIN });
+      const propose = createTestPromptGateway({ store, propose: (baseline, prompt) => prompts.propose(baseline, prompt), validate });
+      return [siteId, { store, propose }];
+    }));
     server.middlewares.use("/__studio/test-site", async (request, response) => {
       response.setHeader("Cache-Control", "no-store"); response.setHeader("Content-Type", "application/json"); response.setHeader("X-Content-Type-Options", "nosniff");
       const address = server.httpServer?.address();
@@ -49,7 +57,9 @@ export function testSiteBridge() {
         let byteLength = 0;
         for await (const chunk of request) { const bytes = Buffer.from(chunk); byteLength += bytes.length; if (byteLength > 550000) throw new TestSiteError("Test request is too large.", 413); chunks.push(bytes); }
         const input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-        if (!input || input.siteId !== "test") throw new TestSiteError("Unknown site.");
+        const fixture = input && stores.get(input.siteId);
+        if (!fixture) throw new TestSiteError("Unknown site.");
+        const { store, propose } = fixture;
         validation = await load();
         const token = request.headers["x-studio-test-token"];
         let result;

@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added the independent local Test2 fixture and safe switching between Test and Test2, with separate content, templates, saving sessions and previews.
+
 - Sites navigation shares the homepage’s Local, Staging and Production action
   groups, with unavailable editing marked clearly and absent staging omitted.
   Test is now included in the homepage directory.

@@ -1,3 +1,4 @@
+import { isLocalFixtureSiteId, type LocalFixtureSiteId } from "./sites";
 import type { ContentBlock } from "../../content/model";
 import type { StudioWorkspace, StudioDocument } from "../editor-model";
 import { validContentBlocks, validateStudioWorkspace } from "../workspace-validation";
@@ -8,7 +9,7 @@ export const TEST_REGIONS = ["header", "main", "footer"] as const;
 type Group = Extract<ContentBlock, { type: "group" }>;
 type LegacyTestSiteDocument = { format: "acm-test-site"; version: 1; siteId: "test"; regions: Record<typeof TEST_REGIONS[number], Group> };
 export type TestSiteCollection = {
-  format: "acm-test-site"; version: 3; siteId: "test";
+  format: "acm-test-site"; version: 3; siteId: LocalFixtureSiteId;
   documents: StudioWorkspace["documents"]; categories: StudioWorkspace["categories"]; bin: StudioWorkspace["bin"];
   activeDocumentId: string; homeDocumentId: string; templates: TemplateStore;
   browserImportComplete: boolean;
@@ -23,7 +24,7 @@ function hasLocalMedia(value: unknown): boolean {
 }
 export function validTestSiteDocument(value: unknown): value is TestSiteDocument {
   if (hasLocalMedia(value)) return false;
-  if (!record(value) || value.format !== "acm-test-site" || value.siteId !== "test") return false;
+  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || value.version !== 3 && value.siteId !== "test") return false;
   if (value.version === 1) {
     if (!record(value.regions) || Object.keys(value).sort().join() !== "format,regions,siteId,version" || Object.keys(value.regions).sort().join() !== "footer,header,main") return false;
     const blocks = TEST_REGIONS.map(region => (value.regions as Record<string, unknown>)[region]);
@@ -69,8 +70,8 @@ export function testSiteWorkspace(document: TestSiteCollection, selectedId = doc
     activeDocumentId: document.documents.some(item => item.id === selectedId) ? selectedId : document.homeDocumentId };
 }
 /** Explicit restore completes the import decision, including for older backups. */
-export function testSiteBackupSource(value: unknown): TestSiteCollection {
-  if (!validTestSiteDocument(value)) throw new Error("This is not a valid Test backup. The site was kept.");
+export function testSiteBackupSource(value: unknown, expectedSiteId: LocalFixtureSiteId = "test"): TestSiteCollection {
+  if (!validTestSiteDocument(value) || value.siteId !== expectedSiteId) throw new Error("This backup belongs to another site or contains unsupported content. The site was kept.");
   return { ...testSiteCollection(value), browserImportComplete: true };
 }
 export function testDocumentFromEditor(document: StudioDocument, source?: TestSiteDocument): TestSiteDocument | null {

@@ -1,3 +1,4 @@
+import { isLocalFixtureSiteId } from "./test-site/sites";
 import type { Metadata } from "next";
 import { StudioPrototype } from "./studio-prototype";
 
@@ -16,7 +17,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
   const template = Array.isArray(query.template) ? query.template[0] : query.template;
   return <StudioPrototype initialView={{
     preview: preview === "1",
-    site: query.site === "test" ? "test" : null,
+    site: isLocalFixtureSiteId(query.site) ? query.site : null,
     documentId: documentId ?? null,
     viewport: viewport === "tablet" || viewport === "mobile" ? viewport : "desktop",
     showTemplate: template !== "0",

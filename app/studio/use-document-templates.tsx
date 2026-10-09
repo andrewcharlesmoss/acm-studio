@@ -1,4 +1,5 @@
 "use client";
+import type { LocalFixtureSiteId } from "./test-site/sites";
 import { testDocumentHref } from "./test-site/contract";
 import { useTemplates } from "./use-templates";
 import { useStudioHistoryRouter } from "./use-studio-history-router";
@@ -14,7 +15,7 @@ import type { StudioPresentation } from "./studio-presentation";
 const emptyWorkspaceDocument = createWorkspacePreviewDocument("page");
 
 /** Keeps document/template orchestration out of the screen coordinator. */
-export function useDocumentTemplates(browserSession: ReturnType<typeof useStudioWorkspace>, onEditPart?: (setId: string, targetId: string) => void, siteContext?: { session: ReturnType<typeof useStudioWorkspace>; templates: ReturnType<typeof useTemplates>; commitContent: (update: (workspace: ReturnType<typeof useStudioWorkspace>["workspace"], templates: ReturnType<typeof useTemplates>["store"]) => { workspace: ReturnType<typeof useStudioWorkspace>["workspace"]; templates: ReturnType<typeof useTemplates>["store"] }) => boolean }) {
+export function useDocumentTemplates(browserSession: ReturnType<typeof useStudioWorkspace>, onEditPart?: (setId: string, targetId: string) => void, siteContext?: { siteId: LocalFixtureSiteId; session: ReturnType<typeof useStudioWorkspace>; templates: ReturnType<typeof useTemplates>; commitContent: (update: (workspace: ReturnType<typeof useStudioWorkspace>["workspace"], templates: ReturnType<typeof useTemplates>["store"]) => { workspace: ReturnType<typeof useStudioWorkspace>["workspace"]; templates: ReturnType<typeof useTemplates>["store"] }) => boolean }) {
   const session = siteContext?.session ?? browserSession;
   const { workspace, ownershipGeneration, writable } = session;
   const savedDocument = workspace.documents.find(item => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
@@ -35,7 +36,7 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
   const resolvedFields = document ? resolveDocumentFields(document, snapshot?.set, selectedTemplate?.defaults) : undefined;
   const resolvedDocument = document && resolvedFields ? { ...document, author: resolvedFields.author, category: resolvedFields.category, tags: resolvedFields.tags, parentPageId: resolvedFields.parentPageId, displayOverrides: resolveDocumentDisplay(document, selectedTemplate) } : document;
   const fieldUsage = document ? documentFieldUsage(document, snapshot?.set, snapshot?.templateId) : undefined;
-  const templateControls = <DocumentTemplateControls siteId={siteContext ? "test" : undefined} document={document} store={templates.store} writable={templates.writable} error={templates.error ?? resolutionError ?? media.error} onChange={assignment => {
+  const templateControls = <DocumentTemplateControls siteId={siteContext?.siteId} document={document} store={templates.store} writable={templates.writable} error={templates.error ?? resolutionError ?? media.error} onChange={assignment => {
     const previous = templates.store.assignments.find(item => item.documentId === document.id);
     if (!templates.writable || !writable) return;
     if (siteContext) {

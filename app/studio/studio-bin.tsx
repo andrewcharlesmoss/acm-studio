@@ -1,4 +1,5 @@
 "use client";
+import type { LocalFixtureSiteId } from "./test-site/sites";
 
 import { useRef, useState, type MouseEvent } from "react";
 import type { useStudioWorkspace } from "./use-studio-workspace";
@@ -19,7 +20,7 @@ function formattedDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 }
 
-export function StudioBin({ workspace, templates, siteId, commitContent }: { workspace: WorkspaceSession; templates: TemplateSession; siteId?: "test"; commitContent?: (update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) => boolean }) {
+export function StudioBin({ workspace, templates, siteId, commitContent }: { workspace: WorkspaceSession; templates: TemplateSession; siteId?: LocalFixtureSiteId; commitContent?: (update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) => boolean }) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [permanentTarget, setPermanentTarget] = useState<BinTarget | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);

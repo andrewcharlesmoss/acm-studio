@@ -1,4 +1,5 @@
 "use client";
+import { isLocalFixtureSiteId, localFixtureSites, localFixtureHref, type LocalFixtureSiteId } from "./test-site/sites";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { studioProjects } from "./project-registry";
@@ -63,7 +64,7 @@ export function ProjectLocalLink({ id, name, onEdit, active = false }: { id: str
   const [opening, setOpening] = useState(false);
   const project = snapshot?.projects.find(project => project.id === id);
   const canVisit = Boolean(local && snapshot?.available && project?.status === "running");
-  const editHref = local && id === "acm-studio" ? "/studio" : local && id === "test" ? "/studio?site=test" : undefined;
+  const editHref = local && id === "acm-studio" ? "/studio" : local && isLocalFixtureSiteId(id) ? localFixtureHref(id) : undefined;
   async function openLocal() {
     setOpening(true);
     try {
@@ -92,10 +93,8 @@ export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = fa
   const project = studioProjects.find(item => item.id === id);
   const localActions = <ProjectLocalLink id={id} name={name} onEdit={onSelectTest} active={active} />;
 
-  return <section className="studio-local-sites" aria-labelledby="studio-local-sites-title">
-    <h2 id="studio-local-sites-title">Sites</h2>
-    <div className="studio-local-site-actions">
-      <a className="studio-local-site" href={id === "test" ? "/studio?site=test" : "/studio"} aria-current={active ? "page" : undefined} aria-label={`Edit ${name} local site`} onClick={event => { if (id === "test" && onSelectTest) { event.preventDefault(); onSelectTest(); } }}>
+  return <div className="studio-local-site-actions">
+      <a className="studio-local-site" href={isLocalFixtureSiteId(id) ? localFixtureHref(id) : "/studio"} aria-current={active ? "page" : undefined} aria-label={`Edit ${name} local site`} onClick={event => { if (isLocalFixtureSiteId(id) && onSelectTest) { event.preventDefault(); onSelectTest(); } }}>
         <span className="studio-local-site-mark" aria-hidden="true">{name.slice(0, 1)}</span>
         <span className="studio-local-site-copy"><strong>{name}</strong></span>
       </a>
@@ -103,12 +102,15 @@ export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = fa
         {project ? <ProjectEnvironmentActions project={project} local={localActions} /> : localActions}
         <ProjectLocalStatus id={id} />
       </div>
-    </div>
-  </section>;
+  </div>;
 }
 
 export function ProjectLocalStatus({ id }: { id: string }) {
   const { local, snapshot } = useContext(LocalProjectsContext);
   const project = snapshot?.projects.find(project => project.id === id);
   return <small className="dashboard-local-status" role="status">{local ? localStatus(snapshot, project) : "Open ACM Studio on localhost to access local sites."}</small>;
+}
+
+export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void }) {
+  return <section className="studio-local-sites" aria-label="Sites"><h2>Sites</h2>{localFixtureSites.map(site => <ProjectLocalSiteNavigation key={site.id} id={site.id} name={site.name} active={selectedSite === site.id} onSelectTest={onSelectSite ? () => onSelectSite(site.id) : undefined} />)}</section>;
 }
