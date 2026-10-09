@@ -27,6 +27,11 @@ belong to the focused template workspace and leave text, code and form editing
 to the browser. The Template inspector owns identity, navigation and
 social/support links; Styles applies to the whole set. Ordinary paragraph style
 overrides take precedence over the set's tokens.
+
+Template Edit and Preview use a white canvas without a shadow and the same pale
+off-page background as the content editor. These workspace colours do not
+override authored template or block backgrounds.
+
 The block inserter also offers Social Icons. Add LinkedIn and TikTok inside it,
 then select each child in the canvas or List View to enter its profile URL.
 The parent controls orientation, justification, size, labels and whether links

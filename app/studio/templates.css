@@ -132,7 +132,8 @@
 .template-editing .template-node-selectable:has(.template-node-selectable:hover):not([data-studio-selected="true"]) { outline: 0; }
 .template-editing .canvas-block:not(.is-selected):has(.template-node-selectable:hover) { border-color: transparent; outline: 0; }
 .template-node-selectable:focus-visible { outline: 2px solid #5c5e5c; outline-offset: 4px; }
-.template-editing .block-canvas, .template-editing .document-preview { padding: 24px; width: 100%; max-width: 1200px; }
+.template-workspace .editor-canvas-scroll { background: var(--studio-workspace-background, #f8fafc); }
+.template-editing .block-canvas, .template-editing .document-preview { background: var(--studio-canvas-background, #fff); box-shadow: none; padding: 24px; width: 100%; max-width: 1200px; }
 .template-dialog { border: 1px solid #ccc; border-radius: 10px; padding: 24px; width: min(480px, 90vw); }
 .template-dialog::backdrop { background: #0005; }
 .template-dialog input { display: block; width: 100%; margin: 12px 0; padding: 8px; }
