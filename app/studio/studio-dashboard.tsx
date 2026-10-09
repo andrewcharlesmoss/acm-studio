@@ -1,41 +1,16 @@
-import { studioProjects, type StudioProject, type StudioProjectLink } from "./project-registry";
+import { studioProjects, type StudioProject } from "./project-registry";
 import { ProjectLocalLink, ProjectLocalLinksProvider, ProjectLocalStatus } from "./project-local-links";
 import { AcmIcon } from "@acm/icons/react";
 import { StudioIcon } from "./studio-icons";
+import { ProjectEnvironmentActions } from "./project-environment-links";
 import { StudioToolIcon } from "./studio-tool-icon";
 
-function ProjectLinks({ links, context }: { links: StudioProjectLink[]; context: string }) {
-  return <div className="dashboard-project-links">{links.map((link, index) => {
-    const external = link.href?.startsWith("https://") ?? false;
-    const unavailable = link.label === "Edit Site" && !link.href;
-    const accessibleName = `${link.label} — ${context}${unavailable ? " — not available yet" : ""}`;
-    const icon = external ? "external" : link.label === "Edit Site" ? "pencil" : "arrow-right";
-    if (!link.href) return <button className="dashboard-card-link is-icon-only is-unavailable" key={`${link.label}-${index}`} type="button" disabled title={accessibleName} aria-label={accessibleName}>
-      <StudioIcon name={icon} size={20} />
-    </button>;
-    return <a className={`dashboard-card-link${["Visit Site", "Edit Site"].includes(link.label) ? " is-icon-only" : ""}`} key={link.href} href={link.href} aria-label={accessibleName} title={accessibleName} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>
-      {icon === "arrow-right" ? link.label : <StudioIcon name={icon} size={20} />}
-    </a>;
-  })}</div>;
-}
-
 function ProjectCard({ project }: { project: StudioProject }) {
-  const environments = project.environments ?? [{
-    id: `${project.id}-production`,
-    name: "Production",
-    links: project.links,
-  }];
-
   return <article className="dashboard-site-card" data-project-id={project.id}>
     <div className="dashboard-card-topline"><span className="dashboard-site-mark" aria-hidden="true">{project.name.slice(0, 1)}</span><span className="dashboard-status dashboard-status-pending">{project.kind}</span></div>
     <h3>{project.name}</h3><p>{project.description}</p>
     <div className="dashboard-project-actions">
-      <div className="dashboard-project-environments">
-        <ProjectLocalLink id={project.id} name={project.name} />
-        {environments.map(environment => <div className="dashboard-project-environment" key={environment.id}>
-          <strong>{environment.name}</strong><ProjectLinks links={environment.links} context={`${project.name} — ${environment.name}`} />
-        </div>)}
-      </div>
+      <ProjectEnvironmentActions project={project} local={<ProjectLocalLink id={project.id} name={project.name} />} />
       <ProjectLocalStatus id={project.id} />
     </div>
   </article>;

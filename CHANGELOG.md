@@ -4,6 +4,9 @@
 
 ### Added
 
+- Sites navigation shares the homepage’s Local, Staging and Production action
+  groups, with unavailable editing marked clearly and absent staging omitted.
+  Test is now included in the homepage directory.
 - Site-aware Test content: Pages, Posts and Templates use its canonical source,
   including the existing test drafts, preserved template assignments and a
   recoverable Bin. Studio Drafts retains the original browser recovery copies.

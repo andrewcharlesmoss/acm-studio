@@ -43,6 +43,10 @@ const projects: StudioProject[] = [
     name: site.environmentLabel,
     links: [{ label: "Edit Site", href: site.editorHref }, visitSite(site.publicHref)],
   })).sort((left, right) => ["Staging", "Production"].indexOf(left.name) - ["Staging", "Production"].indexOf(right.name)) },
+  // Test's local fixture instructions define Production only; hosted editing is not connected.
+  { id: "test", name: "Test", description: "The local website fixture connected to Studio’s content editor.", kind: "Website", links: [
+    { label: "Edit Site" }, visitSite("https://test.andrewcharlesmoss.chatgpt.site"),
+  ] },
 ];
 
 export const studioProjects = projects.sort((left, right) => left.name.localeCompare(right.name, "en-GB"));

@@ -9,6 +9,10 @@ use the selected site's source. **Studio Drafts** opens the original browser
 workspace, including the recovery copies. The former `/studio/sites/test` route
 redirects into this shell. The site's Visit Site icon opens the independent
 preview discovered through Project Ports.
+The pane and homepage share Local and Production edit/view action groups.
+Test has no Staging target. Production opens its registered hosted website in a
+new tab; Production editing remains unavailable until a hosted content adapter
+is connected. The Local pencil selects Test through the existing editor flow.
 
 Test owns `content/site.json`, envelope v3 (`acm-test-site`, site ID `test`). It
 contains a collection of canonical Studio documents, categories, recoverable Bin

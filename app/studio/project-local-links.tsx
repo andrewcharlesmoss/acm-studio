@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { studioProjects } from "./project-registry";
+import { ProjectEnvironmentActions } from "./project-environment-links";
 import { StudioIcon } from "./studio-icons";
 
 type LocalProject = { id: string; status: "running" | "stopped" | "multiple" | "unconfigured" | "starting" | "stopping" | "failed" | "conflict" | "review" | "unavailable"; href?: string };
@@ -56,7 +58,7 @@ export function ProjectLocalLinksProvider({ children }: { children: ReactNode })
   return <LocalProjectsContext.Provider value={{ local, snapshot, refreshSnapshot: setSnapshot }}>{children}</LocalProjectsContext.Provider>;
 }
 
-export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
+export function ProjectLocalLink({ id, name, onEdit, active = false }: { id: string; name: string; onEdit?: () => void; active?: boolean }) {
   const { local, snapshot, refreshSnapshot } = useContext(LocalProjectsContext);
   const [opening, setOpening] = useState(false);
   const project = snapshot?.projects.find(project => project.id === id);
@@ -79,7 +81,7 @@ export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
   return <div className="dashboard-project-environment dashboard-local-environment">
     <strong>Local</strong>
     <div className="dashboard-project-links">
-      {editHref ? <a className="dashboard-card-link is-icon-only" href={editHref} aria-label={editName} title={editName}><StudioIcon name="pencil" size={20} /></a>
+      {editHref ? <a className="dashboard-card-link is-icon-only" href={editHref} aria-current={active ? "page" : undefined} onClick={onEdit ? event => { event.preventDefault(); onEdit(); } : undefined} aria-label={editName} title={editName}><StudioIcon name="pencil" size={20} /></a>
         : <button className="dashboard-card-link is-icon-only is-unavailable" type="button" disabled aria-label={editName} title={editName}><StudioIcon name="pencil" size={20} /></button>}
       <button type="button" className="dashboard-card-link is-icon-only dashboard-local-open" disabled={opening || !canVisit} onClick={() => void openLocal()} aria-label={visitName} title={visitName}><StudioIcon name="external" size={20} /></button>
     </div>
@@ -87,37 +89,20 @@ export function ProjectLocalLink({ id, name }: { id: string; name: string }) {
 }
 
 export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = false }: { id: string; name: string; onSelectTest?: () => void; active?: boolean }) {
-  const { local, snapshot, refreshSnapshot } = useContext(LocalProjectsContext);
-  const [opening, setOpening] = useState(false);
-  const project = snapshot?.projects.find(project => project.id === id);
-  const canVisit = Boolean(local && snapshot?.available && project?.status === "running" && project.href);
-
-  async function openLocal() {
-    if (opening || !canVisit) return;
-    setOpening(true);
-    try {
-      const fresh = await readLocalProjects();
-      refreshSnapshot(fresh);
-      const href = fresh.projects.find(item => item.id === id && item.status === "running")?.href;
-      const url = href ? new URL(href) : null;
-      if (url && ["http:", "https:"].includes(url.protocol) && url.hostname === "localhost" && !url.username && !url.password) {
-        window.location.assign(url.href);
-      }
-    } catch {
-      refreshSnapshot({ available: false, projects: [] });
-    } finally {
-      setOpening(false);
-    }
-  }
+  const project = studioProjects.find(item => item.id === id);
+  const localActions = <ProjectLocalLink id={id} name={name} onEdit={onSelectTest} active={active} />;
 
   return <section className="studio-local-sites" aria-labelledby="studio-local-sites-title">
     <h2 id="studio-local-sites-title">Sites</h2>
     <div className="studio-local-site-actions">
       <a className="studio-local-site" href={id === "test" ? "/studio?site=test" : "/studio"} aria-current={active ? "page" : undefined} aria-label={`Edit ${name} local site`} onClick={event => { if (id === "test" && onSelectTest) { event.preventDefault(); onSelectTest(); } }}>
         <span className="studio-local-site-mark" aria-hidden="true">{name.slice(0, 1)}</span>
-        <span className="studio-local-site-copy"><strong>{name}</strong><small role="status">{localStatus(snapshot, project)}</small></span>
+        <span className="studio-local-site-copy"><strong>{name}</strong></span>
       </a>
-      <button type="button" className="studio-local-site-open" disabled={!canVisit || opening} onClick={() => void openLocal()} aria-label={`Visit Site — ${name} — Local${canVisit ? "" : " — local server unavailable"}`} title={`Visit Site — ${name} — Local`}><StudioIcon name="external" size={20} /></button>
+      <div className="studio-local-site-environments">
+        {project ? <ProjectEnvironmentActions project={project} local={localActions} /> : localActions}
+        <ProjectLocalStatus id={id} />
+      </div>
     </div>
   </section>;
 }
