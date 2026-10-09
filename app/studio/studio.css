@@ -635,7 +635,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-list-icon { align-items: center; color: var(--muted); display: inline-flex; flex: 0 0 20px; height: 20px; justify-content: center; }
 .studio-list-icon svg { height: 18px; width: 18px; }
 .studio-list-item.is-selected .studio-list-icon { color: #1e1e1e; }
-/* WordPress's editor canvas measures 771px for the title, paragraphs and
+/* WordPress's editor canvas measures 835px for the title, paragraphs and
    image blocks at the reference desktop viewport. Keep the editable content
    column at that width in both Studio modes; the surrounding paper grows with
    its shared padding. */
