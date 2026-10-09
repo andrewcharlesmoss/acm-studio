@@ -4,6 +4,8 @@
 
 ### Added
 
+- Test2’s Production visit link alongside its Local controls in the Sites pane and homepage.
+
 - Added the independent local Test2 fixture and safe switching between Test and Test2, with separate content, templates, saving sessions and previews.
 
 - Sites navigation shares the homepage’s Local, Staging and Production action

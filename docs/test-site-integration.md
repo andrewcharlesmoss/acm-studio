@@ -225,5 +225,7 @@ Test and Test2 roots must differ. From ACM Studio,
 only. Do not copy `.studio`, Git metadata or Test's hosting binding. Project
 Ports manages Test2's `test2-web` static preview service, initially at
 `http://localhost:3006/`. Studio resolves its current port at visit time.
-Test2 has no staging or production target. Local saves, commits and previews
-do not publish.
+Test2 has a private Production Sites target at
+`https://test2.andrewcharlesmoss.chatgpt.site`, with no staging. Its hosting
+binding and manual publication procedure belong to `test2/AGENTS.md`.
+Local saves, commits and previews do not publish; hosted editing is not connected.

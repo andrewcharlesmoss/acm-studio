@@ -354,6 +354,9 @@ wake channels and synchronisation rooms. Every ordinary Studio shell retains
 both inactive brokers so its global Web Lock owner can save peers from either
 fixture. Backups must match the selected site. Switching flushes the current
 draft and loads the new context in a full page; failed saves stop the switch.
-Test2 is local-only, with no staging, hosted identity or publishing authority.
+Test2 has a private Production Sites entry alongside Local, with no staging.
+Its hosted identity and manual publication procedure belong to sibling
+`test2/AGENTS.md`; Studio local saves do not publish and hosted editing is not
+connected.
 Project Ports owns both preview services. `STUDIO_TEST2_PATH` is the optional
 server-only Test2 root override; roots must differ.

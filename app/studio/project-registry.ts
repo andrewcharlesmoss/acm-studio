@@ -47,7 +47,9 @@ const projects: StudioProject[] = [
   { id: "test", name: "Test", description: "The local website fixture connected to Studio’s content editor.", kind: "Website", links: [
     { label: "Edit Site" }, visitSite("https://test.andrewcharlesmoss.chatgpt.site"),
   ] },
-  { id: "test2", name: "Test2", description: "A second independent local website fixture for switching between sites.", kind: "Website", links: [], environments: [] },
+  { id: "test2", name: "Test2", description: "A second independent local website fixture for switching between sites.", kind: "Website", links: [
+    { label: "Edit Site" }, visitSite("https://test2.andrewcharlesmoss.chatgpt.site"),
+  ] },
 ];
 
 export const studioProjects = projects.sort((left, right) => left.name.localeCompare(right.name, "en-GB"));
