@@ -5,6 +5,7 @@
 ### Added
 
 - Test2’s Production visit link alongside its Local controls in the Sites pane and homepage.
+- Local Visit Site controls open the freshly discovered address in a new tab.
 
 - Added the independent local Test2 fixture and safe switching between Test and Test2, with separate content, templates, saving sessions and previews.
 
