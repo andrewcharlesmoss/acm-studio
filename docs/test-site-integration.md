@@ -229,3 +229,23 @@ Test2 has a private Production Sites target at
 `https://test2.andrewcharlesmoss.chatgpt.site`, with no staging. Its hosting
 binding and manual publication procedure belong to `test2/AGENTS.md`.
 Local saves, commits and previews do not publish; hosted editing is not connected.
+
+## Website views
+
+For local Test and Test2 content, the header's View menu offers Editing View,
+Website View and Full Preview. Editing View retains the existing authoring
+canvas and panes. Website View renders the current aggregate draft through
+`renderTestSite`, the same renderer used for local output, in a sandboxed iframe
+without access to Studio's origin or stores. It starts on the selected document
+and includes the site's navigation, templates and styles. Preview links can
+browse other documents without changing the editor selection.
+
+Desktop is 1200 × 800, Tablet 768 × 1024 and Mobile 390 × 844. Fit scales this
+fixed browser viewport to the available space; 100% shows its actual pixels with
+scrolling. Zoom controls and Command/Ctrl + plus, minus and zero work when the
+preview workspace itself is focused. They do not capture editing or iframe
+shortcuts. Full Preview hides the side panes and uses the available workspace
+as its browser viewport. Its toolbar returns to Website View or Editing View.
+These transient views do not save, publish or change the source. Unsaved Code
+Editor text requires the existing discard confirmation before switching views.
+The original browser draft and template editors retain their current views.

@@ -4,6 +4,8 @@
 
 ### Added
 
+- Website View and Full Preview for local Test and Test2 drafts, with isolated browser viewports, device sizes and Fit / 100% scale controls.
+
 - Test2’s Production visit link alongside its Local controls in the Sites pane and homepage.
 - Local Visit Site controls open the freshly discovered address in a new tab.
 

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKe
 import { StudioFocusOutlineSetting } from "./focus-outline-preferences";
 import { StudioIcon } from "./studio-icons";
 
+export type StudioViewMode = "editing" | "website" | "full";
+
 export type StudioViewport = "desktop" | "tablet" | "mobile";
 
 const viewports: { id: StudioViewport; label: string; width: number }[] = [
@@ -12,7 +14,9 @@ const viewports: { id: StudioViewport; label: string; width: number }[] = [
   { id: "mobile", label: "Mobile", width: 390 },
 ];
 
-export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTemplate, onShowTemplateChange, onPreviewInNewTab }: {
+export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTemplate, onShowTemplateChange, onPreviewInNewTab, viewMode = "editing", onViewModeChange }: {
+  viewMode?: StudioViewMode;
+  onViewModeChange?: (mode: StudioViewMode) => void;
   viewport: StudioViewport;
   onViewportChange: (viewport: StudioViewport) => void;
   showTemplate: boolean;
@@ -79,6 +83,11 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
     </button>
     {open ? <div className="studio-view-popover" role="menu" aria-label="View options">
       <div className="studio-view-popover-heading"><strong>View</strong><button ref={closeRef} type="button" aria-label="Close View menu" onClick={() => closeMenu()}><StudioIcon name="close" size={18} /></button></div>
+      {onViewModeChange ? <div className="studio-view-group" aria-label="Workspace view">
+        {([ ["editing", "Editing View"], ["website", "Website View"], ["full", "Full Preview"] ] as const).map(([id, label]) => <button className="studio-view-option" type="button" role="menuitemradio" aria-checked={viewMode === id} key={id} onClick={() => { onViewModeChange(id); closeMenu(); }}>
+          <strong>{label}</strong>{viewMode === id ? <StudioIcon name="check" size={18} aria-hidden="true" /> : null}
+        </button>)}
+      </div> : null}
       <div className="studio-view-group" aria-label="Preview viewport">
         {viewports.map(item => <button ref={viewport === item.id ? activeViewportRef : null} className="studio-view-option" type="button" role="menuitemradio" aria-checked={viewport === item.id} key={item.id} onClick={() => chooseViewport(item.id)}>
           <span><strong>{item.label}</strong><small>Preview {item.label.toLowerCase()} viewport.</small></span>
@@ -90,7 +99,7 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
         <span className="studio-view-option is-unavailable"><span><strong>Responsive styles</strong><small>Viewport-specific style editing is not available in Studio yet.</small></span></span>
       </div>
       <div className="studio-view-group">
-        <button className="studio-view-option" type="button" role="menuitemcheckbox" aria-checked={showTemplate} disabled={!hasTemplate} onClick={() => onShowTemplateChange(!showTemplate)}>
+        <button className="studio-view-option" type="button" role="menuitemcheckbox" aria-checked={showTemplate} disabled={!hasTemplate || viewMode !== "editing"} onClick={() => onShowTemplateChange(!showTemplate)}>
           <span><strong>Show template</strong>{!hasTemplate ? <small>No template is assigned to this document.</small> : null}</span>
           {showTemplate ? <StudioIcon name="check" size={18} aria-hidden="true" /> : null}
         </button>

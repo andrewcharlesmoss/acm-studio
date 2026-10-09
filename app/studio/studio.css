@@ -2059,3 +2059,28 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 
 /* A measured gap owns the hit area; visual overhang must not intercept block text. */
 .between-blocks[data-measured-gap] > span { pointer-events: none; }
+
+/* Website view keeps the publication inside its own browser viewport. */
+.studio-shell.studio-website-view > .studio-workspace {
+  grid-template-columns: var(--studio-library-width) minmax(540px, 1fr);
+  min-width: calc(var(--studio-library-width) + 540px);
+}
+.studio-site-preview { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.studio-site-preview-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 16px; background: #faf9f6; border-bottom: 1px solid #d2d0c8; flex: none; }
+.studio-site-preview-toolbar button, .studio-site-preview-toolbar select { font: inherit; min-height: 34px; border: 1px solid #d2d0c8; border-radius: 5px; padding: 6px 10px; background: #fff; color: #1c1c1e; }
+.studio-site-preview-toolbar button { cursor: pointer; }
+.studio-site-preview-toolbar button[aria-pressed="true"] { background: #e9e8e3; border-color: #8a8984; }
+.studio-site-preview-toolbar button:disabled { opacity: .5; cursor: default; }
+.studio-site-preview-toolbar label, .studio-site-preview-modes, .studio-site-preview-zoom { display: flex; align-items: center; gap: 6px; }
+.studio-site-preview-zoom button { display: inline-flex; align-items: center; justify-content: center; }
+.studio-site-preview-details { color: #636366; margin-left: auto; }
+.studio-site-preview-stage { flex: 1; min-height: 0; min-width: 0; overflow: auto; background: #e9e8e3; }
+.studio-site-preview-frame { position: relative; margin: 0 auto; background: #fff; }
+.studio-site-preview-frame iframe { display: block; border: 0; transform-origin: top left; max-width: none; }
+.studio-shell.studio-full-preview { min-width: 0; width: 100%; }
+.studio-shell.studio-full-preview > .studio-workspace { display: flex; min-width: 0; width: 100%; }
+.studio-full-preview .studio-library-track { display: none; }
+.studio-full-preview .studio-site-preview { flex: 1; }
+.studio-full-preview .studio-header { display: flex; flex-wrap: wrap; gap: 12px; }
+.studio-full-preview .studio-state { margin-left: auto; }
+.studio-full-preview .studio-site-preview-toolbar { padding: 8px 12px; }

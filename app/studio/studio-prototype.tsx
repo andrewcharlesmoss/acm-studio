@@ -10,10 +10,11 @@ import { useStudioScreenNavigation, writeStudioNavigation, type StudioTemplateTa
 import { useStudioDocumentActions } from "./use-studio-document-actions";
 import { StudioDocumentDialogs } from "./studio-document-dialogs";
 import { StudioDesignMediaHandoff } from "./studio-design-media-handoff";
+import { StudioSitePreview } from "./studio-site-preview";
 import { StudioHeader } from "./studio-header";
 import { StudioNavigationPane } from "./studio-navigation-pane";
 import { StudioIcon } from "./studio-icons";
-import { viewportWidthFor, type StudioViewport } from "./studio-view-menu";
+import { viewportWidthFor, type StudioViewport, type StudioViewMode } from "./studio-view-menu";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
 import { findBlockById } from "./studio-command-operations.mjs";
 import { useStudioDocumentCommands } from "./use-studio-document-commands";
@@ -57,6 +58,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const selectedSiteRef = useRef(selectedSite);
   const [siteFeedback, setSiteFeedback] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(previewWindow);
+  const [viewMode, setViewMode] = useState<StudioViewMode>("editing");
   const [viewViewport, setViewViewport] = useState<StudioViewport>(initialView.viewport);
   const [showTemplate, setShowTemplate] = useState(initialView.showTemplate);
   const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup" | "bin">("content");
@@ -122,6 +124,16 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     codeEditorDirtyRef.current = false; setCodeEditorDirty(false);
     return true;
   }
+  function changeViewMode(mode: StudioViewMode) {
+    if (mode === viewMode) return;
+    if (!confirmCodeEditorDiscard()) return;
+    setViewMode(mode);
+  }
+  function changeViewport(viewport: StudioViewport) {
+    setViewViewport(viewport);
+    if (viewMode === "full") setViewMode("website");
+  }
+  const websiteView = Boolean(selectedSite && studioSection === "content" && !previewWindow && viewMode !== "editing");
   const workspaceDocument = workspace.documents.find((item) => item.id === workspace.activeDocumentId) ?? workspace.documents[0] ?? resolvedDocument;
   const activeDocument = workspaceDocument;
   const displayedDocument = resolvedDocument;
@@ -294,10 +306,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   }
 
   return (
-    <div className={`studio-shell studio-desktop-only${selectedSite ? " studio-test-context" : ""}${previewWindow ? " studio-preview-window" : ""}`} onBeforeInputCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
+    <div className={`studio-shell studio-desktop-only${selectedSite ? " studio-test-context" : ""}${previewWindow ? " studio-preview-window" : ""}${websiteView ? ` studio-website-view${viewMode === "full" ? " studio-full-preview" : ""}` : ""}`} onBeforeInputCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       {selectedSite ? <style>{testSiteCss}</style> : null}
-      <StudioHeader siteContext={selectedSite ? { siteId: selectedSite, writable: testSite.writable, onSave: () => void testSite.flush().catch(() => {}) } : undefined} studioSection={studioSection} hasContentDocuments={hasContentDocuments || Boolean(selectedSite)} activeDocument={activeDocument} saveLabel={selectedSite ? testSite.label : saveLabel} templateSession={templateSession}
-        canRetryEditing={canRetryEditing} retryEditing={retryEditing} previewWindow={previewWindow} viewViewport={viewViewport} setViewViewport={setViewViewport}
+      <StudioHeader viewMode={viewMode} onViewModeChange={selectedSite ? changeViewMode : undefined} siteContext={selectedSite ? { siteId: selectedSite, writable: testSite.writable, onSave: () => void testSite.flush().catch(() => {}) } : undefined} studioSection={studioSection} hasContentDocuments={hasContentDocuments || Boolean(selectedSite)} activeDocument={activeDocument} saveLabel={selectedSite ? testSite.label : saveLabel} templateSession={templateSession}
+        canRetryEditing={canRetryEditing} retryEditing={retryEditing} previewWindow={previewWindow} viewViewport={viewViewport} setViewViewport={changeViewport}
         showTemplate={showTemplate} hasTemplate={hasTemplate} setShowTemplate={setShowTemplate} switchStudioMode={switchStudioMode} publishing={publishing} writable={writable && !selectedSite}
         savePageDraft={savePageDraft} onExportDocument={() => selectedSite ? testSite.exportDraft() : exportJson(activeDocument, `${activeDocument.slug}.json`)} />
       {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected" || testSite.syncConflict) ? <div className="studio-test-notices">
@@ -327,7 +339,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             <button className="button-primary" type="button" disabled={!writable} onClick={() => addDocument(libraryKind === "post" ? "post" : "page")}>Create {libraryKind === "post" ? "post" : "page"}</button>
             <button className="button-secondary" type="button" disabled={!writable} onClick={() => addDocument(libraryKind === "post" ? "page" : "post")}>Create {libraryKind === "post" ? "page" : "post"}</button>
           </div>
-        </section> : studioSection === "content" && selectedSite && !testSite.draft ? <section className="studio-empty-workspace" role="status">{testSite.failure || `Loading ${siteName}…`}</section> : studioSection === "content" ? <StudioEditor writable={editorWritable && !previewWindow} onUndo={undoStudio} onRedo={redoStudio} canUndo={selectedSite ? testSite.canUndo : canUndo} canRedo={selectedSite ? testSite.canRedo : canRedo}
+        </section> : studioSection === "content" && selectedSite && !testSite.draft ? <section className="studio-empty-workspace" role="status">{testSite.failure || `Loading ${siteName}…`}</section> : websiteView && testSite.draft ? <StudioSitePreview document={testSite.draft} documentId={activeDocument.id} viewport={viewViewport} onViewportChange={changeViewport} mode={viewMode === "full" ? "full" : "website"} onModeChange={changeViewMode} /> : studioSection === "content" ? <StudioEditor writable={editorWritable && !previewWindow} onUndo={undoStudio} onRedo={redoStudio} canUndo={selectedSite ? testSite.canUndo : canUndo} canRedo={selectedSite ? testSite.canRedo : canRedo}
           canvas={{
             activeDocument: displayedDocument,
             className: selectedSite ? "test-site-editor-surface" : hasTemplate && showTemplate ? "template-editing" : undefined,

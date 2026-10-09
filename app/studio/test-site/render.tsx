@@ -17,9 +17,27 @@ import templateCss from "../templates.css?raw";
 
 // Static, data-free routing: untrusted hashes are compared with DOM attributes,
 // never interpolated into selectors, HTML or script source.
-const routingScript = `(()=>{const pages=Array.from(document.querySelectorAll('[data-test-document]'));const home=pages.find(page=>page.dataset.testHome==='true');function show(){const hash=location.hash;let id;try{if(hash.startsWith('#document='))id=decodeURIComponent(hash.slice(10));}catch{}const active=hash.startsWith('#document=')?pages.find(page=>page.dataset.testDocument===id)||home:hash?pages.find(page=>!page.hidden)||home:home;for(const page of pages)page.hidden=page!==active;document.title=active?.dataset.testTitle||home?.dataset.testTitle||'';for(const link of document.querySelectorAll('[data-test-link]')){if(link.dataset.testLink===active?.dataset.testDocument)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}}addEventListener('hashchange',show);show();})();`;
-export function renderTestSite(document: TestSiteDocument, revision: string) {
+const routingScript = `(()=>{const pages=Array.from(document.querySelectorAll('[data-test-document]'));const home=pages.find(page=>page.dataset.testHome==='true');const initial=pages.find(page=>page.dataset.testInitial==='true')||home;function show(){const hash=location.hash;let id;try{if(hash.startsWith('#document='))id=decodeURIComponent(hash.slice(10));}catch{}const active=hash.startsWith('#document=')?pages.find(page=>page.dataset.testDocument===id)||home:hash?pages.find(page=>!page.hidden)||initial:initial;for(const page of pages)page.hidden=page!==active;document.title=active?.dataset.testTitle||home?.dataset.testTitle||'';for(const link of document.querySelectorAll('[data-test-link]')){if(link.dataset.testLink===active?.dataset.testDocument)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}}addEventListener('hashchange',show);show();})();`;
+// srcdoc inherits Studio's base URL. Keep fixture links inside this isolated
+// document rather than loading the Studio homepage into the preview frame.
+const previewRoutingScript = `let previewHash = '';
+document.addEventListener('click', event => {
+  const link = event.target instanceof Element ? event.target.closest('a') : null;
+  const href = link?.getAttribute('href');
+  const hash = href === '/' ? '#document=' + document.querySelector('[data-test-home=true]')?.dataset.testDocument
+    : href?.startsWith('/#') ? href.slice(1) : href;
+  if (!hash?.startsWith('#') || event.defaultPrevented || event.button !== 0
+    || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+  event.preventDefault();
+  previewHash = hash;
+  dispatchEvent(new Event('hashchange'));
+  if (!hash.startsWith('#document=')) {
+    try { document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView(); } catch {}
+  }
+});`;
+export function renderTestSite(document: TestSiteDocument, revision: string, initialDocumentId?: string) {
   const site = testSiteCollection(document);
+  const initialId = site.documents.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;
   const siteName = localFixtureName(site.siteId);
   const body = renderToStaticMarkup(<>
     {site.documents.length > 1 ? <nav className="test-document-navigation" aria-label={`${siteName} content`}>{site.documents.map(page => <a key={page.id} data-test-link={page.id} href={testDocumentHref(page.id)}>{page.title || "Untitled"}</a>)}</nav> : null}
@@ -29,10 +47,10 @@ export function renderTestSite(document: TestSiteDocument, revision: string) {
       const fields = resolveDocumentFields(page, snapshot?.set, template?.defaults);
       const resolved = { ...page, ...fields, displayOverrides: resolveDocumentDisplay(page, template) };
       const content = <BlockRenderer blocks={resolved.blocks} document={resolved} documentHref={testDocumentHref(page.id)} variant="studio" />;
-      return <section key={page.id} data-test-document={page.id} data-test-home={page.id === site.homeDocumentId ? "true" : "false"} data-test-title={page.title || siteName} hidden={page.id !== site.homeDocumentId}>
+      return <section key={page.id} data-test-document={page.id} data-test-home={page.id === site.homeDocumentId ? "true" : "false"} data-test-title={page.title || siteName} data-test-initial={initialDocumentId && page.id === initialId ? "true" : undefined} hidden={page.id !== initialId}>
         {snapshot ? <TemplateDocument snapshot={snapshot} document={resolved} documentHref={testDocumentHref(page.id)} content={content} /> : <div className="test-site-page">{page.id !== site.homeDocumentId ? <h1>{page.title}</h1> : null}{content}</div>}
       </section>;
     })}
   </>);
-  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="acm-test-revision" content="${revision}"><meta name="theme-color" content="#f2f2f7"><title>${siteName}</title><style>html{font-size:100%}body{margin:0}${contentCss.replace(/@import[^;]+;/g, "")}${studioBlockCss}${groupLayoutCss}${buttonsCss}${featuredImageCss}${templateCss}${testSiteCss}[data-test-document][hidden]{display:none}.test-document-navigation{display:flex;flex-wrap:wrap;gap:16px;padding:16px 24px}.test-document-navigation [aria-current=page]{font-weight:700}</style></head><body>${body}<script>${routingScript}</script></body></html>`;
+  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="acm-test-revision" content="${revision}"><meta name="theme-color" content="#f2f2f7"><title>${siteName}</title><style>html{font-size:100%}body{margin:0}${contentCss.replace(/@import[^;]+;/g, "")}${studioBlockCss}${groupLayoutCss}${buttonsCss}${featuredImageCss}${templateCss}${testSiteCss}[data-test-document][hidden]{display:none}.test-document-navigation{display:flex;flex-wrap:wrap;gap:16px;padding:16px 24px}.test-document-navigation [aria-current=page]{font-weight:700}</style></head><body>${body}<script>${initialDocumentId ? previewRoutingScript + routingScript.replace("const hash=location.hash;", "const hash=previewHash;") : routingScript}</script></body></html>`;
 }
