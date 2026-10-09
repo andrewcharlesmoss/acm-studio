@@ -8,8 +8,8 @@ import { StudioButton } from "./controls/button";
 import { StudioIcon } from "./studio-icons";
 import { restoreLocallyPublishedArticle } from "../content/local-publishing";
 import { copyTemplateData, visitTemplateNodes } from "./template-model";
-import type { StudioBinnedDocument } from "./editor-model";
-import type { StudioBinnedTemplate } from "./template-model";
+import type { StudioWorkspace, StudioBinnedDocument } from "./editor-model";
+import type { TemplateStore, StudioBinnedTemplate } from "./template-model";
 
 type WorkspaceSession = ReturnType<typeof useStudioWorkspace>;
 type TemplateSession = ReturnType<typeof useTemplates>;
@@ -19,7 +19,7 @@ function formattedDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 }
 
-export function StudioBin({ workspace, templates }: { workspace: WorkspaceSession; templates: TemplateSession }) {
+export function StudioBin({ workspace, templates, siteId, commitContent }: { workspace: WorkspaceSession; templates: TemplateSession; siteId?: "test"; commitContent?: (update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) => boolean }) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [permanentTarget, setPermanentTarget] = useState<BinTarget | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -45,6 +45,14 @@ export function StudioBin({ workspace, templates }: { workspace: WorkspaceSessio
       setFeedback("Restore the template assigned to this document before restoring the document.");
       return;
     }
+    if (commitContent) {
+      const restored = commitContent((current, store) => ({
+        workspace: { ...current, bin: current.bin.filter(candidate => candidate.id !== item.id), documents: [...current.documents, item.document] },
+        templates: item.assignment ? { ...store, assignments: [...store.assignments.filter(assignment => assignment.documentId !== item.document.id), item.assignment] } : store,
+      }));
+      setFeedback(restored ? `${item.document.kind === "page" ? "Page" : "Post"} restored.` : "This document could not be restored. It remains in the Bin.");
+      return;
+    }
     const saved = workspace.commit(current => ({ ...current, bin: current.bin.filter(candidate => candidate.id !== item.id), documents: [...current.documents, item.document], activeDocumentId: item.document.id }));
     if (!saved) { setFeedback("This document could not be restored because the workspace could not be saved."); return; }
     if (item.assignment && !templates.commit(current => ({ ...current, assignments: [...current.assignments.filter(assignment => assignment.documentId !== item.document.id), item.assignment!] }))) {
@@ -52,7 +60,7 @@ export function StudioBin({ workspace, templates }: { workspace: WorkspaceSessio
       setFeedback("The document was put back in the Bin because its template assignment could not be restored.");
       return;
     }
-    if (item.publication) {
+    if (item.publication && !siteId) {
       try { restoreLocallyPublishedArticle(item.publication); }
       catch (error) {
         if (item.assignment) templates.commit(current => ({ ...current, assignments: current.assignments.filter(assignment => assignment.documentId !== item.document.id) }));

@@ -21,12 +21,13 @@ type DocumentPublications = typeof browserDocumentPublications;
 
 /** The screen supplies its one history-wrapped workspace and template sessions. */
 export function useStudioDocumentCommands({ workspace, activeDocument, commit, setActiveDocument,
-  writable, exclusiveWritable, templates, feedback, publications = browserDocumentPublications,
+  writable, exclusiveWritable, templates, feedback, publications = browserDocumentPublications, commitWithTemplates,
 }: {
   workspace: StudioWorkspace; activeDocument: StudioDocument; commit: CommitWorkspace;
   setActiveDocument: (documentId: string) => void; writable: boolean; exclusiveWritable: boolean;
   templates: DocumentTemplateSession; feedback: (message: string) => void;
   publications?: DocumentPublications;
+  commitWithTemplates?: (update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) => boolean;
 }) {
   function selectDocument(document: StudioDocument) {
     setActiveDocument(document.id);
@@ -39,6 +40,12 @@ export function useStudioDocumentCommands({ workspace, activeDocument, commit, s
   function addDocument(kind: StudioDocumentKind, choice?: { setId: string; templateId: string }) {
     if (!writable || (choice && !templates.writable)) return null;
     const document = choice ? createDocumentFromTemplate(kind, `${kind}-${crypto.randomUUID()}`) : createDocument(kind);
+    if (commitWithTemplates) {
+      const saved = commitWithTemplates((current, store) => ({ workspace: addDocumentToWorkspace(current, document),
+        templates: choice ? { ...store, assignments: [...store.assignments, { documentId: document.id, kind, ...choice }] } : store }));
+      if (saved) { setActiveDocument(document.id); return document; }
+      return null;
+    }
     let assigned = false;
     try {
       if (choice) {
@@ -78,6 +85,15 @@ export function useStudioDocumentCommands({ workspace, activeDocument, commit, s
     const document = workspace.documents.find(item => item.id === documentId);
     if (!canDeleteDocument(document) || !document) return false;
     const assignment = templates.store.assignments.find(item => item.documentId === documentId);
+    if (commitWithTemplates) {
+      const saved = commitWithTemplates((current, store) => ({
+        workspace: { ...current, documents: current.documents.filter(item => item.id !== documentId),
+          bin: [...current.bin, { id: templateId(), deletedAt: new Date().toISOString(), document, ...(assignment ? { assignment } : {}) }],
+          activeDocumentId: current.activeDocumentId === documentId ? (current.documents.find(item => item.id !== documentId)?.id ?? "") : current.activeDocumentId },
+        templates: { ...store, assignments: store.assignments.filter(item => item.documentId !== documentId) },
+      }));
+      return saved;
+    }
     let publication: ReturnType<DocumentPublications["capture"]> = undefined;
     let assignmentRemoved = false;
     let publicationRemoved = false;

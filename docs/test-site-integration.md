@@ -2,31 +2,59 @@
 
 ## Scope and ownership
 
-Test opens as a canvas context inside the existing `/studio` editor. Select Test
-above Pages / Posts / Templates or open `/studio?site=test`. The existing tools,
-document lists, tab counts and browser workspace remain in place. The former
-`/studio/sites/test` route redirects into this shell. **Open Local Site** opens
-the independent preview discovered through Project Ports.
+Test opens inside the existing `/studio` editor. Select Test above
+Pages / Posts / Templates or open `/studio?site=test`. All three tabs, their
+counts, editing commands, categories, parent-page choices and template editor
+use the selected site's source. **Studio Drafts** opens the original browser
+workspace, including the recovery copies. The former `/studio/sites/test` route
+redirects into this shell. The site's Visit Site icon opens the independent
+preview discovered through Project Ports.
 
-Test owns `content/site.json`, envelope v2 (`acm-test-site`, site ID `test`),
-containing a canonical Studio document with ordinary supported ContentBlock
-records and metadata. Envelope v1 remains readable; the next accepted edit
-writes v2. Header, main and footer start as semantic Group blocks and remain
-ordinary editable blocks. The normal block library and inspector are reused.
-New top-level insertions default to the main group when it exists.
+Test owns `content/site.json`, envelope v3 (`acm-test-site`, site ID `test`). It
+contains a collection of canonical Studio documents, categories, recoverable Bin
+entries and a template store. `homeDocumentId` identifies the retained home page;
+editor selection is local to each tab and cannot change it. Envelopes v1/v2 remain
+readable and normalise to the same editable collection before their next accepted
+save. The home page's header, main and footer remain semantic Group blocks. The
+normal block library, document actions and inspector are reused.
 
-Test is never inserted into browser Pages, Posts, Templates or publications.
-Visual changes use the revision-checked disk gateway. Switching to a browser
-document or template waits for a successful Test save; a failed save keeps the
-Test draft visible. Files and Back to Content retain the selected canvas target.
+Andrew authorised the existing browser test pages/posts to join Test on
+9 October 2026. The first writable connection copies the complete browser
+collection and its templates, assignments, categories and Bin in one source
+transaction, retaining IDs and original records. A source-level
+`browserImportComplete` marker prevents repeat imports. Browser originals and
+publication snapshots remain untouched in Studio Drafts; subsequent edits to
+these recovery copies do not update Test. Colliding IDs or non-portable media
+reject the import visibly and keep every original. There is no automatic import
+into other registered sites.
+
+Visual changes use the revision-checked disk gateway. Creation, assigned document
+delete/restore and template assignment changes share the aggregate's history.
+The home page is protected from deletion. Test Backup exports/restores only this
+aggregate, including templates and Bin, through the same validated saving flow.
+Restores require confirmation and retain the previous source in gateway history.
+Explicit restore completes the browser import decision, including for v1/v2
+backups, so an older backup is restored without copying browser drafts again.
+Browser media packages cannot be imported into Test templates; portable URLs are
+supported. Switching between Test and Studio Drafts uses full-page navigation;
+leaving Test first waits for a successful save. Failed saves preserve the current
+context and draft. Editing and Undo/Redo pause during that save. Cached browser
+history restores reload from the current source before editing resumes.
+Files and Back to Content retain the selected site.
 Multiple ordinary Studio editor tabs can edit Test on the same browser origin.
 The saving tab borrows the current Studio session's exclusive write ownership
 and claims only the Test server lease. Other tabs submit validated changes to
 that tab; they never write directly to the gateway. No second Web Lock is acquired.
 
-The browser holds only a session and unsaved draft. `dist/index.html` is generated
-with the shared Studio BlockRenderer, document context and existing block
-styles, followed by Test's scoped appearance. Output records its source revision.
+The browser holds only a session, selection and unsaved draft. `dist/index.html`
+is generated with the canonical Studio BlockRenderer and TemplateDocument.
+Each document has a stable `/#document=<encoded-id>` local-preview link; repeated
+slugs cannot select the wrong document. A small static router switches rendered
+sections, preserves the home and compares hashes with DOM attributes. Dynamic
+title/cover/date links use the same explicit permalink. Template assignments and
+field visibility apply in Edit, Preview and generated output. Output records the
+whole source revision. These are local-preview routes; physical per-slug files
+and hosted publication remain outside this integration.
 Direct image URLs are portable. Browser media IDs, background media IDs and blob
 URLs cannot be saved to Test until a separately scoped media adapter exists;
 rejected edits are reported visibly and preserve the current draft.
@@ -85,8 +113,8 @@ Change**. Paragraph text is one property, so simultaneous edits to the same
 paragraph require review rather than character-by-character merging. A choice
 uses the latest saved state and retains unrelated changes from other tabs.
 
-The saving tab continues serving Test while it switches to browser Pages, Posts
-or Templates. Another ordinary editor tab can take over when that tab closes,
+An ordinary browser-draft editor tab can serve Test when another tab requests it.
+Full-page site switches release the prior session. Another editor tab can take over,
 loading the current source and rebasing pending edits before saving. Tabs retain
 their own navigation, selection and unsaved draft. The owner renews its lease in
 the background; browser suspension can pause synchronisation safely. A paused
@@ -145,11 +173,11 @@ uncertain failures are not retried automatically.
 ## Verification boundary
 
 Completion requires Test to open within the existing Studio shell while the left
-pane retains its tools, tab labels, counts and browser document lists. Verify the
+pane retains its tools and shows the selected site’s tab counts and document lists. Verify the
 full block library and standard inspector, visual edits saved to the actual local
 website, ordinary blocks such as List / Table / Separator, Edit / Preview
 agreement, reload persistence, Undo / Redo and switching to browser documents
-without contamination. Verify two editable tabs, independent-edit merging,
+without writing either context’s changes into the other. Confirm browser recovery originals, one-time import, site-scoped templates/backup/Bin, stable home and Back/Forward context. Verify two editable tabs, independent-edit merging,
 overlap choices against newer saved changes, latest-keystroke preservation,
 owner handover, failed saves retaining drafts and the recovery boundary.
 Use representative desktop and narrow views with

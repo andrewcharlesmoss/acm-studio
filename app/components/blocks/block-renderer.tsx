@@ -24,7 +24,7 @@ import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, soci
 import { renderHeading, renderText } from "./rich-text";
 import { ContentTable, renderListBlock } from "./list-table";
 
-export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null }) {
+export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, documentHref, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; documentHref?: string; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null }) {
   const studio = variant === "studio";
   const footnoteNumbers = visibleFootnoteNumbers(readingTimeBlocks ?? blocks);
   const footnoteAnchors = visibleFootnoteReferenceAnchors(readingTimeBlocks ?? blocks);
@@ -113,7 +113,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "field") return <label className="content-field" key={block.id}><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled>{fieldSelectOptions(block).map(option => <option key={option}>{option}</option>)}</select> : <input value={block.value} readOnly />}</label>;
         if (block.type === "document-title") {
           if (!document || !documentFieldVisible(document, "title")) return null;
-          const href = document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          const href = safeTextLink(documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
           // eslint-disable-next-line react/jsx-no-target-blank
           const title = block.isLink && href ? <a href={href} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={[block.rel, block.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{document.title}</a> : document.title;
           return <div className={`document-dynamic-field align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{document.title ? block.level === 0 ? <p>{title}</p> : renderHeading(block.level ?? 2, "", block.id, title) : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
@@ -125,7 +125,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "cover-image") {
           if (!document || !documentFieldVisible(document, "coverImage") || !document.coverImage) return null;
           const source = resolveImageSource(document.coverImage, mediaUrls);
-          const href = document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          const href = safeTextLink(documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
           // Managed cover images can resolve to browser-local blob URLs.
           // eslint-disable-next-line @next/next/no-img-element
           const image = source ? <img className="document-featured-image" src={source} alt={document.coverImage.alt} style={imageDisplayStyle(block, { includeFrame: false })} /> : <div className="image-placeholder" role="img" aria-label={document.coverImage.alt || "Cover image placeholder"}>Cover image</div>;
@@ -145,7 +145,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "post-date") {
           if (!documentFieldVisible(document, "publicationDate")) return null;
           const date = document ? formatDocumentDate(document, block.format, block) : null;
-          const href = document?.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          const href = safeTextLink(documentHref ?? (document?.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
           const value = date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={document ? block.dateSource === "modified" ? document.updatedAt : document.publishAt ?? document.publishedAt : undefined}>{date}</time></> : <span className="metadata-missing">{block.dateSource === "modified" ? "No confirmed modification date is available." : "Add a publication date in Document settings."}</span>;
           return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}>{block.isLink && href ? <a href={href}>{value}</a> : value}</div> : null;
         }

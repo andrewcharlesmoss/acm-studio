@@ -311,9 +311,16 @@ relative `/studio` link on every host.
 
 Andrew has authorised the local Test integration inside `/studio?site=test` and
 changes to the sibling `test` project for this fixture. The canonical source is
-Test's `content/site.json` v2 (backwards-readable v1); visual edits use one
-revision-checked gateway. The original Studio navigation and browser workspace
-remain separate; the Test projection is never inserted into their stores.
+Test's `content/site.json` v3 (backwards-readable v1/v2), containing documents,
+categories, Bin and templates; visual edits use one revision-checked gateway.
+Test drives the selected site's Pages, Posts and Templates lists and commands.
+Andrew authorised copying the existing browser test documents, templates and
+assignments into Test on 9 October 2026. Import once in an aggregate transaction,
+retain IDs and browser originals in Studio Drafts, reject collisions/non-portable
+media visibly and never silently repeat the import. The Test projection is never
+inserted into browser stores. Protect the home page, keep selection tab-local,
+and use full-page context switches after saving Test. Test backup/restore owns
+only its aggregate; shared browser media remains separately owned.
 The existing Studio session owns the Web Lock and the Test saving adapter borrows
 it. Andrew authorised multiple ordinary editor tabs to edit local Test on
 7 October 2026: peers submit validated transactions through the existing typed
@@ -323,7 +330,9 @@ merging, explicit overlap choices, pending-draft preservation and fresh-source
 handover; never grant peer tabs direct gateway write access.
 The normal block library and inspector are reused. Prompts are deferred with no
 prompt panel in the current editor. `dist/index.html` is generated using Studio's
-canonical BlockRenderer and Test's scoped styles. Do not add another authoritative
+canonical BlockRenderer, assigned TemplateDocument and Test's scoped styles.
+Local document links use stable hash routes in the single generated file; physical
+per-slug output and hosted publication require separately scoped work. Do not add another authoritative
 browser store or enable unrestricted writes in the Mini Golf Codex bridge.
 
 The dev-only Test gateway requires exact local-origin checks, expiring session

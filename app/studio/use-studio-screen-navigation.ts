@@ -26,6 +26,7 @@ export function readStudioNavigation(search: string) {
 /** Navigation history contains screen selection only, never document history. */
 export function writeStudioNavigation(mode: "content" | "templates" | "bin", target?: StudioTemplateTarget) {
   const query = new URLSearchParams();
+  if (new URLSearchParams(window.location.search).get("site") === "test") query.set("site", "test");
   if (mode !== "content") query.set("mode", mode);
   if (mode === "templates" && target?.setId) {
     query.set("set", target.setId);

@@ -104,6 +104,7 @@ function TemplateImage({ src, alt, style, className }: { src: string; alt: strin
 }
 
 export type TemplateRenderContext = {
+  documentHref?: string;
   set: TemplateSet;
   document: StudioDocument;
   mediaUrls?: Record<string, string>;
@@ -159,10 +160,10 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       const fieldVisualId = paragraphStyleAnchor(fieldVisualStyle);
       let element: ReactNode;
       switch (node.element) {
-        case "content": element = <TemplateContentLayout layout={node} visualStyle={node.visualStyle} mediaUrls={mediaUrls}>{content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} />}</TemplateContentLayout>; break;
+        case "content": element = <TemplateContentLayout layout={node} visualStyle={node.visualStyle} mediaUrls={mediaUrls}>{content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} documentHref={context.documentHref} />}</TemplateContentLayout>; break;
         case "document-title": {
           const TitleElement = node.level === 0 ? "p" : `h${node.level ?? 1}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
-          const href = document.slug ? safeTextLink(document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          const href = safeTextLink(context.documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
           // eslint-disable-next-line react/jsx-no-target-blank -- blank targets include both safety tokens.
           const linkedTitle = node.isLink && href ? <a href={href} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={[node.rel, node.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{document.title}</a> : document.title;
           const titleClassName = ["template-dynamic-placeholder", fieldVisualClassName].filter(Boolean).join(" ");
@@ -191,7 +192,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const frameProps = { id: fieldVisualId, style: frameStyle };
           const frameClassName = ["template-cover", fieldVisualClassName].filter(Boolean).join(" ");
           const image = src ? <TemplateImage src={src} alt={cover?.alt ?? ""} style={imageStyle} className="document-featured-image" /> : null;
-          const href = document.slug ? safeTextLink(document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
+          const href = safeTextLink(context.documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
           // eslint-disable-next-line react/jsx-no-target-blank -- blank targets include both safety tokens.
           const linkedImage = image && node.isLink && href ? <a href={href} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={[node.rel, node.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image;
           const hidden = node.coverImageHidden === true;
@@ -222,7 +223,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       const field = node.element === "document-title" ? "title" : node.element === "subtitle" ? "subtitle" : null;
       const isSelectedDocumentField = editingDocument && field !== null && selectedDocumentField === field;
       result = <div className={`template-element template-${node.element}${"blockAlign" in node && node.blockAlign ? ` align${node.blockAlign}` : ""}${isSelectedDocumentField ? " is-document-field-selected" : ""}`} data-template-element={node.element} data-document-field={field ?? undefined} onPointerDown={editingDocument && field ? () => onFocusDocumentField?.(field) : undefined} style={{ textAlign: align }}>{element}</div>;
-    } else result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} spacerOrientation={spacerOrientation} />;
+    } else result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} documentHref={context.documentHref} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} spacerOrientation={spacerOrientation} />;
     return (!shared ? decorate?.(node, result) : undefined) ?? result;
   }
   return <>{nodes.filter(node => !node.editorial?.hidden).map(node => <div className="template-node" data-block-align={"blockAlign" in node ? node.blockAlign : undefined} key={node.id} style={node.type === "group" && node.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : undefined}>{render(node, new Set(), 0)}</div>)}</>;

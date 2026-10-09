@@ -4,6 +4,11 @@
 
 ### Added
 
+- Site-aware Test content: Pages, Posts and Templates use its canonical source,
+  including the existing test drafts, preserved template assignments and a
+  recoverable Bin. Studio Drafts retains the original browser recovery copies.
+- Test collection backups and stable document links in its local preview.
+
 - Styles now supports explicit local saving to the shared preset, synchronised
   guide token tables and source bundle, with live draft source updates, revision
   checks, write ownership and recoverable file transactions.

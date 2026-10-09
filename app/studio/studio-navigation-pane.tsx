@@ -13,7 +13,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
   studioSection, writable, exclusiveWritable, codeEditorDirty, addDocument, addDocumentFromTemplate,
   openMediaLibrary, selectDocument, canDeleteDocument, requestRenameDocument, duplicateDocument,
   requestDeleteDocument, onOpenBackup, onOpenBin, onOpenTemplates, onSelectLibraryKind,
-  onSelectTemplate, onExportContent, onSelectTest,
+  onSelectTemplate, onExportContent, onSelectTest, onSelectWorkspace, selectedSite,
 }: {
   workspace: StudioWorkspace; activeDocument: StudioDocument;
   templateSession: Pick<ReturnType<typeof useTemplates>, "store" | "writable">;
@@ -29,7 +29,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
   duplicateDocument: (documentId: string) => void; requestDeleteDocument: (documentId: string) => void;
   onOpenBackup: () => void; onOpenBin: () => void; onOpenTemplates: () => void;
   onSelectLibraryKind: (kind: StudioDocumentKind | "templates") => void;
-  onSelectTemplate: (setId: string, targetId: string) => void; onExportContent: () => void; onSelectTest?: () => void;
+  onSelectTemplate: (setId: string, targetId: string) => void; onExportContent: () => void; onSelectTest?: () => void; onSelectWorkspace?: () => void; selectedSite?: "test" | null;
 }) {
   const libraryTabsId = useId();
   const documentContextMenuTriggerRef = useRef<HTMLElement | null>(null);
@@ -51,7 +51,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
             <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={onOpenBackup}><span><StudioToolIcon tool="backup" /></span><strong>Backup</strong><small>Export and restore</small></button>
             <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" onClick={onOpenBin}><span><StudioToolIcon tool="bin" /></span><strong>Bin</strong><small>{workspace.bin.length + templateSession.store.bin.length} deleted items</small></button>
           </div></>}
-          tabs={<><ProjectLocalSiteNavigation id="test" name="Test" onSelectTest={onSelectTest} /><div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
+          tabs={<><button type="button" className="text-button" aria-pressed={!selectedSite} onClick={onSelectWorkspace}>Studio Drafts</button><ProjectLocalSiteNavigation id="test" name="Test" active={selectedSite === "test"} onSelectTest={onSelectTest} /><div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
             { id: "page", label: "Pages" }, { id: "post", label: "Posts" }, { id: "templates", label: "Templates" },
           ]} active={libraryKind} onChange={id => onSelectLibraryKind(id as StudioDocumentKind | "templates")} renderLabel={(tab) => <><span className="library-tab-label">{tab.label}</span><span>{tab.id === "templates" ? templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0) : workspace.documents.filter((item) => item.kind === tab.id).length}</span></>} /></div></>}
           footer={<div className="library-footer"><button type="button" onClick={() => onExportContent()}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>}>

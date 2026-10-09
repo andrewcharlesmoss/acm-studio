@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExter
 import { studioWriteOwnership } from "../write-ownership";
 import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus } from "../studio-sync";
 import { reconcileStudioPendingSave, type StudioPendingSave } from "../studio-pending-save";
-import { testDocumentToEditor, validTestSiteDocument, type TestSiteDocument, type TestSnapshot } from "./contract";
+import { testSiteCollection, validTestSiteDocument, type TestSiteDocument, type TestSnapshot } from "./contract";
 
 class ConnectionError extends Error { constructor(message: string, public status: number) { super(message); } }
 const WAKE_CHANNEL = "acm-studio-test-editing-v1";
@@ -12,7 +12,7 @@ const WAKE_MESSAGE = { protocol: WAKE_CHANNEL, kind: "open", siteId: "test" } as
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 function validateDocument(value: unknown): TestSiteDocument {
   if (!validTestSiteDocument(value)) throw new Error("Test contains unsupported content. The draft was preserved.");
-  return value.version === 1 ? { format: "acm-test-site", version: 2, siteId: "test", document: testDocumentToEditor(value) } : value;
+  return testSiteCollection(value);
 }
 function validateSnapshot(value: unknown): TestSnapshot {
   const candidate = value as Partial<TestSnapshot> | null;
@@ -43,6 +43,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
   const [connectionGeneration, setConnectionGeneration] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [reconnecting, setReconnecting] = useState(false);
+  const [editingPaused, setEditingPaused] = useState(false);
+  const editingPausedRef = useRef(false);
+  function pauseEditing(paused: boolean) { editingPausedRef.current = paused; setEditingPaused(paused); }
   const ownership = useSyncExternalStore(studioWriteOwnership.subscribe, studioWriteOwnership.getState, () => "waiting" as const);
   const token = useRef<string | null>(null);
   const live = useRef({ snapshot, draft, past, future, failure, promptRunning });
@@ -59,7 +62,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
   const legacyBase = useRef<{ document: TestSiteDocument; revision: string } | null>(null);
   const dirty = Boolean(snapshot && draft && !equal(snapshot.document, draft));
   const primary = Boolean(borrowedOwnership) && ownership === "writable" && isClaimed;
-  const writable = enabled && (primary && syncStatus === "primary" || !borrowedOwnership && syncStatus === "synced") && !failure && !syncConflict && !promptRunning && !reconnecting;
+  const writable = enabled && (primary && syncStatus === "primary" || !borrowedOwnership && syncStatus === "synced") && !failure && !syncConflict && !promptRunning && !reconnecting && !editingPaused;
   const request = useCallback(async (input: Record<string, unknown>, connectionToken = token.current, keepalive = false) => {
     const response = await fetch("/__studio/test-site", { method: "POST", headers: { "Content-Type": "application/json", "X-Studio-Client": "codex-history", ...(connectionToken ? { "X-Studio-Test-Token": connectionToken } : {}) }, body: JSON.stringify({ ...input, siteId: "test" }), keepalive });
     const result = await response.json();
@@ -73,9 +76,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
   }, []);
   const installSaved = useCallback((saved: TestSnapshot) => {
     const document = validateDocument(saved.document);
-    // Use the same editable shape before the first v1-to-v2 save, so independent
+    // Use the same editable shape before the first legacy-to-collection save, so independent
     // edits do not conflict merely because both tabs migrate the envelope.
-    if (saved.document.version === 1) legacyBase.current = { document, revision: saved.revision };
+    if (!equal(saved.document, document)) legacyBase.current = { document, revision: saved.revision };
     const normalised = { ...saved, document };
     live.current.snapshot = normalised;
     setSnapshot(normalised);
@@ -220,13 +223,17 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
   const installDraft = useCallback((next: TestSiteDocument, history = true) => {
     const current = live.current;
     const session = sync.current;
-    if (!current.draft || !session || !(session.isConnectedPeer() || session.isPrimary() && claimed.current && studioWriteOwnership.canWrite()) || conflict.current || current.failure || current.promptRunning) return false;
+    if (editingPausedRef.current || !current.draft || !session || !(session.isConnectedPeer() || session.isPrimary() && claimed.current && studioWriteOwnership.canWrite()) || conflict.current || current.failure || current.promptRunning) return false;
     if (!validTestSiteDocument(next)) { setPromptResult("This change uses a capability that Test does not support yet."); return false; }
     if (equal(current.draft, next)) return true;
     if (history) { const previous = [...current.past.slice(-99), current.draft]; live.current.past = previous; live.current.future = []; setPast(previous); setFuture([]); }
     pending.current = { base: pending.current?.base ?? current.snapshot!.document, snapshot: next };
     live.current.draft = next; setDraft(next); setLabel("Unsaved changes"); return true;
   }, []);
+  const updateDraft = (update: (current: TestSiteDocument) => TestSiteDocument) => {
+    if (!live.current.draft) return false;
+    return installDraft(update(structuredClone(live.current.draft)));
+  };
   const flush = useCallback(async () => {
     while (saving.current) await saving.current;
     const current = live.current;
@@ -341,5 +348,5 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
     live.current.failure = null; setFailure(null); setIsClaimed(false); setLabel("Connecting to Test…");
     setAttempt(value => value + 1);
   }
-  return { snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush };
+  return { snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, updateDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush, pauseEditing };
 }

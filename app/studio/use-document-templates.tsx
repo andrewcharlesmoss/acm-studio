@@ -1,4 +1,5 @@
 "use client";
+import { testDocumentHref } from "./test-site/contract";
 import { useTemplates } from "./use-templates";
 import { useStudioHistoryRouter } from "./use-studio-history-router";
 import { resolveTemplate, templateMediaIds, type TemplateSnapshot } from "./template-model";
@@ -13,12 +14,15 @@ import type { StudioPresentation } from "./studio-presentation";
 const emptyWorkspaceDocument = createWorkspacePreviewDocument("page");
 
 /** Keeps document/template orchestration out of the screen coordinator. */
-export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspace>, onEditPart?: (setId: string, targetId: string) => void) {
+export function useDocumentTemplates(browserSession: ReturnType<typeof useStudioWorkspace>, onEditPart?: (setId: string, targetId: string) => void, siteContext?: { session: ReturnType<typeof useStudioWorkspace>; templates: ReturnType<typeof useTemplates>; commitContent: (update: (workspace: ReturnType<typeof useStudioWorkspace>["workspace"], templates: ReturnType<typeof useTemplates>["store"]) => { workspace: ReturnType<typeof useStudioWorkspace>["workspace"]; templates: ReturnType<typeof useTemplates>["store"] }) => boolean }) {
+  const session = siteContext?.session ?? browserSession;
   const { workspace, ownershipGeneration, writable } = session;
   const savedDocument = workspace.documents.find(item => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
   const document = savedDocument ?? emptyWorkspaceDocument;
-  const templates = useTemplates(ownershipGeneration, writable);
-  const history = useStudioHistoryRouter(session, templates, ownershipGeneration);
+  const browserTemplates = useTemplates(ownershipGeneration, browserSession.writable);
+  const templates = siteContext?.templates ?? browserTemplates;
+  const browserHistory = useStudioHistoryRouter(browserSession, browserTemplates, ownershipGeneration);
+  const history = siteContext ? { ...siteContext.session, record: () => {} } : browserHistory;
   const commit: typeof session.commit = update => { if (!writable) return false; history.record("document"); return session.commit(update); };
   const updateActiveDocument: typeof session.updateActiveDocument = update => { if (!writable) return; history.record("document"); session.updateActiveDocument(update); };
   const updateActiveField: typeof session.updateActiveField = (field, value) => { if (!writable) return; history.record("document"); session.updateActiveField(field, value); };
@@ -31,9 +35,21 @@ export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspa
   const resolvedFields = document ? resolveDocumentFields(document, snapshot?.set, selectedTemplate?.defaults) : undefined;
   const resolvedDocument = document && resolvedFields ? { ...document, author: resolvedFields.author, category: resolvedFields.category, tags: resolvedFields.tags, parentPageId: resolvedFields.parentPageId, displayOverrides: resolveDocumentDisplay(document, selectedTemplate) } : document;
   const fieldUsage = document ? documentFieldUsage(document, snapshot?.set, snapshot?.templateId) : undefined;
-  const templateControls = <DocumentTemplateControls document={document} store={templates.store} writable={templates.writable} error={templates.error ?? resolutionError ?? media.error} onChange={assignment => {
+  const templateControls = <DocumentTemplateControls siteId={siteContext ? "test" : undefined} document={document} store={templates.store} writable={templates.writable} error={templates.error ?? resolutionError ?? media.error} onChange={assignment => {
     const previous = templates.store.assignments.find(item => item.documentId === document.id);
     if (!templates.writable || !writable) return;
+    if (siteContext) {
+      const previousSnapshot = !assignment && previous ? resolveTemplate(templates.store, document) : undefined;
+      const previousTemplate = previousSnapshot?.set.templates.find(item => item.id === previousSnapshot.templateId);
+      const values = resolveDocumentFields(document, previousSnapshot?.set, previousTemplate?.defaults);
+      siteContext.commitContent((current, store) => ({
+        templates: { ...store, assignments: [...store.assignments.filter(item => item.documentId !== document.id), ...(assignment ? [assignment] : [])] },
+        workspace: { ...current, documents: current.documents.map(item => item.id !== document.id ? item : !assignment && previous
+          ? { ...item, ...values, templateOverrides: { author: true, category: true, tags: true, parentPageId: true } }
+          : { ...item, templateOverrides: item.templateOverrides ?? { author: true, category: true, tags: true, parentPageId: true } }) },
+      }));
+      return;
+    }
     const assignmentSaved = templates.commit(store => ({ ...store, assignments: [...store.assignments.filter(item => item.documentId !== document.id), ...(assignment ? [assignment] : [])] }));
     if (!assignmentSaved) return;
     if (!assignment && previous) {
@@ -51,7 +67,7 @@ export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspa
     const resolved = snapshot;
     return {
       renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false,
-      renderDocument: (context, content) => <TemplateDocument snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} />,
+      renderDocument: (context, content) => <TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} />,
     };
   }
   function setFieldOverride(field: "author" | "category" | "tags" | "parentPageId", useTemplate: boolean) {
@@ -66,7 +82,7 @@ export function useDocumentTemplates(session: ReturnType<typeof useStudioWorkspa
     canRetryEditing: session.canRetryEditing || templates.syncStatus === "disconnected",
     retryEditing: () => { session.retryEditing(); templates.retryConnection(); },
     undo: history.undo, redo: history.redo, canUndo: writable && history.canUndo, canRedo: writable && history.canRedo,
-    templateSession: templates,
+    templateSession: templates, browserTemplateSession: browserTemplates,
     templateControls, templatePresentation, hasTemplate: Boolean(snapshot), resolvedDocument: resolvedDocument ?? document, fieldUsage, templateSnapshot: snapshot, setFieldOverride,
     saveLabel: templates.error ? "Templates need attention" : templates.saveLabel === "Saving…" && !session.saveLabel.startsWith("Could not") ? templates.saveLabel : session.saveLabel,
   };
