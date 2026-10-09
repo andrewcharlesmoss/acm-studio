@@ -6,7 +6,16 @@ import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type
 import { reconcileStudioPendingSave, type StudioPendingSave } from "../studio-pending-save";
 import { testSiteCollection, validTestSiteDocument, type TestSiteDocument, type TestSnapshot } from "./contract";
 
-class ConnectionError extends Error { constructor(message: string, public status: number) { super(message); } }
+class ConnectionError extends Error { constructor(message: string, public status: number, public code?: string) { super(message); } }
+// Retain compatibility with an already-running local gateway during a source update.
+const expiredSessionMessage = "The local editing connection expired. Reconnect to continue.";
+const expiredLeaseMessage = "Test's editing lease expired. Reconnect before editing.";
+function expiredConnection(error: unknown) {
+  return error instanceof ConnectionError && (
+    error.status === 401 && (error.code === "session_expired" || error.message === expiredSessionMessage)
+    || error.status === 423 && (error.code === "lease_expired" || error.message === expiredLeaseMessage)
+  );
+}
 const WAKE_CHANNEL = "acm-studio-test-editing-v1";
 const WAKE_MESSAGE = { protocol: WAKE_CHANNEL, kind: "open", siteId: "test" } as const;
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
@@ -43,6 +52,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
   const [connectionGeneration, setConnectionGeneration] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [reconnecting, setReconnecting] = useState(false);
+  const recoveringExpiry = useRef(false);
   const [editingPaused, setEditingPaused] = useState(false);
   const editingPausedRef = useRef(false);
   function pauseEditing(paused: boolean) { editingPausedRef.current = paused; setEditingPaused(paused); }
@@ -66,7 +76,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
   const request = useCallback(async (input: Record<string, unknown>, connectionToken = token.current, keepalive = false) => {
     const response = await fetch("/__studio/test-site", { method: "POST", headers: { "Content-Type": "application/json", "X-Studio-Client": "codex-history", ...(connectionToken ? { "X-Studio-Test-Token": connectionToken } : {}) }, body: JSON.stringify({ ...input, siteId: "test" }), keepalive });
     const result = await response.json();
-    if (!response.ok) throw new ConnectionError(result.error ?? "Test could not be loaded.", response.status);
+    if (!response.ok) throw new ConnectionError(result.error ?? "Test could not be loaded.", response.status, typeof result.code === "string" ? result.code : undefined);
     return result;
   }, []);
   const [preservedProposal, setPreservedProposal] = useState<unknown>(null);
@@ -82,6 +92,17 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
     const normalised = { ...saved, document };
     live.current.snapshot = normalised;
     setSnapshot(normalised);
+  }, []);
+  const recoverExpiredConnection = useCallback(() => {
+    // Never replay an in-flight or uncertain save. Reconnect only connection authority;
+    // pending edits retain their original base for the existing synchronisation rebase.
+    if (recoveringExpiry.current || saving.current || gatewayWriting.current || live.current.promptRunning) return;
+    recoveringExpiry.current = true;
+    claimed.current = false;
+    setIsClaimed(false); setReconnecting(true); setSyncStatus("connecting");
+    sync.current?.close(); sync.current = null;
+    setLabel("Reconnecting Test — draft preserved");
+    setAttempt(value => value + 1);
   }, []);
 
   useEffect(() => {
@@ -120,8 +141,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
         installSaved(saved);
         if (!pending.current) { live.current.draft = live.current.snapshot!.document; setDraft(live.current.draft); }
         setConnectionGeneration(value => value + 1);
+        recoveringExpiry.current = false;
         setLabel("Connecting Test tabs…"); setReconnecting(false);
-      } catch (error) { if (!cancelled) { fail(error instanceof Error ? error.message : "Test could not be loaded."); setReconnecting(false); } }
+      } catch (error) { if (!cancelled) { recoveringExpiry.current = false; fail(error instanceof Error ? error.message : "Test could not be loaded."); setReconnecting(false); } }
     }
     queueMicrotask(() => { if (!cancelled) { setIsClaimed(false); setLabel("Loading Test…"); void connect(); } });
     return () => { cancelled = true; mounted.current = false; claimed.current = false; token.current = null; window.removeEventListener("pagehide", releaseSession); releaseSession(); };
@@ -139,7 +161,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
     }
     async function claim() {
       try {
-        const fresh = validateSnapshot(await request({ action: "claim" }, connectionToken));
+        const fresh = validateSnapshot(await studioWriteOwnership.write(() => request({ action: "claim" }, connectionToken)));
         if (cancelled) { void request({ action: "release" }, connectionToken, true).catch(() => {}); return; }
         claimed.current = true; installSaved(fresh); setIsClaimed(true);
       } catch (error) {
@@ -262,8 +284,16 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
   useEffect(() => {
     if (!requested) return;
     let cancelled = false;
+    let refreshing = false;
     const refresh = async () => {
-      if (!token.current || saving.current || gatewayWriting.current || live.current.failure) return;
+      if (!token.current || refreshing || recoveringExpiry.current || saving.current || gatewayWriting.current || live.current.promptRunning) return;
+      if (live.current.failure) {
+        // Recover a pre-update expiry banner without discarding the draft. Other
+        // failures still require explicit review/export and are never retried.
+        if ([expiredSessionMessage, expiredLeaseMessage].includes(live.current.failure)) recoverExpiredConnection();
+        return;
+      }
+      refreshing = true;
       const connectionToken = token.current;
       try {
         // Keep the owner lease alive in background tabs as well as visible tabs.
@@ -275,12 +305,20 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
         if (claimed.current && !gatewayWriting.current && !saving.current && gatewayWriteGeneration.current === beforeGeneration && current.snapshot?.revision === beforeRevision && fresh.revision !== beforeRevision) {
           fail("Test changed outside its tab synchronisation session. Export your draft before reconnecting.");
         }
-      } catch (error) { if (!cancelled && mounted.current && token.current === connectionToken) fail(error instanceof Error ? error.message : "Connection failed."); }
+      } catch (error) {
+        if (!cancelled && mounted.current && token.current === connectionToken) {
+          if (expiredConnection(error)) recoverExpiredConnection();
+          else fail(error instanceof Error ? error.message : "Connection failed.");
+        }
+      } finally { refreshing = false; }
     };
+    const resume = () => { if (document.visibilityState === "visible") void refresh(); };
     const timer = window.setInterval(() => void refresh(), 5000);
     window.addEventListener("focus", refresh);
-    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("focus", refresh); };
-  }, [request, requested, fail]);
+    window.addEventListener("pageshow", refresh);
+    document.addEventListener("visibilitychange", resume);
+    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("pageshow", refresh); document.removeEventListener("visibilitychange", resume); };
+  }, [request, requested, fail, recoverExpiredConnection]);
   useEffect(() => {
     const protect = (event: BeforeUnloadEvent) => { if (dirty || saving.current || promptRunning) { event.preventDefault(); event.returnValue = ""; } };
     window.addEventListener("beforeunload", protect);
@@ -340,6 +378,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean) {
   }
   async function reconnect() {
     if (reconnecting || promptRunning) return;
+    if (live.current.failure && [expiredSessionMessage, expiredLeaseMessage].includes(live.current.failure)) { recoverExpiredConnection(); return; }
     setReconnecting(true);
     try { await saving.current; } catch { /* The user is reconnecting to inspect a failed or interrupted save. */ }
     if ((pending.current || preservedProposal || conflict.current) && !window.confirm("Reload Test and discard the current draft? Export it first if you need to keep it.")) { setReconnecting(false); return; }

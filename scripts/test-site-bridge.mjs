@@ -59,7 +59,7 @@ export function testSiteBridge() {
         response.end(JSON.stringify(result));
       } catch (error) {
         response.statusCode = error instanceof TestSiteError ? error.status : 503;
-        response.end(JSON.stringify({ error: error instanceof TestSiteError ? error.message : "Test's local connection failed. Your draft and site files have been preserved." }));
+        response.end(JSON.stringify({ error: error instanceof TestSiteError ? error.message : "Test's local connection failed. Your draft and site files have been preserved.", ...(error instanceof TestSiteError && error.code ? { code: error.code } : {}) }));
       }
     });
   } };

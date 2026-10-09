@@ -627,6 +627,10 @@
 
 ### Fixed
 
+- Test reconnects after an expired editing lease or session without discarding
+  pending edits. Returning to the tab refreshes its connection; saved-source
+  reconciliation and explicit overlap choices remain in place.
+
 - Hovering or focusing a preview colour now highlights its matching Settings
   row and opens Colours, while preserving the pinned source selection.
 

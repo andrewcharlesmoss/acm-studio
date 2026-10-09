@@ -4,7 +4,7 @@ import path from "node:path";
 
 export const revisionOf = document => createHash("sha256").update(JSON.stringify(document)).digest("hex");
 const hash = value => createHash("sha256").update(value).digest("hex");
-export class TestSiteError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
+export class TestSiteError extends Error { constructor(message, status = 400, code) { super(message); this.status = status; this.code = code; } }
 export const TEST_FILE_MAX_BYTES = 1024 * 1024;
 export function checkedTestOutput(output) {
   if (typeof output !== "string" || Buffer.byteLength(output, "utf8") > TEST_FILE_MAX_BYTES) throw new TestSiteError("Test's generated preview is too large. The site was not changed.", 413);
@@ -137,7 +137,7 @@ export function createTestSiteStore({ root, validate, render, clock = () => Date
   }
   function session(token) {
     const item = sessions.get(token);
-    if (!item || item.expires < clock()) { sessions.delete(token); throw new TestSiteError("The local editing connection expired. Reconnect to continue.", 401); }
+    if (!item || item.expires < clock()) { sessions.delete(token); throw new TestSiteError("The local editing connection expired. Reconnect to continue.", 401, "session_expired"); }
     item.expires = Math.max(item.expires, clock() + 120000);
     return item;
   }
@@ -193,7 +193,7 @@ export function createTestSiteStore({ root, validate, render, clock = () => Date
       }
       if (input.action === "read") {
         if (owner?.token === token) {
-          if (owner.expires < clock()) throw new TestSiteError("Test's editing lease expired. Reconnect before editing.", 423);
+          if (owner.expires < clock()) throw new TestSiteError("Test's editing lease expired. Reconnect before editing.", 423, "lease_expired");
           owner.expires = Math.max(owner.expires, clock() + 30000);
         }
         return snapshot();
