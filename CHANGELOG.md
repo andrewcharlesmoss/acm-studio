@@ -619,6 +619,9 @@
 
 ### Fixed
 
+- Hovering or focusing a preview colour now highlights its matching Settings
+  row and opens Colours, while preserving the pinned source selection.
+
 - The parent List pane separates Content, Settings and Styles. Content selects
   List Items and adds empty items; numbering and Advanced stay in Settings.
 

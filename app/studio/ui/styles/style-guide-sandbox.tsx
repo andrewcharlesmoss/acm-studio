@@ -225,8 +225,9 @@ export function StyleGuideSandbox() {
     .filter(([path, mapping]) => path === mapping.rowPath)
     .map(([path, mapping]) => [mapping.line, path])) as Record<number, string>;
   const selectedPreviewPath = previewPathForStylePath(hoveredGuidePath ?? pinnedSourcePath);
+  const selectedColourPath = hoveredGuidePath ?? hoveredSourcePath ?? focusedSourcePath ?? pinnedSourcePath;
   const hoveredPreviewPath = hoveredGuidePath ? previewPathForStylePath(hoveredGuidePath) : null;
-  const activeSourcePath = hoveredPreviewPath ?? hoveredGuidePath ?? pinnedSourcePath ?? hoveredSourcePath ?? focusedSourcePath ?? `typography.${role}.size`;
+  const activeSourcePath = hoveredPreviewPath ?? hoveredGuidePath ?? hoveredSourcePath ?? focusedSourcePath ?? pinnedSourcePath ?? `typography.${role}.size`;
   const activeSource = styleMappings[activeSourcePath] ?? styleMappings["typography.body.size"];
   const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @acm/styles token" : displayStyleValue(pathValue(baseline, activeSourcePath), viewport);
   const activeValue = activeSourcePath.startsWith("specimen.") ? "Documented specimen guidance" : displayStyleValue(pathValue(preset, activeSourcePath), viewport);
@@ -269,18 +270,22 @@ export function StyleGuideSandbox() {
 
   function handleSourcePointer(event: PointerEvent<HTMLDivElement>) {
     const path = sourcePathFromTarget(event.target);
+    setHoveredSourcePath(path && styleMappings[path] ? path : null);
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
-      setHoveredSourcePath(path);
+      // Keep a focused Settings editor mounted while the pointer explores the preview.
+      const editingSettings = document.activeElement?.closest(".sg-setting-content");
+      if (path.startsWith("palette.") && event.target instanceof Element && event.target.closest(".sg-preview") && !editingSettings) setPanel("palette");
       setGuideJumpLine(null);
     }
   }
 
   function handleSourceFocus(event: FocusEvent<HTMLDivElement>) {
     const path = sourcePathFromTarget(event.target);
+    setFocusedSourcePath(path && styleMappings[path] ? path : null);
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
-      setFocusedSourcePath(path);
+      if (path.startsWith("palette.") && event.target instanceof Element && event.target.closest(".sg-preview")) setPanel("palette");
       setGuideJumpLine(null);
     }
   }
@@ -442,7 +447,7 @@ export function StyleGuideSandbox() {
           </nav>
           <fieldset className="sg-setting-content" disabled={busy}>
             <div className="sg-setting-heading"><div><p className="rl-eyebrow">ACM UNIVERSAL STYLE</p><h3>{panel === "palette" ? "Colours" : panel === "typography" ? "Typography" : panel === "buttons" ? "Buttons" : "Layout"}</h3></div><button type="button" className="sg-reset-section" onClick={resetSection}>Reset section</button></div>
-            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting"><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} /><code>{preset.palette[key]}</code><button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, baseline.palette[key], false)}>Reset</button></div>)}</div> : null}
+            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting" data-style-path={`palette.${key}`} data-source-selected={selectedColourPath === `palette.${key}` ? "true" : undefined}><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} /><code>{preset.palette[key]}</code><button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, baseline.palette[key], false)}>Reset</button></div>)}</div> : null}
             {panel === "typography" ? <>
               <div className="sg-role-list" role="group" aria-label="Typography role">
                 {typographyRoles.map(item => <button type="button" key={item.id} aria-pressed={role === item.id} onClick={() => setRole(item.id)}>{item.label}</button>)}

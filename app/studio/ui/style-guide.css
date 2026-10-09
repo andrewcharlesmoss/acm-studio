@@ -31,6 +31,7 @@
 .sg-colour-settings, .sg-button-settings, .sg-layout-settings { display: grid; gap: .15rem; }
 .sg-colour-setting { display: grid; grid-template-columns: minmax(0, 1fr) 42px 78px auto; align-items: center; gap: .45rem; min-height: 48px; border-bottom: 1px solid #eeeeeb; }
 .sg-colour-setting > span { min-width: 0; overflow-wrap: anywhere; }
+.sg-colour-setting[data-source-selected="true"] { outline: 2px solid var(--rl-accent); outline-offset: -2px; background: #f1f0ed; border-radius: 4px; }
 .sg-colour-setting input[type="color"] { width: 40px; height: 32px; padding: 2px; border: 1px solid var(--rl-line); border-radius: 5px; background: white; cursor: pointer; }
 .sg-colour-setting code { color: var(--rl-muted); font-size: var(--studio-ui-size, .8125rem); }
 .sg-colour-setting button, .sg-inline-reset, .sg-metric-title button { border: 0; padding: .35rem; background: transparent; color: var(--rl-accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
