@@ -12,7 +12,8 @@ import { createUniversalStylePreset, validateUniversalStylePreset } from "@acm/s
 import type { UniversalStylePreset } from "@acm/styles";
 
 export const LEGACY_TEMPLATE_VERSION = "0.1.0" as const;
-export const TEMPLATE_VERSION = "0.26.0" as const;
+export const TEMPLATE_VERSION = "0.27.0" as const;
+export const LEGACY_TEMPLATE_VERSION_26 = "0.26.0" as const;
 export const LEGACY_TEMPLATE_VERSION_25 = "0.25.0" as const;
 export const LEGACY_TEMPLATE_VERSION_24 = "0.24.0" as const;
 export const LEGACY_TEMPLATE_VERSION_23 = "0.23.0" as const;
@@ -42,7 +43,8 @@ export const templateElements = ["site-identity", "navigation", "document-title"
 export type TemplateElement = typeof templateElements[number];
 export type TemplateImage = { src: string; mediaId?: string; alt: string };
 type TemplateElementNode =
-  | { id: string; type: "element"; element: Exclude<TemplateElement, "cover-image" | "document-title" | "subtitle" | "content">; align?: "left" | "centre" | "right" }
+  | { id: string; type: "element"; element: Exclude<TemplateElement, "cover-image" | "document-title" | "subtitle" | "content" | "navigation">; align?: "left" | "centre" | "right" }
+  | NavigationTemplateNode
   | ({ id: string; type: "element"; element: "content"; align?: "left" | "centre" | "right"; visualStyle?: ParagraphStyle } & GroupLayoutOptions)
   | (Omit<Extract<ContentBlock, { type: "document-title" }>, "type"> & { type: "element"; element: "document-title" })
   | { id: string; type: "element"; element: "subtitle"; align?: "left" | "centre" | "right"; style?: ParagraphStyle; visualStyle?: ParagraphStyle }
@@ -59,7 +61,8 @@ export type PageTemplate = { id: string; name: string; kind: StudioDocumentKind;
 export type TemplatePart = { id: string; name: string; kind: "header" | "footer"; nodes: TemplateNode[] };
 export type SiteStyles = UniversalStylePreset;
 export type LegacySiteStyles = { background: string; text: string; accent: string; border: string; font: "inter" | "serif"; fontSize: number; spacing: number; contentWidth: number; radius: number; borderWidth: number };
-export type SiteLink = { id: string; label: string; url: string };
+export type SiteLink = { id: string; label: string; url: string; opensInNewTab?: boolean; rel?: string; description?: string; children?: SiteLink[] };
+export type NavigationTemplateNode = { id: string; type: "element"; element: "navigation"; align?: "left" | "centre" | "right"; layout?: "row" | "stack"; horizontalAlign?: "left" | "centre" | "right" | "space-between" | "stretch"; allowWrap?: boolean; gap?: number; visualStyle?: ParagraphStyle; overlayMenu?: "never" | "mobile" | "always"; submenuOpenOnClick?: boolean; showSubmenuIcon?: boolean; ariaLabel?: string; submenuTextColor?: string; submenuBackgroundColor?: string };
 export type TemplateDefaults = { author?: string; category?: string; tags?: string[]; parentPageId?: string };
 export type TemplateSet = {
   id: string; name: string; templates: PageTemplate[]; parts: TemplatePart[]; styles: SiteStyles;
@@ -68,7 +71,7 @@ export type TemplateSet = {
 };
 export type TemplateAssignment = { documentId: string; setId: string; templateId: string; kind: StudioDocumentKind };
 export type StudioBinnedTemplate = { id: string; deletedAt: string; kind: "template"; setId: string; setName: string; entry: PageTemplate | TemplatePart; setSnapshot: TemplateSet } | { id: string; deletedAt: string; kind: "set"; set: TemplateSet };
-export type TemplateSchemaVersion = typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_25 | typeof LEGACY_TEMPLATE_VERSION_24 | typeof LEGACY_TEMPLATE_VERSION_23 | typeof LEGACY_TEMPLATE_VERSION_22 | typeof LEGACY_TEMPLATE_VERSION_21 | typeof LEGACY_TEMPLATE_VERSION_20 | typeof LEGACY_TEMPLATE_VERSION_19 | typeof LEGACY_TEMPLATE_VERSION_18 | typeof LEGACY_TEMPLATE_VERSION_17 | typeof LEGACY_TEMPLATE_VERSION_16 | typeof LEGACY_TEMPLATE_VERSION_15 | typeof LEGACY_TEMPLATE_VERSION_14 | typeof LEGACY_TEMPLATE_VERSION_13 | typeof LEGACY_TEMPLATE_VERSION_12 | typeof LEGACY_TEMPLATE_VERSION_11 | typeof LEGACY_TEMPLATE_VERSION_10 | typeof LEGACY_TEMPLATE_VERSION_9 | typeof LEGACY_TEMPLATE_VERSION_8 | typeof LEGACY_TEMPLATE_VERSION_7 | typeof LEGACY_TEMPLATE_VERSION_6 | typeof LEGACY_TEMPLATE_VERSION_5 | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION_3 | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION;
+export type TemplateSchemaVersion = typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_26 | typeof LEGACY_TEMPLATE_VERSION_25 | typeof LEGACY_TEMPLATE_VERSION_24 | typeof LEGACY_TEMPLATE_VERSION_23 | typeof LEGACY_TEMPLATE_VERSION_22 | typeof LEGACY_TEMPLATE_VERSION_21 | typeof LEGACY_TEMPLATE_VERSION_20 | typeof LEGACY_TEMPLATE_VERSION_19 | typeof LEGACY_TEMPLATE_VERSION_18 | typeof LEGACY_TEMPLATE_VERSION_17 | typeof LEGACY_TEMPLATE_VERSION_16 | typeof LEGACY_TEMPLATE_VERSION_15 | typeof LEGACY_TEMPLATE_VERSION_14 | typeof LEGACY_TEMPLATE_VERSION_13 | typeof LEGACY_TEMPLATE_VERSION_12 | typeof LEGACY_TEMPLATE_VERSION_11 | typeof LEGACY_TEMPLATE_VERSION_10 | typeof LEGACY_TEMPLATE_VERSION_9 | typeof LEGACY_TEMPLATE_VERSION_8 | typeof LEGACY_TEMPLATE_VERSION_7 | typeof LEGACY_TEMPLATE_VERSION_6 | typeof LEGACY_TEMPLATE_VERSION_5 | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION_3 | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION;
 export type TemplateStore = { version: TemplateSchemaVersion; sets: TemplateSet[]; assignments: TemplateAssignment[]; bin: StudioBinnedTemplate[]; defaultTemplateIds?: { page?: string; post?: string } };
 export type TemplateSnapshot = { version: TemplateSchemaVersion; set: TemplateSet; templateId: string };
 export const emptyTemplateStore = (): TemplateStore => ({ version: TEMPLATE_VERSION, sets: [], assignments: [], bin: [], defaultTemplateIds: {} });
@@ -170,7 +173,22 @@ export function validateTemplateSet(value: unknown): TemplateSet {
   }
   for (const links of [set.navigation, set.socialLinks]) {
     if (!Array.isArray(links) || links.length > 100) invalid("The navigation is invalid.");
-    for (const link of links) { if (!isRecord(link) || !text(link.label, 160) || !text(link.url) || !safeTextLink(link.url)) invalid("Each link needs a safe destination."); claimId(link.id, ids); }
+    let linkCount = 0;
+    function validateLinks(items: unknown, depth = 0) {
+      if (!Array.isArray(items) || depth > 5) invalid("Navigation submenus may be nested at most five levels.");
+      for (const link of items) {
+        if (!isRecord(link) || ++linkCount > 100 || !text(link.label, 160) || !text(link.url) || !safeTextLink(link.url)
+          || (link.opensInNewTab !== undefined && typeof link.opensInNewTab !== "boolean")
+          || (link.rel !== undefined && (!text(link.rel, 200) || !/^[a-zA-Z0-9_\s-]*$/.test(link.rel)))
+          || (link.description !== undefined && !text(link.description, 2000))) invalid("Each link needs a safe destination and supported settings.");
+        claimId(link.id, ids);
+        if (link.children !== undefined) {
+          if (links === set.socialLinks) invalid("Social links cannot contain submenus.");
+          validateLinks(link.children, depth + 1);
+        }
+      }
+    }
+    validateLinks(links);
   }
   let count = 0;
   function nodes(items: unknown, depth = 0, parentType?: string) {
@@ -181,6 +199,14 @@ export function validateTemplateSet(value: unknown): TemplateSet {
       if (!validBlockEditorial(node.editorial)) invalid("Invalid block editorial settings.");
       if (node.type === "element") {
         if (!templateElements.includes(node.element as TemplateElement) || (node.align !== undefined && !["left", "centre", "right"].includes(node.align as string))) invalid("Unknown template element.");
+        if (node.element === "navigation" && (!validLayoutOptions(node, true) || !validParagraphStyle(node.visualStyle)
+          || (node.layout !== undefined && !["row", "stack"].includes(node.layout as string))
+          || (node.overlayMenu !== undefined && !["never", "mobile", "always"].includes(node.overlayMenu as string))
+          || (node.submenuOpenOnClick !== undefined && typeof node.submenuOpenOnClick !== "boolean")
+          || (node.showSubmenuIcon !== undefined && typeof node.showSubmenuIcon !== "boolean")
+          || (node.ariaLabel !== undefined && !text(node.ariaLabel, 160))
+          || !validParagraphStyle({ textColor: node.submenuTextColor, backgroundColor: node.submenuBackgroundColor })
+          || Object.keys(node).some(key => !["editorial", "id", "type", "element", "align", "layout", "horizontalAlign", "allowWrap", "gap", "visualStyle", "overlayMenu", "submenuOpenOnClick", "showSubmenuIcon", "ariaLabel", "submenuTextColor", "submenuBackgroundColor"].includes(key)))) invalid("The Navigation settings are invalid.");
         if (node.element === "content" && (!validLayoutOptions(node, true) || !validParagraphStyle(node.visualStyle) || Object.keys(node).some(key => !["editorial", "id", "type", "element", "align", "visualStyle", "horizontalAlign", "verticalAlign", "gap", "columnGap", "rowGap", "paddingX", "paddingY", "contentWidth", "columns", "minColumnWidth", "stackAt", "contentSize", "wideSize", "inheritLayout", "allowWrap", "gridMode", "minColumnWidthUnit"].includes(key)))) invalid("The template Content settings are invalid.");
         if (node.element === "document-title" && ((node.blockAlign !== undefined && typeof node.blockAlign !== "string") || !validContentBlocks([{ ...node, type: "document-title" }]))) invalid("The template Document Title settings are invalid.");
         if (node.element === "subtitle" && (!validParagraphStyle(node.style) || !validParagraphStyle(node.visualStyle))) invalid("The template Document Subtitle settings are invalid.");
@@ -298,10 +324,10 @@ function migrateLegacySubtitleStyles(nodes: TemplateNode[]): TemplateNode[] {
 }
 
 export function validateTemplateStore(value: unknown, documents?: Pick<StudioDocument, "id" | "kind">[]): TemplateStore {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000 || (value.bin !== undefined && (!Array.isArray(value.bin) || value.bin.length > 10000))) invalid("Unsupported or invalid saved template data. Original data has been retained.");
-  if ((![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24].includes(value.version as typeof TEMPLATE_VERSION) && containsRichTextInlineObjects(value) || ![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_25].includes(value.version as typeof TEMPLATE_VERSION) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) invalid("Inline objects require the current template format. Original data has been retained.");
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000 || (value.bin !== undefined && (!Array.isArray(value.bin) || value.bin.length > 10000))) invalid("Unsupported or invalid saved template data. Original data has been retained.");
+  if ((![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24].includes(value.version as typeof TEMPLATE_VERSION) && containsRichTextInlineObjects(value) || ![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25].includes(value.version as typeof TEMPLATE_VERSION) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) invalid("Inline objects require the current template format. Original data has been retained.");
   if (value.defaultTemplateIds !== undefined && (!isRecord(value.defaultTemplateIds) || (value.defaultTemplateIds.page !== undefined && !safeId(value.defaultTemplateIds.page)) || (value.defaultTemplateIds.post !== undefined && !safeId(value.defaultTemplateIds.post)))) invalid("The default template selection is invalid.");
-  const migrateLegacyDefaultTitles = value.version !== TEMPLATE_VERSION && value.version !== LEGACY_TEMPLATE_VERSION_25 && value.version !== LEGACY_TEMPLATE_VERSION_24 && value.version !== LEGACY_TEMPLATE_VERSION_23 && value.version !== LEGACY_TEMPLATE_VERSION_22 && value.version !== LEGACY_TEMPLATE_VERSION_21 && value.version !== LEGACY_TEMPLATE_VERSION_20 && value.version !== LEGACY_TEMPLATE_VERSION_19 && value.version !== LEGACY_TEMPLATE_VERSION_18 && value.version !== LEGACY_TEMPLATE_VERSION_17 && value.version !== LEGACY_TEMPLATE_VERSION_16 && value.version !== LEGACY_TEMPLATE_VERSION_15 && value.version !== LEGACY_TEMPLATE_VERSION_14 && value.version !== LEGACY_TEMPLATE_VERSION_13 && value.version !== LEGACY_TEMPLATE_VERSION_12;
+  const migrateLegacyDefaultTitles = value.version !== TEMPLATE_VERSION && value.version !== LEGACY_TEMPLATE_VERSION_26 && value.version !== LEGACY_TEMPLATE_VERSION_25 && value.version !== LEGACY_TEMPLATE_VERSION_24 && value.version !== LEGACY_TEMPLATE_VERSION_23 && value.version !== LEGACY_TEMPLATE_VERSION_22 && value.version !== LEGACY_TEMPLATE_VERSION_21 && value.version !== LEGACY_TEMPLATE_VERSION_20 && value.version !== LEGACY_TEMPLATE_VERSION_19 && value.version !== LEGACY_TEMPLATE_VERSION_18 && value.version !== LEGACY_TEMPLATE_VERSION_17 && value.version !== LEGACY_TEMPLATE_VERSION_16 && value.version !== LEGACY_TEMPLATE_VERSION_15 && value.version !== LEGACY_TEMPLATE_VERSION_14 && value.version !== LEGACY_TEMPLATE_VERSION_13 && value.version !== LEGACY_TEMPLATE_VERSION_12;
   const store = { ...(value as unknown as TemplateStore), version: TEMPLATE_VERSION, bin: ((value.bin ?? []) as unknown[]).map(item => { if (!isRecord(item)) return item; if (item.kind === "set") return { ...item, set: validateTemplateSet(item.set) }; if (item.kind === "template") return { ...item, setSnapshot: validateTemplateSet(item.setSnapshot) }; return item; }), sets: (value.sets as unknown[]).map(item => {
     if (!isRecord(item)) return item;
     const set = validateTemplateSet({ ...item, defaults: item.defaults ?? {} });
@@ -350,8 +376,8 @@ export function validateTemplateStore(value: unknown, documents?: Pick<StudioDoc
 }
 
 export function validateTemplateSnapshot(value: unknown): TemplateSnapshot {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
-  if ((![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24].includes(value.version as typeof TEMPLATE_VERSION) && containsRichTextInlineObjects(value) || ![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_25].includes(value.version as typeof TEMPLATE_VERSION) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) invalid("Inline objects require the current template snapshot.");
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
+  if ((![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24].includes(value.version as typeof TEMPLATE_VERSION) && containsRichTextInlineObjects(value) || ![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25].includes(value.version as typeof TEMPLATE_VERSION) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) invalid("Inline objects require the current template snapshot.");
   const snapshot = value as unknown as TemplateSnapshot;
   const set = validateTemplateSet(snapshot.set);
   if (!set.templates.some(t => t.id === snapshot.templateId && ["page", "post"].includes(t.kind))) invalid("Invalid published template.");
@@ -397,7 +423,8 @@ export function duplicateTemplateSet(source: TemplateSet, name = `${source.name}
     item.id = parts.get(item.id) ?? templateId();
     visitTemplateNodes(item.nodes, node => { node.id = templateId(); if (node.type === "part") node.partId = parts.get(node.partId)!; });
   }
-  [...copy.navigation, ...copy.socialLinks].forEach(link => { link.id = templateId(); });
+  const renewLinks = (links: SiteLink[]) => links.forEach(link => { link.id = templateId(); if (link.children) renewLinks(link.children); });
+  renewLinks(copy.navigation); renewLinks(copy.socialLinks);
   return validateTemplateSet(copy);
 }
 
@@ -458,6 +485,8 @@ export function templateEditorBlocks(nodes: TemplateNode[]): ContentBlock[] {
         ? { ...coverPresentation(node), editorial: node.editorial, id: node.id, type: "cover-image" }
         : node.type === "element" && node.element === "content"
           ? { ...pickLayoutOptions(node), inheritLayout: node.inheritLayout ?? true, editorial: node.editorial, id: node.id, type: "group", layout: "flow", children: [], visualStyle: node.visualStyle ? copyTemplateData(node.visualStyle) : undefined, data: { templateElement: "content", align: node.align ?? "left" } }
+        : node.type === "element" && node.element === "navigation"
+          ? { editorial: node.editorial, id: node.id, type: "group", layout: node.layout ?? "row", children: [], horizontalAlign: node.horizontalAlign ?? node.align ?? "left", allowWrap: node.allowWrap ?? true, gap: node.gap, visualStyle: node.visualStyle, data: { templateElement: "navigation", align: node.align ?? "left", overlayMenu: node.overlayMenu ?? "never", submenuOpenOnClick: node.submenuOpenOnClick ?? false, showSubmenuIcon: node.showSubmenuIcon ?? true, ariaLabel: node.ariaLabel ?? "Site navigation", ...(node.submenuTextColor ? { submenuTextColor: node.submenuTextColor } : {}), ...(node.submenuBackgroundColor ? { submenuBackgroundColor: node.submenuBackgroundColor } : {}) } }
         : node.type === "element" || node.type === "part"
           ? { editorial: node.editorial, id: node.id, type: "group", layout: "stack", children: [], data: node.type === "part" ? { templatePart: node.partId } : { templateElement: node.element, align: node.align ?? "left" } }
     : node.type === "group" ? { editorial: node.editorial, id: node.id, type: node.type, layout: node.layout, ...groupSemanticPresentation(node), ...(node.position ? { position: node.position } : {}), ...(node.visualStyle ? { visualStyle: copyTemplateData(node.visualStyle) } : {}), ...(node.allowedBlocks ? { allowedBlocks: [...node.allowedBlocks] } : {}), ...pickLayoutOptions(node), children: templateEditorBlocks(node.children) }
@@ -480,6 +509,7 @@ export function templateNodesFromBlocks(blocks: ContentBlock[], sourceNodes: Tem
     }
     if (block.type === "group" && typeof block.data?.templatePart === "string") return { editorial: block.editorial, id: block.id, type: "part", partId: block.data.templatePart };
     if (block.type === "group" && block.data?.templateElement === "content") return { editorial: block.editorial, id: block.id, type: "element", element: "content", align: block.data.align as "left" | "centre" | "right", ...pickLayoutOptions(block), ...(block.visualStyle ? { visualStyle: copyTemplateData(block.visualStyle) } : {}) };
+    if (block.type === "group" && block.data?.templateElement === "navigation") return { editorial: block.editorial, id: block.id, type: "element", element: "navigation", align: block.data.align as "left" | "centre" | "right", layout: block.layout === "stack" ? "stack" : "row", horizontalAlign: block.horizontalAlign, allowWrap: block.allowWrap, gap: block.gap, visualStyle: block.visualStyle, overlayMenu: block.data.overlayMenu as NavigationTemplateNode["overlayMenu"], submenuOpenOnClick: block.data.submenuOpenOnClick as boolean, showSubmenuIcon: block.data.showSubmenuIcon as boolean, ariaLabel: block.data.ariaLabel as string, submenuTextColor: block.data.submenuTextColor as string | undefined, submenuBackgroundColor: block.data.submenuBackgroundColor as string | undefined };
     if (block.type === "group" && typeof block.data?.templateElement === "string") return { editorial: block.editorial, id: block.id, type: "element", element: block.data.templateElement as Exclude<TemplateElement, "cover-image">, align: block.data.align as "left" | "centre" | "right" };
     if (block.type === "group") return { editorial: block.editorial, id: block.id, type: block.type, layout: block.layout, ...groupSemanticPresentation(block), ...(block.position ? { position: block.position } : {}), ...(block.visualStyle ? { visualStyle: copyTemplateData(block.visualStyle) } : {}), ...(block.allowedBlocks ? { allowedBlocks: [...block.allowedBlocks] } : {}), ...pickLayoutOptions(block), children: templateNodesFromBlocks(block.children, sourceNodes) };
     if (block.type === "section") return { editorial: block.editorial, id: block.id, type: block.type, layout: block.layout, ...(block.visualStyle ? { visualStyle: copyTemplateData(block.visualStyle) } : {}), ...(block.role ? { role: block.role } : {}), ...pickLayoutOptions(block), children: templateNodesFromBlocks(block.children, sourceNodes) };

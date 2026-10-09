@@ -4,16 +4,18 @@ import { useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode
 import { createPortal } from "react-dom";
 import { watchAnchoredMenu } from "./anchored-menu-position.mjs";
 import { useOverlayDismiss } from "./use-overlay-dismiss";
+import { inspectorPopoverOwner, watchInspectorPopover } from "../panes/inspector-popover-position";
 
-type Position = { left: number; top: number; maxWidth: number; maxHeight: number };
+type Position = { left: number; top: number; maxWidth?: number; width?: number; maxHeight: number };
 const subscribeToClient = () => () => {};
 const clientSnapshot = () => true;
 const serverSnapshot = () => false;
 
 /** Non-modal forms retain native Tab navigation; menus own their arrow-key rules. */
-export function StudioAnchoredPopover({ anchor, anchorRect, label, focusOnMount = false, focusRevision = 0, onFocusPlaced, ignoreOutside, onClose, children, className = "" }: {
+export function StudioAnchoredPopover({ anchor, anchorRect, label, inspectorPlacement = false, focusOnMount = false, focusRevision = 0, onFocusPlaced, ignoreOutside, onClose, children, className = "" }: {
   anchor: () => HTMLElement | null;
   anchorRect?: () => DOMRect | null;
+  inspectorPlacement?: boolean;
   label: string;
   focusOnMount?: boolean;
   focusRevision?: number;
@@ -33,10 +35,11 @@ export function StudioAnchoredPopover({ anchor, anchorRect, label, focusOnMount 
     const popup = popupRef.current;
     const owner = anchorGetter.current();
     if (!popup || !owner) return;
+    if (inspectorPlacement && inspectorPopoverOwner(owner)) return watchInspectorPopover(owner, popup, 320, next => setPosition(next));
     return watchAnchoredMenu(owner, popup, "start", (next: Position) => {
       setPosition(current => Object.keys(next).every(key => current[key as keyof Position] === next[key as keyof Position]) ? current : next);
     }, () => rectGetter.current?.());
-  }, [mounted]);
+  }, [mounted, inspectorPlacement]);
   useLayoutEffect(() => {
     if (!focusOnMount) return;
     const popup = popupRef.current;

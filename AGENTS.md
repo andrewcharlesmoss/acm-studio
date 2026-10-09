@@ -165,8 +165,8 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.26.0 and read versions
-v0.1.0 through v0.25.0. Group semantic elements, ARIA labels and block alignment,
+Template packages and stored template contracts use v0.27.0 and read versions
+v0.1.0 through v0.26.0. Group semantic elements, ARIA labels and block alignment,
 Columns alignment and Section visual styles survive the template projection.
 Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
@@ -369,3 +369,15 @@ lists. The shared set/part remain protected while referenced; removing its
 Navigation block hides the menu and Undo can restore it. Edit Navigation uses
 the existing template editor and Block link controls. See
 `docs/test-site-integration.md` for migration, import limits and view behaviour.
+
+
+Navigation authoring follows Gutenberg's Menu, Settings and Styles pane groups.
+Links remain canonical typed entries in `TemplateSet.navigation`; per-link
+selection is transient. Nested submenus, new-tab/rel/description fields, flex
+layout, spacing, typography, root and submenu/overlay colours and Off/Mobile/
+Always overlays round-trip through template v0.27.0. Legacy menus retain their
+existing visibility. Runtime interaction is shared between React previews and
+generated fixture HTML, with no hydration requirement or second menu store.
+WordPress menu entities, automatic Page Lists, non-link inner blocks and custom
+overlay template entities are outside this typed menu contract. See
+`docs/templates.md` for the reference and supported adaptation.

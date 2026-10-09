@@ -2696,7 +2696,7 @@ function BlockTransformControl({ block, parent, writable, open, onOpenChange, on
     return () => document.removeEventListener("keydown", handleEscape);
   }, [open, onOpenChange]);
 
-  if (!transforms.length) return block.type === "table" ? <div className="table-block-type" aria-hidden="true"><HoverBlockTypeIcon type="table" /></div> : null;
+  if (!transforms.length) return block.type === "group" && block.data?.templateElement === "navigation" ? <div className="table-block-type" aria-hidden="true"><StudioHoverIcon name="navigation.menu" /></div> : block.type === "table" ? <div className="table-block-type" aria-hidden="true"><HoverBlockTypeIcon type="table" /></div> : null;
   return <div className="transform-control"><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <div className="transform-menu" role="menu" aria-label="Transform block"><strong>Transform to</strong>{transforms.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onTransform(transform)}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</div> : null}</div>;
 }
 

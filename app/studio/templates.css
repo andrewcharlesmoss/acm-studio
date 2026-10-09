@@ -230,3 +230,110 @@
 @media (max-width: 620px) { :is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-stack-at="mobile"][data-layout-grid-mode="manual"].layout-grid { grid-template-columns: 1fr; } }
 
 .template-surface .template-group.has-layout-options[data-layout-constrained="true"] { max-width: none; }
+
+/* Typed Navigation links share presentation across authoring and local output. */
+.template-surface .template-navigation-items,
+.template-surface .navigation-edit-submenu ul { list-style: none; margin: 0; padding: 0; }
+.template-navigation { position: relative; min-width: 0; }
+.template-navigation-desktop { width: 100%; min-width: 0; justify-content: inherit; flex-wrap: inherit; gap: inherit; }
+.template-surface .template-navigation-items { display: flex; align-items: center; justify-content: inherit; flex-wrap: inherit; gap: inherit; width: 100%; }
+.template-navigation[data-navigation-layout="stack"] > .template-navigation-items,
+.template-navigation[data-navigation-layout="stack"] > .template-navigation-desktop > .template-navigation-items { flex-direction: column; align-items: flex-start; }
+.template-navigation[data-navigation-align="centre"][data-navigation-layout="stack"] > .template-navigation-items,
+.template-navigation[data-navigation-align="centre"][data-navigation-layout="stack"] > .template-navigation-desktop > .template-navigation-items { align-items: center; }
+.template-navigation[data-navigation-align="right"][data-navigation-layout="stack"] > .template-navigation-items,
+.template-navigation[data-navigation-align="right"][data-navigation-layout="stack"] > .template-navigation-desktop > .template-navigation-items { align-items: flex-end; }
+.template-surface .template-navigation a { min-height: 0; padding: 0; color: var(--studio-paragraph-link-color, inherit); text-decoration: inherit; }
+.template-surface .template-navigation a:hover { color: var(--studio-paragraph-link-hover-color, var(--studio-paragraph-link-color, inherit)); }
+.template-navigation-link-row { display: flex; align-items: center; gap: 4px; }
+.template-navigation-submenu { position: relative; }
+.template-navigation summary { display: flex; align-items: center; justify-content: center; cursor: pointer; list-style: none; }
+.template-navigation summary::-webkit-details-marker { display: none; }
+.template-navigation-submenu > summary { width: 28px; min-height: 28px; }
+.template-navigation[data-submenu-icon="hidden"] .template-navigation-submenu > summary > svg { visibility: hidden; }
+.template-surface .template-navigation-submenu > .template-navigation-items { position: absolute; z-index: 20; inset-block-start: 100%; inset-inline-start: 0; flex-direction: column; align-items: stretch; width: max-content; min-width: 180px; max-width: min(320px, 90vw); gap: 12px; padding: 16px; border: 1px solid var(--template-border); background: var(--navigation-submenu-background, var(--template-background, white)); color: var(--navigation-submenu-text, inherit); box-shadow: 0 3px 12px #0000001a; }
+.template-navigation-submenu .template-navigation-link-row { justify-content: space-between; }
+.template-navigation-submenu .template-navigation-submenu > .template-navigation-items { inset-inline-start: 100%; inset-block-start: 0; }
+.template-navigation-submenu a { overflow-wrap: anywhere; }
+.template-navigation-overlay { display: none; }
+.template-navigation-overlay > summary { width: 40px; min-height: 40px; }
+.template-navigation-overlay-content { position: fixed; inset: 0; z-index: 1000; overflow: auto; padding: 64px 32px 32px; background: var(--navigation-submenu-background, var(--template-background, white)); color: var(--navigation-submenu-text, inherit); }
+/* In an editor preview, the page is the overlay viewport; the surrounding panes remain usable. */
+.document-preview:has(.acm-navigation) { contain: layout; }
+.template-navigation-overlay-content > button { position: absolute; inset-block-start: 16px; inset-inline-end: 16px; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.template-surface .template-navigation-overlay-content .template-navigation-items { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 20px; }
+.template-surface .template-navigation-overlay-content .template-navigation-submenu > .template-navigation-items { position: static; width: auto; min-width: 0; border: 0; box-shadow: none; padding-inline: 20px 0; }
+.template-navigation-overlay[open] > summary { visibility: hidden; }
+.template-navigation[data-navigation-overlay="always"] > .template-navigation-desktop { display: none; }
+.template-navigation[data-navigation-overlay="always"] > .template-navigation-overlay { display: block; }
+@container (max-width: 600px) {
+  .template-navigation[data-navigation-overlay="mobile"] > .template-navigation-desktop { display: none; }
+  .template-navigation[data-navigation-overlay="mobile"] > .template-navigation-overlay { display: block; }
+}
+.template-navigation .visually-hidden,
+.navigation-inspector .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.template-navigation :is(a, summary, button):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.template-surface .navigation-edit-item { position: relative; display: flex; align-items: center; gap: 4px; max-width: 100%; }
+.template-surface input.navigation-edit-label { min-width: 1ch; max-width: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; line-height: inherit; }
+.template-surface .navigation-edit-item.is-selected > .navigation-edit-label { outline: 1px solid var(--studio-focus-outline-color, #007cba); outline-offset: 3px; }
+.navigation-editor:has(.navigation-edit-item.is-selected) { outline: none; }
+.navigation-link-toolbar { position: absolute; z-index: 30; inset-block-end: calc(100% + 12px); inset-inline-start: 0; display: flex; padding: 4px; border: 1px solid #1e1e1e; border-radius: 2px; background: #fff; color: #1e1e1e; box-shadow: 0 2px 6px #0000001a; }
+.navigation-link-toolbar button, .navigation-add, .navigation-item-options { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 2px; background: transparent; color: inherit; cursor: pointer; }
+.navigation-link-toolbar button:hover:not(:disabled), .navigation-add:hover:not(:disabled), .navigation-item-options:hover:not(:disabled) { background: #f0f0f0; }
+.navigation-link-toolbar button:disabled, .navigation-add:disabled, .navigation-item-options:disabled { opacity: .35; cursor: default; }
+.navigation-appender { line-height: 0; }
+.navigation-appender > .navigation-add, .navigation-menu-add > .navigation-add { background: #1e1e1e; color: #fff; border-radius: 2px; }
+.template-surface .navigation-edit-submenu { display: flex; align-items: center; }
+.template-surface .navigation-edit-submenu > ul { position: absolute; z-index: 20; inset-inline-start: 0; inset-block-start: 100%; display: none; min-width: 200px; padding: 16px; border: 1px solid var(--template-border); background: var(--template-background); }
+.template-surface .navigation-edit-item:has(.is-selected) > .navigation-edit-submenu > ul,
+.template-surface .navigation-edit-item.is-selected > .navigation-edit-submenu > ul,
+.template-surface .navigation-edit-item:focus-within > .navigation-edit-submenu > ul { display: grid; gap: 12px; }
+.navigation-block-summary { padding: 24px; }
+.navigation-block-summary h3 { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; font: 600 var(--studio-ui-size, 13px)/1.4 var(--studio-ui-font, system-ui); }
+.navigation-block-summary p { margin: 0; line-height: 1.6; }
+.navigation-inspector-tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--studio-border, #ddd); }
+.navigation-inspector-tabs .pane-tab-label { display: grid; place-items: center; min-height: 32px; width: 100%; }
+.navigation-menu-list ul { list-style: none; margin: 0; padding: 0; }
+.navigation-menu-list li { display: flex; align-items: center; min-height: 40px; }
+.navigation-menu-select { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; min-height: 40px; padding: 8px; border: 0; border-radius: 2px; background: transparent; color: inherit; text-align: start; }
+.navigation-menu-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navigation-menu-select[aria-pressed="true"] { background: #f0f0f0; }
+.navigation-menu-add { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.navigation-menu-add span { color: var(--muted); }
+.navigation-item-menu { min-width: 200px; }
+.navigation-item-menu button { display: flex; align-items: center; gap: 10px; }
+.navigation-overlay-control { margin: 0; padding: 0; border: 0; }
+.navigation-overlay-control legend { margin-bottom: 8px; font-size: var(--studio-ui-size, 13px); text-transform: uppercase; }
+.navigation-overlay-control > div { display: grid; grid-template-columns: repeat(3, 1fr); }
+.navigation-overlay-control button { min-height: 40px; margin: 0; border: 1px solid #ddd; border-radius: 0; background: #fff; color: #757575; }
+.navigation-overlay-control button + button { border-inline-start: 0; }
+.navigation-overlay-control button[aria-pressed="true"] { box-shadow: inset 0 0 0 1px #1e1e1e; color: #1e1e1e; background: #f0f0f0; font-weight: 600; }
+.navigation-overlay-specimen { display: flex; justify-content: space-between; padding: 24px; margin: 24px 0; background: #f0f0f0; border-radius: 2px; }
+.navigation-colour-controls { border: 1px solid #ddd; }
+.navigation-colour-controls .inspector-colour-row-setting + .inspector-colour-row-setting { border-top: 1px solid #ddd; }
+.navigation-colour-controls .inspector-colour-row { border: 0; border-radius: 0; }
+/* Navigation reuses the inspector primitives rather than template-form buttons. */
+.template-inspector .inspector-scroll .navigation-inspector { background: #fff; }
+.template-inspector .inspector-scroll .navigation-inspector :is(.navigation-menu-select, .navigation-item-options, .navigation-inspector-tabs button, .group-alignment-control button) { padding: 8px; border: 0; border-radius: 2px; background: transparent; }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-menu-select[aria-pressed="true"] { background: #f0f0f0; }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-add { padding: 0; border: 0; border-radius: 2px; background: #1e1e1e; color: #fff; min-height: 32px; }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-inspector-tabs { padding: 0; }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-inspector-tabs button { min-height: 56px; padding: 12px 4px 14px; }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-overlay-control button { border: 1px solid #ddd; border-radius: 0; padding: 8px; }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-overlay-control button + button { border-inline-start: 0; }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-overlay-control button[aria-pressed="true"] { background: #f0f0f0; }
+.template-inspector .inspector-scroll .navigation-inspector .group-alignment-control button[aria-pressed="true"] { box-shadow: inset 0 0 0 1px #1e1e1e; }
+.template-inspector .inspector-scroll .navigation-inspector button.inspector-colour-row { border: 0; border-radius: 0; text-align: start; }
+.template-editing .canvas-block:has(.navigation-edit-item.is-selected) { border-color: transparent; outline: 0; }
+.template-editing .canvas-block:has(.navigation-edit-item.is-selected) > .canvas-block-toolbar,
+.template-editing .studio-nested-block:has(.navigation-edit-item.is-selected) > .canvas-block-toolbar { visibility: hidden; }
+.template-inspector .navigation-inspector [role="tabpanel"] > .inspector-accordion-section { padding: 24px; border-bottom: 1px solid #ddd; }
+.template-inspector .navigation-inspector .inspector-accordion-heading { padding: 0; margin-bottom: 20px; text-transform: none; font-weight: 600; }
+.template-inspector .navigation-inspector .navigation-colour-controls { width: 100%; }
+.template-inspector .navigation-inspector .navigation-style-settings > .inspector-sections > section { padding: 24px; }
+.template-editing .template-node-selectable[data-studio-selected="true"]:has(.navigation-edit-item.is-selected) { outline: 0; }
+.template-inspector .navigation-inspector [role="tabpanel"] > .inspector-tools-section { padding: 24px; border-bottom: 1px solid #ddd; }
+.template-surface .navigation-edit-submenu > ul { background: var(--navigation-submenu-background, var(--template-background)); color: var(--navigation-submenu-text, inherit); }
+.template-inspector .inspector-scroll .navigation-inspector .paragraph-font-size-options button { border: 0; border-radius: 0; padding: 0; background: transparent; }
+.template-inspector .inspector-scroll .navigation-inspector .paragraph-font-size-options button.is-active { background: #f0f0f0; }
+.template-inspector .inspector-scroll .navigation-inspector .inspector-tools-trigger { border: 0; border-radius: 0; padding: 0; background: transparent; }

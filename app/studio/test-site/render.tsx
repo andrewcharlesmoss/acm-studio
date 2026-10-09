@@ -6,6 +6,7 @@ import { resolveTemplate } from "../template-model";
 import { resolveDocumentFields, resolveDocumentDisplay } from "../document-fields";
 import { TemplateDocument } from "../template-renderer";
 import { TestSiteNavigation } from "./navigation";
+import { templateNavigationScript } from "../navigation-runtime";
 export { validTestSiteDocument } from "./contract";
 
 import { testSiteCss } from "./style";
@@ -27,7 +28,7 @@ document.addEventListener('click', event => {
   const href = link?.getAttribute('href');
   const hash = href === '/' ? '#document=' + document.querySelector('[data-test-home=true]')?.dataset.testDocument
     : href?.startsWith('/#') ? href.slice(1) : href;
-  if (!hash?.startsWith('#') || event.defaultPrevented || event.button !== 0
+  if (!hash?.startsWith('#') || link?.target === '_blank' || event.defaultPrevented || event.button !== 0
     || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
   event.preventDefault();
   previewHash = hash;
@@ -53,5 +54,5 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
       </section>;
     })}
   </>);
-  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="acm-test-revision" content="${revision}"><meta name="theme-color" content="#f2f2f7"><title>${siteName}</title><style>html{font-size:100%}body{margin:0}${contentCss.replace(/@import[^;]+;/g, "")}${studioBlockCss}${groupLayoutCss}${buttonsCss}${featuredImageCss}${templateCss}${testSiteCss}[data-test-document][hidden]{display:none}</style></head><body>${body}<script>${initialDocumentId ? previewRoutingScript + routingScript.replace("const hash=location.hash;", "const hash=previewHash;") : routingScript}</script></body></html>`;
+  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="acm-test-revision" content="${revision}"><meta name="theme-color" content="#f2f2f7"><title>${siteName}</title><style>html{font-size:100%}body{margin:0}${contentCss.replace(/@import[^;]+;/g, "")}${studioBlockCss}${groupLayoutCss}${buttonsCss}${featuredImageCss}${templateCss}${testSiteCss}[data-test-document][hidden]{display:none}</style></head><body>${body}<script>${templateNavigationScript}${initialDocumentId ? previewRoutingScript + routingScript.replace("const hash=location.hash;", "const hash=previewHash;") : routingScript}</script></body></html>`;
 }

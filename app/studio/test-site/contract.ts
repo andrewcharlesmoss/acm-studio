@@ -1,4 +1,5 @@
 import { createUniversalStylePreset } from "@acm/styles";
+import { navigationEntries } from "../navigation-items";
 import { isLocalFixtureSiteId, type LocalFixtureSiteId } from "./sites";
 import type { ContentBlock } from "../../content/model";
 import type { StudioWorkspace, StudioDocument } from "../editor-model";
@@ -128,7 +129,9 @@ export function importBrowserTestContent(source: TestSiteDocument, workspace: St
   // Legacy import seeds from the complete imported document list; authored v4 links stay intact.
   const candidate = source.version === 4 ? { ...merged, templates: { ...merged.templates, sets: merged.templates.sets.map(set => {
     if (set.id !== collection.siteNavigation.setId) return set;
-    const ids = new Set(set.navigation.map(link => link.id));
+    const entries = navigationEntries(set.navigation);
+    if (entries.length + workspace.documents.length > 100) throw new Error("The imported documents would exceed the menu’s 100-link limit. All browser originals were kept.");
+    const ids = new Set(entries.map(entry => entry.link.id));
     const importedLinks = workspace.documents.map((document, index) => {
       const baseId = `fixture-${collection.siteId}-import-link-${index}`;
       let id = baseId;
@@ -136,7 +139,7 @@ export function importBrowserTestContent(source: TestSiteDocument, workspace: St
       ids.add(id);
       return { id, label: (document.title || "Untitled").slice(0, 160), url: testDocumentHref(document.id) };
     });
-    return { ...set, navigation: [...set.navigation, ...importedLinks].slice(0, 100) };
+    return { ...set, navigation: [...set.navigation, ...importedLinks] };
   }) } } : withSiteNavigation({ ...merged, version: 3, templates });
   if (!validTestSiteDocument(candidate)) throw new Error("The browser drafts could not be copied to Test. Browser-managed media needs a portable URL; all originals were kept.");
   return candidate;

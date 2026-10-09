@@ -18,8 +18,9 @@ function GroupLayoutToolbarControls({ block, writable, onUpdate }: Props) {
   const triggers = useRef<Partial<Record<Axis, HTMLButtonElement | null>>>({});
   const controls: Control[] = [];
   if (block.layout === "row" || block.layout === "stack") {
-    const alignment = groupFlexAlignment(block);
-    controls.push({ field: "horizontalAlign", ...alignment.horizontal }, { field: "verticalAlign", ...alignment.vertical });
+    const alignment = groupFlexAlignment(block.data?.templateElement === "navigation" ? { ...block, layout: "row" } : block);
+    controls.push({ field: "horizontalAlign", ...alignment.horizontal });
+    if (block.data?.templateElement !== "navigation") controls.push({ field: "verticalAlign", ...alignment.vertical });
   }
   function close(restoreFocus = true) {
     const trigger = open ? triggers.current[open] : null;

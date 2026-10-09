@@ -11,15 +11,18 @@ import { ToggleSetting } from "./toggle-setting";
 export type LinkSuggestion = { id: string; title: string; href: string };
 
 /** The owner validates freshness and commits one destination change. */
-export function LinkDestinationPopover({ value, mode, anchor, focusOnMount = false, focusRevision = 0, onFocusPlaced, ignoreOutside, suggestions = [], onEdit, onApply, onRemove, onClose }: {
+export function LinkDestinationPopover({ value, mode, anchor, inspectorPlacement = false, focusOnMount = false, focusRevision = 0, onFocusPlaced, ignoreOutside, suggestions = [], textControl, onSuggestionSelect, onEdit, onApply, onRemove, onClose }: {
   value: LinkDestination;
   mode: "edit" | "preview";
   anchor: () => HTMLElement | null;
+  inspectorPlacement?: boolean;
   focusOnMount?: boolean;
   focusRevision?: number;
   onFocusPlaced?: () => void;
   ignoreOutside?: (target: Node) => boolean;
   suggestions?: LinkSuggestion[];
+  textControl?: { value: string; onChange: (text: string) => void };
+  onSuggestionSelect?: (suggestion: LinkSuggestion) => void;
   onEdit: () => void;
   onApply: (draft: LinkDestinationDraft, baseline: LinkDestination) => string | null;
   onRemove: () => void;
@@ -32,15 +35,16 @@ export function LinkDestinationPopover({ value, mode, anchor, focusOnMount = fal
   const copyState = copyResult?.url === value.url ? copyResult.state : "idle";
   const url = safeTextLink(value.url);
   const matches = suggestions.filter(item => `${item.title} ${item.href}`.toLocaleLowerCase("en-GB").includes(draft.url.trim().toLocaleLowerCase("en-GB"))).slice(0, 5);
-  return <StudioAnchoredPopover anchor={anchor} label={mode === "edit" ? "Edit link destination" : "Link destination"} focusOnMount={focusOnMount} focusRevision={focusRevision} onFocusPlaced={onFocusPlaced} ignoreOutside={ignoreOutside} onClose={onClose} className="studio-link-destination">
+  return <StudioAnchoredPopover inspectorPlacement={inspectorPlacement} anchor={anchor} label={mode === "edit" ? "Edit link destination" : "Link destination"} focusOnMount={focusOnMount} focusRevision={focusRevision} onFocusPlaced={onFocusPlaced} ignoreOutside={ignoreOutside} onClose={onClose} className="studio-link-destination">
     <button className="studio-link-close" type="button" onClick={() => onClose(true)} aria-label="Close link destination" title="Close"><StudioIcon name="close" size={20} /></button>
     {mode === "edit" ? <form onSubmit={event => {
       event.preventDefault();
       const message = onApply(draft, baseline);
       setError(message);
     }}>
+      {textControl ? <label className="studio-link-url"><span>Text</span><input type="text" value={textControl.value} maxLength={160} aria-label="Navigation link text" onChange={event => textControl.onChange(event.target.value)} /></label> : null}
       <label className="studio-link-url"><span>Link</span><input type="text" value={draft.url} aria-label="Link destination" placeholder="Search or type URL" autoComplete="url" onChange={event => { setDraft(current => ({ ...current, url: event.target.value })); setError(null); }} /></label>
-      {matches.length ? <ul className="studio-link-suggestions" aria-label="Internal links">{matches.map(item => <li key={item.id}><button type="button" onClick={() => { setDraft(current => ({ ...current, url: item.href })); setError(null); }}><strong>{item.title}</strong><span>{item.href}</span></button></li>)}</ul> : null}
+      {matches.length ? <ul className="studio-link-suggestions" aria-label="Internal links">{matches.map(item => <li key={item.id}><button type="button" onClick={() => { setDraft(current => ({ ...current, url: item.href })); onSuggestionSelect?.(item); setError(null); }}><strong>{item.title}</strong><span>{item.href}</span></button></li>)}</ul> : null}
       <ToggleSetting label="Open in new tab" checked={draft.opensInNewTab} onChange={opensInNewTab => setDraft(current => ({ ...current, opensInNewTab }))} />
       <ToggleSetting label="Mark as nofollow" checked={draft.nofollow} onChange={nofollow => setDraft(current => ({ ...current, nofollow }))} />
       {error ? <p role="alert">{error}</p> : null}

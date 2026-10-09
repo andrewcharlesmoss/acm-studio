@@ -4,6 +4,8 @@
 
 ### Added
 
+- Gutenberg-style Navigation authoring with Menu, Settings and Styles tabs, inline link editing, nested submenus, shared layout and colour controls, and responsive overlays in previews and local output.
+
 - Editable shared Navigation blocks for Test and Test2, with saved menu labels, destinations, order and link controls across editor and website views.
 
 - Website View and Full Preview for local Test and Test2 drafts, with isolated browser viewports, device sizes and Fit / 100% scale controls.

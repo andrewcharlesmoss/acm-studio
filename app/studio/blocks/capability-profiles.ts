@@ -330,6 +330,8 @@ function makeProfile(type: CapabilityBlockType, label: string, mapping: string, 
 
 const block = (section: InspectorSectionId, ...controls: Array<[string, string, string?]>) => controls.map(([id, label, condition]) => makeSpecificControl(id, label, id === "advanced" ? "advanced" : section, "gutenberg", condition, undefined, ["block-alignment", "outer-alignment", "table-alignment", "column-alignment", "children", "list-style"].includes(id) ? "canvas" : "inspector"));
 const studio = (section: InspectorSectionId, ...controls: Array<[string, string, string?]>) => controls.map(([id, label, condition]) => makeSpecificControl(id, label, section, "studio", condition));
+
+
 const advancedBlockTypes = new Set<CapabilityBlockType>(["heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"]);
 
 const listItemControls: InspectorControlProfile[] = [
@@ -414,3 +416,11 @@ export const listItemStyleInspectorProfile: BlockCapabilityProfile = {
   dependencies: listItemCapabilityProfile.dependencies,
   nestedProfiles: undefined,
 };
+
+export const navigationStyleProfile = makeProfile("group", "Navigation", "core/navigation (typed template menu)", {
+  block: [], sharedStyleInspector: true, background: false,
+  style: { typography: ["size", "family", "appearance", "line-height", "letter-spacing", "letter-case", "decoration"] },
+  defaults: { typography: ["size"] },
+  unsupported: ["WordPress menu entities and automatic Page Lists", "Non-link inner blocks", "Custom overlay template entities"],
+  nesting: "Contains typed links and submenus stored in the template set.",
+});

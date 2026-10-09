@@ -5,31 +5,33 @@ import { createPortal } from "react-dom";
 import { watchAnchoredMenu } from "./anchored-menu-position.mjs";
 import { focusStudioMenu, navigateStudioMenu } from "./menu";
 import { useOverlayDismiss } from "./use-overlay-dismiss";
+import { inspectorPopoverOwner, watchInspectorPopover } from "../panes/inspector-popover-position";
 
 type Props = Omit<ComponentPropsWithoutRef<"div">, "style"> & {
   anchor: () => HTMLElement | null;
   align?: "start" | "end";
+  inspectorPlacement?: boolean;
   onClose: (restoreFocus?: boolean) => void;
   onOutside?: (target: Node) => void;
 };
-type Position = { left: number; top: number; maxWidth: number; maxHeight: number };
+type Position = { left: number; top: number; maxWidth?: number; width?: number; maxHeight: number };
 
 /** Commands and selection remain with the consumer; this owns menu geometry. */
-export function StudioAnchoredMenu({ anchor, align = "start", onClose, onOutside, className, onKeyDown, children, ...props }: Props) {
+export function StudioAnchoredMenu({ anchor, align = "start", inspectorPlacement = false, onClose, onOutside, className, onKeyDown, children, ...props }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
   const anchorGetter = useRef(anchor);
   useLayoutEffect(() => { anchorGetter.current = anchor; });
-  const [position, setPosition] = useState({ left: 8, top: 8, maxWidth: 1, maxHeight: 1 });
+  const [position, setPosition] = useState<Position>({ left: 8, top: 8, maxWidth: 1, maxHeight: 1 });
   useLayoutEffect(() => {
     const menu = menuRef.current;
     const trigger = anchorGetter.current();
     if (!trigger || !menu) return;
-    const stop = watchAnchoredMenu(trigger, menu, align, (next: Position) => {
+    const stop = inspectorPlacement && inspectorPopoverOwner(trigger) ? watchInspectorPopover(trigger, menu, 240, next => setPosition(next)) : watchAnchoredMenu(trigger, menu, align, (next: Position) => {
       setPosition(current => Object.keys(next).every(key => current[key as keyof typeof current] === next[key as keyof typeof next]) ? current : next);
     });
     focusStudioMenu(menu);
     return stop;
-  }, [align]);
+  }, [align, inspectorPlacement]);
   useOverlayDismiss({ open: true, onEscape: onClose, onOutside: target => {
     if (menuRef.current?.contains(target) || anchor()?.contains(target)) return;
     if (onOutside) onOutside(target);

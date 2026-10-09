@@ -10,7 +10,10 @@ export const groupVariations: { type: GroupVariationType; layout: LayoutMode; la
 ];
 export function isGroupVariation(type: string): type is GroupVariationType { return groupVariations.some(variation => variation.type === type); }
 export function storedBlockType(type: string) { return isGroupVariation(type) ? "group" : type; }
-export function groupVariationFor(block: Extract<ContentBlock, { type: "group" }>) { return groupVariations.find(variation => variation.layout === block.layout) ?? groupVariations[0]; }
+export function groupVariationFor(block: Extract<ContentBlock, { type: "group" }>) {
+  if (block.data?.templateElement === "navigation") return { type: "group" as const, layout: block.layout, label: "Navigation", description: "Help visitors find their way around your site.", icon: "navigation.menu" as const };
+  return groupVariations.find(variation => variation.layout === block.layout) ?? groupVariations[0];
+}
 /** Layout transforms retain content, identity, styling and inactive layout settings. */
 export function changeGroupLayout(block: Extract<ContentBlock, { type: "group" }>, layout: LayoutMode): Extract<ContentBlock, { type: "group" }> {
   return { ...block, layout, ...(layout === "row" && block.allowWrap === undefined ? { allowWrap: false } : {}), ...(layout === "grid" && block.gridMode === undefined ? { gridMode: "auto", minColumnWidth: block.minColumnWidth ?? 12, minColumnWidthUnit: block.minColumnWidthUnit ?? (block.minColumnWidth === undefined ? "rem" : "px") } : {}) };

@@ -138,7 +138,7 @@ not empty itself. The Bin is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.26.0** (`0.26.0` in JSON).
+The template-store and JSON package schema is **v0.27.0** (`0.27.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -197,7 +197,7 @@ contract. Group Row and Stack layouts also support Gutenberg's Space between
 justification. Table cells preserve per-cell header tags and scope. Workspace
 data is now version 24, with readers for versions 2–23; local publication
 snapshots are version 18 with readers for versions 1–17, and full backups remain
-version 4. Template packages are v0.26.0, with readers for v0.1.0–v0.25.0.
+version 4. Template packages are v0.27.0, with readers for v0.1.0–v0.26.0.
 Group HTML elements, ARIA labels and block alignment, Columns alignment and
 Section visual styles round-trip through the editor, owned storage, portable
 packages and local publication snapshots. Resetting a field clears it rather
@@ -458,3 +458,57 @@ rather than editing one selected run's attributes. Caret application changes
 pending typing formats and creates no document history until text is inserted.
 Selected application/removal is one document operation. The shared field resolver
 and deferred focus guard retain the captured document, field and expected runs.
+
+
+## Navigation authoring
+
+The Navigation element follows the project's pinned Gutenberg reference
+(v24.1.0-rc.1, commit `e3ac73cd69d472341b66c43cb77be36e838f868e`),
+with the Menu, Settings and Styles organisation shown in Andrew's Gutenberg
+screenshots on 9 October 2026. The current
+[Navigation documentation](https://wordpress.org/documentation/article/navigation-block/)
+is a supplementary behavioural reference.
+
+- **Menu** shows a compact hierarchy. Selecting an entry selects its canvas
+  link. Labels can be edited inline; the link toolbar supports moving,
+  duplication, deletion, link editing and adding a submenu. The existing link
+  picker offers the site's documents, safe custom destinations, new-tab and
+  nofollow controls. The selected entry exposes Text, Link to, Description and
+  Rel attributes. Fixture suggestions use stable document hash routes.
+- **Settings** offers Off, Mobile and Always overlay visibility, click or hover
+  submenus, submenu arrows and the navigation landmark's accessible label.
+  Mobile uses the template surface's 600px container boundary, so it responds
+  to the site viewport rather than the surrounding Studio window.
+- **Styles** reuses the shared typography, colour and flex-layout controls.
+  Text, Background, Submenu and overlay text, and Submenu and overlay background
+  are independently editable. Root layout supports justification, horizontal
+  or vertical orientation, wrapping and a 0–120px block gap.
+
+Template v0.27.0 adds these settings and recursive links while retaining
+v0.1.0–v0.26.0 stores, snapshots and packages, including prior inline objects.
+A menu has at most 100 entries in total and five nested submenu levels below
+its root. Duplicate operations renew every descendant ID. Fixture imports
+claim recursive IDs and reject an over-capacity import without truncating
+existing menu content. Removing a parent removes its descendants in the same
+undoable transaction. An empty navigation landmark remains available to edit.
+
+Selection never becomes saved content. Every change uses the current template
+history and the selected site's revision and write-ownership path. Edit,
+Preview, Website View and generated local HTML reuse the authored menu and
+presentation. Runtime overlays use native disclosure semantics, a visible
+close control, Escape dismissal, focus return and contained keyboard cycling;
+submenus remain keyboard-operable regardless of the hover preference.
+
+This is a Studio-owned typed menu: it does not import WordPress menu entities,
+create automatic Page Lists, accept arbitrary inner blocks or create separate
+custom overlay template entities. The portable disclosure runtime is an
+intentional adaptation of Gutenberg's WordPress runtime. Hosted publishing
+remains a separate authorised operation.
+
+Navigation overlays fill the preview page in Studio; layout containment on that
+preview keeps the surrounding editor controls available. Standalone local output
+uses the browser viewport.
+
+Website View and Full Preview retain their scripts-only sandbox, which blocks
+new-tab destinations. Check the authored new-tab behaviour on the local website;
+generated output retains the link target and `noopener noreferrer` isolation.
