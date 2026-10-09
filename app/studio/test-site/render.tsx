@@ -41,7 +41,6 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
   const initialId = initialDocumentId !== undefined && site.documents.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;
   const siteName = localFixtureName(site.siteId);
   const body = renderToStaticMarkup(<>
-    <TestSiteNavigation siteId={site.siteId} documents={site.documents} activeDocumentId={initialId} />
     {site.documents.map(page => {
       const snapshot = resolveTemplate(site.templates, page);
       const template = snapshot?.set.templates.find(item => item.id === snapshot.templateId);
@@ -49,6 +48,7 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
       const resolved = { ...page, ...fields, displayOverrides: resolveDocumentDisplay(page, template) };
       const content = <BlockRenderer blocks={resolved.blocks} document={resolved} documentHref={testDocumentHref(page.id)} variant="studio" />;
       return <section key={page.id} data-test-document={page.id} data-test-home={page.id === site.homeDocumentId ? "true" : "false"} data-test-title={page.title || siteName} data-test-initial={initialDocumentId && page.id === initialId ? "true" : undefined} hidden={page.id !== initialId}>
+        <TestSiteNavigation site={site} document={resolved} />
         {snapshot ? <TemplateDocument snapshot={snapshot} document={resolved} documentHref={testDocumentHref(page.id)} content={content} /> : <div className="test-site-page">{page.id !== site.homeDocumentId ? <h1>{page.title}</h1> : null}{content}</div>}
       </section>;
     })}

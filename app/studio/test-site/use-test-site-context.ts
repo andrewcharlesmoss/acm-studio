@@ -55,5 +55,5 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     commit: update => commitContent((current, store) => ({ workspace: current, templates: update(store) })),
     undo: () => { site.undo(); return true; }, redo: () => { site.redo(); return true; }, canUndo: site.canUndo, canRedo: site.canRedo,
   };
-  return { siteId: site.siteId, session, templates, commitContent, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
+  return { siteNavigation: collection?.siteNavigation, collection, siteId: site.siteId, session, templates, commitContent, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
 }

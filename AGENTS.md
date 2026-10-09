@@ -311,7 +311,7 @@ relative `/studio` link on every host.
 
 Andrew has authorised the local Test integration inside `/studio?site=test` and
 changes to the sibling `test` project for this fixture. The canonical source is
-Test's `content/site.json` v3 (backwards-readable v1/v2), containing documents,
+Test's `content/site.json` v4 (backwards-readable v1–v3), containing documents,
 categories, Bin and templates; visual edits use one revision-checked gateway.
 Test drives the selected site's Pages, Posts and Templates lists and commands.
 Andrew authorised copying the existing browser test documents, templates and
@@ -347,7 +347,7 @@ capabilities, commands, conflict handling, protocol details and recovery.
 ### Second local fixture
 
 Andrew authorised Test2 (`test2`) on 9 October 2026. `/studio?site=test2` uses
-the same local integration with an independent v3 source in sibling
+the same local integration with an independent v4 source in sibling
 `test2/content/site.json`. Only fixed IDs `test` and `test2` are accepted.
 Each owns separate gateway sessions, leases, process guards, revisions, history,
 wake channels and synchronisation rooms. Every ordinary Studio shell retains
@@ -360,3 +360,12 @@ Its hosted identity and manual publication procedure belong to sibling
 connected.
 Project Ports owns both preview services. `STUDIO_TEST2_PATH` is the optional
 server-only Test2 root override; roots must differ.
+
+Test and Test2's top menu belongs to a standard Navigation element in a shared
+Navigation template part, referenced by the aggregate's `siteNavigation` IDs.
+The next owned save migrates older collections with deterministic document links.
+After migration the links are explicitly authored, not rebuilt from page/post
+lists. The shared set/part remain protected while referenced; removing its
+Navigation block hides the menu and Undo can restore it. Edit Navigation uses
+the existing template editor and Block link controls. See
+`docs/test-site-integration.md` for migration, import limits and view behaviour.

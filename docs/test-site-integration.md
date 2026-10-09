@@ -14,10 +14,10 @@ Test has no Staging target. Production opens its registered hosted website in a
 new tab; Production editing remains unavailable until a hosted content adapter
 is connected. The Local pencil selects Test through the existing editor flow.
 
-Test owns `content/site.json`, envelope v3 (`acm-test-site`, site ID `test`). It
+Test owns `content/site.json`, envelope v4 (`acm-test-site`, site ID `test`). It
 contains a collection of canonical Studio documents, categories, recoverable Bin
 entries and a template store. `homeDocumentId` identifies the retained home page;
-editor selection is local to each tab and cannot change it. Envelopes v1/v2 remain
+editor selection is local to each tab and cannot change it. Envelopes v1–v3 remain
 readable and normalise to the same editable collection before their next accepted
 save. The home page's header, main and footer remain semantic Group blocks. The
 normal block library, document actions and inspector are reused.
@@ -210,7 +210,7 @@ edits are independent. Both appear in the Sites pane in content and template
 workspaces. Switching saves the current draft before a full context load; a
 failed save retains the current site and draft.
 
-Test2 source belongs to sibling `test2/content/site.json`, using v3 only. Legacy
+Test2 source belongs to sibling `test2/content/site.json`, using v4 and reading v3. Legacy
 v1/v2 sources remain Test-only. The shared endpoint keeps its existing token
 header but selects one of two fixed stores. Browser input never selects a path.
 Source, recovery state, history, sessions, lease and process guard are separate.
@@ -234,11 +234,33 @@ Local saves, commits and previews do not publish; hosted editing is not connecte
 
 For local Test and Test2 content, the header's View menu offers Editing View,
 Website View and Full Preview. Editing View retains the existing authoring
-canvas and panes, including the same generated document navigation as the
-website. Its links select the page or post through the existing editor command,
-preserving document edits and keeping navigation outside the saved block body.
-This navigation also surrounds assigned templates and appears in Editing View's
-Preview mode. Website View renders the current aggregate draft through
+canvas and panes. The top menu is the standard Navigation element in a shared
+Navigation part, referenced by the aggregate's `siteNavigation` set/part IDs.
+Edit Navigation opens that selected block in the template editor. The Block
+inspector edits labels, destinations and link order, and adds or removes links;
+normal block commands and the site's shared Undo history apply. Preview links
+select the document through the existing editor command. The same part surrounds
+Existing Presentation and assigned templates in all views and local output.
+
+Legacy collections seed their current document links with deterministic IDs;
+the next accepted owned save stores v4 through the existing revision gateway.
+Migration requires one free template-set slot; an existing collection at the
+100-set limit is retained and reports that capacity problem instead of
+installing an invalid migrated draft.
+Subsequent document additions, renames or Bin moves do not overwrite authored
+menu links. The one-time browser import appends its document links within the
+same aggregate transaction, preserving the original browser records. The
+existing Navigation limits apply: at most 100 links with 160-character labels;
+legacy seeds use the first 100 documents and truncate labels at that boundary.
+The referenced set and part cannot move to the Bin while supplying the site
+menu, and validation rejects dangling references. Removing the Navigation block
+hides the menu without regenerating it; Undo or Add Template Element restores
+it. Navigation has its own template colour/typography scope. Its top-level
+bar deliberately fills the page width with 16px vertical and 24px horizontal
+padding, without the normal template card radius; document bodies and
+page/post template assignments remain unchanged.
+
+Website View renders the current aggregate draft through
 `renderTestSite`, the same renderer used for local output, in a sandboxed iframe
 without access to Studio's origin or stores. It starts on the selected document
 and includes the site's navigation, templates and styles. Preview links can

@@ -1,8 +1,10 @@
 import { UNIVERSAL_STYLE_PRESET, universalStylePresetToCss } from "@acm/styles";
 // The same scoped site stylesheet is installed in editor and standalone output.
 export const testSiteCss = universalStylePresetToCss(UNIVERSAL_STYLE_PRESET, ".test-site-page") + `
-.test-document-navigation{box-sizing:border-box;min-width:320px;display:flex;flex-wrap:wrap;gap:16px;padding:16px 24px;color:var(--ink);background:var(--paper);font-family:var(--font-sans);font-size:1rem;line-height:1.55;font-weight:400}
-.test-document-navigation a{color:inherit;text-decoration:none}.test-document-navigation [aria-current=page]{font-weight:700}
+.test-document-navigation{box-sizing:border-box;min-width:320px;color:var(--ink);background:var(--paper);font-family:var(--font-sans);font-size:1rem;line-height:1.55;font-weight:400}
+.test-document-navigation>.template-surface{max-width:none;border-radius:0;padding:16px 24px}
+.test-document-navigation .template-header{padding:0;border:0;position:relative}.test-document-navigation .template-navigation{justify-content:start;gap:16px}
+.test-document-navigation .template-navigation a{color:inherit;text-decoration:none;min-height:0;padding:0}.test-document-navigation [aria-current=page]{font-weight:700}
 .test-site-page{color:#1c1c1e;background:#f2f2f7;font-family:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif;box-sizing:border-box;min-width:320px;min-height:100svh;display:grid;grid-template-rows:auto 1fr auto;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
 .test-site-page *{box-sizing:border-box}.test-site-page>.studio-block-preview,.test-site-page>.studio-block-preview>.content-block.is-group{display:contents}.test-site-page header,.test-site-page footer{width:min(100% - 48px,1040px);margin-inline:auto}
 .test-site-page header{padding-block:28px;border-bottom:1px solid #d1d1d6;font-size:1rem;font-weight:600}

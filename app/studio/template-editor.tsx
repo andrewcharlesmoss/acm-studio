@@ -20,7 +20,8 @@ import { insertTemplateContent, templateContentAvailable } from "./template-cont
 import { TemplateContentSlot } from "./template-content-slot";
 import { reconcileFootnoteBlocks } from "../content/footnote-reconciliation";
 
-export function TemplateEditor({ set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
+export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = false, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
+  initialSelectedBlockId?: string; sharedSiteNavigation?: boolean;
   set: TemplateSet; target: PageTemplate | TemplatePart; documents: StudioDocument[]; mediaUrls: Record<string, string>; writable: boolean;
   onChange: (set: TemplateSet) => boolean; onEditPart: (id: string) => void; onOpenMedia: (blockId: string | null, logo?: boolean, background?: boolean, item?: ListItemBackgroundTarget) => void;
   loadInlineImages?: import("./inline-image-picker").InlineImageLibrary;
@@ -38,8 +39,8 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     displayOverrides: resolveDocumentDisplay(sample, target.kind === "page" || target.kind === "post" ? target : undefined),
   };
   const templatePreviewDocument = { ...resolvedSample, title: "", subtitle: "", coverImage: { src: "", alt: "" }, author: undefined, publishAt: undefined, publishedAt: undefined, blocks: [] };
-  const [selected, setSelected] = useState<string | null>(null);
-  const [localInspectorTab, setLocalInspectorTab] = useState<"template" | "block" | "styles">("template");
+  const [selected, setSelected] = useState<string | null>(initialSelectedBlockId ?? null);
+  const [localInspectorTab, setLocalInspectorTab] = useState<"template" | "block" | "styles">(initialSelectedBlockId ? "block" : "template");
   const [previewing, setPreviewing] = useState(false);
   const [width, setWidth] = useState(1200);
   const [zoom, setZoom] = useState(TEMPLATE_ZOOM_DEFAULT);
@@ -215,7 +216,7 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
     if (!keepInserterOpen) setInserterParentId(null);
     return insertNode(node, insertAfter, keepInserterOpen, keepInserterOpen);
   }
-  const users: string[] = [];
+  const users: string[] = sharedSiteNavigation ? ["All site pages and posts"] : [];
   for (const template of set.templates) {
     const seen = new Set<string>();
     const references = (nodes: TemplateNode[]): boolean => {
@@ -240,7 +241,10 @@ export function TemplateEditor({ set, target, documents, mediaUrls, writable, on
   return <StudioEditor writable={writable} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
     target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: selectedListItem => <TemplateInspector set={set} target={target} selectedBlock={selectedBlock} selectedListItem={selectedListItem} tab={activeInspectorTab} onTabChange={selectInspectorTab} paneWidth={inspectorPaneWidth} onPaneWidthChange={onInspectorPaneWidthChange} paneCollapsed={inspectorPaneCollapsed} onPaneCollapsedChange={onInspectorPaneCollapsedChange} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onColumnCountChange={commands.updateColumnCount} onColumnWidthChange={commands.updateColumnWidth} onOpenMedia={(logo, background, item) => onOpenMedia(selectedBlock?.id ?? null, logo, background, item)} onEditPart={onEditPart} users={users} /> }}
     canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: blockInserterOptions(templateBlockCatalogue, inserterParentId ? findBlockById(blocks, inserterParentId) ?? undefined : undefined, query, socialIconCatalogue, { allowTemplateContent }), publishFeedback: null,
-      presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => <TemplateSurface set={set} editing={context.mode === "edit"} editorCanvas={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>, renderBlock: context => {
+      presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => {
+        const surface = <TemplateSurface set={set} editing={context.mode === "edit"} editorCanvas={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>;
+        return sharedSiteNavigation ? <div className="test-document-navigation">{surface}</div> : surface;
+      }, renderBlock: context => {
         if (!context.block) return null;
         const currentBlock = context.block;
         const previewDynamicPlaceholder = context.mode === "preview" && ["document-title", "document-subtitle"].includes(currentBlock.type);

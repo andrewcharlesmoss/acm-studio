@@ -19,24 +19,28 @@ const legacy = () => ({ format: "acm-test-site", version: 2, siteId: "test", doc
 const workspace = () => ({ version: 24, activeDocumentId: "page-one", documents: [page("page-one"), page("post-one", "post")], categories: [], bin: [] });
 function imported() { return contract.importBrowserTestContent(legacy(), workspace(), model.emptyTemplateStore()); }
 function valid(value) { assert.equal(contract.validTestSiteDocument(value), true); }
-test("editor navigation matches website documents and preserves the body or assigned template in both modes", () => {
-  const site = imported(); site.documents[1].title = '<script>Fixture & title</script>';
+test("editor navigation renders the shared authored part and preserves the body or assigned template in both modes", () => {
+  const site = imported();
+  const set = site.templates.sets.find(set => set.id === site.siteNavigation.setId);
+  set.navigation[1].label = '<script>Fixture & title</script>';
   const before = JSON.stringify(site);
   for (const mode of ["edit", "preview"]) {
     for (const base of [{}, { renderDocument: (_context, content) => createElement("section", { className: "assigned-template" }, content) }]) {
-      const presentation = navigation.withTestSiteNavigation(base, site.siteId, site.documents, () => {});
+      const presentation = navigation.withTestSiteNavigation(base, site, () => {}, () => {});
       const html = renderToStaticMarkup(presentation.renderDocument({ document: site.documents[1], mode }, createElement("p", null, "Editable body")));
       assert.equal((html.match(/data-test-link=/g) ?? []).length, site.documents.length);
-      assert.match(html, /aria-label="Test content"/);
-      assert.match(html, /documentId=page-one" aria-current="page"/);
+      assert.match(html, /aria-label="Site navigation"/);
+      assert.match(html, /data-test-link="page-one" aria-current="page"/);
       assert.match(html, /&lt;script&gt;Fixture &amp; title&lt;\/script&gt;/);
+      assert.equal(html.includes("Edit Navigation"), mode === "edit");
       assert.match(html, /<p>Editable body<\/p>/);
       if (base.renderDocument) assert.match(html, /class="assigned-template"/);
     }
   }
   assert.equal(JSON.stringify(site), before);
-  const single = navigation.withTestSiteNavigation({}, "test2", [page()], () => {});
-  assert.equal(renderToStaticMarkup(single.renderDocument({ document: page(), mode: "edit" }, "Body")), "Body");
+  set.parts[0].nodes = [];
+  const empty = navigation.withTestSiteNavigation({}, site, () => {}, () => {});
+  assert.equal(renderToStaticMarkup(empty.renderDocument({ document: site.documents[0], mode: "preview" }, "Body")).includes('<nav '), false);
 });
 test("v1/v2 upgrade preserves home, metadata and regions without writing or consuming browser originals", () => {
   const source = legacy(); source.document.author = "Fixture author";
@@ -47,7 +51,7 @@ test("v1/v2 upgrade preserves home, metadata and regions without writing or cons
   assert.deepEqual(collection.documents[0].blocks.map(block => block.tagName), ["header", "main", "footer"]);
   const browser = workspace(); const before = JSON.stringify(browser); const site = contract.importBrowserTestContent(source, browser, model.emptyTemplateStore());
   valid(site); assert.equal(JSON.stringify(browser), before); assert.equal(site.documents.length, 3);
-  assert.equal(contract.importBrowserTestContent(site, browser, model.emptyTemplateStore()), site);
+  assert.deepEqual(contract.importBrowserTestContent(site, browser, model.emptyTemplateStore()), site);
 });
 test("collection validates ownership, home, duplicate IDs, categories, parents and portable media", () => {
   const good = imported(); valid(good);
@@ -69,7 +73,7 @@ test("import carries templates, assignments, categories and binned documents as 
   browser.bin.push({ id: "bin-one", deletedAt: "2026-10-09T00:00:00Z", document: page("binned-one") });
   const set = model.createTemplateSet("Fixture"); const templates = { ...model.emptyTemplateStore(), sets: [set], assignments: [{ documentId: "post-one", kind: "post", setId: set.id, templateId: set.templates.find(item => item.kind === "post").id }] };
   const site = contract.importBrowserTestContent(legacy(), browser, templates); valid(site);
-  assert.deepEqual(site.templates, templates); assert.deepEqual(site.categories, browser.categories); assert.deepEqual(site.bin, browser.bin);
+  assert.deepEqual({ ...site.templates, sets: site.templates.sets.filter(set => set.id !== site.siteNavigation.setId) }, templates); assert.deepEqual(site.categories, browser.categories); assert.deepEqual(site.bin, browser.bin);
   const wrong = structuredClone(site); wrong.templates.assignments[0].documentId = "another-site"; assert.equal(contract.validTestSiteDocument(wrong), false);
 });
 test("tab selection is independent of the home and transactions merge separate document edits", () => {
@@ -96,7 +100,7 @@ test("renderer safely routes all documents and retains the home on an invalid do
   location.hash = "#document=unknown"; onHashChange(); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "test-site");
   location.hash = "#document=%ZZ"; onHashChange(); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "test-site");
 });
-test("v3 aggregate saves and reloads through the unchanged revision gateway, rejects stale/unsafe updates", async () => {
+test("v4 aggregate saves and reloads through the unchanged revision gateway, rejects stale/unsafe updates", async () => {
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), "test-site-collection-")));
   const source = legacy(); const revision = revisionOf(source);
   await mkdir(path.join(root, "content")); await mkdir(path.join(root, "dist"));

@@ -4,6 +4,8 @@
 
 ### Added
 
+- Editable shared Navigation blocks for Test and Test2, with saved menu labels, destinations, order and link controls across editor and website views.
+
 - Website View and Full Preview for local Test and Test2 drafts, with isolated browser viewports, device sizes and Fit / 100% scale controls.
 
 - Test2’s Production visit link alongside its Local controls in the Sites pane and homepage.

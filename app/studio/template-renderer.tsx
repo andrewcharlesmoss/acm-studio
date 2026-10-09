@@ -118,6 +118,7 @@ export type TemplateRenderContext = {
   onRemoveCoverImage?: () => void;
   onRemoveCoverBlock?: () => void;
   onEditPart?: (id: string) => void;
+  renderNavigationLink?: (link: TemplateSet["navigation"][number]) => ReactNode;
   renderOrdinary?: (node: TemplateNode, spacerOrientation: SpacerOrientation) => ReactNode;
   decorate?: (node: TemplateNode, result: ReactNode) => ReactNode;
 };
@@ -216,7 +217,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const src = logo?.mediaId ? safeImageSource(mediaUrls[logo.mediaId] ?? "", { allowBlob: true }) : safeImageSource(logo?.src ?? "");
           element = <a className="template-brand" href={safeTextLink(set.identity.homeUrl) ?? undefined}>{src ? <TemplateImage src={src} alt={logo?.alt ?? ""} /> : <span className="template-brand-mark" aria-hidden="true">{brandInitials(set.identity.name)}</span>}<span className="template-brand-name">{set.identity.name}</span></a>; break;
         }
-        case "navigation": element = <nav aria-label="Site navigation" className="template-navigation acm-navigation">{set.navigation.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined}>{link.label}</a>)}</nav>; break;
+        case "navigation": element = <nav aria-label="Site navigation" className="template-navigation acm-navigation" style={node.align ? { justifyContent: node.align === "centre" ? "center" : node.align === "right" ? "flex-end" : "flex-start" } : undefined}>{set.navigation.map(link => context.renderNavigationLink?.(link) ?? <a key={link.id} href={safeTextLink(link.url) ?? undefined} aria-current={link.url === context.documentHref ? "page" : undefined}>{link.label}</a>)}</nav>; break;
         case "copyright": element = <p className="template-copyright">{resolveTemplateCopyright(set.identity.copyright, set.identity.name)}</p>; break;
         case "social-links": element = <nav className="template-social" aria-label="Social and support links">{set.socialLinks.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined} target="_blank" rel="noopener noreferrer">{link.label}</a>)}</nav>; break;
       }
