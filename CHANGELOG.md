@@ -4,6 +4,10 @@
 
 ### Added
 
+- Styles now supports explicit local saving to the shared preset, synchronised
+  guide token tables and source bundle, with live draft source updates, revision
+  checks, write ownership and recoverable file transactions.
+
 - List toolbars distinguish items from their parent List, with ordered/unordered
   controls, item move/duplicate/remove actions and Gutenberg-style indentation.
   Empty items retain their inspector; Lists and items now support background

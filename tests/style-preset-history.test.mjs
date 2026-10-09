@@ -9,6 +9,7 @@ const command = (history, type) => stylePresetHistoryReducer(history, { type });
 
 test("continuous colour edits undo as one step, then redo the final value", () => {
   const baseline = createUniversalStylePreset();
+  const originalColour = baseline.buttons.base.background;
   let history = createStylePresetHistory(baseline);
   history = change(history, colour("#FF0000"), "buttons.base.background");
   history = change(history, colour("#AA0000"), "buttons.base.background");
@@ -19,7 +20,7 @@ test("continuous colour edits undo as one step, then redo the final value", () =
   history = command(history, "redo");
   assert.equal(history.present.buttons.base.background, "#AA0000");
   assert.equal(history.future.length, 0);
-  assert.equal(baseline.buttons.base.background, "#0088FF");
+  assert.equal(baseline.buttons.base.background, originalColour);
 });
 
 test("focus boundaries, different properties and resets create separate actions", () => {
@@ -67,4 +68,22 @@ test("history is bounded and empty history commands are harmless", () => {
   for (let index = 0; index < 60; index++) history = command(history, "undo");
   assert.equal(history.present.layout.spacing, 20);
   assert.equal(history.future.length, 60);
+});
+
+test("loading a new source resets draft history without retaining stale edits", () => {
+  const baseline = createUniversalStylePreset();
+  let history = change(createStylePresetHistory(baseline), colour("#123456"));
+  history = stylePresetHistoryReducer(history, { type: "load", preset: baseline });
+  assert.deepEqual(history, createStylePresetHistory(baseline));
+});
+
+test("saving normalised values retains Undo and establishes a clean current value", () => {
+  const baseline = createUniversalStylePreset();
+  const history = change(createStylePresetHistory(baseline), colour("#abcdef"));
+  const saved = colour("#ABCDEF")(history.present);
+  const next = stylePresetHistoryReducer(history, { type: "saved", preset: saved });
+  assert.deepEqual(next.present, saved);
+  assert.deepEqual(next.past, [baseline]);
+  assert.deepEqual(stylePresetHistoryReducer(next, { type: "undo" }).present, baseline);
+  assert.equal(next.editKey, undefined);
 });

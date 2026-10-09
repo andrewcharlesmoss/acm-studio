@@ -10,6 +10,8 @@ export type StylePresetHistory = {
 };
 
 export type StylePresetHistoryAction =
+  | { type: "load"; preset: UniversalStylePreset }
+  | { type: "saved"; preset: UniversalStylePreset }
   | { type: "change"; update: (preset: UniversalStylePreset) => UniversalStylePreset; editKey?: string }
   | { type: "undo" }
   | { type: "redo" }
@@ -21,6 +23,8 @@ export function createStylePresetHistory(present: UniversalStylePreset): StylePr
 
 /** Preset updates are immutable; one focused colour/number edit shares a snapshot. */
 export function stylePresetHistoryReducer(history: StylePresetHistory, action: StylePresetHistoryAction): StylePresetHistory {
+  if (action.type === "load") return createStylePresetHistory(action.preset);
+  if (action.type === "saved") return { ...history, present: action.preset, editKey: undefined };
   if (action.type === "end-edit") return history.editKey ? { ...history, editKey: undefined } : history;
   if (action.type === "undo") {
     const previous = history.past.at(-1);

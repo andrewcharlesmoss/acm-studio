@@ -199,3 +199,5 @@
 @media (prefers-reduced-motion: reduce) {
   .sg-page *, .sg-page *::before, .sg-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+.sg-setting-content { border: 0; margin: 0; min-width: 0; }
+.sg-sandbox-note { overflow-wrap: anywhere; }

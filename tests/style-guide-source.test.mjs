@@ -12,13 +12,15 @@ const guidePath = path.join(projects, "workspace-governance/STYLE_GUIDE.md");
 const presetPath = path.join(projects, "acm-styles/src/universal-style-preset.json");
 const preset = JSON.parse(fs.readFileSync(presetPath, "utf8"));
 
-test("bundled Style Guide matches its committed canonical source", () => {
+test("bundled Style Guide matches canonical source with explicit working-tree provenance", () => {
   const guide = fs.readFileSync(guidePath, "utf8").replace(/\r\n/g, "\n");
   const revision = execFileSync("git", ["-C", path.dirname(guidePath), "log", "-1", "--format=%H", "--", "STYLE_GUIDE.md"], { encoding: "utf8" }).trim();
   assert.equal(source.document, guide);
   assert.equal(source.sourceRevision, revision);
   assert.equal(source.sourceDigest, crypto.createHash("sha256").update(guide).digest("hex"));
   assert.equal(source.sourcePath, "workspace-governance/STYLE_GUIDE.md");
+  const committed = execFileSync("git", ["-C", path.dirname(guidePath), "show", "HEAD:STYLE_GUIDE.md"], { encoding: "utf8" });
+  assert.equal(source.sourceWorkingTree, guide !== committed);
 });
 
 test("every preset property and text specimen has a precise guide line", () => {

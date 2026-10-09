@@ -45,14 +45,20 @@ shared font-outline assets use the pinned, licensed source in
 `acm-icons/sources/inter/`; retain their provenance and licence notices.
 
 The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes, Panels,
-Icons and Styles. Its Styles section is a preview sandbox for the executable `@acm/styles`
-baseline beside a bundled, read-only copy of the canonical governance Style
-Guide. Each mapped property shows its guide line and excerpt; the generated
-source index records the committed guide revision and content digest. After
-committing a governance guide change, refresh the bundle with
-`npm run styles:source` and verify it with `npm run styles:source:check` from
-the ACM Studio root. Sandbox controls remain component state and do not publish
-or change the shared preset.
+Icons and Styles. Styles edits the executable `@acm/styles` preset beside a
+bundled canonical governance Style Guide. Draft controls update the specimen and
+both source views immediately. In local development, Save Shared Styles uses a
+fixed-target, revision-checked gateway to write the preset, generated guide token
+table cells and Studio source bundle. Policy prose stays manually authored.
+Saving borrows `studioWriteOwnership` or a bounded claim of its same Web Lock;
+no unlocked fallback, browser store, Git commit or publication is permitted.
+The gateway requires exact local-origin checks, expiring sessions, validation,
+a process guard, recoverable replacements and readback. External changes block
+stale saves and preserve the draft; Reload Source deliberately discards it.
+The hosted build retains draft previews with saving unavailable. The source index
+records the last committed guide revision, actual content digest and working-tree
+status. Run `npm run styles:source` after guide edits or commits and verify with
+`npm run styles:source:check`. See `docs/studio-ui-library.md` for scope and recovery.
 Workspace composes the shared Ribbon and Pane specimens; Ribbon details live at
 `/studio/ui/ribbon`, Pane details at `/studio/ui/panes`, and the broadly shared
 icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and

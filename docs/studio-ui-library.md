@@ -38,8 +38,8 @@ The library has nine sections:
   specimens at 16, 24 and 32px, with a Block Library collection that shows the
   exact symbols used by each insertable block and the template Content tile.
 - **Styles** — the executable universal style preset, editable in a local preview
-  sandbox with a live specimen. Sandbox edits remain in component state and do
-  not alter templates, products or the shared baseline.
+  editor with a live specimen and source view. Save Shared Styles writes the
+  shared preset and synchronises its guide tables in local development.
 
 Navigation is `/studio/ui/navigation`, the Ribbon section is
 `/studio/ui/ribbon`, Panes is `/studio/ui/panes`, Panels is
@@ -248,35 +248,80 @@ first package commit timestamp in UK local time; the owning `@acm/icons` package
 keeps the complete ISO timestamp with its UTC offset for exact chronological
 sorting.
 
-Styles previews the `@acm/styles` v0.2.0 preset beside the full written
+Styles edits the `@acm/styles` v0.2.0 preset beside the full written
 workspace Style Guide. Hovering or focusing a specimen or setting shows its
-baseline, current sandbox value, guide excerpt and exact line; clicking or
+baseline, current draft value, guide excerpt and exact line; clicking or
 tapping pins the source selection. Hovering a mapped row in a guide table
 temporarily shows its matching rule in the source details; moving away restores
 any pinned selection in the source details and written guide. Preview
 specimens have no additional selection outline or marker. Focus Outline controls
 their shared grey focus indicators.
 Mapped guide lines use the same focus tokens, with system colours retained in
-forced-colours mode. The guide view records the latest commit that changed the guide and its
-content digest. Its generated line index is bundled with Studio, so the hosted
-page does not read another repository at runtime. After committing a guide
-change, run `npm run styles:source` from the ACM Studio root to refresh that
-bundle; `npm run styles:source:check` verifies it without writing files.
-Responsive typography, semantic colour, button and layout controls change only
-the current React state. Reset All restores the package default; the page does
-not publish a global baseline or save project settings.
-Undo and Redo restore up to 60 temporary preset changes across colours,
-typography (including viewport overrides), buttons and layout. Property,
-section and Reset All actions are undoable. Continuous colour or number edits
-share one history step until focus changes; a new edit after Undo clears Redo.
-Preview sizes, panel selection, searches and guide navigation are outside style
-history. Command+Z/Command+Shift+Z on macOS and Ctrl+Z/Ctrl+Y (or Ctrl+Shift+Z)
-on Windows/Linux work while focus is on this page; editable fields keep native
-text history. Reloading or leaving Styles discards the temporary history.
-The Buttons panel exposes Base, Secondary and Outline variants. Each variant
-has independently editable normal text colour and hover text colour, and both
-values update the matching live preview button. These edits remain temporary
-Styles sandbox state.
+forced-colours mode. The source panel records the last commit that changed the
+guide, its saved content digest and whether it contains working-tree changes.
+The generated index is bundled with Studio; hosted pages read no sibling files.
+
+### Saving shared styles
+
+Colour, typography, button and layout edits immediately update the specimen,
+guide table cells, selected excerpt and Markdown source. Unsaved drafts stay in
+component state. In local development, **Save Shared Styles** validates and
+writes these exact files:
+
+- `acm-styles/src/universal-style-preset.json` — canonical executable values;
+- `workspace-governance/STYLE_GUIDE.md` — generated token table cells only;
+- `acm-studio/app/studio/ui/styles/style-guide-source.json` — guide and line index.
+
+The preset schema remains v0.2.0. Guide policy, reference palettes and prose are
+not editable through this interface. Responsive overrides appear alongside the
+desktop metric, for example `1rem; mobile: 15px`. Source saving is dev-only and
+does not publish, commit, push or directly update project-owned style settings.
+Consumers of the shared preset read saved values on their next load or rebuild.
+Hosted Studio retains draft previews but reports source saving as unavailable.
+
+Save borrows the existing Studio writer or makes a bounded claim of the same
+Web Lock. A competing editor tab blocks saving visibly; close that editor or
+open the library in its window. The gateway checks the exact localhost origin,
+expiring session token, fixed targets and complete source revision. It serialises
+saves behind a file guard and checks each replacement and the final readback.
+External file edits refresh on window focus when the draft is unchanged. A dirty
+draft is preserved and stale saving is refused. **Reload Source** loads the latest
+files and discards the draft and its history; its tooltip states this consequence.
+A lost save response blocks another save until a successful source reload.
+External editors do not participate in the gateway's process guard: avoid editing
+these source files while a save is running. Revision checks reduce conflicts but
+do not provide an operating-system-wide atomic compare-and-swap.
+
+Reset properties, Reset Section and Reset All restore the loaded saved baseline.
+Undo and Redo retain up to 60 draft changes across all controls. Continuous colour
+or number edits share a history step until focus changes; a new edit after Undo
+clears Redo. Saving retains history, so Undo after Save creates another unsaved
+draft. Preview sizes, panel selection, searches and guide navigation are outside
+history. Command+Z/Command+Shift+Z on macOS and Ctrl+Z/Ctrl+Y (or Ctrl+Shift+Z) on
+Windows/Linux work on this page; editable fields keep native text history.
+Leaving Styles discards unsaved drafts and history; saved source values remain.
+
+After editing or committing guide prose, run `npm run styles:source` from the
+ACM Studio root. `npm run styles:source:check` verifies the bundle without writing.
+The generator accepts an uncommitted guide and labels that provenance explicitly;
+it refuses token table values that differ from the canonical preset. Use Save
+Shared Styles to synchronise an externally edited preset with those tables.
+
+### Interrupted save recovery
+
+Ordinary replacement failures roll written files back. If rollback cannot be
+verified or the process stops mid-save, further saving is blocked. The ignored
+`work/shared-styles-recovery.json` contains the exact before and after contents of
+all three fixed files. It is retained for recovery, not served through Vite.
+
+Stop the local server before recovery. Inspect all three current files against
+that journal, preserving any external edits. Restore a consistent before or after
+state only after reviewing the exact targets; do not overwrite a file that matches
+neither state. Run `npm run styles:source` and `npm run styles:source:check` once
+the preset and guide agree. Remove the journal and `work/shared-styles.lock` only
+when recovery is verified and no server holds the guard, then restart and Reload
+Source. A remaining lock without a journal also requires checking that its
+recorded server PID has stopped before removing it.
 
 The block HTML editor and document code editor use `StudioButton`: Base for Apply
 and Secondary for Cancel. Its scoped `@acm/styles` preset supplies colours, border, shape and

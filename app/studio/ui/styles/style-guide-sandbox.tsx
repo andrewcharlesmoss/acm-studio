@@ -8,6 +8,7 @@ import {
   resolveUniversalStyleValue,
   universalStylePresetToCssVariables,
   UNIVERSAL_STYLE_PRESET,
+  validateUniversalStylePreset,
   type ButtonStyle,
   type FontFamily,
   type FontSizeValue,
@@ -18,7 +19,10 @@ import {
   type UniversalStylePreset,
 } from "@acm/styles";
 import type { CSSProperties } from "react";
-import styleGuideSource from "./style-guide-source.json";
+import bundledGuideSource from "./style-guide-source.json";
+import { projectStyleGuideTokens, indexStyleGuide } from "./style-guide-tokens.mjs";
+import { resetResponsiveStyleMetric } from "./style-preset-values";
+import { createSharedStylesClient } from "./shared-styles-client.mjs";
 import { createStylePresetHistory, stylePresetHistoryReducer } from "./style-preset-history";
 import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs";
 import "../style-guide.css";
@@ -68,7 +72,6 @@ const viewportRoles: { id: StyleViewport; label: string }[] = [
   { id: "desktop", label: "Desktop" }, { id: "tablet", label: "Tablet" }, { id: "mobile", label: "Mobile" },
 ];
 
-function baselineTypography(role: TypographyRole) { return UNIVERSAL_STYLE_PRESET.typography[role]; }
 function copyPreset<T>(value: T): T { return structuredClone(value); }
 function formatNumber(value: number) { return Number(value.toFixed(3)); }
 function pathValue(source: unknown, path: string): unknown {
@@ -105,11 +108,87 @@ function previewPathForStylePath(path: string | null): string | null {
 export function StyleGuideSandbox() {
   const [history, dispatchHistory] = useReducer(stylePresetHistoryReducer, undefined, () => createStylePresetHistory(createUniversalStylePreset()));
   const preset = history.present;
+  const [baseline, setBaseline] = useState<UniversalStylePreset>(UNIVERSAL_STYLE_PRESET);
+  const [sourceState, setSourceState] = useState<{ preset: UniversalStylePreset; revision: string; token: string; source: typeof bundledGuideSource; needsSynchronisation: boolean } | null>(null);
+  const [busy, setBusy] = useState(true);
+  const [saveMessage, setSaveMessage] = useState("Loading source…");
+  const requestEpoch = useRef(0);
+  const clientRef = useRef<ReturnType<typeof createSharedStylesClient> | null>(null);
+  const stateRef = useRef(sourceState);
+  const draftRef = useRef(preset);
+  const busyRef = useRef(busy);
+  const dirty = JSON.stringify(preset) !== JSON.stringify(baseline);
+  const baselineRef = useRef(baseline);
+  useEffect(() => { stateRef.current = sourceState; draftRef.current = preset; busyRef.current = busy; baselineRef.current = baseline; }, [sourceState, preset, busy, baseline]);
+
+  const installSource = useCallback((state: NonNullable<typeof sourceState>) => {
+    const value = validateUniversalStylePreset(state.preset);
+    setBaseline(value);
+    setSourceState(state);
+    dispatchHistory({ type: "load", preset: copyPreset(value) });
+    setSaveMessage(state.needsSynchronisation ? "Guide tables need synchronising. Save Shared Styles to update them." : "Source loaded");
+  }, []);
+
+  useEffect(() => {
+    const client = createSharedStylesClient();
+    clientRef.current = client;
+    let active = true;
+    let reading = false;
+    async function load(initial = false) {
+      if (reading || (!initial && busyRef.current)) return;
+      reading = true;
+      const epoch = ++requestEpoch.current;
+      try {
+        const state = await client.load(stateRef.current?.token);
+        if (!active || epoch !== requestEpoch.current || (!initial && busyRef.current)) return;
+        if (initial || JSON.stringify(draftRef.current) === JSON.stringify(baselineRef.current)) installSource(state);
+        else if (state.revision !== stateRef.current?.revision) setSaveMessage("Source changed externally. Your draft is preserved. Reload Source before saving.");
+      } catch (error) {
+        if (active && epoch === requestEpoch.current) setSaveMessage(error instanceof Error ? error.message : "Source saving is unavailable.");
+      } finally { reading = false; if (active && initial && epoch === requestEpoch.current) setBusy(false); }
+    }
+    void load(true);
+    const refresh = () => { void load(); };
+    window.addEventListener("focus", refresh);
+    return () => { active = false; window.removeEventListener("focus", refresh); };
+  }, [installSource]);
+
+  async function reloadSource() {
+    if (busyRef.current) return;
+    requestEpoch.current++;
+    busyRef.current = true;
+    setBusy(true);
+    try { installSource(await clientRef.current!.load(sourceState?.token)); }
+    catch (error) { setSaveMessage(error instanceof Error ? error.message : "Source could not be loaded."); }
+    finally { busyRef.current = false; setBusy(false); }
+  }
+  async function saveSharedStyles() {
+    if (busyRef.current || !sourceState) return;
+    requestEpoch.current++;
+    busyRef.current = true;
+    setBusy(true);
+    setSaveMessage("Saving shared styles…");
+    try {
+      const saved = await clientRef.current!.save(preset, sourceState);
+      // Saving establishes a baseline, but preserves Undo history.
+      const savedPreset = validateUniversalStylePreset(saved.preset);
+      setBaseline(savedPreset);
+      setSourceState(saved);
+      setSaveMessage("Saved to source");
+      dispatchHistory({ type: "saved", preset: savedPreset });
+    } catch (error) { setSaveMessage(error instanceof Error ? error.message : "Saving failed. Your draft is preserved."); }
+    finally { busyRef.current = false; setBusy(false); }
+  }
+  const guideDocument: string = useMemo(() => projectStyleGuideTokens(sourceState?.source.document ?? bundledGuideSource.document, preset), [sourceState, preset]);
+  const styleGuideSource = useMemo(() => ({ ...(sourceState?.source ?? bundledGuideSource), document: guideDocument, ...indexStyleGuide(guideDocument, preset) }), [sourceState, guideDocument, preset]);
+
   const pageRef = useRef<HTMLElement>(null);
-  const undo = useCallback(() => dispatchHistory({ type: "undo" }), []);
-  const redo = useCallback(() => dispatchHistory({ type: "redo" }), []);
+  const undo = useCallback(() => !busyRef.current && dispatchHistory({ type: "undo" }), []);
+  const redo = useCallback(() => !busyRef.current && dispatchHistory({ type: "redo" }), []);
   const endEdit = useCallback(() => dispatchHistory({ type: "end-edit" }), []);
   function setPreset(update: UniversalStylePreset | ((current: UniversalStylePreset) => UniversalStylePreset), editKey?: string) {
+    if (busyRef.current) return;
+    setSaveMessage("Unsaved changes");
     dispatchHistory({ type: "change", update: typeof update === "function" ? update : () => update, editKey });
   }
 
@@ -139,7 +218,7 @@ export function StyleGuideSandbox() {
   const hasSourceInteraction = useRef(false);
   const guideScrollSyncSuspended = useRef(false);
   const variables = useMemo(() => universalStylePresetToCssVariables(preset, viewport) as CSSProperties, [preset, viewport]);
-  const guideLines = useMemo(() => styleGuideSource.document.split("\n"), []);
+  const guideLines = useMemo(() => styleGuideSource.document.split("\n"), [styleGuideSource.document]);
   const guideMatches = useMemo(() => guideQuery.trim() ? guideLines.flatMap((line, index) => line.toLowerCase().includes(guideQuery.toLowerCase()) ? [index + 1] : []) : [], [guideLines, guideQuery]);
   const styleMappings = styleGuideSource.mappings as Record<string, GuideSourceMapping>;
   const guidePathByLine = Object.fromEntries(Object.entries(styleMappings)
@@ -149,13 +228,13 @@ export function StyleGuideSandbox() {
   const hoveredPreviewPath = hoveredGuidePath ? previewPathForStylePath(hoveredGuidePath) : null;
   const activeSourcePath = hoveredPreviewPath ?? hoveredGuidePath ?? pinnedSourcePath ?? hoveredSourcePath ?? focusedSourcePath ?? `typography.${role}.size`;
   const activeSource = styleMappings[activeSourcePath] ?? styleMappings["typography.body.size"];
-  const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @acm/styles token" : displayStyleValue(pathValue(UNIVERSAL_STYLE_PRESET, activeSourcePath), viewport);
+  const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @acm/styles token" : displayStyleValue(pathValue(baseline, activeSourcePath), viewport);
   const activeValue = activeSourcePath.startsWith("specimen.") ? "Documented specimen guidance" : displayStyleValue(pathValue(preset, activeSourcePath), viewport);
   const activeGuideLine = guideJumpLine ?? activeSource?.line ?? 1;
   const buttonPathParts = activeSourcePath.split(".");
   const relatedButtonValues = activeSourcePath.startsWith("buttons.") ? (["background", "foreground", "border", "borderWidth", "hoverBackground", "hoverForeground"] as const).map(property => {
     const propertyPath = `${buttonPathParts[0]}.${buttonPathParts[1]}.${property}`;
-    return { path: propertyPath, current: displayStyleValue(pathValue(preset, propertyPath), viewport), baseline: displayStyleValue(pathValue(UNIVERSAL_STYLE_PRESET, propertyPath), viewport) };
+    return { path: propertyPath, current: displayStyleValue(pathValue(preset, propertyPath), viewport), baseline: displayStyleValue(pathValue(baseline, propertyPath), viewport) };
   }) : [];
 
   useEffect(() => {
@@ -267,14 +346,12 @@ export function StyleGuideSandbox() {
   }
 
   function resetTypographyProperty(property: "family" | "weight" | "style" | "transform") {
-    updateTypography(current => ({ ...current, [property]: baselineTypography(role)[property] }));
+    updateTypography(current => ({ ...current, [property]: baseline.typography[role][property] }));
   }
 
   function resetMetric(metricName: MetricName) {
     updateTypography(current => {
-      const responsive = { ...current[metricName] } as Record<string, Metric>;
-      if (viewport === "desktop") responsive.desktop = { ...baselineTypography(role)[metricName].desktop };
-      else delete responsive[viewport];
+      const responsive = resetResponsiveStyleMetric(current[metricName] as ResponsiveValue<Metric>, baseline.typography[role][metricName] as ResponsiveValue<Metric>, viewport);
       return { ...current, [metricName]: responsive } as UniversalStylePreset["typography"][TypographyRole];
     });
   }
@@ -282,16 +359,16 @@ export function StyleGuideSandbox() {
   function resetSection() {
     setPreset(current => {
       const next = copyPreset(current);
-      if (panel === "palette") next.palette = copyPreset(UNIVERSAL_STYLE_PRESET.palette);
-      if (panel === "typography") next.typography = copyPreset(UNIVERSAL_STYLE_PRESET.typography);
-      if (panel === "buttons") next.buttons = copyPreset(UNIVERSAL_STYLE_PRESET.buttons);
-      if (panel === "layout") next.layout = copyPreset(UNIVERSAL_STYLE_PRESET.layout);
+      if (panel === "palette") next.palette = copyPreset(baseline.palette);
+      if (panel === "typography") next.typography = copyPreset(baseline.typography);
+      if (panel === "buttons") next.buttons = copyPreset(baseline.buttons);
+      if (panel === "layout") next.layout = copyPreset(baseline.layout);
       return next;
     });
   }
 
   function resetAll() {
-    setPreset(createUniversalStylePreset());
+    setPreset(copyPreset(baseline));
     setViewport("desktop");
     setPanel("typography");
     setRole("body");
@@ -318,6 +395,10 @@ export function StyleGuideSandbox() {
 
   const activeTypography = preset.typography[role];
   const matchingFamilies = fontFamilies.filter(font => font.name.toLowerCase().includes(fontQuery.toLowerCase()));
+  const ordinaryStatus = ["Unsaved changes", "Source loaded", "Saved to source"].includes(saveMessage);
+  let statusMessage = saveMessage;
+  if (!busy && ordinaryStatus) statusMessage = dirty ? "Unsaved changes" : saveMessage === "Unsaved changes" ? "No unsaved changes" : saveMessage;
+  else if (dirty && !ordinaryStatus) statusMessage += " · Unsaved";
 
   return <section ref={pageRef} className="sg-page" aria-labelledby="sg-page-title" onFocusCapture={endEdit} onBlurCapture={endEdit}>
       <header className="ui-page-intro sg-intro">
@@ -328,16 +409,18 @@ export function StyleGuideSandbox() {
       <div className="sg-toolbar">
         <div className="sg-toolbar-controls">
           <div className="sg-history" role="group" aria-label="Style preview history">
-            <button type="button" aria-label="Undo style change" title="Undo (⌘Z / Ctrl+Z)" disabled={!history.past.length} onClick={undo}><AcmIcon name="action.undo" size={20} /></button>
-            <button type="button" aria-label="Redo style change" title="Redo (⌘⇧Z / Ctrl+Y)" disabled={!history.future.length} onClick={redo}><AcmIcon name="action.redo" size={20} /></button>
+            <button type="button" aria-label="Undo style change" title="Undo (⌘Z / Ctrl+Z)" disabled={busy || !history.past.length} onClick={undo}><AcmIcon name="action.undo" size={20} /></button>
+            <button type="button" aria-label="Redo style change" title="Redo (⌘⇧Z / Ctrl+Y)" disabled={busy || !history.future.length} onClick={redo}><AcmIcon name="action.redo" size={20} /></button>
           </div>
           <div className="sg-viewports" role="group" aria-label="Preview size">
             {viewportRoles.map(item => <button type="button" key={item.id} aria-pressed={viewport === item.id} onClick={() => setViewport(item.id)}>{item.label}</button>)}
           </div>
         </div>
         <div className="sg-toolbar-actions">
-          <span className="sg-sandbox-note">Preview sandbox — changes are not saved or applied to projects.</span>
-          <button type="button" className="sg-reset-all" onClick={resetAll}><AcmIcon name="action.reset" size={17} />Reset All</button>
+          <span className="sg-sandbox-note" role="status">{statusMessage}</span>
+          <StudioButton type="button" disabled={busy || !sourceState || (!dirty && !sourceState.needsSynchronisation)} onClick={() => { void saveSharedStyles(); }}>Save Shared Styles</StudioButton>
+          <StudioButton type="button" variant="secondary" disabled={busy} title="Load the current source files and discard unsaved style changes" onClick={() => { void reloadSource(); }}>Reload Source</StudioButton>
+          <button type="button" className="sg-reset-all" disabled={busy} onClick={resetAll}><AcmIcon name="action.reset" size={17} />Reset All</button>
         </div>
       </div>
       <div
@@ -357,9 +440,9 @@ export function StyleGuideSandbox() {
           <nav className="sg-setting-navigation" aria-label="Style categories">
             {([ ["palette", "Colours"], ["typography", "Typography"], ["buttons", "Buttons"], ["layout", "Layout"] ] as [Panel, string][]).map(([id, label]) => <button type="button" key={id} className={panel === id ? "is-selected" : ""} aria-current={panel === id ? "page" : undefined} onClick={() => setPanel(id)}>{label}</button>)}
           </nav>
-          <div className="sg-setting-content">
+          <fieldset className="sg-setting-content" disabled={busy}>
             <div className="sg-setting-heading"><div><p className="rl-eyebrow">ACM UNIVERSAL STYLE</p><h3>{panel === "palette" ? "Colours" : panel === "typography" ? "Typography" : panel === "buttons" ? "Buttons" : "Layout"}</h3></div><button type="button" className="sg-reset-section" onClick={resetSection}>Reset section</button></div>
-            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting"><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} /><code>{preset.palette[key]}</code><button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, UNIVERSAL_STYLE_PRESET.palette[key], false)}>Reset</button></div>)}</div> : null}
+            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting"><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} /><code>{preset.palette[key]}</code><button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, baseline.palette[key], false)}>Reset</button></div>)}</div> : null}
             {panel === "typography" ? <>
               <div className="sg-role-list" role="group" aria-label="Typography role">
                 {typographyRoles.map(item => <button type="button" key={item.id} aria-pressed={role === item.id} onClick={() => setRole(item.id)}>{item.label}</button>)}
@@ -368,6 +451,7 @@ export function StyleGuideSandbox() {
                 role={role}
                 viewport={viewport}
                 value={activeTypography}
+                baseline={baseline.typography[role]}
                 search={fontQuery}
                 matchingFamilies={matchingFamilies}
                 onSearch={setFontQuery}
@@ -379,10 +463,10 @@ export function StyleGuideSandbox() {
             </> : null}
             {panel === "buttons" ? <>
               <div className="sg-role-list" role="group" aria-label="Button variant">{buttonRoles.map(item => <button data-style-path={`buttons.${item.id}.background`} type="button" key={item.id} aria-pressed={buttonRole === item.id} onClick={() => setButtonRole(item.id)}>{item.label}</button>)}</div>
-              <div className="sg-button-settings">{([ ["background", "Background colour"], ["foreground", "Text colour"], ["border", "Border colour"], ["hoverBackground", "Hover background colour"], ["hoverForeground", "Hover text colour"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} stylePath={`buttons.${buttonRole}.${key}`} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, UNIVERSAL_STYLE_PRESET.buttons[buttonRole][key], false)} />)}<label className="sg-button-border-width">Border width (px)<input data-style-path={`buttons.${buttonRole}.borderWidth`} type="number" min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /></label></div>
+              <div className="sg-button-settings">{([ ["background", "Background colour"], ["foreground", "Text colour"], ["border", "Border colour"], ["hoverBackground", "Hover background colour"], ["hoverForeground", "Hover text colour"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} stylePath={`buttons.${buttonRole}.${key}`} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, baseline.buttons[buttonRole][key], false)} />)}<label className="sg-button-border-width">Border width (px)<input data-style-path={`buttons.${buttonRole}.borderWidth`} type="number" min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /></label></div>
             </> : null}
-            {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><label htmlFor={`sg-layout-${key}`}>{label}</label><div><input data-style-path={`layout.${key}`} id={`sg-layout-${key}`} type="number" min={min} max={max} step={1} value={preset.layout[key]} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } }), `layout.${key}`); }} /><span>px</span><button data-style-path={`layout.${key}`} type="button" aria-label={`Reset ${label}`} onClick={() => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: UNIVERSAL_STYLE_PRESET.layout[key] } }))}>Reset</button></div></div>)}</div> : null}
-          </div>
+            {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><label htmlFor={`sg-layout-${key}`}>{label}</label><div><input data-style-path={`layout.${key}`} id={`sg-layout-${key}`} type="number" min={min} max={max} step={1} value={preset.layout[key]} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } }), `layout.${key}`); }} /><span>px</span><button data-style-path={`layout.${key}`} type="button" aria-label={`Reset ${label}`} onClick={() => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: baseline.layout[key] } }))}>Reset</button></div></div>)}</div> : null}
+          </fieldset>
         </aside>
         <section className="sg-preview-panel" aria-label="Live style preview">
           <div className="sg-preview-heading"><div><p className="rl-eyebrow">LIVE PREVIEW</p><h2>Style specimens</h2></div><span>{viewportRoles.find(item => item.id === viewport)?.label} preview</span></div>
@@ -410,7 +494,8 @@ export function StyleGuideSandbox() {
           lines={guideLines}
           view={guideView}
           onViewChange={view => { hasSourceInteraction.current = true; setGuideView(view); }}
-          sourceRevision={styleGuideSource.sourceRevision}
+          sourceDigest={styleGuideSource.sourceDigest}
+          sourceRevision={`${styleGuideSource.sourceRevision}${dirty ? " · Unsaved draft" : styleGuideSource.sourceWorkingTree ? " · Working tree" : ""}`}
           query={guideQuery}
           matchCount={guideMatches.length}
           matchIndex={guideMatchIndex}
@@ -439,7 +524,8 @@ function ColourControl({ stylePath, label, value, onChange, onReset }: { stylePa
   return <div className="sg-colour-setting"><span>{label}</span><input data-style-path={stylePath} type="color" aria-label={label} value={value} onChange={event => onChange(event.target.value)} /><code>{value}</code><button data-style-path={stylePath} type="button" aria-label={`Reset ${label}`} onClick={onReset}>Reset</button></div>;
 }
 
-function TypographyControls({ role, viewport, value, search, matchingFamilies, onSearch, onChange, onMetricChange, onResetProperty, onResetMetric }: {
+function TypographyControls({ role, viewport, value, baseline, search, matchingFamilies, onSearch, onChange, onMetricChange, onResetProperty, onResetMetric }: {
+  baseline: UniversalStylePreset["typography"][TypographyRole];
   role: TypographyRole; viewport: StyleViewport; value: UniversalStylePreset["typography"][TypographyRole]; search: string;
   matchingFamilies: { id: FontFamily; name: string }[]; onSearch: (value: string) => void;
   onChange: (update: (current: UniversalStylePreset["typography"][TypographyRole]) => UniversalStylePreset["typography"][TypographyRole]) => void;
@@ -455,7 +541,7 @@ function TypographyControls({ role, viewport, value, search, matchingFamilies, o
       {([ ["font", "Font"], ["style", "Style"], ["size", "Size"] ] as const).map(([id, label]) => <button type="button" key={id} aria-pressed={tab === id} className={tab === id ? "is-active" : ""} onClick={() => setTab(id)}>{label}</button>)}
     </div>
     {tab === "font" ? <section className="sg-editor-panel"><label>Search fonts<input data-style-path={`typography.${role}.family`} type="search" value={search} placeholder="Search font stack" onChange={event => onSearch(event.target.value)} /></label><div className="sg-font-picker" role="group" aria-label="Font stack family">{matchingFamilies.map(font => <button data-style-path={`typography.${role}.family`} type="button" key={font.id} aria-pressed={value.family === font.id} onClick={() => onChange(current => ({ ...current, family: font.id }))}>{font.name}</button>)}{!matchingFamilies.length ? <p>No font stack families match.</p> : null}</div><button data-style-path={`typography.${role}.family`} type="button" className="sg-inline-reset" onClick={() => onResetProperty("family")}>Reset font family</button><p>Inter upright and italic are bundled. Fallback fonts are supplied by your system.</p></section> : null}
-    {tab === "style" ? <section className="sg-editor-panel"><label>Weight<select data-style-path={`typography.${role}.weight`} value={value.weight} onChange={event => onChange(current => ({ ...current, weight: Number(event.target.value) }))}>{Array.from({ length: 9 }, (_, index) => (index + 1) * 100).map(weight => <option value={weight} key={weight}>{weight}{weight === 400 ? " · Regular" : weight === 700 ? " · Bold" : ""}</option>)}</select></label><button data-style-path={`typography.${role}.style`} type="button" className="sg-italic-toggle" aria-pressed={value.style === "italic"} onClick={() => onChange(current => ({ ...current, style: current.style === "italic" ? "normal" : "italic" }))}>Italic</button><label>Text transform<select data-style-path={`typography.${role}.transform`} value={value.transform} onChange={event => onChange(current => ({ ...current, transform: event.target.value as typeof current.transform }))}><option value="none">None</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalize</option></select></label><button data-style-path={`typography.${role}.weight`} type="button" className="sg-inline-reset" onClick={() => onChange(current => ({ ...current, weight: baselineTypography(role).weight, style: baselineTypography(role).style, transform: baselineTypography(role).transform }))}>Reset style</button></section> : null}
+    {tab === "style" ? <section className="sg-editor-panel"><label>Weight<select data-style-path={`typography.${role}.weight`} value={value.weight} onChange={event => onChange(current => ({ ...current, weight: Number(event.target.value) }))}>{Array.from({ length: 9 }, (_, index) => (index + 1) * 100).map(weight => <option value={weight} key={weight}>{weight}{weight === 400 ? " · Regular" : weight === 700 ? " · Bold" : ""}</option>)}</select></label><button data-style-path={`typography.${role}.style`} type="button" className="sg-italic-toggle" aria-pressed={value.style === "italic"} onClick={() => onChange(current => ({ ...current, style: current.style === "italic" ? "normal" : "italic" }))}>Italic</button><label>Text transform<select data-style-path={`typography.${role}.transform`} value={value.transform} onChange={event => onChange(current => ({ ...current, transform: event.target.value as typeof current.transform }))}><option value="none">None</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalize</option></select></label><button data-style-path={`typography.${role}.weight`} type="button" className="sg-inline-reset" onClick={() => onChange(current => ({ ...current, weight: baseline.weight, style: baseline.style, transform: baseline.transform }))}>Reset style</button></section> : null}
     {tab === "size" ? <section className="sg-editor-panel sg-metric-panel">{metricDetails.map(detail => {
       const item = resolved(detail.id);
       const unitOptions = detail.units;
@@ -479,6 +565,7 @@ type GuideSourcePanelProps = {
   view: GuideView;
   onViewChange: (view: GuideView) => void;
   sourceRevision: string;
+  sourceDigest: string;
   query: string;
   matchCount: number;
   matchIndex: number;
@@ -495,7 +582,7 @@ type GuideSourcePanelProps = {
 };
 
 const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(function GuideSourcePanel({
-  activePath, mapping, currentValue, baselineValue, relatedButtonValues, lines, view, onViewChange, sourceRevision, query, matchCount,
+  activePath, mapping, currentValue, baselineValue, relatedButtonValues, lines, view, onViewChange, sourceRevision, sourceDigest, query, matchCount,
   matchIndex, activeLine, pinned, guidePathByLine, onSelectSource, onHoverSource, onClearHover, guideScrollSyncSuspendedRef, onQueryChange, onMatchChange, onClearPin,
 }, ref) {
   const formattedGuideRef = useRef<HTMLDivElement>(null);
@@ -532,13 +619,13 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
   return <aside className="sg-guide-panel" aria-label="Written Style Guide" ref={ref}>
     <div className="sg-guide-heading">
       <div><p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Written Style Guide</h2></div>
-      <span title={sourceRevision}>Revision {sourceRevision.slice(0, 7)}</span>
+      <span title={sourceRevision}>Revision {sourceRevision.slice(0, 7)}{sourceRevision.includes(" · ") ? sourceRevision.slice(sourceRevision.indexOf(" · ")) : ""}</span>
     </div>
     <section className="sg-source-detail" aria-label="Selected style source">
       <div className="sg-source-detail-heading"><div><p className="rl-eyebrow">{mapping.heading}</p><h3>{activePath}</h3></div>{pinned ? <StudioButton variant="text" type="button" onClick={onClearPin}>Clear selection</StudioButton> : <span>Hover or focus a style</span>}</div>
       <dl>
         <div><dt>Universal baseline</dt><dd>{baselineValue}</dd></div>
-        <div><dt>Preview value</dt><dd>{currentValue}</dd></div>
+        <div><dt>Current value</dt><dd>{currentValue}</dd></div>
         <div><dt>Guide location</dt><dd>Line {mapping.line}</dd></div>
       </dl>
       {relatedButtonValues.length ? <details className="sg-related-values"><summary>All {buttonPathPartsLabel(activePath)} button properties</summary><dl>{relatedButtonValues.map(item => <div key={item.path}><dt>{item.path.split(".").at(-1)}</dt><dd>{item.current}<span>Baseline {item.baseline}</span></dd></div>)}</dl></details> : null}
@@ -595,7 +682,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
         </ol>
       </div>
     </div>
-    <p className="sg-guide-footer">{styleGuideSource.sourcePath} · SHA-256 {styleGuideSource.sourceDigest.slice(0, 12)}</p>
+    <p className="sg-guide-footer">workspace-governance/STYLE_GUIDE.md · Saved source SHA-256 {sourceDigest.slice(0, 12)}</p>
   </aside>;
 });
 

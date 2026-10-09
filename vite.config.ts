@@ -7,6 +7,7 @@ import { codexHistoryBridge } from "./scripts/codex-history-bridge.mjs";
 import { projectPortsBridge } from "./scripts/project-ports-bridge.mjs";
 import { testSiteBridge } from "./scripts/test-site-bridge.mjs";
 import { siteSettingsBridge } from "./scripts/site-settings-bridge.mjs";
+import { sharedStylesBridge } from "./scripts/shared-styles-bridge.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
@@ -60,6 +61,7 @@ export default defineConfig(async () => {
     plugins: [
       codexHistoryBridge(),
       siteSettingsBridge(),
+      sharedStylesBridge(),
       projectPortsBridge(),
       testSiteBridge(),
       vinext(),
