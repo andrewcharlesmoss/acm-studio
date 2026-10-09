@@ -3,7 +3,7 @@ import type { ListItemBackgroundTarget } from "./list-item-background";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ContentBlock, RichTextRun, SocialIconBlock } from "../content/model";
 import { BlockRenderer } from "../components/content";
-import { blockCatalogue, createBlock, createWorkspacePreviewDocument, socialIconCatalogue, templateContentBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
+import { blockCatalogue, createBlock, createWorkspacePreviewDocument, socialIconCatalogue, templateContentBlock, templateNavigationBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
 import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
@@ -58,7 +58,7 @@ export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = 
   // Metadata blocks are ordinary dynamic blocks and can be placed in a
   // template. Their values come from the preview document at render time.
   const allowTemplateContent = templateContentAvailable(target);
-  const templateBlockCatalogue = target.kind === "page" || target.kind === "post" ? [...blockCatalogue, templateContentBlock] : blockCatalogue;
+  const templateBlockCatalogue = [...blockCatalogue, ...(target.kind === "page" || target.kind === "post" ? [templateContentBlock] : []), templateNavigationBlock];
   const selectedBlock = selected ? findBlockById(blocks, selected) : null;
   const activeInspectorTab = inspectorTab ?? localInspectorTab;
   const editingProjection = { ...resolvedSample, blocks };
@@ -154,6 +154,29 @@ export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = 
     const owner = parentId ?? (index === null ? inserterParentId ?? undefined : undefined);
     return insertContent(index ?? (owner || insertAfter === null ? null : insertAfter + 1), owner);
   }
+  function navigationInsertionOwner(index: number | null, parentId?: string) {
+    if (parentId || index !== null) return parentId;
+    if (inserterParentId) return inserterParentId;
+    // An untargeted toolbar insertion honours the selected container. Numeric
+    // boundaries keep their explicit root or nested destination.
+    if (insertAfter === null && selectedBlock && (selectedBlock.type === "group" && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart || selectedBlock.type === "column" || selectedBlock.type === "section")) return selectedBlock.id;
+    return undefined;
+  }
+  function insertNavigationFromLibrary(index: number | null, parentId?: string, keepInserterOpen = true) {
+    if (!writable) return null;
+    const owner = navigationInsertionOwner(index, parentId);
+    const parent = owner ? findBlockById(templateEditorBlocks(nodesRef.current), owner) : undefined;
+    if (owner && (!parent || !(parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section") || !groupAllowsChild(parent, "navigation"))) return null;
+    const node = { id: templateId(), type: "element" as const, element: "navigation" as const };
+    const projected = templateEditorBlocks([node])[0];
+    if (!parent) return insertNode(node, index === null ? insertAfter : index - 1, true, keepInserterOpen);
+    commands.updateBlock(parent.id, block => block.type === "group" || block.type === "column" || block.type === "section" ? { ...block, children: [...block.children.slice(0, index ?? block.children.length), projected, ...block.children.slice(index ?? block.children.length)] } : block);
+    if (!findTemplateNode(projected.id)) return null;
+    selectBlock(projected.id);
+    if (keepInserterOpen) setInserterParentId(parent.id);
+    else { setShowInserter(false); setQuery(""); setInserterParentId(null); }
+    return projected;
+  }
   function insertNode(node: TemplateNode, afterIndex = insertAfter, atRoot = false, keepInserterOpen = false) {
     if (node.type === "element" && node.element === "content") {
       const parent = !atRoot && selectedBlock && (selectedBlock.type === "group" && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart || selectedBlock.type === "column" || selectedBlock.type === "section") ? selectedBlock : null;
@@ -179,6 +202,7 @@ export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = 
   function insertBlock(type: BlockLibraryItemType, parentId?: string, options?: { keepInserterOpen?: boolean }) {
     if (!writable) return null;
     if (type === "template-content") return insertContent(parentId ? null : insertAfter === null ? null : insertAfter + 1, parentId, Boolean(options?.keepInserterOpen));
+    if (type === "navigation") return insertNavigationFromLibrary(null, parentId, Boolean(options?.keepInserterOpen));
     const keepInserterOpen = Boolean(options?.keepInserterOpen);
     const finishInsertion = () => { if (!keepInserterOpen) { setShowInserter(false); setQuery(""); setInserterParentId(null); } };
     const parent = parentId ? findBlockById(templateEditorBlocks(nodesRef.current), parentId) : undefined;
@@ -228,6 +252,9 @@ export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = 
     if (!keepInserterOpen) setInserterParentId(null);
     return insertNode(node, insertAfter, keepInserterOpen, keepInserterOpen);
   }
+  const navigationLibraryOwner = navigationInsertionOwner(null);
+  const navigationLibraryParent = navigationLibraryOwner ? findBlockById(blocks, navigationLibraryOwner) : undefined;
+  const availableTemplateBlocks = templateBlockCatalogue.filter(item => item.type !== "navigation" || !navigationLibraryParent || groupAllowsChild(navigationLibraryParent, item.type));
   const users: string[] = sharedSiteNavigation ? ["All site pages and posts"] : [];
   for (const template of set.templates) {
     const seen = new Set<string>();
@@ -252,7 +279,7 @@ export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = 
   </div>;
   return <StudioEditor writable={writable} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
     target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: selectedListItem => <TemplateInspector set={set} target={target} selectedBlock={selectedBlock} selectedListItem={selectedListItem} navigationLinkId={navigationSelection?.blockId === selected ? navigationSelection.linkId : null} navigationSuggestions={linkSuggestions} onSelectNavigationLink={id => { let blockId = selectedBlock?.type === "group" && selectedBlock.data?.templateElement === "navigation" ? selectedBlock.id : null; if (!blockId) visitTemplateNodes(target.nodes, node => { if (!blockId && node.type === "element" && node.element === "navigation") blockId = node.id; }); if (blockId) selectNavigationLink(blockId, id); }} onNavigationChange={changeNavigation} tab={activeInspectorTab} onTabChange={selectInspectorTab} paneWidth={inspectorPaneWidth} onPaneWidthChange={onInspectorPaneWidthChange} paneCollapsed={inspectorPaneCollapsed} onPaneCollapsedChange={onInspectorPaneCollapsedChange} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onColumnCountChange={commands.updateColumnCount} onColumnWidthChange={commands.updateColumnWidth} onOpenMedia={(logo, background, item) => onOpenMedia(selectedBlock?.id ?? null, logo, background, item)} onEditPart={onEditPart} users={users} /> }}
-    canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: blockInserterOptions(templateBlockCatalogue, inserterParentId ? findBlockById(blocks, inserterParentId) ?? undefined : undefined, query, socialIconCatalogue, { allowTemplateContent }), publishFeedback: null,
+    canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: blockInserterOptions(availableTemplateBlocks, inserterParentId ? findBlockById(blocks, inserterParentId) ?? undefined : undefined, query, socialIconCatalogue, { allowTemplateContent, allowTemplateNavigation: true }), publishFeedback: null,
       presentation: { renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => {
         const surface = <TemplateSurface set={set} editing={context.mode === "edit"} editorCanvas={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>;
         return sharedSiteNavigation ? <div className="test-document-navigation">{surface}</div> : surface;
@@ -298,6 +325,7 @@ export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = 
       loadInlineImages,
       onOpenInserter: (index, search = "", parentId) => { setInsertAfter(index); setQuery(search); setInserterParentId(parentId ?? null); setShowInserter(true); }, onSetPublishFeedback: () => {}, onDocumentFieldChange: () => {}, onApplyDocumentCode: next => { if (writable) updateNodes(templateNodesFromBlocks(next, nodesRef.current)); }, onFocusDocumentField: () => {}, onOpenCoverMediaLibrary: () => {}, onRemoveCoverImage: () => {}, onSelectBlock: selectBlock, onClearBlockSelection: clearBlockSelection, onSetDragOverIndex: setDragOver, onMoveBlockTo: commands.moveBlockTo, onMoveBlock: commands.moveBlock, onDuplicateBlock: commands.duplicateBlock, onRemoveBlock: commands.removeBlock, onRemoveBlocks: commands.removeBlocks, onUpdateBlock: commands.updateBlock, onSplitParagraph: splitParagraph, onMergeParagraphBackward: (id) => { const merged = commands.mergeParagraphBackward(id); if (merged) selectBlock(merged.blockId); return merged; }, onSplitParagraphs: splitParagraphs, onExitList: (id, index, operation, listId) => writable ? commands.exitList(id, index, operation, listId) : null, onInsertBlock: (type, parentId, options) => insertBlock(type, parentId ?? inserterParentId ?? undefined, options), onSetShowInserter: setShowInserter, onSetInserterQuery: setQuery,
       onInsertTemplateContent: allowTemplateContent ? insertContentFromLibrary : undefined,
+      onInsertTemplateNavigation: insertNavigationFromLibrary,
       onInsertBlockAt: (type, insertionIndex, parentId) => {
         if (!writable) return null;
         if (parentId) {

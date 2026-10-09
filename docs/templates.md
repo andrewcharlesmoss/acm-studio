@@ -469,6 +469,14 @@ screenshots on 9 October 2026. The current
 [Navigation documentation](https://wordpress.org/documentation/article/navigation-block/)
 is a supplementary behavioural reference.
 
+Navigation appears under **Theme** in the template editor's Block Library and
+can be inserted at the root or inside an ordinary Group, Column or Section,
+subject to that container's allowed-block settings. It creates the existing
+typed template element and uses the set's shared menu; it does not create a
+new page-body block type. The isolated UI Library example at
+`/studio/ui/blocks/navigation` uses the same canvas and inspector with temporary
+links, Undo/Redo and Reset Example.
+
 - **Menu** shows a compact hierarchy. Selecting an entry selects its canvas
   link. Labels can be edited inline; the link toolbar supports moving,
   duplication, deletion, link editing and adding a submenu. The existing link

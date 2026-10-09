@@ -14,6 +14,11 @@ type BlockDocumentation = {
 };
 
 const documentContext = "Values come from the current document and its display overrides. The block controls presentation, not the document’s metadata; missing or hidden metadata is omitted from normal preview.";
+const navigationDocumentation: BlockDocumentation = {
+  context: "A template Navigation element renders the links owned by its TemplateSet. It is projected as a transient Group for editing, rather than saved in a document body.",
+  notes: ["Menu, Settings and Styles reuse the production Navigation editor. This specimen keeps its menu and node settings in temporary history only.", "The template inserter places Navigation at the root or inside permitted layout containers. Each instance uses the template set’s shared menu.", "Menus allow 100 entries in total and five nested submenu levels. Mobile overlays use the site surface’s 600px container boundary."],
+  insertionDefaults: "Horizontal, left-aligned and wrapping, with the overlay Off. Existing shared links are retained.",
+};
 const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   paragraph: {
     context: "Indent context follows the adjacent previous Paragraph. Inline formatting and links belong to text runs; document footnote references are separate from the block inspector.",
@@ -214,13 +219,16 @@ const dependencyAdditions: Partial<Record<CapabilityBlockType, readonly string[]
   group: ["preset-number", "focal-position"], section: ["preset-number"],
 };
 
-export function blockCatalogueDocumentation(profile: BlockCapabilityProfile) {
+export function blockCatalogueDocumentation(profile: BlockCapabilityProfile, templateElement?: "navigation") {
   const type = profile.type;
-  const documentation = blockDocumentation[type];
-  const controls = [...profile.controls.map(control => projectControl(type, control)), ...(additionalControls[type] ?? [])];
+  const documentation = templateElement === "navigation" ? navigationDocumentation : blockDocumentation[type];
+  const controls: readonly CatalogueControl[] = templateElement === "navigation" ? profile.controls : [...profile.controls.map(control => projectControl(type, control)), ...(additionalControls[type] ?? [])];
   const dependencyIds = new Set(profile.dependencies.map(dependency => dependency.id));
-  for (const id of dependencyRemovals[type] ?? []) dependencyIds.delete(id);
-  for (const id of dependencyAdditions[type] ?? []) dependencyIds.add(id);
+  if (templateElement === "navigation") for (const id of ["link-destination", "colour-picker", "inspector-accordion", "toggle"]) dependencyIds.add(id);
+  if (templateElement !== "navigation") {
+    for (const id of dependencyRemovals[type] ?? []) dependencyIds.delete(id);
+    for (const id of dependencyAdditions[type] ?? []) dependencyIds.add(id);
+  }
   const dependencies = [...dependencyIds].flatMap(id => {
     const entry = studioControlEntryById[id];
     return entry ? [{ id, label: entry.title, href: `/studio/ui/controls#${id}`, purpose: entry.purpose }] : [];

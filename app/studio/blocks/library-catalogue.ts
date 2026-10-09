@@ -1,12 +1,13 @@
 import { storedBlockType } from "./group-variations";
-import { blockCatalogue, templateContentBlock } from "../editor-model";
-import { blockCapabilityProfiles } from "./capability-profiles";
+import { blockCatalogue, templateContentBlock, templateNavigationBlock } from "../editor-model";
+import { blockCapabilityProfiles, navigationCapabilityProfile } from "./capability-profiles";
 
 const nonInsertableEntries = [
   { type: "column", label: "Column", description: "Edit a nested Column within a Columns block.", group: "Design" },
   { type: "footnotes", label: "Footnotes", description: "Edit the notes and shared presentation for referenced footnotes.", group: "Text" },
   { type: "component", label: "Component", description: "Inspect an ACM component integration in its inactive library state.", group: "Other" },
   { ...templateContentBlock, description: "Project the current document body into a template." },
+  templateNavigationBlock,
 ] as const;
 
 const baseEntries = blockCatalogue.map(editorEntry => ({
@@ -23,7 +24,7 @@ export const blockLibraryEntries = [
   ...nonInsertableEntries.map(entry => ({
     ...entry,
     href: `/studio/ui/blocks/${entry.type}`,
-    profile: blockCapabilityProfiles[entry.type],
+    profile: entry.type === "navigation" ? navigationCapabilityProfile : blockCapabilityProfiles[entry.type],
   })),
 ];
 

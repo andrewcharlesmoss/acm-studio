@@ -363,6 +363,28 @@ export const listItemSupportedStyleFields = Array.from(new Set(
   listItemCapabilityProfile.controls.flatMap(control => control.fields),
 ));
 
+export const navigationStyleProfile = makeProfile("group", "Navigation", "core/navigation (typed template menu)", {
+  block: [], sharedStyleInspector: true, background: false,
+  style: { typography: ["size", "family", "appearance", "line-height", "letter-spacing", "letter-case", "decoration"] },
+  defaults: { typography: ["size"] },
+  unsupported: ["WordPress menu entities and automatic Page Lists", "Non-link inner blocks", "Custom overlay template entities"],
+  nesting: "Contains typed links and submenus stored in the template set.",
+});
+
+const navigationControls: InspectorControlProfile[] = [
+  { id: "menu", label: "Menu links and submenus", source: "gutenberg", section: "links", fields: ["TemplateSet.navigation"], resetFields: [] },
+  { id: "link", label: "Text, destination, new tab, description and rel", source: "gutenberg", section: "links", fields: ["TemplateSet.navigation[].label", "TemplateSet.navigation[].url", "TemplateSet.navigation[].opensInNewTab", "TemplateSet.navigation[].description", "TemplateSet.navigation[].rel"], resetFields: [], availableWhen: "A menu entry is selected." },
+  { id: "overlay", label: "Off / Mobile / Always overlay", source: "gutenberg", section: "content", fields: ["overlayMenu"], resetFields: [] },
+  { id: "submenus", label: "Click to open and submenu arrows", source: "gutenberg", section: "content", fields: ["submenuOpenOnClick", "showSubmenuIcon"], resetFields: [] },
+  { id: "navigation-colours", label: "Text, background, submenu and overlay colours", source: "gutenberg", section: "background", fields: ["visualStyle.textColor", "visualStyle.backgroundColor", "submenuTextColor", "submenuBackgroundColor"], resetFields: [] },
+  { id: "navigation-layout", label: "Justification, orientation and wrapping", source: "gutenberg", section: "layout", fields: ["horizontalAlign", "layout", "allowWrap"], resetFields: [] },
+  { id: "navigation-gap", label: "Block spacing", source: "gutenberg", section: "dimensions", fields: ["gap"], resetFields: [] },
+  { id: "advanced", label: "Accessible label", source: "gutenberg", section: "advanced", fields: ["ariaLabel"], resetFields: [] },
+];
+
+// Navigation uses the existing transient Group projection, not a new ContentBlock type.
+export const navigationCapabilityProfile = makeProfile("group", "Navigation", navigationStyleProfile.mapping, { block: [...navigationStyleProfile.controls.filter(control => control.id !== "advanced"), ...navigationControls], sharedStyleInspector: true, background: false, defaults: navigationStyleProfile.defaults, unsupported: navigationStyleProfile.unsupported, nesting: navigationStyleProfile.nesting });
+
 const canonicalBlockCapabilityProfiles: Record<CapabilityBlockType, BlockCapabilityProfile> = {
   paragraph: paragraphInspectorProfile,
   heading: makeProfile("heading", "Heading", "core/heading", { block: [...block("content", ["level", "Level"]), ...block("text", ["text-alignment", "Text alignment"], ["block-alignment", "Block alignment"]).map(control => ({ ...control, placement: "canvas" as const }))], style: { typography: ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "decoration", "orientation", "letter-case", "text-shadow", "fit-text"], dimensions: ["padding", "margin"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"] }, attributeDefaults: { level: 2 }, unsupported: ["Theme font presets", "Theme-dependent colour presets", "WordPress-specific fit-to-container metrics"] }),
@@ -399,7 +421,7 @@ const canonicalBlockCapabilityProfiles: Record<CapabilityBlockType, BlockCapabil
   "template-content": makeProfile("template-content", "Content", "core/post-content (typed template slot)", { block: block("layout", ["content-width", "Inherited or custom content and wide widths"], ["gaps", "Block spacing"], ["advanced", "HTML anchor, classes and Additional CSS"]), style: { typography: ["colour", "size", "appearance", "line-height"], dimensions: ["padding", "margin", "min-height"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"], dimensions: ["padding", "margin"], border: ["border", "radius"] }, sharedStyleInspector: true, exposeBackgroundControl: true, unsupported: ["Template element, not a saved document body block", "Uses inherited document context; no Query Loop"], nesting: "Projects the current document body into a styled template slot." }),
 };
 
-export const blockCapabilityProfiles = { ...canonicalBlockCapabilityProfiles, row: canonicalBlockCapabilityProfiles.group, stack: canonicalBlockCapabilityProfiles.group, grid: canonicalBlockCapabilityProfiles.group };
+export const blockCapabilityProfiles = { ...canonicalBlockCapabilityProfiles, navigation: navigationCapabilityProfile, row: canonicalBlockCapabilityProfiles.group, stack: canonicalBlockCapabilityProfiles.group, grid: canonicalBlockCapabilityProfiles.group };
 
 export function capabilityProfileFor(type: CapabilityBlockType): BlockCapabilityProfile {
   return blockCapabilityProfiles[type];
@@ -416,11 +438,3 @@ export const listItemStyleInspectorProfile: BlockCapabilityProfile = {
   dependencies: listItemCapabilityProfile.dependencies,
   nestedProfiles: undefined,
 };
-
-export const navigationStyleProfile = makeProfile("group", "Navigation", "core/navigation (typed template menu)", {
-  block: [], sharedStyleInspector: true, background: false,
-  style: { typography: ["size", "family", "appearance", "line-height", "letter-spacing", "letter-case", "decoration"] },
-  defaults: { typography: ["size"] },
-  unsupported: ["WordPress menu entities and automatic Page Lists", "Non-link inner blocks", "Custom overlay template entities"],
-  nesting: "Contains typed links and submenus stored in the template set.",
-});

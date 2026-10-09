@@ -291,6 +291,7 @@ export type StudioCanvasProps = {
   onInsertBlockAt: (type: InsertableBlockType, insertionIndex: number, parentId?: string) => ContentBlock | null;
   /** Explicit template-only capability; never passed to ordinary content commands. */
   onInsertTemplateContent?: (insertionIndex: number | null, parentId?: string) => ContentBlock | null;
+  onInsertTemplateNavigation?: (insertionIndex: number | null, parentId?: string) => ContentBlock | null;
   onSetShowInserter: (show: boolean) => void;
   onSetInserterQuery: (query: string) => void;
 };
@@ -304,7 +305,7 @@ export function StudioCanvas(props: StudioCanvasProps) {
   return <RichTextEditingProvider writable={props.writable !== false}><FootnoteNumbersProvider blocks={props.activeDocument.blocks}><TableCaptionProvider key={props.activeDocument.id}><StudioCanvasContent {...props} /></TableCaptionProvider></FootnoteNumbersProvider></RichTextEditingProvider>;
 }
 
-function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertTemplateContent, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertTemplateContent, onInsertTemplateNavigation, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const nestedDragBlockIdRef = useRef<string | null>(null);
   const draggingIndexRef = useRef<number | null>(null);
   const blockDragActiveRef = useRef(false);
@@ -738,14 +739,14 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
 
   function insertLibraryBlockAt(type: BlockLibraryItemType, index: number, parentId?: string) {
     if (!writableRef.current) return null;
-    const inserted = type === "template-content" ? onInsertTemplateContent?.(index, parentId) ?? null : onInsertBlockAt(type, index, parentId);
+    const inserted = type === "template-content" ? onInsertTemplateContent?.(index, parentId) ?? null : type === "navigation" ? onInsertTemplateNavigation?.(index, parentId) ?? null : onInsertBlockAt(type, index, parentId);
     setPendingGroupLayoutBlockId(type === "group" && inserted?.type === "group" ? inserted.id : null);
     return inserted;
   }
 
   function insertFromBlockInserter(type: BlockLibraryItemType) {
     if (!writableRef.current) return null;
-    const inserted = type === "template-content" ? onInsertTemplateContent?.(null, inserterParentId ?? undefined) ?? null : onInsertBlock(type, inserterParentId ?? undefined, { keepInserterOpen: true });
+    const inserted = type === "template-content" ? onInsertTemplateContent?.(null, inserterParentId ?? undefined) ?? null : type === "navigation" ? onInsertTemplateNavigation?.(null, inserterParentId ?? undefined) ?? null : onInsertBlock(type, inserterParentId ?? undefined, { keepInserterOpen: true });
     setPendingGroupLayoutBlockId(type === "group" && inserted?.type === "group" ? inserted.id : null);
     return inserted;
   }
@@ -888,7 +889,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
       return;
     }
     const libraryType = event.dataTransfer.getData("application/x-acm-studio-block");
-    const libraryDrag = filteredBlocks.some(item => item.type === libraryType && (item.type !== "template-content" || Boolean(onInsertTemplateContent)));
+    const libraryDrag = filteredBlocks.some(item => item.type === libraryType && (item.type !== "template-content" || Boolean(onInsertTemplateContent)) && (item.type !== "navigation" || Boolean(onInsertTemplateNavigation)));
     const from = draggingIndexRef.current;
     if (!libraryDrag && from === null) return;
     event.preventDefault();
@@ -2079,7 +2080,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
       }} /> : null}
       {toolbarContent}
       <div className="editor-work-area">
-      {showInserter && !previewing && !codeEditor ? <BlockInserter writable={writable} closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={blockInserterOptions(filteredBlocks, inserterParentId ? findBlockById(activeDocument.blocks, inserterParentId) ?? undefined : undefined, inserterQuery, socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent) })} onSetQuery={onSetInserterQuery} onInsert={insertFromBlockInserter} onDragStart={beginBlockDrag} onDragEnd={finishBlockDrag} onDismiss={dismissInserter} /> : null}
+      {showInserter && !previewing && !codeEditor ? <BlockInserter writable={writable} closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={blockInserterOptions(filteredBlocks, inserterParentId ? findBlockById(activeDocument.blocks, inserterParentId) ?? undefined : undefined, inserterQuery, socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation) })} onSetQuery={onSetInserterQuery} onInsert={insertFromBlockInserter} onDragStart={beginBlockDrag} onDragEnd={finishBlockDrag} onDismiss={dismissInserter} /> : null}
       {!previewing && !showInserter && listViewOpen ? <button className="studio-list-backdrop" type="button" aria-label="Close List View" onClick={closeListView} /> : null}
       {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlockFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} writable={writable} onShowBlock={id => onUpdateBlock(id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} onRemoveBlock={onRemoveBlock} canMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); return Boolean(block && canMove(block, direction)); }} onMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); if (block) moveSibling(block, direction); }} /> : null}
 

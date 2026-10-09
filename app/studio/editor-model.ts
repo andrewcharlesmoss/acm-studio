@@ -67,7 +67,7 @@ export type StudioBinnedDocument = {
 
 
 export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column"> | GroupVariationType;
-export type BlockLibraryItemType = InsertableBlockType | "template-content";
+export type BlockLibraryItemType = InsertableBlockType | "template-content" | "navigation";
 
 export const blockCatalogueGroups = ["Text", "Media", "Design", "Widgets", "Theme", "Embeds", "Other"] as const;
 export type BlockCatalogueGroup = (typeof blockCatalogueGroups)[number];
@@ -114,6 +114,13 @@ export const templateContentBlock = {
   type: "template-content" as const,
   label: "Content",
   description: "Show the body supplied by each document.",
+  group: "Theme" as const,
+};
+
+export const templateNavigationBlock = {
+  type: "navigation" as const,
+  label: "Navigation",
+  description: "Help visitors get around your site with links and submenus.",
   group: "Theme" as const,
 };
 

@@ -163,7 +163,10 @@ editing components and data contracts. Each specimen uses production `BlockField
 selectable examples, local document metadata and an isolated local media
 fixture. Container entries include children; Table shows populated and empty
 states; Footnotes have references; Component remains inactive; Content shows a
-template projection. Undo and Redo cover temporary block and document changes.
+template projection. Navigation at `/studio/ui/blocks/navigation` reuses the
+production Navigation canvas, inspector and template renderer, with temporary
+menu links and node settings. Its Menu, Settings and Styles controls share the
+specimen's history. Undo and Redo cover temporary block and document changes.
 The preview uses ordinary linked text, and inspector control inventory,
 relationships and compatibility notes are collapsed disclosures. No specimen
 reads real documents, browser persistence or the product write lock.
@@ -411,7 +414,7 @@ overflow stays inside the Workspace frame while the page itself remains usable.
 Include 320px and 390px mobile, 768px tablet, the 1060px Styles transition and
 1440px desktop widths when reviewing catalogue layout. Compare section
 introductions, card edges, toolbar alignment and expanded disclosure states.
-For Blocks, visit all 29 entries and verify editing, selection, Preview, Reset
+For Blocks, visit every entry and verify editing, selection, Preview, Reset
 Example, Undo and Redo. Check setting origin and availability in the shared pane, conditional
 controls, retained legacy values, temporary document fields, nested selection,
 local media and the template Content projection. Verify unsupported gaps against

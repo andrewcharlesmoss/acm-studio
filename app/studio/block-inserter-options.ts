@@ -26,7 +26,7 @@ export function groupAllowsChild(parent: ContentBlock, childType: string): boole
   if (parent.type === "social-icons") return childType === "social-linkedin" || childType === "social-tiktok";
   if (parent.type === "list") return childType === "list";
   if (parent.type === "quote") return ["paragraph", "heading", "list", "quote", "image"].includes(childType);
-  const storedType = childType === "template-content" ? "group" : childType === "button" ? "buttons" : childType === "social-linkedin" || childType === "social-tiktok" ? "social-icons" : storedBlockType(childType);
+  const storedType = childType === "template-content" || childType === "navigation" ? "group" : childType === "button" ? "buttons" : childType === "social-linkedin" || childType === "social-tiktok" ? "social-icons" : storedBlockType(childType);
   return (parent.type !== "group" && parent.type !== "column") || parent.allowedBlocks === undefined
     || parent.allowedBlocks.includes(storedType as GroupAllowedBlockType) || childType === "button" && parent.allowedBlocks.includes("button");
 }
@@ -49,9 +49,10 @@ export function permitsBlockTreeChanges(previous: ContentBlock[], next: ContentB
   return permitted(next);
 }
 
-export function blockInserterOptions<T extends BlockOption>(items: T[], parent: ContentBlock | undefined, query: string, socialItems: T[] = [], options: { allowTemplateContent?: boolean } = {}): T[] {
+export function blockInserterOptions<T extends BlockOption>(items: T[], parent: ContentBlock | undefined, query: string, socialItems: T[] = [], options: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean } = {}): T[] {
   const source = parent?.type === "social-icons" ? socialItems : items;
   return source.filter(item => ((item.type !== "template-content" || options.allowTemplateContent && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
+    && (item.type !== "navigation" || options.allowTemplateNavigation && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
     && (item.type !== "button" || parent?.type === "buttons")
     && !((parent?.type === "group" || parent?.type === "column") && (item.type === "social-linkedin" || item.type === "social-tiktok"))
     && (!parent || groupAllowsChild(parent, item.type)))
