@@ -224,8 +224,8 @@ export function StyleGuideSandbox() {
   const guidePathByLine = Object.fromEntries(Object.entries(styleMappings)
     .filter(([path, mapping]) => path === mapping.rowPath)
     .map(([path, mapping]) => [mapping.line, path])) as Record<number, string>;
-  const selectedPreviewPath = previewPathForStylePath(hoveredGuidePath ?? pinnedSourcePath);
   const selectedColourPath = hoveredGuidePath ?? hoveredSourcePath ?? focusedSourcePath ?? pinnedSourcePath;
+  const selectedPreviewPath = previewPathForStylePath(selectedColourPath?.startsWith("palette.") ? selectedColourPath : hoveredGuidePath ?? pinnedSourcePath);
   const hoveredPreviewPath = hoveredGuidePath ? previewPathForStylePath(hoveredGuidePath) : null;
   const activeSourcePath = hoveredPreviewPath ?? hoveredGuidePath ?? hoveredSourcePath ?? focusedSourcePath ?? pinnedSourcePath ?? `typography.${role}.size`;
   const activeSource = styleMappings[activeSourcePath] ?? styleMappings["typography.body.size"];

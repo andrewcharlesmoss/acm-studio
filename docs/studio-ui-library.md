@@ -257,10 +257,12 @@ any pinned selection in the source details and written guide. Hovering or
 focusing a semantic colour in the preview opens Colours and highlights its
 matching Settings row without moving keyboard focus. Hover temporarily takes
 precedence over a pinned source selection; moving away restores that selection.
+Hovering or focusing a colour Settings row also highlights its matching preview
+swatch, using the same transient selection.
 Pointer hover keeps the current category open while a Settings control has focus,
-so an active editor is not removed. Preview specimens have no additional
-selection outline or marker. Focus Outline controls
-their shared grey focus indicators.
+so an active editor is not removed. Colour swatches use the preview selection
+outline to show the matching token. Focus Outline controls their shared grey
+focus indicators.
 Mapped guide lines use the same focus tokens, with system colours retained in
 forced-colours mode. The source panel records the last commit that changed the
 guide, its saved content digest and whether it contains working-tree changes.
