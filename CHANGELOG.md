@@ -636,6 +636,9 @@
 
 ### Fixed
 
+- Local Test and Test2 document navigation now appears in Editing View and its
+  Preview, including assigned templates, with links that select the document.
+
 - Local fixture shutdown and restart clean up their own writer locks, preventing stale guards from blocking Test and Test2 site switching.
 
 - Moving a document to the Bin keeps its Pages or Posts tab selected and opens another document of the same kind when available.

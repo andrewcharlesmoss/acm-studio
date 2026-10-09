@@ -39,6 +39,7 @@ import { importBrowserTestContent, testDocumentHref } from "./test-site/contract
 import { TestSiteBackup } from "./test-site/test-site-backup";
 import { useTestSiteContext } from "./test-site/use-test-site-context";
 import { testSiteCss } from "./test-site/style";
+import { withTestSiteNavigation } from "./test-site/navigation";
 import type { StudioPresentation } from "./studio-presentation";
 const testPresentation: StudioPresentation = { renderHeader: () => <></>, renderFooter: () => <></>, renderDocument: (context, content) => <div className="test-site-page" data-test-mode={context.mode}>{content}</div>, showPublicationDetails: false, allowCoverImage: false, hideDividers: false };
 type StudioInitialView = {
@@ -343,7 +344,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
           canvas={{
             activeDocument: displayedDocument,
             className: selectedSite ? "test-site-editor-surface" : hasTemplate && showTemplate ? "template-editing" : undefined,
-            presentation: showTemplate && hasTemplate ? templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage) : selectedSite ? testPresentation : undefined,
+            presentation: selectedSite ? withTestSiteNavigation(
+              showTemplate && hasTemplate ? templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage) ?? testPresentation : testPresentation,
+              selectedSite, workspace.documents, selectDocument,
+            ) : showTemplate && hasTemplate ? templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage) : undefined,
             viewportWidth: viewportWidthFor(viewViewport),
             viewportWidthCanOverflow: true,
             previewing,

@@ -5,6 +5,7 @@ import { testSiteCollection, testDocumentHref, type TestSiteDocument } from "./c
 import { resolveTemplate } from "../template-model";
 import { resolveDocumentFields, resolveDocumentDisplay } from "../document-fields";
 import { TemplateDocument } from "../template-renderer";
+import { TestSiteNavigation } from "./navigation";
 export { validTestSiteDocument } from "./contract";
 
 import { testSiteCss } from "./style";
@@ -37,10 +38,10 @@ document.addEventListener('click', event => {
 });`;
 export function renderTestSite(document: TestSiteDocument, revision: string, initialDocumentId?: string) {
   const site = testSiteCollection(document);
-  const initialId = site.documents.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;
+  const initialId = initialDocumentId !== undefined && site.documents.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;
   const siteName = localFixtureName(site.siteId);
   const body = renderToStaticMarkup(<>
-    {site.documents.length > 1 ? <nav className="test-document-navigation" aria-label={`${siteName} content`}>{site.documents.map(page => <a key={page.id} data-test-link={page.id} href={testDocumentHref(page.id)}>{page.title || "Untitled"}</a>)}</nav> : null}
+    <TestSiteNavigation siteId={site.siteId} documents={site.documents} activeDocumentId={initialId} />
     {site.documents.map(page => {
       const snapshot = resolveTemplate(site.templates, page);
       const template = snapshot?.set.templates.find(item => item.id === snapshot.templateId);
@@ -52,5 +53,5 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
       </section>;
     })}
   </>);
-  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="acm-test-revision" content="${revision}"><meta name="theme-color" content="#f2f2f7"><title>${siteName}</title><style>html{font-size:100%}body{margin:0}${contentCss.replace(/@import[^;]+;/g, "")}${studioBlockCss}${groupLayoutCss}${buttonsCss}${featuredImageCss}${templateCss}${testSiteCss}[data-test-document][hidden]{display:none}.test-document-navigation{display:flex;flex-wrap:wrap;gap:16px;padding:16px 24px}.test-document-navigation [aria-current=page]{font-weight:700}</style></head><body>${body}<script>${initialDocumentId ? previewRoutingScript + routingScript.replace("const hash=location.hash;", "const hash=previewHash;") : routingScript}</script></body></html>`;
+  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="acm-test-revision" content="${revision}"><meta name="theme-color" content="#f2f2f7"><title>${siteName}</title><style>html{font-size:100%}body{margin:0}${contentCss.replace(/@import[^;]+;/g, "")}${studioBlockCss}${groupLayoutCss}${buttonsCss}${featuredImageCss}${templateCss}${testSiteCss}[data-test-document][hidden]{display:none}</style></head><body>${body}<script>${initialDocumentId ? previewRoutingScript + routingScript.replace("const hash=location.hash;", "const hash=previewHash;") : routingScript}</script></body></html>`;
 }

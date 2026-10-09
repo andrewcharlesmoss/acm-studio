@@ -234,7 +234,11 @@ Local saves, commits and previews do not publish; hosted editing is not connecte
 
 For local Test and Test2 content, the header's View menu offers Editing View,
 Website View and Full Preview. Editing View retains the existing authoring
-canvas and panes. Website View renders the current aggregate draft through
+canvas and panes, including the same generated document navigation as the
+website. Its links select the page or post through the existing editor command,
+preserving document edits and keeping navigation outside the saved block body.
+This navigation also surrounds assigned templates and appears in Editing View's
+Preview mode. Website View renders the current aggregate draft through
 `renderTestSite`, the same renderer used for local output, in a sandboxed iframe
 without access to Studio's origin or stores. It starts on the selected document
 and includes the site's navigation, templates and styles. Preview links can

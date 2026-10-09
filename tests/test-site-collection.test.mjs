@@ -5,17 +5,39 @@ import vm from "node:vm";
 import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from "node:fs/promises";
 import os from "node:os";
 import { runnerImport } from "vite";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
 import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs";
 const options = { root: process.cwd(), resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } }, esbuild: { jsx: "automatic" } };
 const { module: contract } = await runnerImport(path.resolve("app/studio/test-site/contract.ts"), options);
 const { module: model } = await runnerImport(path.resolve("app/studio/template-model.ts"), options);
 const { module: renderer } = await runnerImport(path.resolve("app/studio/test-site/render.tsx"), options);
+const { module: navigation } = await runnerImport(path.resolve("app/studio/test-site/navigation.tsx"), options);
 const { module: sync } = await runnerImport(path.resolve("app/studio/studio-sync.ts"), options);
 function page(id = "test-site", kind = "page") { return { id, kind, title: id, slug: id === "test-site" ? "" : "repeated-slug", excerpt: "", status: "draft", updatedAt: "2026-10-09T00:00:00.000Z", tags: [], seoTitle: "", seoDescription: "", blocks: [{ id: `${id}-paragraph`, type: "paragraph", text: `Content for ${id}` }] }; }
 const legacy = () => ({ format: "acm-test-site", version: 2, siteId: "test", document: page() });
 const workspace = () => ({ version: 24, activeDocumentId: "page-one", documents: [page("page-one"), page("post-one", "post")], categories: [], bin: [] });
 function imported() { return contract.importBrowserTestContent(legacy(), workspace(), model.emptyTemplateStore()); }
 function valid(value) { assert.equal(contract.validTestSiteDocument(value), true); }
+test("editor navigation matches website documents and preserves the body or assigned template in both modes", () => {
+  const site = imported(); site.documents[1].title = '<script>Fixture & title</script>';
+  const before = JSON.stringify(site);
+  for (const mode of ["edit", "preview"]) {
+    for (const base of [{}, { renderDocument: (_context, content) => createElement("section", { className: "assigned-template" }, content) }]) {
+      const presentation = navigation.withTestSiteNavigation(base, site.siteId, site.documents, () => {});
+      const html = renderToStaticMarkup(presentation.renderDocument({ document: site.documents[1], mode }, createElement("p", null, "Editable body")));
+      assert.equal((html.match(/data-test-link=/g) ?? []).length, site.documents.length);
+      assert.match(html, /aria-label="Test content"/);
+      assert.match(html, /documentId=page-one" aria-current="page"/);
+      assert.match(html, /&lt;script&gt;Fixture &amp; title&lt;\/script&gt;/);
+      assert.match(html, /<p>Editable body<\/p>/);
+      if (base.renderDocument) assert.match(html, /class="assigned-template"/);
+    }
+  }
+  assert.equal(JSON.stringify(site), before);
+  const single = navigation.withTestSiteNavigation({}, "test2", [page()], () => {});
+  assert.equal(renderToStaticMarkup(single.renderDocument({ document: page(), mode: "edit" }, "Body")), "Body");
+});
 test("v1/v2 upgrade preserves home, metadata and regions without writing or consuming browser originals", () => {
   const source = legacy(); source.document.author = "Fixture author";
   const upgraded = contract.testSiteCollection(source); valid(upgraded);
