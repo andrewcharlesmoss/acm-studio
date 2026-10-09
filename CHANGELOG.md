@@ -619,6 +619,9 @@
 
 ### Fixed
 
+- The parent List pane separates Content, Settings and Styles. Content selects
+  List Items and adds empty items; numbering and Advanced stay in Settings.
+
 - The far-left List Item toolbar button directly selects its parent List and shows that List’s Ordered/Unordered controls, matching Gutenberg; type controls remain hidden on the item toolbar.
 
 - Dashboard and editor navigation now share catalogue-backed tool icons, with

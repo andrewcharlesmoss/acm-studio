@@ -11,8 +11,8 @@ export function InspectorContentDisabledProvider({ disabled, children }: { disab
   return <InspectorContentDisabledContext.Provider value={disabled}>{children}</InspectorContentDisabledContext.Provider>;
 }
 
-export function InspectorAccordionSection({ kind, title, detail, className, contentDisabled = false, children }: { kind?: "page" | "post"; title: ReactNode; detail?: string; className?: string; contentDisabled?: boolean; children: ReactNode }) {
-  const [open, setOpen] = useState(true);
+export function InspectorAccordionSection({ kind, title, detail, className, contentDisabled = false, defaultOpen = true, children }: { kind?: "page" | "post"; title: ReactNode; detail?: string; className?: string; contentDisabled?: boolean; defaultOpen?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
   const inheritedDisabled = useContext(InspectorContentDisabledContext);
   const contentId = useId();
   return <section className={`inspector-accordion-section${className ? ` ${className}` : ""}`} data-document-kind={kind}>

@@ -6,7 +6,8 @@ import { type ButtonInteractionState, type ContentBlock, type ListItemSelection 
 import { StudioCanvas, type StudioCanvasProps } from "./studio-canvas";
 import { StudioInspector, type StudioInspectorProps } from "./studio-inspectors";
 import type { StudioDocument } from "./editor-model";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
+import { ListInspectorCanvasContext } from "./list-inspector-navigation";
 export type { StudioPresentation, StudioPresentationContext } from "./studio-presentation";
 
 /**
@@ -28,6 +29,7 @@ export type StudioEditorProps = {
 };
 
 export function StudioEditor({ target, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, canvas, inspector }: StudioEditorProps) {
+  const inspectorCanvasRef = useRef<HTMLElement | null>(null);
   const [selectedListItem, setSelectedListItem] = useState<ListItemSelection | null>(null);
   const [buttonPreview, setButtonPreview] = useState<{ blockId: string; state: ButtonInteractionState } | null>(null);
   const previewDocument = canvas.activeDocument ?? inspector?.activeDocument;
@@ -35,10 +37,10 @@ export function StudioEditor({ target, writable = true, onUndo, onRedo, canUndo 
   // representative content only. This transient projection feeds block tools.
   const activeDocument = target && previewDocument ? { ...previewDocument, id: target.id, blocks: target.blocks } : previewDocument;
   if (!activeDocument) return null;
-  return <>
+  return <ListInspectorCanvasContext.Provider value={canvas.previewing ? null : inspectorCanvasRef}>
     <StudioCanvas key={activeDocument.id} {...canvas} buttonPreview={buttonPreview} onSelectBlock={blockId => { setSelectedListItem(null); setButtonPreview(null); canvas.onSelectBlock(blockId); }} onSelectListItem={selection => { setSelectedListItem(selection); }} targetLabel={target?.kind} allowHtmlEditing={!target} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} writable={writable} activeDocument={activeDocument} />
     {target ? typeof target.inspector === "function" ? target.inspector(selectedListItem) : target.inspector : inspector ? <StudioInspector {...inspector} selectedListItem={selectedListItem} activeDocument={inspector.activeDocument ?? activeDocument} onButtonPreviewChange={setButtonPreview} /> : null}
-  </>;
+  </ListInspectorCanvasContext.Provider>;
 }
 
 export function documentText(block: ContentBlock): string {

@@ -1078,10 +1078,15 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .table-placeholder input { box-sizing: border-box; width: 100%; min-height: 40px; border: 1px solid #949494; border-radius: 2px; padding: 8px 12px; font: inherit; }
 .table-placeholder button { border: 0; border-radius: 2px; min-height: 40px; padding: 8px 16px; background: var(--studio-shared-button-background); color: var(--studio-shared-button-foreground); font: inherit; font-weight: 600; cursor: pointer; }
 .table-block-inspector .inspector-tools-trigger svg { transform: rotate(90deg); }
-.table-inspector-tabs > button { flex: 1; height: 48px; }
-.table-inspector-tabs .pane-tab-label { display: inline-flex; align-items: center; justify-content: center; }
-.table-inspector-tab-panel { outline: none; }
+:is(.table-inspector-tabs, .list-inspector-tabs) > button { flex: 1; height: 48px; }
+:is(.table-inspector-tabs, .list-inspector-tabs) .pane-tab-label { display: inline-flex; align-items: center; justify-content: center; }
+:is(.table-inspector-tab-panel, .list-inspector-tab-panel) { outline: none; }
 .table-inspector-tab-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.list-content-inspector { padding: 16px; }
+.list-content-inspector ol { list-style: none; margin: 0; padding: 0; }
+.list-content-inspector li > button { align-items: center; background: transparent; border: 0; color: var(--ink); display: flex; gap: 8px; min-height: 40px; padding: 8px; text-align: left; width: 100%; }
+.list-content-inspector li > button:hover:not(:disabled) { background: var(--accent-soft); }
+.list-content-inspector .list-inspector-add { border-radius: 2px; height: 32px; margin: 8px; padding: 4px; width: 32px; }
 .code-editor-shell { background: #e9e9e9; border-radius: 5px; min-height: 0; position: relative; }
 .code-highlight, .code-input, .studio-code-preview { box-sizing: border-box; font-family: "Courier 10 Pitch", Courier, monospace; font-size: 16px; line-height: 25.6px; letter-spacing: normal; padding: 22.5px; tab-size: 4; white-space: pre-wrap; word-break: break-word; }
 .code-highlight, .studio-code-preview { background: #e9e9e9; border: 0; border-radius: 5px; color: #2d3748; margin: 0; overflow: hidden; width: 100%; }

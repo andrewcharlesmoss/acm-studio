@@ -186,10 +186,10 @@ let renderControls;
 function findRenderControls(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === 'renderBlockControls') renderControls = node; ts.forEachChild(node, findRenderControls); }
 findRenderControls(tree);
 const compiledControls = ts.transpileModule(`${renderControls.getText(tree)};globalThis.render = renderBlockControls;`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-test('the actual parent List toolbar contains List commands and More options without item formatting or inline deletion', () => {
+for (const selection of [undefined, { listId: 'root', itemIndex: 2 }, { listId: 'removed-nested', itemIndex: 0 }]) test(`the actual parent List toolbar retains List commands after stale item selection ${JSON.stringify(selection)}`, () => {
   const root = list(['One', 'Two']);
   const scope = { exports: {}, require: () => jsxRuntime, activeDocument: { id: 'document', blocks: [root] }, findBlockById,
-    selectedBlockId: 'root', activeListItems: {}, listTextRange: null, parentOfNestedBlock: () => null,
+    selectedBlockId: 'root', activeListItems: { root: selection }, validListItemSelection: structure.validListItemSelection, listTextRange: null, parentOfNestedBlock: () => null,
     writable: true, transformMenuBlockId: null, BlockTransformControl: 'transform-fixture', StudioHoverIcon: 'icon-fixture',
     ListToolbarControls, finishBlockDrag() {}, blockLabel: () => 'List', canMove: () => true, isBlockAlignedBlock: () => true, isEditableTextBlock: () => false,
     isEditableRichTextBlock: () => true, preserveTextSelection() {}, blockMenuItems: () => [], blockMenuBlockId: null,

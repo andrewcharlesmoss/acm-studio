@@ -80,7 +80,7 @@ export const blockCatalogue: Array<{
 }> = [
   { type: paragraphBlockDefinition.type, label: paragraphBlockDefinition.label, description: paragraphBlockDefinition.description, group: "Text" },
   { type: "heading", label: "Heading", description: "Introduce new sections and organise content to help visitors (and search engines) understand the structure of your content.", group: "Text" },
-  { type: "list", label: "List", description: "Create an ordered or bullet list.", group: "Text" },
+  { type: "list", label: "List", description: "An organised collection of items displayed in a specific order.", group: "Text" },
   { type: "quote", label: "Quote", description: "Emphasise a quotation.", group: "Text" },
   { type: "code", label: "Code", description: "Display code or a formula.", group: "Text" },
   { type: "table", label: "Table", description: "Create structured content in rows and columns to display information.", group: "Text" },

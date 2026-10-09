@@ -50,7 +50,8 @@ import { EmbedContent } from "../components/embed-content";
 import { TableCaptionControl, TableCaptionProvider } from "./table-caption-control";
 import { tablePresentation } from "../content/table-presentation";
 import { changedTableStructures, staleTableTextSelection } from "./table-structure-selection";
-import { useCallback, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
+import { useCallback, useContext, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
+import { ListInspectorCanvasContext } from "./list-inspector-navigation";
 import { blockSelectionRange, normaliseBlockSelection, orderedBlockEntries } from "./block-selection.mjs";
 import { blockSelectionPointerTarget, markBlockSelectionHosts } from "./block-selection-dom";
 import type { IconName } from "@acm/icons";
@@ -88,7 +89,7 @@ import { findBlockById } from "./studio-command-operations.mjs";
 import { TemplateContentLayout, TemplateContentSlot } from "./template-content-slot";
 import { embedLinkParagraph } from "./embed-link-conversion";
 import { blockInserterOptions, containsTemplateContent, groupAllowsChild, parentOfNestedBlock, permitsBlockTreeChanges } from "./block-inserter-options";
-import { findListBlock, updateListItem } from "./list-structure";
+import { findListBlock, updateListItem, validListItemSelection } from "./list-structure";
 import { formatListText, listTextEditor, listTextMarkState, listTextSegments, readListTextSelection, restoreListTextSelection, type ListTextSelection } from "./list-text-selection";
 import { scheduleBlockCommandFocus, type BlockCommandFocusTarget } from "./block-command-focus";
 import { RichTextEditor, preserveTextSelection, caretRangeAtPoint, editorOffset, selectionWithinEditor, restoreEditorSelection, applyCrossBlockSelection, focusRichTextEditorAtOffset, AlignmentIcon, useFittedTextHeight, AutoResizeTextarea } from "./blocks/editors/rich-text";
@@ -314,6 +315,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   const dragSessionRef = useRef<{ documentId: string; baseline: string; libraryType?: BlockLibraryItemType } | null>(null);
   const crossBlockSelectionRef = useRef<{ pointerId: number; blockIdentity: Element; blockId: string | null; start: Range | null; last: Range | null; endBlockId: string | null; active: boolean; pointerStart?: { x: number; y: number }; listRoot?: HTMLElement; listEditor?: HTMLElement; listText?: boolean } | null>(null);
   const canvasScrollRef = useRef<HTMLDivElement>(null);
+  const inspectorCanvasRef = useContext(ListInspectorCanvasContext);
   useBlockInsertionGaps(canvasScrollRef);
   const selectionAnchorRef = useRef<string | null>(null);
   const selectionFocusRef = useRef<string | null>(null);
@@ -1110,7 +1112,9 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   function activeListContext(block: EditableRichTextBlock) {
     if (block.type === "quote" && quoteCitationTargets[block.id]) return { listId: block.id, itemIndex: -1 };
     if (block.type !== "list") return undefined;
-    const selected = activeListItems[block.id];
+    const requested = activeListItems[block.id];
+    const selected = validListItemSelection(block, requested);
+    if (requested && !selected) return undefined;
     const list = findListBlock(block, selected?.listId ?? block.id) ?? block;
     return { listId: list.id, itemIndex: Math.min(selected?.itemIndex ?? 0, Math.max(list.items.length - 1, 0)) };
   }
@@ -1874,7 +1878,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     const rangeRoot = listTextRange && findBlockById(activeDocument.blocks, listTextRange.rootId);
     const acrossListItems = Boolean(listTextRange && rangeRoot?.type === "list" && listTextSegments(rangeRoot, listTextRange));
     const singleItemHint = acrossListItems ? "Select text within one List Item for this action." : undefined;
-    const itemSelection = block.type === "list" && selectedBlockId === block.id ? activeListItems[block.id] : undefined;
+    const itemSelection = block.type === "list" && selectedBlockId === block.id ? validListItemSelection(block, activeListItems[block.id]) : undefined;
     let listRoot = block.type === "list" ? block : null;
     while (listRoot) {
       const parent = parentOfNestedBlock(activeDocument.blocks, listRoot.id);
@@ -2080,7 +2084,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
       {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlockFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} writable={writable} onShowBlock={id => onUpdateBlock(id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} onRemoveBlock={onRemoveBlock} canMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); return Boolean(block && canMove(block, direction)); }} onMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); if (block) moveSibling(block, direction); }} /> : null}
 
       <div className={`editor-canvas-area${visibleNote && !codeEditor ? " has-block-note" : ""}`}>
-      <div ref={canvasScrollRef} className={`editor-canvas-scroll${hasMultiSelection ? " has-multi-block-selection" : ""}`} tabIndex={-1} onDragStartCapture={event => {
+      <div ref={element => { canvasScrollRef.current = element; if (inspectorCanvasRef) inspectorCanvasRef.current = element; }} className={`editor-canvas-scroll${hasMultiSelection ? " has-multi-block-selection" : ""}`} tabIndex={-1} onDragStartCapture={event => {
         const gesture = crossBlockSelectionRef.current;
         const editor = event.target instanceof Node ? listTextEditor(event.target) : null;
         // Extending a range across item editors can trigger native text dragging

@@ -3,6 +3,12 @@ import { findContentBlock } from "../content/block-tree";
 
 type ListItemUpdate = (item: ListItem) => ListItem;
 
+export function validListItemSelection(root: ListBlock, selection?: { listId: string; itemIndex: number }) {
+  if (!selection) return undefined;
+  const list = findListBlock(root, selection.listId);
+  return list && Number.isInteger(selection.itemIndex) && selection.itemIndex >= 0 && selection.itemIndex < Math.max(1, list.items.length) ? selection : undefined;
+}
+
 export function listItemIsEmpty(item: ListItem): boolean {
   return !listItemText(item) && (typeof item === "string" || !item.runs?.some(run => run.text || run.inline
     || run.marks?.some(mark => typeof mark !== "string" && ["footnote", "inline-image", "math"].includes(mark.type))));

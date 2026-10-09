@@ -31,6 +31,8 @@ import { capabilityProfileFor } from "../capability-profiles";
 import { ListSettingsInspector } from "../text-block-settings-inspector";
 import { TableSettingsInspector } from "../table-settings-inspector";
 import { ListItemInspector } from "../list-item-inspector";
+import { ListContentInspector } from "../list-content-inspector";
+import { validListItemSelection } from "../../list-structure";
 import { GroupLayoutSelection } from "../group-layout-selection";
 import { ParagraphInspector, ManagedBackgroundImageInspector } from "./paragraph-inspector";
 
@@ -52,6 +54,9 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
   const tableInspectorId = useId();
   const [tableTabSelection, setTableTabSelection] = useState({ blockId: block.id, tab: "settings" });
   const tableTab = tableTabSelection.blockId === block.id ? tableTabSelection.tab : "settings";
+  const listInspectorId = useId();
+  const [listTabSelection, setListTabSelection] = useState({ blockId: block.id, tab: "content" });
+  const listTab = listTabSelection.blockId === block.id ? listTabSelection.tab : "content";
   useEffect(() => {
     onButtonPreviewChange?.(block.type === "button" && buttonState !== "default" && showButtonStatePreview ? { blockId: block.id, state: buttonState } : null);
     return () => onButtonPreviewChange?.(null);
@@ -61,7 +66,13 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
   const blockInfo = blockCatalogue.find((item) => item.type === block.type);
   const blockName = contentSlot ? "Content" : block.type === "group" ? groupVariationFor(block).label : block.type === "heading" ? `Heading ${block.level}` : blockInfo?.label ?? profile.label ?? blockLabel(block.type);
   const blockDescription = contentSlot ? "Displays the current document body in this template." : (block.type === "group" ? groupVariationFor(block).description : blockInfo?.description) ?? profile.description ?? `Configure this ${blockName.toLowerCase()} block.`;
-  if (block.type === "list" && selectedListItem?.blockId === block.id) return <ListItemInspector key={`${selectedListItem.listId}-${selectedListItem.itemIndex}`} block={block} listId={selectedListItem.listId} itemIndex={selectedListItem.itemIndex} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} />;
+  if (block.type === "list" && selectedListItem?.blockId === block.id) {
+    // Undo can remove the item selected by Content's add button. Keep the
+    // parent pane available rather than rendering an empty item inspector.
+    if (validListItemSelection(block, selectedListItem)) {
+      return <ListItemInspector key={`${selectedListItem.listId}-${selectedListItem.itemIndex}`} block={block} listId={selectedListItem.listId} itemIndex={selectedListItem.itemIndex} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} />;
+    }
+  }
   const alignedBlock = block.type === "document-title" ? block : null;
   const alignment = alignedBlock?.align ?? null;
   const advanced = advancedFieldsForBlock(block, "gutenberg");
@@ -106,7 +117,24 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
   );
   return <div className={`block-inspector-settings${block.type === "embed" ? " embed-block-inspector" : block.type === "table" ? " table-block-inspector" : ""}`}>
     <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span aria-hidden="true">{block.type === "heading" ? <HeadingLevelIcon level={block.level} /> : <BlockLibraryIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} />}</span><h2>{blockName}</h2></div>{block.type === "button" ? <div className="inspector-button-state-controls"><label><span>State</span><select aria-label="Button state" value={buttonState} onChange={event => setButtonState(event.target.value as ButtonInteractionState | "default")}><option value="default">Default</option><option value="hover">Hover</option><option value="focus">Focus</option><option value="active">Active</option></select></label><label className="checkbox-setting"><input type="checkbox" checked={showButtonStatePreview} disabled={buttonState === "default"} onChange={event => setShowButtonStatePreview(event.target.checked)} /><span>Show state on canvas</span></label></div> : null}<p className="setting-note">{blockDescription}</p>{block.type === "heading" ? <HeadingLevelSetting value={block.level} onChange={level => onChange({ ...block, level })} /> : null}{block.type === "group" && !contentSlot ? <GroupLayoutSelection value={block.layout} onChange={layout => onChange(changeGroupLayout(block, layout))} /> : null}</section></div>
-    {block.type === "table" ? <>
+    {block.type === "list" ? <>
+      <PaneTabs id={listInspectorId} label="List inspector" className="list-inspector-tabs" indicatorVariant="selected"
+        tabs={[{ id: "content", label: "Content" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]}
+        active={listTab} onChange={tab => setListTabSelection({ blockId: block.id, tab })}
+        renderLabel={tab => <><AcmIcon name={tab.id === "content" ? "document.content" : tab.id === "settings" ? "action.settings" : "view.styles"} scale="Regular-M" size={24} /><span className="table-inspector-tab-label">{tab.label}</span></>} />
+      <PaneTabPanel id={listInspectorId} tab="content" active={listTab} className="list-inspector-tab-panel">
+        <ListContentInspector block={block} onChange={onChange} />
+      </PaneTabPanel>
+      <PaneTabPanel id={listInspectorId} tab="settings" active={listTab} className="inspector-sections list-inspector-tab-panel">
+        {block.style === "ordered" ? <ListSettingsInspector block={block} onChange={onChange} /> : null}
+        {advanced ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advanced} defaultOpen={false} /> : null}
+      </PaneTabPanel>
+      <PaneTabPanel id={listInspectorId} tab="styles" active={listTab} className="inspector-sections list-inspector-tab-panel">
+        <ParagraphInspector key={`${block.id}:list:styles`} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)}
+          backgroundImageControls={<ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} embedded />}
+          backgroundImageOptions={<ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} detailsOnly />} />
+      </PaneTabPanel>
+    </> : block.type === "table" ? <>
       <PaneTabs id={tableInspectorId} label="Table inspector" className="table-inspector-tabs" indicatorVariant="selected" tabs={[{ id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]} active={tableTab} onChange={tab => setTableTabSelection({ blockId: block.id, tab })} renderLabel={tab => <><AcmIcon name={tab.id === "settings" ? "action.settings" : "view.styles"} scale="Regular-M" size={24} /><span className="table-inspector-tab-label">{tab.label}</span></>} />
       <PaneTabPanel id={tableInspectorId} tab="settings" active={tableTab} className="inspector-sections table-inspector-tab-panel">
         <TableSettingsInspector block={block} onChange={onChange} />
@@ -157,7 +185,7 @@ function advancedFieldsForBlock(block: ContentBlock, source: "gutenberg" | "stud
   };
 }
 
-function AdvancedFieldsInspector({ semanticElement = true, block, onChange, fields, children }: { semanticElement?: boolean; block: ContentBlock; onChange: (block: ContentBlock) => void; fields: AdvancedFields; children?: ReactNode }) {
+function AdvancedFieldsInspector({ semanticElement = true, defaultOpen = true, block, onChange, fields, children }: { semanticElement?: boolean; defaultOpen?: boolean; block: ContentBlock; onChange: (block: ContentBlock) => void; fields: AdvancedFields; children?: ReactNode }) {
   const style = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style ?? {} : block.visualStyle ?? {};
   const blockName = blockCatalogue.find(entry => entry.type === block.type)?.label ?? capabilityProfileFor(block.type).label;
   function update(field: "anchor" | "className" | "additionalCss", value: string) {
@@ -167,7 +195,7 @@ function AdvancedFieldsInspector({ semanticElement = true, block, onChange, fiel
     if (block.type === "paragraph" || block.type === "columns" || block.type === "column") onChange({ ...block, style: Object.keys(next).length ? next : undefined } as ContentBlock);
     else onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined } as ContentBlock);
   }
-  return <InspectorAccordionSection className={`advanced-fields-section${block.type === "paragraph" ? " paragraph-advanced-fields" : ""}`} title="Advanced">
+  return <InspectorAccordionSection className={`advanced-fields-section${block.type === "paragraph" ? " paragraph-advanced-fields" : ""}`} title="Advanced" defaultOpen={defaultOpen}>
     <AdvancedFieldsControl fields={fields} style={style} blockName={blockName} placeholders={block.type !== "paragraph" && block.type !== "embed"} onChange={update} />
     {children}
     {semanticElement && block.type === "group" ? <><label><span>HTML element</span><select value={block.tagName ?? "div"} onChange={(event) => onChange({ ...block, tagName: event.target.value as NonNullable<typeof block.tagName> })}>{["div", "main", "section", "article", "aside", "header", "footer", "nav"].map((tag) => <option value={tag} key={tag}>{tag}</option>)}</select></label><label><span>ARIA label</span><input value={block.ariaLabel ?? ""} onChange={(event) => onChange({ ...block, ariaLabel: event.target.value || undefined })} /></label></> : null}
