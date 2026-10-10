@@ -113,13 +113,11 @@ collapse controls remain available. Studio Navigation and Editor Inspector
 adopt the shared resizing contract. Other product panes retain their existing
 widths and responsive behaviour.
 
-Controls → Accordion Section exposes Accordion Hover Colour as a browser
-interface preference shared by every Studio inspector accordion heading.
-It defaults to `#F0F0F0`, accepts validated six-digit hex colours and saves
-through the same ownership-protected preference repository as Focus Outline.
-Blocked saves retain a page-only preview and display a status. Successful saves
-refresh other open Studio pages and survive navigation. This preference never
-changes site styles or the universal style preset; see `docs/studio-ui-library.md`.
+Styles → Interactions owns the shared disclosure heading hover background in the
+executable `@acm/styles` preset. It defaults to `#F0F0F0` and applies to Studio
+inspector accordion headings and navigation overlay disclosure headings. The
+Controls → Accordion specimen has no separate colour preference; see
+`docs/studio-ui-library.md`.
 
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and

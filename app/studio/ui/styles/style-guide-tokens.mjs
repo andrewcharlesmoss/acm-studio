@@ -5,7 +5,7 @@ export function projectStyleGuideTokens(document, preset) {
   const families = { inter: "Inter", "helvetica-neue": "Helvetica Neue", helvetica: "Helvetica", arial: "Arial", "sans-serif": "sans-serif", "system-sans": "System Sans", georgia: "Georgia" };
   const metric = item => `${item.value}${item.unit === "number" ? "" : item.unit}`;
   const responsive = value => [metric(value.desktop), ...["tablet", "mobile"].filter(key => value[key]).map(key => `${key}: ${metric(value[key])}`)].join("; ");
-  const expected = ["palette", "typography", "buttons", "layout"].flatMap(group => Object.keys(preset[group]).map(key => `${group}.${key}`));
+  const expected = ["palette", "typography", "buttons", "interactions", "layout"].flatMap(group => Object.keys(preset[group]).map(key => `${group}.${key}`));
   const result = document.split("\n").map(line => {
     if (!line.startsWith("| ")) return line;
     const cells = line.split("|").slice(1, -1).map(cell => cell.trim());
@@ -15,12 +15,13 @@ export function projectStyleGuideTokens(document, preset) {
     found.add(key);
     const [group, role] = key.split(".");
     const value = preset[group][role];
-    const lengths = { palette: 4, typography: 8, buttons: 7, layout: 3 };
+    const lengths = { palette: 4, typography: 8, buttons: 7, interactions: 4, layout: 3 };
     if (cells.length !== lengths[group]) throw new Error(`Unsupported Style Guide table: ${key}`);
     if (group === "palette") cells[2] = value.toUpperCase();
     if (group === "layout") cells[2] = `${value}px`;
     if (group === "typography") cells.splice(1, 7, families[value.family], responsive(value.size), String(value.weight), value.style, responsive(value.lineHeight), responsive(value.letterSpacing), value.transform);
     if (group === "buttons") cells.splice(1, 6, value.background.toUpperCase(), value.foreground.toUpperCase(), value.border.toUpperCase(), `${value.borderWidth}px`, value.hoverBackground.toUpperCase(), value.hoverForeground.toUpperCase());
+    if (group === "interactions") cells.splice(1, 3, `--acm-interaction-${role.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)}`, value.toUpperCase(), "Hover background for inspector accordion and navigation overlay disclosure headings");
     return `| ${cells.join(" | ")} |`;
   }).join("\n");
   if (expected.some(key => !found.has(key))) throw new Error("The Style Guide is missing a token row. Its files have been preserved.");
@@ -42,7 +43,7 @@ export function indexStyleGuide(document, preset) {
       return nested && typeof nested === "object" ? [current, ...paths(nested, current)] : [current];
     });
   }
-  const all = ["palette", "typography", "buttons", "layout"].flatMap(key => paths(preset[key], key));
+  const all = ["palette", "typography", "buttons", "interactions", "layout"].flatMap(key => paths(preset[key], key));
   all.push("specimen.link", "specimen.unordered-list", "specimen.ordered-list", "specimen.quote");
   const mappings = {};
   for (const stylePath of all) {

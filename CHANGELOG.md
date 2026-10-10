@@ -12,8 +12,6 @@
 - Added Navigation overlay icon controls and reusable overlay templates, with
   creation, selection and editing through the existing template workspace.
 
-- Accordion Hover Colour in the Controls library, with a saved browser preference and reset shared by all Studio inspector dropdown headings.
-
 - Page link children in Navigation, with a contextual Block Library entry, individual Content/Settings/Styles controls, sibling drag and movement, and saved per-link typography.
 
 - Navigation in the template editor's Theme block category and the UI Library, with an editable specimen using the production Menu, Settings and Styles controls.
@@ -109,6 +107,10 @@
 - Expanded the Blocks library from the Paragraph pilot to all 27 typed block types plus the template Content slot, with profile-driven pane inventories, isolated production-editor specimens, history, reset, nested selection and compatibility notes. Expanded Controls to one grouped page with 13 working control specimens plus its standalone Slider foundation, compatible direct-route anchors, and shared border, background, typography, image-dimensions, focal-position and preset-number controls between the inspector and catalogue.
 
 ### Changed
+
+- Move disclosure heading hover colour into Styles → Interactions as a shared
+  preset token for inspector accordions and navigation overlay headings; remove
+  the Controls accordion browser preference.
 
 - Templates use one list of individual layouts and shared parts. Named-set
   management and the Save as Template destination selector are removed;

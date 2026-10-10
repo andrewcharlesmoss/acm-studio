@@ -413,7 +413,7 @@
 .navigation-overlay-template-heading { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
 .navigation-overlay-template-heading label { font-weight: 600; text-transform: uppercase; }
 .template-inspector .navigation-overlay-template-heading button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; color: inherit; }
-.navigation-overlay-template-heading button:hover { background: var(--studio-control-hover-background, #f0f0f0); }
+.navigation-overlay-template-heading button:hover { background: var(--acm-interaction-disclosure-hover-background, #f0f0f0); }
 .navigation-inspector select { min-height: 40px; }
 .navigation-edit-overlay { display: flex; align-items: center; justify-content: center; gap: 8px; }
 

@@ -124,7 +124,7 @@ in click order. Close, Escape and the Add Block toggle dismiss it explicitly;
 transient pickers and appender submission retain their existing behaviour.
 
 All catalogue fixtures and demo interactions remain temporary component state.
-Focus Outline and Accordion Hover Colour are deliberate user-preference exceptions.
+Focus Outline is a deliberate user-preference exception.
 The Library header and
 editor View menu share On, Off and Keyboard Only across every ACM Studio route.
 On shows outlines for pointer and keyboard focus; Off hides them; Keyboard Only
@@ -146,17 +146,13 @@ public article routes retain their usual focus behaviour. The setting does not
 change the shared style preset. Catalogue demos do not call product APIs or
 read/write product stores.
 
-Controls → Accordion Section (`/studio/ui/controls#inspector-accordion`) exposes
-Accordion Hover Colour and Reset Hover Colour. The six-digit hex colour defaults
-to `#F0F0F0` and drives `--studio-control-hover-background` for every inspector
-accordion heading, including Categories and Tags. It is a Studio interface
-preference, separate from site backgrounds and the universal style preset.
-The validated `acm-studio-accordion-hover-v1` browser preference uses the same
-ownership-protected repository as Focus Outline. A denied or failed save applies
-only to the current page and is reported beside the control. Successful saves
-survive navigation/reload and refresh other open Studio pages through storage
-events. Reset saves the default through the same ownership boundary. No content,
-template, publication or hosted setting is changed.
+Styles → Interactions controls the shared disclosure heading hover background.
+The six-digit hex value defaults to `#F0F0F0`, and applies to inspector accordion
+headings and navigation overlay disclosure headings. It is part of the
+executable universal preset and uses the existing draft, Undo/Redo, reset and
+revision-checked Save Shared Styles flow. The Controls → Accordion specimen
+demonstrates the shared appearance without a separate colour control or browser
+preference.
 
 The shared `blockCapabilityProfiles` registry is the source for the Blocks
 index and runtime shared-style inspector ownership, defaults, reset fields
@@ -264,7 +260,7 @@ first package commit timestamp in UK local time; the owning `@acm/icons` package
 keeps the complete ISO timestamp with its UTC offset for exact chronological
 sorting.
 
-Styles edits the `@acm/styles` v0.2.0 preset beside the full written
+Styles edits the `@acm/styles` v0.3.0 preset beside the full written
 workspace Style Guide. Hovering or focusing a specimen or setting shows its
 baseline, current draft value, guide excerpt and exact line; clicking or
 tapping pins the source selection. Hovering a mapped row in a guide table
@@ -286,7 +282,7 @@ The generated index is bundled with Studio; hosted pages read no sibling files.
 
 ### Saving shared styles
 
-Colour, typography, button and layout edits immediately update the specimen,
+Colour, typography, button, interaction and layout edits immediately update the specimen,
 guide table cells, selected excerpt and Markdown source. Unsaved drafts stay in
 component state. In local development, **Save Shared Styles** validates and
 writes these exact files:
@@ -295,7 +291,8 @@ writes these exact files:
 - `workspace-governance/STYLE_GUIDE.md` — generated token table cells only;
 - `acm-studio/app/studio/ui/styles/style-guide-source.json` — guide and line index.
 
-The preset schema remains v0.2.0. Guide policy, reference palettes and prose are
+The preset schema is v0.3.0; older v0.1.0 and v0.2.0 presets are migrated with
+the default disclosure hover colour when read. Guide policy, reference palettes and prose are
 not editable through this interface. Responsive overrides appear alongside the
 desktop metric, for example `1rem; mobile: 15px`. Source saving is dev-only and
 does not publish, commit, push or directly update project-owned style settings.

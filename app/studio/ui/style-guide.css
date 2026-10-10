@@ -80,6 +80,11 @@
 .sg-preview .acm-button-secondary:hover { background: var(--acm-button-secondary-hover-background); color: var(--acm-button-secondary-hover-foreground); }
 .sg-preview .acm-button-outline { background: var(--acm-button-outline-background); color: var(--acm-button-outline-foreground); border-color: var(--acm-button-outline-border); border-width: var(--acm-button-outline-border-width); }
 .sg-preview .acm-button-outline:hover { background: var(--acm-button-outline-hover-background); color: var(--acm-button-outline-hover-foreground); }
+.sg-interaction-settings > p { margin: 12px 0 0; color: var(--rl-muted); }
+.sg-disclosure-specimen { border: 1px solid var(--acm-color-border); border-radius: var(--acm-layout-radius); overflow: hidden; }
+.sg-disclosure-specimen summary { padding: 14px 16px; cursor: pointer; font-weight: 600; }
+.sg-disclosure-specimen summary:hover { background: var(--acm-interaction-disclosure-hover-background); }
+.sg-disclosure-specimen > p { margin: 0; padding: 12px 16px; }
 .sg-palette-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .6rem; }
 .acm-universal-style-preset .sg-swatch { min-width: 0; min-height: 0; border: var(--acm-layout-border-width) solid var(--acm-color-border); border-radius: var(--acm-layout-radius); overflow: hidden; display: grid; padding: 0; background: var(--acm-color-surface); color: var(--acm-color-text-primary); text-align: left; cursor: pointer; }
 .acm-universal-style-preset .sg-swatch:is(:hover, :focus-visible) { border-color: var(--acm-color-accent); background: var(--acm-color-surface); color: var(--acm-color-text-primary); }
