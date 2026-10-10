@@ -280,8 +280,8 @@ export function DocumentInspector({ siteContext = false, panel, documentControls
         {documentControls}
         {document.kind === "page" ? <InspectorAccordionSection kind={document.kind} title="Parent page"><label><span>Parent</span><select value={resolvedDocument.parentPageId ?? ""} onChange={(event) => { onFieldOverride?.("parentPageId", false); onChange("parentPageId", event.target.value || undefined); }}><option value="">None</option>{pages.filter((page) => page.id !== document.id).map((page) => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label></InspectorAccordionSection> : null}
         {hasCategories ? <>
-          <section className="post-categories-section">
-            <h2><button type="button" className="post-categories-heading" aria-expanded={categoriesOpen} aria-controls={categoriesContentId} onClick={() => setCategoriesOpen(open => !open)}><span>Categories</span><StudioIcon name={categoriesOpen ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
+          <section className="post-categories-section inspector-accordion-section">
+            <h2><button type="button" className="inspector-accordion-heading" aria-expanded={categoriesOpen} aria-controls={categoriesContentId} onClick={() => setCategoriesOpen(open => !open)}><span>Categories</span><StudioIcon name={categoriesOpen ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
             <div id={categoriesContentId} className="inspector-accordion-content" hidden={!categoriesOpen}>
               <div className="post-category-list" aria-label="Categories">{renderCategoryOptions() || <p className="setting-note">No categories yet.</p>}</div>
               <button type="button" className="post-category-add-toggle" aria-expanded={addCategoryOpen} onClick={() => { setAddCategoryOpen(open => !open); if (!addCategoryOpen) requestAnimationFrame(() => newCategoryNameRef.current?.focus()); }}>{addCategoryOpen ? "Cancel" : "Add category"}</button>
@@ -354,7 +354,7 @@ function PostTagsEditor({ tags, suggestions, onChange }: { tags: string[]; sugge
     }
   };
   return <section className="post-tags-section inspector-accordion-section">
-    <h2><button type="button" className="post-taxonomy-heading" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen(value => !value)}><span>Tags</span><StudioIcon name={open ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
+    <h2><button type="button" className="inspector-accordion-heading" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen(value => !value)}><span>Tags</span><StudioIcon name={open ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
     <div id={contentId} className="inspector-accordion-content" hidden={!open}>
       <label className="post-tags-label" htmlFor={inputId}>ADD TAG</label>
       <div className="post-tags-input-area" role="presentation" onClick={() => inputRef.current?.focus()}>

@@ -1288,13 +1288,15 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .inspector-button-state-controls > label:first-child { display: grid; gap: 6px; }
 .inspector-button-state-controls select { box-sizing: border-box; min-height: 38px; width: 100%; }
 .inspector-button-state-controls .checkbox-setting { margin: 0; }
+.inspector-sections > .inspector-accordion-section, .inspector-accordion-section { padding: 0; gap: 0; }
 .inspector-accordion-section > h2 { margin: 0; }
 .inspector-sections .advanced-fields-section > h2 { letter-spacing: normal; text-transform: none; }
-.inspector-accordion-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: flex-start; letter-spacing: inherit; padding: 0; text-align: left; text-transform: inherit; width: 100%; }
+.inspector-accordion-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: flex-start; letter-spacing: inherit; padding: var(--inspector-accordion-padding, 18px); text-align: left; text-transform: inherit; width: 100%; }
+.inspector-accordion-heading:hover { background: var(--studio-control-hover-background, #f0f0f0); }
 .inspector-accordion-detail { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 500; letter-spacing: normal; margin-left: 6px; text-transform: none; }
 .inspector-accordion-heading svg { margin-left: auto; }
 .inspector-accordion-heading:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
-.inspector-accordion-content { display: grid; gap: 12px; }
+.inspector-accordion-content { display: grid; gap: 12px; padding: 0 var(--inspector-accordion-padding, 18px) var(--inspector-accordion-padding, 18px); }
 .inspector-accordion-content > fieldset { display: grid; gap: 12px; min-width: 0; width: 100%; margin: 0; padding: 0; border: 0; }
 .inspector-accordion-content[hidden] { display: none; }
 .inspector-sections label { display: grid; gap: 5px; }
@@ -1569,9 +1571,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .checkbox-setting { align-items: center; display: flex !important; grid-template-columns: auto 1fr; }
 .checkbox-setting input { width: auto; }
 .post-categories-section > h2 { margin: 0; }
-.post-categories-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: space-between; letter-spacing: inherit; padding: 0; text-align: left; text-transform: inherit; width: 100%; }
 .post-tags-section > h2 { margin: 0; }
-.post-taxonomy-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: space-between; letter-spacing: inherit; padding: 0; text-align: left; text-transform: inherit; width: 100%; }
 .post-category-list { display: grid; gap: 8px; }
 .post-category-option > label { align-items: center; display: flex !important; gap: 9px !important; }
 .post-category-option input[type="checkbox"] { accent-color: var(--accent); flex: 0 0 16px; height: 16px; margin: 0; padding: 0; width: 16px; }
@@ -1595,7 +1595,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .post-tags-suggestions h3 { color: var(--ink); font-size: var(--studio-ui-size); font-weight: 650; letter-spacing: .03em; }
 .post-tags-suggestions > div { display: flex; flex-wrap: wrap; gap: 7px 10px; }
 .post-tags-suggestions button { background: transparent; border: 0; color: var(--accent-strong); cursor: pointer; font: inherit; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
-.post-taxonomy-heading:focus-visible, .post-tag-chip button:focus-visible, .post-tags-suggestions button:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
+.post-tag-chip button:focus-visible, .post-tags-suggestions button:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
 .document-operations button { background: white; border: 1px solid #d1cfc7; border-radius: 7px; cursor: pointer; font-size: var(--studio-ui-size); padding: 9px; }
 .document-operations .danger-button { color: #a03939; }
 .document-operations button:disabled { cursor: default; opacity: .4; }
