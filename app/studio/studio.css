@@ -134,7 +134,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-save-control:focus-visible { outline: 2px solid var(--gutenberg-accent); outline-offset: 2px; }
 .studio-save-control.is-saving, .studio-save-control.is-saved {
   background: #fff;
-  border-color: var(--gutenberg-accent);
+  border-color: transparent;
   color: var(--muted);
   min-width: 112px;
 }
