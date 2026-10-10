@@ -46,6 +46,7 @@ export function BackupManager({ workspace }: { workspace: StudioWorkspace }) {
         fileBytes: library.assets.reduce((total, asset) => total + asset.size, 0),
         designs: loadDesigns().length,
         templateSets: loadTemplates().sets.length,
+        templates: loadTemplates().sets.reduce((count, set) => count + set.templates.length + set.parts.length, 0),
       };
       queueMicrotask(() => { if (!cancelled) setCurrentSummary(summary); });
     }).catch(() => queueMicrotask(() => { if (!cancelled) setStatus("The local media library could not be counted"); }));
@@ -148,7 +149,7 @@ function BackupSummary({ summary }: { summary: StudioBackupSummary }) {
       <div><dt>Files</dt><dd>{summary.files}</dd></div>
       <div><dt>Media size</dt><dd>{formatBytes(summary.fileBytes)}</dd></div>
       <div><dt>Designs</dt><dd>{summary.designs}</dd></div>
-      <div><dt>Template sets</dt><dd>{summary.templateSets}</dd></div>
+      <div><dt>Templates</dt><dd>{summary.templates}</dd></div>
     </dl>
   );
 }

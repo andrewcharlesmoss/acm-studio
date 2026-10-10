@@ -17,7 +17,8 @@ import { StudioIcon } from "./studio-icons";
 import { ProjectLocalLinksProvider, LocalFixtureSiteNavigation } from "./project-local-links";
 import { SiteNavigation } from "./site-navigation";
 import { AcmIcon } from "@acm/icons/react";
-import { createTemplateSet, createDocumentTemplateNodes, copyTemplateData, templateId, templateMediaIds, visitTemplateNodes, templatePartReference, TEMPLATE_STORAGE_KEY, duplicateTemplateSet, type TemplateSet, type PageTemplate, type TemplatePart, type TemplateNode } from "./template-model";
+import { createDocumentTemplateNodes, copyTemplateData, templateId, templateMediaIds, visitTemplateNodes, templatePartReference, TEMPLATE_STORAGE_KEY, duplicateTemplateSet, type TemplateSet, type PageTemplate, type TemplatePart, type TemplateNode } from "./template-model";
+import { templateLibraryContext, templateLibraryEntries, templateEntryExportContext, replaceTemplateLibraryContext } from "./template-library";
 import { exportTemplatePackage, importTemplatePackage, TEMPLATE_PACKAGE_LIMIT, validateTemplatePackage } from "./template-package";
 import { contentMediaIds, useTemplateMedia } from "./use-template-media";
 import type { MediaAsset } from "./media-store";
@@ -32,16 +33,6 @@ import { Pane } from "./panes/pane-components";
 type NameDialog = { title: string; name: string; confirm: (name: string) => boolean | void };
 export type TemplateWorkspaceSession = ReturnType<typeof useStudioWorkspace>;
 export type TemplateStoreSession = ReturnType<typeof useTemplates>;
-function TemplateSetActionsMenu({ target, canDelete, disabledReason, onDelete, onClose }: {
-  target: StudioListContextMenuTarget;
-  canDelete: boolean;
-  disabledReason?: string;
-  onDelete: () => void;
-  onClose: () => void;
-}) {
-  return <StudioListContextMenu target={target} canDelete={canDelete} disabledReason={disabledReason} onDelete={onDelete} onClose={onClose} />;
-}
-
 export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
   siteNavigation?: import("./test-site/contract").SiteNavigationReference;
   siteId?: LocalFixtureSiteId;
@@ -78,14 +69,11 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
     else setLocalSelection(next);
   }
   const changeSelectionFromEffect = useEffectEvent(changeSelection);
-  const [showTemplateSets, setShowTemplateSets] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [mediaTarget, setMediaTarget] = useState<{ blockId: string | null; logo: boolean; background?: boolean; item?: ListItemBackgroundTarget; targetId: string; setId: string } | null>(null);
   const [dialog, setDialog] = useState<NameDialog | null>(null);
   const [templateContextMenu, setTemplateContextMenu] = useState<(StudioListContextMenuTarget & { setId: string; targetId: string }) | null>(null);
-  const [templateSetContextMenu, setTemplateSetContextMenu] = useState<(StudioListContextMenuTarget & { setId: string }) | null>(null);
-  const [templateSetContextMenuTrigger, setTemplateSetContextMenuTrigger] = useState<HTMLElement | null>(null);
   const [localLibraryPaneWidth, setLocalLibraryPaneWidth] = useState(290);
   const [localLibraryPaneCollapsed, setLocalLibraryPaneCollapsed] = useState(false);
   const [localInspectorPaneWidth, setLocalInspectorPaneWidth] = useState(300);
@@ -105,11 +93,11 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
     setTemplateContextMenu(null);
     requestAnimationFrame(() => templateContextMenuTriggerRef.current?.isConnected && templateContextMenuTriggerRef.current.focus());
   }
-  function closeTemplateSetContextMenu() { setTemplateSetContextMenu(null); requestAnimationFrame(() => templateSetContextMenuTrigger?.isConnected && templateSetContextMenuTrigger.focus()); }
   const importRef = useRef<HTMLInputElement>(null);
   const set = templates.store.sets.find(item => item.id === setId);
-  const target = set ? [...set.templates, ...set.parts].find(item => item.id === targetId) ?? set.templates[0] ?? set.parts[0] : undefined;
-  const templateEntries = templates.store.sets.flatMap(item => [...item.templates, ...item.parts].map(entry => ({ set: item, entry })));
+  const target = set ? [...set.templates, ...set.parts].find(item => item.id === targetId) : undefined;
+  const showTemplateLibrary = !target;
+  const templateEntries = templateLibraryEntries(templates.store);
   const templateEntryCount = templateEntries.length;
   const media = useTemplateMedia([...(set ? templateMediaIds(set) : []), ...workspace.workspace.documents.flatMap(document => [...contentMediaIds(document.blocks), ...(document.coverImage?.mediaId ? [document.coverImage.mediaId] : [])])]);
   const writable = templates.writable && !busy;
@@ -119,14 +107,13 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
   const templateContextMenuUnavailableReason = "This template is no longer available.";
   const templateContextMenuMutationReason = !writable ? "Editing is unavailable in this tab." : !templateContextMenuEntry ? templateContextMenuUnavailableReason : undefined;
   const templateContextMenuDeleteReason = templateContextMenu && templateContextMenuEntry ? templateDeleteBlockReason(templateContextMenu.setId, templateContextMenu.targetId) : templateContextMenuUnavailableReason;
-  const templateContextMenuActions = templateContextMenu ? [{ label: "Rename", icon: "pencil" as const, onClick: () => renameTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId), disabled: Boolean(templateContextMenuMutationReason), disabledReason: templateContextMenuMutationReason }, { label: "Duplicate", icon: "copy" as const, onClick: () => duplicateTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId), disabled: Boolean(templateContextMenuMutationReason), disabledReason: templateContextMenuMutationReason }] : [];
+  const templateContextMenuActions = templateContextMenu ? [{ label: "Rename", icon: "pencil" as const, onClick: () => renameTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId), disabled: Boolean(templateContextMenuMutationReason), disabledReason: templateContextMenuMutationReason }, { label: "Duplicate", icon: "copy" as const, onClick: () => duplicateTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId), disabled: Boolean(templateContextMenuMutationReason), disabledReason: templateContextMenuMutationReason }, { label: "Export", icon: "download" as const, onClick: () => { if (templateContextMenuSet && templateContextMenuEntry) void exportEntry(templateContextMenuSet, templateContextMenuEntry); }, disabled: busy || !templateContextMenuEntry }] : [];
   useStudioHistoryShortcuts(templates.undo, templates.redo, manageHistoryShortcuts && writable && !dialog);
   useEffect(() => {
     const syncTargetFromLocation = () => {
       const nextQuery = new URLSearchParams(window.location.search);
       changeSelectionFromEffect({ setId: nextQuery.get("set"), targetId: nextQuery.get("target") });
       setMediaTarget(null);
-      setShowTemplateSets(false);
     };
     window.addEventListener("popstate", syncTargetFromLocation);
     return () => window.removeEventListener("popstate", syncTargetFromLocation);
@@ -139,52 +126,24 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
     button.focus();
     pendingTemplateFocusRef.current = null;
   }, [templateEntries]);
-  useEffect(() => {
-    if (!templates.ready || setId || !templates.store.sets.length) return;
-    const first = templates.store.sets[0];
-    const id = first.templates[0]?.id ?? null;
-    queueMicrotask(() => {
-      changeSelectionFromEffect({ setId: first.id, targetId: id ?? null });
-    });
-  }, [setId, templates.ready, templates.store.sets]);
   function closeDialog() { setDialog(null); }
   function askName(title: string, name: string, confirm: NameDialog["confirm"]) { setDialogOpener(document.activeElement as HTMLElement); setDialog({ title, name, confirm }); }
   function openSet(item: TemplateSet, id = item.templates[0]?.id ?? item.parts[0]?.id) {
     changeSelection({ setId: item.id, targetId: id ?? null }); setMediaTarget(null);
-    setShowTemplateSets(false);
     writeStudioNavigation("templates", { setId: item.id, targetId: id ?? null });
   }
   function library() {
-    setShowTemplateSets(true);
+    changeSelection({ setId: null, targetId: null });
     setMediaTarget(null);
+    writeStudioNavigation("templates");
   }
 
-  function changeSet(next: TemplateSet) { return templates.commit(store => ({ ...store, sets: store.sets.map(item => item.id === next.id ? next : item) })); }
-  function uniqueName(base: string) { let name = base; let suffix = 2; while (templates.store.sets.some(item => item.name === name)) name = `${base} ${suffix++}`; return name; }
-  function createSet() {
-    askName("Create Template Set", uniqueName("ACM Neutral"), name => {
-      const item = createTemplateSet(name);
-      const saved = templates.commit(store => ({ ...store, sets: [...store.sets, item] }));
-      if (saved) openSet(item);
-      return saved;
-    });
-  }
-  async function exportSet(item: TemplateSet) {
+  function changeSet(next: TemplateSet) { return templates.commit(store => replaceTemplateLibraryContext(store, next)); }
+  async function exportEntry(item: TemplateSet, entry: PageTemplate | TemplatePart) {
     setBusy(true); setFeedback(null);
-    try { exportStudioJson(await exportTemplatePackage(item), `${item.name.replace(/[^a-z0-9-]+/gi, "-").toLowerCase() || "template"}.json`, 1000); }
+    try { exportStudioJson(await exportTemplatePackage(templateEntryExportContext(item, entry)), `${entry.name.replace(/[^a-z0-9-]+/gi, "-").toLowerCase() || "template"}.json`, 1000); }
     catch (error) { setFeedback(error instanceof Error ? error.message : "Export failed."); }
     finally { setBusy(false); }
-  }
-  async function duplicateSet(item: TemplateSet) {
-    if (siteId) {
-      const copy = duplicateTemplateSet(item, uniqueName(`${item.name} Copy`));
-      if (templates.commit(store => ({ ...store, sets: [...store.sets, copy] }))) openSet(copy);
-      else setFeedback(`The template set could not be copied to ${localFixtureName(siteId ?? "test")}.`);
-      return;
-    }
-    setBusy(true); setFeedback(null);
-    try { const token = studioWriteOwnership.captureWriteToken(); const id = await importTemplatePackage(await exportTemplatePackage(item), uniqueName(`${item.name} Copy`), token); window.location.assign(`/studio?mode=templates&set=${encodeURIComponent(id)}`); }
-    catch (error) { setFeedback(error instanceof Error ? error.message : "Duplicate failed."); setBusy(false); }
   }
   async function importFile(file?: File) {
     if (!file) return;
@@ -193,7 +152,8 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
         if (file.size > TEMPLATE_PACKAGE_LIMIT) throw new Error("Choose a template package smaller than 50 MB.");
         const value = validateTemplatePackage(JSON.parse(await file.text()));
         if (value.media.length || templateMediaIds(value.set).length) throw new Error(`${localFixtureName(siteId ?? "test")} templates require portable image URLs. Browser-managed media cannot be imported here.`);
-        const copy = duplicateTemplateSet(value.set, uniqueName(`${value.set.name} Imported`));
+        const copy = duplicateTemplateSet(value.set, "Templates");
+        copy.templates = copy.templates.map(template => ({ ...template, isDefault: false }));
         if (!templates.commit(store => ({ ...store, sets: [...store.sets, copy] }))) throw new Error(`The template could not be saved to ${localFixtureName(siteId ?? "test")}.`);
         openSet(copy);
       } catch (error) { setFeedback(error instanceof Error ? error.message : "Import failed."); }
@@ -204,28 +164,24 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
       const token = studioWriteOwnership.captureWriteToken();
       if (file.size > TEMPLATE_PACKAGE_LIMIT) throw new Error("Choose a template package smaller than 50 MB.");
       const value = validateTemplatePackage(JSON.parse(await file.text()));
-      const id = await importTemplatePackage(value, uniqueName(`${value.set.name} Imported`), token);
+      value.set.templates = value.set.templates.map(template => ({ ...template, isDefault: false }));
+      const id = await importTemplatePackage(value, "Templates", token);
       window.location.assign(`/studio?mode=templates&set=${encodeURIComponent(id)}`);
     } catch (error) { setFeedback(error instanceof Error ? error.message : "Import failed."); setBusy(false); }
   }
-  function deleteSet(item: TemplateSet) {
-    const blockedReason = templateSetDeleteBlockReason(item.id);
-    if (blockedReason) { setFeedback(blockedReason); return; }
-    if (!templates.commit(store => ({ ...store, sets: store.sets.filter(candidate => candidate.id !== item.id), bin: [...store.bin, { id: templateId(), kind: "set", deletedAt: new Date().toISOString(), set: copyTemplateData(item) }] }))) setFeedback("The template set could not be moved to the Bin.");
-  }
-  function deleteSetFromContextMenu(item: TemplateSet) {
-    const blockedReason = templateSetDeleteBlockReason(item.id);
-    if (blockedReason) return;
-    if (!templates.commit(store => ({ ...store, sets: store.sets.filter(candidate => candidate.id !== item.id), bin: [...store.bin, { id: templateId(), kind: "set", deletedAt: new Date().toISOString(), set: copyTemplateData(item) }] }))) setFeedback("The template set could not be moved to the Bin.");
-  }
   function addTarget(kind: "page" | "post" | "header" | "footer") {
-    if (!set) return;
+    if (!writable) return;
     askName(`New ${kind === "page" || kind === "post" ? "Template" : "Shared Part"}`, `New ${kind}`, name => {
       const id = templateId();
-      const item = { id, name, kind, nodes: kind === "page" || kind === "post" ? createDocumentTemplateNodes(kind) : [] };
-      const next = kind === "page" || kind === "post" ? { ...set, templates: [...set.templates, item as PageTemplate] } : { ...set, parts: [...set.parts, item as TemplatePart] };
-      const saved = templates.commit(store => ({ ...store, sets: store.sets.map(candidate => candidate.id === set.id ? next : candidate) }));
-      if (saved) openSet(next, id); return saved;
+      const item = { id, name, kind, ...(kind === "page" || kind === "post" ? { isDefault: false } : {}), nodes: kind === "page" || kind === "post" ? createDocumentTemplateNodes(kind) : [] };
+      let destination: TemplateSet | undefined;
+      const saved = templates.commit(store => {
+        const context = templateLibraryContext(store);
+        destination = kind === "page" || kind === "post" ? { ...context, templates: [...context.templates, item as PageTemplate] } : { ...context, parts: [...context.parts, item as TemplatePart] };
+        return { ...store, sets: store.sets.some(candidate => candidate.id === context.id) ? store.sets.map(candidate => candidate.id === context.id ? destination! : candidate) : [...store.sets, destination] };
+      });
+      if (saved && destination) openSet(destination, id);
+      return saved;
     });
   }
   function renameTemplateEntry(setId: string, targetId: string) {
@@ -242,16 +198,9 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
     const targetSet = templates.store.sets.find(item => item.id === setId);
     const targetEntry = targetSet ? [...targetSet.templates, ...targetSet.parts].find(item => item.id === targetId) : undefined;
     if (!targetSet || !targetEntry) return;
-    const copy = copyTemplateData(targetEntry); copy.id = templateId(); copy.name = `${copy.name} Copy`; visitTemplateNodes(copy.nodes, node => { node.id = templateId(); });
+    const copy = copyTemplateData(targetEntry); copy.id = templateId(); copy.name = `${copy.name} Copy`; if (copy.kind === "page" || copy.kind === "post") copy.isDefault = false; visitTemplateNodes(copy.nodes, node => { node.id = templateId(); });
     const next = copy.kind === "page" || copy.kind === "post" ? { ...targetSet, templates: [...targetSet.templates, copy as PageTemplate] } : { ...targetSet, parts: [...targetSet.parts, copy as TemplatePart] };
     if (changeSet(next)) openSet(targetSet, copy.id);
-  }
-  function templateSetDeleteBlockReason(setId: string) {
-    if (siteNavigation?.setId === setId) return "This set supplies the site navigation. Edit its Navigation blocks instead.";
-    if (templates.store.assignments.some(a => a.setId === setId)) return "Reassign documents before moving this template set to the Bin.";
-    if (workspace.workspace.bin.some(item => item.assignment?.setId === setId)) return "Restore or permanently delete the binned documents assigned to this template set first.";
-    if (templates.store.bin.some(item => item.kind === "template" && item.setId === setId)) return "Restore or permanently delete this set’s binned templates first.";
-    return undefined;
   }
   function templateDeleteBlockReason(setId: string, targetId: string) {
     if (siteNavigation?.setId === setId && siteNavigation.partId === targetId) return "This shared part supplies the site navigation. Remove its blocks to hide the menu.";
@@ -324,10 +273,10 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
         });
         return { ...item, templates, parts };
       }) }));
-      if (saved && setId === targetSet.id && targetId === targetEntry.id) {
+      if (saved && activeSelection.setId === targetSet.id && activeSelection.targetId === targetEntry.id) {
         const remaining = [...targetSet.templates, ...targetSet.parts].filter(item => item.id !== targetEntry.id);
         const replacement = remaining[0];
-        openSet(targetSet, replacement?.id);
+        if (replacement) openSet(targetSet, replacement.id); else library();
         if (replacement) pendingTemplateFocusRef.current = `${targetSet.id}/${replacement.id}`;
       }
     if (!saved) setFeedback("The template could not be moved to the Bin.");
@@ -366,15 +315,12 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
     }
     setMediaTarget(null);
   }
-  function renderTemplateSetCard(item: TemplateSet) {
-    return <article className="template-set-card" key={item.id} onContextMenu={(event) => { event.preventDefault(); setTemplateSetContextMenuTrigger(event.currentTarget.querySelector<HTMLButtonElement>("button")); setTemplateSetContextMenu({ setId: item.id, label: item.name, x: event.clientX, y: event.clientY }); }}><button className="template-set-context-trigger" type="button" aria-label={`Actions for ${item.name}`} aria-haspopup="menu" aria-expanded={templateSetContextMenu?.setId === item.id} onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); setTemplateSetContextMenuTrigger(event.currentTarget); setTemplateSetContextMenu({ setId: item.id, label: item.name, x: rect.left, y: rect.bottom }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); const rect = event.currentTarget.getBoundingClientRect(); setTemplateSetContextMenuTrigger(event.currentTarget); setTemplateSetContextMenu({ setId: item.id, label: item.name, x: rect.left, y: rect.bottom }); } }}><StudioIcon name="more-vertical" size={18} /></button><h2>{item.name}</h2><p>{item.templates.length} templates · {item.parts.length} shared parts</p><button type="button" onClick={() => openSet(item)}>Open Templates</button><div className="template-set-actions"><button type="button" disabled={!writable} onClick={() => askName("Rename Template Set", item.name, name => changeSet({ ...item, name }))}>Rename</button><button type="button" disabled={!exclusiveWritable} onClick={() => void duplicateSet(item)}>Duplicate</button><button type="button" disabled={busy} onClick={() => void exportSet(item)}>Export</button><button type="button" disabled={!writable} onClick={() => deleteSet(item)}>Delete</button></div></article>;
-  }
   const panel = <>
     {templates.syncConflict ? <div className="template-status template-inline-status template-conflict-status" role="alert"><div><strong>Another Studio tab changed this template while you were editing.</strong><span>{templates.syncConflict.conflicts.length || 1} overlapping change{templates.syncConflict.conflicts.length === 1 ? "" : "s"} need your decision. Your changes are still available in this tab.</span><small>{studioConflictDetails(templates.syncConflict)} Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</small></div><div className="template-status-actions"><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}
     {!templates.syncConflict && (templates.error || feedback || media.error) ? <div className="template-status template-inline-status" role="alert"><span>{templates.error ?? feedback ?? media.error}</span>{!templates.ready ? <div className="template-status-actions"><button type="button" onClick={() => exportStudioJson({ raw: window.localStorage.getItem(TEMPLATE_STORAGE_KEY) }, "acm-template-recovery.json", 1000)}>Export Original Data</button></div> : null}</div> : null}
     {onBackToContent ? <Pane trackClassName="studio-library-track" className="studio-library" bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={resolvedLibraryPaneWidth} onWidthChange={setResolvedLibraryPaneWidth} minWidth={270} maxWidth={480} collapsed={resolvedLibraryPaneCollapsed} onCollapsedChange={setResolvedLibraryPaneCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}>
       <div className="library-create">
-        <button type="button" onClick={library} aria-pressed={showTemplateSets}>Manage Template Sets</button>
+        <button type="button" onClick={library} aria-pressed={showTemplateLibrary}>Templates</button>
         <button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button>
       </div>
       <button className="library-tool-button" type="button" onClick={onOpenFiles}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
@@ -389,23 +335,32 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
       </div>
       <div className="document-list template-document-list">
         {libraryKind === "templates" ? <>
-        {templateEntries.map(({ set: item, entry }) => <button className={`document-item template-target-item${!showTemplateSets && item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
+        {templateEntries.map(({ set: item, entry }) => <button className={`document-item template-target-item${!showTemplateLibrary && item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
           <span className="document-kind-mark">{entry.kind === "post" ? "A" : entry.kind === "page" ? "P" : "H"}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" || entry.kind === "overlay" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />
         </button>)}
-        {templateContextMenu ? <StudioListContextMenu target={templateContextMenu} actions={templateContextMenuActions} canDelete={writable && Boolean(templateContextMenuEntry) && !templateContextMenuDeleteReason} returnFocusRef={templateContextMenuTriggerRef} onDelete={() => deleteTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId)} onClose={closeTemplateContextMenu} /> : null}
+
         </> : workspace.workspace.documents.filter(document => document.kind === libraryKind).map(document => <button className={`document-item${document.id === workspace.workspace.activeDocumentId ? " is-active" : ""}`} type="button" key={document.id} onClick={() => onSelectDocument?.(document.id)}>
           <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span><span><strong>{document.title}</strong><small>/{document.slug}</small></span><span className={`document-status is-${document.status}`}>{document.status.charAt(0).toUpperCase() + document.status.slice(1)}</span>
         </button>)}
         {libraryKind !== "templates" && !workspace.workspace.documents.some(document => document.kind === libraryKind) ? <p className="document-list-empty">No {libraryKind === "page" ? "pages" : "posts"} yet.</p> : null}
       </div>
-      {set && libraryKind === "templates" ? <fieldset disabled={!writable}><legend>Add template</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div></fieldset> : null}
+      {libraryKind === "templates" ? <fieldset disabled={!writable}><legend>Add template</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div></fieldset> : null}
       <>{siteId ? <LocalFixtureSiteNavigation selectedSite={siteId} onSelectSite={onSelectSite} /> : <SiteNavigation />}<div className="library-footer"><button type="button" onClick={onExportContent}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div></>
     </Pane> : <aside className="studio-library">
       <a className="library-tool-button" href="/studio"><span><StudioIcon name="pencil" /></span><strong>Content</strong><small>Pages and posts</small></a>
       <a className="library-tool-button" href={siteId ? `/studio?site=${siteId}&mode=bin` : "/studio?mode=bin"}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
       <button className="library-tool-button is-active" type="button" onClick={library}><span><StudioIcon name="block" /></span><strong>Templates</strong><small>Shared presentation</small></button>
     </aside>}
-    {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : mediaTarget.background ? "Background image" : "Template image"} targetKind={mediaTarget.background ? "background" : "block"} onInsertImage={insertMedia} /></section> : !showTemplateSets && set && target ? <TemplateEditor siteId={siteId} fixtureLinks={Boolean(siteId)} initialSelectedBlockId={target.kind === "overlay" ? target.nodes[0]?.id : siteNavigation?.setId === set.id && siteNavigation.partId === target.id ? target.nodes.find(node => node.type === "element" && node.element === "navigation")?.id : undefined} siteNavigationPartId={siteNavigation?.setId === set.id ? siteNavigation.partId : undefined} sharedSiteNavigation={siteNavigation?.setId === set.id && siteNavigation.partId === target.id} key={target.id} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} loadInlineImages={loadStoredInlineImages} writable={writable} onChange={changeSet} onEditPart={(id, nextSet) => openSet(nextSet ?? set, id)} onOpenMedia={(blockId, logo = false, background = false, item) => { if (siteId) { setFeedback(`${localFixtureName(siteId ?? "test")} templates use portable image URLs. Browser-managed files remain in Studio Drafts.`); return; } setMediaTarget({ blockId, logo, background, item, targetId: target.id, setId: set.id }); }} inspectorTab={inspectorTab} onInspectorTabChange={onInspectorTabChange} inspectorPaneWidth={resolvedInspectorPaneWidth} onInspectorPaneWidthChange={setResolvedInspectorPaneWidth} inspectorPaneCollapsed={resolvedInspectorPaneCollapsed} onInspectorPaneCollapsedChange={setResolvedInspectorPaneCollapsed} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Site templates</h1><p>Create a consistent page and post design. Each set has its own shared parts, identity and styles.</p><div className="template-library-actions"><button className="button-primary" type="button" disabled={!writable} onClick={createSet}><StudioIcon name="add" />Create Template Set</button><button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button></div><div className="template-set-grid">{templates.store.sets.map(renderTemplateSetCard)}</div>{!templates.store.sets.length && templates.ready ? <p>No template sets yet. Create one to start with the neutral ACM design.</p> : null}{templateSetContextMenu ? (() => { const item = templates.store.sets.find(candidate => candidate.id === templateSetContextMenu.setId); const blockedReason = item ? templateSetDeleteBlockReason(item.id) : "This template set is no longer available."; return <TemplateSetActionsMenu target={templateSetContextMenu} canDelete={Boolean(item && writable && !blockedReason)} disabledReason={!writable ? "Editing is unavailable in this tab." : blockedReason} onDelete={() => { if (item) deleteSetFromContextMenu(item); }} onClose={closeTemplateSetContextMenu} />; })() : null}</section>}
+    {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : mediaTarget.background ? "Background image" : "Template image"} targetKind={mediaTarget.background ? "background" : "block"} onInsertImage={insertMedia} /></section> : !showTemplateLibrary && set && target ? <TemplateEditor siteId={siteId} fixtureLinks={Boolean(siteId)} initialSelectedBlockId={target.kind === "overlay" ? target.nodes[0]?.id : siteNavigation?.setId === set.id && siteNavigation.partId === target.id ? target.nodes.find(node => node.type === "element" && node.element === "navigation")?.id : undefined} siteNavigationPartId={siteNavigation?.setId === set.id ? siteNavigation.partId : undefined} sharedSiteNavigation={siteNavigation?.setId === set.id && siteNavigation.partId === target.id} key={`${set.id}/${target.id}`} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} loadInlineImages={loadStoredInlineImages} writable={writable} onChange={changeSet} onEditPart={(id, nextSet) => openSet(nextSet ?? set, id)} onOpenMedia={(blockId, logo = false, background = false, item) => { if (siteId) { setFeedback(`${localFixtureName(siteId ?? "test")} templates use portable image URLs. Browser-managed files remain in Studio Drafts.`); return; } setMediaTarget({ blockId, logo, background, item, targetId: target.id, setId: set.id }); }} inspectorTab={inspectorTab} onInspectorTabChange={onInspectorTabChange} inspectorPaneWidth={resolvedInspectorPaneWidth} onInspectorPaneWidthChange={setResolvedInspectorPaneWidth} inspectorPaneCollapsed={resolvedInspectorPaneCollapsed} onInspectorPaneCollapsedChange={setResolvedInspectorPaneCollapsed} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Templates</h1><p>Reusable layouts and shared parts.</p><div className="template-library-actions">{(["page", "post", "header", "footer"] as const).map(kind => <StudioButton type="button" key={kind} disabled={!writable} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</StudioButton>)}<StudioButton variant="secondary" type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</StudioButton></div>
+      <ul className="template-entry-list" aria-label="Templates">{templateEntries.map(({ set: item, entry }) => <li key={`${item.id}/${entry.id}`}>
+        <button className="template-entry-open" type="button" onClick={() => openSet(item, entry.id)}><StudioIcon name="block" /><span><strong>{entry.name}</strong><small>{entry.kind === "page" || entry.kind === "post" ? `${entry.kind === "page" ? "Page" : "Post"} template` : `Shared ${entry.kind}`}</small></span></button>
+        <button className="template-entry-actions" type="button" aria-label={`Actions for ${entry.name}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={event => { templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left, y: rect.bottom }); }}><StudioIcon name="more-vertical" /></button>
+      </li>)}</ul>
+      {!templateEntryCount && templates.ready ? <p>No templates yet. Create a template or shared part to begin.</p> : null}
+
+    </section>}
+
+    {templateContextMenu ? <StudioListContextMenu target={templateContextMenu} actions={templateContextMenuActions} canDelete={writable && Boolean(templateContextMenuEntry) && !templateContextMenuDeleteReason} disabledReason={!writable ? "Editing is unavailable in this tab." : templateContextMenuDeleteReason} returnFocusRef={templateContextMenuTriggerRef} onDelete={() => deleteTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId)} onClose={closeTemplateContextMenu} /> : null}
     <input ref={importRef} hidden type="file" accept=".json,application/json" onChange={event => { void importFile(event.target.files?.[0]); event.target.value = ""; }} />
   </>;
   const dialogElement = dialog ? <StudioDialog title={dialog.title} className="template-dialog" returnFocus={dialogOpener} selectInitialText onClose={closeDialog}>

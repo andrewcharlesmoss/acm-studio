@@ -105,6 +105,10 @@
 
 ### Changed
 
+- Templates use one list of individual layouts and shared parts. Named-set
+  management and the Save as Template destination selector are removed;
+  existing designs, assignments and recovery data remain compatible.
+
 - Navigation panes more closely follow Gutenberg’s spacing, menu hierarchy, section options and compact Settings and Styles controls, in both the editor and Block Library.
 
 - Template Edit and Preview use a white canvas without a shadow and the content editor's pale off-page background, while preserving authored template colours.

@@ -167,8 +167,12 @@ layouts and 200% zoom, before treating a block-style change as complete.
 
 Andrew has explicitly authorised the local template editor described in
 `docs/templates.md`. This is a bounded extension of the foundation: Studio owns
-independent template sets, shared header/footer parts, scoped styles and page/post
-assignments. It is not a general theme/plugin system or an external-site
+one flat template library, shared header/footer parts, scoped styles and page/post
+assignments. Named-set authoring is not offered. Legacy backing context IDs remain
+internal for compatibility; preserve their styles, references, assignments and
+Bin recovery rather than destructively combining them. New entries use the
+unnamed library context independently of the current selection. See
+`docs/templates.md` for the retained shared-reference boundary. It is not a general theme/plugin system or an external-site
 integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing

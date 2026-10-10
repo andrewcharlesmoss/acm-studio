@@ -1,6 +1,6 @@
 .template-library { padding: 24px; min-width: 0; overflow: auto; }
 .template-library h1 { font-size: 1.5rem; }
-.template-library-actions, .template-set-actions, .template-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.template-library-actions, .template-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .template-library-actions { margin: 16px 0; }
 .template-toolbar { padding: 10px 14px; border-bottom: 1px solid #ddd; background: #fff; font: var(--studio-ui-size)/1.5 var(--studio-ui-font); }
 .template-toolbar label { display: flex; gap: 6px; align-items: center; }
@@ -11,13 +11,18 @@
 .template-zoom-control button:hover, .template-zoom-control button:focus-visible { border-color: #5c5e5c; color: #17191c; }
 .template-zoom-control button:disabled { cursor: default; opacity: .45; }
 .template-zoom-control .template-zoom-value { min-width: 58px; font-variant-numeric: tabular-nums; }
-.template-set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 20px; }
-.template-set-card { padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fff; position: relative; }
-.template-set-context-trigger { position: absolute; right: 12px; top: 12px; padding: 5px; border: 0; background: transparent; color: #6b6b68; }
-.template-set-context-trigger:hover, .template-set-context-trigger:focus-visible { background: #ebe9e2; color: #17191c; }
-.template-set-card h2 { margin: 0 0 8px; font-size: 1.15rem; }
-.template-set-card p { color: #555; }
-.template-set-actions { margin-top: 16px; }
+/* A single library; rows retain comfortable targets while the desktop workspace scrolls. */
+.template-entry-list { list-style: none; padding: 0; margin: 0; border: 1px solid var(--acm-color-border); background: var(--acm-color-surface); }
+.template-entry-list li { display: flex; align-items: stretch; border-bottom: 1px solid var(--acm-color-border); }
+.template-entry-list li:last-child { border-bottom: 0; }
+.template-entry-list button { border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; }
+.template-entry-open { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 16px; text-align: left; }
+.template-entry-open span { min-width: 0; display: grid; gap: 4px; }
+.template-entry-open strong { overflow-wrap: anywhere; }
+.template-entry-open small { color: var(--acm-color-text-secondary); font-size: var(--studio-ui-size); }
+.template-entry-actions { padding: 12px; }
+.template-entry-list button:hover { background: var(--acm-color-surface-subtle); }
+
 .template-targets { display: grid; gap: 6px; margin: 12px 0; }
 .template-targets button { text-align: left; }
 .template-workspace .studio-library { padding: 0; overflow-y: auto; gap: 0; }
@@ -31,7 +36,7 @@
 .template-empty-state { align-content: center; display: grid; min-height: 100%; place-items: center; text-align: center; }
 .template-inspector .inspector-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .template-inspector input, .template-inspector select, .template-inspector textarea, .template-toolbar select, .template-dialog input, .template-assignment select { border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; }
-.template-inspector .inspector-scroll button:not(.inspector-accordion-heading):not(:where(.navigation-inspector button)), .template-set-actions button, .template-set-card > button, .template-library-actions > button:not(.button-primary), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.template-inspector .inspector-scroll button:not(.inspector-accordion-heading):not(:where(.navigation-inspector button)), .template-library-actions > button:not(.button-primary), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-inspector button:disabled, .template-workspace button:disabled { opacity: .5; cursor: default; }
 .template-workspace :is(input,select,textarea,button):focus-visible, .template-dialog :is(input,button):focus-visible { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
 .template-workspace .canvas-appender input:focus-visible { box-shadow: none; }

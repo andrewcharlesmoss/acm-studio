@@ -38,6 +38,7 @@ export type StudioBackupSummary = {
   fileBytes: number;
   designs: number;
   templateSets: number;
+  templates: number;
 };
 
 export function blobToBase64(blob: Blob) {
@@ -156,6 +157,7 @@ export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary
     fileBytes: backup.media.assets.reduce((total, asset) => total + asset.size, 0),
     designs: backup.designs?.length ?? 0,
     templateSets: backup.templates?.sets.length ?? 0,
+    templates: backup.templates?.sets.reduce((count, set) => count + set.templates.length + set.parts.length, 0) ?? 0,
   };
 }
 

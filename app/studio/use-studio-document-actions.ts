@@ -2,11 +2,14 @@
 import { useState } from "react";
 import { createTemplateSet, type TemplateSnapshot } from "./template-model";
 import { cloneTemplateIntoSet } from "./template-cloning";
+import { templateLibraryContext } from "./template-library";
 import type { StudioDocument, StudioDocumentKind, StudioWorkspace } from "./editor-model";
 import type { useStudioDocumentCommands, DocumentTemplateSession } from "./use-studio-document-commands";
 
 export type SaveTemplateDraft = {
-  name: string; destination: string; includeAuthor: boolean; includeCategory: boolean;
+  // Older dialog consumers may still pass this field; authoring no longer uses it.
+  destination?: string;
+  name: string; includeAuthor: boolean; includeCategory: boolean;
   includeTags: boolean; includeParentPage: boolean;
 };
 export function useStudioDocumentActions({ workspace, activeDocument, resolvedDocument, templateSnapshot,
@@ -48,20 +51,23 @@ export function useStudioDocumentActions({ workspace, activeDocument, resolvedDo
   function saveAsTemplate() {
     if (!writable || !templateSession.writable || !confirmCodeEditorDiscard()) return;
     setActionError("");
-    setSaveTemplateDialog({ name: `${activeDocument.kind === "post" ? "Post" : "Page"} template`, destination: templateSnapshot?.set.name ?? templateSession.store.sets[0]?.name ?? "New template set", includeAuthor: false, includeCategory: false, includeTags: false, includeParentPage: false });
+    setSaveTemplateDialog({ name: `${activeDocument.kind === "post" ? "Post" : "Page"} template`, includeAuthor: false, includeCategory: false, includeTags: false, includeParentPage: false });
   }
   function commitSaveAsTemplate(draft: SaveTemplateDraft) {
-    if (!writable || !templateSession.writable || !draft.name.trim() || !draft.destination.trim()) return;
+    if (!writable || !templateSession.writable || !draft.name.trim()) return;
     try {
       const saved = templateSession.commit(store => {
-        const destination = store.sets.find(item => item.name === draft.destination.trim()) ?? createTemplateSet(draft.destination.trim());
+        const destination = templateSnapshot
+          ? store.sets.find(item => item.id === templateSnapshot.set.id)
+          : templateLibraryContext(store);
+        if (!destination) throw new Error("The source template is no longer available.");
         const source = templateSnapshot?.set ?? createTemplateSet();
         const assigned = source.templates.find(item => item.id === templateSnapshot?.templateId);
         const fallback = source.templates.find(item => item.kind === activeDocument.kind)!;
         const sourceTemplate = assigned ?? { ...fallback, nodes: fallback.nodes.filter(node => node.type !== "element" || node.element !== "post-metadata") };
         const { template, parts } = cloneTemplateIntoSet(source, sourceTemplate, destination, draft.name.trim());
         const defaults = { ...(draft.includeAuthor ? { author: resolvedDocument.author } : {}), ...(draft.includeCategory ? { category: resolvedDocument.category } : {}), ...(draft.includeTags ? { tags: [...resolvedDocument.tags] } : {}), ...(draft.includeParentPage ? { parentPageId: resolvedDocument.parentPageId } : {}) };
-        const nextSet = { ...destination, templates: [...destination.templates, { ...template, defaults }], parts: [...destination.parts, ...parts] };
+        const nextSet = { ...destination, templates: [...destination.templates, { ...template, defaults, isDefault: false }], parts: [...destination.parts, ...parts] };
         return { ...store, sets: store.sets.some(item => item.id === nextSet.id) ? store.sets.map(item => item.id === nextSet.id ? nextSet : item) : [...store.sets, nextSet] };
       });
       if (saved) { setSaveTemplateDialog(undefined); return; }

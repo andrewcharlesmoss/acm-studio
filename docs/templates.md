@@ -2,16 +2,16 @@
 
 Templates are Studio-owned browser-local designs. Open **Templates** beside
 **Pages** and **Posts** in the Content Studio, or use the dashboard shortcut,
-then create a named set and edit its Page, Post, Header or Footer. The Content
+then open or create an individual Page, Post, Header or Footer. The Content
 Studio keeps the template library and editor in the same workspace, so changing
 mode does not discard the current content selection or require a separate
-editing session. Each set starts with a neutral Inter design. Social/support
+editing session. New templates start with a neutral Inter design. Social/support
 links are empty until a real destination is supplied. Templates remain a
 separate reusable presentation data type even though they share the content
 editor shell.
 
 The canvas, ordinary block controls, List View and history are shared with the
-content editor. The editing breadcrumb identifies the selected set and target.
+content editor. Each entry opens directly from a single list without choosing or naming a set.
 When the same local Studio is open in more than one browser tab, one tab owns
 browser persistence and the others synchronise edits through it. A peer tab
 stays paused until it has installed the owner's latest Content and Template
@@ -25,8 +25,8 @@ is available from the toolbar or with Command/Ctrl + plus/equal, Command/Ctrl +
 minus/underscore and Command/Ctrl + 0 to reset to 100%. These shortcuts only
 belong to the focused template workspace and leave text, code and form editing
 to the browser. The Template inspector owns identity, navigation and
-social/support links; Styles applies to the whole set. Ordinary paragraph style
-overrides take precedence over the set's tokens.
+social/support links. Styles lists the entries sharing its presentation settings.
+Ordinary paragraph style overrides take precedence over those tokens.
 
 Template Edit and Preview use a white canvas without a shadow and the same pale
 off-page background as the content editor. These workspace colours do not
@@ -39,7 +39,7 @@ open in a new tab. Existing footer social/support template elements remain
 readable; authors can replace or supplement them with the block.
 The Copyright setting supports `{copyright}` (©), `{year}` (the current year)
 and `{site-title}` (the Site Name). Values resolve when a template is rendered;
-unknown brace-wrapped text remains unchanged. New template sets use
+unknown brace-wrapped text remains unchanged. The initial neutral Footer uses
 `© 2026 Andrew Moss. All Rights Reserved.` in the shared Footer part. Existing
 authored footer text and published snapshots keep their saved copyright value.
 Templated bodies and ordinary template blocks display dividers in every
@@ -118,21 +118,34 @@ assigned drafts. Page documents remain drafts/previews. Publishing or updating
 a local post captures a separate template snapshot and media references; later
 design changes do not alter that published snapshot until **Update**.
 
-Template sets support Rename, Duplicate, Move to Bin, Import and Export.
-Additional page/post layouts and header/footer variants can be created, renamed
-and duplicated within a set. A set may have no active templates while layouts
-are in the Bin. Assigned templates and sets cannot be moved to the Bin until
-their documents are reassigned, restored from the Bin or permanently deleted.
-Shared parts must have no references before they can be moved. A set cannot be
-moved while one of its entries remains in the Bin. Duplicate sets are
-independent copies, including managed images; templates within a set deliberately
-share that set's parts.
+Templates and shared parts support Rename, Duplicate, Move to Bin and Export
+from their individual action menus. Create a Page, Post, Header or Footer directly
+from the library, including when it is empty. Creation uses the same internal
+library context regardless of which entry was previously selected. **Save as
+Template** asks for the template name and reusable defaults, with no destination
+set. Imports appear as individual entries in the same list; older multi-entry
+packages remain readable. Export includes only the selected entry and its
+referenced shared parts and overlays, with the required presentation and media.
+New, duplicated and imported layouts do not become the default automatically.
+Enabling a default clears other defaults of that document kind. Existing legacy
+flags are retained until deliberately changed.
 
-The Studio Bin also holds deleted pages and posts, template entries and template
-sets. Restore returns an item to its original workspace or set. A post restored
-from the Bin also regains its local published snapshot. Items remain in the Bin
-until they are individually permanently deleted with confirmation; the Bin does
-not empty itself. The Bin is included in full Studio backups.
+Named-set management is not offered. Legacy backing context IDs remain internal
+compatibility data because they own styles, site identity, menu links and shared
+part references. They are not displayed as library groups or editable names.
+Existing contexts are not merged: doing so would replace different styles and
+menus. Existing templates still share their original parts; new library entries
+share the unnamed creation context. Part and Overlay pickers retain those
+reference boundaries, so a legacy part from another context is not automatically
+copied or linked into a new template. Cross-context shared references require a
+separate versioned contract change.
+
+Assigned templates cannot be moved to the Bin until their documents are
+reassigned, restored from the Bin or permanently deleted. Referenced shared
+parts remain protected. Restore returns individual entries to the same flat
+library with their original IDs and references. Legacy binned collections remain
+recoverable through the Bin. A restored post also regains its local published
+snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 ## Storage and portable contract
 
@@ -142,7 +155,7 @@ The template-store and JSON package schema is **v0.29.0** (`0.29.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
-created sets receive an independent clone of its universal defaults. Assignments
+created library contexts receive an independent clone of its universal defaults. Assignments
 reference Studio document IDs. The local-storage key is
 `acm-studio-templates-v1`; an absent key means no templates. Invalid or unsupported
 data disables template writes without replacing the original value. **Export
@@ -186,9 +199,11 @@ Templates live in the integrated Content Studio at `/studio?mode=templates`.
 The old `/studio/templates` route redirects there, preserving the selected
 `set` and `target` query parameters. The Templates badge counts individual
 Page/Post templates and shared Header/Footer parts. Selecting an entry opens
-the editor directly. Manage Template Sets opens the set manager within the same
-workspace, with Create, Rename, Duplicate, Export, Import and protected Bin
-actions using the existing ownership and template storage contracts.
+the editor directly. **Templates** returns to the single library list.
+Create, Rename, Duplicate, Export, Import and protected Bin actions use the
+existing ownership and template storage contracts. Legacy `set` IDs remain opaque
+route parameters so entries with matching IDs in different old contexts remain
+unambiguous. A missing target returns to the list instead of editing another item.
 
 Layout options, Spacer, document metadata, dynamic document-field blocks,
 root-level Group sticky positioning, Gutenberg's Huge Social Icons size and
@@ -259,7 +274,7 @@ rather than silently disappearing. Remote updates clear local undo/redo history
 so an older whole snapshot cannot overwrite a change made in another tab.
 Synchronous validated saves report Saving then Saved, and storage errors remain
 visible. If coordination is unavailable, the tab remains safely read-only.
-Import and set duplication use
+Browser-managed package imports use
 the exclusive restore transaction: drain pending media work, stage new media and
 templates, roll both back on failure, and reload the installed snapshot after
 success. Incomplete rollback blocks editing. Retain the source package/backup

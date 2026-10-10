@@ -26,7 +26,6 @@ export function StudioDocumentDialogs({ actions, workspace, templates, writable,
       <form onSubmit={event => { event.preventDefault(); actions.commitSaveAsTemplate(saveTemplateDialog); }}>
         <p>The document body and personal content stay with this document. Choose reusable defaults below; the template keeps the layout and dynamic field structure.</p>
         <label><span>Template name</span><input required value={saveTemplateDialog.name} onChange={event => actions.setSaveTemplateDialog({ ...saveTemplateDialog, name: event.target.value })} /></label>
-        <label><span>Template set</span><input required value={saveTemplateDialog.destination} onChange={event => actions.setSaveTemplateDialog({ ...saveTemplateDialog, destination: event.target.value })} /></label>
         <fieldset><legend>Reusable defaults</legend>{(["Author", "Category", "Tags", "Parent page"] as const).map((label, index) => {
           const key = (["includeAuthor", "includeCategory", "includeTags", "includeParentPage"] as const)[index];
           return <label className="checkbox-setting" key={key}><input type="checkbox" checked={saveTemplateDialog[key]} onChange={event => actions.setSaveTemplateDialog({ ...saveTemplateDialog, [key]: event.target.checked })} /><span>{label}</span></label>;
