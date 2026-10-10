@@ -4,6 +4,8 @@
 
 ### Added
 
+- Accordion Hover Colour in the Controls library, with a saved browser preference and reset shared by all Studio inspector dropdown headings.
+
 - Page link children in Navigation, with a contextual Block Library entry, individual Content/Settings/Styles controls, sibling drag and movement, and saved per-link typography.
 
 - Navigation in the template editor's Theme block category and the UI Library, with an editable specimen using the production Menu, Settings and Styles controls.
