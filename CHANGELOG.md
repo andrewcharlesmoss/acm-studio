@@ -667,6 +667,9 @@
 
 ### Fixed
 
+- Styles interaction colours use compact groups with readable descriptions and
+  aligned colour, hex and reset controls at narrow settings widths.
+
 - Navigation justification now follows its block setting in template editing,
   previews and local output, without a conflicting header wrapper alignment.
 

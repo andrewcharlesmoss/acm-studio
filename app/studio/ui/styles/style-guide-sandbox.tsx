@@ -36,25 +36,29 @@ type MobilePanel = "settings" | "preview" | "guide";
 type GuideSourceMapping = { line: number; excerpt: string; heading: string; rowPath: string };
 type GuideView = "formatted" | "markdown";
 
-const interactionControls: { key: keyof UniversalStylePreset["interactions"]; label: string; description: string }[] = [
+const interactionControls: { key: keyof UniversalStylePreset["interactions"]; label: string; title: string; description: string }[] = [
   {
     "key": "disclosureHoverBackground",
     "label": "Disclosure heading hover background",
+    "title": "Disclosure headings",
     "description": "Inspector accordion and navigation overlay disclosure headings."
   },
   {
     "key": "neutralControlHoverBackground",
     "label": "Neutral control hover background",
+    "title": "Neutral controls",
     "description": "Toolbar icons, layout choices, options and popup close buttons."
   },
   {
     "key": "menuItemHoverBackground",
     "label": "Menu item hover background",
+    "title": "Menu items",
     "description": "Dropdown and context-menu entries."
   },
   {
     "key": "listItemHoverBackground",
     "label": "List item hover background",
+    "title": "List items",
     "description": "Document, template and navigation rows."
   }
 ];
@@ -471,7 +475,7 @@ export function StyleGuideSandbox() {
           {([ ["palette", "Colours"], ["typography", "Typography"], ["buttons", "Buttons"], ["interactions", "Interactions"], ["layout", "Layout"] ] as [Panel, string][]).map(([id, label]) => <button type="button" key={id} className={panel === id ? "is-selected" : ""} aria-current={panel === id ? "page" : undefined} onClick={() => setPanel(id)}>{label}</button>)}
           </nav>
           <fieldset className="sg-setting-content" disabled={busy}>
-            <div className="sg-setting-heading"><div><p className="rl-eyebrow">ACM UNIVERSAL STYLE</p><h3>{panel === "palette" ? "Colours" : panel === "typography" ? "Typography" : panel === "buttons" ? "Buttons" : panel === "interactions" ? "Interactions" : "Layout"}</h3></div><button type="button" className="sg-reset-section" onClick={resetSection}>Reset section</button></div>
+            <div className="sg-setting-heading"><div><p className="rl-eyebrow">ACM UNIVERSAL STYLE</p><h3>{panel === "palette" ? "Colours" : panel === "typography" ? "Typography" : panel === "buttons" ? "Buttons" : panel === "interactions" ? "Interactions" : "Layout"}</h3></div>{panel !== "interactions" ? <button type="button" className="sg-reset-section" onClick={resetSection}>Reset section</button> : null}</div>
             {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting" data-style-path={`palette.${key}`} data-source-selected={selectedColourPath === `palette.${key}` ? "true" : undefined}><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} /><code>{preset.palette[key]}</code><button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, baseline.palette[key], false)}>Reset</button></div>)}</div> : null}
             {panel === "typography" ? <>
               <div className="sg-role-list" role="group" aria-label="Typography role">
@@ -495,7 +499,7 @@ export function StyleGuideSandbox() {
               <div className="sg-role-list" role="group" aria-label="Button variant">{buttonRoles.map(item => <button data-style-path={`buttons.${item.id}.background`} type="button" key={item.id} aria-pressed={buttonRole === item.id} onClick={() => setButtonRole(item.id)}>{item.label}</button>)}</div>
               <div className="sg-button-settings">{([ ["background", "Background colour"], ["foreground", "Text colour"], ["border", "Border colour"], ["hoverBackground", "Hover background colour"], ["hoverForeground", "Hover text colour"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} stylePath={`buttons.${buttonRole}.${key}`} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, baseline.buttons[buttonRole][key], false)} />)}<label className="sg-button-border-width">Border width (px)<input data-style-path={`buttons.${buttonRole}.borderWidth`} type="number" min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /></label></div>
             </> : null}
-            {panel === "interactions" ? <div className="sg-interaction-settings">{interactionControls.map(({ key, label, description }) => <div key={key}><ColourControl stylePath={`interactions.${key}`} label={label} value={preset.interactions[key]} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, [key]: value } }), `interactions.${key}`)} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, [key]: baseline.interactions[key] } }))} /><p>{description}</p></div>)}</div> : null}
+            {panel === "interactions" ? <div className="sg-interaction-settings">{interactionControls.map(({ key, label, title, description }) => <section key={key} className="sg-interaction-group" aria-labelledby={`sg-${key}-heading`}><h4 id={`sg-${key}-heading`}>{title}</h4><p id={`sg-${key}-description`}>{description}</p><ColourControl stylePath={`interactions.${key}`} label={label} visibleLabel="Hover background" descriptionId={`sg-${key}-description`} value={preset.interactions[key]} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, [key]: value } }), `interactions.${key}`)} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, [key]: baseline.interactions[key] } }))} /></section>)}<button type="button" className="sg-reset-section sg-interaction-reset" onClick={resetSection}>Reset Interactions</button></div> : null}
             {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><label htmlFor={`sg-layout-${key}`}>{label}</label><div><input data-style-path={`layout.${key}`} id={`sg-layout-${key}`} type="number" min={min} max={max} step={1} value={preset.layout[key]} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } }), `layout.${key}`); }} /><span>px</span><button data-style-path={`layout.${key}`} type="button" aria-label={`Reset ${label}`} onClick={() => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: baseline.layout[key] } }))}>Reset</button></div></div>)}</div> : null}
           </fieldset>
         </aside>
@@ -552,8 +556,8 @@ export function StyleGuideSandbox() {
     </section>;
 }
 
-function ColourControl({ stylePath, label, value, onChange, onReset }: { stylePath: string; label: string; value: string; onChange: (value: string) => void; onReset: () => void }) {
-  return <div className="sg-colour-setting"><span>{label}</span><input data-style-path={stylePath} type="color" aria-label={label} value={value} onChange={event => onChange(event.target.value)} /><code>{value}</code><button data-style-path={stylePath} type="button" aria-label={`Reset ${label}`} onClick={onReset}>Reset</button></div>;
+function ColourControl({ stylePath, label, visibleLabel = label, descriptionId, value, onChange, onReset }: { stylePath: string; label: string; visibleLabel?: string; descriptionId?: string; value: string; onChange: (value: string) => void; onReset: () => void }) {
+  return <div className="sg-colour-setting"><span>{visibleLabel}</span><input data-style-path={stylePath} type="color" aria-label={label} aria-describedby={descriptionId} value={value} onChange={event => onChange(event.target.value)} /><code>{value}</code><button data-style-path={stylePath} type="button" aria-label={`Reset ${label}`} onClick={onReset}>Reset</button></div>;
 }
 
 function TypographyControls({ role, viewport, value, baseline, search, matchingFamilies, onSearch, onChange, onMetricChange, onResetProperty, onResetMetric }: {
