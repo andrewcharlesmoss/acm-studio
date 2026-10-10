@@ -3,6 +3,10 @@ import { createTemplateSet, copyTemplateData, templatePartReference, visitTempla
 // Stored context IDs still resolve legacy styles, menus, references and assignments.
 // They are compatibility data, not named groups in the template library.
 const LIBRARY_CONTEXT_ID = "studio-template-library";
+export function templateNameInitial(name: string) {
+  return name.trim().match(/\p{L}/u)?.[0].toUpperCase() ?? "?";
+}
+
 export function templateLibraryEntries(store: TemplateStore) {
   return store.sets.flatMap(set => [...set.templates, ...set.parts].map(entry => ({ set, entry })));
 }

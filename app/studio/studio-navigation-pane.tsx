@@ -8,6 +8,7 @@ import { StudioIcon } from "./studio-icons";
 import { StudioListContextMenu, type StudioListContextMenuTarget } from "./studio-list-context-menu";
 import type { StudioDocument, StudioDocumentKind, StudioWorkspace } from "./editor-model";
 import type { useTemplates } from "./use-templates";
+import { templateNameInitial } from "./template-library";
 
 export function StudioNavigationPane({ workspace, activeDocument, templateSession, templateTarget,
   libraryKind, libraryPaneWidth, libraryPaneCollapsed, setLibraryPaneWidth, setLibraryPaneCollapsed,
@@ -61,7 +62,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
               {kind === "templates" ? <>
                 {templateSession.store.sets.flatMap(set => [...set.templates, ...set.parts].map(entry => ({ set, entry }))).map(({ set, entry }) => (
                   <button className={`document-item template-target-item${templateTarget.setId === set.id && templateTarget.targetId === entry.id ? " is-active" : ""}`} type="button" key={`${set.id}/${entry.id}`} onClick={() => onSelectTemplate(set.id, entry.id)}>
-                    <span className="document-kind-mark">{entry.kind === "post" ? "A" : entry.kind === "page" ? "P" : "H"}</span>
+                    <span className="document-kind-mark" aria-hidden="true">{templateNameInitial(entry.name)}</span>
                     <span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" || entry.kind === "overlay" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span>
                     <i aria-hidden="true" />
                   </button>
