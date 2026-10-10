@@ -13,6 +13,7 @@ import { StudioAnchoredMenu } from "./overlays/anchored-menu";
 import { GroupLayoutControls } from "./blocks/group-layout-controls";
 import { ParagraphInspector } from "./blocks/inspectors/paragraph-inspector";
 import { navigationStyleProfile } from "./blocks/capability-profiles";
+import { InspectorToolsSection } from "./inspector-tools-section";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { StudioIcon } from "./studio-icons";
 import { templateId, type NavigationTemplateNode, type SiteLink } from "./template-model";
@@ -125,8 +126,8 @@ export function NavigationCanvasEditor({ node, ...props }: NavigationEditingProp
 
 export function NavigationMenuList(props: NavigationEditingProps) {
   return <div className="navigation-menu-list"><ul aria-label="Navigation menu items">{navigationEntries(props.links).map(({ link, depth }) => <li key={link.id} style={{ paddingInlineStart: `${depth * 16}px` }}>
-    <button type="button" className="navigation-menu-select" data-navigation-link-id={link.id} aria-pressed={props.selectedId === link.id} onClick={() => props.onSelect(link.id)}><StudioIcon name="link" size={18} /><span>{link.label || "Untitled Link"}</span></button><NavigationItemActions {...props} item={link} />
-  </li>)}</ul><div className="navigation-menu-add"><span>Add a page or custom link</span><NavigationAdd {...props} /></div></div>;
+    <button type="button" className="navigation-menu-select" data-navigation-link-id={link.id} aria-pressed={props.selectedId === link.id} onClick={() => props.onSelect(link.id)}><AcmIcon name="view.pages" size={20} /><span>{link.label || "Untitled Link"}</span></button><NavigationItemActions {...props} item={link} />
+  </li>)}</ul><div className="navigation-menu-add"><NavigationAdd {...props} /></div></div>;
 }
 
 function LinkSetting({ label, value, maxLength = 2000, onCommit }: { label: string; value: string; maxLength?: number; onCommit: (value: string) => void }) {
@@ -137,6 +138,10 @@ export function NavigationInspector({ block, menuName = "Navigation", onBlockCha
   const [activeTab, setActiveTab] = useState("menu");
   const tabId = useId();
   const [error, setError] = useState<string | null>(null);
+  const [linkSettingsOpen, setLinkSettingsOpen] = useState(false);
+  const [menuOptionsOpen, setMenuOptionsOpen] = useState(false);
+  const menuOptionsTrigger = useRef<HTMLButtonElement>(null);
+  const [visibleColours, setVisibleColours] = useState(() => new Set(["text", "background", "submenu-text", "submenu-background"]));
   const [fontSizeViewMode, setFontSizeViewMode] = useState<"presets" | "custom" | null>(null);
   const link = navigationEntries(props.links).find(item => item.link.id === props.selectedId)?.link;
   const update = (patch: Partial<SiteLink>) => { if (link && props.writable) props.onChange(updateNavigationItem(props.links, link.id, current => ({ ...current, ...patch }))); };
@@ -147,11 +152,18 @@ export function NavigationInspector({ block, menuName = "Navigation", onBlockCha
   };
   return <div className="navigation-inspector inspector-sections">
     <div className="navigation-block-summary"><h3><AcmIcon name="navigation.menu" size={24} />Navigation</h3><p>A collection of blocks that allow visitors to get around your site.</p></div>
-    <PaneTabs id={tabId} label="Navigation controls" className="navigation-inspector-tabs" tabs={[{ id: "menu", label: "Menu" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]} active={activeTab} onChange={setActiveTab} renderLabel={tab => <><AcmIcon name={tab.id === "menu" ? "view.list" : tab.id === "settings" ? "action.settings" : "view.styles"} size={24} /><span className="visually-hidden">{tab.label}</span></>} />
+    <PaneTabs id={tabId} label="Navigation controls" indicatorVariant="selected" className="navigation-inspector-tabs" tabs={[{ id: "menu", label: "Menu" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]} active={activeTab} onChange={setActiveTab} renderLabel={tab => <><AcmIcon name={tab.id === "menu" ? "view.list" : tab.id === "settings" ? "action.settings" : "view.styles"} size={24} /><span className="visually-hidden">{tab.label}</span></>} />
     <div role="tabpanel" id={paneTabTarget(tabId, activeTab, "panel")} aria-labelledby={paneTabTarget(tabId, activeTab, "tab")}>
     {activeTab === "menu" ? <>
-    <InspectorAccordionSection title={menuName} contentDisabled={!props.writable}><NavigationMenuList {...props} blockId={block.id} /></InspectorAccordionSection>
-    {link ? <InspectorAccordionSection title={link.children?.length ? "Submenu Link" : "Navigation Link"} contentDisabled={!props.writable}>
+    <section className="navigation-menu-section">
+      <div className="navigation-menu-heading"><h2>{menuName}</h2><button ref={menuOptionsTrigger} type="button" className="navigation-item-options" aria-label="Menu options" aria-haspopup="menu" aria-expanded={menuOptionsOpen} onClick={() => setMenuOptionsOpen(open => !open)}><StudioIcon name="more-vertical" size={20} /></button></div>
+      {menuOptionsOpen ? <StudioAnchoredMenu inspectorPlacement anchor={() => menuOptionsTrigger.current} aria-label="Menu options" onClose={(focus = true) => { setMenuOptionsOpen(false); if (focus) menuOptionsTrigger.current?.focus(); }}>
+        <button type="button" role="menuitemcheckbox" aria-checked={linkSettingsOpen} disabled={!link} onClick={() => { setLinkSettingsOpen(open => !open); setMenuOptionsOpen(false); menuOptionsTrigger.current?.focus(); }}>Show link settings</button>
+        <button type="button" role="menuitem" onClick={() => { setMenuOptionsOpen(false); menuOptionsTrigger.current?.focus(); }}><StudioIcon name="close" />Close</button>
+      </StudioAnchoredMenu> : null}
+      <NavigationMenuList {...props} blockId={block.id} onSelect={id => { props.onSelect(id); setLinkSettingsOpen(true); }} />
+    </section>
+    {link && linkSettingsOpen ? <InspectorAccordionSection title={link.children?.length ? "Submenu Link" : "Navigation Link"} contentDisabled={!props.writable}>
       <LinkSetting label="Text" value={link.label} maxLength={160} onCommit={label => update({ label })} />
       <LinkSetting label="Link to" value={link.url} onCommit={url => { const destination = updatedLinkDestination(link, { url, opensInNewTab: Boolean(link.opensInNewTab), nofollow: Boolean(link.rel?.split(/\s+/).includes("nofollow")) }); if (destination) { update(destination); setError(null); } else setError("Use a full URL, email link, /path or #anchor."); }} />
       <ToggleSetting label="Open in new tab" checked={Boolean(link.opensInNewTab)} disabled={!props.writable} onChange={opensInNewTab => update({ opensInNewTab })} />
@@ -164,20 +176,21 @@ export function NavigationInspector({ block, menuName = "Navigation", onBlockCha
       <fieldset className="navigation-overlay-control"><legend>Overlay visibility</legend><div role="group" aria-label="Overlay visibility">{(["never", "mobile", "always"] as const).map(value => <button type="button" key={value} aria-pressed={(block.data?.overlayMenu ?? "never") === value} onClick={() => data({ overlayMenu: value })}>{value === "never" ? "Off" : value === "mobile" ? "Mobile" : "Always"}</button>)}</div></fieldset>
       <p className="setting-note">Collapses the navigation options into a menu icon opening an overlay.</p>
       <div className="navigation-overlay-specimen" aria-hidden="true"><AcmIcon name="navigation.menu" size={24} /><StudioIcon name="close" size={24} /></div>
+    </InspectorAccordionSection>
+    {props.links.some(item => navigationEntries([item]).some(entry => entry.link.children?.length)) ? <InspectorAccordionSection title="Submenus" contentDisabled={!props.writable}>
       <ToggleSetting label="Open submenus on click" checked={Boolean(block.data?.submenuOpenOnClick)} disabled={!props.writable} onChange={submenuOpenOnClick => data({ submenuOpenOnClick })} />
       <ToggleSetting label="Show submenu arrow" checked={block.data?.showSubmenuIcon !== false} disabled={!props.writable} onChange={showSubmenuIcon => data({ showSubmenuIcon })} />
-    </InspectorAccordionSection>
-    <InspectorAccordionSection title="Advanced" contentDisabled={!props.writable}><LinkSetting label="Accessible label" value={String(block.data?.ariaLabel ?? "Site navigation")} maxLength={160} onCommit={ariaLabel => data({ ariaLabel })} /></InspectorAccordionSection>
+    </InspectorAccordionSection> : null}
+    <InspectorAccordionSection title="Advanced" defaultOpen={false} contentDisabled={!props.writable}><LinkSetting label="Accessible label" value={String(block.data?.ariaLabel ?? "Site navigation")} maxLength={160} onCommit={ariaLabel => data({ ariaLabel })} /></InspectorAccordionSection>
     </> : <>
     <div className="navigation-style-settings"><ParagraphInspector profileOverride={navigationStyleProfile} block={block} onChange={next => { if (props.writable) onBlockChange(next); }} fontSizeViewMode={fontSizeViewMode} onFontSizeViewModeChange={setFontSizeViewMode} /></div>
-    <InspectorAccordionSection title="Colour" contentDisabled={!props.writable}><div className="navigation-colour-controls">
-      <PaletteColourSetting row label="Text" value={block.visualStyle?.textColor} onChange={textColor => onBlockChange({ ...block, visualStyle: { ...block.visualStyle, textColor } })} />
-      <PaletteColourSetting row label="Background" value={block.visualStyle?.backgroundColor} onChange={backgroundColor => onBlockChange({ ...block, visualStyle: { ...block.visualStyle, backgroundColor } })} />
-      <PaletteColourSetting row label="Submenu and overlay text" value={block.data?.submenuTextColor as string | undefined} onChange={submenuTextColor => data({ submenuTextColor })} />
-      <PaletteColourSetting row label="Submenu and overlay background" value={block.data?.submenuBackgroundColor as string | undefined} onChange={submenuBackgroundColor => data({ submenuBackgroundColor })} />
-    </div></InspectorAccordionSection>
+    <InspectorToolsSection title="Colour" options={[{ id: "text", label: "Text" }, { id: "background", label: "Background" }, { id: "submenu-text", label: "Submenu and overlay text" }, { id: "submenu-background", label: "Submenu and overlay background" }]} visible={visibleColours} alwaysShow canReset={Boolean(block.visualStyle?.textColor || block.visualStyle?.backgroundColor || block.data?.submenuTextColor || block.data?.submenuBackgroundColor)} onToggle={id => setVisibleColours(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={() => { if (props.writable) { const nextData = { ...block.data }; delete nextData.submenuTextColor; delete nextData.submenuBackgroundColor; onBlockChange({ ...block, data: nextData, visualStyle: { ...block.visualStyle, textColor: undefined, backgroundColor: undefined } }); } }}><div className="navigation-colour-controls">
+      {visibleColours.has("text") ? <PaletteColourSetting row label="Text" value={block.visualStyle?.textColor} onChange={textColor => onBlockChange({ ...block, visualStyle: { ...block.visualStyle, textColor } })} /> : null}
+      {visibleColours.has("background") ? <PaletteColourSetting row label="Background" value={block.visualStyle?.backgroundColor} onChange={backgroundColor => onBlockChange({ ...block, visualStyle: { ...block.visualStyle, backgroundColor } })} /> : null}
+      {visibleColours.has("submenu-text") ? <PaletteColourSetting row label="Submenu and overlay text" value={block.data?.submenuTextColor as string | undefined} onChange={submenuTextColor => data({ submenuTextColor })} /> : null}
+      {visibleColours.has("submenu-background") ? <PaletteColourSetting row label="Submenu and overlay background" value={block.data?.submenuBackgroundColor as string | undefined} onChange={submenuBackgroundColor => data({ submenuBackgroundColor })} /> : null}
+    </div></InspectorToolsSection>
     <GroupLayoutControls navigation block={block} onChange={onBlockChange} />
-    <InspectorAccordionSection title="Dimensions" contentDisabled={!props.writable}><label>Block Spacing (px)<input type="number" min={0} max={120} value={block.gap ?? 16} onChange={event => { const gap = Number(event.target.value); if (Number.isFinite(gap) && gap >= 0 && gap <= 120) onBlockChange({ ...block, gap }); }} /></label></InspectorAccordionSection>
     </>}
     </div>
   </div>;

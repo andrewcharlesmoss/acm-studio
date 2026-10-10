@@ -4,7 +4,7 @@
 .template-library-actions { margin: 16px 0; }
 .template-toolbar { padding: 10px 14px; border-bottom: 1px solid #ddd; background: #fff; font: var(--studio-ui-size)/1.5 var(--studio-ui-font); }
 .template-toolbar label { display: flex; gap: 6px; align-items: center; }
-.template-toolbar select, .template-toolbar button, .template-library button, .template-inspector .inspector-scroll button:not(.inspector-accordion-heading) { min-height: 34px; }
+.template-toolbar select, .template-toolbar button, .template-library button, .template-inspector .inspector-scroll button:not(.inspector-accordion-heading):not(:where(.navigation-inspector button)) { min-height: 34px; }
 .template-zoom-control { align-items: center; display: inline-flex; gap: 3px; margin-left: auto; }
 .template-zoom-label { color: var(--muted); margin-right: 3px; }
 .template-zoom-control button { align-items: center; background: #fff; border: 1px solid #d1cfc7; border-radius: 5px; color: var(--ink); cursor: pointer; display: inline-flex; justify-content: center; min-width: 34px; padding: 6px; }
@@ -31,7 +31,7 @@
 .template-empty-state { align-content: center; display: grid; min-height: 100%; place-items: center; text-align: center; }
 .template-inspector .inspector-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .template-inspector input, .template-inspector select, .template-inspector textarea, .template-toolbar select, .template-dialog input, .template-assignment select { border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; }
-.template-inspector .inspector-scroll button:not(.inspector-accordion-heading), .template-set-actions button, .template-set-card > button, .template-library-actions > button:not(.button-primary), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.template-inspector .inspector-scroll button:not(.inspector-accordion-heading):not(:where(.navigation-inspector button)), .template-set-actions button, .template-set-card > button, .template-library-actions > button:not(.button-primary), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-inspector button:disabled, .template-workspace button:disabled { opacity: .5; cursor: default; }
 .template-workspace :is(input,select,textarea,button):focus-visible, .template-dialog :is(input,button):focus-visible { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
 .template-workspace .canvas-appender input:focus-visible { box-shadow: none; }
@@ -289,11 +289,11 @@
 .template-surface .navigation-edit-item:has(.is-selected) > .navigation-edit-submenu > ul,
 .template-surface .navigation-edit-item.is-selected > .navigation-edit-submenu > ul,
 .template-surface .navigation-edit-item:focus-within > .navigation-edit-submenu > ul { display: grid; gap: 12px; }
-.navigation-block-summary { padding: 24px; }
+.navigation-block-summary { padding: 24px 16px 16px; }
 .navigation-block-summary h3 { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; font: 600 var(--studio-ui-size, 13px)/1.4 var(--studio-ui-font, system-ui); }
-.navigation-block-summary p { margin: 0; line-height: 1.6; }
-.navigation-inspector-tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--studio-border, #ddd); }
-.navigation-inspector-tabs .pane-tab-label { display: grid; place-items: center; min-height: 32px; width: 100%; }
+.navigation-block-summary p { margin: 0; line-height: 1.5; }
+.navigation-inspector-tabs { --pane-tab-label-inset: 0px; display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--studio-border, #ddd); }
+.navigation-inspector .navigation-inspector-tabs .pane-tab-label { display: grid; place-items: center; min-height: 24px; width: 100%; }
 .navigation-menu-list ul { list-style: none; margin: 0; padding: 0; }
 .navigation-menu-list li { display: flex; align-items: center; min-height: 40px; }
 .navigation-menu-select { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; min-height: 40px; padding: 8px; border: 0; border-radius: 2px; background: transparent; color: inherit; text-align: start; }
@@ -320,7 +320,7 @@
 .template-inspector .inspector-scroll .navigation-inspector .navigation-add { padding: 0; border: 0; border-radius: 2px; background: var(--studio-shared-button-background); color: var(--studio-shared-button-foreground); min-height: 32px; }
 .template-inspector .inspector-scroll .navigation-inspector .navigation-add:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .template-inspector .inspector-scroll .navigation-inspector .navigation-inspector-tabs { padding: 0; }
-.template-inspector .inspector-scroll .navigation-inspector .navigation-inspector-tabs button { min-height: 56px; padding: 12px 4px 14px; }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-inspector-tabs button { min-height: 48px; padding: 10px 0 14px; }
 .template-inspector .inspector-scroll .navigation-inspector .navigation-overlay-control button { border: 1px solid #ddd; border-radius: 0; padding: 8px; }
 .template-inspector .inspector-scroll .navigation-inspector .navigation-overlay-control button + button { border-inline-start: 0; }
 .template-inspector .inspector-scroll .navigation-inspector .navigation-overlay-control button[aria-pressed="true"] { background: #f0f0f0; }
@@ -329,13 +329,46 @@
 .template-editing .canvas-block:has(.navigation-edit-item.is-selected) { border-color: transparent; outline: 0; }
 .template-editing .canvas-block:has(.navigation-edit-item.is-selected) > .canvas-block-toolbar,
 .template-editing .studio-nested-block:has(.navigation-edit-item.is-selected) > .canvas-block-toolbar { visibility: hidden; }
-.template-inspector .navigation-inspector [role="tabpanel"] > .inspector-accordion-section { padding: 24px; border-bottom: 1px solid #ddd; }
-.template-inspector .navigation-inspector .inspector-accordion-heading { padding: 0; margin-bottom: 20px; text-transform: none; font-weight: 600; }
+.template-inspector .navigation-inspector [role="tabpanel"] > .inspector-accordion-section { padding: 16px; border-bottom: 1px solid #ddd; }
+.template-inspector .navigation-inspector .inspector-accordion-heading { padding: 0; margin-bottom: 16px; text-transform: none; font-weight: 600; }
 .template-inspector .navigation-inspector .navigation-colour-controls { width: 100%; }
-.template-inspector .navigation-inspector .navigation-style-settings > .inspector-sections > section { padding: 24px; }
+.template-inspector .navigation-inspector .navigation-style-settings > .inspector-sections > section { padding: 16px; }
 .template-editing .template-node-selectable[data-studio-selected="true"]:has(.navigation-edit-item.is-selected) { outline: 0; }
-.template-inspector .navigation-inspector [role="tabpanel"] > .inspector-tools-section { padding: 24px; border-bottom: 1px solid #ddd; }
+.template-inspector .navigation-inspector [role="tabpanel"] > .inspector-tools-section { padding: 16px; border-bottom: 1px solid #ddd; }
 .template-surface .navigation-edit-submenu > ul { background: var(--navigation-submenu-background, var(--template-background)); color: var(--navigation-submenu-text, inherit); }
 .template-inspector .inspector-scroll .navigation-inspector .paragraph-font-size-options button { border: 0; border-radius: 0; padding: 0; background: transparent; }
 .template-inspector .inspector-scroll .navigation-inspector .paragraph-font-size-options button.is-active { background: #f0f0f0; }
 .template-inspector .inspector-scroll .navigation-inspector .inspector-tools-trigger { border: 0; border-radius: 0; padding: 0; background: transparent; }
+
+/* Keep the inspector surface white through its remaining scroll area. */
+.template-inspector .navigation-inspector-scroll { background: #fff; }
+.navigation-menu-section { padding: 16px; }
+.navigation-menu-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.navigation-menu-heading h2 { margin: 0; font-size: var(--studio-ui-size); font-weight: 600; letter-spacing: normal; text-transform: none; }
+.navigation-menu-section .navigation-menu-list { padding-inline-start: 24px; }
+.navigation-menu-section .navigation-menu-add { justify-content: flex-start; }
+.navigation-menu-list .navigation-item-options { opacity: 0; }
+.navigation-menu-list li:is(:hover, :focus-within) .navigation-item-options,
+.navigation-menu-list li:has([aria-pressed="true"]) .navigation-item-options { opacity: 1; }
+@media (hover: none) { .navigation-menu-list .navigation-item-options { opacity: 1; } }
+.navigation-colour-controls:empty { border: 0; }
+.navigation-colour-controls .inspector-colour-row > span:nth-child(2) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navigation-inspector .inspector-accordion-section > h2 { letter-spacing: normal; text-transform: none; }
+.navigation-inspector .inspector-accordion-heading[aria-expanded="false"] { margin-bottom: 0; }
+.navigation-inspector .inspector-accordion-heading[aria-expanded="true"] > svg { transform: rotate(180deg); }
+
+.navigation-inspector .navigation-inspector-tabs button { padding: 10px 0 14px; min-height: 48px; }
+.navigation-inspector .navigation-block-summary h3 { margin: 0 0 12px; }
+.navigation-inspector [role="tabpanel"] > :is(.inspector-accordion-section, .inspector-tools-section),
+.navigation-inspector .navigation-style-settings > .inspector-sections > section { padding: 16px; border-bottom: 1px solid #ddd; }
+.navigation-inspector .inspector-accordion-heading { font-weight: 600; margin-bottom: 16px; }
+.navigation-inspector .inspector-accordion-heading[aria-expanded="false"] { margin-bottom: 0; }
+
+.navigation-inspector.inspector-sections .inspector-tools-heading h2 { font-size: var(--studio-ui-size); }
+.navigation-inspector.inspector-sections .navigation-colour-controls button.inspector-colour-row { border: 0; border-radius: 0; }
+.navigation-inspector-pane, .navigation-inspector-pane .inspector-tabs { background: #fff; }
+/* The catalogue's More Actions mark is horizontal; reuse it vertically here. */
+.navigation-inspector :is(.navigation-menu-heading .navigation-item-options, .inspector-tools-trigger) svg { transform: rotate(90deg); }
+
+.template-inspector .navigation-inspector .inspector-accordion-heading { min-height: 24px; letter-spacing: normal; }
+.navigation-inspector .inspector-tools-heading { min-height: 24px; }

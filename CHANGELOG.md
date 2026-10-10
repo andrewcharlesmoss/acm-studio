@@ -98,6 +98,8 @@
 
 ### Changed
 
+- Navigation panes more closely follow Gutenberg’s spacing, menu hierarchy, section options and compact Settings and Styles controls, in both the editor and Block Library.
+
 - Template Edit and Preview use a white canvas without a shadow and the content editor's pale off-page background, while preserving authored template colours.
 
 - The Sites pane outlines the active site and marks its active local environment with a green dot.

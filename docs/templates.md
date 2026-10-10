@@ -481,8 +481,9 @@ links, Undo/Redo and Reset Example.
   link. Labels can be edited inline; the link toolbar supports moving,
   duplication, deletion, link editing and adding a submenu. The existing link
   picker offers the site's documents, safe custom destinations, new-tab and
-  nofollow controls. The selected entry exposes Text, Link to, Description and
-  Rel attributes. Fixture suggestions use stable document hash routes.
+  nofollow controls. Selecting a menu entry exposes Text, Link to, Description and
+  Rel attributes. Menu options can hide or show those link settings; the compact
+  menu list uses contextual row actions and a left-aligned blue appender. Fixture suggestions use stable document hash routes.
 - **Settings** offers Off, Mobile and Always overlay visibility, click or hover
   submenus, submenu arrows and the navigation landmark's accessible label.
   Mobile uses the template surface's 600px container boundary, so it responds
@@ -490,7 +491,14 @@ links, Undo/Redo and Reset Example.
 - **Styles** reuses the shared typography, colour and flex-layout controls.
   Text, Background, Submenu and overlay text, and Submenu and overlay background
   are independently editable. Root layout supports justification, horizontal
-  or vertical orientation, wrapping and a 0–120px block gap.
+  or vertical orientation, wrapping and a 0–120px block gap. The Colour options
+  menu controls visible rows and resets their values together; Layout options
+  expose wrapping and block spacing. Advanced starts collapsed.
+
+The live and library inspectors share 16px gutters, full-width selected icon-tab
+indicators and a white pane surface. All interface text retains the shared 13px
+system baseline. Menu controls use original ACM catalogue artwork; custom
+overlay-template authoring remains outside the typed contract below.
 
 Template v0.27.0 adds these settings and recursive links while retaining
 v0.1.0–v0.26.0 stores, snapshots and packages, including prior inline objects.
