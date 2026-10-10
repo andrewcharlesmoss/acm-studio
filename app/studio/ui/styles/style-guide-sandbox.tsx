@@ -216,8 +216,6 @@ export function StyleGuideSandbox() {
   const [hoveredGuidePath, setHoveredGuidePath] = useState<string | null>(null);
   const [focusedSourcePath, setFocusedSourcePath] = useState<string | null>(null);
   const [pinnedSourcePath, setPinnedSourcePath] = useState<string | null>(null);
-  // Interaction examples share a token, but their selection is individual.
-  const [selectedInteractionExample, setSelectedInteractionExample] = useState<string | null>(null);
   const [guideQuery, setGuideQuery] = useState("");
   const [guideView, setGuideView] = useState<GuideView>("formatted");
   const [guideMatchIndex, setGuideMatchIndex] = useState(0);
@@ -276,10 +274,6 @@ export function StyleGuideSandbox() {
     return target instanceof Element ? target.closest<HTMLElement>("[data-style-path]")?.dataset.stylePath ?? null : null;
   }
 
-  function interactionExampleFromTarget(target: EventTarget | null): string | null {
-    return target instanceof Element ? target.closest<HTMLElement>(".sg-preview [data-interaction-example]")?.dataset.interactionExample ?? null : null;
-  }
-
   function handleSourcePointer(event: PointerEvent<HTMLDivElement>) {
     const path = sourcePathFromTarget(event.target);
     setHoveredSourcePath(path && styleMappings[path] ? path : null);
@@ -294,7 +288,6 @@ export function StyleGuideSandbox() {
 
   function handleSourceFocus(event: FocusEvent<HTMLDivElement>) {
     const path = sourcePathFromTarget(event.target);
-    if (path) setSelectedInteractionExample(interactionExampleFromTarget(event.target));
     setFocusedSourcePath(path && styleMappings[path] ? path : null);
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
@@ -308,7 +301,6 @@ export function StyleGuideSandbox() {
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
       setPinnedSourcePath(path);
-      setSelectedInteractionExample(interactionExampleFromTarget(event.target));
       setGuideJumpLine(null);
     }
   }
@@ -332,7 +324,6 @@ export function StyleGuideSandbox() {
     setHoveredSourcePath(null);
     setFocusedSourcePath(null);
     setPinnedSourcePath(selectedPath);
-    setSelectedInteractionExample(null);
     setGuideJumpLine(null);
   }
 
@@ -400,7 +391,6 @@ export function StyleGuideSandbox() {
     setHoveredSourcePath(null);
     setFocusedSourcePath(null);
     setPinnedSourcePath(null);
-    setSelectedInteractionExample(null);
     setGuideQuery("");
     setGuideView("formatted");
     setGuideMatchIndex(0);
@@ -499,11 +489,11 @@ export function StyleGuideSandbox() {
             <div className="sg-preview acm-universal-style-preset" style={variables} data-source-selected={(hoveredGuidePath ?? pinnedSourcePath)?.startsWith("layout.") ? "true" : undefined}>
               <header className="sg-site-identity"><div className="sg-site-icon" aria-hidden="true">AM</div><div><strong>ACM Studio</strong><span data-style-path="typography.metadata.size" data-source-selected={selectedPreviewPath === "typography.metadata.size" ? "true" : undefined}>Universal style specimen</span></div><nav className="acm-navigation" data-style-path="typography.navigation.size" data-source-selected={selectedPreviewPath === "typography.navigation.size" ? "true" : undefined} aria-label="Example site navigation"><a href="#specimens">Home</a><a href="#colours">About</a><a href="#buttons">Contact</a></nav></header>
               <section id="buttons" className="sg-example-section sg-button-specimens"><h2>Buttons</h2><div>
-                <button data-style-path="buttons.base.background" data-source-selected={selectedPreviewPath === "buttons.base.background" ? "true" : undefined} type="button" className="acm-button"><span data-style-path="typography.button.size" data-source-selected={selectedPreviewPath === "typography.button.size" ? "true" : undefined}>Base button</span></button>
-                <button data-style-path="buttons.secondary.background" data-source-selected={selectedPreviewPath === "buttons.secondary.background" ? "true" : undefined} type="button" className="acm-button acm-button-secondary">Secondary button</button>
-                <button data-style-path="buttons.outline.background" data-source-selected={selectedPreviewPath === "buttons.outline.background" ? "true" : undefined} type="button" className="acm-button acm-button-outline">Outline button</button>
+                <button data-style-path="buttons.base.background" type="button" className="acm-button"><span data-style-path="typography.button.size">Base button</span></button>
+                <button data-style-path="buttons.secondary.background" type="button" className="acm-button acm-button-secondary">Secondary button</button>
+                <button data-style-path="buttons.outline.background" type="button" className="acm-button acm-button-outline">Outline button</button>
               </div></section>
-              <section id="interactions" className="sg-example-section"><h2>Interactions</h2><details open className="sg-disclosure-specimen"><summary data-style-path="interactions.neutralHoverBackground" data-interaction-example="disclosure" data-source-selected={selectedInteractionExample === "disclosure" && selectedPreviewPath === "interactions.neutralHoverBackground" ? "true" : undefined}>Disclosure heading</summary><p>Inspector accordion and navigation overlay headings.</p></details><div className="sg-interaction-specimens">{interactionExamples.map(({ key, label }) => <button type="button" key={key} className={`sg-interaction-specimen sg-${key}`} data-style-path="interactions.neutralHoverBackground" data-interaction-example={key} data-source-selected={selectedInteractionExample === key && selectedPreviewPath === "interactions.neutralHoverBackground" ? "true" : undefined}>{label}</button>)}</div></section>
+              <section id="interactions" className="sg-example-section"><h2>Interactions</h2><details open className="sg-disclosure-specimen"><summary data-style-path="interactions.neutralHoverBackground">Disclosure heading</summary><p>Inspector accordion and navigation overlay headings.</p></details><div className="sg-interaction-specimens">{interactionExamples.map(({ key, label }) => <button type="button" key={key} className={`sg-interaction-specimen sg-${key}`} data-style-path="interactions.neutralHoverBackground">{label}</button>)}</div></section>
               <section id="colours" className="sg-example-section"><h2>Semantic colours</h2><div className="sg-palette-grid">{paletteRoles.map(([key, label]) => <button data-style-path={`palette.${key}`} data-source-selected={selectedPreviewPath === `palette.${key}` ? "true" : undefined} type="button" aria-label={`Inspect ${label} colour source, ${preset.palette[key]}`} className="sg-swatch" key={key}><span style={{ background: `var(--acm-color-${key.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)})` }} /><strong>{label}</strong><code>{preset.palette[key]}</code></button>)}</div></section>
               <section id="specimens" className="sg-example-section sg-type-specimens"><h2>Typography</h2><div className="sg-type-samples"><h1 tabIndex={0} data-style-path="typography.h1.size" data-source-selected={selectedPreviewPath === "typography.h1.size" ? "true" : undefined}>H1 heading specimen</h1><h2 tabIndex={0} data-style-path="typography.h2.size" data-source-selected={selectedPreviewPath === "typography.h2.size" ? "true" : undefined}>H2 heading specimen</h2><h3 tabIndex={0} data-style-path="typography.h3.size" data-source-selected={selectedPreviewPath === "typography.h3.size" ? "true" : undefined}>H3 heading specimen</h3><h4 tabIndex={0} data-style-path="typography.h4.size" data-source-selected={selectedPreviewPath === "typography.h4.size" ? "true" : undefined}>H4 heading specimen</h4><h5 tabIndex={0} data-style-path="typography.h5.size" data-source-selected={selectedPreviewPath === "typography.h5.size" ? "true" : undefined}>H5 heading specimen</h5><h6 tabIndex={0} data-style-path="typography.h6.size" data-source-selected={selectedPreviewPath === "typography.h6.size" ? "true" : undefined}>H6 heading specimen</h6><p tabIndex={0} data-style-path="typography.body.size" data-source-selected={selectedPreviewPath === "typography.body.size" ? "true" : undefined}>This is body text, shown at the selected scale and line height. Clear typography creates a comfortable reading rhythm across pages and interface surfaces.</p><p>Supporting text can include a <a data-style-path="specimen.link" data-source-selected={selectedPreviewPath === "specimen.link" ? "true" : undefined} href="#buttons">text link</a> that stays recognisable and accessible.</p><div className="sg-list-specimens"><div><h3>Unordered list</h3><ul tabIndex={0} data-style-path="specimen.unordered-list" data-source-selected={selectedPreviewPath === "specimen.unordered-list" ? "true" : undefined}><li>First list item</li><li>Second list item</li><li>Third list item</li></ul></div><div><h3>Ordered list</h3><ol tabIndex={0} data-style-path="specimen.ordered-list" data-source-selected={selectedPreviewPath === "specimen.ordered-list" ? "true" : undefined}><li>First step</li><li>Second step</li><li>Third step</li></ol></div></div><blockquote tabIndex={0} data-style-path="specimen.quote" data-source-selected={selectedPreviewPath === "specimen.quote" ? "true" : undefined}><p>Good typography is invisible. Bad typography is everywhere.</p><cite>Anonymous</cite></blockquote></div></section>
             </div>
@@ -539,7 +529,7 @@ export function StyleGuideSandbox() {
             setGuideMatchIndex(nextIndex);
             setGuideJumpLine(guideMatches[nextIndex]);
           }}
-          onClearPin={() => { setPinnedSourcePath(null); setSelectedInteractionExample(null); }}
+          onClearPin={() => setPinnedSourcePath(null)}
         />
       </div>
     </section>;
