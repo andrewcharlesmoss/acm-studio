@@ -653,6 +653,10 @@
 
 ### Fixed
 
+- Recovery exports retain unsaved edits' original base revision after a local
+  fixture reconnect. Late commits refresh the save status after a saving tab
+  resumes from suspension.
+
 - Test and Test2 recover from explicitly rejected editing leases without
   discarding pending drafts, and check server ownership when returning to a tab.
 

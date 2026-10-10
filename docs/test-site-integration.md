@@ -83,6 +83,9 @@ From the ACM Studio root:
 - `npm run dev` starts the Studio integration through its development server.
 - `node --test tests/test-site-store.test.mjs` checks gateway and confinement
   failures without touching the real Test project.
+- `node --experimental-strip-types --test tests/test-site-recovery-hooks.test.mjs`
+  checks lease/session expiry, competing owners, pending edits, recovery exports
+  and uncertain saves for both fixtures using disposable sources.
 - `npm run typecheck`, `npm run lint` and `npm run build` check the application.
 - `node scripts/render-test-site.mjs` is a one-time bootstrap for an approved
   initial `content/site.json`. It preserves the previous HTML in
@@ -153,6 +156,10 @@ On a connection failure or conflict, the current draft remains in memory.
 **Export Draft** downloads the draft, base revision and any preserved prompt
 proposal. For an expiry or lost-ownership warning, **Reconnect** keeps and
 reconciles the draft.
+An unreconciled draft's export retains its original saved base revision, even
+when reconnecting has loaded a newer source. Once the draft is reconciled, its
+base advances to that saved source. Late commit acknowledgements refresh the
+save status after a suspended saving tab resumes.
 For other failures it reloads the saved source and asks before discarding a
 changed draft. Do not rely on browser memory surviving a closed tab; export
 unsaved content before leaving.
@@ -191,6 +198,14 @@ requests leave the document unchanged and explain the limitation. Timeouts and
 uncertain failures are not retried automatically.
 
 ## Verification boundary
+
+The recovery-hook suite runs the production hook, synchronisation, ownership
+coordinator and file gateway. It pauses browser callback delivery and advances
+the gateway clock to reproduce suspension, page-hide release and expiry. It
+checks competing leases, independent-change merging, overlap choices, peer
+timeouts, recovery exports and lost save responses. These are controlled
+lifecycle simulations; they do not establish macOS sleep or a browser's actual
+back/forward cache behaviour.
 
 Completion requires Test to open within the existing Studio shell while the left
 pane retains its tools and shows the selected site’s tab counts and document lists. Verify the
