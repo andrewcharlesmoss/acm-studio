@@ -670,6 +670,9 @@
 
 ### Fixed
 
+- Selecting an interaction preview outlines only that example while retaining
+  the shared neutral hover colour and source mapping.
+
 - Styles interaction colours use compact groups with readable descriptions and
   aligned colour, hex and reset controls at narrow settings widths.
 
