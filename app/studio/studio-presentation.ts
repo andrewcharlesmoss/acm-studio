@@ -37,6 +37,8 @@ export type StudioPresentationContext = {
 };
 
 export type StudioPresentation = {
+  /** A selected typed child may supply its own toolbar instead of its parent’s. */
+  ownsBlockControls?: (block: ContentBlock) => boolean;
   /** Composes the canonical editable body inside a site template. */
   renderDocument?: (context: Omit<StudioPresentationContext, "block">, content: ReactNode) => ReactNode;
   renderHeader?: (context: Omit<StudioPresentationContext, "block">) => ReactNode;

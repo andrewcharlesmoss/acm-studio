@@ -385,6 +385,20 @@ const navigationControls: InspectorControlProfile[] = [
 // Navigation uses the existing transient Group projection, not a new ContentBlock type.
 export const navigationCapabilityProfile = makeProfile("group", "Navigation", navigationStyleProfile.mapping, { block: [...navigationStyleProfile.controls.filter(control => control.id !== "advanced"), ...navigationControls], sharedStyleInspector: true, background: false, defaults: navigationStyleProfile.defaults, unsupported: navigationStyleProfile.unsupported, nesting: navigationStyleProfile.nesting });
 
+export const pageLinkStyleProfile = makeProfile("group", "Page link", "core/navigation-link (typed Navigation child)", {
+  block: [], sharedStyleInspector: true, background: false,
+  style: { typography: ["size", "family", "appearance", "line-height", "letter-spacing", "letter-case", "decoration"] },
+  defaults: { typography: ["size"] },
+  unsupported: ["Standalone document-body placement", "WordPress entity synchronisation", "Inline rich-text fragments"],
+  nesting: "A typed Navigation child stored in TemplateSet.navigation; submenu children remain in the same tree.",
+});
+export const pageLinkCapabilityProfile = makeProfile("group", "Page link", pageLinkStyleProfile.mapping, {
+  block: [...pageLinkStyleProfile.controls, { id: "link", label: "Text, destination, new tab, description and rel", source: "gutenberg", section: "links", fields: ["label", "url", "opensInNewTab", "description", "rel"], resetFields: [] },
+    { id: "classes", label: "Additional CSS classes", source: "gutenberg", section: "advanced", fields: ["visualStyle.className"], resetFields: [] }],
+  sharedStyleInspector: true, background: false, defaults: pageLinkStyleProfile.defaults,
+  unsupported: pageLinkStyleProfile.unsupported, nesting: pageLinkStyleProfile.nesting,
+});
+
 const canonicalBlockCapabilityProfiles: Record<CapabilityBlockType, BlockCapabilityProfile> = {
   paragraph: paragraphInspectorProfile,
   heading: makeProfile("heading", "Heading", "core/heading", { block: [...block("content", ["level", "Level"]), ...block("text", ["text-alignment", "Text alignment"], ["block-alignment", "Block alignment"]).map(control => ({ ...control, placement: "canvas" as const }))], style: { typography: ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "decoration", "orientation", "letter-case", "text-shadow", "fit-text"], dimensions: ["padding", "margin"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"] }, attributeDefaults: { level: 2 }, unsupported: ["Theme font presets", "Theme-dependent colour presets", "WordPress-specific fit-to-container metrics"] }),
@@ -421,7 +435,7 @@ const canonicalBlockCapabilityProfiles: Record<CapabilityBlockType, BlockCapabil
   "template-content": makeProfile("template-content", "Content", "core/post-content (typed template slot)", { block: block("layout", ["content-width", "Inherited or custom content and wide widths"], ["gaps", "Block spacing"], ["advanced", "HTML anchor, classes and Additional CSS"]), style: { typography: ["colour", "size", "appearance", "line-height"], dimensions: ["padding", "margin", "min-height"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"], dimensions: ["padding", "margin"], border: ["border", "radius"] }, sharedStyleInspector: true, exposeBackgroundControl: true, unsupported: ["Template element, not a saved document body block", "Uses inherited document context; no Query Loop"], nesting: "Projects the current document body into a styled template slot." }),
 };
 
-export const blockCapabilityProfiles = { ...canonicalBlockCapabilityProfiles, navigation: navigationCapabilityProfile, row: canonicalBlockCapabilityProfiles.group, stack: canonicalBlockCapabilityProfiles.group, grid: canonicalBlockCapabilityProfiles.group };
+export const blockCapabilityProfiles = { ...canonicalBlockCapabilityProfiles, navigation: navigationCapabilityProfile, "page-link": pageLinkCapabilityProfile, row: canonicalBlockCapabilityProfiles.group, stack: canonicalBlockCapabilityProfiles.group, grid: canonicalBlockCapabilityProfiles.group };
 
 export function capabilityProfileFor(type: CapabilityBlockType): BlockCapabilityProfile {
   return blockCapabilityProfiles[type];

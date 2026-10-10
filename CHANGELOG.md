@@ -4,6 +4,8 @@
 
 ### Added
 
+- Page link children in Navigation, with a contextual Block Library entry, individual Content/Settings/Styles controls, sibling drag and movement, and saved per-link typography.
+
 - Navigation in the template editor's Theme block category and the UI Library, with an editable specimen using the production Menu, Settings and Styles controls.
 
 - Gutenberg-style Navigation authoring with Menu, Settings and Styles tabs, inline link editing, nested submenus, shared layout and colour controls, and responsive overlays in previews and local output.

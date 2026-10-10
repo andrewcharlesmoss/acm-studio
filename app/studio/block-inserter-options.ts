@@ -21,6 +21,8 @@ export function parentOfNestedBlock(blocks: ContentBlock[], childId: string): Co
 }
 
 export function groupAllowsChild(parent: ContentBlock, childType: string): boolean {
+  if (parent.type === "group" && parent.data?.templateElement === "navigation") return childType === "page-link";
+  if (childType === "page-link") return false;
   if (parent.type === "buttons") return childType === "button";
   if (parent.type === "columns") return childType === "column";
   if (parent.type === "social-icons") return childType === "social-linkedin" || childType === "social-tiktok";
@@ -49,10 +51,11 @@ export function permitsBlockTreeChanges(previous: ContentBlock[], next: ContentB
   return permitted(next);
 }
 
-export function blockInserterOptions<T extends BlockOption>(items: T[], parent: ContentBlock | undefined, query: string, socialItems: T[] = [], options: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean } = {}): T[] {
+export function blockInserterOptions<T extends BlockOption>(items: T[], parent: ContentBlock | undefined, query: string, socialItems: T[] = [], options: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean; allowTemplatePageLink?: boolean } = {}): T[] {
   const source = parent?.type === "social-icons" ? socialItems : items;
   return source.filter(item => ((item.type !== "template-content" || options.allowTemplateContent && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
     && (item.type !== "navigation" || options.allowTemplateNavigation && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
+    && (item.type !== "page-link" || options.allowTemplatePageLink && (!parent || parent.type === "group" && parent.data?.templateElement === "navigation"))
     && (item.type !== "button" || parent?.type === "buttons")
     && !((parent?.type === "group" || parent?.type === "column") && (item.type === "social-linkedin" || item.type === "social-tiktok"))
     && (!parent || groupAllowsChild(parent, item.type)))

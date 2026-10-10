@@ -1,10 +1,10 @@
 "use client";
 
-import { useId, useRef, useState, type CSSProperties } from "react";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
-import type { ContentBlock } from "../content/model";
+import type { ContentBlock, ParagraphAppearance } from "../content/model";
 import { equivalentLinkDestination, updatedLinkDestination } from "../content/link-destination";
-import { paragraphStyleToCss } from "../content/paragraph-styles";
+import { paragraphStyleToCss, paragraphStyleClassName } from "../content/paragraph-styles";
 import { LinkDestinationPopover, type LinkSuggestion } from "./controls/link-destination-popover";
 import { PaletteColourSetting } from "./controls/palette-colour-setting";
 import { PaneTabs, paneTabTarget } from "./panes/pane-components";
@@ -17,7 +17,7 @@ import { InspectorToolsSection } from "./inspector-tools-section";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { StudioIcon } from "./studio-icons";
 import { templateId, type NavigationTemplateNode, type SiteLink } from "./template-model";
-import { insertNavigationItem, moveNavigationItem, navigationEntries, removeNavigationItem, updateNavigationItem } from "./navigation-items";
+import { insertNavigationItem, moveNavigationItem, navigationEntries, reorderNavigationItem, removeNavigationItem, updateNavigationItem } from "./navigation-items";
 
 export type NavigationEditingProps = {
   blockId?: string; links: SiteLink[]; selectedId: string | null; writable: boolean; suggestions: LinkSuggestion[];
@@ -79,26 +79,68 @@ function NavigationItemActions({ item, onEdit, ...props }: NavigationEditingProp
   </>;
 }
 
-function NavigationCanvasItem({ item, ...props }: NavigationEditingProps & { item: SiteLink }) {
+type NavigationCanvasItemProps = NavigationEditingProps & {
+  item: SiteLink; vertical: boolean;
+  onDragItem: (event: DragEvent, id: string) => void;
+  onDropItem: (event: DragEvent, id: string) => void;
+  onDragEndItem: () => void;
+};
+
+function NavigationCanvasItem({ item, vertical, onDragItem, onDropItem, onDragEndItem, ...props }: NavigationCanvasItemProps) {
   const selected = props.selectedId === item.id;
+  const itemRef = useRef<HTMLLIElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [toolbarBounds, setToolbarBounds] = useState({ offset: 0, width: 360 });
+  useLayoutEffect(() => {
+    const owner = itemRef.current?.closest<HTMLElement>(".navigation-editor");
+    const itemElement = itemRef.current;
+    const toolbar = toolbarRef.current;
+    if (!selected || !owner || !itemElement || !toolbar) return;
+    const place = () => {
+      const scale = owner.getBoundingClientRect().width / owner.offsetWidth || 1;
+      const left = (itemElement.getBoundingClientRect().left - owner.getBoundingClientRect().left) / scale;
+      const offset = Math.max(-left, Math.min(0, owner.clientWidth - left - toolbar.offsetWidth));
+      setToolbarBounds(current => current.offset === offset && current.width === owner.clientWidth ? current : { offset, width: owner.clientWidth });
+    };
+    const observer = new ResizeObserver(place);
+    observer.observe(owner); observer.observe(itemElement); observer.observe(toolbar);
+    place();
+    return () => observer.disconnect();
+  }, [selected, props.links]);
   const trigger = useRef<HTMLButtonElement>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const entry = navigationEntries(props.links).find(entry => entry.link.id === item.id)!;
   const close = (focus: boolean) => { setLinkOpen(false); if (focus) trigger.current?.focus(); };
-  return <li className={`navigation-edit-item${selected ? " is-selected" : ""}`}>
-    {selected ? <div className="navigation-link-toolbar" role="toolbar" aria-label="Navigation link tools">
-      <button type="button" disabled={!props.writable || entry.index === 0} onClick={() => { if (props.onChange(moveNavigationItem(props.links, item.id, -1))) focusNavigationItem(item.id, props.blockId); }} aria-label="Move navigation link up" title="Move up"><StudioIcon name="arrow-up" size={20} /></button>
-      <button type="button" disabled={!props.writable || entry.index === entry.siblings.length - 1} onClick={() => { if (props.onChange(moveNavigationItem(props.links, item.id, 1))) focusNavigationItem(item.id, props.blockId); }} aria-label="Move navigation link down" title="Move down"><StudioIcon name="arrow-down" size={20} /></button>
-      <button ref={trigger} type="button" disabled={!props.writable} onClick={() => setLinkOpen(true)} aria-label="Edit navigation link" title="Link" aria-haspopup="dialog" aria-expanded={linkOpen}><StudioIcon name="link" size={20} /></button>
+  const appearance = item.visualStyle?.appearance ?? "regular";
+  const italic = appearance === "italic" || appearance.endsWith("-italic");
+  const weight = italic ? appearance === "italic" ? "regular" : appearance.slice(0, -7) : appearance;
+  const bold = ["bold", "extra-bold", "black"].includes(weight);
+  function format(nextBold: boolean, nextItalic: boolean) {
+    if (!props.writable) return;
+    const nextWeight = nextBold === bold ? weight : nextBold ? "bold" : "regular";
+    const nextAppearance = (nextItalic ? nextWeight === "regular" ? "italic" : `${nextWeight}-italic` : nextWeight) as ParagraphAppearance;
+    props.onChange(updateNavigationItem(props.links, item.id, link => ({ ...link, visualStyle: { ...link.visualStyle, appearance: nextAppearance } })));
+  }
+  return <li ref={itemRef} className={`navigation-edit-item${selected ? " is-selected" : ""} ${paragraphStyleClassName(item.visualStyle)}`} onDragOver={event => { if (props.writable && event.dataTransfer.types.includes("application/x-acm-navigation-link")) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = "move"; } }} onDrop={event => onDropItem(event, item.id)}>
+    {selected ? <div ref={toolbarRef} className="navigation-link-toolbar" style={{ insetInlineStart: toolbarBounds.offset, maxWidth: toolbarBounds.width }} role="toolbar" aria-label="Page link tools">
+      <button type="button" className="navigation-parent-select" onClick={() => props.onSelect(null)} aria-label="Select parent block: Navigation" title="Select parent block: Navigation"><AcmIcon name="navigation.menu" size={24} /></button>
+      <span className="navigation-link-type" title="Page link"><AcmIcon name="view.pages" size={24} /><span className="visually-hidden">Page link</span></span>
+      <button type="button" draggable={props.writable} disabled={!props.writable} onDragStart={event => onDragItem(event, item.id)} onDragEnd={onDragEndItem} aria-label="Drag Page link" title="Drag"><StudioIcon name="drag-handle" size={20} /></button>
+      <button type="button" disabled={!props.writable || entry.index === 0} onClick={() => { if (props.onChange(moveNavigationItem(props.links, item.id, -1))) focusNavigationItem(item.id, props.blockId); }} aria-label={vertical ? "Move Page link up" : "Move Page link left"} title={vertical ? "Move up" : "Move left"}><StudioIcon name={vertical ? "arrow-up" : "arrow-left"} size={20} /></button>
+      <button type="button" disabled={!props.writable || entry.index === entry.siblings.length - 1} onClick={() => { if (props.onChange(moveNavigationItem(props.links, item.id, 1))) focusNavigationItem(item.id, props.blockId); }} aria-label={vertical ? "Move Page link down" : "Move Page link right"} title={vertical ? "Move down" : "Move right"}><StudioIcon name={vertical ? "arrow-down" : "arrow-right"} size={20} /></button>
+      <button ref={trigger} type="button" disabled={!props.writable} onClick={() => setLinkOpen(true)} aria-label="Edit Page link" title="Link" aria-haspopup="dialog" aria-expanded={linkOpen}><StudioIcon name="link" size={20} /></button>
       <NavigationAdd {...props} parentId={item.id} />
+      <button type="button" disabled={!props.writable} aria-label="Bold Page link" title="Bold" aria-pressed={bold} onClick={() => format(!bold, italic)}><StudioIcon name="format-bold" size={20} /></button>
+      <button type="button" disabled={!props.writable} aria-label="Italic Page link" title="Italic" aria-pressed={italic} onClick={() => format(bold, !italic)}><StudioIcon name="format-italic" size={20} /></button>
       <NavigationItemActions {...props} item={item} onEdit={() => setLinkOpen(true)} />
     </div> : null}
-    <input className="navigation-edit-label" data-navigation-link-id={item.id} aria-label={`Navigation link text: ${item.label || "Untitled"}`} value={item.label} maxLength={160} readOnly={!props.writable} style={{ width: `${Math.max(1, item.label.length + 1)}ch` }} onFocus={() => props.onSelect(item.id)} onChange={event => props.onChange(updateNavigationItem(props.links, item.id, current => ({ ...current, label: event.target.value })))} onKeyDown={event => {
+    <input className="navigation-edit-label" data-navigation-link-id={item.id} aria-label={`Navigation link text: ${item.label || "Untitled"}`} value={item.label} maxLength={160} readOnly={!props.writable} style={{ ...paragraphStyleToCss(item.visualStyle), width: `${Math.max(1, item.label.length + 1)}ch` }} onFocus={() => props.onSelect(item.id)} onChange={event => props.onChange(updateNavigationItem(props.links, item.id, current => ({ ...current, label: event.target.value })))} onKeyDown={event => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); event.stopPropagation(); setLinkOpen(true); }
+      if ((event.metaKey || event.ctrlKey) && ["b", "i"].includes(event.key.toLowerCase())) { event.preventDefault(); event.stopPropagation(); if (event.key.toLowerCase() === "b") format(!bold, italic); else format(bold, !italic); }
       if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
       if (event.key === "Escape") { event.stopPropagation(); props.onSelect(null); }
     }} />
-    {item.children?.length ? <div className="navigation-edit-submenu"><StudioIcon name="chevron-down" size={16} /><ul>{item.children.map(child => <NavigationCanvasItem key={child.id} {...props} item={child} />)}</ul></div> : null}
+    {item.children?.length ? <div className="navigation-edit-submenu"><StudioIcon name="chevron-down" size={16} /><ul>{item.children.map(child => <NavigationCanvasItem key={child.id} {...props} item={child} vertical onDragItem={onDragItem} onDropItem={onDropItem} onDragEndItem={onDragEndItem} />)}</ul></div> : null}
     {selected && linkOpen && props.writable ? <LinkDestinationPopover key={item.id} value={item} mode="edit" anchor={() => trigger.current} focusOnMount suggestions={props.suggestions} onEdit={() => {}} onClose={close} onRemove={() => {
       const remaining = removeNavigationItem(props.links, item.id);
       const neighbour = navigationEntries(remaining)[0]?.link;
@@ -119,32 +161,45 @@ function NavigationCanvasItem({ item, ...props }: NavigationEditingProps & { ite
 }
 
 export function NavigationCanvasEditor({ node, ...props }: NavigationEditingProps & { node: NavigationTemplateNode }) {
+  const drag = useRef<{ id: string; baseline: string } | null>(null);
+  const onDragItem = (event: DragEvent, id: string) => {
+    event.stopPropagation();
+    if (!props.writable) { event.preventDefault(); return; }
+    drag.current = { id, baseline: JSON.stringify(props.links) };
+    event.dataTransfer.setData("application/x-acm-navigation-link", id);
+    event.dataTransfer.effectAllowed = "move";
+  };
+  const onDropItem = (event: DragEvent, targetId: string) => {
+    if (!event.dataTransfer.types.includes("application/x-acm-navigation-link")) return;
+    event.preventDefault(); event.stopPropagation();
+    const source = drag.current;
+    drag.current = null;
+    if (!props.writable || !source || source.baseline !== JSON.stringify(props.links) || source.id !== event.dataTransfer.getData("application/x-acm-navigation-link")) return;
+    const next = reorderNavigationItem(props.links, source.id, targetId);
+    if (next && props.onChange(next)) { props.onSelect(source.id); focusNavigationItem(source.id, node.id); }
+  };
   return <nav className="template-navigation acm-navigation navigation-editor" data-navigation-block-id={node.id} aria-label={node.ariaLabel || "Site navigation"} data-navigation-layout={node.layout ?? "row"} data-navigation-align={node.horizontalAlign ?? node.align ?? "left"} style={{ ...paragraphStyleToCss(node.visualStyle), "--navigation-submenu-text": node.submenuTextColor, "--navigation-submenu-background": node.submenuBackgroundColor, justifyContent: (node.horizontalAlign ?? node.align) === "centre" ? "center" : (node.horizontalAlign ?? node.align) === "right" ? "flex-end" : node.horizontalAlign === "space-between" ? "space-between" : "flex-start", flexWrap: node.allowWrap === false ? "nowrap" : "wrap", gap: node.gap === undefined ? undefined : `${node.gap}px` } as CSSProperties} onPointerDown={event => event.stopPropagation()}>
-    <ul className="template-navigation-items">{props.links.map(item => <NavigationCanvasItem key={item.id} {...props} blockId={node.id} item={item} />)}<li className="navigation-appender"><NavigationAdd {...props} blockId={node.id} /></li></ul>
+    <ul className="template-navigation-items">{props.links.map(item => <NavigationCanvasItem key={item.id} {...props} blockId={node.id} item={item} vertical={node.layout === "stack"} onDragItem={onDragItem} onDropItem={onDropItem} onDragEndItem={() => { drag.current = null; }} />)}<li className="navigation-appender"><NavigationAdd {...props} blockId={node.id} /></li></ul>
   </nav>;
 }
 
 export function NavigationMenuList(props: NavigationEditingProps) {
   return <div className="navigation-menu-list"><ul aria-label="Navigation menu items">{navigationEntries(props.links).map(({ link, depth }) => <li key={link.id} style={{ paddingInlineStart: `${depth * 16}px` }}>
-    <button type="button" className="navigation-menu-select" data-navigation-link-id={link.id} aria-pressed={props.selectedId === link.id} onClick={() => props.onSelect(link.id)}><AcmIcon name="view.pages" size={20} /><span>{link.label || "Untitled Link"}</span></button><NavigationItemActions {...props} item={link} />
+    <button type="button" className="navigation-menu-select" data-navigation-link-id={link.id} aria-pressed={props.selectedId === link.id} onClick={() => { props.onSelect(link.id); focusNavigationItem(link.id, props.blockId); }}><AcmIcon name="view.pages" size={20} /><span>{link.label || "Untitled Link"}</span></button><NavigationItemActions {...props} item={link} />
   </li>)}</ul><div className="navigation-menu-add"><NavigationAdd {...props} /></div></div>;
 }
 
-function LinkSetting({ label, value, maxLength = 2000, onCommit }: { label: string; value: string; maxLength?: number; onCommit: (value: string) => void }) {
+export function LinkSetting({ label, value, maxLength = 2000, onCommit }: { label: string; value: string; maxLength?: number; onCommit: (value: string) => void }) {
   return <label>{label}<input key={value} defaultValue={value} maxLength={maxLength} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
 }
 
 export function NavigationInspector({ block, menuName = "Navigation", onBlockChange, ...props }: NavigationEditingProps & { menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void }) {
   const [activeTab, setActiveTab] = useState("menu");
   const tabId = useId();
-  const [error, setError] = useState<string | null>(null);
-  const [linkSettingsOpen, setLinkSettingsOpen] = useState(false);
   const [menuOptionsOpen, setMenuOptionsOpen] = useState(false);
   const menuOptionsTrigger = useRef<HTMLButtonElement>(null);
   const [visibleColours, setVisibleColours] = useState(() => new Set(["text", "background", "submenu-text", "submenu-background"]));
   const [fontSizeViewMode, setFontSizeViewMode] = useState<"presets" | "custom" | null>(null);
-  const link = navigationEntries(props.links).find(item => item.link.id === props.selectedId)?.link;
-  const update = (patch: Partial<SiteLink>) => { if (link && props.writable) props.onChange(updateNavigationItem(props.links, link.id, current => ({ ...current, ...patch }))); };
   const data = (patch: Record<string, string | boolean | undefined>) => {
     const next = { ...block.data };
     for (const [key, value] of Object.entries(patch)) { if (value === undefined) delete next[key]; else next[key] = value; }
@@ -158,19 +213,11 @@ export function NavigationInspector({ block, menuName = "Navigation", onBlockCha
     <section className="navigation-menu-section">
       <div className="navigation-menu-heading"><h2>{menuName}</h2><button ref={menuOptionsTrigger} type="button" className="navigation-item-options" aria-label="Menu options" aria-haspopup="menu" aria-expanded={menuOptionsOpen} onClick={() => setMenuOptionsOpen(open => !open)}><StudioIcon name="more-vertical" size={20} /></button></div>
       {menuOptionsOpen ? <StudioAnchoredMenu inspectorPlacement anchor={() => menuOptionsTrigger.current} aria-label="Menu options" onClose={(focus = true) => { setMenuOptionsOpen(false); if (focus) menuOptionsTrigger.current?.focus(); }}>
-        <button type="button" role="menuitemcheckbox" aria-checked={linkSettingsOpen} disabled={!link} onClick={() => { setLinkSettingsOpen(open => !open); setMenuOptionsOpen(false); menuOptionsTrigger.current?.focus(); }}>Show link settings</button>
+        <button type="button" role="menuitem" disabled={!props.links.length} onClick={() => { setMenuOptionsOpen(false); props.onSelect(props.links[0]?.id ?? null); }}>Edit first Page link</button>
         <button type="button" role="menuitem" onClick={() => { setMenuOptionsOpen(false); menuOptionsTrigger.current?.focus(); }}><StudioIcon name="close" />Close</button>
       </StudioAnchoredMenu> : null}
-      <NavigationMenuList {...props} blockId={block.id} onSelect={id => { props.onSelect(id); setLinkSettingsOpen(true); }} />
+      <NavigationMenuList {...props} blockId={block.id} />
     </section>
-    {link && linkSettingsOpen ? <InspectorAccordionSection title={link.children?.length ? "Submenu Link" : "Navigation Link"} contentDisabled={!props.writable}>
-      <LinkSetting label="Text" value={link.label} maxLength={160} onCommit={label => update({ label })} />
-      <LinkSetting label="Link to" value={link.url} onCommit={url => { const destination = updatedLinkDestination(link, { url, opensInNewTab: Boolean(link.opensInNewTab), nofollow: Boolean(link.rel?.split(/\s+/).includes("nofollow")) }); if (destination) { update(destination); setError(null); } else setError("Use a full URL, email link, /path or #anchor."); }} />
-      <ToggleSetting label="Open in new tab" checked={Boolean(link.opensInNewTab)} disabled={!props.writable} onChange={opensInNewTab => update({ opensInNewTab })} />
-      <LinkSetting label="Description" value={link.description ?? ""} onCommit={description => update({ description })} />
-      <LinkSetting label="Rel attributes" value={link.rel ?? ""} maxLength={200} onCommit={rel => { if (/^[a-zA-Z0-9_\s-]*$/.test(rel)) { update({ rel }); setError(null); } else setError("Use space-separated relationship names."); }} />
-      {error ? <p role="alert">{error}</p> : null}<div className="navigation-menu-add"><span>Add Submenu</span><NavigationAdd {...props} blockId={block.id} parentId={link.id} /></div>
-    </InspectorAccordionSection> : null}
     </> : activeTab === "settings" ? <>
     <InspectorAccordionSection title="Overlay" contentDisabled={!props.writable}>
       <fieldset className="navigation-overlay-control"><legend>Overlay visibility</legend><div role="group" aria-label="Overlay visibility">{(["never", "mobile", "always"] as const).map(value => <button type="button" key={value} aria-pressed={(block.data?.overlayMenu ?? "never") === value} onClick={() => data({ overlayMenu: value })}>{value === "never" ? "Off" : value === "mobile" ? "Mobile" : "Always"}</button>)}</div></fieldset>

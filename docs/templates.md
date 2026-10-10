@@ -138,7 +138,7 @@ not empty itself. The Bin is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.27.0** (`0.27.0` in JSON).
+The template-store and JSON package schema is **v0.28.0** (`0.28.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -197,7 +197,7 @@ contract. Group Row and Stack layouts also support Gutenberg's Space between
 justification. Table cells preserve per-cell header tags and scope. Workspace
 data is now version 24, with readers for versions 2–23; local publication
 snapshots are version 18 with readers for versions 1–17, and full backups remain
-version 4. Template packages are v0.27.0, with readers for v0.1.0–v0.26.0.
+version 4. Template packages are v0.28.0, with readers for v0.1.0–v0.27.0.
 Group HTML elements, ARIA labels and block alignment, Columns alignment and
 Section visual styles round-trip through the editor, owned storage, portable
 packages and local publication snapshots. Resetting a field clears it rather
@@ -481,9 +481,9 @@ links, Undo/Redo and Reset Example.
   link. Labels can be edited inline; the link toolbar supports moving,
   duplication, deletion, link editing and adding a submenu. The existing link
   picker offers the site's documents, safe custom destinations, new-tab and
-  nofollow controls. Selecting a menu entry exposes Text, Link to, Description and
-  Rel attributes. Menu options can hide or show those link settings; the compact
-  menu list uses contextual row actions and a left-aligned blue appender. Fixture suggestions use stable document hash routes.
+  nofollow controls. Selecting a menu entry opens its individual Page link pane;
+  the compact menu list uses contextual row actions and a left-aligned blue
+  appender. Fixture suggestions use stable document hash routes.
 - **Settings** offers Off, Mobile and Always overlay visibility, click or hover
   submenus, submenu arrows and the navigation landmark's accessible label.
   Mobile uses the template surface's 600px container boundary, so it responds
@@ -500,8 +500,9 @@ indicators and a white pane surface. All interface text retains the shared 13px
 system baseline. Menu controls use original ACM catalogue artwork; custom
 overlay-template authoring remains outside the typed contract below.
 
-Template v0.27.0 adds these settings and recursive links while retaining
-v0.1.0–v0.26.0 stores, snapshots and packages, including prior inline objects.
+Template v0.27.0 added Navigation settings and recursive links. v0.28.0 adds
+per-link typography and CSS classes while retaining v0.1.0–v0.27.0 stores,
+snapshots and packages, including prior inline objects.
 A menu has at most 100 entries in total and five nested submenu levels below
 its root. Duplicate operations renew every descendant ID. Fixture imports
 claim recursive IDs and reject an over-capacity import without truncating
@@ -528,3 +529,27 @@ uses the browser viewport.
 Website View and Full Preview retain their scripts-only sandbox, which blocks
 new-tab destinations. Check the authored new-tab behaviour on the local website;
 generated output retains the link target and `noopener noreferrer` isolation.
+
+### Page link children
+
+Each Navigation entry is independently selectable as **Page link**. Its Content
+pane groups Text, Link to, Open in new tab, View, Description and Rel attribute.
+View opens a suggested fixture document on the local website in a new tab,
+using the Sites pane’s fresh Project Ports address check. Safe custom
+destinations also open in a new tab. Description is rendered as the link’s title attribute. Settings
+contains collapsed Advanced controls for CSS classes. Styles uses the existing
+shared typography controls; unspecified values inherit from Navigation.
+
+The item toolbar provides parent Navigation selection, sibling drag/reordering,
+link editing, submenu insertion, whole-label Bold/Italic, duplication and
+removal. Command/Ctrl+B and I format the complete label. Rich inline fragments
+and WordPress menu entities are not part of this typed contract.
+
+Page link appears in the template Block Library when a Navigation is selected.
+Insertion adds a canonical `SiteLink` after the selected entry, or at the end
+of the root menu. It does not create a standalone body block or persist the
+transient editor projection. The UI Library entry at
+`/studio/ui/blocks/page-link` uses these same controls with temporary history.
+Both link edits and insertion follow the existing template Undo/Redo, owned
+saving and revision checks. Older version envelopes containing the new style
+fields are rejected; the next save writes the current template version.

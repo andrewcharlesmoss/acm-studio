@@ -219,13 +219,17 @@ const dependencyAdditions: Partial<Record<CapabilityBlockType, readonly string[]
   group: ["preset-number", "focal-position"], section: ["preset-number"],
 };
 
-export function blockCatalogueDocumentation(profile: BlockCapabilityProfile, templateElement?: "navigation") {
+export function blockCatalogueDocumentation(profile: BlockCapabilityProfile, templateElement?: "navigation" | "page-link") {
   const type = profile.type;
-  const documentation = templateElement === "navigation" ? navigationDocumentation : blockDocumentation[type];
-  const controls: readonly CatalogueControl[] = templateElement === "navigation" ? profile.controls : [...profile.controls.map(control => projectControl(type, control)), ...(additionalControls[type] ?? [])];
+  const documentation = templateElement === "navigation" ? navigationDocumentation : templateElement === "page-link" ? {
+    context: "Page link is a Navigation child owned by TemplateSet.navigation. It has an individual selection and inspector, without duplicating the menu into document blocks.",
+    notes: ["The same item toolbar and Content, Settings and Styles controls run in the template editor and this temporary specimen.", "Bold and Italic apply to the whole link label. Typography inherits from Navigation until overridden.", "Insert Page link with a Navigation selected. Existing entries remain authored links; selecting a document does not create WordPress menu entities."],
+    insertionDefaults: "A link to the preview document, with inherited typography and new-tab Off.",
+  } : blockDocumentation[type];
+  const controls: readonly CatalogueControl[] = templateElement ? profile.controls : [...profile.controls.map(control => projectControl(type, control)), ...(additionalControls[type] ?? [])];
   const dependencyIds = new Set(profile.dependencies.map(dependency => dependency.id));
-  if (templateElement === "navigation") for (const id of ["link-destination", "colour-picker", "inspector-accordion", "toggle"]) dependencyIds.add(id);
-  if (templateElement !== "navigation") {
+  if (templateElement) for (const id of ["link-destination", "colour-picker", "inspector-accordion", "toggle"]) dependencyIds.add(id);
+  if (!templateElement) {
     for (const id of dependencyRemovals[type] ?? []) dependencyIds.delete(id);
     for (const id of dependencyAdditions[type] ?? []) dependencyIds.add(id);
   }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { safeTextLink } from "../content/rich-text";
-import { paragraphStyleToCss } from "../content/paragraph-styles";
+import { paragraphStyleToCss, paragraphStyleClassName } from "../content/paragraph-styles";
 import type { NavigationTemplateNode, SiteLink } from "./template-model";
 import { StudioIcon } from "./studio-icons";
 import { attachNavigationRuntime } from "./navigation-runtime";
@@ -18,10 +18,10 @@ export function TemplateNavigationView({ node, links, documentHref, renderLink }
     if (!element) return;
     return attachNavigationRuntime(element);
   }, []);
-  const list = (items: SiteLink[]): ReactNode => <ul className="template-navigation-items">{items.map(link => <li key={link.id} className={link.children?.length ? "has-submenu" : undefined}>
+  const list = (items: SiteLink[]): ReactNode => <ul className="template-navigation-items">{items.map(link => <li key={link.id} className={[link.children?.length ? "has-submenu" : "", paragraphStyleClassName(link.visualStyle)].filter(Boolean).join(" ") || undefined}>
     {/* Dynamic rel retains authored tokens and always adds both isolation tokens for _blank. */}
     {/* eslint-disable-next-line react/jsx-no-target-blank */}
-    <div className="template-navigation-link-row">{renderLink?.(link) ?? <a href={safeTextLink(link.url) ?? undefined} aria-current={link.url === documentHref ? "page" : undefined} target={link.opensInNewTab ? "_blank" : undefined} rel={navigationLinkRel(link)} title={link.description || undefined}>{link.label}</a>}
+    <div className="template-navigation-link-row"><span className="template-navigation-link-label" style={paragraphStyleToCss(link.visualStyle)}>{renderLink?.(link) ?? <a href={safeTextLink(link.url) ?? undefined} aria-current={link.url === documentHref ? "page" : undefined} target={link.opensInNewTab ? "_blank" : undefined} rel={navigationLinkRel(link)} title={link.description || undefined}>{link.label}</a>}</span>
       {link.children?.length ? <details className="template-navigation-submenu"><summary aria-label={`Open ${link.label} submenu`}><StudioIcon name="chevron-down" size={16} /><span className="visually-hidden">{link.label} submenu</span></summary>{list(link.children)}</details> : null}
     </div>
   </li>)}</ul>;

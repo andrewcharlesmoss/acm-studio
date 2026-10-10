@@ -67,7 +67,7 @@ export type StudioBinnedDocument = {
 
 
 export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column"> | GroupVariationType;
-export type BlockLibraryItemType = InsertableBlockType | "template-content" | "navigation";
+export type BlockLibraryItemType = InsertableBlockType | "template-content" | "navigation" | "page-link";
 
 export const blockCatalogueGroups = ["Text", "Media", "Design", "Widgets", "Theme", "Embeds", "Other"] as const;
 export type BlockCatalogueGroup = (typeof blockCatalogueGroups)[number];
@@ -121,6 +121,14 @@ export const templateNavigationBlock = {
   type: "navigation" as const,
   label: "Navigation",
   description: "Help visitors get around your site with links and submenus.",
+  group: "Theme" as const,
+};
+
+/** A Navigation child authoring entry, not a document body block. */
+export const templatePageLinkBlock = {
+  type: "page-link" as const,
+  label: "Page link",
+  description: "Add an editable page or URL link to Navigation.",
   group: "Theme" as const,
 };
 

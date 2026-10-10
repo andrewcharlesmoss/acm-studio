@@ -5,9 +5,10 @@ import type { ContentBlock } from "../content/model";
 
 type SharedSymbol = { source: "ACM Icons"; symbol: IconName };
 type BlockSymbol = SharedSymbol;
-export type BlockIconType = ContentBlock["type"] | "template-content" | "navigation" | GroupVariationType;
+export type BlockIconType = ContentBlock["type"] | "template-content" | "navigation" | "page-link" | GroupVariationType;
 
 const blockSymbols: Record<BlockIconType, BlockSymbol> = {
+  "page-link": { source: "ACM Icons", symbol: "view.pages" },
   navigation: { source: "ACM Icons", symbol: "navigation.menu" },
   "template-content": { source: "ACM Icons", symbol: "document.content" },
   row: { source: "ACM Icons", symbol: "layout.row" },

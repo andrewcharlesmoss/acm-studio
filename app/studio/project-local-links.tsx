@@ -59,12 +59,12 @@ export function ProjectLocalLinksProvider({ children }: { children: ReactNode })
   return <LocalProjectsContext.Provider value={{ local, snapshot, refreshSnapshot: setSnapshot }}>{children}</LocalProjectsContext.Provider>;
 }
 
-export function ProjectLocalLink({ id, name, onEdit, active = false }: { id: string; name: string; onEdit?: () => void; active?: boolean }) {
+function useLocalProjectVisit(id: string, destination?: string) {
   const { local, snapshot, refreshSnapshot } = useContext(LocalProjectsContext);
   const [opening, setOpening] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const project = snapshot?.projects.find(project => project.id === id);
   const canVisit = Boolean(local && snapshot?.available && project?.status === "running");
-  const editHref = local && id === "acm-studio" ? "/studio" : local && isLocalFixtureSiteId(id) ? localFixtureHref(id) : undefined;
   async function openLocal() {
     // Open synchronously during the click so the browser does not block the tab
     // while local discovery checks the current Project Ports address.
@@ -72,17 +72,31 @@ export function ProjectLocalLink({ id, name, onEdit, active = false }: { id: str
     if (!tab) return;
     tab.opener = null;
     setOpening(true);
+    setError(null);
     try {
       const fresh = await readLocalProjects();
       refreshSnapshot(fresh);
       const href = fresh.projects.find(project => project.id === id && project.status === "running")?.href;
       // Re-read at click time so a changed port never opens a stale address.
       const url = href ? new URL(href) : null;
-      if (url && ["http:", "https:"].includes(url.protocol) && url.hostname === "localhost" && !url.username && !url.password) tab.location.replace(url.href);
-      else tab.close();
-    } catch { tab.close(); refreshSnapshot({ available: false, projects: [] }); }
+      const target = url && destination ? new URL(destination, url) : url;
+      if (fresh.available && url && target && ["http:", "https:"].includes(url.protocol) && url.hostname === "localhost" && !url.username && !url.password && target.origin === url.origin && !target.username && !target.password) tab.location.replace(target.href);
+      else { tab.close(); setError("The local website is unavailable. Check Project Ports and try again."); }
+    } catch { tab.close(); refreshSnapshot({ available: false, projects: [] }); setError("The local website is unavailable. Check Project Ports and try again."); }
     finally { setOpening(false); }
   }
+  return { local, canVisit, opening, error, openLocal };
+}
+
+/** Uses the same fresh address check as the Sites pane, without guessing a port. */
+export function ProjectLocalDocumentLink({ siteId, destination }: { siteId: LocalFixtureSiteId; destination: string }) {
+  const { canVisit, opening, error, openLocal } = useLocalProjectVisit(siteId, destination);
+  return <><button type="button" className="page-link-view" disabled={opening || !canVisit} title={canVisit ? "View page on the local website in a new tab" : "Local website unavailable"} onClick={() => void openLocal()}>View <StudioIcon name="external" size={16} /></button>{error ? <p role="alert">{error}</p> : null}</>;
+}
+
+export function ProjectLocalLink({ id, name, onEdit, active = false }: { id: string; name: string; onEdit?: () => void; active?: boolean }) {
+  const { local, canVisit, opening, openLocal } = useLocalProjectVisit(id);
+  const editHref = local && id === "acm-studio" ? "/studio" : local && isLocalFixtureSiteId(id) ? localFixtureHref(id) : undefined;
   const editName = `Edit Site — ${name} — Local${editHref ? "" : " — not available yet"}`;
   const visitName = `Visit Site — ${name} — Local${canVisit ? "" : " — local server unavailable"}`;
   return <div className="dashboard-project-environment dashboard-local-environment" data-active={active || undefined}>

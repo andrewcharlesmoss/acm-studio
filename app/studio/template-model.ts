@@ -12,7 +12,8 @@ import { createUniversalStylePreset, validateUniversalStylePreset } from "@acm/s
 import type { UniversalStylePreset } from "@acm/styles";
 
 export const LEGACY_TEMPLATE_VERSION = "0.1.0" as const;
-export const TEMPLATE_VERSION = "0.27.0" as const;
+export const TEMPLATE_VERSION = "0.28.0" as const;
+export const LEGACY_TEMPLATE_VERSION_27 = "0.27.0" as const;
 export const LEGACY_TEMPLATE_VERSION_26 = "0.26.0" as const;
 export const LEGACY_TEMPLATE_VERSION_25 = "0.25.0" as const;
 export const LEGACY_TEMPLATE_VERSION_24 = "0.24.0" as const;
@@ -61,7 +62,7 @@ export type PageTemplate = { id: string; name: string; kind: StudioDocumentKind;
 export type TemplatePart = { id: string; name: string; kind: "header" | "footer"; nodes: TemplateNode[] };
 export type SiteStyles = UniversalStylePreset;
 export type LegacySiteStyles = { background: string; text: string; accent: string; border: string; font: "inter" | "serif"; fontSize: number; spacing: number; contentWidth: number; radius: number; borderWidth: number };
-export type SiteLink = { id: string; label: string; url: string; opensInNewTab?: boolean; rel?: string; description?: string; children?: SiteLink[] };
+export type SiteLink = { id: string; label: string; url: string; opensInNewTab?: boolean; rel?: string; description?: string; visualStyle?: ParagraphStyle; children?: SiteLink[] };
 export type NavigationTemplateNode = { id: string; type: "element"; element: "navigation"; align?: "left" | "centre" | "right"; layout?: "row" | "stack"; horizontalAlign?: "left" | "centre" | "right" | "space-between" | "stretch"; allowWrap?: boolean; gap?: number; visualStyle?: ParagraphStyle; overlayMenu?: "never" | "mobile" | "always"; submenuOpenOnClick?: boolean; showSubmenuIcon?: boolean; ariaLabel?: string; submenuTextColor?: string; submenuBackgroundColor?: string };
 export type TemplateDefaults = { author?: string; category?: string; tags?: string[]; parentPageId?: string };
 export type TemplateSet = {
@@ -71,7 +72,7 @@ export type TemplateSet = {
 };
 export type TemplateAssignment = { documentId: string; setId: string; templateId: string; kind: StudioDocumentKind };
 export type StudioBinnedTemplate = { id: string; deletedAt: string; kind: "template"; setId: string; setName: string; entry: PageTemplate | TemplatePart; setSnapshot: TemplateSet } | { id: string; deletedAt: string; kind: "set"; set: TemplateSet };
-export type TemplateSchemaVersion = typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_26 | typeof LEGACY_TEMPLATE_VERSION_25 | typeof LEGACY_TEMPLATE_VERSION_24 | typeof LEGACY_TEMPLATE_VERSION_23 | typeof LEGACY_TEMPLATE_VERSION_22 | typeof LEGACY_TEMPLATE_VERSION_21 | typeof LEGACY_TEMPLATE_VERSION_20 | typeof LEGACY_TEMPLATE_VERSION_19 | typeof LEGACY_TEMPLATE_VERSION_18 | typeof LEGACY_TEMPLATE_VERSION_17 | typeof LEGACY_TEMPLATE_VERSION_16 | typeof LEGACY_TEMPLATE_VERSION_15 | typeof LEGACY_TEMPLATE_VERSION_14 | typeof LEGACY_TEMPLATE_VERSION_13 | typeof LEGACY_TEMPLATE_VERSION_12 | typeof LEGACY_TEMPLATE_VERSION_11 | typeof LEGACY_TEMPLATE_VERSION_10 | typeof LEGACY_TEMPLATE_VERSION_9 | typeof LEGACY_TEMPLATE_VERSION_8 | typeof LEGACY_TEMPLATE_VERSION_7 | typeof LEGACY_TEMPLATE_VERSION_6 | typeof LEGACY_TEMPLATE_VERSION_5 | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION_3 | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION;
+export type TemplateSchemaVersion = typeof TEMPLATE_VERSION | typeof LEGACY_TEMPLATE_VERSION_27 | typeof LEGACY_TEMPLATE_VERSION_26 | typeof LEGACY_TEMPLATE_VERSION_25 | typeof LEGACY_TEMPLATE_VERSION_24 | typeof LEGACY_TEMPLATE_VERSION_23 | typeof LEGACY_TEMPLATE_VERSION_22 | typeof LEGACY_TEMPLATE_VERSION_21 | typeof LEGACY_TEMPLATE_VERSION_20 | typeof LEGACY_TEMPLATE_VERSION_19 | typeof LEGACY_TEMPLATE_VERSION_18 | typeof LEGACY_TEMPLATE_VERSION_17 | typeof LEGACY_TEMPLATE_VERSION_16 | typeof LEGACY_TEMPLATE_VERSION_15 | typeof LEGACY_TEMPLATE_VERSION_14 | typeof LEGACY_TEMPLATE_VERSION_13 | typeof LEGACY_TEMPLATE_VERSION_12 | typeof LEGACY_TEMPLATE_VERSION_11 | typeof LEGACY_TEMPLATE_VERSION_10 | typeof LEGACY_TEMPLATE_VERSION_9 | typeof LEGACY_TEMPLATE_VERSION_8 | typeof LEGACY_TEMPLATE_VERSION_7 | typeof LEGACY_TEMPLATE_VERSION_6 | typeof LEGACY_TEMPLATE_VERSION_5 | typeof LEGACY_TEMPLATE_VERSION_4 | typeof LEGACY_TEMPLATE_VERSION_3 | typeof LEGACY_TEMPLATE_VERSION_2 | typeof LEGACY_TEMPLATE_VERSION;
 export type TemplateStore = { version: TemplateSchemaVersion; sets: TemplateSet[]; assignments: TemplateAssignment[]; bin: StudioBinnedTemplate[]; defaultTemplateIds?: { page?: string; post?: string } };
 export type TemplateSnapshot = { version: TemplateSchemaVersion; set: TemplateSet; templateId: string };
 export const emptyTemplateStore = (): TemplateStore => ({ version: TEMPLATE_VERSION, sets: [], assignments: [], bin: [], defaultTemplateIds: {} });
@@ -160,6 +161,11 @@ export function migrateLegacySiteStyles(value: unknown): SiteStyles {
   return validateUniversalStylePreset(preset);
 }
 
+/** Navigation children expose typography and classes, not arbitrary block surfaces. */
+function validPageLinkStyle(value: unknown): boolean {
+  return validParagraphStyle(value) && (value === undefined || isRecord(value) && Object.keys(value).every(key => ["fontFamily", "fontSize", "fontSizeCustom", "appearance", "lineHeight", "letterSpacing", "textTransform", "textDecoration", "className"].includes(key)));
+}
+
 export function validateTemplateSet(value: unknown): TemplateSet {
   if (!isRecord(value) || !safeId(value.id) || !text(value.name, 160) || !value.name.trim() || !Array.isArray(value.templates) || value.templates.length > 100 || !Array.isArray(value.parts) || value.parts.length > 100) invalid("The template set is invalid.");
   const source = value as unknown as TemplateSet;
@@ -180,7 +186,9 @@ export function validateTemplateSet(value: unknown): TemplateSet {
         if (!isRecord(link) || ++linkCount > 100 || !text(link.label, 160) || !text(link.url) || !safeTextLink(link.url)
           || (link.opensInNewTab !== undefined && typeof link.opensInNewTab !== "boolean")
           || (link.rel !== undefined && (!text(link.rel, 200) || !/^[a-zA-Z0-9_\s-]*$/.test(link.rel)))
-          || (link.description !== undefined && !text(link.description, 2000))) invalid("Each link needs a safe destination and supported settings.");
+          || (link.description !== undefined && !text(link.description, 2000))
+          || !validPageLinkStyle(link.visualStyle)) invalid("Each link needs a safe destination and supported settings.");
+        if (links === set.socialLinks && link.visualStyle !== undefined) invalid("Page link presentation belongs to Navigation.");
         claimId(link.id, ids);
         if (link.children !== undefined) {
           if (links === set.socialLinks) invalid("Social links cannot contain submenus.");
@@ -323,11 +331,22 @@ function migrateLegacySubtitleStyles(nodes: TemplateNode[]): TemplateNode[] {
   });
 }
 
+function containsPageLinkPresentation(value: Record<string, unknown>): boolean {
+  const sets = [...(Array.isArray(value.sets) ? value.sets : []), value.set,
+    ...(Array.isArray(value.bin) ? value.bin.flatMap(item => isRecord(item) ? [item.set, item.setSnapshot] : []) : [])];
+  function hasStyle(items: unknown, depth = 0): boolean {
+    if (!Array.isArray(items) || depth > 5) return false;
+    return items.some(link => isRecord(link) && (link.visualStyle !== undefined || hasStyle(link.children, depth + 1)));
+  }
+  return sets.some(set => isRecord(set) && (hasStyle(set.navigation) || hasStyle(set.socialLinks)));
+}
+
 export function validateTemplateStore(value: unknown, documents?: Pick<StudioDocument, "id" | "kind">[]): TemplateStore {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000 || (value.bin !== undefined && (!Array.isArray(value.bin) || value.bin.length > 10000))) invalid("Unsupported or invalid saved template data. Original data has been retained.");
-  if ((![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24].includes(value.version as typeof TEMPLATE_VERSION) && containsRichTextInlineObjects(value) || ![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25].includes(value.version as typeof TEMPLATE_VERSION) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) invalid("Inline objects require the current template format. Original data has been retained.");
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_27, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000 || (value.bin !== undefined && (!Array.isArray(value.bin) || value.bin.length > 10000))) invalid("Unsupported or invalid saved template data. Original data has been retained.");
+  if (value.version !== TEMPLATE_VERSION && containsPageLinkPresentation(value)) invalid("Page link presentation requires template v0.28.0. Original data has been retained.");
+  if ((![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_27, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24].includes(value.version as typeof TEMPLATE_VERSION) && containsRichTextInlineObjects(value) || ![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_27, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25].includes(value.version as typeof TEMPLATE_VERSION) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) invalid("Inline objects require the current template format. Original data has been retained.");
   if (value.defaultTemplateIds !== undefined && (!isRecord(value.defaultTemplateIds) || (value.defaultTemplateIds.page !== undefined && !safeId(value.defaultTemplateIds.page)) || (value.defaultTemplateIds.post !== undefined && !safeId(value.defaultTemplateIds.post)))) invalid("The default template selection is invalid.");
-  const migrateLegacyDefaultTitles = value.version !== TEMPLATE_VERSION && value.version !== LEGACY_TEMPLATE_VERSION_26 && value.version !== LEGACY_TEMPLATE_VERSION_25 && value.version !== LEGACY_TEMPLATE_VERSION_24 && value.version !== LEGACY_TEMPLATE_VERSION_23 && value.version !== LEGACY_TEMPLATE_VERSION_22 && value.version !== LEGACY_TEMPLATE_VERSION_21 && value.version !== LEGACY_TEMPLATE_VERSION_20 && value.version !== LEGACY_TEMPLATE_VERSION_19 && value.version !== LEGACY_TEMPLATE_VERSION_18 && value.version !== LEGACY_TEMPLATE_VERSION_17 && value.version !== LEGACY_TEMPLATE_VERSION_16 && value.version !== LEGACY_TEMPLATE_VERSION_15 && value.version !== LEGACY_TEMPLATE_VERSION_14 && value.version !== LEGACY_TEMPLATE_VERSION_13 && value.version !== LEGACY_TEMPLATE_VERSION_12;
+  const migrateLegacyDefaultTitles = value.version !== TEMPLATE_VERSION && value.version !== LEGACY_TEMPLATE_VERSION_27 && value.version !== LEGACY_TEMPLATE_VERSION_26 && value.version !== LEGACY_TEMPLATE_VERSION_25 && value.version !== LEGACY_TEMPLATE_VERSION_24 && value.version !== LEGACY_TEMPLATE_VERSION_23 && value.version !== LEGACY_TEMPLATE_VERSION_22 && value.version !== LEGACY_TEMPLATE_VERSION_21 && value.version !== LEGACY_TEMPLATE_VERSION_20 && value.version !== LEGACY_TEMPLATE_VERSION_19 && value.version !== LEGACY_TEMPLATE_VERSION_18 && value.version !== LEGACY_TEMPLATE_VERSION_17 && value.version !== LEGACY_TEMPLATE_VERSION_16 && value.version !== LEGACY_TEMPLATE_VERSION_15 && value.version !== LEGACY_TEMPLATE_VERSION_14 && value.version !== LEGACY_TEMPLATE_VERSION_13 && value.version !== LEGACY_TEMPLATE_VERSION_12;
   const store = { ...(value as unknown as TemplateStore), version: TEMPLATE_VERSION, bin: ((value.bin ?? []) as unknown[]).map(item => { if (!isRecord(item)) return item; if (item.kind === "set") return { ...item, set: validateTemplateSet(item.set) }; if (item.kind === "template") return { ...item, setSnapshot: validateTemplateSet(item.setSnapshot) }; return item; }), sets: (value.sets as unknown[]).map(item => {
     if (!isRecord(item)) return item;
     const set = validateTemplateSet({ ...item, defaults: item.defaults ?? {} });
@@ -376,8 +395,9 @@ export function validateTemplateStore(value: unknown, documents?: Pick<StudioDoc
 }
 
 export function validateTemplateSnapshot(value: unknown): TemplateSnapshot {
-  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
-  if ((![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24].includes(value.version as typeof TEMPLATE_VERSION) && containsRichTextInlineObjects(value) || ![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25].includes(value.version as typeof TEMPLATE_VERSION) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) invalid("Inline objects require the current template snapshot.");
+  if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_27, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
+  if (value.version !== TEMPLATE_VERSION && containsPageLinkPresentation(value)) invalid("Page link presentation requires template v0.28.0. Original data has been retained.");
+  if ((![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_27, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24].includes(value.version as typeof TEMPLATE_VERSION) && containsRichTextInlineObjects(value) || ![TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_27, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25].includes(value.version as typeof TEMPLATE_VERSION) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) invalid("Inline objects require the current template snapshot.");
   const snapshot = value as unknown as TemplateSnapshot;
   const set = validateTemplateSet(snapshot.set);
   if (!set.templates.some(t => t.id === snapshot.templateId && ["page", "post"].includes(t.kind))) invalid("Invalid published template.");

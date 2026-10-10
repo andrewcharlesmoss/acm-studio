@@ -25,6 +25,7 @@ import { StudioIcon } from "../../studio-icons";
 import { BlockLibraryIcon } from "../../block-library-icons";
 import { blockLibraryEntries, blockLibraryEntryByType } from "../../blocks/library-catalogue";
 import { createTemplateSet, templateEditorBlocks, templateNodesFromBlocks, type NavigationTemplateNode, type SiteLink, type TemplateNode, type TemplateSet } from "../../template-model";
+import { PageLinkInspector } from "../../page-link-inspector";
 import { NavigationCanvasEditor, NavigationInspector } from "../../template-navigation-editor";
 import { TemplateNodes, TemplateSurface } from "../../template-renderer";
 import { BlockLibraryNavigation } from "./block-library-navigation";
@@ -165,14 +166,14 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
       blocks = [columnsBlock];
     } else blocks = [columnsBlock];
     note = "Select a nested Column or its child content above the specimen. Column widths and layout remain independent.";
-  } else if (type === "navigation") {
+  } else if ((type === "navigation" || type === "page-link")) {
     blocks = templateEditorBlocks([{ id, type: "element", element: "navigation", overlayMenu: "mobile", gap: 16 }]);
     navigation = [
       { id: "navigation-home", label: "Home", url: "#home" },
       { id: "navigation-about", label: "About", url: "#about" },
       { id: "navigation-guides", label: "Guides", url: "#guides", children: [{ id: "navigation-studio", label: "Studio guide", url: "#studio-guide" }] },
     ];
-    note = "Try the production Menu, Settings and Styles controls. The menu, submenus and template node settings share this specimen’s temporary Undo history.";
+    note = type === "page-link" ? "Select a Page link to edit Content, Settings and Styles. Try its item toolbar, select the parent Navigation, and compare Edit with Preview. All changes remain temporary." : "Try the production Menu, Settings and Styles controls. Select an item for its Page link inspector. The menu and its children share this specimen’s temporary Undo history.";
   } else {
     const insertableType = type as InsertableBlockType;
     const created = createBlock(insertableType, id);
@@ -264,13 +265,13 @@ export function BlockLibraryCatalogue({ initialType }: { initialType: BlockType 
 
 function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockType; onBack: () => void; handleInitialHash: boolean }) {
   const entry = blockLibraryEntryByType[type];
-  const profile = blockCatalogueDocumentation(entry.profile, type === "navigation" ? "navigation" : undefined);
+  const profile = blockCatalogueDocumentation(entry.profile, type === "navigation" ? "navigation" : type === "page-link" ? "page-link" : undefined);
   const fixture = fixtureFor(type);
   const [data, setData] = useState<SpecimenData>(() => cloneData(fixture.data));
   const dataRef = useRef(data);
   const historyRef = useRef<SpecimenSnapshot>({ past: [], future: [] });
   const [selectedId, setSelectedId] = useState(fixture.selectedId);
-  const [selectedNavigationLinkId, setSelectedNavigationLinkId] = useState<string | null>(null);
+  const [selectedNavigationLinkId, setSelectedNavigationLinkId] = useState<string | null>(type === "page-link" ? "navigation-home" : null);
   const [selectedListItem, setSelectedListItem] = useState<{ blockId: string; listId: string; itemIndex: number } | null>(null);
   const [buttonPreview, setButtonPreview] = useState<{ blockId: string; state: ButtonInteractionState } | null>(null);
   const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, "presets" | "custom">>({});
@@ -395,7 +396,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
     setData(fresh);
     historyRef.current = { past: [], future: [] };
     setSelectedId(fixture.selectedId);
-    setSelectedNavigationLinkId(null);
+    setSelectedNavigationLinkId(type === "page-link" ? "navigation-home" : null);
     setSelectedListItem(null);
     setButtonPreview(null);
     setUseTemplateStyles(false);
@@ -439,7 +440,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
     onChange: (navigation: SiteLink[]) => { publish({ ...dataRef.current, navigation }); return true; },
   };
   const specimenContent = <>
-{type === "navigation" ? <TemplateSurface set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} editing={mode === "edit"} editorCanvas={mode === "edit"}>{data.blocks.map(block => {
+{(type === "navigation" || type === "page-link") ? <TemplateSurface set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} editing={mode === "edit"} editorCanvas={mode === "edit"}>{data.blocks.map(block => {
   const node = templateNodesFromBlocks([block])[0] as NavigationTemplateNode;
   return mode === "edit" ? <NavigationCanvasEditor key={`${block.id}-${resetRevision}`} node={node} {...navigationProps} /> : <TemplateNodes key={block.id} set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} document={data.document} nodes={[node]} templatePreview />;
 })}</TemplateSurface> : mode === "edit" ? data.blocks.map(block => block.type === "component"
@@ -467,11 +468,11 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
         {specimenBlocks.length > 1 ? <div className="ui-specimen-selection" role="group" aria-label="Select an example block">{specimenBlocks.map(block => <button key={block.id} type="button" aria-pressed={selectedId === block.id} onClick={() => { setSelectedListItem(null); setSelectedId(block.id); }}>{specimenLabel(block)}</button>)}</div> : null}
         {currentTypeIsMetadata ? <fieldset className="ui-specimen-document-fields"><legend>Temporary example document</legend><label>Title<input value={data.document.title} onChange={event => updateDocument({ title: event.target.value, seoTitle: event.target.value }, "document-title")} /></label><label>Subtitle<input value={data.document.subtitle ?? ""} onChange={event => updateDocument({ subtitle: event.target.value }, "document-subtitle")} /></label><label>Author<input value={data.document.author ?? ""} onChange={event => updateDocument({ author: event.target.value }, "document-author")} /></label><label>Publication date<input type="date" value={(data.document.publishedAt ?? "").slice(0, 10)} onChange={event => updateDocument({ publishedAt: event.target.value ? `${event.target.value}T11:30:00.000Z` : undefined }, "document-date")} /></label></fieldset> : null}
         <div className="ui-block-editor-layout">
-          <div className={`ui-block-canvas${type === "template-content" ? " is-content-projection" : type === "navigation" ? " is-navigation-specimen" : ""}`} aria-label={mode === "edit" ? editLabel : previewLabel}>
+          <div className={`ui-block-canvas${type === "template-content" ? " is-content-projection" : (type === "navigation" || type === "page-link") ? " is-navigation-specimen" : ""}`} aria-label={mode === "edit" ? editLabel : previewLabel}>
             {useTemplateStyles ? <TemplateSurface set={exampleTemplateSet} editing={mode === "edit"}>{specimenContent}</TemplateSurface> : specimenContent}
             {type === "template-content" ? <p className="ui-template-projection-note">Edit the temporary document body above. Preview renders that body through the production template Content slot.</p> : null}
           </div>
-          {inspectorBlock ? <aside data-inspector-popover-owner="" className="ui-block-inspector" aria-label={`${type === "navigation" ? "Navigation" : specimenLabel(inspectorBlock)} settings`}>{type === "navigation" && inspectorBlock.type === "group" ? <NavigationInspector key={resetRevision} block={inspectorBlock} {...navigationProps} onBlockChange={next => updateBlock(next)} /> : <BlockInspector contentSlot={type === "template-content" && inspectorBlock?.id === `${type}-library-specimen`} key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} canSetSticky={inspectorBlock.type === "group" && data.blocks.some(block => block.id === inspectorBlock.id)} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} onChange={next => updateBlock(next)} onColumnCountChange={inspectorBlock.type === "columns" ? count => commands.updateColumnCount(inspectorBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => commands.updateColumnWidth(selectedColumnParent, columnId, width) : undefined} onButtonPreviewChange={setButtonPreview} onOpenFiles={() => chooseFixtureMedia()} canOpenFiles={inspectorBlock.type === "image"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} />}</aside> : null}
+          {inspectorBlock ? <aside data-inspector-popover-owner="" className="ui-block-inspector" aria-label={`${(type === "navigation" || type === "page-link") ? selectedNavigationLinkId ? "Page link" : "Navigation" : specimenLabel(inspectorBlock)} settings`}>{(type === "navigation" || type === "page-link") && inspectorBlock.type === "group" ? selectedNavigationLinkId ? <PageLinkInspector onView={() => setMode("preview")} key={`${resetRevision}:${selectedNavigationLinkId}`} {...navigationProps} /> : <NavigationInspector key={resetRevision} block={inspectorBlock} {...navigationProps} onBlockChange={next => updateBlock(next)} /> : <BlockInspector contentSlot={type === "template-content" && inspectorBlock?.id === `${type}-library-specimen`} key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} canSetSticky={inspectorBlock.type === "group" && data.blocks.some(block => block.id === inspectorBlock.id)} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} onChange={next => updateBlock(next)} onColumnCountChange={inspectorBlock.type === "columns" ? count => commands.updateColumnCount(inspectorBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => commands.updateColumnWidth(selectedColumnParent, columnId, width) : undefined} onButtonPreviewChange={setButtonPreview} onOpenFiles={() => chooseFixtureMedia()} canOpenFiles={inspectorBlock.type === "image"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} />}</aside> : null}
         </div>
         <p className="ui-block-sample-note">{fixture.note}</p>
         <p className="ui-block-isolation-note">Undo and Redo apply to the temporary block and example document, including rich text. Form fields keep the browser’s native text history. This specimen does not access Studio documents, browser storage or the write-ownership lock.</p>

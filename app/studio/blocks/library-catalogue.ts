@@ -1,5 +1,5 @@
 import { storedBlockType } from "./group-variations";
-import { blockCatalogue, templateContentBlock, templateNavigationBlock } from "../editor-model";
+import { blockCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock } from "../editor-model";
 import { blockCapabilityProfiles, navigationCapabilityProfile } from "./capability-profiles";
 
 const nonInsertableEntries = [
@@ -8,6 +8,7 @@ const nonInsertableEntries = [
   { type: "component", label: "Component", description: "Inspect an ACM component integration in its inactive library state.", group: "Other" },
   { ...templateContentBlock, description: "Project the current document body into a template." },
   templateNavigationBlock,
+  templatePageLinkBlock,
 ] as const;
 
 const baseEntries = blockCatalogue.map(editorEntry => ({
