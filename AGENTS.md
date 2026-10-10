@@ -118,6 +118,11 @@ Styles → Interactions owns one neutral hover background in the executable
 and list items. It defaults to `#F0F0F0`. Selected, pressed, disabled and
 destructive states keep their own treatments. The Controls → Accordion specimen
 has no separate colour preference; see `docs/studio-ui-library.md`.
+Styles → Interactions also owns interface selection colour, independent of
+palette Accent. Its v0.6.0 executable preset reads v0.1.0–v0.5.0; the default
+`#0088FF` feeds the stable Studio alias, including portalled selections. Local
+saves refresh loaded tabs without remounting drafts. Focus and action states
+retain their separate roles.
 
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and

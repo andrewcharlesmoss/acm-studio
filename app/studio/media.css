@@ -149,3 +149,5 @@
 .media-card-menu-icon { transform: rotate(90deg); }
 
 .media-toolbar-actions .media-upload-button:hover:not(:disabled), .media-empty button:hover:not(:disabled), .media-insert-button:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
+
+.media-file-card.is-selected, .media-folder-card.is-selected { border-color: var(--studio-selection-colour); box-shadow: 0 0 0 1px var(--studio-selection-colour); }

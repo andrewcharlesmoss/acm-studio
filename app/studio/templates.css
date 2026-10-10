@@ -280,7 +280,7 @@
 .template-navigation :is(a, summary, button):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .template-surface .navigation-edit-item { position: relative; display: flex; align-items: center; gap: 4px; max-width: 100%; }
 .template-surface input.navigation-edit-label { min-width: 1ch; max-width: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; line-height: inherit; }
-.template-surface .navigation-edit-item.is-selected > .navigation-edit-label { outline: 1px solid var(--studio-focus-outline-color, #007cba); outline-offset: 3px; }
+.template-surface .navigation-edit-item.is-selected > .navigation-edit-label { outline: 1px solid var(--studio-selection-colour); outline-offset: 3px; }
 .navigation-editor:has(.navigation-edit-item.is-selected) { outline: none; }
 .navigation-link-toolbar { position: absolute; z-index: 30; inset-block-end: calc(100% + 12px); inset-inline-start: 0; display: flex; padding: 4px; border: 1px solid #1e1e1e; border-radius: 2px; background: #fff; color: #1e1e1e; box-shadow: 0 2px 6px #0000001a; }
 .navigation-link-toolbar button, .navigation-add, .navigation-item-options { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 2px; background: transparent; color: inherit; cursor: pointer; }

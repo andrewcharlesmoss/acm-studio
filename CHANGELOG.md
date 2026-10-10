@@ -4,6 +4,9 @@
 
 ### Added
 
+- Add one shared interface selection colour in Styles → Interactions, independent
+  of specimen Accent, with live previews and source-backed refresh across tabs.
+
 - One central Neutral hover background setting shared across disclosure headings,
   neutral controls, menus and list items, with four preview examples.
 

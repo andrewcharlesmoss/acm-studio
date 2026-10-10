@@ -29,6 +29,7 @@ test("every preset property and text specimen has a precise guide line", () => {
     ...Object.keys(preset.palette).map(key => `palette.${key}`),
     ...Object.entries(preset.typography).flatMap(([role, style]) => collectPaths(style, `typography.${role}`)),
     ...Object.entries(preset.buttons).flatMap(([role, style]) => collectPaths(style, `buttons.${role}`)),
+    ...Object.keys(preset.interactions).map(key => `interactions.${key}`),
     ...Object.keys(preset.layout).map(key => `layout.${key}`),
     "specimen.link", "specimen.unordered-list", "specimen.ordered-list", "specimen.quote",
   ];
@@ -128,3 +129,26 @@ function collectPaths(value, prefix) {
       : [current];
   });
 }
+
+
+test("interface selection stays separate from specimen Accent and neutral hover edits", () => {
+  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const stylesheet = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
+  const runtime = fs.readFileSync(path.join(root, "app/studio/ui/styles/shared-style-runtime.tsx"), "utf8");
+  assert.ok(source.mappings["interactions.selectionColour"]);
+  assert.match(component, /stylePath="interactions.selectionColour"/);
+  assert.match(component, /interactions: \{ \.\.\.current\.interactions, neutralHoverBackground:/);
+  assert.match(component, /"--studio-selection-colour": preset\.interactions\.selectionColour/);
+  for (const selector of [".sg-colour-setting[data-source-selected", ".acm-universal-style-preset .sg-swatch[data-source-selected"]) {
+    const line = stylesheet.split("\n").find(line => line.startsWith(selector));
+    assert.match(line, /var\(--studio-selection-colour\)/);
+    assert.doesNotMatch(line, /--acm-color-accent/);
+  }
+  assert.match(runtime, /validateUniversalStylePreset\(source.preset\)/);
+  assert.match(runtime, /request !== epoch/);
+  assert.match(runtime, /client.load\(sessionToken.current\)/);
+  assert.match(runtime, /sessionToken.current = source.token/);
+  assert.match(runtime, /if \(reading\) \{ queued = true; epoch\+\+/);
+  assert.match(runtime, /BroadcastChannel\("studio-shared-styles-refresh"\)/);
+  assert.doesNotMatch(runtime, /localStorage|sessionStorage/);
+});

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { UNIVERSAL_STYLE_PRESET, universalStylePresetToCssVariables } from "@acm/styles";
+import { SharedStyleRuntime } from "@/app/studio/ui/styles/shared-style-runtime";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import "@acm/styles/styles.css";
@@ -28,6 +29,7 @@ const universalStyleTokens = universalStylePresetToCssVariables(UNIVERSAL_STYLE_
 const universalStyleVariables = {
   ...universalStyleTokens,
   // Editor controls must keep the shared action colours inside authored style scopes.
+  "--studio-selection-colour": universalStyleTokens["--acm-interaction-selection-colour"],
   "--studio-shared-button-background": universalStyleTokens["--acm-button-base-background"],
   "--studio-shared-button-foreground": universalStyleTokens["--acm-button-base-foreground"],
   "--studio-shared-button-border": universalStyleTokens["--acm-button-base-border"],
@@ -42,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-GB">
-      <body style={universalStyleVariables}>{children}</body>
+      <body style={universalStyleVariables}><SharedStyleRuntime />{children}</body>
     </html>
   );
 }

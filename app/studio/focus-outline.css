@@ -17,7 +17,7 @@ html[data-studio-focus-visible="false"] .canvas-block.is-selected:focus { outlin
 html[data-studio-focus-visible="false"] :is([data-studio-selected="true"], .is-document-field-selected):focus { outline: 1px solid #8f8f8f !important; outline-offset: -1px !important; }
 html[data-studio-focus-visible="false"] .block-canvas [data-studio-selected="true"]:focus { outline: 1px solid var(--acm-color-alert, #FF383C) !important; outline-offset: -1px !important; }
 html[data-studio-focus-visible="false"] [data-studio-multi-selected="true"]:focus { outline: none !important; }
-html[data-studio-focus-visible="false"] .paragraph-gradient-options button[aria-pressed="true"]:focus { outline: 2px solid var(--accent) !important; outline-offset: 2px !important; }
+html[data-studio-focus-visible="false"] .paragraph-gradient-options button[aria-pressed="true"]:focus { outline: 2px solid var(--studio-selection-colour) !important; outline-offset: 2px !important; }
 html[data-studio-focus-visible="false"] :is(.design-canvas-heading-actions, .design-all-page-actions) button.is-active:focus { outline: 2px solid #6b707566 !important; outline-offset: -1px !important; }
 @media (forced-colors: active) {
   html[data-studio-focus-mode] body :is(:focus, .rl-icon-card[aria-pressed="true"]:focus, .kb-card[aria-pressed="true"]:focus, .paragraph-gradient-options button[aria-pressed="true"]:focus, .design-canvas-heading-actions button.is-active:focus) { outline: 2px solid Highlight !important; outline-offset: 2px !important; }

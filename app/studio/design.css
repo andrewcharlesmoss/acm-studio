@@ -235,7 +235,7 @@
 .design-layer-select:active { cursor: grabbing; }
 .design-layer-select svg { color: #8b8982; flex: 0 0 auto; }
 .design-layer-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.design-layer-select.is-selected { border-color: #555; box-shadow: inset 3px 0 #555; }
+.design-layer-select.is-selected { border-color: var(--studio-selection-colour); box-shadow: inset 3px 0 var(--studio-selection-colour); }
 .design-layer-select small { color: #6c6a63; font-size: var(--studio-ui-size, .8125rem); margin-left: auto; }
 .design-inspector-empty { color: var(--muted); font-size: var(--studio-ui-size, .8125rem); line-height: 1.5; }
 .design-workspace.pages-collapsed .design-pages { border-right: 0; display: none; }

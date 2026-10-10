@@ -293,14 +293,16 @@ writes these exact files:
 - `workspace-governance/STYLE_GUIDE.md` — generated token table cells only;
 - `acm-studio/app/studio/ui/styles/style-guide-source.json` — guide and line index.
 
-The preset schema is v0.5.0 and reads v0.1.0–v0.4.0. v0.4.0 migration chooses
+The preset schema is v0.6.0 and reads v0.1.0–v0.5.0. v0.4.0 migration chooses
 the first non-default colour in neutral-control, disclosure, menu-item and
 list-item order; otherwise it uses the neutral-control value. v0.3.0 retains its
 disclosure value, and v0.1.0/v0.2.0 use the default. Guide policy, reference palettes and prose are
 not editable through this interface. Responsive overrides appear alongside the
 desktop metric, for example `1rem; mobile: 15px`. Source saving is dev-only and
 does not publish, commit, push or directly update project-owned style settings.
-Consumers of the shared preset read saved values on their next load or rebuild.
+Loaded local Studio tabs refresh executable tokens after a successful save and
+on window focus, without remounting editors. Other consumers read saved values
+on their next load or rebuild.
 Hosted Studio retains draft previews but reports source saving as unavailable.
 
 Save borrows the existing Studio writer or makes a bounded claim of the same
@@ -628,3 +630,10 @@ they must not override the action colour or duplicate interaction rules.
 The Controls library includes a working Text action specimen with Clear, Reset
 and disabled actions. Callers retain their existing state and focus behaviour.
 This CSS addition does not change saved UniversalStylePreset data.
+
+Styles → Interactions owns `interactions.selectionColour` (default `#0088FF`),
+separate from specimen Accent. Source highlights, selected list/media items,
+menu-link outlines, gradient choices and status radio selections use the shared
+Studio selection alias, including portalled controls. Styles drafts preview it
+locally; saving refreshes loaded tabs from the validated source without remounting
+editors. Keyboard focus and action-button colours keep their own roles.
