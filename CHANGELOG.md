@@ -670,6 +670,9 @@
 
 ### Fixed
 
+- Selected colour previews use a single thin accent border without an extra
+  selection ring.
+
 - Button and interaction previews retain source navigation without additional
   blue source-selection outlines.
 
