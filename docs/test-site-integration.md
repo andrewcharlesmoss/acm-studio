@@ -126,11 +126,14 @@ uses the latest saved state and retains unrelated changes from other tabs.
 An ordinary browser-draft editor tab can serve Test when another tab requests it.
 Full-page site switches release the prior session. Another editor tab can take over,
 loading the current source and rebasing pending edits before saving. Tabs retain
-their own navigation, selection and unsaved draft. The owner renews its lease in
-the background. On return from browser suspension, an expired lease or session
-detected by a read reconnects automatically, keeping the pending draft and its
-original base. The fresh saved source passes through the existing owner/peer
-reconciliation before editing resumes; overlapping edits require a choice.
+their own navigation, selection and unsaved draft. The owner checks and renews
+its lease through an ownership-gated claim in the background and on foreground
+return. This can reacquire a lease released by page-hide without displacing a
+live owner; peers continue to read without claiming. An expired session or an
+explicit lease rejection reconnects automatically after any save settles,
+keeping the pending draft and its original base. The fresh saved source passes
+through the existing owner/peer reconciliation before editing resumes;
+overlapping edits require a choice.
 Visibility, page-show and focus events also refresh the connection. Claiming
 still requires the Studio write lock, and stale writes remain denied. Other
 failures pause editing and offer **Reconnect** and **Export Draft**; unknown save
@@ -148,7 +151,8 @@ from overwriting newer work.
 
 On a connection failure or conflict, the current draft remains in memory.
 **Export Draft** downloads the draft, base revision and any preserved prompt
-proposal. For an expiry warning, **Reconnect** keeps and reconciles the draft.
+proposal. For an expiry or lost-ownership warning, **Reconnect** keeps and
+reconciles the draft.
 For other failures it reloads the saved source and asks before discarding a
 changed draft. Do not rely on browser memory surviving a closed tab; export
 unsaved content before leaving.

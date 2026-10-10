@@ -653,6 +653,9 @@
 
 ### Fixed
 
+- Test and Test2 recover from explicitly rejected editing leases without
+  discarding pending drafts, and check server ownership when returning to a tab.
+
 - Local Test and Test2 document navigation now appears in Editing View and its
   Preview, including assigned templates, with links that select the document.
 

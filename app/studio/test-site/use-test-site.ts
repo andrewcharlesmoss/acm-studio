@@ -11,11 +11,16 @@ import { testSiteCollection, validTestSiteDocument, type TestSiteDocument, type 
 class ConnectionError extends Error { constructor(message: string, public status: number, public code?: string) { super(message); } }
 // Retain compatibility with an already-running local gateway during a source update.
 const expiredSessionMessage = "The local editing connection expired. Reconnect to continue.";
-const expiredLeaseMessage = "Test's editing lease expired. Reconnect before editing.";
-function expiredConnection(error: unknown) {
+function authorityFailureMessage(message: string, siteName: string) {
+  return message === expiredSessionMessage
+    || message === `${siteName}'s editing lease expired. Reconnect before editing.`
+    || message === `${siteName} is already being edited in another session.`
+    || message === `Another session owns ${siteName} editing. Reconnect when it is available.`;
+}
+function rejectedConnectionAuthority(error: unknown, siteName: string) {
   return error instanceof ConnectionError && (
     error.status === 401 && (error.code === "session_expired" || error.message === expiredSessionMessage)
-    || error.status === 423 && (error.code === "lease_expired" || error.message === expiredLeaseMessage)
+    || error.status === 423 && (error.code === "lease_expired" || error.code === "ownership_lost" || authorityFailureMessage(error.message, siteName))
   );
 }
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
@@ -57,7 +62,8 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
   const [connectionGeneration, setConnectionGeneration] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [reconnecting, setReconnecting] = useState(false);
-  const recoveringExpiry = useRef(false);
+  const recoveringAuthority = useRef(false);
+  const authorityRecoveryPending = useRef(false);
   const [editingPaused, setEditingPaused] = useState(false);
   const editingPausedRef = useRef(false);
   function pauseEditing(paused: boolean) { editingPausedRef.current = paused; setEditingPaused(paused); }
@@ -98,11 +104,12 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     live.current.snapshot = normalised;
     setSnapshot(normalised);
   }, [validateDocument]);
-  const recoverExpiredConnection = useCallback(() => {
+  const recoverConnectionAuthority = useCallback(() => {
     // Never replay an in-flight or uncertain save. Reconnect only connection authority;
     // pending edits retain their original base for the existing synchronisation rebase.
-    if (recoveringExpiry.current || saving.current || gatewayWriting.current || live.current.promptRunning) return;
-    recoveringExpiry.current = true;
+    if (recoveringAuthority.current || saving.current || gatewayWriting.current || live.current.promptRunning) return;
+    recoveringAuthority.current = true;
+    authorityRecoveryPending.current = false;
     claimed.current = false;
     setIsClaimed(false); setReconnecting(true); setSyncStatus("connecting");
     sync.current?.close(); sync.current = null;
@@ -146,9 +153,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
         installSaved(saved);
         if (!pending.current) { live.current.draft = live.current.snapshot!.document; setDraft(live.current.draft); }
         setConnectionGeneration(value => value + 1);
-        recoveringExpiry.current = false;
+        recoveringAuthority.current = false;
         setLabel(`Connecting ${siteName} tabs…`); setReconnecting(false);
-      } catch (error) { if (!cancelled) { recoveringExpiry.current = false; fail(error instanceof Error ? error.message : `${siteName} could not be loaded.`); setReconnecting(false); } }
+      } catch (error) { if (!cancelled) { recoveringAuthority.current = false; fail(error instanceof Error ? error.message : `${siteName} could not be loaded.`); setReconnecting(false); } }
     }
     queueMicrotask(() => { if (!cancelled) { setIsClaimed(false); setLabel(`Loading ${siteName}…`); void connect(); } });
     return () => { cancelled = true; mounted.current = false; claimed.current = false; token.current = null; window.removeEventListener("pagehide", releaseSession); releaseSession(); };
@@ -206,8 +213,22 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
             return validateSnapshot(await request({ action: "save", baseRevision: disk.snapshot.revision, document }, connectionToken));
           });
           disk.snapshot = saved;
-        } catch (error) { if (!closed) fail(error instanceof Error ? error.message : `${siteName} could not be saved.`); throw error; }
-        finally { gatewayWriting.current = false; gatewayWriteGeneration.current += 1; }
+        } catch (error) {
+          if (!closed) {
+            // Only an explicit authority rejection proves that this save did not
+            // commit. Transport failures and interrupted writes stay paused.
+            authorityRecoveryPending.current = rejectedConnectionAuthority(error, siteName);
+            fail(error instanceof Error ? error.message : `${siteName} could not be saved.`);
+          }
+          throw error;
+        } finally {
+          gatewayWriting.current = false; gatewayWriteGeneration.current += 1;
+          // Peer submissions have no local flush promise. Let the synchronisation
+          // transaction settle before closing its rejected session.
+          if (authorityRecoveryPending.current) window.setTimeout(() => {
+            if (!closed && authorityRecoveryPending.current) recoverConnectionAuthority();
+          }, 0);
+        }
       },
       onCommittedSnapshot: (document, commit) => {
         if (closed) return;
@@ -245,7 +266,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     setSyncStatus(session.getStatus());
     if (conflict.current) session.resumeConflict(conflict.current);
     return () => { closed = true; session.close(); if (sync.current === session) sync.current = null; };
-  }, [requested, connectionGeneration, borrowedOwnership, isClaimed, ownership, request, fail, installSaved, siteId, siteName, validateDocument, validateSnapshot]);
+  }, [requested, connectionGeneration, borrowedOwnership, isClaimed, ownership, request, fail, installSaved, recoverConnectionAuthority, siteId, siteName, validateDocument, validateSnapshot]);
 
   const installDraft = useCallback((next: TestSiteDocument, history = true) => {
     const current = live.current;
@@ -276,10 +297,13 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     }).catch(error => {
       if (mounted.current && sync.current === session && !conflict.current && !["connecting", "disconnected"].includes(session.getStatus())) fail(error instanceof Error ? error.message : "Save failed.");
       throw error;
-    }).finally(() => { if (saving.current === operation) saving.current = null; });
+    }).finally(() => {
+      if (saving.current === operation) saving.current = null;
+      if (mounted.current && authorityRecoveryPending.current) recoverConnectionAuthority();
+    });
     saving.current = operation;
     await operation;
-  }, [fail, siteName]);
+  }, [fail, recoverConnectionAuthority, siteName]);
   useEffect(() => {
     if (!dirty || !writable) return;
     const timer = window.setTimeout(() => { void flush().catch(() => {}); }, 600);
@@ -291,11 +315,11 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     let cancelled = false;
     let refreshing = false;
     const refresh = async () => {
-      if (!token.current || refreshing || recoveringExpiry.current || saving.current || gatewayWriting.current || live.current.promptRunning) return;
+      if (!token.current || refreshing || recoveringAuthority.current || saving.current || gatewayWriting.current || live.current.promptRunning) return;
       if (live.current.failure) {
-        // Recover a pre-update expiry banner without discarding the draft. Other
+        // Recover a pre-update authority banner without discarding the draft. Other
         // failures still require explicit review/export and are never retried.
-        if ([expiredSessionMessage, expiredLeaseMessage].includes(live.current.failure)) recoverExpiredConnection();
+        if (authorityRecoveryPending.current || authorityFailureMessage(live.current.failure, siteName)) recoverConnectionAuthority();
         return;
       }
       refreshing = true;
@@ -304,7 +328,12 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
         // Keep the owner lease alive in background tabs as well as visible tabs.
         const beforeRevision = live.current.snapshot?.revision;
         const beforeGeneration = gatewayWriteGeneration.current;
-        const fresh = validateSnapshot(await request({ action: "read" }, connectionToken));
+        // A pagehide release can outlive a restored page's local claimed flag.
+        // Claim checks the server owner and may safely reacquire an unowned lease;
+        // ordinary peer reads intentionally do not require ownership.
+        const fresh = validateSnapshot(await (claimed.current
+          ? studioWriteOwnership.write(() => request({ action: "claim" }, connectionToken))
+          : request({ action: "read" }, connectionToken)));
         if (cancelled || !mounted.current || token.current !== connectionToken) return;
         const current = live.current;
         if (claimed.current && !gatewayWriting.current && !saving.current && gatewayWriteGeneration.current === beforeGeneration && current.snapshot?.revision === beforeRevision && fresh.revision !== beforeRevision) {
@@ -312,7 +341,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
         }
       } catch (error) {
         if (!cancelled && mounted.current && token.current === connectionToken) {
-          if (expiredConnection(error)) recoverExpiredConnection();
+          if (rejectedConnectionAuthority(error, siteName)) recoverConnectionAuthority();
           else fail(error instanceof Error ? error.message : "Connection failed.");
         }
       } finally { refreshing = false; }
@@ -323,7 +352,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     window.addEventListener("pageshow", refresh);
     document.addEventListener("visibilitychange", resume);
     return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("pageshow", refresh); document.removeEventListener("visibilitychange", resume); };
-  }, [request, requested, fail, recoverExpiredConnection, siteName, validateSnapshot]);
+  }, [request, requested, fail, recoverConnectionAuthority, siteName, validateSnapshot]);
   useEffect(() => {
     const protect = (event: BeforeUnloadEvent) => {
       if (shouldProtectTestSiteBeforeUnload({ dirty, saving: Boolean(saving.current), promptRunning, editingPaused: editingPausedRef.current })) {
@@ -387,7 +416,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
   }
   async function reconnect() {
     if (reconnecting || promptRunning) return;
-    if (live.current.failure && [expiredSessionMessage, expiredLeaseMessage].includes(live.current.failure)) { recoverExpiredConnection(); return; }
+    if (authorityRecoveryPending.current || live.current.failure && authorityFailureMessage(live.current.failure, siteName)) { recoverConnectionAuthority(); return; }
     setReconnecting(true);
     try { await saving.current; } catch { /* The user is reconnecting to inspect a failed or interrupted save. */ }
     if ((pending.current || preservedProposal || conflict.current) && !window.confirm(`Reload ${siteName} and discard the current draft? Export it first if you need to keep it.`)) { setReconnecting(false); return; }
