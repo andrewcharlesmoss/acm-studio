@@ -4,6 +4,11 @@
 
 ### Added
 
+- Global template originals for Test and Test2, with revision-checked shared
+  saving and local preview propagation. Template layouts and styles are edited
+  globally; site identity and links remain local. Former site designs remain
+  recoverable without affecting the global design.
+
 - Added Navigation overlay icon controls and reusable overlay templates, with
   creation, selection and editing through the existing template workspace.
 

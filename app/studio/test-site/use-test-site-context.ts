@@ -1,4 +1,5 @@
 "use client";
+import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, retainLegacyNavigationPresentation, type GlobalTemplateLibrary } from "../global-template-contract";
 import { reconcileFootnoteBlocks } from "../../content/footnote-reconciliation";
 import { useState } from "react";
 import { type StudioWorkspace } from "../editor-model";
@@ -9,18 +10,31 @@ import { testSiteCollection, testSiteWorkspace } from "./contract";
 import type { useTestSite } from "./use-test-site";
 
 /** One site aggregate owns content, taxonomy, templates and their shared undo history. */
-export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser: ReturnType<typeof useStudioWorkspace>, previewDocumentId?: string | null) {
+export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser: ReturnType<typeof useStudioWorkspace>, previewDocumentId?: string | null, globals?: GlobalTemplateLibrary | null, globalsInitialised = false) {
   const [selectedId, setSelectedId] = useState(previewDocumentId ?? "test-site");
-  const collection = site.draft ? testSiteCollection(site.draft) : null;
+  const sourceCollection = site.draft ? testSiteCollection(site.draft) : null;
+  const bindings = sourceCollection && globals ? sourceCollection.globalTemplates ?? migrateGlobalTemplateBindings(sourceCollection.templates, globals, site.siteId) : [];
+  const collection = sourceCollection && globals ? { ...sourceCollection, templates: effectiveGlobalTemplates(sourceCollection.templates, globals, bindings) } : sourceCollection;
   const workspace: StudioWorkspace = collection ? testSiteWorkspace(collection, selectedId)
     : { version: 24, documents: [], activeDocumentId: "", categories: [], bin: [] };
   function commitContent(update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) {
     return site.updateDraft(current => {
       const source = testSiteCollection(current);
-      const next = update(testSiteWorkspace(source, selectedId), source.templates);
-      // Selection is local to the tab. The saved home remains a valid fallback.
+      if (!globals || !globalsInitialised) throw new Error("Global templates are unavailable. The site draft was preserved.");
+      const refs = source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, site.siteId);
+      const effective = effectiveGlobalTemplates(source.templates, globals, refs);
+      const next = update(testSiteWorkspace(source, selectedId), effective);
+      const design = (store: TemplateStore) => store.sets.map(({ identity: _identity, navigation: _navigation, socialLinks: _social, ...original }) => { void _identity; void _navigation; void _social; return original; });
+      if (JSON.stringify(design(next.templates)) !== JSON.stringify(design(effective))) throw new Error("Templates are global. Edit their original in Templates; site design changes are unavailable.");
+      for (const set of next.templates.sets) { retainLegacyNavigationPresentation(set.navigation, []); retainLegacyNavigationPresentation(set.socialLinks, []); }
+      // Preserve legacy designs/patches for recovery; only identity, links and assignments belong to this site.
+      const sets = source.templates.sets.map(retained => {
+        const local = next.templates.sets.find(item => item.id === retained.id);
+        return local ? { ...retained, identity: local.identity, navigation: retainLegacyNavigationPresentation(local.navigation, retained.navigation), socialLinks: retainLegacyNavigationPresentation(local.socialLinks, retained.socialLinks) } : retained;
+      });
+      for (const entry of next.templates.sets) if (!sets.some(set => set.id === entry.id)) sets.push(entry);
       return { ...source, documents: next.workspace.documents, categories: next.workspace.categories,
-        bin: next.workspace.bin, templates: next.templates, activeDocumentId: source.homeDocumentId };
+        bin: next.workspace.bin, version: 5, globalTemplates: refs, templates: { ...source.templates, sets, assignments: next.templates.assignments, bin: next.templates.bin }, activeDocumentId: source.homeDocumentId };
     });
   }
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
@@ -39,7 +53,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     }) }));
   }
   const session: ReturnType<typeof useStudioWorkspace> = {
-    ...browser, workspace, ready: Boolean(collection), writable: site.writable, exclusiveWritable: site.writable && browser.exclusiveWritable,
+    ...browser, workspace, ready: Boolean(collection), writable: site.writable && Boolean(globals) && globalsInitialised, exclusiveWritable: site.writable && Boolean(globals) && globalsInitialised && browser.exclusiveWritable,
     loadError: site.failure, saveLabel: site.label, commit, setActiveDocument: setSelectedId,
     updateDocument, updateActiveDocument: update => updateDocument(workspace.activeDocumentId, update),
     updateActiveField: (field, value) => updateDocument(workspace.activeDocumentId, document => ({ ...document, [field]: value })),
@@ -49,7 +63,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     retryEditing: () => { void site.reconnect(); }, canRetryEditing: Boolean(site.failure), syncStatus: site.syncStatus,
   };
   const templates: ReturnType<typeof useTemplates> = {
-    store: collection?.templates ?? emptyTemplateStore(), ready: Boolean(collection), writable: site.writable,
+    store: collection?.templates ?? emptyTemplateStore(), ready: Boolean(collection && globals), writable: site.writable && Boolean(globals) && globalsInitialised,
     exclusiveWritable: session.exclusiveWritable, error: site.failure, saveLabel: site.label, syncStatus: site.syncStatus,
     syncConflict: site.syncConflict, resolveSyncConflict: site.resolveSyncConflict, retryConnection: () => { void site.reconnect(); },
     commit: update => commitContent((current, store) => ({ workspace: current, templates: update(store) })),

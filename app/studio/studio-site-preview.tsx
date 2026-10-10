@@ -9,7 +9,8 @@ import { viewportWidthFor, type StudioViewport, type StudioViewMode } from "./st
 
 const viewportHeights: Record<StudioViewport, number> = { desktop: 800, tablet: 1024, mobile: 844 };
 
-export function StudioSitePreview({ document, documentId, viewport, onViewportChange, mode, onModeChange }: {
+export function StudioSitePreview({ globalTemplates, document, documentId, viewport, onViewportChange, mode, onModeChange }: {
+  globalTemplates?: import("./global-template-contract").GlobalTemplateLibrary | null;
   document: TestSiteDocument; documentId: string; viewport: StudioViewport;
   onViewportChange: (viewport: StudioViewport) => void;
   mode: "website" | "full"; onModeChange: (mode: StudioViewMode) => void;
@@ -18,9 +19,9 @@ export function StudioSitePreview({ document, documentId, viewport, onViewportCh
   const [available, setAvailable] = useState({ width: 0, height: 0 });
   const [zoom, setZoom] = useState<number | "fit">("fit");
   const rendered = useMemo(() => {
-    try { return { html: renderTestSite(document, "studio-preview", documentId), error: false }; }
+    try { return { html: renderTestSite(document, "studio-preview", documentId, globalTemplates ?? undefined), error: false }; }
     catch { return { html: "", error: true }; }
-  }, [document, documentId]);
+  }, [document, documentId, globalTemplates]);
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;

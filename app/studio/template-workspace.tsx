@@ -1,4 +1,5 @@
 "use client";
+import { validateGlobalTemplateLibrary } from "./global-template-contract";
 import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
 import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "./list-item-background";
 import type { ListBlock } from "../content/model";
@@ -33,7 +34,10 @@ import { Pane } from "./panes/pane-components";
 type NameDialog = { title: string; name: string; confirm: (name: string) => boolean | void };
 export type TemplateWorkspaceSession = ReturnType<typeof useStudioWorkspace>;
 export type TemplateStoreSession = ReturnType<typeof useTemplates>;
-export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
+export function TemplateWorkspacePanel({ editingScope, globalLibrary, sitePreviewTemplates, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
+  sitePreviewTemplates?: import("./template-model").TemplateStore;
+  editingScope?: "global" | "site";
+  globalLibrary?: import("./global-template-contract").GlobalTemplateLibrary | null;
   siteNavigation?: import("./test-site/contract").SiteNavigationReference;
   siteId?: LocalFixtureSiteId;
   onSelectSite?: (id: LocalFixtureSiteId) => void;
@@ -95,6 +99,9 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
   }
   const importRef = useRef<HTMLInputElement>(null);
   const set = templates.store.sets.find(item => item.id === setId);
+  const previewBinding = globalLibrary && siteId ? globalLibrary.migrations[siteId].bindings.find(binding => binding.globalSetId === set?.id) : undefined;
+  const previewSet = sitePreviewTemplates?.sets.find(item => item.id === (previewBinding?.setId ?? set?.id));
+  const editorSet = editingScope === "global" && set && previewSet ? { ...set, identity: previewSet.identity, navigation: previewSet.navigation, socialLinks: previewSet.socialLinks } : set;
   const target = set ? [...set.templates, ...set.parts].find(item => item.id === targetId) : undefined;
   const showTemplateLibrary = !target;
   const templateEntries = templateLibraryEntries(templates.store);
@@ -130,15 +137,18 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
   function askName(title: string, name: string, confirm: NameDialog["confirm"]) { setDialogOpener(document.activeElement as HTMLElement); setDialog({ title, name, confirm }); }
   function openSet(item: TemplateSet, id = item.templates[0]?.id ?? item.parts[0]?.id) {
     changeSelection({ setId: item.id, targetId: id ?? null }); setMediaTarget(null);
-    writeStudioNavigation("templates", { setId: item.id, targetId: id ?? null });
+    writeStudioNavigation("templates", { setId: item.id, targetId: id ?? null, scope: editingScope });
   }
   function library() {
     changeSelection({ setId: null, targetId: null });
     setMediaTarget(null);
-    writeStudioNavigation("templates");
+    writeStudioNavigation("templates", { setId: null, targetId: null, scope: "global" });
   }
 
-  function changeSet(next: TemplateSet) { return templates.commit(store => replaceTemplateLibraryContext(store, next)); }
+  function changeSet(next: TemplateSet) { return templates.commit(store => {
+    const original = store.sets.find(item => item.id === next.id);
+    return replaceTemplateLibraryContext(store, editingScope === "global" && original ? { ...next, identity: original.identity, navigation: original.navigation, socialLinks: original.socialLinks } : next);
+  }); }
   async function exportEntry(item: TemplateSet, entry: PageTemplate | TemplatePart) {
     setBusy(true); setFeedback(null);
     try { exportStudioJson(await exportTemplatePackage(templateEntryExportContext(item, entry)), `${entry.name.replace(/[^a-z0-9-]+/gi, "-").toLowerCase() || "template"}.json`, 1000); }
@@ -147,6 +157,27 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
   }
   async function importFile(file?: File) {
     if (!file) return;
+    if (editingScope === "global") {
+      try {
+        if (file.size > 1024 * 1024) throw new Error("Choose a global template file smaller than 1 MB.");
+        const parsed = JSON.parse(await file.text());
+        if (parsed?.format === "acm-global-templates") {
+          const restored = validateGlobalTemplateLibrary(parsed);
+          if (!window.confirm("Restore these global originals for every site? Site identity, menu links and document content are preserved. The previous originals remain in Studio’s local recovery history.")) return;
+          if (!templates.commit(() => restored.templates)) throw new Error("Global templates cannot be restored in this tab.");
+          library();
+          return;
+        }
+        const value = validateTemplatePackage(parsed);
+        if (value.media.length || templateMediaIds(value.set).length) throw new Error("Global templates require portable image URLs.");
+        const copy = duplicateTemplateSet(value.set, "Templates");
+        copy.templates = copy.templates.map(template => ({ ...template, isDefault: false }));
+        copy.identity = { name: "Your Site", homeUrl: "/", copyright: "" }; copy.navigation = []; copy.socialLinks = [];
+        if (!templates.commit(store => ({ ...store, sets: [...store.sets, copy] }))) throw new Error("Global templates could not be imported.");
+        openSet(copy);
+      } catch (error) { setFeedback(error instanceof Error ? error.message : "Import failed."); }
+      return;
+    }
     if (siteId) {
       try {
         if (file.size > TEMPLATE_PACKAGE_LIMIT) throw new Error("Choose a template package smaller than 50 MB.");
@@ -203,6 +234,7 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
     if (changeSet(next)) openSet(targetSet, copy.id);
   }
   function templateDeleteBlockReason(setId: string, targetId: string) {
+    if (editingScope === "global") return "Global originals remain protected while site references and recovery copies exist.";
     if (siteNavigation?.setId === setId && siteNavigation.partId === targetId) return "This shared part supplies the site navigation. Remove its blocks to hide the menu.";
     const targetSet = templates.store.sets.find(item => item.id === setId);
     const targetEntry = targetSet ? [...targetSet.templates, ...targetSet.parts].find(item => item.id === targetId) : undefined;
@@ -315,9 +347,10 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
     }
     setMediaTarget(null);
   }
+  const scopeNotice = editingScope ? <div className="template-scope-notice" role="status">Global template — layout and style changes apply to every site.{globalLibrary ? <StudioButton variant="secondary" onClick={() => exportStudioJson(globalLibrary, "acm-global-template-library.json")}>Export Saved Global Library</StudioButton> : null}</div> : null;
   const panel = <>
-    {templates.syncConflict ? <div className="template-status template-inline-status template-conflict-status" role="alert"><div><strong>Another Studio tab changed this template while you were editing.</strong><span>{templates.syncConflict.conflicts.length || 1} overlapping change{templates.syncConflict.conflicts.length === 1 ? "" : "s"} need your decision. Your changes are still available in this tab.</span><small>{studioConflictDetails(templates.syncConflict)} Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</small></div><div className="template-status-actions"><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}
-    {!templates.syncConflict && (templates.error || feedback || media.error) ? <div className="template-status template-inline-status" role="alert"><span>{templates.error ?? feedback ?? media.error}</span>{!templates.ready ? <div className="template-status-actions"><button type="button" onClick={() => exportStudioJson({ raw: window.localStorage.getItem(TEMPLATE_STORAGE_KEY) }, "acm-template-recovery.json", 1000)}>Export Original Data</button></div> : null}</div> : null}
+    {templates.syncConflict ? <div className="template-status template-inline-status template-conflict-status" role="alert"><div><strong>Another Studio tab changed this template while you were editing.</strong><span>{templates.syncConflict.conflicts.length || 1} overlapping change{templates.syncConflict.conflicts.length === 1 ? "" : "s"} need your decision. Your changes are still available in this tab.</span><small>{studioConflictDetails(templates.syncConflict)} Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</small></div><div className="template-status-actions">{editingScope === "global" && globalLibrary ? <button type="button" onClick={() => exportStudioJson(validateGlobalTemplateLibrary({ ...globalLibrary, templates: templates.store }), "acm-global-template-draft.json")}>Export Unsaved Global Draft</button> : null}<button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}
+    {!templates.syncConflict && (templates.error || feedback || media.error) ? <div className="template-status template-inline-status" role="alert"><span>{templates.error ?? feedback ?? media.error}</span>{editingScope === "global" ? <div className="template-status-actions"><button type="button" onClick={() => exportStudioJson(globalLibrary ? validateGlobalTemplateLibrary({ ...globalLibrary, templates: templates.store }) : templates.store, "acm-global-template-draft.json")}>Export Unsaved Global Draft</button><button type="button" onClick={templates.retryConnection}>Reload Global Originals</button></div> : !templates.ready ? <div className="template-status-actions"><button type="button" onClick={() => exportStudioJson({ raw: window.localStorage.getItem(TEMPLATE_STORAGE_KEY) }, "acm-template-recovery.json", 1000)}>Export Original Data</button></div> : null}</div> : null}
     {onBackToContent ? <Pane trackClassName="studio-library-track" className="studio-library" bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={resolvedLibraryPaneWidth} onWidthChange={setResolvedLibraryPaneWidth} minWidth={270} maxWidth={480} collapsed={resolvedLibraryPaneCollapsed} onCollapsedChange={setResolvedLibraryPaneCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}>
       <div className="library-create">
         <button type="button" onClick={library} aria-pressed={showTemplateLibrary}>Templates</button>
@@ -351,7 +384,8 @@ export function TemplateWorkspacePanel({ siteNavigation, siteId, onSelectSite, w
       <a className="library-tool-button" href={siteId ? `/studio?site=${siteId}&mode=bin` : "/studio?mode=bin"}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
       <button className="library-tool-button is-active" type="button" onClick={library}><span><StudioIcon name="block" /></span><strong>Templates</strong><small>Shared presentation</small></button>
     </aside>}
-    {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}><button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : mediaTarget.background ? "Background image" : "Template image"} targetKind={mediaTarget.background ? "background" : "block"} onInsertImage={insertMedia} /></section> : !showTemplateLibrary && set && target ? <TemplateEditor siteId={siteId} fixtureLinks={Boolean(siteId)} initialSelectedBlockId={target.kind === "overlay" ? target.nodes[0]?.id : siteNavigation?.setId === set.id && siteNavigation.partId === target.id ? target.nodes.find(node => node.type === "element" && node.element === "navigation")?.id : undefined} siteNavigationPartId={siteNavigation?.setId === set.id ? siteNavigation.partId : undefined} sharedSiteNavigation={siteNavigation?.setId === set.id && siteNavigation.partId === target.id} key={`${set.id}/${target.id}`} set={set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} loadInlineImages={loadStoredInlineImages} writable={writable} onChange={changeSet} onEditPart={(id, nextSet) => openSet(nextSet ?? set, id)} onOpenMedia={(blockId, logo = false, background = false, item) => { if (siteId) { setFeedback(`${localFixtureName(siteId ?? "test")} templates use portable image URLs. Browser-managed files remain in Studio Drafts.`); return; } setMediaTarget({ blockId, logo, background, item, targetId: target.id, setId: set.id }); }} inspectorTab={inspectorTab} onInspectorTabChange={onInspectorTabChange} inspectorPaneWidth={resolvedInspectorPaneWidth} onInspectorPaneWidthChange={setResolvedInspectorPaneWidth} inspectorPaneCollapsed={resolvedInspectorPaneCollapsed} onInspectorPaneCollapsedChange={setResolvedInspectorPaneCollapsed} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : <section className="template-library" style={{ gridColumn: "span 2" }}><h1>Templates</h1><p>Reusable layouts and shared parts.</p><div className="template-library-actions">{(["page", "post", "header", "footer"] as const).map(kind => <StudioButton type="button" key={kind} disabled={!writable} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</StudioButton>)}<StudioButton variant="secondary" type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</StudioButton></div>
+
+    {mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}>{scopeNotice}<button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : mediaTarget.background ? "Background image" : "Template image"} targetKind={mediaTarget.background ? "background" : "block"} onInsertImage={insertMedia} /></section> : !showTemplateLibrary && set && target ? <TemplateEditor scopeNotice={scopeNotice} globalOriginal={editingScope === "global"} siteId={siteId} fixtureLinks={Boolean(siteId)} initialSelectedBlockId={editingScope === "global" && set.id === "studio-global-navigation" ? target.nodes[0]?.id : target.kind === "overlay" ? target.nodes[0]?.id : siteNavigation?.setId === set.id && siteNavigation.partId === target.id ? target.nodes.find(node => node.type === "element" && node.element === "navigation")?.id : undefined} siteNavigationPartId={siteNavigation?.setId === set.id ? siteNavigation.partId : undefined} sharedSiteNavigation={siteNavigation?.setId === set.id && siteNavigation.partId === target.id} key={`${set.id}/${target.id}`} set={editorSet ?? set} target={target} documents={workspace.workspace.documents} mediaUrls={media.urls} loadInlineImages={loadStoredInlineImages} writable={writable} onChange={changeSet} onEditPart={(id, nextSet) => openSet(nextSet ?? set, id)} onOpenMedia={(blockId, logo = false, background = false, item) => { if (siteId) { setFeedback(`${localFixtureName(siteId ?? "test")} templates use portable image URLs. Browser-managed files remain in Studio Drafts.`); return; } setMediaTarget({ blockId, logo, background, item, targetId: target.id, setId: set.id }); }} inspectorTab={inspectorTab} onInspectorTabChange={onInspectorTabChange} inspectorPaneWidth={resolvedInspectorPaneWidth} onInspectorPaneWidthChange={setResolvedInspectorPaneWidth} inspectorPaneCollapsed={resolvedInspectorPaneCollapsed} onInspectorPaneCollapsedChange={setResolvedInspectorPaneCollapsed} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : <section className="template-library" style={{ gridColumn: "span 2" }}>{scopeNotice}<h1>Templates</h1><p>Reusable global originals and shared parts.</p><div className="template-library-actions">{(["page", "post", "header", "footer"] as const).map(kind => <StudioButton type="button" key={kind} disabled={!writable} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</StudioButton>)}<StudioButton variant="secondary" type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</StudioButton></div>
       <ul className="template-entry-list" aria-label="Templates">{templateEntries.map(({ set: item, entry }) => <li key={`${item.id}/${entry.id}`}>
         <button className="template-entry-open" type="button" onClick={() => openSet(item, entry.id)}><span className="document-kind-mark" aria-hidden="true">{templateNameInitial(entry.name)}</span><span><strong>{entry.name}</strong><small>{entry.kind === "page" || entry.kind === "post" ? `${entry.kind === "page" ? "Page" : "Post"} template` : `Shared ${entry.kind}`}</small></span></button>
         <button className="template-entry-actions" type="button" aria-label={`Actions for ${entry.name}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={event => { templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left, y: rect.bottom }); }}><StudioIcon name="more-vertical" /></button>

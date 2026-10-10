@@ -1,3 +1,6 @@
+import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, type GlobalTemplateLibrary } from "../global-template-contract";
+export { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } from "../global-template-contract";
+export { testSiteCollection } from "./contract";
 import { localFixtureName } from "./sites";
 import { renderToStaticMarkup } from "react-dom/server";
 import { BlockRenderer } from "../../components/blocks/block-renderer";
@@ -37,8 +40,9 @@ document.addEventListener('click', event => {
     try { document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView(); } catch {}
   }
 });`;
-export function renderTestSite(document: TestSiteDocument, revision: string, initialDocumentId?: string) {
-  const site = testSiteCollection(document);
+export function renderTestSite(document: TestSiteDocument, revision: string, initialDocumentId?: string, globals?: GlobalTemplateLibrary, globalRevision?: string) {
+  const source = testSiteCollection(document);
+  const site = globals ? { ...source, templates: effectiveGlobalTemplates(source.templates, globals, source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, source.siteId)) } : source;
   const initialId = initialDocumentId !== undefined && site.documents.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;
   const siteName = localFixtureName(site.siteId);
   const body = renderToStaticMarkup(<>
@@ -54,5 +58,5 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
       </section>;
     })}
   </>);
-  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="acm-test-revision" content="${revision}"><meta name="theme-color" content="#f2f2f7"><title>${siteName}</title><style>html{font-size:100%}body{margin:0}${contentCss.replace(/@import[^;]+;/g, "")}${studioBlockCss}${groupLayoutCss}${buttonsCss}${featuredImageCss}${templateCss}${testSiteCss}[data-test-document][hidden]{display:none}</style></head><body>${body}<script>${templateNavigationScript}${initialDocumentId ? previewRoutingScript + routingScript.replace("const hash=location.hash;", "const hash=previewHash;") : routingScript}</script></body></html>`;
+  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="acm-test-revision" content="${revision}">${globals ? `<meta name="acm-global-template-revision" content="${globalRevision ?? "current-draft"}">` : ""}<meta name="theme-color" content="#f2f2f7"><title>${siteName}</title><style>html{font-size:100%}body{margin:0}${contentCss.replace(/@import[^;]+;/g, "")}${studioBlockCss}${groupLayoutCss}${buttonsCss}${featuredImageCss}${templateCss}${testSiteCss}[data-test-document][hidden]{display:none}</style></head><body>${body}<script>${templateNavigationScript}${initialDocumentId ? previewRoutingScript + routingScript.replace("const hash=location.hash;", "const hash=previewHash;") : routingScript}</script></body></html>`;
 }

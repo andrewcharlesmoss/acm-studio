@@ -218,6 +218,20 @@ export function createTestSiteStore({ root, validate, render, siteId = "test", c
       if (input.action === "save") return save(token, input.baseRevision, input.document);
       throw new TestSiteError(`Unknown ${siteName} operation.`);
     }),
+    assertWriter: token => serial(async () => { writable(token); return snapshot(); }),
+    refreshPreview: () => serial(async () => {
+      const current = await snapshot();
+      const previous = await read("dist/index.html");
+      const output = checkedTestOutput(await render(current.document, current.revision));
+      const fresh = await snapshot();
+      if (fresh.revision !== current.revision) throw new TestSiteError("The site changed while global templates were rendered. Its source was preserved.", 409);
+      await atomic(".studio/state.json", JSON.stringify({ revision: current.revision, outputHash: hash(previous), pending: { revision: current.revision, outputHash: hash(output) } }));
+      try {
+        await atomic("dist/index.html", output);
+        await atomic(".studio/state.json", JSON.stringify({ revision: current.revision, outputHash: hash(output) }));
+      } catch { initialised = false; throw new TestSiteError("Global templates were saved, but a local preview refresh was interrupted. Reconnect to recover it.", 503); }
+      return current;
+    }),
     assertPrompt: (token, baseRevision) => serial(async () => { writable(token); const current = await snapshot(); if (current.revision !== baseRevision) throw new TestSiteError("Save your changes before submitting a prompt.", 409);
       sessions.get(token).expires = Math.max(sessions.get(token).expires, clock() + 240000);
       owner.expires = Math.max(owner.expires, clock() + 240000);

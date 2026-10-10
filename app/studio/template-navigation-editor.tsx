@@ -193,7 +193,7 @@ export function LinkSetting({ label, value, maxLength = 2000, onCommit }: { labe
   return <label>{label}<input key={value} defaultValue={value} maxLength={maxLength} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
 }
 
-export function NavigationInspector({ block, menuName = "Navigation", onBlockChange, overlayContext = false, overlayParts = [], canCreateOverlay = true, onCreateOverlay, onEditOverlay, ...props }: NavigationEditingProps & { menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void; overlayContext?: boolean; overlayParts?: TemplatePart[]; canCreateOverlay?: boolean; onCreateOverlay?: () => void; onEditOverlay?: (id: string) => void }) {
+export function NavigationInspector({ linksWritable = true, block, menuName = "Navigation", onBlockChange, overlayContext = false, overlayParts = [], canCreateOverlay = true, onCreateOverlay, onEditOverlay, ...props }: NavigationEditingProps & { linksWritable?: boolean; menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void; overlayContext?: boolean; overlayParts?: TemplatePart[]; canCreateOverlay?: boolean; onCreateOverlay?: () => void; onEditOverlay?: (id: string) => void }) {
   const [activeTab, setActiveTab] = useState("menu");
   const tabId = useId();
   const [menuOptionsOpen, setMenuOptionsOpen] = useState(false);
@@ -216,7 +216,7 @@ export function NavigationInspector({ block, menuName = "Navigation", onBlockCha
         <button type="button" role="menuitem" disabled={!props.links.length} onClick={() => { setMenuOptionsOpen(false); props.onSelect(props.links[0]?.id ?? null); }}>Edit first Page link</button>
         <button type="button" role="menuitem" onClick={() => { setMenuOptionsOpen(false); menuOptionsTrigger.current?.focus(); }}><StudioIcon name="close" />Close</button>
       </StudioAnchoredMenu> : null}
-      <NavigationMenuList {...props} blockId={block.id} />
+      <NavigationMenuList {...props} writable={props.writable && linksWritable} blockId={block.id} />{!linksWritable ? <p className="setting-note">Menu links belong to the site. Edit Navigation from that site to change them.</p> : null}
     </section>
     </> : activeTab === "settings" ? <>
     {!overlayContext ? <InspectorAccordionSection title="Overlay" contentDisabled={!props.writable}>

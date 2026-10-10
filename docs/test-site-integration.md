@@ -14,7 +14,7 @@ Test has no Staging target. Production opens its registered hosted website in a
 new tab; Production editing remains unavailable until a hosted content adapter
 is connected. The Local pencil selects Test through the existing editor flow.
 
-Test owns `content/site.json`, envelope v4 (`acm-test-site`, site ID `test`). It
+Test owns `content/site.json`, envelope v5 (`acm-test-site`, site ID `test`). It
 contains a collection of canonical Studio documents, categories, recoverable Bin
 entries and a template store. `homeDocumentId` identifies the retained home page;
 editor selection is local to each tab and cannot change it. Envelopes v1–v3 remain
@@ -229,7 +229,7 @@ edits are independent. Both appear in the Sites pane in content and template
 workspaces. Switching saves the current draft before a full context load; a
 failed save retains the current site and draft.
 
-Test2 source belongs to sibling `test2/content/site.json`, using v4 and reading v3. Legacy
+Test2 source belongs to sibling `test2/content/site.json`, using v5 and reading v1–v4. Legacy
 v1/v2 sources remain Test-only. The shared endpoint keeps its existing token
 header but selects one of two fixed stores. Browser input never selects a path.
 Source, recovery state, history, sessions, lease and process guard are separate.
@@ -262,7 +262,7 @@ select the document through the existing editor command. The same part surrounds
 Existing Presentation and assigned templates in all views and local output.
 
 Legacy collections seed their current document links with deterministic IDs;
-the next accepted owned save stores v4 through the existing revision gateway.
+the next accepted owned save stores v5 through the existing revision gateway.
 Migration requires one free template-set slot; an existing collection at the
 100-set limit is retained and reports that capacity problem instead of
 installing an invalid migrated draft.
@@ -294,3 +294,21 @@ as its browser viewport. Its toolbar returns to Website View or Editing View.
 These transient views do not save, publish or change the source. Unsaved Code
 Editor text requires the existing discard confirmation before switching views.
 The original browser draft and template editors retain their current views.
+
+## Global template ownership
+
+Test and Test2 retain separate documents, identity, authored menu links,
+assignments, history and save revisions. Template designs belong solely to
+Studio's canonical local library, described in `templates.md`; individual sites
+cannot edit their layout or styles. Source v5 retains compatibility bindings,
+legacy designs and any previously stored patches for recovery, reading v1–v4.
+Those patches do not affect rendering. Normal content saves preserve the legacy
+records instead of replacing them with the effective global design.
+
+Global saves use their own CAS revision and refresh local output from fresh site
+snapshots. Preview-only refresh does not alter `content/site.json` or its revision.
+HTML includes `acm-global-template-revision` alongside the fixture revision.
+Publication snapshots, Bin records and assignment IDs remain recoverable. Old
+direct template URLs resolve to originals. Backups carry the global library;
+restoring a mismatched library is a separate explicit step. Read-only bootstrap
+never permits persistence before owned initialisation.

@@ -1,6 +1,6 @@
 # Template editing
 
-Templates are Studio-owned browser-local designs. Open **Templates** beside
+Templates are Studio-owned designs. Test and Test2 use one canonical global library; Studio Drafts retains its separate browser recovery copies. Open **Templates** beside
 **Pages** and **Posts** in the Content Studio, or use the dashboard shortcut,
 then open or create an individual Page, Post, Header or Footer. The Content
 Studio keeps the template library and editor in the same workspace, so changing
@@ -24,8 +24,8 @@ tablet and mobile canvas sizes. Zoom is independent of that viewport choice and
 is available from the toolbar or with Command/Ctrl + plus/equal, Command/Ctrl +
 minus/underscore and Command/Ctrl + 0 to reset to 100%. These shortcuts only
 belong to the focused template workspace and leave text, code and form editing
-to the browser. The Template inspector owns identity, navigation and
-social/support links. Styles lists the entries sharing its presentation settings.
+to the browser. Template design controls edit global originals. Identity, navigation links and
+social/support links are supplied by the selected site and previewed read-only. Styles lists the entries sharing its presentation settings.
 Ordinary paragraph style overrides take precedence over those tokens.
 
 Template Edit and Preview use a white canvas without a shadow and the same pale
@@ -592,3 +592,56 @@ renewal, usage lists, Bin recovery and deletion protection. Overlay parts are
 selected through Navigation rather than inserted as ordinary shared references.
 The React preview and generated fixture HTML render the same layout and reuse
 the same focus containment, Escape dismissal and focus-return runtime.
+
+## Global templates
+
+The Templates list opens one global library independently of the selected site.
+Every site uses the original layout and styles. There are no site template design
+customisations, colour overrides or reset controls. Old site-scoped entry URLs
+map through stable aliases to the canonical original. Context and entry IDs remain
+internal compatibility identifiers; equal names never establish shared ownership.
+
+Global originals are saved through a local, exact-origin, ownership-protected CAS
+gateway to `work/global-template-library.json` (global contract v1). The file is
+server-readable and is the source for both generated local websites. A save
+refreshes both previews from fresh site sources without changing site revisions.
+Each HTML output records the global revision independently. Partial refresh
+failures preserve the saved original and identify the affected preview; reconnect
+before retrying. Source replacement retains revisioned recovery copies in
+`.studio/global-template-history/`. Both directories contain local data rather
+than committed application source.
+
+The first owning session initialises originals from validated fixture sources.
+Shared IDs and entry kinds establish existing common ancestry; the explicit
+`siteNavigation` role maps both fixture Navigation parts to one neutral original.
+Existing local designs and previously stored override patches remain recoverable
+in the site source and backups, but never affect the rendered global design.
+Ordinary content saving preserves those legacy records. Unbound legacy designs
+are not offered as independent site templates. New global originals become
+available to every site through stable IDs.
+
+Identity, authored menu links, social links, document assignments and document
+content remain site-owned. The template canvas previews the selected site's
+content read-only; editing template design changes the original for every site.
+The site adapter rejects design edits even if a caller bypasses the interface.
+Site source v5 retains compatibility bindings and legacy recovery data while
+reading v1–v4. No new site presentation override patches are authored. Legacy menu and social per-link styles
+are stripped recursively from effective links and retained by link ID during
+content saves for recovery. Site-only link style or CSS changes are rejected.
+
+Before initialisation, readers can browse a deterministic read-only projection;
+site writes remain paused. An older owning tab must reconnect before global
+editing becomes available. There is no unlocked persistence fallback. Original
+editing uses the existing typed tab broker: compatible peer edits merge and
+an overlap requires an explicit choice. Failed or uncertain saves preserve the
+local draft and offer a complete library export before reload or conflict choice.
+Dedicated previews load originals read-only. Global removal remains unavailable
+while the site-reference and recovery contract is retained.
+
+**Export Saved Global Library** includes originals and migration bindings.
+Import restores originals after explicit confirmation; it does not enable site
+design edits. Site backups include the global library alongside the aggregate.
+A site restore refuses a different library: restore that library explicitly first,
+then restore the site. Entry packages carry portable designs and create a new
+global original rather than silently matching a name. Local publication snapshots
+remain frozen until their existing Update action.

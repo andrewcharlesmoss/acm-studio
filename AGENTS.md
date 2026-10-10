@@ -323,7 +323,7 @@ relative `/studio` link on every host.
 
 Andrew has authorised the local Test integration inside `/studio?site=test` and
 changes to the sibling `test` project for this fixture. The canonical source is
-Test's `content/site.json` v4 (backwards-readable v1–v3), containing documents,
+Test's `content/site.json` v5 (backwards-readable v1–v4), containing documents,
 categories, Bin and templates; visual edits use one revision-checked gateway.
 Test drives the selected site's Pages, Posts and Templates lists and commands.
 Andrew authorised copying the existing browser test documents, templates and
@@ -359,7 +359,7 @@ capabilities, commands, conflict handling, protocol details and recovery.
 ### Second local fixture
 
 Andrew authorised Test2 (`test2`) on 9 October 2026. `/studio?site=test2` uses
-the same local integration with an independent v4 source in sibling
+the same local integration with an independent v5 source in sibling
 `test2/content/site.json`. Only fixed IDs `test` and `test2` are accepted.
 Each owns separate gateway sessions, leases, process guards, revisions, history,
 wake channels and synchronisation rooms. Every ordinary Studio shell retains
@@ -428,3 +428,21 @@ renewal, usage lists, Bin recovery and deletion protection. Overlay parts are
 selected through Navigation rather than inserted as ordinary shared references.
 The React preview and generated fixture HTML render the same layout and reuse
 the same focus containment, Escape dismissal and focus-return runtime.
+
+
+### Global local-fixture template originals
+
+Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
+(global library contract v1), saved through the fixed-target, exact-origin,
+Web-Lock-owner gateway with CAS revisions and recoverable source history.
+Templates opens originals independently of the selected site. Template designs
+are global and cannot be customised per site. Identity, authored menu links,
+social links and assignments remain site-owned. Source v5 retains stable aliases
+and legacy design/override records for recovery, reading v1–v4; these records do
+not alter effective global designs and normal content saves preserve them.
+Global edits refresh both generated previews from fresh sources without changing
+site source revisions. Read-only bootstrap never permits persistence before owned
+initialisation. Legacy entry URLs map to originals. New originals are available
+to every site; removal remains protected. Library export/import and site backups
+preserve originals and recovery records. See `docs/templates.md` and
+`docs/test-site-integration.md`. No hosted publication is implied.

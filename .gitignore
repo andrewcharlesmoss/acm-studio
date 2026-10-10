@@ -39,3 +39,6 @@ yarn-error.log*
 /outputs/
 /work/
 /public/background-removal-runtime/
+
+# Local writer guards and recoverable source history
+/.studio/

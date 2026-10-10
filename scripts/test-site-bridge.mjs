@@ -1,3 +1,5 @@
+import { readFile, lstat, realpath } from "node:fs/promises";
+import { createGlobalTemplateStore } from "./global-template-store.mjs";
 import path from "node:path";
 import { runnerImport } from "vite";
 import { createTestSiteStore, TestSiteError } from "./test-site-store.mjs";
@@ -44,9 +46,27 @@ export function testSiteBridge() {
     const invalidateRenderer = file => { if (rendererDependencies.has(file)) loaded = undefined; };
     server.watcher.on("change", invalidateRenderer);
     let validation;
+    const globalTemplates = createGlobalTemplateStore({ root: server.config.root, loadContracts: load, readSites: async () => {
+      const contracts = await load();
+      const sites = {};
+      for (const [siteId, root] of Object.entries(roots)) {
+        if (await realpath(root) !== root) throw new TestSiteError("Use the fixture's canonical project path.", 503);
+        const directory = await lstat(path.join(root, "content"));
+        const file = path.join(root, "content/site.json");
+        const entry = await lstat(file);
+        if (!directory.isDirectory() || directory.isSymbolicLink() || !entry.isFile() || entry.isSymbolicLink() || entry.size > 1024 * 1024) throw new TestSiteError("Unsafe fixture template source.", 503);
+        const value = JSON.parse(await readFile(file, "utf8"));
+        if (!contracts.validTestSiteDocument(value) || value.siteId !== siteId) throw new TestSiteError("The fixture template source is invalid.", 503);
+        sites[siteId] = contracts.testSiteCollection(value);
+      }
+      return sites;
+    } });
     const stores = new Map(Object.entries(roots).map(([siteId, root]) => {
       const validate = document => document?.siteId === siteId && validation?.validTestSiteDocument(document) === true;
-      const store = createTestSiteStore({ root, siteId, validate, render: async (document, revision) => (await load()).renderTestSite(document, revision) });
+      const store = createTestSiteStore({ root, siteId, validate, render: async (document, revision) => {
+        const global = await globalTemplates.load();
+        return (await load()).renderTestSite(document, revision, undefined, global.library, global.revision);
+      } });
       const prompts = createTestPromptClient({ command: process.env.STUDIO_CODEX_BIN });
       const propose = createTestPromptGateway({ store, propose: (baseline, prompt) => prompts.propose(baseline, prompt), validate });
       return [siteId, { store, propose }];
@@ -56,6 +76,7 @@ export function testSiteBridge() {
       closingStores ??= (async () => {
         server.watcher.off("change", invalidateRenderer);
         const results = await Promise.allSettled([...stores.values()].map(({ store }) => store.close()));
+        await globalTemplates.close();
         const failures = results.filter(result => result.status === "rejected").map(result => result.reason);
         if (failures.length) throw new AggregateError(failures, "Local fixture lock cleanup failed.");
       })();
@@ -80,7 +101,22 @@ export function testSiteBridge() {
         validation = await load();
         const token = request.headers["x-studio-test-token"];
         let result;
-        if (input.action === "connect") result = await store.connect();
+        if (input.action === "global-read") {
+          if (input.initialise === true) await store.assertWriter(token);
+          const previous = await globalTemplates.load();
+          result = input.initialise === true ? await globalTemplates.load(true, () => store.assertWriter(token)) : previous;
+          if (!previous.initialised && result.initialised) {
+            const refreshed = await Promise.allSettled([...stores.values()].map(item => item.store.refreshPreview()));
+            result = { ...result, previewErrors: refreshed.map((item, index) => item.status === "rejected" ? [...stores.keys()][index] : null).filter(Boolean) };
+          }
+        }
+        else if (input.action === "global-save") {
+          await store.assertWriter(token);
+          result = await globalTemplates.save(input.revision, input.templates, () => store.assertWriter(token));
+          const refreshed = await Promise.allSettled([...stores.values()].map(item => item.store.refreshPreview()));
+          result = { ...result, previewErrors: refreshed.map((item, index) => item.status === "rejected" ? [...stores.keys()][index] : null).filter(Boolean) };
+        }
+        else if (input.action === "connect") result = await store.connect();
         else if (input.action === "prompt") result = await propose(token, input);
         else result = await store.handle(token, input);
         response.end(JSON.stringify(result));

@@ -3,7 +3,7 @@ import { isLocalFixtureSiteId } from "./test-site/sites";
 import { useEffect, useEffectEvent, useRef } from "react";
 
 export type StudioSection = "content" | "templates" | "files" | "backup" | "bin";
-export type StudioTemplateTarget = { setId: string | null; targetId: string | null };
+export type StudioTemplateTarget = { setId: string | null; targetId: string | null; scope?: "global" | "site" };
 
 function navigationIndex(state: unknown): number | null {
   const index = state && typeof state === "object" && "studioNavigationIndex" in state ? state.studioNavigationIndex : null;
@@ -21,7 +21,7 @@ export function readStudioNavigation(search: string) {
   const query = new URLSearchParams(search);
   const mode = query.get("mode");
   const section = mode === "templates" ? "templates" : mode === "bin" ? "bin" : "content";
-  return { section, target: { setId: query.get("set"), targetId: query.get("target") } } as const;
+  return { section, target: { setId: query.get("set"), targetId: query.get("target"), scope: query.get("scope") === "global" || !query.get("target") ? "global" : "site" } } as const;
 }
 
 /** Navigation history contains screen selection only, never document history. */
@@ -30,6 +30,7 @@ export function writeStudioNavigation(mode: "content" | "templates" | "bin", tar
   const siteId = new URLSearchParams(window.location.search).get("site");
   if (isLocalFixtureSiteId(siteId)) query.set("site", siteId);
   if (mode !== "content") query.set("mode", mode);
+  if (mode === "templates") query.set("scope", target?.scope ?? (new URLSearchParams(window.location.search).get("scope") === "site" ? "site" : "global"));
   if (mode === "templates" && target?.setId) {
     query.set("set", target.setId);
     if (target.targetId) query.set("target", target.targetId);
