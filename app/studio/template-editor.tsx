@@ -8,7 +8,7 @@ import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
 import { TemplateNodes, TemplatePartRegion, TemplateSurface } from "./template-renderer";
-import { copyTemplateData, templateEditorBlocks, templateNodesFromBlocks, templateElements, templateElementLabel, templateId, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
+import { copyTemplateData, templateEditorBlocks, templateNodesFromBlocks, templateElements, templateElementLabel, templateId, visitTemplateNodes, templatePartReference, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
 import { resolveDocumentDisplay, resolveDocumentFields } from "./document-fields";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
 import { insertedBlockSelectionId } from "./button-insertion";
@@ -24,10 +24,10 @@ import { testDocumentHref } from "./test-site/contract";
 import { insertNavigationItem, navigationEntries } from "./navigation-items";
 import type { SiteLink } from "./template-model";
 
-export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = false, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
-  initialSelectedBlockId?: string; sharedSiteNavigation?: boolean; fixtureLinks?: boolean; siteId?: import("./test-site/sites").LocalFixtureSiteId;
+export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
+  initialSelectedBlockId?: string; sharedSiteNavigation?: boolean; siteNavigationPartId?: string; fixtureLinks?: boolean; siteId?: import("./test-site/sites").LocalFixtureSiteId;
   set: TemplateSet; target: PageTemplate | TemplatePart; documents: StudioDocument[]; mediaUrls: Record<string, string>; writable: boolean;
-  onChange: (set: TemplateSet) => boolean; onEditPart: (id: string) => void; onOpenMedia: (blockId: string | null, logo?: boolean, background?: boolean, item?: ListItemBackgroundTarget) => void;
+  onChange: (set: TemplateSet) => boolean; onEditPart: (id: string, nextSet?: TemplateSet) => void; onOpenMedia: (blockId: string | null, logo?: boolean, background?: boolean, item?: ListItemBackgroundTarget) => void;
   loadInlineImages?: import("./inline-image-picker").InlineImageLibrary;
   inspectorTab?: "template" | "block" | "styles"; onInspectorTabChange?: (tab: "template" | "block" | "styles") => void;
   inspectorPaneWidth?: number; onInspectorPaneWidthChange?: (width: number) => void; inspectorPaneCollapsed?: boolean; onInspectorPaneCollapsedChange?: (collapsed: boolean) => void;
@@ -268,16 +268,22 @@ export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = 
   const navigationLibraryOwner = navigationInsertionOwner(null);
   const navigationLibraryParent = navigationLibraryOwner ? findBlockById(blocks, navigationLibraryOwner) : undefined;
   const availableTemplateBlocks = templateBlockCatalogue.filter(item => (item.type !== "navigation" || !navigationLibraryParent || groupAllowsChild(navigationLibraryParent, item.type)) && (item.type !== "page-link" || selectedBlock?.type === "group" && selectedBlock.data?.templateElement === "navigation"));
-  const users: string[] = sharedSiteNavigation ? ["All site pages and posts"] : [];
-  for (const template of set.templates) {
-    const seen = new Set<string>();
-    const references = (nodes: TemplateNode[]): boolean => {
-      let found = false;
-      visitTemplateNodes(nodes, node => { if (node.type !== "part") return; if (node.partId === target.id) found = true; if (seen.has(node.partId)) return; seen.add(node.partId); const part = set.parts.find(p => p.id === node.partId); if (part && references(part.nodes)) found = true; });
-      return found;
-    };
-    if (references(template.nodes)) users.push(template.name);
-  }
+  const references = (nodes: TemplateNode[], seen = new Set<string>()): boolean => {
+    let found = false;
+    visitTemplateNodes(nodes, node => {
+      const id = templatePartReference(node);
+      if (!id) return;
+      if (id === target.id) found = true;
+      if (seen.has(id)) return;
+      seen.add(id);
+      const part = set.parts.find(part => part.id === id);
+      if (part && references(part.nodes, seen)) found = true;
+    });
+    return found;
+  };
+  const sitePart = set.parts.find(part => part.id === siteNavigationPartId);
+  const users: string[] = sharedSiteNavigation || sitePart && references(sitePart.nodes) ? ["All site pages and posts"] : [];
+  for (const template of set.templates) if (references(template.nodes)) users.push(template.name);
   const toolbar = <div className="template-toolbar">
     <label>Preview Content<select value={sample.id} disabled={!candidates.length} onChange={event => setSampleId(event.target.value)}>{candidates.length ? candidates.map(document => <option key={document.id} value={document.id}>{document.title}</option>) : <option value={sample.id}>No pages or posts yet</option>}</select></label>
     <label>Width<select value={width} onChange={event => setWidth(Number(event.target.value))}><option value={1200}>Desktop</option><option value={768}>Tablet</option><option value={390}>Mobile</option></select></label>
@@ -287,14 +293,14 @@ export function TemplateEditor({ initialSelectedBlockId, sharedSiteNavigation = 
       <button type="button" className="template-zoom-value" onClick={() => setZoom(TEMPLATE_ZOOM_DEFAULT)} aria-label={`Reset template zoom to 100 percent (currently ${zoom} percent)`} title="Reset zoom to 100 percent">{zoom}%</button>
       <button type="button" onClick={() => setZoom(value => changeTemplateZoom(value, "in"))} disabled={zoom >= TEMPLATE_ZOOM_MAX} aria-label="Zoom in" title="Zoom in"><StudioIcon name="zoom-in" size={18} /></button>
     </div>
-    {!previewing ? <label>Add Template Element<select value="" disabled={!writable} onChange={event => { const value = event.target.value; if (value.startsWith("part:")) insertNode({ id: templateId(), type: "part", partId: value.slice(5) }); else insertNode({ id: templateId(), type: "element", element: value as typeof templateElements[number] }); }}><option value="" disabled>Choose Element</option>{templateElements.filter(element => element !== "post-metadata" && (element !== "content" || allowTemplateContent)).map(element => <option key={element} value={element}>{templateElementLabel(element)}</option>)}{set.parts.filter(part => part.id !== target.id).map(part => <option key={part.id} value={`part:${part.id}`}>{part.name} Reference</option>)}</select></label> : null}
+    {!previewing ? <label>Add Template Element<select value="" disabled={!writable} onChange={event => { const value = event.target.value; if (value.startsWith("part:")) insertNode({ id: templateId(), type: "part", partId: value.slice(5) }); else insertNode({ id: templateId(), type: "element", element: value as typeof templateElements[number] }); }}><option value="" disabled>Choose Element</option>{templateElements.filter(element => element !== "post-metadata" && (element !== "content" || allowTemplateContent)).map(element => <option key={element} value={element}>{templateElementLabel(element)}</option>)}{set.parts.filter(part => part.id !== target.id && part.kind !== "overlay").map(part => <option key={part.id} value={`part:${part.id}`}>{part.name} Reference</option>)}</select></label> : null}
     {selectedBlock?.type === "group" && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart ? <span>New blocks will be inserted into the selected group.</span> : null}
   </div>;
   return <StudioEditor writable={writable} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
     target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: selectedListItem => <TemplateInspector set={set} target={target} selectedBlock={selectedBlock} selectedListItem={selectedListItem} navigationLinkId={navigationSelection?.blockId === selected ? navigationSelection.linkId : null} navigationSuggestions={linkSuggestions} siteId={siteId} onSelectNavigationLink={id => { let blockId = selectedBlock?.type === "group" && selectedBlock.data?.templateElement === "navigation" ? selectedBlock.id : null; if (!blockId) visitTemplateNodes(target.nodes, node => { if (!blockId && node.type === "element" && node.element === "navigation") blockId = node.id; }); if (blockId) selectNavigationLink(blockId, id); }} onNavigationChange={changeNavigation} tab={activeInspectorTab} onTabChange={selectInspectorTab} paneWidth={inspectorPaneWidth} onPaneWidthChange={onInspectorPaneWidthChange} paneCollapsed={inspectorPaneCollapsed} onPaneCollapsedChange={onInspectorPaneCollapsedChange} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onColumnCountChange={commands.updateColumnCount} onColumnWidthChange={commands.updateColumnWidth} onOpenMedia={(logo, background, item) => onOpenMedia(selectedBlock?.id ?? null, logo, background, item)} onEditPart={onEditPart} users={users} /> }}
     canvas={{ activeDocument: editingProjection, className: "template-editing", toolbarContent: toolbar, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: d.kind === "post" ? `/writing/${d.slug}` : `/${d.slug}` })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: blockInserterOptions(availableTemplateBlocks, inserterParentId ? findBlockById(blocks, inserterParentId) ?? undefined : undefined, query, socialIconCatalogue, { allowTemplateContent, allowTemplateNavigation: true, allowTemplatePageLink: true }), publishFeedback: null,
       presentation: { ownsBlockControls: block => navigationSelection?.blockId === block.id && Boolean(navigationSelection.linkId && navigationEntries(set.navigation).some(entry => entry.link.id === navigationSelection.linkId)), renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => {
-        const surface = <TemplateSurface set={set} editing={context.mode === "edit"} editorCanvas={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>;
+        const surface = <TemplateSurface set={set} editing={context.mode === "edit"} editorCanvas={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" || target.kind === "overlay" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>;
         return sharedSiteNavigation ? <div className="test-document-navigation">{surface}</div> : surface;
       }, renderBlock: context => {
         if (!context.block) return null;

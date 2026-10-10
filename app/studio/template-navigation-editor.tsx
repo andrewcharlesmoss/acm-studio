@@ -16,7 +16,7 @@ import { navigationStyleProfile } from "./blocks/capability-profiles";
 import { InspectorToolsSection } from "./inspector-tools-section";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { StudioIcon } from "./studio-icons";
-import { templateId, type NavigationTemplateNode, type SiteLink } from "./template-model";
+import { templateId, type NavigationTemplateNode, type TemplatePart, type SiteLink } from "./template-model";
 import { insertNavigationItem, moveNavigationItem, navigationEntries, reorderNavigationItem, removeNavigationItem, updateNavigationItem } from "./navigation-items";
 
 export type NavigationEditingProps = {
@@ -193,7 +193,7 @@ export function LinkSetting({ label, value, maxLength = 2000, onCommit }: { labe
   return <label>{label}<input key={value} defaultValue={value} maxLength={maxLength} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
 }
 
-export function NavigationInspector({ block, menuName = "Navigation", onBlockChange, ...props }: NavigationEditingProps & { menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void }) {
+export function NavigationInspector({ block, menuName = "Navigation", onBlockChange, overlayContext = false, overlayParts = [], canCreateOverlay = true, onCreateOverlay, onEditOverlay, ...props }: NavigationEditingProps & { menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void; overlayContext?: boolean; overlayParts?: TemplatePart[]; canCreateOverlay?: boolean; onCreateOverlay?: () => void; onEditOverlay?: (id: string) => void }) {
   const [activeTab, setActiveTab] = useState("menu");
   const tabId = useId();
   const [menuOptionsOpen, setMenuOptionsOpen] = useState(false);
@@ -219,11 +219,20 @@ export function NavigationInspector({ block, menuName = "Navigation", onBlockCha
       <NavigationMenuList {...props} blockId={block.id} />
     </section>
     </> : activeTab === "settings" ? <>
-    <InspectorAccordionSection title="Overlay" contentDisabled={!props.writable}>
+    {!overlayContext ? <InspectorAccordionSection title="Overlay" contentDisabled={!props.writable}>
       <fieldset className="navigation-overlay-control"><legend>Overlay visibility</legend><div role="group" aria-label="Overlay visibility">{(["never", "mobile", "always"] as const).map(value => <button type="button" key={value} aria-pressed={(block.data?.overlayMenu ?? "never") === value} onClick={() => data({ overlayMenu: value })}>{value === "never" ? "Off" : value === "mobile" ? "Mobile" : "Always"}</button>)}</div></fieldset>
-      <p className="setting-note">Collapses the navigation options into a menu icon opening an overlay.</p>
-      <div className="navigation-overlay-specimen" aria-hidden="true"><AcmIcon name="navigation.menu" size={24} /><StudioIcon name="close" size={24} /></div>
-    </InspectorAccordionSection>
+      <p className="setting-note">Collapses the navigation options in a menu icon opening an overlay.</p>
+      {(block.data?.overlayMenu ?? "never") !== "never" ? <>
+      <div className="navigation-overlay-specimen" aria-hidden="true">{block.data?.showIcon === false ? <><span>Menu</span><span>Close</span></> : <><AcmIcon name={block.data?.icon === "handle" ? "navigation.menu-compact" : "navigation.menu"} size={24} /><StudioIcon name="close" size={24} /></>}</div>
+      <div className="navigation-overlay-toggle"><ToggleSetting label="Show icon button" checked={block.data?.showIcon !== false} disabled={!props.writable} onChange={showIcon => data({ showIcon })} /><p className="setting-note">Configure the visual appearance of the button that toggles the overlay menu.</p></div>
+      {block.data?.showIcon !== false ? <fieldset className="navigation-overlay-control navigation-icon-control"><legend>Icon</legend><div role="group" aria-label="Overlay button icon">{(["handle", "menu"] as const).map(icon => <button type="button" key={icon} aria-label={icon === "handle" ? "Two-line menu icon" : "Three-line menu icon"} aria-pressed={(block.data?.icon ?? "menu") === icon} onClick={() => data({ icon })}><AcmIcon name={icon === "handle" ? "navigation.menu-compact" : "navigation.menu"} size={24} /></button>)}</div></fieldset> : null}
+      <div className="navigation-overlay-template-heading"><label htmlFor={`${tabId}-overlay-template`}>Overlay template</label>{onCreateOverlay ? <button type="button" aria-label="Create new overlay template" title="Create new overlay template" disabled={!props.writable || !canCreateOverlay} onClick={onCreateOverlay}><StudioIcon name="add" size={24} /></button> : null}</div>
+      <select id={`${tabId}-overlay-template`} value={String(block.data?.overlayPartId ?? "")} onChange={event => data({ overlayPartId: event.target.value || undefined })}><option value="">Default</option>{overlayParts.map(part => <option key={part.id} value={part.id}>{part.name}</option>)}</select>
+      <p className="setting-note">Select an overlay for navigation.</p>
+      {block.data?.overlayPartId && onEditOverlay ? <button type="button" className="navigation-edit-overlay" onClick={() => onEditOverlay(String(block.data?.overlayPartId))}><StudioIcon name="pencil" />Edit overlay</button> : null}
+      <p className="setting-note">An overlay template allows you to customise the appearance of the dialogue that opens when the menu button is pressed.</p>
+      </> : null}
+    </InspectorAccordionSection> : null}
     {props.links.some(item => navigationEntries([item]).some(entry => entry.link.children?.length)) ? <InspectorAccordionSection title="Submenus" contentDisabled={!props.writable}>
       <ToggleSetting label="Open submenus on click" checked={Boolean(block.data?.submenuOpenOnClick)} disabled={!props.writable} onChange={submenuOpenOnClick => data({ submenuOpenOnClick })} />
       <ToggleSetting label="Show submenu arrow" checked={block.data?.showSubmenuIcon !== false} disabled={!props.writable} onChange={showSubmenuIcon => data({ showSubmenuIcon })} />

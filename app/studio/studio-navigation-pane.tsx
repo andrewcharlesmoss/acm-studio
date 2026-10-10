@@ -62,7 +62,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
                 {templateSession.store.sets.flatMap(set => [...set.templates, ...set.parts].map(entry => ({ set, entry }))).map(({ set, entry }) => (
                   <button className={`document-item template-target-item${templateTarget.setId === set.id && templateTarget.targetId === entry.id ? " is-active" : ""}`} type="button" key={`${set.id}/${entry.id}`} onClick={() => onSelectTemplate(set.id, entry.id)}>
                     <span className="document-kind-mark">{entry.kind === "post" ? "A" : entry.kind === "page" ? "P" : "H"}</span>
-                    <span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span>
+                    <span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" || entry.kind === "overlay" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span>
                     <i aria-hidden="true" />
                   </button>
                 ))}

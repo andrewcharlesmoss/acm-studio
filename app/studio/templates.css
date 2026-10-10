@@ -258,12 +258,12 @@
 .template-navigation-submenu .template-navigation-submenu > .template-navigation-items { inset-inline-start: 100%; inset-block-start: 0; }
 .template-navigation-submenu a { overflow-wrap: anywhere; }
 .template-navigation-overlay { display: none; }
-.template-navigation-overlay > summary { width: 40px; min-height: 40px; }
+.template-navigation-overlay > summary { min-width: 40px; min-height: 40px; padding: 4px; }
 .template-navigation-overlay-content { position: fixed; inset: 0; z-index: 1000; overflow: auto; padding: 64px 32px 32px; background: var(--navigation-submenu-background, var(--template-background, white)); color: var(--navigation-submenu-text, inherit); }
 /* In an editor preview, the page is the overlay viewport; the surrounding panes remain usable. */
 .document-preview:has(.acm-navigation) { contain: layout; }
-.template-navigation-overlay-content > button { position: absolute; inset-block-start: 16px; inset-inline-end: 16px; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
-.template-surface .template-navigation-overlay-content .template-navigation-items { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 20px; }
+.template-navigation-overlay-content > button { position: absolute; z-index: 1; inset-block-start: 16px; inset-inline-end: 16px; display: grid; place-items: center; min-width: 40px; min-height: 40px; padding: 4px; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.template-surface .template-navigation:not([data-navigation-custom-overlay]) > .template-navigation-overlay > .template-navigation-overlay-content .template-navigation-items { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 20px; }
 .template-surface .template-navigation-overlay-content .template-navigation-submenu > .template-navigation-items { position: static; width: auto; min-width: 0; border: 0; box-shadow: none; padding-inline: 20px 0; }
 .template-navigation-overlay[open] > summary { visibility: hidden; }
 .template-navigation[data-navigation-overlay="always"] > .template-navigation-desktop { display: none; }
@@ -311,7 +311,7 @@
 .navigation-overlay-control button { min-height: 40px; margin: 0; border: 1px solid #ddd; border-radius: 0; background: #fff; color: #757575; }
 .navigation-overlay-control button + button { border-inline-start: 0; }
 .navigation-overlay-control button[aria-pressed="true"] { box-shadow: inset 0 0 0 1px #1e1e1e; color: #1e1e1e; background: #f0f0f0; font-weight: 600; }
-.navigation-overlay-specimen { display: flex; justify-content: space-between; padding: 24px; margin: 24px 0; background: #f0f0f0; border-radius: 2px; }
+.navigation-overlay-specimen { display: flex; justify-content: space-between; padding: 24px; margin: 24px 0; background: #fff; border: 1px solid #ddd; border-radius: 2px; color: var(--studio-accent, #007cba); }
 .navigation-colour-controls { border: 1px solid #ddd; }
 .navigation-colour-controls .inspector-colour-row-setting + .inspector-colour-row-setting { border-top: 1px solid #ddd; }
 .navigation-colour-controls .inspector-colour-row { border: 0; border-radius: 0; }
@@ -401,3 +401,21 @@
 
 .navigation-inspector.page-link-inspector .page-link-summary h3 { margin: 0; }
 .page-link-summary > button > svg { transform: rotate(180deg); }
+
+/* Custom layouts supply their own spacing; the close control remains runtime-owned. */
+.template-navigation[data-navigation-custom-overlay] > .template-navigation-overlay > .template-navigation-overlay-content { padding: 0; }
+.template-overlay { background: #fff; }
+.navigation-icon-control > div { grid-template-columns: repeat(2, 1fr); }
+.navigation-overlay-toggle .setting-note { margin: 8px 0 20px 40px; }
+.navigation-overlay-template-heading { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.navigation-overlay-template-heading label { font-weight: 600; text-transform: uppercase; }
+.template-inspector .navigation-overlay-template-heading button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; color: inherit; }
+.navigation-overlay-template-heading button:hover { background: var(--studio-control-hover-background, #f0f0f0); }
+.navigation-inspector select { min-height: 40px; }
+.navigation-edit-overlay { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* A custom overlay is a viewport frame, independent of ordinary block sizing. */
+.template-navigation-overlay-content > .navigation-overlay-layout:only-of-type { height: 100%; }
+.template-navigation-overlay-content > .navigation-overlay-layout:only-of-type > .template-group { min-height: 100%; }
+
+.template-inspector .navigation-icon-control button { display: flex; align-items: center; justify-content: center; }

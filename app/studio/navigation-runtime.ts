@@ -22,7 +22,7 @@ export function attachNavigationRuntime(root: HTMLElement | Document) {
     }
     const overlay = target?.closest<HTMLDetailsElement>(".template-navigation-overlay[open]");
     if (event.key === "Tab" && overlay) {
-      const controls = Array.from(overlay.querySelectorAll<HTMLElement>(".template-navigation-overlay-content button, .template-navigation-overlay-content a[href], .template-navigation-overlay-content summary")).filter(element => element.getClientRects().length > 0);
+      const controls = Array.from(overlay.querySelectorAll<HTMLElement>(".template-navigation-overlay-content button, .template-navigation-overlay-content a[href], .template-navigation-overlay-content summary, .template-navigation-overlay-content input, .template-navigation-overlay-content select, .template-navigation-overlay-content textarea, .template-navigation-overlay-content [tabindex], .template-navigation-overlay-content [contenteditable=true]")).filter(element => element.tabIndex >= 0 && !element.matches(":disabled") && !element.closest("[inert]") && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden");
       const first = controls[0], last = controls.at(-1);
       if (event.shiftKey && target === first && last) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && target === last && first) { event.preventDefault(); first.focus(); }
@@ -30,7 +30,15 @@ export function attachNavigationRuntime(root: HTMLElement | Document) {
   }
   function onToggle(event: Event) {
     const menu = event.target;
-    if (menu instanceof HTMLDetailsElement && menu.open && menu.classList.contains("template-navigation-overlay")) menu.querySelector<HTMLButtonElement>("[data-navigation-close]")?.focus();
+    if (menu instanceof HTMLDetailsElement && menu.open && menu.classList.contains("template-navigation-overlay")) {
+      const closeButton = menu.querySelector<HTMLButtonElement>("[data-navigation-close]");
+      const layout = menu.querySelector<HTMLElement>(".navigation-overlay-layout > .template-group");
+      // The runtime-owned close control follows the custom frame's text colour.
+      if (closeButton) {
+        closeButton.style.color = layout ? getComputedStyle(layout).color : "";
+        closeButton.focus();
+      }
+    }
   }
   function onPointer(event: Event) {
     if (!(event instanceof PointerEvent) || event.pointerType !== "mouse") return;

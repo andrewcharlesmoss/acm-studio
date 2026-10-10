@@ -173,8 +173,8 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.28.0 and read versions
-v0.1.0 through v0.27.0. Group semantic elements, ARIA labels and block alignment,
+Template packages and stored template contracts use v0.29.0 and read versions
+v0.1.0 through v0.28.0. Group semantic elements, ARIA labels and block alignment,
 Columns alignment and Section visual styles survive the template projection.
 Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
@@ -383,11 +383,11 @@ Navigation authoring follows Gutenberg's Menu, Settings and Styles pane groups.
 Links remain canonical typed entries in `TemplateSet.navigation`; per-link
 selection is transient. Nested submenus, new-tab/rel/description fields, flex
 layout, spacing, typography, root and submenu/overlay colours and Off/Mobile/
-Always overlays round-trip through template v0.28.0. Legacy menus retain their
+Always overlays round-trip through template v0.29.0. Legacy menus retain their
 existing visibility. Runtime interaction is shared between React previews and
 generated fixture HTML, with no hydration requirement or second menu store.
-WordPress menu entities, automatic Page Lists, non-link inner blocks and custom
-overlay template entities are outside this typed menu contract. See
+WordPress menu entities, automatic Page Lists and non-link menu inner blocks
+are outside this typed menu contract. See
 `docs/templates.md` for the reference and supported adaptation.
 
 Page link is a selectable Navigation child backed by the existing canonical
@@ -399,3 +399,28 @@ per-link typography and CSS classes while reading v0.1.0–v0.27.0. Bold and Ita
 apply to the complete plain-text label; rich inline label fragments and
 WordPress entity synchronisation remain unsupported. Dragging reorders siblings
 only; cancelled or stale drags cannot change the menu.
+
+### Navigation overlay controls and layouts
+
+Template v0.29.0 adds Show icon button, two-line and three-line menu icons,
+and an optional `overlayPartId`. Older menus retain their three-line icon;
+hiding the icon uses visible Menu and Close text. Off hides the overlay controls
+without discarding their saved values. Mobile uses the existing 600px container
+breakpoint; Always uses an overlay at every width.
+
+Overlay templates are shared `TemplatePart` records with kind `overlay` in the
+same set. The inspector's + creates, assigns and opens a part in one undoable
+transaction through the existing template saving adapter. Default clears the
+reference; Edit overlay opens the existing block editor. The initial Stack
+contains one Navigation with the same canonical links. Its layout, colours,
+spacing and additional blocks are editable. Close remains runtime-owned.
+A single root Group fills the overlay viewport; this intentional frame sizing
+does not alter ordinary block dimensions.
+
+Overlays cannot contain Content slots or Navigation that opens another overlay,
+including through shared-part references. References must stay in the same set,
+remain acyclic and participate in expansion limits, cloning, duplicate-set ID
+renewal, usage lists, Bin recovery and deletion protection. Overlay parts are
+selected through Navigation rather than inserted as ordinary shared references.
+The React preview and generated fixture HTML render the same layout and reuse
+the same focus containment, Escape dismissal and focus-return runtime.

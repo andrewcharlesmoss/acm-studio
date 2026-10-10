@@ -138,7 +138,7 @@ not empty itself. The Bin is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.28.0** (`0.28.0` in JSON).
+The template-store and JSON package schema is **v0.29.0** (`0.29.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -197,7 +197,7 @@ contract. Group Row and Stack layouts also support Gutenberg's Space between
 justification. Table cells preserve per-cell header tags and scope. Workspace
 data is now version 24, with readers for versions 2–23; local publication
 snapshots are version 18 with readers for versions 1–17, and full backups remain
-version 4. Template packages are v0.28.0, with readers for v0.1.0–v0.27.0.
+version 4. Template packages are v0.29.0, with readers for v0.1.0–v0.28.0.
 Group HTML elements, ARIA labels and block alignment, Columns alignment and
 Section visual styles round-trip through the editor, owned storage, portable
 packages and local publication snapshots. Resetting a field clears it rather
@@ -517,8 +517,7 @@ close control, Escape dismissal, focus return and contained keyboard cycling;
 submenus remain keyboard-operable regardless of the hover preference.
 
 This is a Studio-owned typed menu: it does not import WordPress menu entities,
-create automatic Page Lists, accept arbitrary inner blocks or create separate
-custom overlay template entities. The portable disclosure runtime is an
+create automatic Page Lists or accept arbitrary menu inner blocks. The portable disclosure runtime is an
 intentional adaptation of Gutenberg's WordPress runtime. Hosted publishing
 remains a separate authorised operation.
 
@@ -553,3 +552,28 @@ transient editor projection. The UI Library entry at
 Both link edits and insertion follow the existing template Undo/Redo, owned
 saving and revision checks. Older version envelopes containing the new style
 fields are rejected; the next save writes the current template version.
+
+### Navigation overlay controls and layouts
+
+Template v0.29.0 adds Show icon button, two-line and three-line menu icons,
+and an optional `overlayPartId`. Older menus retain their three-line icon;
+hiding the icon uses visible Menu and Close text. Off hides the overlay controls
+without discarding their saved values. Mobile uses the existing 600px container
+breakpoint; Always uses an overlay at every width.
+
+Overlay templates are shared `TemplatePart` records with kind `overlay` in the
+same set. The inspector's + creates, assigns and opens a part in one undoable
+transaction through the existing template saving adapter. Default clears the
+reference; Edit overlay opens the existing block editor. The initial Stack
+contains one Navigation with the same canonical links. Its layout, colours,
+spacing and additional blocks are editable. Close remains runtime-owned.
+A single root Group fills the overlay viewport; this intentional frame sizing
+does not alter ordinary block dimensions.
+
+Overlays cannot contain Content slots or Navigation that opens another overlay,
+including through shared-part references. References must stay in the same set,
+remain acyclic and participate in expansion limits, cloning, duplicate-set ID
+renewal, usage lists, Bin recovery and deletion protection. Overlay parts are
+selected through Navigation rather than inserted as ordinary shared references.
+The React preview and generated fixture HTML render the same layout and reuse
+the same focus containment, Escape dismissal and focus-return runtime.

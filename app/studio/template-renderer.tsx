@@ -85,7 +85,7 @@ function stylePresetKey(styles: SiteStyles): string {
 
 /** Shared by composed references and the standalone shared-part editor. */
 export function TemplatePartRegion({ part, children, onEditPart }: { part: TemplatePart; children: ReactNode; onEditPart?: (id: string) => void }) {
-  const Region = part.kind === "header" ? "header" : "footer";
+  const Region = part.kind === "header" ? "header" : part.kind === "footer" ? "footer" : "div";
   return <Region className={`template-part template-${part.kind}`} data-template-part={part.id}>
     {onEditPart ? <button className="template-edit-part" type="button" onClick={() => onEditPart(part.id)}><StudioIcon name="pencil" size={16} />Edit {part.name}</button> : null}
     <div className="template-part-content">{children}</div>
@@ -219,7 +219,13 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const src = logo?.mediaId ? safeImageSource(mediaUrls[logo.mediaId] ?? "", { allowBlob: true }) : safeImageSource(logo?.src ?? "");
           element = <a className="template-brand" href={safeTextLink(set.identity.homeUrl) ?? undefined}>{src ? <TemplateImage src={src} alt={logo?.alt ?? ""} /> : <span className="template-brand-mark" aria-hidden="true">{brandInitials(set.identity.name)}</span>}<span className="template-brand-name">{set.identity.name}</span></a>; break;
         }
-        case "navigation": element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={node} links={set.navigation} documentHref={context.documentHref} renderLink={context.renderNavigationLink} />; break;
+        case "navigation": {
+          const part = node.overlayPartId ? set.parts.find(part => part.id === node.overlayPartId && part.kind === "overlay") : undefined;
+          const overlayContent = part && !ancestors.has(part.id)
+            ? part.nodes.map(child => <div key={child.id} className="navigation-overlay-layout">{render(child, new Set([...ancestors, part.id]), depth + 1, true)}</div>) : undefined;
+          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={node} links={set.navigation} documentHref={context.documentHref} renderLink={context.renderNavigationLink} overlayContent={overlayContent} />;
+          break;
+        }
         case "copyright": element = <p className="template-copyright">{resolveTemplateCopyright(set.identity.copyright, set.identity.name)}</p>; break;
         case "social-links": element = <nav className="template-social" aria-label="Social and support links">{set.socialLinks.map(link => <a key={link.id} href={safeTextLink(link.url) ?? undefined} target="_blank" rel="noopener noreferrer">{link.label}</a>)}</nav>; break;
       }

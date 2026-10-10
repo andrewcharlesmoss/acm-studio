@@ -8,7 +8,7 @@ import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
 import { StudioButton } from "./controls/button";
 import { StudioIcon } from "./studio-icons";
 import { restoreLocallyPublishedArticle } from "../content/local-publishing";
-import { copyTemplateData, visitTemplateNodes } from "./template-model";
+import { copyTemplateData, visitTemplateNodes, templatePartReference } from "./template-model";
 import type { StudioWorkspace, StudioBinnedDocument } from "./editor-model";
 import type { TemplateStore, StudioBinnedTemplate } from "./template-model";
 
@@ -85,7 +85,7 @@ export function StudioBin({ workspace, templates, siteId, commitContent }: { wor
     if ([...set.templates, ...set.parts].some(entry => entry.id === item.entry.id)) { setFeedback("An item with this ID already exists in the template set. The binned copy has been kept."); return; }
     const referencedPartIds = new Set<string>();
     const pendingPartIds: string[] = [];
-    const collectPartReferences = (nodes: typeof item.entry.nodes) => visitTemplateNodes(nodes, node => { if (node.type === "part" && !referencedPartIds.has(node.partId)) { referencedPartIds.add(node.partId); pendingPartIds.push(node.partId); } });
+    const collectPartReferences = (nodes: typeof item.entry.nodes) => visitTemplateNodes(nodes, node => { const id = templatePartReference(node); if (id && !referencedPartIds.has(id)) { referencedPartIds.add(id); pendingPartIds.push(id); } });
     collectPartReferences(item.entry.nodes);
     while (pendingPartIds.length) {
       const partId = pendingPartIds.pop()!;
@@ -99,7 +99,7 @@ export function StudioBin({ workspace, templates, siteId, commitContent }: { wor
       sets: current.sets.map(candidate => candidate.id !== set.id ? candidate : {
         ...candidate,
         templates: item.entry.kind === "page" || item.entry.kind === "post" ? [...candidate.templates, copyTemplateData(item.entry) as typeof candidate.templates[number]] : candidate.templates,
-        parts: item.entry.kind === "header" || item.entry.kind === "footer" ? [...candidate.parts, copyTemplateData(item.entry) as typeof candidate.parts[number]] : [...candidate.parts, ...copyTemplateData(additions)],
+        parts: item.entry.kind === "header" || item.entry.kind === "footer" || item.entry.kind === "overlay" ? [...candidate.parts, copyTemplateData(item.entry) as typeof candidate.parts[number], ...copyTemplateData(additions)] : [...candidate.parts, ...copyTemplateData(additions)],
       }),
     }));
     setFeedback(saved ? "Template restored." : "The template could not be restored.");
