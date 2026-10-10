@@ -672,6 +672,8 @@
 
 - Selected colour previews use a single thin accent border without an extra
   selection ring.
+- Their matching settings rows use the same thin blue treatment and a subtle
+  background tint.
 
 - Button and interaction previews retain source navigation without additional
   blue source-selection outlines.
