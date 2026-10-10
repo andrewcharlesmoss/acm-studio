@@ -119,7 +119,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
   align-items: center;
   background: transparent;
   border: 2px solid transparent;
-  border-radius: 7px;
+  border-radius: 0;
   color: var(--gutenberg-accent);
   cursor: pointer;
   display: inline-flex;
