@@ -76,7 +76,7 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .box-length-setting.is-spacing .box-length-inline-value input[type="number"] { appearance: textfield; }
 .box-length-setting.is-spacing input[type="number"]::-webkit-inner-spin-button,
 .box-length-setting.is-spacing input[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
-.box-length-custom-trigger:hover, .box-length-heading button:hover { background: #f0f0f0; }
+.box-length-custom-trigger:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .box-length-heading button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
 .box-length-custom-trigger[aria-pressed="true"] { background: #f0f0f0; }
 .box-length-setting.is-spacing:has(input:disabled) .box-length-indicator { opacity: .5; }
 

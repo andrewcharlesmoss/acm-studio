@@ -21,7 +21,7 @@
 .template-entry-open strong { overflow-wrap: anywhere; }
 .template-entry-open small { color: var(--acm-color-text-secondary); font-size: var(--studio-ui-size); }
 .template-entry-actions { padding: 12px; }
-.template-entry-list button:hover { background: var(--acm-color-surface-subtle); }
+.template-entry-open:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-interaction-list-item-hover-background, #f0f0f0); }
 
 .template-targets { display: grid; gap: 6px; margin: 12px 0; }
 .template-targets button { text-align: left; }
@@ -284,7 +284,7 @@
 .navigation-editor:has(.navigation-edit-item.is-selected) { outline: none; }
 .navigation-link-toolbar { position: absolute; z-index: 30; inset-block-end: calc(100% + 12px); inset-inline-start: 0; display: flex; padding: 4px; border: 1px solid #1e1e1e; border-radius: 2px; background: #fff; color: #1e1e1e; box-shadow: 0 2px 6px #0000001a; }
 .navigation-link-toolbar button, .navigation-add, .navigation-item-options { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 2px; background: transparent; color: inherit; cursor: pointer; }
-.navigation-link-toolbar button:hover:not(:disabled), .navigation-add:hover:not(:disabled), .navigation-item-options:hover:not(:disabled) { background: #f0f0f0; }
+.navigation-link-toolbar button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-add:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-item-options:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
 .navigation-link-toolbar button:disabled, .navigation-add:disabled, .navigation-item-options:disabled { opacity: .35; cursor: default; }
 .navigation-appender { line-height: 0; }
 .navigation-appender > .navigation-add, .navigation-menu-add > .navigation-add { background: var(--studio-shared-button-background); color: var(--studio-shared-button-foreground); border-radius: 2px; }
@@ -424,3 +424,8 @@
 .template-inspector .navigation-icon-control button { display: flex; align-items: center; justify-content: center; }
 
 .template-scope-notice { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; background: var(--acm-color-surface); border-bottom: 1px solid var(--acm-color-border); }
+
+.template-inspector .inspector-scroll .navigation-inspector .navigation-menu-select:not(:disabled):not([aria-pressed="true"]):hover { background: var(--acm-interaction-list-item-hover-background, #f0f0f0); }
+.template-inspector .inspector-scroll .navigation-inspector :is(.navigation-item-options, .group-alignment-control button):not(:disabled):not([aria-pressed="true"]):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
+
+.template-entry-actions:not(:disabled):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }

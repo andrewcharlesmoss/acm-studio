@@ -21,7 +21,7 @@ export function projectStyleGuideTokens(document, preset) {
     if (group === "layout") cells[2] = `${value}px`;
     if (group === "typography") cells.splice(1, 7, families[value.family], responsive(value.size), String(value.weight), value.style, responsive(value.lineHeight), responsive(value.letterSpacing), value.transform);
     if (group === "buttons") cells.splice(1, 6, value.background.toUpperCase(), value.foreground.toUpperCase(), value.border.toUpperCase(), `${value.borderWidth}px`, value.hoverBackground.toUpperCase(), value.hoverForeground.toUpperCase());
-    if (group === "interactions") cells.splice(1, 3, `--acm-interaction-${role.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)}`, value.toUpperCase(), "Hover background for inspector accordion and navigation overlay disclosure headings");
+    if (group === "interactions") cells.splice(1, 3, `--acm-interaction-${role.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)}`, value.toUpperCase(), cells[3]);
     return `| ${cells.join(" | ")} |`;
   }).join("\n");
   if (expected.some(key => !found.has(key))) throw new Error("The Style Guide is missing a token row. Its files have been preserved.");

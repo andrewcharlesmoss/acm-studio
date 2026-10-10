@@ -4,6 +4,9 @@
 
 ### Added
 
+- Central Styles hover backgrounds for neutral controls, menu items and list
+  items, alongside the disclosure heading setting.
+
 - Global template originals for Test and Test2, with revision-checked shared
   saving and local preview propagation. Template layouts and styles are edited
   globally; site identity and links remain local. Former site designs remain

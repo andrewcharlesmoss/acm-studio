@@ -146,9 +146,15 @@ public article routes retain their usual focus behaviour. The setting does not
 change the shared style preset. Catalogue demos do not call product APIs or
 read/write product stores.
 
-Styles → Interactions controls the shared disclosure heading hover background.
-The six-digit hex value defaults to `#F0F0F0`, and applies to inspector accordion
-headings and navigation overlay disclosure headings. It is part of the
+Styles → Interactions controls separate shared hover backgrounds for disclosure
+headings, neutral controls, menu items and list items. Neutral controls cover
+toolbar icons, layout choices, options and popup close buttons. Menu items cover
+dropdown and context-menu entries; list items cover document, template and
+navigation rows. Selected, pressed, disabled and destructive treatments retain
+their own colours. Button variants and content links retain their existing
+settings; sliders remain separate.
+Each six-digit hex value defaults to `#F0F0F0`. Disclosure headings cover inspector
+accordions and navigation overlay headings. Every setting is part of the
 executable universal preset and uses the existing draft, Undo/Redo, reset and
 revision-checked Save Shared Styles flow. The Controls → Accordion specimen
 demonstrates the shared appearance without a separate colour control or browser
@@ -291,8 +297,8 @@ writes these exact files:
 - `workspace-governance/STYLE_GUIDE.md` — generated token table cells only;
 - `acm-studio/app/studio/ui/styles/style-guide-source.json` — guide and line index.
 
-The preset schema is v0.3.0; older v0.1.0 and v0.2.0 presets are migrated with
-the default disclosure hover colour when read. Guide policy, reference palettes and prose are
+The preset schema is v0.4.0; older v0.1.0–v0.3.0 presets are migrated with
+default hover colours while preserving existing disclosure values. Guide policy, reference palettes and prose are
 not editable through this interface. Responsive overrides appear alongside the
 desktop metric, for example `1rem; mobile: 15px`. Source saving is dev-only and
 does not publish, commit, push or directly update project-owned style settings.
