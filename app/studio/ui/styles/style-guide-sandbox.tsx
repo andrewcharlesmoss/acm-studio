@@ -36,31 +36,10 @@ type MobilePanel = "settings" | "preview" | "guide";
 type GuideSourceMapping = { line: number; excerpt: string; heading: string; rowPath: string };
 type GuideView = "formatted" | "markdown";
 
-const interactionControls: { key: keyof UniversalStylePreset["interactions"]; label: string; title: string; description: string }[] = [
-  {
-    "key": "disclosureHoverBackground",
-    "label": "Disclosure heading hover background",
-    "title": "Disclosure headings",
-    "description": "Inspector accordion and navigation overlay disclosure headings."
-  },
-  {
-    "key": "neutralControlHoverBackground",
-    "label": "Neutral control hover background",
-    "title": "Neutral controls",
-    "description": "Toolbar icons, layout choices, options and popup close buttons."
-  },
-  {
-    "key": "menuItemHoverBackground",
-    "label": "Menu item hover background",
-    "title": "Menu items",
-    "description": "Dropdown and context-menu entries."
-  },
-  {
-    "key": "listItemHoverBackground",
-    "label": "List item hover background",
-    "title": "List items",
-    "description": "Document, template and navigation rows."
-  }
+const interactionExamples = [
+  { key: "neutralControlHoverBackground", label: "Neutral controls" },
+  { key: "menuItemHoverBackground", label: "Menu items" },
+  { key: "listItemHoverBackground", label: "List items" },
 ];
 
 const fontFamilies: { id: FontFamily; name: string }[] = [
@@ -499,7 +478,7 @@ export function StyleGuideSandbox() {
               <div className="sg-role-list" role="group" aria-label="Button variant">{buttonRoles.map(item => <button data-style-path={`buttons.${item.id}.background`} type="button" key={item.id} aria-pressed={buttonRole === item.id} onClick={() => setButtonRole(item.id)}>{item.label}</button>)}</div>
               <div className="sg-button-settings">{([ ["background", "Background colour"], ["foreground", "Text colour"], ["border", "Border colour"], ["hoverBackground", "Hover background colour"], ["hoverForeground", "Hover text colour"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} stylePath={`buttons.${buttonRole}.${key}`} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, baseline.buttons[buttonRole][key], false)} />)}<label className="sg-button-border-width">Border width (px)<input data-style-path={`buttons.${buttonRole}.borderWidth`} type="number" min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /></label></div>
             </> : null}
-            {panel === "interactions" ? <div className="sg-interaction-settings">{interactionControls.map(({ key, label, title, description }) => <section key={key} className="sg-interaction-group" aria-labelledby={`sg-${key}-heading`}><h4 id={`sg-${key}-heading`}>{title}</h4><p id={`sg-${key}-description`}>{description}</p><ColourControl stylePath={`interactions.${key}`} label={label} visibleLabel="Hover background" descriptionId={`sg-${key}-description`} value={preset.interactions[key]} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, [key]: value } }), `interactions.${key}`)} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, [key]: baseline.interactions[key] } }))} /></section>)}<button type="button" className="sg-reset-section sg-interaction-reset" onClick={resetSection}>Reset Interactions</button></div> : null}
+            {panel === "interactions" ? <div className="sg-interaction-settings"><section className="sg-interaction-group" aria-labelledby="sg-neutral-hover-heading"><h4 id="sg-neutral-hover-heading">Neutral hover background</h4><p id="sg-neutral-hover-description">Disclosure headings, neutral controls, menu items and list items share this colour.</p><ColourControl stylePath="interactions.neutralHoverBackground" label="Neutral hover background" visibleLabel="" descriptionId="sg-neutral-hover-description" value={preset.interactions.neutralHoverBackground} onChange={value => setPreset(current => ({ ...current, interactions: { neutralHoverBackground: value } }), "interactions.neutralHoverBackground")} onReset={() => setPreset(current => ({ ...current, interactions: { neutralHoverBackground: baseline.interactions.neutralHoverBackground } }))} /></section></div> : null}
             {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><label htmlFor={`sg-layout-${key}`}>{label}</label><div><input data-style-path={`layout.${key}`} id={`sg-layout-${key}`} type="number" min={min} max={max} step={1} value={preset.layout[key]} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } }), `layout.${key}`); }} /><span>px</span><button data-style-path={`layout.${key}`} type="button" aria-label={`Reset ${label}`} onClick={() => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: baseline.layout[key] } }))}>Reset</button></div></div>)}</div> : null}
           </fieldset>
         </aside>
@@ -514,7 +493,7 @@ export function StyleGuideSandbox() {
                 <button data-style-path="buttons.secondary.background" data-source-selected={selectedPreviewPath === "buttons.secondary.background" ? "true" : undefined} type="button" className="acm-button acm-button-secondary">Secondary button</button>
                 <button data-style-path="buttons.outline.background" data-source-selected={selectedPreviewPath === "buttons.outline.background" ? "true" : undefined} type="button" className="acm-button acm-button-outline">Outline button</button>
               </div></section>
-              <section id="interactions" className="sg-example-section"><h2>Interactions</h2><details open className="sg-disclosure-specimen"><summary data-style-path="interactions.disclosureHoverBackground" data-source-selected={selectedPreviewPath === "interactions.disclosureHoverBackground" ? "true" : undefined}>Disclosure heading</summary><p>Inspector accordion and navigation overlay headings.</p></details><div className="sg-interaction-specimens">{interactionControls.filter(({ key }) => key !== "disclosureHoverBackground").map(({ key, label }) => <button type="button" key={key} className={`sg-interaction-specimen sg-${key}`} data-style-path={`interactions.${key}`} data-source-selected={selectedPreviewPath === `interactions.${key}` ? "true" : undefined}>{label.replace(" hover background", "")}</button>)}</div></section>
+              <section id="interactions" className="sg-example-section"><h2>Interactions</h2><details open className="sg-disclosure-specimen"><summary data-style-path="interactions.neutralHoverBackground" data-source-selected={selectedPreviewPath === "interactions.neutralHoverBackground" ? "true" : undefined}>Disclosure heading</summary><p>Inspector accordion and navigation overlay headings.</p></details><div className="sg-interaction-specimens">{interactionExamples.map(({ key, label }) => <button type="button" key={key} className={`sg-interaction-specimen sg-${key}`} data-style-path="interactions.neutralHoverBackground" data-source-selected={selectedPreviewPath === "interactions.neutralHoverBackground" ? "true" : undefined}>{label}</button>)}</div></section>
               <section id="colours" className="sg-example-section"><h2>Semantic colours</h2><div className="sg-palette-grid">{paletteRoles.map(([key, label]) => <button data-style-path={`palette.${key}`} data-source-selected={selectedPreviewPath === `palette.${key}` ? "true" : undefined} type="button" aria-label={`Inspect ${label} colour source, ${preset.palette[key]}`} className="sg-swatch" key={key}><span style={{ background: `var(--acm-color-${key.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)})` }} /><strong>{label}</strong><code>{preset.palette[key]}</code></button>)}</div></section>
               <section id="specimens" className="sg-example-section sg-type-specimens"><h2>Typography</h2><div className="sg-type-samples"><h1 tabIndex={0} data-style-path="typography.h1.size" data-source-selected={selectedPreviewPath === "typography.h1.size" ? "true" : undefined}>H1 heading specimen</h1><h2 tabIndex={0} data-style-path="typography.h2.size" data-source-selected={selectedPreviewPath === "typography.h2.size" ? "true" : undefined}>H2 heading specimen</h2><h3 tabIndex={0} data-style-path="typography.h3.size" data-source-selected={selectedPreviewPath === "typography.h3.size" ? "true" : undefined}>H3 heading specimen</h3><h4 tabIndex={0} data-style-path="typography.h4.size" data-source-selected={selectedPreviewPath === "typography.h4.size" ? "true" : undefined}>H4 heading specimen</h4><h5 tabIndex={0} data-style-path="typography.h5.size" data-source-selected={selectedPreviewPath === "typography.h5.size" ? "true" : undefined}>H5 heading specimen</h5><h6 tabIndex={0} data-style-path="typography.h6.size" data-source-selected={selectedPreviewPath === "typography.h6.size" ? "true" : undefined}>H6 heading specimen</h6><p tabIndex={0} data-style-path="typography.body.size" data-source-selected={selectedPreviewPath === "typography.body.size" ? "true" : undefined}>This is body text, shown at the selected scale and line height. Clear typography creates a comfortable reading rhythm across pages and interface surfaces.</p><p>Supporting text can include a <a data-style-path="specimen.link" data-source-selected={selectedPreviewPath === "specimen.link" ? "true" : undefined} href="#buttons">text link</a> that stays recognisable and accessible.</p><div className="sg-list-specimens"><div><h3>Unordered list</h3><ul tabIndex={0} data-style-path="specimen.unordered-list" data-source-selected={selectedPreviewPath === "specimen.unordered-list" ? "true" : undefined}><li>First list item</li><li>Second list item</li><li>Third list item</li></ul></div><div><h3>Ordered list</h3><ol tabIndex={0} data-style-path="specimen.ordered-list" data-source-selected={selectedPreviewPath === "specimen.ordered-list" ? "true" : undefined}><li>First step</li><li>Second step</li><li>Third step</li></ol></div></div><blockquote tabIndex={0} data-style-path="specimen.quote" data-source-selected={selectedPreviewPath === "specimen.quote" ? "true" : undefined}><p>Good typography is invisible. Bad typography is everywhere.</p><cite>Anonymous</cite></blockquote></div></section>
             </div>
@@ -557,7 +536,7 @@ export function StyleGuideSandbox() {
 }
 
 function ColourControl({ stylePath, label, visibleLabel = label, descriptionId, value, onChange, onReset }: { stylePath: string; label: string; visibleLabel?: string; descriptionId?: string; value: string; onChange: (value: string) => void; onReset: () => void }) {
-  return <div className="sg-colour-setting"><span>{visibleLabel}</span><input data-style-path={stylePath} type="color" aria-label={label} aria-describedby={descriptionId} value={value} onChange={event => onChange(event.target.value)} /><code>{value}</code><button data-style-path={stylePath} type="button" aria-label={`Reset ${label}`} onClick={onReset}>Reset</button></div>;
+  return <div className="sg-colour-setting">{visibleLabel ? <span>{visibleLabel}</span> : null}<input data-style-path={stylePath} type="color" aria-label={label} aria-describedby={descriptionId} value={value} onChange={event => onChange(event.target.value)} /><code>{value}</code><button data-style-path={stylePath} type="button" aria-label={`Reset ${label}`} onClick={onReset}>Reset</button></div>;
 }
 
 function TypographyControls({ role, viewport, value, baseline, search, matchingFamilies, onSearch, onChange, onMetricChange, onResetProperty, onResetMetric }: {

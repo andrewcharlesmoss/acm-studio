@@ -113,13 +113,11 @@ collapse controls remain available. Studio Navigation and Editor Inspector
 adopt the shared resizing contract. Other product panes retain their existing
 widths and responsive behaviour.
 
-Styles → Interactions owns separate disclosure heading, neutral control, menu
-item and list item hover backgrounds in the executable `@acm/styles` preset.
-Each defaults to `#F0F0F0`. Selected, pressed, disabled and destructive states
-retain their own treatments. Disclosure headings cover Studio inspector
-accordions and navigation overlay headings. The
-Controls → Accordion specimen has no separate colour preference; see
-`docs/studio-ui-library.md`.
+Styles → Interactions owns one neutral hover background in the executable
+`@acm/styles` preset, shared by disclosure headings, neutral controls, menu items
+and list items. It defaults to `#F0F0F0`. Selected, pressed, disabled and
+destructive states keep their own treatments. The Controls → Accordion specimen
+has no separate colour preference; see `docs/studio-ui-library.md`.
 
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and

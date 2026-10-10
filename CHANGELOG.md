@@ -4,6 +4,9 @@
 
 ### Added
 
+- One central Neutral hover background setting shared across disclosure headings,
+  neutral controls, menus and list items, with four preview examples.
+
 - Central Styles hover backgrounds for neutral controls, menu items and list
   items, alongside the disclosure heading setting.
 
