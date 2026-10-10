@@ -358,6 +358,7 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       base: cloneWorkspace(pendingPeerSaveRef.current?.base ?? authoritativeWorkspaceRef.current),
       snapshot: cloneWorkspace(next),
     };
+    setSaveLabel("Unsaved changes");
     workspaceRef.current = next;
     setWorkspace(next);
   }

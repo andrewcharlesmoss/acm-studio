@@ -256,8 +256,8 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   }
 
   function savePageDraft() {
-    if (selectedSite || !writable || activeDocument.kind !== "page") return;
-    updateActiveField("status", "draft");
+    if (selectedSite || !writable) return;
+    if (activeDocument.kind === "page") updateActiveField("status", "draft");
     studioSession.requestSave();
   }
 

@@ -220,12 +220,15 @@ test("the actual Save draft action requests persistence even when draft status i
   function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === "savePageDraft") declaration = node; ts.forEachChild(node, visit); }
   visit(parsed); assert.ok(declaration);
   const calls = [];
-  const scope = { writable: true, activeDocument: { kind: "page", status: "draft" }, updateActiveField: (...args) => calls.push(args), studioSession: { requestSave: () => calls.push("save") } };
+  const scope = { selectedSite: null, writable: true, activeDocument: { kind: "page", status: "draft" }, updateActiveField: (...args) => calls.push(args), studioSession: { requestSave: () => calls.push("save") } };
   vm.runInNewContext(`${declaration.getText(parsed)}; savePageDraft();`, scope);
   assert.deepEqual(calls, [["status", "draft"], "save"]);
   calls.length = 0; scope.writable = false;
   vm.runInNewContext("savePageDraft();", scope);
   assert.deepEqual(calls, []);
+  calls.length = 0; scope.writable = true; scope.activeDocument = { kind: "post", status: "draft" };
+  vm.runInNewContext("savePageDraft();", scope);
+  assert.deepEqual(calls, ["save"], "Saving a draft post persists locally without changing its publication status");
 });
 
 for (const succeeds of [true, false]) {

@@ -3,6 +3,7 @@ import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
 import { StudioIcon } from "./studio-icons";
 import { StudioViewMenu, type StudioViewport, type StudioViewMode } from "./studio-view-menu";
 import type { StudioDocument } from "./editor-model";
+import { studioSaveControlState } from "./studio-save-control";
 
 export function StudioHeader({ studioSection, hasContentDocuments, activeDocument, saveLabel, templateSession,
   canRetryEditing, retryEditing, previewWindow, viewViewport, setViewViewport, showTemplate, hasTemplate,
@@ -17,11 +18,15 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
   siteContext?: { siteId: LocalFixtureSiteId; writable: boolean; onSave: () => void };
   writable: boolean; savePageDraft: () => void; onExportDocument: () => void;
 }) {
+  const showSaveControl = studioSection === "content" && hasContentDocuments && !previewWindow;
+  const contentSaveState = studioSaveControlState(saveLabel);
+  const showStatusLabel = !showSaveControl || contentSaveState === "unavailable"
+    || (contentSaveState === "draft" && saveLabel !== "Unsaved changes");
   return (
       <header className="studio-header">
         <a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a>
         <div className="studio-breadcrumbs">{siteContext && studioSection === "content" ? <><span>Sites</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{localFixtureName(siteContext.siteId)}</strong><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><strong>{activeDocument.title}</strong></> : studioSection === "templates" ? <><span>Templates</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Shared presentation</strong></> : studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"}</strong></> : hasContentDocuments ? <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></> : <><span>Content</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Empty workspace</strong></>}</div>
-        <div className="studio-state"><span className="prototype-pill">LOCAL</span><span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span>{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
+        <div className="studio-state"><span className="prototype-pill">LOCAL</span>{showStatusLabel ? <span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span> : null}{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
           {studioSection === "content" && hasContentDocuments && !previewWindow ? <StudioViewMenu viewMode={viewMode} onViewModeChange={onViewModeChange} viewport={viewViewport} onViewportChange={setViewViewport} showTemplate={showTemplate} hasTemplate={hasTemplate} onShowTemplateChange={setShowTemplate} onPreviewInNewTab={() => {
             const query = new URLSearchParams(siteContext ? { preview: "1", site: siteContext.siteId, documentId: activeDocument.id, viewport: viewViewport, template: showTemplate ? "1" : "0" } : { preview: "1", documentId: activeDocument.id, viewport: viewViewport, template: showTemplate ? "1" : "0" });
@@ -31,18 +36,38 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Content</button>
           ) : studioSection !== "content" ? (
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Back to Content</button>
-          ) : siteContext ? (<><button className="button-primary" type="button" onClick={siteContext.onSave} disabled={!siteContext.writable || previewWindow}>Save Local Site</button><button className="button-secondary" type="button" onClick={onExportDocument}>Export</button></>) : hasContentDocuments ? activeDocument.kind === "post" ? (
+          ) : siteContext ? (<><StudioSaveControl saveLabel={saveLabel} writable={siteContext.writable && !previewWindow} onSave={siteContext.onSave} /><button className="button-secondary" type="button" onClick={onExportDocument}>Export</button></>) : hasContentDocuments ? activeDocument.kind === "post" ? (
             <>
               {activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}
+              <StudioSaveControl saveLabel={saveLabel} writable={writable} isPublished={activeDocument.status === "published"} onSave={savePageDraft} />
               <button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button>
             </>
           ) : (
             <>
-              <button className="button-primary" type="button" onClick={savePageDraft} disabled={!writable}>Save draft</button>
+              <StudioSaveControl saveLabel={saveLabel} writable={writable} onSave={savePageDraft} />
               <button className="button-secondary" type="button" onClick={() => onExportDocument()}>Export</button>
             </>
           ) : null}
         </div>
       </header>
+  );
+}
+
+function StudioSaveControl({ saveLabel, writable, isPublished = false, onSave }: { saveLabel: string; writable: boolean; isPublished?: boolean; onSave: () => void }) {
+  const state = studioSaveControlState(saveLabel);
+  if (state === "unavailable") return null;
+  const label = state === "draft" ? isPublished ? "Unsaved" : "Save draft" : state === "saving" ? "Saving" : "Saved";
+  return (
+    <button
+      className={`studio-save-control is-${state}`}
+      type="button"
+      aria-live="polite"
+      disabled={state !== "draft" || !writable || isPublished}
+      onClick={onSave}
+    >
+      {state === "saving" ? <StudioIcon name="save" size={20} aria-hidden="true" /> : null}
+      {state === "saved" ? <StudioIcon name="check" size={20} aria-hidden="true" /> : null}
+      <span>{label}</span>
+    </button>
   );
 }

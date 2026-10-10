@@ -89,6 +89,8 @@
   .media-details { border-left: 0; border-top: 1px solid #d2d0c8; max-height: none; }
   .media-status { align-items: flex-start; flex-direction: column; gap: 3px; }
   .studio-actions a.button-secondary { display: none; }
+  .studio-save-control { font-size: 13px; min-height: 40px; padding: 6px 8px; }
+  .studio-save-control.is-saving, .studio-save-control.is-saved { min-width: 88px; }
   .local-writing-label { align-items: flex-start; flex-direction: column; gap: 3px; }
   .local-publication-banner { grid-template-columns: 1fr; margin-bottom: 42px; }
   .backup-manager { min-height: calc(100dvh - 101px); padding: 28px 12px 50px; }
