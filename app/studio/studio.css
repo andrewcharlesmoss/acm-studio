@@ -2044,6 +2044,8 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .group-alignment-control > div, .group-grid-mode > div { display: flex; gap: 4px; }
 .group-alignment-control button { width: 36px; height: 36px; padding: 6px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: #757575; border-radius: 2px; }
 .group-alignment-control button { border: 1px solid transparent; }
+.group-alignment-control button:not(:disabled) { cursor: pointer; }
+.group-alignment-control button:disabled { cursor: default; }
 .group-alignment-control button[aria-pressed="true"] { border-color: #757575; background: #f0f0f0; color: var(--ink); }
 .group-flex-layout-controls { display: flex; justify-content: space-between; gap: 8px; }
 .group-flex-layout-controls legend { text-transform: uppercase; }
