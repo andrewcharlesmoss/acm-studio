@@ -231,6 +231,19 @@ test("the actual Save draft action requests persistence even when draft status i
   assert.deepEqual(calls, ["save"], "Saving a draft post persists locally without changing its publication status");
 });
 
+test("the keyboard save action persists the current document without changing its status", () => {
+  const source = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const parsed = ts.createSourceFile("studio-prototype.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let declaration;
+  function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === "saveCurrentDocument") declaration = node; ts.forEachChild(node, visit); }
+  visit(parsed); assert.ok(declaration);
+  const calls = [];
+  const scope = { selectedSite: null, writable: true, studioSession: { requestSave: () => calls.push("save") } };
+  vm.runInNewContext(`${declaration.getText(parsed)}; saveCurrentDocument();`, scope);
+  assert.deepEqual(calls, ["save"]);
+  assert.doesNotMatch(declaration.getText(parsed), /updateActiveField|publishing\.publish/);
+});
+
 for (const succeeds of [true, false]) {
   test(`repeated Save awaits real sync persistence ${succeeds ? "success" : "failure"} without optimistic success`, async () => {
     let persisted = structuredClone(initialStudioWorkspace);

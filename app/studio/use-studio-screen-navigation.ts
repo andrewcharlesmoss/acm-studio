@@ -44,14 +44,14 @@ export function writeStudioNavigation(mode: "content" | "templates" | "bin", tar
 }
 /** URL navigation and screen shortcuts stay independent of storage sessions. */
 export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, setPreviewing, setTemplateTarget,
-  setShowInserter, setDocumentFieldSelection, setSelectedBlockId, previewWindow, workspaceReady, studioSection, activeDocument, publishing, confirmCodeEditorDiscard,
+  setShowInserter, setDocumentFieldSelection, setSelectedBlockId, previewWindow, workspaceReady, studioSection, activeDocument, saveDocument, confirmCodeEditorDiscard,
 }: {
   setStudioSection: (section: StudioSection) => void;
   setLibraryKind: (kind: "page" | "post" | "templates") => void; setPreviewing: (preview: boolean) => void;
   setTemplateTarget: (target: StudioTemplateTarget) => void;
   setShowInserter: (show: boolean) => void; setDocumentFieldSelection: (field: null) => void;
   setSelectedBlockId: (id: null) => void; previewWindow: boolean; workspaceReady: boolean; studioSection: StudioSection;
-  activeDocument: { kind: "page" | "post" }; publishing: { publish: () => void };
+  activeDocument: { kind: "page" | "post" }; saveDocument: () => void;
   confirmCodeEditorDiscard: () => boolean;
 }) {
   const acceptedLocation = useRef<{ path: string; index: number } | null>(null);
@@ -130,13 +130,14 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
         }
         return;
       }
-      if (!previewWindow && event.key.toLowerCase() === "s" && studioSection === "content" && activeDocument.kind === "post") {
+      if (!previewWindow && !event.altKey && !event.shiftKey && (event.metaKey || event.ctrlKey)
+        && event.key.toLowerCase() === "s" && studioSection === "content") {
         event.preventDefault();
-        publishing.publish();
+        saveDocument();
       }
     }
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  }, [activeDocument.kind, previewWindow, publishing, studioSection, setDocumentFieldSelection, setSelectedBlockId, setShowInserter]);
+  }, [previewWindow, saveDocument, studioSection, setDocumentFieldSelection, setSelectedBlockId, setShowInserter]);
 
 }

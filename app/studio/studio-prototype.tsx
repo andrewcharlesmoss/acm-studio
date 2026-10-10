@@ -261,6 +261,14 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     studioSession.requestSave();
   }
 
+  function saveCurrentDocument() {
+    if (selectedSite) {
+      if (testSite.writable && !switchingSite) void testSite.flush().catch(() => {});
+      return;
+    }
+    if (writable) studioSession.requestSave();
+  }
+
   const { insertBlock: insertCanvasBlock, duplicateBlock, removeBlock, openInserter } = useStudioCanvasActions({ blockCommands, writable: editorWritable, insertAfterIndex,
     setPendingColumnsLayoutBlockId, setDocumentFieldSelection, setSelectedBlockId, setInspectorTab,
     setInsertAfterIndex, setShowInserter, setInserterQuery });
@@ -297,7 +305,9 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   }
 
   useStudioScreenNavigation({ setStudioSection, setLibraryKind, setPreviewing, setTemplateTarget, setShowInserter,
-    setDocumentFieldSelection, setSelectedBlockId, previewWindow, workspaceReady: currentWorkspaceSession.ready, studioSection, activeDocument: workspaceDocument, publishing: selectedSite ? { publish: () => { void testSite.flush().catch(() => {}); } } : publishing, confirmCodeEditorDiscard });
+    setDocumentFieldSelection, setSelectedBlockId, previewWindow, workspaceReady: currentWorkspaceSession.ready, studioSection, activeDocument: workspaceDocument,
+    saveDocument: saveCurrentDocument,
+    confirmCodeEditorDiscard });
 
   if (previewWindow && selectedSite && testSite.draft && (!previewDocumentId || !workspace.documents.some(document => document.id === previewDocumentId))) {
     return <main className="studio-preview-unavailable" role="alert"><h1>Document unavailable</h1><p>This document could not be found in {siteName}. Return to {siteName} and open its preview again.</p></main>;

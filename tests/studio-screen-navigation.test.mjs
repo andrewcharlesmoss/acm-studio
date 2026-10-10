@@ -18,9 +18,9 @@ function fixture(overrides = {}, search = "", { modal = false } = {}) {
     removeEventListener(type, listener) { if (listeners.get(type) === listener) listeners.delete(type); } };
   const useEffect = effect => cleanups.push(effect());
   const document = { querySelector(selector) { assert.equal(selector, "dialog[open]"); return modal ? {} : null; } };
-  const navigationModule = new Function("exports", "useEffect", "useEffectEvent", "useRef", "window", "document", "queueMicrotask", `${code}\nreturn exports;`)({}, useEffect, callback => callback, current => ({ current }), window, document, callback => microtasks.push(callback));
-  navigationModule.useStudioScreenNavigation({ studioSection: "content", previewWindow: false, activeDocument: { kind: "post" }, confirmCodeEditorDiscard: () => true,
-    publishing: { publish: () => calls.push(["publish"]) },
+  const navigationModule = new Function("exports", "useEffect", "useEffectEvent", "useRef", "window", "document", "queueMicrotask", "isLocalFixtureSiteId", `${code}\nreturn exports;`)({}, useEffect, callback => callback, current => ({ current }), window, document, callback => microtasks.push(callback), siteId => siteId === "test" || siteId === "test2");
+  navigationModule.useStudioScreenNavigation({ studioSection: "content", previewWindow: false, workspaceReady: true, activeDocument: { kind: "post" }, confirmCodeEditorDiscard: () => true,
+    saveDocument: () => calls.push(["save"]),
     ...Object.fromEntries(["setStudioSection", "setLibraryKind", "setPreviewing", "setTemplateTarget", "setShowInserter", "setDocumentFieldSelection", "setSelectedBlockId"].map(name => [name, value => calls.push([name, value])])), ...overrides });
   return { calls, historyCalls, listeners, window, write: navigationModule.writeStudioNavigation,
     pop(search, index) {
@@ -33,15 +33,23 @@ function fixture(overrides = {}, search = "", { modal = false } = {}) {
 }
 
 for (const modifier of ["metaKey", "ctrlKey"]) {
-  test(`${modifier} Save publishes the active content post and prevents browser Save`, () => {
-    const h = fixture(); assert.equal(h.key("s", { [modifier]: true }), true);
-    assert.deepEqual(h.calls, [["publish"]]); h.cleanup(); assert.equal(h.listeners.size, 0);
+  test(`${modifier} Save persists the active content document and prevents browser Save`, () => {
+    for (const kind of ["page", "post"]) {
+      const h = fixture({ activeDocument: { kind } }); assert.equal(h.key("s", { [modifier]: true }), true);
+      assert.deepEqual(h.calls, [["save"]]); h.cleanup(); assert.equal(h.listeners.size, 0);
+    }
   });
 }
 
-test("Save remains inactive in page, template, Files, Bin and read-only preview screens", () => {
-  for (const overrides of [{ activeDocument: { kind: "page" } }, { studioSection: "templates" }, { studioSection: "files" }, { studioSection: "bin" }, { previewWindow: true }]) {
+test("Save remains inactive in template, Files, Bin and read-only preview screens", () => {
+  for (const overrides of [{ studioSection: "templates" }, { studioSection: "files" }, { studioSection: "bin" }, { previewWindow: true }]) {
     const h = fixture(overrides); assert.equal(h.key("s", { metaKey: true }), false); assert.deepEqual(h.calls, []); h.cleanup();
+  }
+});
+
+test("Save leaves modified browser shortcuts and claimed keystrokes untouched", () => {
+  for (const modifiers of [{ metaKey: true, shiftKey: true }, { metaKey: true, altKey: true }, { key: "s", metaKey: true, defaultPrevented: true }, { key: "s", ctrlKey: true, isComposing: true }]) {
+    const h = fixture(); assert.equal(h.key(modifiers.key ?? "s", modifiers), false); assert.deepEqual(h.calls, []); h.cleanup();
   }
 });
 
@@ -95,7 +103,7 @@ test("mode URLs retain encoded template targets and avoid duplicate entries", ()
     this.state = state;
     calls.push(path); const url = new URL(path, "http://localhost"); location.pathname = url.pathname; location.search = url.search;
   } } };
-  const write = new Function("exports", "window", `${code}\nreturn exports.writeStudioNavigation;`)({}, window);
+  const write = new Function("exports", "window", "isLocalFixtureSiteId", `${code}\nreturn exports.writeStudioNavigation;`)({}, window, siteId => siteId === "test" || siteId === "test2");
   write("templates", { setId: "set / one", targetId: "part & two" });
   const query = new URLSearchParams(location.search);
   assert.equal(query.get("mode"), "templates"); assert.equal(query.get("set"), "set / one"); assert.equal(query.get("target"), "part & two");

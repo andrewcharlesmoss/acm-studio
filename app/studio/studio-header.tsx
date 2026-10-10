@@ -62,6 +62,7 @@ function StudioSaveControl({ saveLabel, writable, isPublished = false, onSave }:
       className={`studio-save-control is-${state}`}
       type="button"
       aria-live="polite"
+      title={`${label} (⌘S / Ctrl+S)`}
       disabled={state !== "draft" || !writable || isPublished}
       onClick={onSave}
     >
