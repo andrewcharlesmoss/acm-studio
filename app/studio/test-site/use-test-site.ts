@@ -1,5 +1,6 @@
 "use client";
 import { localFixtureName, type LocalFixtureSiteId } from "./sites";
+import { shouldProtectTestSiteBeforeUnload } from "./before-unload";
 import { canApplyTestProposal, testDraftRecoveryEnvelope } from "./draft-recovery";
 import { useCallback, useEffect, useMemo, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { studioWriteOwnership } from "../write-ownership";
@@ -324,7 +325,11 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("pageshow", refresh); document.removeEventListener("visibilitychange", resume); };
   }, [request, requested, fail, recoverExpiredConnection, siteName, validateSnapshot]);
   useEffect(() => {
-    const protect = (event: BeforeUnloadEvent) => { if (dirty || saving.current || promptRunning) { event.preventDefault(); event.returnValue = ""; } };
+    const protect = (event: BeforeUnloadEvent) => {
+      if (shouldProtectTestSiteBeforeUnload({ dirty, saving: Boolean(saving.current), promptRunning, editingPaused: editingPausedRef.current })) {
+        event.preventDefault(); event.returnValue = "";
+      }
+    };
     window.addEventListener("beforeunload", protect);
     return () => window.removeEventListener("beforeunload", protect);
   }, [dirty, promptRunning]);
