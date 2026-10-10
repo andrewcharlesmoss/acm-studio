@@ -231,7 +231,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       }
       const field = node.element === "document-title" ? "title" : node.element === "subtitle" ? "subtitle" : null;
       const isSelectedDocumentField = editingDocument && field !== null && selectedDocumentField === field;
-      result = <div className={`template-element template-${node.element}${"blockAlign" in node && node.blockAlign ? ` align${node.blockAlign}` : ""}${isSelectedDocumentField ? " is-document-field-selected" : ""}`} data-template-element={node.element} data-document-field={field ?? undefined} onPointerDown={editingDocument && field ? () => onFocusDocumentField?.(field) : undefined} style={{ textAlign: align }}>{element}</div>;
+      result = <div className={`template-element template-${node.element === "navigation" ? "navigation-frame" : node.element}${"blockAlign" in node && node.blockAlign ? ` align${node.blockAlign}` : ""}${isSelectedDocumentField ? " is-document-field-selected" : ""}`} data-template-element={node.element} data-document-field={field ?? undefined} onPointerDown={editingDocument && field ? () => onFocusDocumentField?.(field) : undefined} style={{ textAlign: align }}>{element}</div>;
     } else result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} documentHref={context.documentHref} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} spacerOrientation={spacerOrientation} />;
     return (!shared ? decorate?.(node, result) : undefined) ?? result;
   }
