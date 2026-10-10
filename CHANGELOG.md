@@ -662,6 +662,9 @@
 
 ### Fixed
 
+- Navigation justification now follows its block setting in template editing,
+  previews and local output, without a conflicting header wrapper alignment.
+
 - Recovery exports retain unsaved edits' original base revision after a local
   fixture reconnect. Late commits refresh the save status after a saving tab
   resumes from suspension.
