@@ -115,30 +115,10 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .button-primary:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .button-secondary { background: #e8e7e1; color: var(--ink); }
 .button-secondary:hover { background: #dedcd4; }
-.studio-save-control {
-  align-items: center;
-  background: transparent;
-  border: 2px solid transparent;
-  border-radius: 0;
-  color: var(--gutenberg-accent);
-  cursor: pointer;
-  display: inline-flex;
-  font: 600 15px/1.2 var(--studio-ui-font);
-  gap: 8px;
-  justify-content: center;
-  min-height: 42px;
-  padding: 7px 12px;
-  white-space: nowrap;
-}
-.studio-save-control:hover:not(:disabled):not(.is-draft) { background: #f3f2ef; }
-.studio-save-control:focus-visible { outline: 2px solid var(--gutenberg-accent); outline-offset: 2px; }
-.studio-save-control.is-saving, .studio-save-control.is-saved {
-  background: #fff;
-  border-color: transparent;
-  color: var(--muted);
-  min-width: 112px;
-}
-.studio-save-control:disabled { cursor: default; }
+.studio-save-group { align-items: center; display: inline-flex; gap: 12px; }
+.studio-save-status { color: var(--muted); font-size: var(--studio-ui-size); white-space: nowrap; }
+.studio-save-button { min-height: 40px; min-width: 92px; }
+.studio-save-button:disabled { cursor: default; opacity: .72; }
 
 .studio-notice {
   background: #fff7d8;

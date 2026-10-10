@@ -213,22 +213,11 @@ test("explicit Save retries failed current data without a timestamp or consuming
   denied.flush();
 });
 
-test("the actual Save draft action requests persistence even when draft status is unchanged", () => {
-  const source = readFileSync(path.join(root, "app/studio/studio-prototype.tsx"), "utf8");
-  const parsed = ts.createSourceFile("studio-prototype.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  let declaration;
-  function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === "savePageDraft") declaration = node; ts.forEachChild(node, visit); }
-  visit(parsed); assert.ok(declaration);
-  const calls = [];
-  const scope = { selectedSite: null, writable: true, activeDocument: { kind: "page", status: "draft" }, updateActiveField: (...args) => calls.push(args), studioSession: { requestSave: () => calls.push("save") } };
-  vm.runInNewContext(`${declaration.getText(parsed)}; savePageDraft();`, scope);
-  assert.deepEqual(calls, [["status", "draft"], "save"]);
-  calls.length = 0; scope.writable = false;
-  vm.runInNewContext("savePageDraft();", scope);
-  assert.deepEqual(calls, []);
-  calls.length = 0; scope.writable = true; scope.activeDocument = { kind: "post", status: "draft" };
-  vm.runInNewContext("savePageDraft();", scope);
-  assert.deepEqual(calls, ["save"], "Saving a draft post persists locally without changing its publication status");
+test("the header Save action is separate from status and uses the shared primary button", () => {
+  const header = readFileSync(path.join(root, "app/studio/studio-header.tsx"), "utf8");
+  assert.match(header, /<div className="studio-save-group">\s*<span className="studio-save-status" aria-live="polite">\{saveLabel\}<\/span>\s*<button className="button-primary studio-save-button"/);
+  assert.match(header, /title="Save \(⌘S \/ Ctrl\+S\)" aria-keyshortcuts="Meta\+s Control\+s"/);
+  assert.match(header, /onSave=\{onSaveDocument\}/);
 });
 
 test("the keyboard save action persists the current document without changing its status", () => {

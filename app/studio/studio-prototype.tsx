@@ -255,12 +255,6 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     return true;
   }
 
-  function savePageDraft() {
-    if (selectedSite || !writable) return;
-    if (activeDocument.kind === "page") updateActiveField("status", "draft");
-    studioSession.requestSave();
-  }
-
   function saveCurrentDocument() {
     if (selectedSite) {
       if (testSite.writable && !switchingSite) void testSite.flush().catch(() => {});
@@ -320,10 +314,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   return (
     <div className={`studio-shell studio-desktop-only${selectedSite ? " studio-test-context" : ""}${previewWindow ? " studio-preview-window" : ""}${websiteView ? ` studio-website-view${viewMode === "full" ? " studio-full-preview" : ""}` : ""}`} onBeforeInputCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       {selectedSite ? <style>{testSiteCss}</style> : null}
-      <StudioHeader viewMode={viewMode} onViewModeChange={selectedSite ? changeViewMode : undefined} siteContext={selectedSite ? { siteId: selectedSite, writable: testSite.writable, onSave: () => void testSite.flush().catch(() => {}) } : undefined} studioSection={studioSection} hasContentDocuments={hasContentDocuments || Boolean(selectedSite)} activeDocument={activeDocument} saveLabel={selectedSite ? testSite.label : saveLabel} templateSession={templateSession}
+      <StudioHeader viewMode={viewMode} onViewModeChange={selectedSite ? changeViewMode : undefined} siteContext={selectedSite ? { siteId: selectedSite, writable: testSite.writable, onSave: saveCurrentDocument } : undefined} studioSection={studioSection} hasContentDocuments={hasContentDocuments || Boolean(selectedSite)} activeDocument={activeDocument} saveLabel={selectedSite ? testSite.label : saveLabel} templateSession={templateSession}
         canRetryEditing={canRetryEditing} retryEditing={retryEditing} previewWindow={previewWindow} viewViewport={viewViewport} setViewViewport={changeViewport}
         showTemplate={showTemplate} hasTemplate={hasTemplate} setShowTemplate={setShowTemplate} switchStudioMode={switchStudioMode} publishing={publishing} writable={writable && !selectedSite}
-        savePageDraft={savePageDraft} onExportDocument={() => selectedSite ? testSite.exportDraft() : exportJson(activeDocument, `${activeDocument.slug}.json`)} />
+        onSaveDocument={saveCurrentDocument} onExportDocument={() => selectedSite ? testSite.exportDraft() : exportJson(activeDocument, `${activeDocument.slug}.json`)} />
       {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected" || testSite.syncConflict) ? <div className="studio-test-notices">
       {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected") ? <div className="design-notice" role="alert">{testSite.failure || siteFeedback || `${siteName} sync is paused while its saving tab is unavailable. Your draft remains in this tab.`} <button type="button" onClick={testSite.exportDraft}>Export Draft</button><button type="button" onClick={() => void testSite.reconnect()}>Reconnect</button></div> : null}
       {selectedSite && testSite.syncConflict ? <div className="design-notice" role="alert"><span>Two tabs changed the same content in {siteName}. Choose which change to keep. Your changes remain in this tab.</span> <button type="button" onClick={() => void testSite.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void testSite.resolveSyncConflict("mine")}>Use My Change</button><button type="button" onClick={() => void testSite.exportDraft()}>Export Draft</button>{testSite.syncResolutionError ? <span>{testSite.syncResolutionError}</span> : null}</div> : null}
