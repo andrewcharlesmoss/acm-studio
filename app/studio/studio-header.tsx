@@ -3,6 +3,7 @@ import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
 import { StudioIcon } from "./studio-icons";
 import { StudioViewMenu, type StudioViewport, type StudioViewMode } from "./studio-view-menu";
 import type { StudioDocument } from "./editor-model";
+import { StudioButton } from "./controls/button";
 import { studioSaveControlState } from "./studio-save-control";
 
 export function StudioHeader({ studioSection, hasContentDocuments, activeDocument, saveLabel, templateSession,
@@ -20,6 +21,7 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
 }) {
   const showSaveControl = studioSection === "content" && hasContentDocuments && !previewWindow;
   const canSave = siteContext ? siteContext.writable : writable;
+  const draft = activeDocument.status === "draft";
   const saveUnavailable = studioSaveControlState(saveLabel) === "unavailable";
   return (
       <header className="studio-header">
@@ -35,16 +37,16 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Content</button>
           ) : studioSection !== "content" ? (
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Back to Content</button>
-          ) : siteContext ? (<><button className="button-secondary" type="button" onClick={onExportDocument}>Export</button><StudioSaveControl saveLabel={saveLabel} writable={canSave && !previewWindow} unavailable={saveUnavailable} onSave={siteContext.onSave} /></>) : hasContentDocuments ? activeDocument.kind === "post" ? (
+          ) : siteContext ? (<><button className="button-secondary" type="button" onClick={onExportDocument}>Export</button><StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave && !previewWindow} unavailable={saveUnavailable} onSave={siteContext.onSave} /></>) : hasContentDocuments ? activeDocument.kind === "post" ? (
             <>
               {activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}
+              <StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave} unavailable={saveUnavailable} onSave={onSaveDocument} />
               <button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>{activeDocument.status === "published" ? "Update" : "Publish"}</button>
-              <StudioSaveControl saveLabel={saveLabel} writable={canSave} unavailable={saveUnavailable} onSave={onSaveDocument} />
             </>
           ) : (
             <>
               <button className="button-secondary" type="button" onClick={() => onExportDocument()}>Export</button>
-              <StudioSaveControl saveLabel={saveLabel} writable={canSave} unavailable={saveUnavailable} onSave={onSaveDocument} />
+              <StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave} unavailable={saveUnavailable} onSave={onSaveDocument} />
             </>
           ) : null}
         </div>
@@ -52,12 +54,13 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
   );
 }
 
-function StudioSaveControl({ saveLabel, writable, unavailable, onSave }: { saveLabel: string; writable: boolean; unavailable: boolean; onSave: () => void }) {
+function StudioSaveControl({ draft, saveLabel, writable, unavailable, onSave }: { draft: boolean; saveLabel: string; writable: boolean; unavailable: boolean; onSave: () => void }) {
+  const action = draft ? "Save Draft" : "Save";
   const saving = saveLabel === "Saving…" || saveLabel === "Saving";
   return (
     <div className="studio-save-group">
       <span className="studio-save-status" aria-live="polite">{saveLabel}</span>
-      <button className="button-primary studio-save-button" type="button" title="Save (⌘S / Ctrl+S)" aria-keyshortcuts="Meta+s Control+s" disabled={!writable || unavailable || saving} onClick={onSave}>Save</button>
+      <StudioButton variant={draft ? "text" : "base"} className="studio-save-button" type="button" title={`${action} (⌘S / Ctrl+S)`} aria-keyshortcuts="Meta+s Control+s" disabled={!writable || unavailable || saving} onClick={onSave}>{saving ? "Saving…" : action}</StudioButton>
     </div>
   );
 }

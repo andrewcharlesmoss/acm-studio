@@ -154,6 +154,8 @@
 
 ### Changed
 
+- Draft pages and posts have a blue Save Draft action in the editor header, using the existing local save flow.
+
 - Studio Drafts has consistent side padding.
 
 - Pane edge controls are smaller circles, with resizing available along the full pane edge.
