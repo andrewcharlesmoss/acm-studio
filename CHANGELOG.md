@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Site navigation Save now confirms completion visibly, including when autosave has already saved the menu, and preserves rejected field errors.
+
 - Allow each template palette colour to reset to its current global default and
   use the Studio colour picker for drag-based custom colour selection that
   commits on release without closing during the save. Keep swatches and labels

@@ -189,8 +189,8 @@ export function NavigationMenuList(props: NavigationEditingProps) {
   </li>)}</ul><div className="navigation-menu-add"><NavigationAdd {...props} /></div></div>;
 }
 
-export function LinkSetting({ label, value, maxLength = 2000, onCommit }: { label: string; value: string; maxLength?: number; onCommit: (value: string) => void }) {
-  return <label>{label}<input key={value} defaultValue={value} maxLength={maxLength} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
+export function LinkSetting({ label, value, maxLength = 2000, onCommit, onDraftChange }: { label: string; value: string; maxLength?: number; onCommit: (value: string) => void; onDraftChange?: (value: string) => void }) {
+  return <label>{label}<input key={value} defaultValue={value} maxLength={maxLength} onChange={event => onDraftChange?.(event.target.value)} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
 }
 
 export function NavigationInspector({ linksWritable = true, block, menuName = "Navigation", onBlockChange, overlayContext = false, overlayParts = [], canCreateOverlay = true, onCreateOverlay, onEditOverlay, ...props }: NavigationEditingProps & { linksWritable?: boolean; menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void; overlayContext?: boolean; overlayParts?: TemplatePart[]; canCreateOverlay?: boolean; onCreateOverlay?: () => void; onEditOverlay?: (id: string) => void }) {

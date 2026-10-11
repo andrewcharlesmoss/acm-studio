@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { StudioButton } from "./controls/button";
 import { StudioIcon } from "./studio-icons";
 import { NavigationMenuList } from "./template-navigation-editor";
@@ -19,17 +20,26 @@ export function SiteNavigationEditor({ siteId, navigation, templates, documents,
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savedMenu, setSavedMenu] = useState<string | null>(null);
+  const rejectedField = useRef(false);
   const set = templates.store.sets.find(item => item.id === navigation.setId);
   const links = set?.navigation ?? [];
+  const menuRevision = JSON.stringify(links);
+  const committedMenu = useRef(menuRevision);
+  useEffect(() => { committedMenu.current = menuRevision; }, [menuRevision]);
+  const confirmedSaved = savedMenu === menuRevision && !templates.error && !["Unsaved changes", "Saving…"].includes(templates.saveLabel);
   const writable = templates.writable && Boolean(set) && !saving;
   const save = useCallback(async () => {
     if (!writable) return;
     // Inline inspector fields commit on blur; settle them before flushing.
     // Portalled link popovers retain their own explicit Apply transaction.
     const field = document.activeElement;
-    if ((field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) && field.closest(".site-navigation-details")) field.blur();
+    if ((field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) && field.closest(".site-navigation-details")) flushSync(() => field.blur());
+    if (rejectedField.current || document.querySelector(".site-navigation-details [role='alert']")) return;
+    const savingMenu = committedMenu.current;
+    setSavedMenu(null);
     setSaving(true);
-    try { await onSave(); setError(null); }
+    try { await onSave(); setError(null); setSavedMenu(savingMenu); }
     catch (failure) { setError(failure instanceof Error ? failure.message : "The menu could not be saved. Your draft is preserved."); }
     finally { setSaving(false); }
   }, [writable, onSave]);
@@ -42,7 +52,8 @@ export function SiteNavigationEditor({ siteId, navigation, templates, documents,
     return () => window.removeEventListener("keydown", shortcut);
   }, [save]);
   function changeLinks(next: SiteLink[]) {
-    if (!writable) return false;
+    setSavedMenu(null);
+    if (!writable) { rejectedField.current = true; return false; }
     try {
       const accepted = templates.commit(store => {
         const current = store.sets.find(item => item.id === navigation.setId);
@@ -50,14 +61,16 @@ export function SiteNavigationEditor({ siteId, navigation, templates, documents,
         return { ...store, sets: store.sets.map(item => item.id === current.id ? { ...item, navigation: next } : item) };
       });
       setError(accepted ? null : "Editing is unavailable. Your current menu has been preserved.");
+      rejectedField.current = !accepted;
+      if (accepted) committedMenu.current = JSON.stringify(next);
       return accepted;
-    } catch (failure) { setError(failure instanceof Error ? failure.message : "The menu could not be changed."); return false; }
+    } catch (failure) { rejectedField.current = true; setError(failure instanceof Error ? failure.message : "The menu could not be changed."); return false; }
   }
   const props = { links, selectedId, writable, suggestions: documents.map(document => ({ id: document.id, title: document.title, href: testDocumentHref(document.id) })), onSelect: setSelectedId, onChange: changeLinks };
   return <section className="site-navigation-workspace" aria-label={`${localFixtureName(siteId)} navigation editor`}>
     <header><div><h1>{localFixtureName(siteId)} navigation</h1><p>Menu items belong to {localFixtureName(siteId)}. Colours and alignment come from the global Navigation template.</p></div><button type="button" aria-label="Close navigation editor" title="Back to Templates" onClick={onClose}><StudioIcon name="close" size={20} /></button></header>
-    <div className="site-navigation-actions"><button type="button" disabled={!templates.canUndo || saving} onClick={templates.undo}><StudioIcon name="undo" />Undo</button><button type="button" disabled={!templates.canRedo || saving} onClick={templates.redo}><StudioIcon name="redo" />Redo</button><span role="status">{templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>Save</StudioButton></div>
+    <div className="site-navigation-actions"><button type="button" disabled={!templates.canUndo || saving} onClick={templates.undo}><StudioIcon name="undo" />Undo</button><button type="button" disabled={!templates.canRedo || saving} onClick={templates.redo}><StudioIcon name="redo" />Redo</button><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>
     {error || templates.error ? <p role="alert">{error ?? templates.error}</p> : null}
-    <div className="site-navigation-columns"><div className="site-navigation-menu" data-inspector-popover-owner><h2>Menu items</h2><NavigationMenuList {...props} /></div><aside className="site-navigation-details" data-inspector-popover-owner aria-label="Navigation link details">{selectedId ? <PageLinkInspector key={selectedId} {...props} siteId={siteId} contentOnly /> : <p>Select a link to edit its text and destination. Use its options menu to move or delete it.</p>}</aside></div>
+    <div className="site-navigation-columns" onChangeCapture={() => { setSavedMenu(null); rejectedField.current = false; }}><div className="site-navigation-menu" data-inspector-popover-owner><h2>Menu items</h2><NavigationMenuList {...props} /></div><aside className="site-navigation-details" data-inspector-popover-owner aria-label="Navigation link details">{selectedId ? <PageLinkInspector key={selectedId} {...props} siteId={siteId} contentOnly /> : <p>Select a link to edit its text and destination. Use its options menu to move or delete it.</p>}</aside></div>
   </section>;
 }
