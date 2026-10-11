@@ -352,7 +352,7 @@ relative `/studio` link on every host.
 
 Andrew has authorised the local Test integration inside `/studio?site=test` and
 changes to the sibling `test` project for this fixture. The canonical source is
-Test's `content/site.json` v5 (backwards-readable v1–v4), containing documents,
+Test's `content/site.json` v6 (backwards-readable v1–v5), containing documents,
 categories, Bin and templates; visual edits use one revision-checked gateway.
 Test drives the selected site's Pages, Posts and Templates lists and commands.
 Andrew authorised copying the existing browser test documents, templates and
@@ -388,7 +388,7 @@ capabilities, commands, conflict handling, protocol details and recovery.
 ### Second local fixture
 
 Andrew authorised Test2 (`test2`) on 9 October 2026. `/studio?site=test2` uses
-the same local integration with an independent v5 source in sibling
+the same local integration with an independent v6 source in sibling
 `test2/content/site.json`. Only fixed IDs `test` and `test2` are accepted.
 Each owns separate gateway sessions, leases, process guards, revisions, history,
 wake channels and synchronisation rooms. Every ordinary Studio shell retains
@@ -475,3 +475,15 @@ initialisation. Legacy entry URLs map to originals. New originals are available
 to every site; removal remains protected. Library export/import and site backups
 preserve originals and recovery records. See `docs/templates.md` and
 `docs/test-site-integration.md`. No hosted publication is implied.
+
+### Local fixture publication
+
+Test and Test2 source v6 retains independent document publication snapshots and
+template assignments. Save Draft and automatic saving change authored documents
+only. Publish/Update atomically replaces the selected publication through the
+existing owned, revision-checked source/output transaction. Static local output
+uses publications; explicit Studio draft previews use authored documents. Legacy
+sources seed publication snapshots from their pre-edit documents on the first
+owned content transaction, preserving existing output. Global designs and site
+navigation remain shared/live. Bin hides a publication while retaining its
+snapshot for recovery. This never deploys to a hosted site.

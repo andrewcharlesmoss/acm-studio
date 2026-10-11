@@ -6,7 +6,7 @@ import type { ContentBlock } from "../../content/model";
 import type { StudioWorkspace, StudioDocument } from "../editor-model";
 import { validContentBlocks, validateStudioWorkspace } from "../workspace-validation";
 
-import { emptyTemplateStore, validateTemplateStore, type TemplateStore, type TemplateSet } from "../template-model";
+import { emptyTemplateStore, validateTemplateStore, type TemplateStore, type TemplateSet, type TemplateAssignment } from "../template-model";
 
 export const TEST_REGIONS = ["header", "main", "footer"] as const;
 type Group = Extract<ContentBlock, { type: "group" }>;
@@ -18,7 +18,8 @@ type LegacyTestSiteCollection = {
   activeDocumentId: string; homeDocumentId: string; templates: TemplateStore;
   browserImportComplete: boolean;
 };
-export type TestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference } & ({ version: 4; globalTemplates?: never } | { version: 5; globalTemplates: GlobalTemplateBinding[] });
+export type LocalSitePublication = { document: StudioDocument; assignment?: TemplateAssignment };
+export type TestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference } & ({ version: 4; globalTemplates?: never } | { version: 5; globalTemplates: GlobalTemplateBinding[] } | { version: 6; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] });
 export type TestSiteDocument = TestSiteCollection | LegacyTestSiteCollection | LegacyTestSiteDocument | { format: "acm-test-site"; version: 2; siteId: "test"; document: StudioDocument };
 export type TestSnapshot = { revision: string; document: TestSiteDocument; previewRevision: string };
 function record(value: unknown): value is Record<string, unknown> { return Boolean(value && typeof value === "object" && !Array.isArray(value)); }
@@ -29,25 +30,44 @@ function hasLocalMedia(value: unknown): boolean {
 }
 export function validTestSiteDocument(value: unknown): value is TestSiteDocument {
   if (hasLocalMedia(value)) return false;
-  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || value.version !== 3 && value.version !== 4 && value.version !== 5 && value.siteId !== "test") return false;
+  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || value.version !== 3 && value.version !== 4 && value.version !== 5 && value.version !== 6 && value.siteId !== "test") return false;
   if (value.version === 1) {
     if (!record(value.regions) || Object.keys(value).sort().join() !== "format,regions,siteId,version" || Object.keys(value.regions).sort().join() !== "footer,header,main") return false;
     const blocks = TEST_REGIONS.map(region => (value.regions as Record<string, unknown>)[region]);
     return validContentBlocks(blocks) && blocks.every((block, index) => block.type === "group" && block.id === `test-${TEST_REGIONS[index]}` && block.tagName === TEST_REGIONS[index]);
   }
-  if (value.version === 3 || value.version === 4 || value.version === 5) {
-    const keys = value.version === 5 ? "activeDocumentId,bin,browserImportComplete,categories,documents,format,globalTemplates,homeDocumentId,siteId,siteNavigation,templates,version" : value.version === 4 ? "activeDocumentId,bin,browserImportComplete,categories,documents,format,homeDocumentId,siteId,siteNavigation,templates,version" : "activeDocumentId,bin,browserImportComplete,categories,documents,format,homeDocumentId,siteId,templates,version";
+  if (value.version === 3 || value.version === 4 || (value.version === 5 || value.version === 6)) {
+    const keys = value.version === 6 ? "activeDocumentId,bin,browserImportComplete,categories,documents,format,globalTemplates,homeDocumentId,publications,siteId,siteNavigation,templates,version" : value.version === 5 ? "activeDocumentId,bin,browserImportComplete,categories,documents,format,globalTemplates,homeDocumentId,siteId,siteNavigation,templates,version" : value.version === 4 ? "activeDocumentId,bin,browserImportComplete,categories,documents,format,homeDocumentId,siteId,siteNavigation,templates,version" : "activeDocumentId,bin,browserImportComplete,categories,documents,format,homeDocumentId,siteId,templates,version";
     if (Object.keys(value).sort().join() !== keys
       || typeof value.browserImportComplete !== "boolean" || typeof value.homeDocumentId !== "string") return false;
     try {
       const workspace = validateStudioWorkspace({ ...value, version: 24 });
       if (!workspace.documents.some(document => document.id === value.homeDocumentId && document.kind === "page")) return false;
       const templates = validateTemplateStore(value.templates, workspace.documents);
-      if (value.version === 4 || value.version === 5) {
-        if (value.version === 5 && !validGlobalTemplateBindings(value.globalTemplates)) return false;
+      if (value.version === 4 || (value.version === 5 || value.version === 6)) {
+        if ((value.version === 5 || value.version === 6) && !validGlobalTemplateBindings(value.globalTemplates)) return false;
         const reference = value.siteNavigation;
         if (!record(reference) || Object.keys(reference).sort().join() !== "partId,setId"
           || !templates.sets.find(set => set.id === reference.setId)?.parts.some(part => part.id === reference.partId && part.kind === "header")) return false;
+      }
+      if (value.version === 6) {
+        if (!Array.isArray(value.publications) || value.publications.length > 1000) return false;
+        const ids = new Set<string>();
+        const retainedDocuments = [...workspace.documents, ...workspace.bin.map(item => item.document)];
+        for (const entry of value.publications) {
+          if (!record(entry) || Object.keys(entry).sort().join() !== (entry.assignment ? "assignment,document" : "document") || !record(entry.document)) return false;
+          const page = entry.document as StudioDocument;
+          if (ids.has(page.id) || !retainedDocuments.some(document => document.id === page.id && document.kind === page.kind)) return false;
+          ids.add(page.id);
+          const categories = (page.categoryIds ?? []).map(id => ({ id, name: id }));
+          if (page.parentPageId !== undefined && typeof page.parentPageId !== "string") return false;
+          validateStudioWorkspace({ version: 24, documents: [{ ...page, parentPageId: undefined }], categories, bin: [], activeDocumentId: page.id });
+          if (entry.assignment) {
+            const a = entry.assignment;
+            if (!record(a) || Object.keys(a).sort().join() !== "documentId,kind,setId,templateId" || a.documentId !== page.id || a.kind !== page.kind || typeof a.setId !== "string" || typeof a.templateId !== "string") return false;
+          }
+        }
+        if (!ids.has(value.homeDocumentId)) return false;
       }
       return true;
     } catch { return false; }
@@ -60,7 +80,7 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
   } catch { return false; }
 }
 export function testDocumentToEditor(document: TestSiteDocument, documentId?: string): StudioDocument {
-  if (document.version === 3 || document.version === 4 || document.version === 5) return document.documents.find(item => item.id === (documentId ?? document.activeDocumentId)) ?? document.documents.find(item => item.id === document.homeDocumentId)!;
+  if (document.version === 3 || document.version === 4 || (document.version === 5 || document.version === 6)) return document.documents.find(item => item.id === (documentId ?? document.activeDocumentId)) ?? document.documents.find(item => item.id === document.homeDocumentId)!;
   if (document.version === 2) return document.document;
   return { id: "test-site", kind: "page", title: "Test", slug: "", excerpt: "", status: "draft", updatedAt: "2026-10-07T00:00:00.000Z", tags: [], seoTitle: "Test", seoDescription: "", documentShellVersion: 1, blocks: TEST_REGIONS.map(region => document.regions[region]) };
 }
@@ -86,11 +106,11 @@ function withSiteNavigation(collection: LegacyTestSiteCollection): TestSiteColle
 }
 /** Legacy envelopes remain readable. Navigation is seeded once, then explicitly authored. */
 export function testSiteCollection(document: TestSiteDocument): TestSiteCollection {
-  if (document.version === 3 || document.version === 4 || document.version === 5) {
+  if (document.version === 3 || document.version === 4 || (document.version === 5 || document.version === 6)) {
     const workspace = validateStudioWorkspace({ ...document, version: 24 });
     const collection = { ...document, documents: workspace.documents, categories: workspace.categories, bin: workspace.bin,
       templates: validateTemplateStore(document.templates, workspace.documents) };
-    return collection.version === 4 || collection.version === 5 ? collection : withSiteNavigation(collection);
+    return collection.version === 4 || (collection.version === 5 || collection.version === 6) ? collection : withSiteNavigation(collection);
   }
   const page = testDocumentToEditor(document);
   return withSiteNavigation({ format: "acm-test-site", version: 3, siteId: "test", documents: [page],
@@ -129,7 +149,7 @@ export function importBrowserTestContent(source: TestSiteDocument, workspace: St
     bin: [...collection.bin, ...workspace.bin], categories: [...collection.categories, ...workspace.categories.filter(item => !categoryIds.has(item.id))],
     templates: { ...templates, sets: [...templates.sets, ...collection.templates.sets.filter(set => set.id === collection.siteNavigation.setId)] }, browserImportComplete: true };
   // Legacy import seeds from the complete imported document list; authored v4 links stay intact.
-  const candidate = source.version === 4 || source.version === 5 ? { ...merged, templates: { ...merged.templates, sets: merged.templates.sets.map(set => {
+  const candidate = source.version === 4 || (source.version === 5 || source.version === 6) ? { ...merged, templates: { ...merged.templates, sets: merged.templates.sets.map(set => {
     if (set.id !== collection.siteNavigation.setId) return set;
     const entries = navigationEntries(set.navigation);
     if (entries.length + workspace.documents.length > 100) throw new Error("The imported documents would exceed the menu’s 100-link limit. All browser originals were kept.");
@@ -147,3 +167,16 @@ export function importBrowserTestContent(source: TestSiteDocument, workspace: St
   return candidate;
 }
 export function testDocumentHref(documentId: string) { return `/#document=${encodeURIComponent(documentId)}`; }
+
+/** Editing Undo/Redo never republishes an older aggregate snapshot. */
+export function retainLocalPublications(next: TestSiteDocument, current: TestSiteDocument): TestSiteDocument {
+  if (current.version !== 6) return next;
+  const target = testSiteCollection(next);
+  const ids = new Set([...target.documents, ...target.bin.map(item => item.document)].map(document => document.id));
+  const publications = current.publications.filter(item => ids.has(item.document.id));
+  const documents = target.documents.map(document => {
+    const publication = publications.find(item => item.document.id === document.id)?.document;
+    return publication?.status === "published" ? { ...document, status: "published" as const, publishedAt: publication.publishedAt } : document;
+  });
+  return { ...target, documents, version: 6, globalTemplates: target.globalTemplates ?? current.globalTemplates, publications };
+}

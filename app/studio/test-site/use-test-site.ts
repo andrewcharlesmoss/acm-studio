@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useLayoutEffect, useRef, useState, use
 import { studioWriteOwnership } from "../write-ownership";
 import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus } from "../studio-sync";
 import { reconcileStudioPendingSave, type StudioPendingSave } from "../studio-pending-save";
-import { testSiteCollection, validTestSiteDocument, type TestSiteDocument, type TestSnapshot } from "./contract";
+import { retainLocalPublications, testSiteCollection, validTestSiteDocument, type TestSiteDocument, type TestSnapshot } from "./contract";
 
 class ConnectionError extends Error { constructor(message: string, public status: number, public code?: string) { super(message); } }
 // Retain compatibility with an already-running local gateway during a source update.
@@ -301,9 +301,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     pending.current = { base: pending.current?.base ?? current.snapshot!.document, snapshot: next };
     live.current.draft = next; setDraft(next); setLabel("Unsaved changes"); return true;
   }, [siteId, siteName]);
-  const updateDraft = (update: (current: TestSiteDocument) => TestSiteDocument) => {
+  const updateDraft = (update: (current: TestSiteDocument) => TestSiteDocument, history = true) => {
     if (!live.current.draft) return false;
-    return installDraft(update(structuredClone(live.current.draft)));
+    return installDraft(update(structuredClone(live.current.draft)), history);
   };
   const flush = useCallback(async () => {
     while (saving.current) await saving.current;
@@ -395,13 +395,13 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     const current = live.current; const previous = current.past.at(-1);
     if (!writable || !previous || !current.draft) return;
     const original = current.draft;
-    if (installDraft(previous, false)) { live.current.past = current.past.slice(0, -1); live.current.future = [...current.future, original]; setPast(live.current.past); setFuture(live.current.future); }
+    if (installDraft(retainLocalPublications(previous, original), false)) { live.current.past = current.past.slice(0, -1); live.current.future = [...current.future, original]; setPast(live.current.past); setFuture(live.current.future); }
   }
   function redo() {
     const current = live.current; const next = current.future.at(-1);
     if (!writable || !next || !current.draft) return;
     const original = current.draft;
-    if (installDraft(next, false)) { live.current.future = current.future.slice(0, -1); live.current.past = [...current.past, original]; setFuture(live.current.future); setPast(live.current.past); }
+    if (installDraft(retainLocalPublications(next, original), false)) { live.current.future = current.future.slice(0, -1); live.current.past = [...current.past, original]; setFuture(live.current.future); setPast(live.current.past); }
   }
   async function resolveSyncConflict(choice: "mine" | "theirs") {
     const session = sync.current;

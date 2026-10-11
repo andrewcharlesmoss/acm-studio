@@ -43,11 +43,15 @@ document.addEventListener('click', event => {
 export function renderTestSite(document: TestSiteDocument, revision: string, initialDocumentId?: string, globals?: GlobalTemplateLibrary, globalRevision?: string) {
   const source = testSiteCollection(document);
   const site = globals ? { ...source, templates: effectiveGlobalTemplates(source.templates, globals, source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, source.siteId)) } : source;
-  const initialId = initialDocumentId !== undefined && site.documents.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;
+  // Explicit editor preview remains a draft preview; the generated site uses publications.
+  const publications = source.version === 6 && initialDocumentId === undefined ? source.publications.filter(item => source.documents.some(document => document.id === item.document.id)) : null;
+  const displayedDocuments = publications ? publications.map(item => item.document) : site.documents;
+  const displayTemplates = publications ? { ...site.templates, assignments: publications.flatMap(item => item.assignment ? [item.assignment] : []), defaultTemplateIds: {} } : site.templates;
+  const initialId = initialDocumentId !== undefined && displayedDocuments.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;
   const siteName = localFixtureName(site.siteId);
   const body = renderToStaticMarkup(<>
-    {site.documents.map(page => {
-      const snapshot = resolveTemplate(site.templates, page);
+    {displayedDocuments.map(page => {
+      const snapshot = resolveTemplate(displayTemplates, page);
       const template = snapshot?.set.templates.find(item => item.id === snapshot.templateId);
       const fields = resolveDocumentFields(page, snapshot?.set, template?.defaults);
       const resolved = { ...page, ...fields, displayOverrides: resolveDocumentDisplay(page, template) };

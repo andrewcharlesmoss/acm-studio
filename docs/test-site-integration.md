@@ -316,3 +316,26 @@ Publication snapshots, Bin records and assignment IDs remain recoverable. Old
 direct template URLs resolve to originals. Backups carry the global library;
 restoring a mismatched library is a separate explicit step. Read-only bootstrap
 never permits persistence before owned initialisation.
+
+## Save Draft and local Publish
+
+Fixture source v6 reads v1–v5 and stores `publications` separately from authored
+`documents`. Each snapshot retains the document and its resolved template
+assignment. Save Draft and autosave preserve these snapshots. Publish (or Update
+for a published document) replaces only the selected snapshot and flushes through
+the existing gateway with ownership, revision checks and source/output rollback.
+The generated local website renders snapshots. Studio’s explicitly labelled
+Current draft preview still renders authored edits. Global template design edits
+and site menu changes continue to update the shared presentation.
+
+The first owned content change seeds legacy publication snapshots before applying
+the edit, preserving the existing local preview. Binned documents are omitted
+from rendering but their publication remains recoverable in the aggregate.
+Backups include snapshots. Editing Undo/Redo preserves the current publication
+boundary and cannot republish an older history entry. Permanent deletion removes
+the retained publication once its Bin record is removed. Existing size limits remain enforced; a
+publication too large for the gateway fails visibly. No hosted deployment occurs.
+
+Undoing creation of a newly published document removes that document from the
+local site together with its snapshot. Redo restores the authored document;
+Publish is required to make it visible again.

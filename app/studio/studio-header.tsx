@@ -16,7 +16,7 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
   previewWindow: boolean; viewViewport: StudioViewport; setViewViewport: (viewport: StudioViewport) => void;
   showTemplate: boolean; hasTemplate: boolean; setShowTemplate: (show: boolean) => void;
   switchStudioMode: (mode: "content") => void; publishing: { publish: () => void };
-  siteContext?: { siteId: LocalFixtureSiteId; writable: boolean; onSave: () => void };
+  siteContext?: { siteId: LocalFixtureSiteId; writable: boolean; onSave: () => void; onPublish: () => void; publishing: boolean };
   writable: boolean; onSaveDocument: () => void; onExportDocument: () => void;
 }) {
   const showSaveControl = studioSection === "content" && hasContentDocuments && !previewWindow;
@@ -37,7 +37,7 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Content</button>
           ) : studioSection !== "content" ? (
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Back to Content</button>
-          ) : siteContext ? (<><button className="button-secondary" type="button" onClick={onExportDocument}>Export</button><StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave && !previewWindow} unavailable={saveUnavailable} onSave={siteContext.onSave} /></>) : hasContentDocuments ? activeDocument.kind === "post" ? (
+          ) : siteContext ? (<><button className="button-secondary" type="button" onClick={onExportDocument}>Export</button><StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave && !previewWindow} unavailable={saveUnavailable} onSave={siteContext.onSave} /><button className="button-primary" type="button" onClick={siteContext.onPublish} disabled={!canSave || previewWindow || saveUnavailable || siteContext.publishing}>{siteContext.publishing ? "Publishing…" : activeDocument.status === "published" ? "Update" : "Publish"}</button></>) : hasContentDocuments ? activeDocument.kind === "post" ? (
             <>
               {activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}
               <StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave} unavailable={saveUnavailable} onSave={onSaveDocument} />

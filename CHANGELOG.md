@@ -24,6 +24,8 @@
 
 ### Added
 
+- Separate Save Draft and Publish/Update actions for local Test and Test2, with saved publication snapshots that keep unpublished edits out of the generated site preview.
+
 - Shared Revision slider in the UI Library, used by Page and Post revision comparisons with a compact neutral timeline and author/date tooltip.
 
 - Page and Post Revisions controls with saved-version previews and undoable
