@@ -321,7 +321,7 @@ never permits persistence before owned initialisation.
 
 Fixture source v6 reads v1–v5 and stores `publications` separately from authored
 `documents`. Each snapshot retains the document and its resolved template
-assignment. Save Draft and autosave preserve these snapshots. Publish (or Update
+assignment. Save Draft and autosave preserve these snapshots. Publish (or the single blue Save action
 for a published document) replaces only the selected snapshot and flushes through
 the existing gateway with ownership, revision checks and source/output rollback.
 The generated local website renders snapshots. Studio’s explicitly labelled

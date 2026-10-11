@@ -480,7 +480,7 @@ preserve originals and recovery records. See `docs/templates.md` and
 
 Test and Test2 source v6 retains independent document publication snapshots and
 template assignments. Save Draft and automatic saving change authored documents
-only. Publish/Update atomically replaces the selected publication through the
+only. Publish/Save atomically replaces the selected publication through the
 existing owned, revision-checked source/output transaction. Static local output
 uses publications; explicit Studio draft previews use authored documents. Legacy
 sources seed publication snapshots from their pre-edit documents on the first

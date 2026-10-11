@@ -288,6 +288,17 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     finally { setPublishingLocalSite(false); }
   }
   function saveCurrentDocument() {
+    if (activeDocument.status === "published") {
+      if (codeEditorDirtyRef.current) {
+        const message = "Apply or discard code edits before saving the publication.";
+        if (selectedSite) setSiteFeedback(message); else publishing.setPublishFeedback(message);
+        return;
+      }
+      if (selectedSite) void publishLocalDocument();
+      else if (activeDocument.kind === "post" && writable) publishing.publish();
+      else if (writable) studioSession.requestSave();
+      return;
+    }
     if (selectedSite) {
       if (testSite.writable && !switchingSite) void testSite.flush().catch(() => {});
       return;
