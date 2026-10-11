@@ -161,6 +161,14 @@ reference Studio document IDs. The local-storage key is
 data disables template writes without replacing the original value. **Export
 Original Data** retains its raw contents for recovery.
 
+Template pane colour controls edit the palette stored with the current template
+context. Each modified colour can be reset independently to its current
+`@acm/styles` global default. These values remain context-specific after editing;
+the editor preview's colour picker supports pointer dragging and keyboard input.
+The saturation/brightness plane previews a drag locally and commits its final
+colour on pointer release, keeping the picker open while the global save is in
+progress.
+
 Title-placeholder migration applies only when validating an active store or
 portable package from v0.11.0 or earlier. Default Page/Post templates migrate
 the adjacent plain Heading `Title` and Paragraph `Subtitle` pair only at the

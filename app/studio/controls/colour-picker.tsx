@@ -145,16 +145,16 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <button type="button" disabled={disabled} aria-pressed={activeState === "hover"} onClick={() => { setActiveState("hover"); setCustomOpen(false); }}>Hover</button>
       </div> : null}
       <div className="paragraph-colour-preview-card">
-        <button ref={previewRef} type="button" className="paragraph-colour-preview" disabled={disabled} aria-label={`Custom ${colourLabel.toLowerCase()} picker`} aria-haspopup="dialog" aria-expanded={customOpen && !disabled} onClick={() => setCustomOpen(current => !current)} style={activeValue ? { backgroundColor: activeValue, backgroundImage: "none" } : undefined} />
+        <button ref={previewRef} type="button" className="paragraph-colour-preview" disabled={disabled} aria-label={`Custom ${colourLabel.toLowerCase()} picker`} aria-haspopup="dialog" aria-expanded={customOpen} onClick={() => setCustomOpen(current => !current)} style={activeValue ? { backgroundColor: activeValue, backgroundImage: "none" } : undefined} />
         <div><span>{activeValue ? selectedRole?.label ?? "Custom colour" : "No colour selected"}</span><span className="paragraph-colour-preview-value" title={cssToken}>{cssToken || " "}</span></div>
       </div>
       <strong className="paragraph-colour-theme-heading">THEME</strong>
       <ColourSwatches value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={() => changeActiveColour(undefined)} disabled={disabled} />
       {activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
       {additionalControls}
-      {customOpen && !disabled ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
+      {customOpen ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
-        <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={false} />
+        <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={false} deferPointerChange disabled={disabled} />
       </div> : null}
       {activeWarning ? <div className="paragraph-colour-contrast-warning" role={announceWarning ? "status" : undefined}><AcmIcon name="state.warning" size={18} /><span>{activeWarningMessage ?? (hasHoverState ? "This link colour has poor contrast against the background. Consider increasing contrast." : "This colour combination has poor contrast. Consider increasing contrast between background and foreground.")}</span></div> : null}
     </div>, document.body) : null}

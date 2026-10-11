@@ -8,7 +8,7 @@ import { validLayoutOptions } from "../content/layout";
 import type { StudioDocument, StudioDocumentKind, StudioWorkspace } from "./editor-model";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { isRecord, PUBLICATION_VERSION, validContentBlocks, validParagraphStyle, validatePublicationSnapshot } from "./workspace-validation";
-import { createUniversalStylePreset, validateUniversalStylePreset } from "@acm/styles";
+import { createUniversalStylePreset, UNIVERSAL_STYLE_PRESET, validateUniversalStylePreset } from "@acm/styles";
 import type { UniversalStylePreset } from "@acm/styles";
 
 export const LEGACY_TEMPLATE_VERSION = "0.1.0" as const;
@@ -62,6 +62,9 @@ type TemplateColumn = Omit<ColumnBlock, "children"> & { children: TemplateNode[]
 export type PageTemplate = { id: string; name: string; kind: StudioDocumentKind; nodes: TemplateNode[]; defaults?: TemplateDefaults; displayDefaults?: Partial<Record<DocumentDisplayField, DocumentDisplayMode>>; isDefault?: boolean };
 export type TemplatePart = { id: string; name: string; kind: "header" | "footer" | "overlay"; nodes: TemplateNode[] };
 export type SiteStyles = UniversalStylePreset;
+export function resetTemplatePaletteColour(styles: SiteStyles, key: keyof SiteStyles["palette"]): SiteStyles {
+  return { ...styles, palette: { ...styles.palette, [key]: UNIVERSAL_STYLE_PRESET.palette[key] } };
+}
 export type LegacySiteStyles = { background: string; text: string; accent: string; border: string; font: "inter" | "serif"; fontSize: number; spacing: number; contentWidth: number; radius: number; borderWidth: number };
 export type SiteLink = { id: string; label: string; url: string; opensInNewTab?: boolean; rel?: string; description?: string; visualStyle?: ParagraphStyle; children?: SiteLink[] };
 export type NavigationTemplateNode = { id: string; type: "element"; element: "navigation"; align?: "left" | "centre" | "right"; layout?: "row" | "stack"; horizontalAlign?: "left" | "centre" | "right" | "space-between" | "stretch"; allowWrap?: boolean; gap?: number; visualStyle?: ParagraphStyle; overlayMenu?: "never" | "mobile" | "always"; showIcon?: boolean; icon?: "handle" | "menu"; overlayPartId?: string; submenuOpenOnClick?: boolean; showSubmenuIcon?: boolean; ariaLabel?: string; submenuTextColor?: string; submenuBackgroundColor?: string };

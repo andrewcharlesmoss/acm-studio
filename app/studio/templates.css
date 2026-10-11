@@ -53,6 +53,10 @@
 .template-inspector .checkbox-setting input[type="checkbox"] { accent-color: var(--accent-strong); flex: 0 0 18px; height: 18px; margin: 0; padding: 0; width: 18px; }
 .template-inspector .checkbox-setting span { color: var(--ink); font-size: var(--studio-ui-size); font-weight: 400; line-height: 1.4; min-width: 0; }
 .template-inspector input[type=color] { height: 36px; }
+.template-palette-colour-setting { display: grid; gap: 4px; min-width: 0; }
+.template-inspector .inspector-scroll .template-palette-colour-setting button.inspector-colour-row { min-height: 42px; padding: 8px 12px; text-align: start; }
+.template-inspector .inspector-scroll .template-palette-colour-setting .template-palette-colour-reset { background: transparent; border: 0; color: var(--accent); justify-self: end; min-height: 30px; padding: 4px 0; }
+.template-inspector .inspector-scroll .template-palette-colour-setting .template-palette-colour-reset:hover { text-decoration: underline; }
 .template-inspector h2, .template-inspector h3 { font-size: var(--studio-ui-size); }
 .template-inspector .inspector-accordion-heading { min-height: 40px; padding: var(--inspector-accordion-padding, 16px); border: 0; border-radius: 0; text-align: left; text-transform: uppercase; letter-spacing: .06em; }
 

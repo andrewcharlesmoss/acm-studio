@@ -312,6 +312,33 @@ test("legacy template stores migrate to inheritance-aware format without losing 
   assert.deepEqual(plain(editor.createDocumentFromTemplate("post").blocks), []);
 });
 
+test("resetting a template palette colour restores only that global default", () => {
+  const model = environment().load("studio/template-model.ts");
+  const set = model.createTemplateSet();
+  set.styles.palette.surface = "#B95050";
+  set.styles.palette.accent = "#234567";
+  const reset = model.resetTemplatePaletteColour(set.styles, "surface");
+  assert.equal(reset.palette.surface, universalStyles.UNIVERSAL_STYLE_PRESET.palette.surface);
+  assert.equal(reset.palette.accent, "#234567");
+  assert.deepEqual(plain(reset.typography), plain(set.styles.typography));
+});
+
+test("template colour dragging commits on release and survives the temporary save lock", () => {
+  const picker = readFileSync(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
+  const plane = readFileSync(new URL("../app/studio/controls/gradient-stop-colour.tsx", import.meta.url), "utf8");
+  const paletteSetting = readFileSync(new URL("../app/studio/controls/palette-colour-setting.tsx", import.meta.url), "utf8");
+  const templateInspector = readFileSync(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8");
+  const accordion = readFileSync(new URL("../app/studio/inspector-accordion.tsx", import.meta.url), "utf8");
+  assert.match(picker, /\{customOpen \? <div ref=\{customRef\}/, "the custom picker stays mounted while saving disables inspector inputs");
+  assert.match(picker, /deferPointerChange disabled=\{disabled\}/);
+  assert.match(plane, /setPointerCapture\(event\.pointerId\)/);
+  assert.match(plane, /onPointerMove=\{event => \{ if \(!disabled && event\.currentTarget\.hasPointerCapture\(event\.pointerId\)\) pointAt\(event\); \}\}/);
+  assert.match(plane, /onPointerUp=\{event => \{[\s\S]*?if \(next && next\.toLowerCase\(\) !== colour\.toLowerCase\(\)\) onChange\(next\); \}\}/);
+  assert.match(paletteSetting, /disabled=\{disabled\}[\s\S]*disabled=\{triggerDisabled\}/, "portal picker and its trigger follow the template write lock");
+  assert.match(templateInspector, /<PaletteColourSetting row label=\{label\} value=\{set\.styles\.palette\[key\]\} disabled=\{!writable\}/);
+  assert.match(accordion, /<fieldset disabled=\{contentDisabled \|\| inheritedDisabled\}>\{children\}<\/fieldset>/, "changing write availability does not remount inspector controls");
+});
+
 test("new Page and Post templates start with dynamic document fields and one Content slot", () => {
   const model = environment().load("studio/template-model.ts");
   for (const kind of ["page", "post"]) {

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- Allow each template palette colour to reset to its current global default and
+  use the Studio colour picker for drag-based custom colour selection that
+  commits on release without closing during the save.
+
 ### Added
 
 - Add one shared Control accent colour in Styles for toggles and standard sliders,
