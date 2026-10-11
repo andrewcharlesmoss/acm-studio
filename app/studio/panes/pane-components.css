@@ -85,3 +85,11 @@
 /* Keep content clear of the centred circle without moving the pane divider. */
 .pane-track[data-side="left"] > .pane { box-sizing: border-box; padding-right: 4px; }
 .pane-track[data-side="right"] > .pane { box-sizing: border-box; padding-left: 4px; }
+
+.pane-resize-edge[data-side="left"][data-collapsed="true"] { right: -12px; }
+.pane-resize-edge[data-side="right"][data-collapsed="true"] { left: -12px; }
+
+@media (pointer: coarse) {
+  .pane-resize-edge[data-side="left"][data-collapsed="true"] { right: -24px; }
+  .pane-resize-edge[data-side="right"][data-collapsed="true"] { left: -24px; }
+}

@@ -2142,3 +2142,5 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
   .document-revision-timeline > .studio-button:last-child { justify-self: end; }
   .document-revision-diff td { padding: 6px; }
 }
+
+.studio-library .studio-drafts-action { margin: 8px 12px; padding: 4px 0; }
