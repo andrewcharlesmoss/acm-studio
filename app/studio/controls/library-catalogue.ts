@@ -19,6 +19,13 @@ const rangeDependency = {
 
 export const studioControlEntries: StudioControlEntry[] = [
   {
+    id: "revision-slider", title: "Revision slider", group: "Foundation",
+    purpose: "Browse saved revisions on a compact timeline with an author and date tooltip.",
+    owner: "ACM Studio controls", consumers: ["Page revisions", "Post revisions"],
+    states: "Revision markers, discrete selection, hover, keyboard focus, first/latest revision and disabled single-version history.",
+    compatibility: "Native range keyboard controls. Callers own revision data, comparison and restoration. Neutral revision styling is independent of the standard Control accent colour. Library examples remain temporary.",
+  },
+  {
     id: "text-action", title: "Text action", group: "Foundation",
     purpose: "Use one shared blue action style for Clear and Reset controls.",
     owner: "@acm/styles CSS and StudioButton", consumers: ["Colour picker", "Gradient picker", "Inline highlight", "Inspector Reset All", "Styles source selection"],

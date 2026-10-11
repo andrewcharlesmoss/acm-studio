@@ -5,7 +5,7 @@ import type { StudioDocument } from "./editor-model";
 import { revisionContent, type DocumentRevision } from "./document-revisions";
 import { revisionDiffRows, revisionDiffSections, revisionTimeline, revisionWordChanges, type RevisionDiffRow } from "./document-revision-diff";
 import { StudioButton } from "./controls/button";
-import { RangeControl } from "./controls/range-control";
+import { RevisionSlider } from "./controls/revision-slider";
 import { StudioIcon } from "./studio-icons";
 
 const dateLabel = (item: DocumentRevision) => `${new Date(item.savedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "medium" })}${item.confirmed === false ? " — Retained snapshot" : ""}`;
@@ -93,8 +93,8 @@ export function DocumentRevisionsControl({ document, writable, load, restore, re
         <div className="document-revision-timeline">
           <StudioButton variant="secondary" disabled={busy || selected === 0} onClick={() => setSelected(value => value - 1)}>Previous</StudioButton>
           <div className="document-revision-sliders">
-            {compareAny ? <label>From: {dateLabel(revisions[from])}<RangeControl aria-label="Compare from revision" aria-valuetext={dateLabel(revisions[from])} tooltipText={dateLabel(revisions[from])} min={0} max={Math.max(1, revisions.length - 1)} step={1} value={from} disabled={busy} onChange={event => setFrom(Number(event.target.value))} /></label> : null}
-            <label><span>{compareAny ? "To" : "Select a revision"}: {selected + 1} of {revisions.length}</span><RangeControl aria-label="Select revision" aria-valuetext={dateLabel(revision)} tooltipText={dateLabel(revision)} min={0} max={Math.max(1, revisions.length - 1)} step={1} value={selected} disabled={busy || revisions.length < 2} onChange={event => setSelected(Number(event.target.value))} /></label>
+            {compareAny ? <RevisionSlider label="Compare from revision" count={revisions.length} value={from} heading={`Revision${revisions[from].document.author ? ` by ${revisions[from].document.author}` : ""}`} detail={dateLabel(revisions[from])} disabled={busy} onChange={setFrom} /> : null}
+            <RevisionSlider label={compareAny ? "Compare to revision" : "Select revision"} count={revisions.length} value={selected} heading={`${selected === revisions.length - 1 && revision.confirmed !== false ? "Latest saved revision" : "Revision"}${revision.document.author ? ` by ${revision.document.author}` : ""}`} detail={dateLabel(revision)} disabled={busy} onChange={setSelected} />
           </div>
           <StudioButton variant="secondary" disabled={busy || selected >= revisions.length - 1} onClick={() => setSelected(value => value + 1)}>Next</StudioButton>
         </div>

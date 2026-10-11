@@ -629,3 +629,12 @@ menu-link outlines, gradient choices and status radio selections use the shared
 Studio selection alias, including portalled controls. Styles drafts preview it
 locally; saving refreshes loaded tabs from the validated source without remounting
 editors. Keyboard focus and action-button colours keep their own roles.
+
+### Revision slider
+
+Controls → Revision slider demonstrates the shared native range timeline used
+by Page and Post revisions. It has a neutral track, discrete revision markers
+and a circular double-chevron handle. Hover and keyboard focus show the author
+and date above the handle. Callers own history, comparison and restore actions;
+the Library specimen changes temporary selection only. This specialist timeline
+does not inherit the standard slider accent.

@@ -1,0 +1,15 @@
+.studio-revision-slider { position: relative; width: min(240px, 100%); margin-inline: auto; --revision-tooltip-left: clamp(0px, calc(var(--revision-position) - 120px), calc(100% - 240px)); font: normal 400 var(--studio-ui-size, 13px)/1.4 var(--studio-ui-font, sans-serif); }
+.studio-revision-slider input { appearance: none; -webkit-appearance: none; display: block; width: 100%; height: 40px; padding: 0; margin: 0; border: 0; background: transparent; cursor: pointer; }
+.studio-revision-slider input::-webkit-slider-runnable-track { height: 10px; border: 1px solid #d1d1d6; background: #fff; }
+.studio-revision-slider input::-moz-range-track { height: 8px; border: 1px solid #d1d1d6; background: #fff; }
+.studio-revision-slider input::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 24px; height: 24px; margin-top: -8px; border: 1px solid #b8bec5; border-radius: 50%; background: #f6f7f7; }
+.studio-revision-slider input::-moz-range-thumb { width: 22px; height: 22px; border: 1px solid #b8bec5; border-radius: 50%; background: #f6f7f7; }
+.studio-revision-markers { position: absolute; top: 16px; left: 12px; right: 12px; height: 8px; pointer-events: none; }
+.studio-revision-markers i { position: absolute; width: 1px; height: 8px; background: #b8bec5; }
+.studio-revision-handle { position: absolute; left: var(--revision-position); top: 8px; transform: translateX(-50%); width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: #50575e; background: #f6f7f7; border: 1px solid #b8bec5; border-radius: 50%; pointer-events: none; }
+.studio-revision-handle svg:first-child { transform: rotate(180deg); }
+.studio-revision-tooltip { position: absolute; bottom: calc(100% + 4px); left: var(--revision-tooltip-left); width: min(240px, 100%); padding: 8px 10px; background: #fff; border: 1px solid #d1d1d6; color: #1c1c1e; display: grid; gap: 2px; pointer-events: none; box-sizing: border-box; box-shadow: 0 2px 5px #00000012; }
+.studio-revision-slider input:disabled { cursor: not-allowed; opacity: .55; }
+.studio-revision-slider input:disabled ~ .studio-revision-handle { opacity: .55; }
+
+.studio-revision-tooltip::after { content: ""; position: absolute; top: calc(100% - 4px); left: clamp(10px, calc(var(--revision-position) - var(--revision-tooltip-left) - 5px), calc(100% - 20px)); width: 10px; height: 10px; background: #fff; border-right: 1px solid #d1d1d6; border-bottom: 1px solid #d1d1d6; transform: rotate(45deg); }

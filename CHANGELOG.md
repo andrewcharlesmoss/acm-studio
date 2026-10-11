@@ -24,6 +24,8 @@
 
 ### Added
 
+- Shared Revision slider in the UI Library, used by Page and Post revision comparisons with a compact neutral timeline and author/date tooltip.
+
 - Page and Post Revisions controls with saved-version previews and undoable
   content restoration, preserving current publication state and assignments.
 
