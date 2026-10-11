@@ -149,6 +149,9 @@
 
 ### Changed
 
+- Move the Page/Post Bin action above organisation settings as a visible red
+  outlined button, outside the Document actions accordion.
+
 - Revisions now opens a full comparison screen from the Page/Post revision count,
   with a timeline slider, Previous/Next and highlighted Removed/Added columns.
 

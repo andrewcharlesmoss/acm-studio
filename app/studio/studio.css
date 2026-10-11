@@ -1610,6 +1610,10 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .document-operations button { background: white; border: 1px solid #d1cfc7; border-radius: 7px; cursor: pointer; font-size: var(--studio-ui-size); padding: 9px; }
 .document-operations .danger-button { color: #a03939; }
 .document-operations button:disabled { cursor: default; opacity: .4; }
+.document-bin-action { padding: 16px; }
+.document-bin-action > button { background: var(--studio-pane-surface, #fff); border: 1px solid #cc1818; border-radius: 2px; color: #cc1818; cursor: pointer; font: inherit; min-height: 40px; padding: 8px 12px; width: 100%; }
+.document-bin-action > button:not(:disabled):hover { background: #cc1818; color: #fff; }
+.document-bin-action > button:disabled { cursor: default; opacity: .4; }
 .inspector-empty { color: var(--muted); display: grid; font-size: var(--studio-ui-size); gap: 10px; justify-items: center; padding: 60px 25px; text-align: center; }
 .inspector-empty > span { align-items: center; display: inline-flex; justify-content: center; }
 .inspector-empty > span svg { height: 24px; width: 24px; }
