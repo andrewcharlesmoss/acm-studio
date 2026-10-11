@@ -53,10 +53,12 @@
 .template-inspector .checkbox-setting input[type="checkbox"] { accent-color: var(--accent-strong); flex: 0 0 18px; height: 18px; margin: 0; padding: 0; width: 18px; }
 .template-inspector .checkbox-setting span { color: var(--ink); font-size: var(--studio-ui-size); font-weight: 400; line-height: 1.4; min-width: 0; }
 .template-inspector input[type=color] { height: 36px; }
-.template-palette-colour-setting { display: grid; gap: 4px; min-width: 0; }
-.template-inspector .inspector-scroll .template-palette-colour-setting button.inspector-colour-row { min-height: 42px; padding: 8px 12px; text-align: start; }
-.template-inspector .inspector-scroll .template-palette-colour-setting .template-palette-colour-reset { background: transparent; border: 0; color: var(--accent); justify-self: end; min-height: 30px; padding: 4px 0; }
-.template-inspector .inspector-scroll .template-palette-colour-setting .template-palette-colour-reset:hover { text-decoration: underline; }
+.template-palette-colour-setting { align-items: stretch; background: #fff; border: 1px solid #d1cfc7; border-radius: 4px; display: grid; grid-template-columns: minmax(0, 1fr) auto; min-width: 0; }
+.template-palette-colour-setting .inspector-colour-row-setting { min-width: 0; }
+.template-inspector .inspector-scroll .template-palette-colour-setting button.inspector-colour-row { align-items: center; background: transparent; border: 0; border-radius: 3px; display: flex; gap: 10px; min-height: 42px; padding: 8px 12px; text-align: start; width: 100%; }
+.template-palette-colour-setting .inspector-colour-row > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.template-inspector .inspector-scroll .template-palette-colour-setting .template-palette-colour-reset { align-items: center; background: transparent; border: 0; border-inline-start: 1px solid #d1cfc7; border-radius: 0 3px 3px 0; color: var(--accent); display: flex; min-height: 42px; padding: 8px 10px; }
+.template-inspector .inspector-scroll .template-palette-colour-setting button:hover:not(:disabled) { background: var(--acm-interaction-neutral-hover-background, #f0f0f0); }
 .template-inspector h2, .template-inspector h3 { font-size: var(--studio-ui-size); }
 .template-inspector .inspector-accordion-heading { min-height: 40px; padding: var(--inspector-accordion-padding, 16px); border: 0; border-radius: 0; text-align: left; text-transform: uppercase; letter-spacing: .06em; }
 
