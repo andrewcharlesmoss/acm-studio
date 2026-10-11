@@ -91,7 +91,7 @@ export function PaneCatalogue() {
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
           <div ref={host} className={`pl-preview-viewport${boundaries ? " pl-boundaries" : ""}`} role="region" aria-label="Scrollable Pane Preview" tabIndex={0}>{specimen}</div>
         </div>
-        <p className="pl-caption">Drag a pane’s edge button to resize, or click it to collapse. Arrow keys resize when it has focus (Shift for larger steps, Home/End for limits). Narrow previews scroll horizontally. Changes are temporary.</p>
+        <p className="pl-caption">Drag anywhere along a pane’s edge to resize, or click its circular button to collapse. Arrow keys resize when it has focus (Shift for larger steps, Home/End for limits). Narrow previews scroll horizontally. Changes are temporary.</p>
         <label className="pl-check"><input type="checkbox" checked={second} onChange={(event) => setSecond(event.target.checked)} />Show Second Independent Specimen</label>
         {/* The second specimen needs the same keyboard scrolling entry point. */}
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}

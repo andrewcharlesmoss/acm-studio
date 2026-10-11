@@ -152,6 +152,8 @@
 
 ### Changed
 
+- Pane edge controls are smaller circles, with resizing available along the full pane edge.
+
 - Remove Close rows from compact toolbar dropdowns; retain Escape, outside-click
   and trigger-toggle dismissal as a documented interface exception.
 

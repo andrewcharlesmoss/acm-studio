@@ -6,8 +6,8 @@
   --pane-muted: #626262;
   --pane-hover: #eceae3;
   --pane-space: 12px;
-  --pane-control-width: 28px;
-  --pane-control-height: 48px;
+  --pane-control-width: 26px;
+  --pane-control-height: 26px;
   --pane-font: Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
   --pane-font-size: .875rem;
   --pane-centre-min: 240px;
@@ -29,8 +29,8 @@
   --pane-border: #d2d0c8;
   --pane-muted: #626262;
   --pane-hover: #eceae3;
-  --pane-control-width: 28px;
-  --pane-control-height: 48px;
+  --pane-control-width: 26px;
+  --pane-control-height: 26px;
   position: relative;
   min-height: 0;
   min-width: 0;
@@ -69,3 +69,15 @@
 @media (prefers-reduced-motion: reduce) { .pane-tabs .pane-tab-label::after { transition: none; } }
 .pane-section + .pane-section { border-top: 1px solid var(--pane-border); margin-top: var(--pane-space); padding-top: var(--pane-space); }
 .pane-section h3 { font: inherit; font-weight: 600; margin: 0 0 var(--pane-space); }
+
+/* The resize edge spans the pane; the circular toggle stays above it. */
+.pane-resize-edge { position: absolute; top: 0; bottom: 0; width: 12px; z-index: 2; cursor: col-resize; touch-action: none; }
+.pane-resize-edge[data-side="left"] { right: -6px; }
+.pane-resize-edge[data-side="right"] { left: -6px; }
+.pane-resize-edge:focus-visible { outline: 2px solid var(--pane-muted); outline-offset: -4px; }
+@media (pointer: coarse) {
+  .pane-collapse::before { content: ""; position: absolute; inset: -9px; border-radius: 50%; }
+  .pane-resize-edge { width: 24px; }
+  .pane-resize-edge[data-side="left"] { right: -12px; }
+  .pane-resize-edge[data-side="right"] { left: -12px; }
+}

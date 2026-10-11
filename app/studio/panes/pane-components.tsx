@@ -62,13 +62,13 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
   const resizeMin = Math.min(minWidth, maxWidth);
   const resizeMax = Math.max(minWidth, maxWidth);
   const clampWidth = (next: number) => Math.max(resizeMin, Math.min(resizeMax, Math.round(next)));
-  function startResize(event: PointerEvent<HTMLButtonElement>) {
+  function startResize(event: PointerEvent<HTMLElement>) {
     suppressCollapse.current = false;
     if (event.button !== 0 || collapsed || !onWidthChange) return;
     resizeStart.current = { x: event.clientX, width, dragged: false };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
-  function moveResize(event: PointerEvent<HTMLButtonElement>) {
+  function moveResize(event: PointerEvent<HTMLElement>) {
     if (!resizeStart.current) return;
     const delta = (event.clientX - resizeStart.current.x) * (side === "left" ? 1 : -1);
     if (Math.abs(delta) < 5 && !resizeStart.current.dragged) return;
@@ -79,6 +79,20 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
   }
   function cancelResize() {
     if (resizeStart.current) suppressCollapse.current = false;
+    resizeStart.current = null;
+    setResizePressed(false);
+  }
+  function resizeWithKeyboard(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "Enter" || event.key === " ") suppressCollapse.current = false;
+    if (!onWidthChange || collapsed) return;
+    const direction = side === "left" ? 1 : -1;
+    const step = event.shiftKey ? 20 : 10;
+    const next = event.key === "ArrowRight" ? width + step * direction : event.key === "ArrowLeft" ? width - step * direction
+      : event.key === "Home" ? resizeMin : event.key === "End" ? resizeMax : null;
+    if (next == null) return;
+    event.preventDefault(); onWidthChange(clampWidth(next));
+  }
+  function finishResize() {
     resizeStart.current = null;
     setResizePressed(false);
   }
@@ -108,20 +122,23 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
         onScroll={(event) => { if (!collapsed) scrollPosition.current = event.currentTarget.scrollTop; }}>{children}</div>
       {footer != null && <footer className="pane-footer" data-pane-region={`${side}.footer`}>{footer}</footer>}
     </aside>
+    {/* A focusable separator is the ARIA window-splitter pattern; static separators are non-interactive. */}
+    {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
+    {onWidthChange && !collapsed ? <div className="pane-resize-edge" data-side={side}
+      data-resize-pressed={resizePressed} role="separator" tabIndex={0}
+      aria-label={`Resize ${label}`} aria-orientation="vertical" aria-controls={id}
+      aria-valuemin={resizeMin} aria-valuemax={resizeMax} aria-valuenow={width}
+      onFocus={() => { focusWasInside.current = true; }}
+      onBlur={(event) => { if (event.relatedTarget) focusWasInside.current = false; }}
+      aria-valuetext={`${width} pixels`} onPointerDown={startResize} onPointerMove={moveResize}
+      onPointerUp={finishResize} onPointerCancel={cancelResize} onLostPointerCapture={cancelResize}
+      onKeyDown={resizeWithKeyboard} /> : null}
+    {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
     {collapsible ? <PaneCollapseButton buttonRef={toggle} side={side} collapsed={collapsed} label={label}
       controls={id} icon={collapseIcon} onClick={changeCollapsed} resizable={Boolean(onWidthChange)} resizePressed={resizePressed}
-      onPointerDown={startResize} onPointerMove={moveResize} onPointerUp={() => { resizeStart.current = null; setResizePressed(false); }}
+      onPointerDown={startResize} onPointerMove={moveResize} onPointerUp={finishResize}
       onPointerCancel={cancelResize} onLostPointerCapture={cancelResize}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") suppressCollapse.current = false;
-        if (!onWidthChange || collapsed) return;
-        const direction = side === "left" ? 1 : -1;
-        const step = event.shiftKey ? 20 : 10;
-        const next = event.key === "ArrowRight" ? width + step * direction : event.key === "ArrowLeft" ? width - step * direction
-          : event.key === "Home" ? resizeMin : event.key === "End" ? resizeMax : null;
-        if (next == null) return;
-        event.preventDefault(); onWidthChange(clampWidth(next));
-      }} /> : null}
+      onKeyDown={resizeWithKeyboard} /> : null}
   </div>;
 }
 

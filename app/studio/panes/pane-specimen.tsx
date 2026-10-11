@@ -56,7 +56,7 @@ export function PaneSpecimen({ definition, regions, layout, content, studio, ind
   };
   return <div className={studio ? "pl-specimen pl-studio-specimen" : "pl-specimen"}>
     <PaneWorkspace left={layout !== "right" ? pane("left") : undefined} right={layout !== "left" ? pane("right") : undefined}>
-      <div className="pl-centre-card"><span className="pl-eyebrow">Centre workspace</span><h3>Room for your work</h3><p>Drag the edge button or use its arrow keys to resize. The centre adjusts around it.</p><p className="pl-muted">Click the edge button to collapse or reopen its pane.</p></div>
+      <div className="pl-centre-card"><span className="pl-eyebrow">Centre workspace</span><h3>Room for your work</h3><p>Drag anywhere along the pane edge or use the edge control’s arrow keys to resize. The centre adjusts around it.</p><p className="pl-muted">Click the edge button to collapse or reopen its pane.</p></div>
       <p className="pl-demo-status" role="status">{notice}</p>
     </PaneWorkspace>
   </div>;

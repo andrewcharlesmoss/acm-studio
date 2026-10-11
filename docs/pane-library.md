@@ -29,7 +29,7 @@ product APIs, or read/write browser persistence. No real documents, designs or
 media are involved. Product data, commands, persistence and pane-specific
 interaction remain owned by their existing features.
 
-## Internal component contract — v1.1.0
+## Internal component contract — v1.2.0
 
 The compatibility contract covers the React props, slots, accessible behaviour
 and CSS tokens in `app/studio/panes/pane-components.tsx` and its scoped CSS.
@@ -45,7 +45,8 @@ This is an internal Studio module, not a published package.
   `className`, `bodyClassName` and `style`) let product panes retain their
   established layout while using the shared structure.
   Optional controlled `onWidthChange`, `minWidth` and `maxWidth` enable edge
-  resizing. The collapse button also acts as the drag handle and accepts Left/Right arrows, with Shift
+  resizing along the full height of the inner edge. The focusable separator exposes
+  the current width and limits. It and the collapse button accept Left/Right arrows, with Shift
   for larger steps and Home/End for limits. The owning workspace applies the
   resulting width to its grid; the library specimens do this through
   `PaneWorkspace`. Studio Navigation, Editor Inspector and both Design Canvas
@@ -113,8 +114,11 @@ collapse-control dimensions. Studio panes use the shared white
 `--studio-pane-surface` interface token for their surface, body and edge control.
 This interface token is independent of template and content palette colours.
 Width is a per-pane prop. The control uses the
-existing Studio chevron SVG at 18px in a 28 × 48px neutral pill, centred on the
+existing Studio chevron SVG at 18px in a 26 × 26px neutral circle, centred on the
 inner edge. A collapsed control moves fully inside the workspace boundary.
+The resize strip is 12px wide (24px for coarse pointers). Coarse pointers also
+receive a 44px collapse target around the visible circle. Dragging the circle
+remains supported; a drag does not collapse the pane.
 The module accepts its icon rather than importing a product-specific icon set.
 The catalogue supplies `StudioIcon` from the reusable ACM Studio icon
 collection; no third-party artwork is used.
