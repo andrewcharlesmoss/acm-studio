@@ -1,3 +1,4 @@
+import { savedDocumentRevisions } from "./document-revisions";
 import { studioWriteOwnership } from "./write-ownership";
 import { LOCAL_WORKSPACE_KEY } from "../content/local-publishing";
 import type { StudioWorkspace } from "./editor-model";
@@ -9,6 +10,12 @@ export interface WorkspaceRepository {
   save(workspace: StudioWorkspace): void;
 }
 
+/** History is saved with the repository transaction, rather than UI Undo snapshots. */
+export function withSavedDocumentRevisions(workspace: StudioWorkspace): StudioWorkspace {
+  const documentRevisions = browserWorkspaceRepository.load()?.documentRevisions ?? workspace.documentRevisions;
+  return documentRevisions ? validateStudioWorkspace({ ...workspace, version: 25, documentRevisions }) : workspace;
+}
+
 export const browserWorkspaceRepository: WorkspaceRepository = {
   load() {
     const serialised = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
@@ -17,6 +24,9 @@ export const browserWorkspaceRepository: WorkspaceRepository = {
   },
   save(workspace) {
     studioWriteOwnership.assertWritable();
-    window.localStorage.setItem(LOCAL_WORKSPACE_KEY, JSON.stringify(validateWorkspacePublicationTemplates(validateStudioWorkspace(workspace))));
+    const previous = browserWorkspaceRepository.load();
+    const documentRevisions = savedDocumentRevisions(previous, workspace);
+    const saved = validateWorkspacePublicationTemplates(validateStudioWorkspace({ ...workspace, version: 25, documentRevisions }));
+    window.localStorage.setItem(LOCAL_WORKSPACE_KEY, JSON.stringify(saved));
   },
 };

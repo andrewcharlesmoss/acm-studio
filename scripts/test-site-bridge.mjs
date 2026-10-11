@@ -63,7 +63,7 @@ export function testSiteBridge() {
     } });
     const stores = new Map(Object.entries(roots).map(([siteId, root]) => {
       const validate = document => document?.siteId === siteId && validation?.validTestSiteDocument(document) === true;
-      const store = createTestSiteStore({ root, siteId, validate, render: async (document, revision) => {
+      const store = createTestSiteStore({ root, siteId, validate, documentsOf: document => validation.testSiteCollection(document).documents, render: async (document, revision) => {
         const global = await globalTemplates.load();
         return (await load()).renderTestSite(document, revision, undefined, global.library, global.revision);
       } });

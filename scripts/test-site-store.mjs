@@ -47,7 +47,7 @@ export async function acquireTestFileGuard(root) {
 }
 
 // One serial gateway owns both visual saves and accepted prompt proposals.
-export function createTestSiteStore({ root, validate, render, siteId = "test", clock = () => Date.now() }) {
+export function createTestSiteStore({ root, validate, render, documentsOf = value => value.documents ?? [], siteId = "test", clock = () => Date.now() }) {
   if (siteId !== "test" && siteId !== "test2") throw new TestSiteError("Unknown site.");
   const siteName = siteId === "test2" ? "Test2" : "Test";
   let queue = Promise.resolve();
@@ -110,7 +110,15 @@ export function createTestSiteStore({ root, validate, render, siteId = "test", c
     if (entries.length <= 100) return;
     const dated = await Promise.all(entries.map(async name => ({ name, time: (await lstat(await safe(`.studio/history/${name}`))).mtimeMs })));
     dated.sort((a, b) => b.time - a.time);
-    for (const entry of dated.slice(100)) await unlink(await safe(`.studio/history/${entry.name}`));
+    for (const entry of dated.slice(100)) {
+      await unlink(await safe(`.studio/history/${entry.name}`));
+      const marker = `.studio/history/${entry.name.slice(0, -5)}.saved.json`;
+      if (await read(marker, true)) await unlink(await safe(marker));
+    }
+  }
+  async function confirmHistory(revision, savedAt) {
+    const marker = `.studio/history/${revision}.saved.json`;
+    if (await read(marker, true) === null) await atomic(marker, JSON.stringify({ version: 1, revision, savedAt }));
   }
   async function initialise() {
     if (initialised) return;
@@ -177,6 +185,7 @@ export function createTestSiteStore({ root, validate, render, siteId = "test", c
     if (checked.revision !== current.revision) throw new TestSiteError(`${siteName} changed while the preview was generated. The update was not saved.`, 409);
     const oldOutput = await read("dist/index.html");
     await atomic(`.studio/history/${current.revision}.json`, JSON.stringify(current.document, null, 2));
+    await confirmHistory(current.revision, (await lstat(await safe("content/site.json"))).mtime.toISOString());
     await atomic(`.studio/history/${revision}.json`, JSON.stringify(document, null, 2));
     writable(token);
     await atomic(".studio/state.json", JSON.stringify({ revision: current.revision, outputHash: hash(oldOutput), pending: { revision, outputHash: hash(output) } }));
@@ -188,6 +197,7 @@ export function createTestSiteStore({ root, validate, render, siteId = "test", c
       initialised = false;
       throw new TestSiteError("The save was interrupted. Reconnect to recover the saved source and preview; do not retry this update automatically.", 503);
     }
+    await confirmHistory(revision, (await lstat(await safe("content/site.json"))).mtime.toISOString());
     await trimHistory();
     return { document, revision, previewRevision: revision };
   }
@@ -213,6 +223,33 @@ export function createTestSiteStore({ root, validate, render, siteId = "test", c
           owner.expires = Math.max(owner.expires, clock() + 30000);
         }
         return snapshot();
+      }
+      if (input.action === "revisions") {
+        if (typeof input.documentId !== "string" || input.documentId.length > 200) throw new TestSiteError("Invalid document.");
+        const current = await snapshot();
+        const selected = documentsOf(current.document).find(item => item.id === input.documentId);
+        if (!selected) throw new TestSiteError("The document is no longer available.", 404);
+        const entries = [];
+        let names = [];
+        try { names = (await readdir(path.dirname(await safe(".studio/history/placeholder.json")))).filter(name => /^[a-f0-9]{64}\.json$/.test(name)); }
+        catch (error) { if (error.code !== "ENOENT") throw error; }
+        if (names.length > 200) throw new TestSiteError("The saved history exceeds its supported limit.", 503);
+        for (const name of names) {
+          const raw = await read(`.studio/history/${name}`);
+          const source = decode(raw);
+          if (revisionOf(source) !== name.slice(0, -5)) throw new TestSiteError("A saved revision is invalid. Its original file was preserved.", 503);
+          const document = documentsOf(source).find(item => item.id === selected.id && item.kind === selected.kind);
+          const id = name.slice(0, -5);
+          const marker = await read(`.studio/history/${id}.saved.json`, true);
+          let confirmed = null;
+          if (marker !== null) {
+            try { confirmed = JSON.parse(marker); } catch { throw new TestSiteError("Saved revision metadata is invalid. Its files were preserved.", 503); }
+            if (confirmed?.version !== 1 || confirmed.revision !== id || typeof confirmed.savedAt !== "string" || !Number.isFinite(Date.parse(confirmed.savedAt))) throw new TestSiteError("Saved revision metadata is invalid. Its files were preserved.", 503);
+          }
+          if (document) entries.push({ id, savedAt: confirmed?.savedAt ?? (await lstat(await safe(`.studio/history/${name}`))).mtime.toISOString(), confirmed: Boolean(confirmed), document });
+        }
+        entries.push({ id: current.revision, savedAt: (await lstat(await safe("content/site.json"))).mtime.toISOString(), confirmed: true, document: selected });
+        return { revisions: entries };
       }
       if (input.action === "release") { if (owner?.token === token) owner = undefined; return { released: true }; }
       if (input.action === "save") return save(token, input.baseRevision, input.document);

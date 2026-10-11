@@ -232,9 +232,9 @@ export async function deleteMediaAsset(id: string) {
       let workspace: StudioWorkspace;
       try { workspace = validateWorkspacePublicationTemplates(validateStudioWorkspace(migrateStudioWorkspace(JSON.parse(rawWorkspace)))); }
       catch { throw new Error("The saved workspace could not be checked. Restore a valid backup before deleting files."); }
-      const documents = [...workspace.documents, ...workspace.bin.map(item => item.document)];
+      const documents = [...workspace.documents, ...workspace.bin.map(item => item.document), ...(workspace.documentRevisions ?? []).map(item => item.document)];
       if (documents.some(document => document.coverImage?.mediaId === id || contentMediaIds(document.blocks).includes(id))) {
-        throw new Error("This file is used by a page or post, including an item in the Bin. Replace those references or permanently delete the binned item first.");
+        throw new Error("This file is used by a page, post, saved revision or item in the Bin. Replace those references or permanently delete the binned item first.");
       }
       if (workspace.bin.some(item => item.publication?.mediaIds.includes(id))) {
         throw new Error("This file is used by a published copy in the Bin. Permanently delete the binned post first.");

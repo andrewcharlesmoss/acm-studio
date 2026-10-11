@@ -34,6 +34,10 @@ into other registered sites.
 
 Visual changes use the revision-checked disk gateway. Creation, assigned document
 delete/restore and template assignment changes share the aggregate's history.
+Page and Post panes also expose saved content from the gateway's retained source
+history through Revisions. Restore uses the normal site save and Undo flow,
+preserving current publication state and document relationships. See
+[`document-revisions.md`](document-revisions.md) for behaviour and retention.
 The home page is protected from deletion. Test Backup exports/restores only this
 aggregate, including templates and Bin, through the same validated saving flow.
 Restores require confirmation and retain the previous source in gateway history.

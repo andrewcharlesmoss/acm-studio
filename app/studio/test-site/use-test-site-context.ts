@@ -59,6 +59,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     updateActiveField: (field, value) => updateDocument(workspace.activeDocumentId, document => ({ ...document, [field]: value })),
     undo: () => { if (!site.canUndo) return false; site.undo(); return true; }, redo: () => { if (!site.canRedo) return false; site.redo(); return true; }, canUndo: site.canUndo, canRedo: site.canRedo,
     requestSave: () => { if (!site.writable) return false; void site.flush().catch(() => {}); return true; },
+    flush: site.flush,
     syncConflict: site.syncConflict, syncResolutionError: site.syncResolutionError, resolveSyncConflict: site.resolveSyncConflict,
     retryEditing: () => { void site.reconnect(); }, canRetryEditing: Boolean(site.failure), syncStatus: site.syncStatus,
   };

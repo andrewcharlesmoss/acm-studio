@@ -22,6 +22,7 @@ export type StudioInspectorProps = {
   paneCollapsed?: boolean;
   onPaneCollapsedChange?: (collapsed: boolean) => void;
   documentControls?: ReactNode;
+  revisionsControl?: ReactNode;
   siteContext?: boolean;
   writable?: boolean;
   inspectorTab: "document" | "studio" | "block" | "styles";
@@ -61,7 +62,7 @@ export type StudioInspectorProps = {
 };
 
 
-export function StudioInspector({ siteContext = false, writable = true, paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, inspectorTab, selectedBlock, selectedListItem = null, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onColumnWidthChange, onColumnCountChange, onButtonPreviewChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
+export function StudioInspector({ siteContext = false, writable = true, paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, revisionsControl, inspectorTab, selectedBlock, selectedListItem = null, selectedDocumentField = null, activeDocument, pages, categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onColumnWidthChange, onColumnCountChange, onButtonPreviewChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
   const [localCollapsed, setLocalCollapsed] = useState(false);
@@ -97,6 +98,7 @@ export function StudioInspector({ siteContext = false, writable = true, paneWidt
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
       </PaneTabPanel>)}</fieldset>
+      {inspectorTab === "document" ? revisionsControl : null}
     </Pane>
   );
 }

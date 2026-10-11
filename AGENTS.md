@@ -192,7 +192,7 @@ Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 24 and reads versions 2–23. Local publication
+Workspace data uses version 25 and reads versions 2–24. Local publication
 snapshots use version 18 and read versions 1–17. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
@@ -248,6 +248,17 @@ until their dependencies are resolved.
 - Report anything not tested or intentionally deferred.
 
 ## Local write ownership
+
+Page and Post panes expose saved document revisions. Browser revisions live in
+the owning workspace v25 aggregate, retained independently of Undo with a
+100-record / 2 MiB budget. Test and Test2 read validated selected-document
+records from their existing bounded gateway history. Browsing is read-only;
+restoration saves current content first, restores only editorial fields through
+the existing history route, and awaits the normal owning save acknowledgement.
+Publication state, categories, parent and template assignments stay current.
+Retained browser revisions protect their media and travel in workspace exports
+and full backups. Mini Golf's isolated workspace is outside this control.
+See `docs/document-revisions.md`.
 
 The Mini Golf Scorecard pilot at `/studio/sites/mini-golf-scorecard` is a local
 page-content and layout draft only. Its repository uses a separate storage key

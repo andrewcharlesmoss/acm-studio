@@ -2105,3 +2105,10 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .editor-history-actions button:not(:disabled):not([aria-pressed="true"]):not(.editor-add-block):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
 
 .group-alignment-control button:not(:disabled, [aria-pressed="true"]):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
+
+.document-revisions-dialog { background: var(--studio-pane-surface, #fff); border: 1px solid var(--studio-border, #d1d1d6); border-radius: 8px; padding: 24px; width: min(880px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; }
+.document-revisions-dialog > p { margin: 0 0 16px; }
+.document-revisions-content { display: grid; gap: 16px; }
+.document-revisions-content > label { display: grid; gap: 8px; }
+.document-revisions-content select { background: var(--studio-pane-surface, #fff); border: 1px solid var(--studio-border, #d1d1d6); border-radius: 4px; color: inherit; font: inherit; min-width: 0; padding: 8px; width: 100%; }
+.document-revision-preview.studio-canvas { display: block; min-width: 0; min-height: 0; max-height: 55vh; overflow: auto; padding: 20px; border: 1px solid var(--studio-border, #d1d1d6); }

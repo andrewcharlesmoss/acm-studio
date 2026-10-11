@@ -233,7 +233,7 @@ root-level Group sticky positioning, Gutenberg's Huge Social Icons size and
 managed Quote/Group background images are additive to the existing typed block
 contract. Group Row and Stack layouts also support Gutenberg's Space between
 justification. Table cells preserve per-cell header tags and scope. Workspace
-data is now version 24, with readers for versions 2–23; local publication
+data is now version 25, with readers for versions 2–24; local publication
 snapshots are version 18 with readers for versions 1–17, and full backups remain
 version 4. Template packages are v0.29.0, with readers for v0.1.0–v0.28.0.
 Group HTML elements, ARIA labels and block alignment, Columns alignment and

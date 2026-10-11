@@ -1,3 +1,4 @@
+import { withSavedDocumentRevisions } from "./workspace-repository";
 import { studioWriteOwnership } from "./write-ownership";
 import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY } from "../content/local-publishing";
 import { DESIGN_STORAGE_KEY, validateDesignProject, type DesignProject } from "./design-model";
@@ -162,6 +163,7 @@ export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary
 }
 
 export async function createStudioBackup(workspace: StudioWorkspace) {
+  workspace = withSavedDocumentRevisions(workspace);
   validateStudioWorkspace(workspace);
   const publications = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
   if (publications !== null) validatePublicationSnapshot(JSON.parse(publications));

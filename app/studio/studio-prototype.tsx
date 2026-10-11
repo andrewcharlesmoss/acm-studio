@@ -1,4 +1,8 @@
 "use client";
+import { DocumentRevisionsControl } from "./document-revisions-control";
+import { revisionDocument, restoreDocumentRevision, type DocumentRevision } from "./document-revisions";
+import { browserWorkspaceRepository, withSavedDocumentRevisions } from "./workspace-repository";
+import { validateStudioWorkspace } from "./workspace-validation";
 import { SiteNavigationEditor } from "./site-navigation-editor";
 import { useGlobalTemplates } from "./use-global-templates";
 import type { GlobalTemplatePreviewSite } from "./global-template-preview";
@@ -343,7 +347,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
       <div className="studio-notice" role="note">{selectedSite ? <><strong>Local {siteName} website.</strong> Saved changes are stored on this workstation and update its local preview.{selectedSite === "test" ? " The live website is unchanged." : ""}</> : <><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</>}</div>
 
       <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" || studioSection === "bin" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`} style={{ "--studio-library-width": `${libraryPaneCollapsed ? 0 : libraryPaneWidth}px`, "--studio-inspector-width": `${inspectorPaneCollapsed ? 0 : inspectorPaneWidth}px` } as CSSProperties}>
-      {studioSection === "templates" ? <TemplateWorkspacePanel onEditSiteNavigation={selectedSite && testContext.siteNavigation ? () => { setEditingSiteNavigation(true); } : undefined} siteNavigationEditor={editingSiteNavigation && selectedSite && testContext.siteNavigation ? <SiteNavigationEditor siteId={selectedSite} navigation={testContext.siteNavigation} templates={testContext.templates} documents={workspace.documents} onSave={() => testSite.flush()} onClose={() => { setEditingSiteNavigation(false); requestAnimationFrame(() => document.getElementById("studio-edit-site-navigation")?.focus()); }} /> : undefined} siteNavigation={selectedSite ? testContext.siteNavigation : undefined} onSelectSite={siteId => void selectSite(siteId)} siteId={selectedSite ?? undefined} editingScope="global" previewSite={templatePreviewSite} onPreviewSiteChange={setTemplatePreviewSite} previewSources={{ test: { document: firstSite.draft, error: firstSite.failure }, test2: { document: secondSite.draft, error: secondSite.failure } }} globalLibrary={globalTemplates.library} workspace={currentWorkspaceSession} templates={globalTemplates.session} selection={templateTarget} onSelectionChange={next => { setEditingSiteNavigation(false); setTemplateTarget({ ...next, scope: "global" }); }} libraryKind={libraryKind} onSelectLibraryKind={selectLibraryKind} onSelectDocument={(documentId) => { const document = workspace.documents.find(item => item.id === documentId); if (document) selectDocument(document); }} inspectorTab={templateInspectorTab} onInspectorTabChange={tab => { setInspectorTab(tab === "template" ? "document" : tab); }} libraryPaneWidth={libraryPaneWidth} onLibraryPaneWidthChange={setLibraryPaneWidth} libraryPaneCollapsed={libraryPaneCollapsed} onLibraryPaneCollapsedChange={setLibraryPaneCollapsed} inspectorPaneWidth={inspectorPaneWidth} onInspectorPaneWidthChange={setInspectorPaneWidth} inspectorPaneCollapsed={inspectorPaneCollapsed} onInspectorPaneCollapsedChange={setInspectorPaneCollapsed} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => openTool("backup")} onExportContent={() => selectedSite ? testSite.exportDraft() : exportJson(workspace, "acm-studio-content.json")} /> : <>
+      {studioSection === "templates" ? <TemplateWorkspacePanel onEditSiteNavigation={selectedSite && testContext.siteNavigation ? () => { setEditingSiteNavigation(true); } : undefined} siteNavigationEditor={editingSiteNavigation && selectedSite && testContext.siteNavigation ? <SiteNavigationEditor siteId={selectedSite} navigation={testContext.siteNavigation} templates={testContext.templates} documents={workspace.documents} onSave={() => testSite.flush()} onClose={() => { setEditingSiteNavigation(false); requestAnimationFrame(() => document.getElementById("studio-edit-site-navigation")?.focus()); }} /> : undefined} siteNavigation={selectedSite ? testContext.siteNavigation : undefined} onSelectSite={siteId => void selectSite(siteId)} siteId={selectedSite ?? undefined} editingScope="global" previewSite={templatePreviewSite} onPreviewSiteChange={setTemplatePreviewSite} previewSources={{ test: { document: firstSite.draft, error: firstSite.failure }, test2: { document: secondSite.draft, error: secondSite.failure } }} globalLibrary={globalTemplates.library} workspace={currentWorkspaceSession} templates={globalTemplates.session} selection={templateTarget} onSelectionChange={next => { setEditingSiteNavigation(false); setTemplateTarget({ ...next, scope: "global" }); }} libraryKind={libraryKind} onSelectLibraryKind={selectLibraryKind} onSelectDocument={(documentId) => { const document = workspace.documents.find(item => item.id === documentId); if (document) selectDocument(document); }} inspectorTab={templateInspectorTab} onInspectorTabChange={tab => { setInspectorTab(tab === "template" ? "document" : tab); }} libraryPaneWidth={libraryPaneWidth} onLibraryPaneWidthChange={setLibraryPaneWidth} libraryPaneCollapsed={libraryPaneCollapsed} onLibraryPaneCollapsedChange={setLibraryPaneCollapsed} inspectorPaneWidth={inspectorPaneWidth} onInspectorPaneWidthChange={setInspectorPaneWidth} inspectorPaneCollapsed={inspectorPaneCollapsed} onInspectorPaneCollapsedChange={setInspectorPaneCollapsed} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => openTool("backup")} onExportContent={() => selectedSite ? testSite.exportDraft() : exportJson(withSavedDocumentRevisions(workspace), "acm-studio-content.json")} /> : <>
         <StudioNavigationPane selectedSite={selectedSite} onSelectWorkspace={() => void leaveTest(() => { setStudioSection("content"); setLibraryKind(studioSession.workspace.documents.find(item => item.id === studioSession.workspace.activeDocumentId)?.kind ?? "page"); })} onSelectSite={siteId => void selectSite(siteId)} workspace={workspace} activeDocument={workspaceDocument} templateSession={templateSession} templateTarget={templateTarget}
           libraryKind={libraryKind} libraryPaneWidth={libraryPaneWidth} libraryPaneCollapsed={libraryPaneCollapsed} setLibraryPaneWidth={setLibraryPaneWidth} setLibraryPaneCollapsed={setLibraryPaneCollapsed}
           studioSection={studioSection} writable={writable} exclusiveWritable={exclusiveWritable} codeEditorDirty={codeEditorDirty}
@@ -352,7 +356,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
           onOpenBackup={() => openTool("backup")} onOpenBin={() => openTool("bin")} onOpenTemplates={() => switchStudioMode("templates")}
           onSelectLibraryKind={selectLibraryKind}
           onSelectTemplate={openTemplateTarget}
-          onExportContent={() => selectedSite ? testSite.exportDraft() : exportJson(workspace, "acm-studio-content.json")} />
+          onExportContent={() => selectedSite ? testSite.exportDraft() : exportJson(withSavedDocumentRevisions(workspace), "acm-studio-content.json")} />
 
         {studioSection === "bin" ? <StudioBin commitContent={selectedSite ? testContext.commitContent : undefined} siteId={selectedSite ?? undefined} workspace={currentWorkspaceSession} templates={templateSession} /> : studioSection === "content" && !hasContentDocuments && !selectedSite ? <section className="studio-empty-workspace" aria-labelledby="studio-empty-title">
           <span className="studio-empty-icon" aria-hidden="true"><StudioIcon name="archive" size={24} /></span>
@@ -430,6 +434,33 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             paneCollapsed: inspectorPaneCollapsed,
             onPaneCollapsedChange: setInspectorPaneCollapsed,
             documentControls: templateControls,
+            revisionsControl: <DocumentRevisionsControl key={`${selectedSite ?? "browser"}:${activeDocument.id}`} document={activeDocument} writable={editorWritable && !codeEditorDirty && !previewWindow} mediaUrls={media.blockUrls}
+              load={async () => {
+                if (!selectedSite) return (browserWorkspaceRepository.load()?.documentRevisions ?? []).filter(item => item.document.id === activeDocument.id && item.document.kind === activeDocument.kind);
+                const result = await testSite.loadDocumentRevisions(activeDocument.id);
+                if (!Array.isArray(result.revisions) || result.revisions.length > 201) throw new Error("The revision history is invalid.");
+                return result.revisions.map((item: DocumentRevision) => {
+                  if (!item || typeof item.id !== "string" || !/^[a-f0-9]{64}$/.test(item.id) || !Number.isFinite(Date.parse(item.savedAt)) || typeof item.confirmed !== "boolean" || item.document?.id !== activeDocument.id || item.document.kind !== activeDocument.kind) throw new Error("The revision history is invalid.");
+                  const document = revisionDocument(item.document);
+                  validateStudioWorkspace({ version: 24, documents: [document], activeDocumentId: document.id, categories: [], bin: [] });
+                  return { ...item, document };
+                });
+              }}
+              restore={async (revision, expected) => {
+                if (!editorWritable || codeEditorDirtyRef.current || previewWindow) throw new Error("Editing is unavailable. Your draft was preserved.");
+                await currentWorkspaceSession.flush();
+                let changed = false;
+                const restored = commit(current => {
+                  const document = current.documents.find(item => item.id === expected.id);
+                  if (!document || current.activeDocumentId !== expected.id || JSON.stringify({ ...document, updatedAt: expected.updatedAt }) !== JSON.stringify(expected)) throw new Error("The document changed while revisions were open. Close and reopen Revisions; your draft was preserved.");
+                  const next = restoreDocumentRevision(document, revision);
+                  const workspace = validateStudioWorkspace({ ...current, documents: current.documents.map(item => item.id === document.id ? next : item) });
+                  changed = true; return workspace;
+                });
+                if (!restored || !changed) throw new Error("The revision could not be restored. Your draft was preserved.");
+                setSelectedBlockId(null); setDocumentFieldSelection(null);
+                await currentWorkspaceSession.flush();
+              }} />,
             inspectorTab,
             selectedBlock,
             selectedDocumentField,

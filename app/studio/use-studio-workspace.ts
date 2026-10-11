@@ -351,6 +351,43 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
     return true;
   }
 
+  async function flush() {
+    if (!ready || loadError || pendingConflictRef.current || !editable) throw new Error("Saving is unavailable. Your draft was preserved.");
+    const snapshot = workspaceRef.current;
+    const matches = (value: StudioWorkspace) => !createStudioTransaction(snapshot, value,
+      { clientId: "flush", transactionId: "flush", brokerEpoch: "flush", baseRevision: 0 }).changes.length;
+    const session = syncRef.current;
+    const token = loadedToken;
+    const previousAttempt = pendingSaveAttemptRef.current;
+    requestSave();
+    const deadline = Date.now() + 10000;
+    let observedWorkspace = snapshot;
+    let observedPersisted: string | null = null;
+    let persisted = false;
+    while (Date.now() < deadline) {
+      if (workspaceRef.current !== observedWorkspace) {
+        if (!matches(workspaceRef.current) || workspaceRef.current.activeDocumentId !== snapshot.activeDocumentId) throw new Error("The workspace changed while saving. Your draft was preserved; reopen Revisions.");
+        observedWorkspace = workspaceRef.current;
+      }
+      if (pendingConflictRef.current) throw new Error("The workspace changed while saving. Your draft was preserved; reopen Revisions.");
+      if (syncRef.current !== session || tokenRef.current !== token || (!ownership.canWrite(token) && !session?.isConnectedPeer())) throw new Error("The saving connection changed. Your draft was preserved.");
+      const pending = pendingSaveAttemptRef.current;
+      const matching = pending && pending.session === session && pending.token === token && pending.repository === repository && matches(pending.snapshot);
+      if (matching && pending.settled && pending.failed && pending !== previousAttempt) {
+        await pending.completion;
+      }
+      if (lastPersistedWorkspaceRef.current !== observedPersisted) {
+        observedPersisted = lastPersistedWorkspaceRef.current;
+        persisted = observedPersisted !== null && matches(JSON.parse(observedPersisted));
+      }
+      if (persisted && (!matching || pending.settled)) return;
+      // Wait for the existing save effect and its broker acknowledgement. This
+      // must never bypass ownership or give peer tabs direct repository writes.
+      await new Promise(resolve => window.setTimeout(resolve, 25));
+    }
+    throw new Error("Saving has not been confirmed. Keep this tab open; your draft remains available.");
+  }
+
   function installLocalSnapshot(next: StudioWorkspace) {
     // A welcome can arrive before React's passive save effect. Register the
     // draft synchronously, so that handshake cannot erase the newest input.
@@ -457,5 +494,5 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
           : null;
   const ownershipLabel = ownershipState === "waiting" && (peerWritable || syncStatus === "connecting") ? null : ownershipMessage(ownershipState);
   const canRetryEditing = ownershipState === "unavailable" || (ownershipState === "waiting" && ["unsupported", "disconnected"].includes(syncStatus));
-  return { workspace, ready, loadError, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing, retryEditing: () => { syncRef.current?.retryConnection(); if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? statusLabel ?? ownershipLabel ?? saveError ?? saveLabel, setSaveLabel, requestSave, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
+  return { workspace, ready, loadError, ownershipGeneration, writable: editable && !syncConflict, exclusiveWritable: primaryWritable, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, canUndo: editable && !syncConflict && historyAvailability.undo, canRedo: editable && !syncConflict && historyAvailability.redo, canRetryEditing, retryEditing: () => { syncRef.current?.retryConnection(); if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt((value) => value + 1); }, saveLabel: loadError ?? statusLabel ?? ownershipLabel ?? saveError ?? saveLabel, setSaveLabel, requestSave, flush, commit, undo, redo, updateDocument, updateActiveDocument, updateActiveField, setActiveDocument };
 }
