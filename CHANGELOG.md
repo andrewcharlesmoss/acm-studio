@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Match the editor toolbar background to the white pane surface.
+
 - Give Studio panes consistent white backgrounds through a shared interface token.
 
 - Use the shared resizable, collapsible Pane for site navigation link details.
