@@ -225,8 +225,3 @@ a scoped local commit. No push or deployment is authorised by this increment.
   code findings. Browser evidence was supplied by the Builder, not independently
   repeated by the Verifier. Concurrent Ribbon/icon documentation and lockfile
   changes are outside this increment and excluded from its commit.
-
-Collapsed resizable panes retain their full-height edge strip. Drag towards the
-workspace to reopen at the dragged width, bounded by the existing minimum and
-maximum. Dragging the circle also reopens; a completed drag never toggles the
-pane closed again. The inward arrow key reopens at its retained width.

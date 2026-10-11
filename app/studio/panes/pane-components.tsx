@@ -39,15 +39,14 @@ export function PaneCollapseButton({ side, collapsed, label, controls, icon, onC
   resizable?: boolean;
   resizePressed?: boolean;
 }) {
-  const descriptionId = useId();
   const action = `${collapsed ? "Show" : "Hide"} ${label}`;
   return <button ref={buttonRef} type="button" className="pane-collapse" data-side={side}
-    data-collapsed={collapsed} data-resizable={resizable} data-resize-pressed={resizePressed} data-pane-region={`${side}.collapse`} aria-label={action}
-    aria-describedby={resizable ? descriptionId : undefined}
+    data-collapsed={collapsed} data-resizable={resizable && !collapsed} data-resize-pressed={resizePressed} data-pane-region={`${side}.collapse`} aria-label={action}
+    aria-description={resizable && !collapsed ? "Drag to resize; use Left and Right arrows to adjust width." : undefined}
     title={resizable && !collapsed ? undefined : action}
     aria-expanded={!collapsed} aria-controls={controls} onClick={onClick}
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
-    onPointerCancel={onPointerCancel} onLostPointerCapture={onLostPointerCapture} onKeyDown={onKeyDown}>{icon}{resizable ? <span id={descriptionId} className="visually-hidden">{collapsed ? "Drag towards the workspace to reopen, or use the inward arrow key." : "Drag to resize; use Left and Right arrows to adjust width."}</span> : null}</button>;
+    onPointerCancel={onPointerCancel} onLostPointerCapture={onLostPointerCapture} onKeyDown={onKeyDown}>{icon}</button>;
 }
 
 export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWidth = 480, collapsed, onCollapsedChange, collapseIcon, collapsible = true, inert, trackClassName, className, bodyClassName, style, header, tabs, toolbar, footer, children }: PaneProps) {
@@ -57,7 +56,7 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
   const body = useRef<HTMLDivElement>(null);
   const scrollPosition = useRef(0);
   const focusWasInside = useRef(false);
-  const resizeStart = useRef<{ x: number; width: number; dragged: boolean; collapsed: boolean; opened: boolean } | null>(null);
+  const resizeStart = useRef<{ x: number; width: number; dragged: boolean } | null>(null);
   const [resizePressed, setResizePressed] = useState(false);
   const suppressCollapse = useRef(false);
   const resizeMin = Math.min(minWidth, maxWidth);
@@ -65,8 +64,8 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
   const clampWidth = (next: number) => Math.max(resizeMin, Math.min(resizeMax, Math.round(next)));
   function startResize(event: PointerEvent<HTMLElement>) {
     suppressCollapse.current = false;
-    if (event.button !== 0 || !onWidthChange) return;
-    resizeStart.current = { x: event.clientX, width: collapsed ? 0 : width, dragged: false, collapsed, opened: false };
+    if (event.button !== 0 || collapsed || !onWidthChange) return;
+    resizeStart.current = { x: event.clientX, width, dragged: false };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
   function moveResize(event: PointerEvent<HTMLElement>) {
@@ -76,12 +75,7 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
     resizeStart.current.dragged = true;
     setResizePressed(true);
     suppressCollapse.current = true;
-    if (resizeStart.current.collapsed && !resizeStart.current.opened && delta <= 0) return;
     onWidthChange?.(clampWidth(resizeStart.current.width + delta));
-    if (resizeStart.current.collapsed) {
-      resizeStart.current.opened = true;
-      onCollapsedChange(false);
-    }
   }
   function cancelResize() {
     if (resizeStart.current) suppressCollapse.current = false;
@@ -90,15 +84,7 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
   }
   function resizeWithKeyboard(event: KeyboardEvent<HTMLElement>) {
     if (event.key === "Enter" || event.key === " ") suppressCollapse.current = false;
-    if (!onWidthChange) return;
-    if (collapsed) {
-      if (event.key === (side === "left" ? "ArrowRight" : "ArrowLeft") || event.key === "End") {
-        event.preventDefault();
-        if (event.key === "End") onWidthChange(resizeMax);
-        onCollapsedChange(false);
-      }
-      return;
-    }
+    if (!onWidthChange || collapsed) return;
     const direction = side === "left" ? 1 : -1;
     const step = event.shiftKey ? 20 : 10;
     const next = event.key === "ArrowRight" ? width + step * direction : event.key === "ArrowLeft" ? width - step * direction
@@ -138,13 +124,13 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
     </aside>
     {/* A focusable separator is the ARIA window-splitter pattern; static separators are non-interactive. */}
     {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
-    {onWidthChange ? <div className="pane-resize-edge" data-side={side}
-      data-resize-pressed={resizePressed} data-collapsed={collapsed} role="separator" tabIndex={0}
+    {onWidthChange && !collapsed ? <div className="pane-resize-edge" data-side={side}
+      data-resize-pressed={resizePressed} role="separator" tabIndex={0}
       aria-label={`Resize ${label}`} aria-orientation="vertical" aria-controls={id}
-      aria-valuemin={collapsed ? 0 : resizeMin} aria-valuemax={resizeMax} aria-valuenow={collapsed ? 0 : width}
+      aria-valuemin={resizeMin} aria-valuemax={resizeMax} aria-valuenow={width}
       onFocus={() => { focusWasInside.current = true; }}
       onBlur={(event) => { if (event.relatedTarget) focusWasInside.current = false; }}
-      aria-valuetext={collapsed ? "Collapsed" : `${width} pixels`} onPointerDown={startResize} onPointerMove={moveResize}
+      aria-valuetext={`${width} pixels`} onPointerDown={startResize} onPointerMove={moveResize}
       onPointerUp={finishResize} onPointerCancel={cancelResize} onLostPointerCapture={cancelResize}
       onKeyDown={resizeWithKeyboard} /> : null}
     {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
