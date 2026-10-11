@@ -659,3 +659,17 @@ A site restore refuses a different library: restore that library explicitly firs
 then restore the site. Entry packages carry portable designs and create a new
 global original rather than silently matching a name. Local publication snapshots
 remain frozen until their existing Update action.
+
+### Editing a site’s navigation items
+
+In Templates, **Edit Test Navigation** or **Edit Test2 Navigation** opens the
+selected site’s menu editor. The site named on the button is the editing target;
+**Preview With** does not change it. Switch the selected site to edit the other
+menu. Use **Add navigation link**, select a row to edit its text or destination,
+and use its options menu for **Move Up**, **Move Down** and **Delete**.
+
+These changes use that site’s existing local autosave, Save action, Undo/Redo
+history and conflict recovery. Only menu content changes. Colours, alignment
+and other presentation remain inherited from the global Navigation template;
+the site menu editor offers no presentation controls. Close returns to the
+global template view without discarding pending site changes.

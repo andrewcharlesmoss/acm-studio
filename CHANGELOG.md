@@ -11,6 +11,8 @@
 
 ### Added
 
+- Site-specific navigation editing for Test and Test2, with menu link actions and site history while retaining global template presentation.
+
 - Default global templates to neutral preview content, with a temporary Test or
   Test2 preview choice independent of the editing site.
 

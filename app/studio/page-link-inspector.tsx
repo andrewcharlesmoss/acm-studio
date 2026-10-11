@@ -20,7 +20,7 @@ import { ProjectLocalDocumentLink } from "./project-local-links";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 
 /** Selection is transient; every edit targets the canonical Navigation entry. */
-export function PageLinkInspector(props: NavigationEditingProps & { onView?: (link: SiteLink) => void; siteId?: LocalFixtureSiteId }) {
+export function PageLinkInspector(props: NavigationEditingProps & { onView?: (link: SiteLink) => void; siteId?: LocalFixtureSiteId; contentOnly?: boolean }) {
   const tabId = useId();
   const [tab, setTab] = useState("content");
   const [linkOpen, setLinkOpen] = useState(false);
@@ -35,9 +35,9 @@ export function PageLinkInspector(props: NavigationEditingProps & { onView?: (li
   const destination = safeTextLink(link.url);
   return <div className="navigation-inspector page-link-inspector inspector-sections">
     <div className="page-link-summary"><button type="button" aria-label="Select parent block: Navigation" title="Go to Navigation" onClick={() => props.onSelect(null)}><StudioIcon name="chevron-right" size={20} style={{ transform: "rotate(180deg)" }} /></button><AcmIcon name="view.pages" size={20} /><h3>Page link</h3></div>
-    <PaneTabs id={tabId} label="Page link controls" indicatorVariant="selected" className="navigation-inspector-tabs" tabs={[{ id: "content", label: "Content" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]} active={tab} onChange={setTab} renderLabel={item => <><AcmIcon name={item.id === "content" ? "view.pages" : item.id === "settings" ? "action.settings" : "view.styles"} size={24} /><span className="visually-hidden">{item.label}</span></>} />
-    <div role="tabpanel" id={paneTabTarget(tabId, tab, "panel")} aria-labelledby={paneTabTarget(tabId, tab, "tab")}>
-      {tab === "content" ? <section className="page-link-content"><h2>Settings</h2><fieldset disabled={!props.writable}>
+    {!props.contentOnly ? <PaneTabs id={tabId} label="Page link controls" indicatorVariant="selected" className="navigation-inspector-tabs" tabs={[{ id: "content", label: "Content" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]} active={tab} onChange={setTab} renderLabel={item => <><AcmIcon name={item.id === "content" ? "view.pages" : item.id === "settings" ? "action.settings" : "view.styles"} size={24} /><span className="visually-hidden">{item.label}</span></>} /> : null}
+    <div role={props.contentOnly ? undefined : "tabpanel"} id={paneTabTarget(tabId, tab, "panel")} aria-labelledby={props.contentOnly ? undefined : paneTabTarget(tabId, tab, "tab")}>
+      {props.contentOnly || tab === "content" ? <section className="page-link-content"><h2>Settings</h2><fieldset disabled={!props.writable}>
         <LinkSetting label="Text" value={link.label} maxLength={160} onCommit={label => update({ label })} />
         <div className="page-link-destination"><span>Link to</span><button ref={trigger} type="button" aria-label={`Link to: ${link.label || link.url}`} aria-haspopup="dialog" aria-expanded={linkOpen} onClick={() => setLinkOpen(true)}><strong>{props.suggestions.find(item => item.href === link.url)?.title ?? link.label ?? "Link"}</strong><span>{link.url}</span><StudioIcon name="chevron-down" size={16} /></button></div>
         <ToggleSetting label="Open in new tab" checked={Boolean(link.opensInNewTab)} disabled={!props.writable} onChange={opensInNewTab => update({ opensInNewTab })} />
