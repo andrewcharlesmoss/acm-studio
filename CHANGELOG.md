@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Keep toolbar menus on regular Studio UI typography instead of inheriting
+  template or block text styling.
+
 - Add individual resets to global defaults for template body typography and shared layout overrides.
 
 - Match the editor toolbar background to the white pane surface.

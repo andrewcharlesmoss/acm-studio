@@ -784,6 +784,9 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
   z-index: 4;
 }
 .canvas-block.is-selected > .canvas-block-toolbar, .studio-nested-block[data-studio-selected="true"] > .canvas-block-toolbar { opacity: 1; transform: translateY(calc(-100% - 9px)); visibility: visible; }
+/* Editor chrome has its own typography, including menus portalled outside a block. */
+:is(.canvas-block-toolbar, .multi-block-toolbar, .studio-anchored-menu) { font: normal 400 var(--studio-ui-size)/1.4 var(--studio-ui-font); letter-spacing: normal; text-transform: none; text-indent: 0; }
+:is(.canvas-block-toolbar, .multi-block-toolbar, .studio-anchored-menu) :is(button, input, select, textarea) { font-style: normal; }
 .canvas-block-toolbar > span { border-left: 1px solid var(--studio-toolbar-divider); border-right: 1px solid var(--studio-toolbar-divider); font-size: var(--studio-ui-size); font-weight: 700; letter-spacing: .04em; margin: 0 4px; padding: 4px 8px; text-transform: uppercase; }
 .canvas-block-toolbar > div { align-items: center; display: flex; }
 .table-control { position: relative; }
