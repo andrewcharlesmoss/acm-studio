@@ -39,7 +39,7 @@ async function documentRevision(document: TestSiteDocument) {
   return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId: LocalFixtureSiteId = "test") {
+export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId: LocalFixtureSiteId = "test", readPreview = false) {
   const siteName = localFixtureName(siteId);
   const WAKE_CHANNEL = `acm-studio-${siteId}-editing-v1`;
   const WAKE_MESSAGE = useMemo(() => ({ protocol: WAKE_CHANNEL, kind: "open", siteId }), [WAKE_CHANNEL, siteId]);
@@ -47,7 +47,8 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
   const validateSnapshot = useCallback((value: unknown) => validateSiteSnapshot(value, siteId), [siteId]);
   // Once activated, retain the broker while this shell switches to browser content.
   const [activated, setActivated] = useState(enabled);
-  const requested = enabled || activated;
+  const brokerRequested = enabled || activated;
+  const requested = brokerRequested || readPreview;
   const [snapshot, setSnapshot] = useState<TestSnapshot | null>(null);
   const [draft, setDraft] = useState<TestSiteDocument | null>(null);
   const [past, setPast] = useState<TestSiteDocument[]>([]);
@@ -169,7 +170,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     const connectionToken = token.current;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    if (!borrowedOwnership) {
+    if (!borrowedOwnership || !brokerRequested) {
       claimed.current = false;
       void request({ action: "release" }, connectionToken, true).finally(() => { if (!cancelled) setIsClaimed(false); }).catch(() => {});
       return;
@@ -189,10 +190,10 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     }
     void claim();
     return () => { cancelled = true; if (timer) clearTimeout(timer); claimed.current = false; };
-  }, [requested, borrowedOwnership, connectionGeneration, request, fail, installSaved, siteName, validateSnapshot]);
+  }, [requested, brokerRequested, borrowedOwnership, connectionGeneration, request, fail, installSaved, siteName, validateSnapshot]);
 
   useEffect(() => {
-    if (!requested || !token.current || !live.current.snapshot || (borrowedOwnership && !isClaimed) || !["waiting", "writable"].includes(ownership)) return;
+    if (!brokerRequested || !token.current || !live.current.snapshot || (borrowedOwnership && !isClaimed) || !["waiting", "writable"].includes(ownership)) return;
     let closed = false;
     const connectionToken = token.current;
     const owner = Boolean(borrowedOwnership) && isClaimed;
@@ -281,7 +282,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     setSyncStatus(session.getStatus());
     if (conflict.current) session.resumeConflict(conflict.current);
     return () => { closed = true; session.close(); if (sync.current === session) sync.current = null; };
-  }, [requested, connectionGeneration, borrowedOwnership, isClaimed, ownership, request, fail, installSaved, recoverConnectionAuthority, siteId, siteName, validateDocument, validateSnapshot]);
+  }, [brokerRequested, connectionGeneration, borrowedOwnership, isClaimed, ownership, request, fail, installSaved, recoverConnectionAuthority, siteId, siteName, validateDocument, validateSnapshot]);
 
   const installDraft = useCallback((next: TestSiteDocument, history = true) => {
     const current = live.current;
@@ -358,6 +359,12 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
           : request({ action: "read" }, connectionToken)));
         if (cancelled || !mounted.current || token.current !== connectionToken) return;
         const current = live.current;
+        if (!brokerRequested) {
+          installSaved(fresh);
+          live.current.draft = live.current.snapshot!.document;
+          setDraft(live.current.draft);
+          setLabel(`${siteName} preview loaded`);
+        }
         if (claimed.current && !gatewayWriting.current && !saving.current && gatewayWriteGeneration.current === beforeGeneration && current.snapshot?.revision === beforeRevision && fresh.revision !== beforeRevision) {
           fail(`${siteName} changed outside its tab synchronisation session. Export your draft before reconnecting.`);
         }
@@ -374,7 +381,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     window.addEventListener("pageshow", refresh);
     document.addEventListener("visibilitychange", resume);
     return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("pageshow", refresh); document.removeEventListener("visibilitychange", resume); };
-  }, [request, requested, fail, recoverConnectionAuthority, siteName, validateSnapshot]);
+  }, [request, requested, brokerRequested, fail, recoverConnectionAuthority, installSaved, siteName, validateSnapshot]);
   useEffect(() => {
     const protect = (event: BeforeUnloadEvent) => {
       if (shouldProtectTestSiteBeforeUnload({ dirty, saving: Boolean(saving.current), promptRunning, editingPaused: editingPausedRef.current })) {

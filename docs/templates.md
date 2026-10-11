@@ -19,13 +19,18 @@ snapshots, then reports that it is synchronised; compatible edits merge and
 only overlapping changes require an explicit choice. An edit already being
 sent remains local during an ownership handover and is either rebased onto the
 latest stored snapshot or presented for explicit conflict resolution.
-**Preview Content** selects an existing document; **Width** provides desktop,
+Global templates open with **Preview With → Neutral**: sample identity, menu
+links and page/post documents. **Preview With → Test / Test2** supplies that
+site's content without changing the editing site, URL, saved sources or history.
+The choice is temporary and returns to Neutral on a fresh load. Loading or
+unavailable site content is identified while neutral examples remain visible.
+**Preview Content** selects a document from the chosen preview; **Width** provides desktop,
 tablet and mobile canvas sizes. Zoom is independent of that viewport choice and
 is available from the toolbar or with Command/Ctrl + plus/equal, Command/Ctrl +
 minus/underscore and Command/Ctrl + 0 to reset to 100%. These shortcuts only
 belong to the focused template workspace and leave text, code and form editing
 to the browser. Template design controls edit global originals. Identity, navigation links and
-social/support links are supplied by the selected site and previewed read-only. Styles lists the entries sharing its presentation settings.
+social/support links are supplied by the preview choice and remain read-only. Styles lists the entries sharing its presentation settings.
 Ordinary paragraph style overrides take precedence over those tokens.
 
 Template Edit and Preview use a white canvas without a shadow and the same pale
@@ -629,8 +634,9 @@ are not offered as independent site templates. New global originals become
 available to every site through stable IDs.
 
 Identity, authored menu links, social links, document assignments and document
-content remain site-owned. The template canvas previews the selected site's
-content read-only; editing template design changes the original for every site.
+content remain site-owned. The template canvas defaults to neutral examples,
+with optional Test and Test2 previews. These render projections never enter the
+saved original or a site source; editing template design changes the original for every site.
 The site adapter rejects design edits even if a caller bypasses the interface.
 Site source v5 retains compatibility bindings and legacy recovery data while
 reading v1–v4. No new site presentation override patches are authored. Legacy menu and social per-link styles

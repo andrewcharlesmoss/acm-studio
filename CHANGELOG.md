@@ -11,6 +11,9 @@
 
 ### Added
 
+- Default global templates to neutral preview content, with a temporary Test or
+  Test2 preview choice independent of the editing site.
+
 - Add one shared Control accent colour in Styles for toggles and standard sliders,
   with derived hover and pressed colours and simplified Controls examples.
 - Keep Styles history and the selected settings panel when saving source values

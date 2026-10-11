@@ -1,5 +1,6 @@
 "use client";
 import { useGlobalTemplates } from "./use-global-templates";
+import type { GlobalTemplatePreviewSite } from "./global-template-preview";
 import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { BackupManager } from "./backup-manager";
@@ -65,6 +66,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const [showTemplate, setShowTemplate] = useState(initialView.showTemplate);
   const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup" | "bin">("content");
   const [templateTarget, setTemplateTarget] = useState<StudioTemplateTarget>({ setId: null, targetId: null });
+  const [templatePreviewSite, setTemplatePreviewSite] = useState<GlobalTemplatePreviewSite>("neutral");
   const [libraryKind, setLibraryKind] = useState<StudioDocumentKind | "templates">("page");
   const openTemplateTarget = (setId: string, targetId: string) => {
     if (!confirmCodeEditorDiscard()) return false;
@@ -76,8 +78,8 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   };
   const canOwnSite = studioSession.ready && studioSession.exclusiveWritable && !previewWindow;
   // The global writer must broker either fixture, even when it displays the other site.
-  const firstSite = useTestSite(selectedSite !== "test2", canOwnSite, "test");
-  const secondSite = useTestSite(selectedSite === "test2", canOwnSite, "test2");
+  const firstSite = useTestSite(selectedSite !== "test2", canOwnSite, "test", studioSection === "templates" && templatePreviewSite === "test");
+  const secondSite = useTestSite(selectedSite === "test2", canOwnSite, "test2", studioSection === "templates" && templatePreviewSite === "test2");
   const testSite = selectedSite === "test2" ? secondSite : firstSite;
   const siteName = localFixtureName(selectedSite ?? "test");
   useEffect(() => {
@@ -338,7 +340,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
       <div className="studio-notice" role="note">{selectedSite ? <><strong>Local {siteName} website.</strong> Saved changes are stored on this workstation and update its local preview.{selectedSite === "test" ? " The live website is unchanged." : ""}</> : <><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</>}</div>
 
       <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" || studioSection === "bin" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`} style={{ "--studio-library-width": `${libraryPaneCollapsed ? 0 : libraryPaneWidth}px`, "--studio-inspector-width": `${inspectorPaneCollapsed ? 0 : inspectorPaneWidth}px` } as CSSProperties}>
-      {studioSection === "templates" ? <TemplateWorkspacePanel siteNavigation={selectedSite ? testContext.siteNavigation : undefined} onSelectSite={siteId => void selectSite(siteId)} siteId={selectedSite ?? undefined} editingScope="global" sitePreviewTemplates={testContext.templates.store} globalLibrary={globalTemplates.library} workspace={currentWorkspaceSession} templates={editingTemplates} selection={templateTarget} onSelectionChange={next => setTemplateTarget({ ...next, scope: "global" })} libraryKind={libraryKind} onSelectLibraryKind={selectLibraryKind} onSelectDocument={(documentId) => { const document = workspace.documents.find(item => item.id === documentId); if (document) selectDocument(document); }} inspectorTab={templateInspectorTab} onInspectorTabChange={tab => { setInspectorTab(tab === "template" ? "document" : tab); }} libraryPaneWidth={libraryPaneWidth} onLibraryPaneWidthChange={setLibraryPaneWidth} libraryPaneCollapsed={libraryPaneCollapsed} onLibraryPaneCollapsedChange={setLibraryPaneCollapsed} inspectorPaneWidth={inspectorPaneWidth} onInspectorPaneWidthChange={setInspectorPaneWidth} inspectorPaneCollapsed={inspectorPaneCollapsed} onInspectorPaneCollapsedChange={setInspectorPaneCollapsed} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => openTool("backup")} onExportContent={() => selectedSite ? testSite.exportDraft() : exportJson(workspace, "acm-studio-content.json")} /> : <>
+      {studioSection === "templates" ? <TemplateWorkspacePanel siteNavigation={selectedSite ? testContext.siteNavigation : undefined} onSelectSite={siteId => void selectSite(siteId)} siteId={selectedSite ?? undefined} editingScope="global" previewSite={templatePreviewSite} onPreviewSiteChange={setTemplatePreviewSite} previewSources={{ test: { document: firstSite.draft, error: firstSite.failure }, test2: { document: secondSite.draft, error: secondSite.failure } }} globalLibrary={globalTemplates.library} workspace={currentWorkspaceSession} templates={editingTemplates} selection={templateTarget} onSelectionChange={next => setTemplateTarget({ ...next, scope: "global" })} libraryKind={libraryKind} onSelectLibraryKind={selectLibraryKind} onSelectDocument={(documentId) => { const document = workspace.documents.find(item => item.id === documentId); if (document) selectDocument(document); }} inspectorTab={templateInspectorTab} onInspectorTabChange={tab => { setInspectorTab(tab === "template" ? "document" : tab); }} libraryPaneWidth={libraryPaneWidth} onLibraryPaneWidthChange={setLibraryPaneWidth} libraryPaneCollapsed={libraryPaneCollapsed} onLibraryPaneCollapsedChange={setLibraryPaneCollapsed} inspectorPaneWidth={inspectorPaneWidth} onInspectorPaneWidthChange={setInspectorPaneWidth} inspectorPaneCollapsed={inspectorPaneCollapsed} onInspectorPaneCollapsedChange={setInspectorPaneCollapsed} manageHistoryShortcuts={false} onBackToContent={() => switchStudioMode("content")} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => openTool("backup")} onExportContent={() => selectedSite ? testSite.exportDraft() : exportJson(workspace, "acm-studio-content.json")} /> : <>
         <StudioNavigationPane selectedSite={selectedSite} onSelectWorkspace={() => void leaveTest(() => { setStudioSection("content"); setLibraryKind(studioSession.workspace.documents.find(item => item.id === studioSession.workspace.activeDocumentId)?.kind ?? "page"); })} onSelectSite={siteId => void selectSite(siteId)} workspace={workspace} activeDocument={workspaceDocument} templateSession={templateSession} templateTarget={templateTarget}
           libraryKind={libraryKind} libraryPaneWidth={libraryPaneWidth} libraryPaneCollapsed={libraryPaneCollapsed} setLibraryPaneWidth={setLibraryPaneWidth} setLibraryPaneCollapsed={setLibraryPaneCollapsed}
           studioSection={studioSection} writable={writable} exclusiveWritable={exclusiveWritable} codeEditorDirty={codeEditorDirty}

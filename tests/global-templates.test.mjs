@@ -10,6 +10,7 @@ import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs"
 const root = fileURLToPath(new URL("..", import.meta.url));
 const { module: model } = await runnerImport(path.join(root, "app/studio/global-template-contract.ts"), { root, resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } });
 const { module: templates } = await runnerImport(path.join(root, "app/studio/template-model.ts"), { root, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } });
+const { module: preview } = await runnerImport(path.join(root, "app/studio/global-template-preview.ts"), { root, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } });
 function fixtures() {
   const set = templates.createTemplateSet("Original");
   const store = { ...templates.emptyTemplateStore(), sets: [set] };
@@ -20,6 +21,40 @@ function fixtures() {
   }
   return result;
 }
+test("neutral global previews replace all site content while preserving original design and IDs", () => {
+  const library = model.createGlobalTemplateLibrary(fixtures());
+  const original = library.templates.sets[1];
+  original.identity = { name: "Retained site identity", homeUrl: "/actual", copyright: "Actual copyright" };
+  original.navigation = [{ id: "actual", label: "Actual menu", url: "/actual" }];
+  const before = JSON.stringify(original);
+  const result = preview.neutralGlobalTemplatePreview(original);
+  assert.equal(result.set.identity.name, "Your Site");
+  assert.deepEqual(result.set.navigation.map(link => link.label), ["Home", "About", "Blog", "Contact"]);
+  assert.deepEqual(result.documents.map(document => document.kind), ["page", "post"]);
+  assert.equal(result.set.id, original.id);
+  assert.strictEqual(result.set.parts, original.parts);
+  assert.strictEqual(result.set.styles, original.styles);
+  assert.equal(JSON.stringify(original), before, "preview must not change the saved original");
+});
+test("site global previews supply each fixture's content without leaking site design or mutating sources", () => {
+  const sites = fixtures(); const library = model.createGlobalTemplateLibrary(sites);
+  const original = library.templates.sets[1];
+  for (const siteId of ["test", "test2"]) {
+    sites[siteId].templates.sets[1].navigation[0].visualStyle = { fontSize: "large" };
+    const document = { id: `${siteId}-home`, kind: "page", title: siteId, slug: "", excerpt: "", status: "draft", updatedAt: "2026-01-01T00:00:00.000Z", blocks: [], tags: [], seoTitle: "", seoDescription: "" };
+    const source = { ...sites[siteId], format: "acm-test-site", version: 4, siteId, documents: [document], categories: [], bin: [], activeDocumentId: document.id, homeDocumentId: document.id, browserImportComplete: true };
+    const before = JSON.stringify({ source, library });
+    const result = preview.siteGlobalTemplatePreview(original, library, source);
+    assert.equal(result.set.identity.name, siteId);
+    assert.equal(result.set.navigation[0].label, siteId);
+    assert.equal(result.set.navigation[0].visualStyle, undefined);
+    assert.equal(result.set.navigation[0].children[0].visualStyle, undefined);
+    assert.strictEqual(result.set.parts, original.parts);
+    assert.strictEqual(result.set.styles, original.styles);
+    assert.deepEqual(result.documents, [document]);
+    assert.equal(JSON.stringify({ source, library }), before);
+  }
+});
 test("same ancestry and explicit navigation role share global designs while preserving site content", () => {
   const sites = fixtures(); const library = model.createGlobalTemplateLibrary(sites);
   assert.equal(library.templates.sets.length, 2);

@@ -46,7 +46,7 @@ async function fixture(t, siteId) {
     lockHeld = true;
     try { return await callback({}); } finally { lockHeld = false; }
   } };
-  function open({ peer = false } = {}) {
+  function open({ peer = false, preview = false } = {}) {
     const listeners = new Map(); const cache = new Map(); const slots = [];
     let cursor = 0; let dirty = true; let effects = []; let layouts = []; let state;
     let suspended = false; let closed = false; let responseLost = false; let confirms = 0;
@@ -137,7 +137,7 @@ async function fixture(t, siteId) {
         if (!dirty || closed || suspended) return;
         dirty = false; cursor = 0;
         // eslint-disable-next-line react-hooks/rules-of-hooks -- Isolated dispatcher drives the production hook.
-        state = useTestSite(true, !peer && ownership.canWrite(), siteId);
+        state = useTestSite(!preview, !peer && ownership.canWrite(), siteId, preview);
         const pendingLayouts = layouts; layouts = []; pendingLayouts.forEach(callback => callback());
         const pendingEffects = effects; effects = []; pendingEffects.forEach(callback => callback());
       },
@@ -174,6 +174,22 @@ async function fixture(t, siteId) {
 }
 
 for (const siteId of ["test", "test2"]) {
+  test(`${siteId}: read-only preview activation loads and refreshes content without claiming or saving`, async t => {
+    const f = await fixture(t, siteId); const tab = f.open({ preview: true });
+    await f.until(() => Boolean(tab.state?.draft));
+    assert.equal(tab.state.writable, false);
+    assert.equal(tab.state.canSaveGlobalTemplates, false);
+    assert.equal(editNavigation(tab.state, "Preview cannot edit"), false);
+    assert.equal(f.requests.some(request => request.action === "claim" || request.action === "save"), false);
+    const external = await f.store.connect(); await f.call(external.token, "claim");
+    const changed = clone(external.document);
+    changed.templates.sets.find(set => set.id === changed.siteNavigation.setId).navigation[0].label = "Fresh external menu";
+    await f.call(external.token, "save", { baseRevision: external.revision, document: changed });
+    f.advance(5001); tab.event("focus");
+    await f.until(() => navigationLabel(tab.state.draft) === "Fresh external menu");
+    assert.equal(tab.state.writable, false);
+    assert.equal(f.requests.some(request => request.action === "claim" || request.action === "save"), false);
+  });
   for (const suspension of ["released lease", "expired lease", "expired session"]) {
     test(`${siteId}: ${suspension} recovery retains an unsaved Navigation edit`, async t => {
       const f = await fixture(t, siteId); const tab = f.open(); await f.until(() => tab.state?.writable);
