@@ -21,6 +21,8 @@
 
 ### Added
 
+- Add Reset all styles to restore template colours, body typography and shared layout together.
+
 - Site-specific navigation editing for Test and Test2, with menu link actions and site history while retaining global template presentation.
 
 - Default global templates to neutral preview content, with a temporary Test or

@@ -180,7 +180,9 @@ loaded saved shared styles; unsaved UI Library previews are not defaults.
 Offline and hosted sessions retain their last valid or bundled defaults.
 Size, line height and letter spacing reset only the desktop metric shown in
 the pane, preserving tablet and mobile values. Each reset uses template history
-and can be undone.
+and can be undone. Reset all styles restores the palette, complete body
+typography (including responsive metrics) and shared layout in one undoable
+action. Other typography roles, blocks and site-owned links remain intact.
 
 Title-placeholder migration applies only when validating an active store or
 portable package from v0.11.0 or earlier. Default Page/Post templates migrate

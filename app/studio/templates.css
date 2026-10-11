@@ -455,3 +455,5 @@
 .template-inspector .inspector-scroll .navigation-inspector :is(.navigation-item-options, .group-alignment-control button):not(:disabled):not([aria-pressed="true"]):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
 
 .template-entry-actions:not(:disabled):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
+
+.template-reset-all-styles { padding: 16px; border-top: 1px solid var(--studio-border, #d1d1d6); }
