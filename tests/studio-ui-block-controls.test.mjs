@@ -309,7 +309,7 @@ test("every reusable Controls entry has a grouped anchor specimen and compatible
   assert.match(route, /redirect\(`\/studio\/ui\/controls#\$\{encodeURIComponent\(entry\.id\)\}`\)/);
   assert.match(catalogue, /id=\{controlGroupId\(group\)\}/);
   assert.match(navigation, /href=\{`#\$\{entry\.id\}`\}/);
-  assert.match(catalogue, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\} sliderAccent=\{effectiveSliderAccent\}/);
+  assert.match(catalogue, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\}/);
   assert.match(reset, /<section id=\{entry\.id\}/);
   assert.match(reset, /function resetExample\(\)/);
   assert.match(reset, /Example block specimens/);

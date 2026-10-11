@@ -6,6 +6,12 @@ import { createSharedStylesStore, SharedStylesError } from "./shared-styles-stor
 export function sharedStylesBridge({ createStore = createSharedStylesStore } = {}) {
   let sourceFiles = [];
   return { name: "studio-shared-styles", apply: "serve",
+    configResolved(config) {
+      sourceFiles = [path.resolve(config.root, "../acm-styles/src/universal-style-preset.json"), path.resolve(config.root, "../workspace-governance/STYLE_GUIDE.md"), path.join(config.root, "app/studio/ui/styles/style-guide-source.json")];
+      // The gateway validator imports the preset while Vite evaluates its config.
+      // Treat owned data as runtime input, otherwise Vite restarts before hotUpdate.
+      config.configFileDependencies = config.configFileDependencies.filter(file => !sourceFiles.includes(file));
+    },
     hotUpdate(context) {
       // These files are loaded through the source gateway and explicit Reload.
       // Replacing their imports would remount the editor and lose its draft/history.

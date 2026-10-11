@@ -97,9 +97,11 @@ test("saving native lower-case colour input normalises source hex without expand
   const f = await fixture(t);
   const state = await f.store.load();
   const preset = { ...state.preset, palette: { ...state.preset.palette, accent: "#abcdef" } };
+  preset.interactions.controlAccentColour = "#aabbcc";
   preset.typography.body.size.mobile = { value: 15, unit: "px" };
   const saved = await f.store.save({ preset, revision: state.revision });
   assert.equal(saved.preset.palette.accent, "#ABCDEF");
+  assert.equal(saved.preset.interactions.controlAccentColour, "#AABBCC");
   const raw = await readFile(f.presetPath, "utf8");
   assert.match(raw, /"size": \{ "desktop": \{ "value": 1.0625, "unit": "rem" \}, "mobile": \{ "value": 15, "unit": "px" \} \}/);
   assert.deepEqual(JSON.parse(raw), saved.preset);
@@ -188,6 +190,9 @@ test("the dev bridge rejects foreign origins, oversized input and missing sessio
 
 test("source HMR suppression preserves the Styles editor and leaves unrelated modules live", () => {
   const plugin = sharedStylesBridge({ createStore: () => ({}) });
+  const config = { root: "/fixture/acm-studio", configFileDependencies: ["/fixture/acm-styles/src/universal-style-preset.json", "/fixture/acm-styles/src/index.ts", "/fixture/acm-studio/vite.config.ts"] };
+  plugin.configResolved(config);
+  assert.deepEqual(config.configFileDependencies, ["/fixture/acm-styles/src/index.ts", "/fixture/acm-studio/vite.config.ts"]);
   plugin.configureServer({ config: { root: "/fixture/acm-studio" }, middlewares: { use() {} } });
   for (const file of ["/fixture/acm-styles/src/universal-style-preset.json", "/fixture/workspace-governance/STYLE_GUIDE.md", "/fixture/acm-studio/app/studio/ui/styles/style-guide-source.json"]) assert.deepEqual(plugin.hotUpdate({ file }), []);
   assert.equal(plugin.hotUpdate({ file: "/fixture/acm-styles/src/styles.css" }), undefined);

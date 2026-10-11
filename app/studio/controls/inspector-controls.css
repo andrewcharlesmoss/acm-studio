@@ -4,7 +4,7 @@
 .studio-toggle-setting > .studio-toggle-track { background: #fff; border: 1px solid #757575; border-radius: 8px; box-sizing: border-box; flex: 0 0 32px; height: 16px; max-width: 32px; min-width: 32px; position: relative; width: 32px; }
 .studio-toggle-track::after { background: #1e1e1e; border-radius: 50%; content: ""; height: 12px; left: 1px; position: absolute; top: 1px; width: 12px; }
 .studio-toggle-setting:has(> .studio-toggle-track) > span:last-child { color: var(--ink); font-size: var(--studio-ui-size, 13px); font-weight: 400; min-width: 0; }
-.studio-toggle-setting input:checked + .studio-toggle-track { background: var(--gutenberg-accent, #3858e9); border-color: var(--gutenberg-accent, #3858e9); }
+.studio-toggle-setting input:checked + .studio-toggle-track { background: var(--acm-interaction-control-accent-colour, #3858e9); border-color: var(--acm-interaction-control-accent-colour, #3858e9); }
 .studio-toggle-setting input:checked + .studio-toggle-track::after { background: #fff; left: 17px; }
 .studio-toggle-setting input:focus-visible + .studio-toggle-track { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c); outline-offset: 2px; }
 html[data-studio-focus-visible="false"] .studio-toggle-setting input:focus + .studio-toggle-track { outline: none; }
@@ -84,3 +84,6 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 
 .box-length-setting.is-spacing .box-length-row.is-custom-spacing { grid-template-columns: 24px minmax(0, calc(5ch + 54px)) minmax(0, 1fr) 40px; }
 .box-length-setting.is-spacing .box-length-row.is-custom-spacing > .studio-range-wrapper > .studio-range-control { min-width: 0; width: 100%; }
+
+@media (hover: hover) and (pointer: fine) { .studio-toggle-setting:hover input:checked:not(:disabled) + .studio-toggle-track { background: var(--acm-interaction-control-hover-colour, #314dcd); border-color: var(--acm-interaction-control-hover-colour, #314dcd); } }
+.studio-toggle-setting:active input:checked:not(:disabled) + .studio-toggle-track { background: var(--acm-interaction-control-pressed-colour, #2b44b4); border-color: var(--acm-interaction-control-pressed-colour, #2b44b4); }

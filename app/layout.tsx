@@ -30,6 +30,9 @@ const universalStyleVariables = {
   ...universalStyleTokens,
   // Editor controls must keep the shared action colours inside authored style scopes.
   "--studio-selection-colour": universalStyleTokens["--acm-interaction-selection-colour"],
+  "--studio-range-accent": universalStyleTokens["--acm-interaction-control-accent-colour"],
+  "--studio-range-hover-accent": universalStyleTokens["--acm-interaction-control-hover-colour"],
+  "--studio-range-pressed-accent": universalStyleTokens["--acm-interaction-control-pressed-colour"],
   "--studio-shared-button-background": universalStyleTokens["--acm-button-base-background"],
   "--studio-shared-button-foreground": universalStyleTokens["--acm-button-base-foreground"],
   "--studio-shared-button-border": universalStyleTokens["--acm-button-base-border"],

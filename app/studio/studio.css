@@ -23,7 +23,9 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
   --accent: #1e1e1e;
   --accent-soft: #e7e7e5;
   --accent-strong: #1e1e1e;
-  --studio-range-accent: var(--gutenberg-accent);
+  --studio-range-accent: var(--acm-interaction-control-accent-colour, #3858e9);
+  --studio-range-hover-accent: var(--acm-interaction-control-hover-colour, #314dcd);
+  --studio-range-pressed-accent: var(--acm-interaction-control-pressed-colour, #2b44b4);
   --studio-toolbar-active: #e7e7e5;
   --studio-workspace-background: #f8fafc;
   --studio-canvas-background: #fff;

@@ -10,6 +10,9 @@
   --accent: #3158c9;
   --accent-soft: #dfe6fa;
   --gutenberg-accent: #3858e9;
+  --studio-range-accent: var(--acm-interaction-control-accent-colour, #3858e9);
+  --studio-range-hover-accent: var(--acm-interaction-control-hover-colour, #314dcd);
+  --studio-range-pressed-accent: var(--acm-interaction-control-pressed-colour, #2b44b4);
   /* Shared neutral keyboard focus ring: inset so adjacent labels and controls stay clear. */
   --focus-ring-colour: rgba(92, 94, 92, 0.82);
   --focus-ring-width: 2px;

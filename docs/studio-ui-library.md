@@ -193,8 +193,8 @@ Colour-picker ownership includes palette selection, Default/Hover values,
 swatch geometry, popover positioning and dismissal. Text actions such as Clear
 use the shared semantic Accent token as described below. The gradient angle dial marker uses `--gutenberg-accent` for Gutenberg's
 accent blue.
-The Slider foundation owns `--studio-range-accent`, the shared accent for
-standard sliders. Inspector ranges compose `RangeControl` for a value label
+Styles → Interactions owns Control accent colour (`interactions.controlAccentColour`),
+shared by enabled toggles and standard sliders through `--studio-range-accent`. Inspector ranges compose `RangeControl` for a value label
 beneath the thumb while it is hovered, focused or dragged. Labels do not change
 row spacing or saved values. Shared spacing controls name the standard presets
 (None, 2X-Small, X-Small, Small, Medium, Large, X-Large and 2X-Large); custom
@@ -226,20 +226,12 @@ standard `.studio-range-control` inputs. Focus outlines follow the Studio
 Focus Outline preference and focus tokens. Pointer hover uses
 `--studio-range-hover-accent`, which defaults to a 12% darker shade of the shared
 accent. While a range is being pressed or dragged, `--studio-range-pressed-accent`
-defaults to a further 12% darker shade of the hover colour. Either state colour
-can be overridden independently. Discrete spacing ranges use a separate
-darker pressed fallback. Preview overrides apply to this Controls page only;
-they do not persist or change live editor settings. Its specimen previews all three
-effective colours independently: changing one colour leaves the other two
-unchanged. Reset example restores the theme's default accent plus the hover
-and pressed colours derived from that default accent. Its disclosure lists the
-Controls sections that inherit it and external consumers. Consumers retain
-their native range values, bounds, steps and behaviour. Gradient hue and alpha
-inputs use specialist colour tracks and
-are not consumers of these shared slider colours. Each Controls section keeps
-dependency details in its ownership, consumers, dependencies and compatibility
-disclosure. The inventory includes composed dependencies and conditional or
-transitive slider styling, while keeping specialist gradient tracks excluded.
+defaults to a further 12% darker shade of the hover colour. Both state colours are derived automatically in @acm/styles; they have no
+separate saved settings. The Controls page inherits these shared values and has
+no temporary colour pickers. Reset example restores only its toggle or range
+value. Consumers retain their native range values, bounds, steps and behaviour.
+Gradient hue and alpha inputs keep their specialist tracks. Each Controls
+section retains its ownership and dependency details.
 Its theme palette uses the
 shared ACM semantic colour tokens, with 28px circular swatches, Gutenberg-like
 spacing and selected borders in up to six columns, a 262px desktop popover and
@@ -293,7 +285,7 @@ writes these exact files:
 - `workspace-governance/STYLE_GUIDE.md` — generated token table cells only;
 - `acm-studio/app/studio/ui/styles/style-guide-source.json` — guide and line index.
 
-The preset schema is v0.6.0 and reads v0.1.0–v0.5.0. v0.4.0 migration chooses
+The preset schema is v0.7.0 and reads v0.1.0–v0.6.0. v0.4.0 migration chooses
 the first non-default colour in neutral-control, disclosure, menu-item and
 list-item order; otherwise it uses the neutral-control value. v0.3.0 retains its
 disclosure value, and v0.1.0/v0.2.0 use the default. Guide policy, reference palettes and prose are

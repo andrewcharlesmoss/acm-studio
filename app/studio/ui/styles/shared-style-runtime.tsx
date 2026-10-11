@@ -25,6 +25,9 @@ export function SharedStyleRuntime() {
         if (!active || request !== epoch) return;
         for (const [key, value] of Object.entries(variables)) document.body.style.setProperty(key, value);
         document.body.style.setProperty("--studio-selection-colour", variables["--acm-interaction-selection-colour"]);
+        for (const [alias, token] of [["accent", "accent"], ["hover-accent", "hover"], ["pressed-accent", "pressed"]]) {
+          document.body.style.setProperty(`--studio-range-${alias}`, variables[`--acm-interaction-control-${token}-colour`]);
+        }
         for (const key of ["background", "foreground", "border", "hover-background", "hover-foreground"]) {
           document.body.style.setProperty(`--studio-shared-button-${key}`, variables[`--acm-button-base-${key}`]);
         }

@@ -119,10 +119,15 @@ and list items. It defaults to `#F0F0F0`. Selected, pressed, disabled and
 destructive states keep their own treatments. The Controls → Accordion specimen
 has no separate colour preference; see `docs/studio-ui-library.md`.
 Styles → Interactions also owns interface selection colour, independent of
-palette Accent. Its v0.6.0 executable preset reads v0.1.0–v0.5.0; the default
+palette Accent. Its v0.7.0 executable preset reads v0.1.0–v0.6.0; the default
 `#0088FF` feeds the stable Studio alias, including portalled selections. Local
 saves refresh loaded tabs without remounting drafts. Focus and action states
 retain their separate roles.
+Styles → Interactions owns Control accent colour (`#3858E9`) for enabled
+toggles and standard sliders. @acm/styles derives hover by darkening each sRGB
+channel by 12%, and pressed by darkening hover a further 12%. Controls examples
+inherit the shared colour without temporary colour pickers; their reset affects
+example values only. Specialist hue and alpha tracks remain separate.
 
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and

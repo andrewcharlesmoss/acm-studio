@@ -82,12 +82,12 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "slider-foundation", title: "Slider", group: "Foundation",
-    purpose: "Preview shared range colours on this Controls page and change each state independently.",
+    purpose: "Try a standard slider using the shared Control accent colour from Styles.",
     owner: "ACM Studio shared range styling",
     consumers: ["Direct native ranges: background image width in Studio inspectors", "Direct native ranges: Design canvas zoom, opacity, edge cleanup and arrowhead size", "Range specimens in the Ribbon catalogue (outside this page’s preview scope)"],
-    dependencies: [{ kind: "uses", label: "Gutenberg accent token", detail: "The default accent comes from --gutenberg-accent. Native ranges use darker hover and pressed fallbacks; discrete spacing ranges have their own darker pressed fallback. Explicit state tokens override these fallbacks." }],
-    states: "Accent, hover, pressed, keyboard focus and disabled. Each preview colour is independent; reset restores the default accent and its derived hover and pressed colours.",
-    compatibility: "Colour edits affect standard sliders on this Controls page only and are not saved or applied to live editors. Consumers retain their values, bounds and steps. Gradient hue and alpha tracks are excluded. Focus outlines follow the Studio Focus Outline preference and focus tokens.",
+    dependencies: [{ kind: "uses", label: "Control accent colour", detail: "Styles → Interactions owns interactions.controlAccentColour. Hover darkens the accent by 12%; pressed darkens hover by a further 12%." }],
+    states: "Accent, hover, pressed, keyboard focus and disabled. Reset restores only the example value.",
+    compatibility: "Styles saves the shared colour for toggles and standard sliders. Consumers retain their values, bounds and steps. Gradient hue and alpha tracks are excluded. Focus outlines follow the Studio Focus Outline preference and focus tokens.",
   },
   {
     id: "colour-picker", title: "Colour picker", group: "Colour",

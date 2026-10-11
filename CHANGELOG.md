@@ -4,6 +4,11 @@
 
 ### Added
 
+- Add one shared Control accent colour in Styles for toggles and standard sliders,
+  with derived hover and pressed colours and simplified Controls examples.
+- Keep Styles history and the selected settings panel when saving source values
+  by excluding gateway-owned data from development-server config restarts.
+
 - Add one shared interface selection colour in Styles → Interactions, independent
   of specimen Accent, with live previews and source-backed refresh across tabs.
 
