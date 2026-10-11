@@ -1,4 +1,4 @@
-.ui-catalogue-navigation { position:sticky; top:0; max-height:100dvh; min-height:calc(100dvh - 137px); overflow-y:auto; padding:1.25rem 1rem; border-right:1px solid var(--rl-line); background:#fafafa; }
+.ui-catalogue-navigation { position:sticky; top:0; max-height:100dvh; min-height:calc(100dvh - 137px); overflow-y:auto; padding:1.25rem 1rem; border-right:1px solid var(--rl-line); background: var(--studio-pane-surface, #fff); }
 .ui-catalogue-navigation h2 { margin:.25rem .65rem 1rem; font-size:.9375rem; }
 .ui-catalogue-navigation-groups { display:grid; gap:1.25rem; }
 .ui-catalogue-navigation-group h3 { margin:0 .65rem .45rem; color:var(--rl-muted); font-size:.8125rem; font-weight:600; }

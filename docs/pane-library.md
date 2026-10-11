@@ -109,7 +109,10 @@ Headers, tabs, toolbars and footer actions remain outside the scrolling body.
 Each instance has independent state and unique accessibility IDs.
 
 Tokens cover surfaces, borders, primary/muted text, hover, spacing, font and
-collapse-control dimensions. Width is a per-pane prop. The control uses the
+collapse-control dimensions. Studio panes use the shared white
+`--studio-pane-surface` interface token for their surface, body and edge control.
+This interface token is independent of template and content palette colours.
+Width is a per-pane prop. The control uses the
 existing Studio chevron SVG at 18px in a 28 × 48px neutral pill, centred on the
 inner edge. A collapsed control moves fully inside the workspace boundary.
 The module accepts its icon rather than importing a product-specific icon set.

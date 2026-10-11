@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Give Studio panes consistent white backgrounds through a shared interface token.
+
 - Use the shared resizable, collapsible Pane for site navigation link details.
 
 - Site navigation Save now confirms completion visibly, including when autosave has already saved the menu, and preserves rejected field errors.

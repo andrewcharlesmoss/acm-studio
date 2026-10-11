@@ -1,6 +1,6 @@
 .pane-workspace {
-  --pane-surface: #f9f8f4;
-  --pane-body-surface: #fff;
+  --pane-surface: var(--studio-pane-surface, #fff);
+  --pane-body-surface: var(--studio-pane-surface, #fff);
   --pane-border: #d2d0c8;
   --pane-text: #1c1c1e;
   --pane-muted: #626262;
@@ -25,7 +25,7 @@
 .pane-workspace *, .pane-workspace *::before, .pane-workspace *::after { box-sizing: border-box; }
 .pane-workspace [hidden], .pane [hidden], .pane[hidden] { display: none !important; }
 .pane-track {
-  --pane-surface: #f9f8f4;
+  --pane-surface: var(--studio-pane-surface, #fff);
   --pane-border: #d2d0c8;
   --pane-muted: #626262;
   --pane-hover: #eceae3;
