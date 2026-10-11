@@ -49,7 +49,10 @@ This is an internal Studio module, not a published package.
   for larger steps and Home/End for limits. The owning workspace applies the
   resulting width to its grid; the library specimens do this through
   `PaneWorkspace`. Studio Navigation, Editor Inspector and both Design Canvas
-  side panes use this contract. Width changes remain local to the current session.
+  side panes use this contract. The site navigation editor also uses
+  `PaneWorkspace` with a right-hand link-details `Pane`, starting at 300px and
+  resizable from 270px to 480px. Collapsing retains its selection and fields.
+  Width changes remain local to the current session.
 - `PaneCollapseButton`: state-aware name, optional tooltip, expanded state and
   controls relationship. Pane supplies the stable ID and focus handling.
 - `PaneSection`: a labelled content group with a generated heading identity.

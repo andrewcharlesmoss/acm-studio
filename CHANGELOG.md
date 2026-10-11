@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Use the shared resizable, collapsible Pane for site navigation link details.
+
 - Site navigation Save now confirms completion visibly, including when autosave has already saved the menu, and preserves rejected field errors.
 
 - Allow each template palette colour to reset to its current global default and

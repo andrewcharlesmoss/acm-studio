@@ -6,6 +6,7 @@ import { StudioButton } from "./controls/button";
 import { StudioIcon } from "./studio-icons";
 import { NavigationMenuList } from "./template-navigation-editor";
 import { PageLinkInspector } from "./page-link-inspector";
+import { Pane, PaneWorkspace } from "./panes/pane-components";
 import { testDocumentHref, type SiteNavigationReference } from "./test-site/contract";
 import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
 import type { StudioDocument } from "./editor-model";
@@ -21,6 +22,8 @@ export function SiteNavigationEditor({ siteId, navigation, templates, documents,
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedMenu, setSavedMenu] = useState<string | null>(null);
+  const [detailsWidth, setDetailsWidth] = useState(300);
+  const [detailsCollapsed, setDetailsCollapsed] = useState(false);
   const rejectedField = useRef(false);
   const set = templates.store.sets.find(item => item.id === navigation.setId);
   const links = set?.navigation ?? [];
@@ -71,6 +74,15 @@ export function SiteNavigationEditor({ siteId, navigation, templates, documents,
     <header><div><h1>{localFixtureName(siteId)} navigation</h1><p>Menu items belong to {localFixtureName(siteId)}. Colours and alignment come from the global Navigation template.</p></div><button type="button" aria-label="Close navigation editor" title="Back to Templates" onClick={onClose}><StudioIcon name="close" size={20} /></button></header>
     <div className="site-navigation-actions"><button type="button" disabled={!templates.canUndo || saving} onClick={templates.undo}><StudioIcon name="undo" />Undo</button><button type="button" disabled={!templates.canRedo || saving} onClick={templates.redo}><StudioIcon name="redo" />Redo</button><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>
     {error || templates.error ? <p role="alert">{error ?? templates.error}</p> : null}
-    <div className="site-navigation-columns" onChangeCapture={() => { setSavedMenu(null); rejectedField.current = false; }}><div className="site-navigation-menu" data-inspector-popover-owner><h2>Menu items</h2><NavigationMenuList {...props} /></div><aside className="site-navigation-details" data-inspector-popover-owner aria-label="Navigation link details">{selectedId ? <PageLinkInspector key={selectedId} {...props} siteId={siteId} contentOnly /> : <p>Select a link to edit its text and destination. Use its options menu to move or delete it.</p>}</aside></div>
+    <div className="site-navigation-pane-frame" onChangeCapture={() => { setSavedMenu(null); rejectedField.current = false; }}>
+      <PaneWorkspace className="site-navigation-columns" centreClassName="site-navigation-menu" label="Site navigation workspace"
+        right={<Pane label="Navigation link details" side="right" width={detailsWidth} onWidthChange={setDetailsWidth} minWidth={270} maxWidth={480}
+          collapsed={detailsCollapsed} onCollapsedChange={setDetailsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
+          className="site-navigation-details" bodyClassName="site-navigation-details-body">
+          {selectedId ? <PageLinkInspector key={selectedId} {...props} siteId={siteId} contentOnly /> : <p>Select a link to edit its text and destination. Use its options menu to move or delete it.</p>}
+        </Pane>}>
+        <div data-inspector-popover-owner><h2>Menu items</h2><NavigationMenuList {...props} /></div>
+      </PaneWorkspace>
+    </div>
   </section>;
 }

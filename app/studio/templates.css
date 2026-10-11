@@ -306,7 +306,9 @@
 .navigation-inspector-tabs { --pane-tab-label-inset: 0px; display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--studio-border, #ddd); }
 .navigation-inspector .navigation-inspector-tabs .pane-tab-label { display: grid; place-items: center; min-height: 24px; width: 100%; }
 .navigation-menu-list ul { list-style: none; margin: 0; padding: 0; }
-.site-navigation-workspace { grid-column: span 2; padding: 24px; background: var(--studio-surface, #fff); font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.site-navigation-workspace { grid-column: span 2; display: flex; flex-direction: column; min-height: 0; padding: 24px; background: var(--studio-surface, #fff); font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.site-navigation-workspace > header, .site-navigation-actions { flex-shrink: 0; }
+.site-navigation-pane-frame { flex: 1; min-height: 0; }
 .site-navigation-workspace > header, .site-navigation-actions { display: flex; align-items: center; gap: 12px; }
 .site-navigation-workspace > header { justify-content: space-between; }
 .site-navigation-workspace h1 { font-size: 20px; margin: 0; }
@@ -316,9 +318,10 @@
 .site-navigation-actions { margin-block: 20px; }
 .site-navigation-actions > button { display: inline-flex; align-items: center; gap: 6px; }
 .site-navigation-actions > span { margin-left: auto; }
-.site-navigation-columns { display: grid; grid-template-columns: minmax(240px, 1fr) 300px; border: 1px solid var(--studio-border, #ddd); }
-.site-navigation-menu, .site-navigation-details { padding: 16px; min-width: 0; }
-.site-navigation-details { border-left: 1px solid var(--studio-border, #ddd); }
+.site-navigation-workspace .site-navigation-columns { --pane-font: var(--studio-ui-font); --pane-font-size: var(--studio-ui-size); --pane-border: var(--studio-border, #ddd); height: 100%; border: 1px solid var(--studio-border, #ddd); }
+.site-navigation-columns .pane-track { --pane-border: var(--studio-border, #ddd); }
+.site-navigation-columns .site-navigation-menu { padding: 16px; background: var(--studio-surface, #fff); }
+.site-navigation-details-body { padding: 16px; }
 .navigation-menu-list li { display: flex; align-items: center; min-height: 40px; }
 .navigation-menu-select { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; min-height: 40px; padding: 8px; border: 0; border-radius: 2px; background: transparent; color: inherit; text-align: start; }
 .navigation-menu-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
