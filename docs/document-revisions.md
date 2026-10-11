@@ -2,11 +2,32 @@
 
 ## Using saved versions
 
-Open a page or post, choose its **Page** or **Post** pane, then open **Revisions**
-and choose **Browse saved versions**. Select a saved date to preview that version.
-Browsing never replaces the current draft. Close or press Escape to return to it.
-The preview shows saved editorial content using the current block renderer, not
-a historical template or published website snapshot. Preview links cannot navigate.
+Open a page or post, choose its **Page** or **Post** pane, then click the number
+beside **Revisions**. The number counts distinct retained editorial versions,
+including current saved content and labelled legacy recovery snapshots. If the
+count is not available yet, **View** opens the history and reports any load error.
+
+The full comparison screen follows the
+[WordPress classic revisions reference](https://wordpress.org/documentation/article/revisions/#classic-revisions)
+shown by Andrew on 11 October 2026. Its timeline runs oldest to newest. Drag the
+slider or use **Previous** and **Next** to select a version. Keyboard arrows,
+Home and End use native range behaviour. By default, **Removed** and **Added**
+compare that version with its preceding retained version. The earliest version
+compares with empty content. Dates identify both sides of the comparison.
+**Compare any two revisions** adds a separately labelled **From** slider;
+**To** remains the version eligible for restoration. Studio uses two native
+ranges rather than WordPress's combined two-handle slider.
+
+Title and content show unchanged lines alongside removals and additions, with
+additional highlighting for changed words. Content uses Studio's canonical HTML
+inspection format, rendered as escaped text. Changed editorial fields have their
+own sections. Expand **Block data changes** for the complete typed block diff,
+including settings absent from that HTML format. Large changed regions use a
+bounded comparison and remain complete; long lines receive whole-line highlights.
+Long tables reveal 500 lines at a time through **Show More Lines**.
+
+Browsing never replaces the current draft. **Go to Editor**, the close control
+or Escape returns to the editor and restores focus to the Revisions count.
 
 **Restore this revision** first waits for the current draft to be saved. It then
 restores the selected document through the existing Undo history and save flow,

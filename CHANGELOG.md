@@ -149,6 +149,9 @@
 
 ### Changed
 
+- Revisions now opens a full comparison screen from the Page/Post revision count,
+  with a timeline slider, Previous/Next and highlighted Removed/Added columns.
+
 - Move disclosure heading hover colour into Styles → Interactions as a shared
   preset token for inspector accordions and navigation overlay headings; remove
   the Controls accordion browser preference.

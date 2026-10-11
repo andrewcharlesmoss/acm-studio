@@ -249,7 +249,11 @@ until their dependencies are resolved.
 
 ## Local write ownership
 
-Page and Post panes expose saved document revisions. Browser revisions live in
+Page and Post panes expose a clickable saved-revision count and full comparison
+screen, with a chronological slider, Previous/Next and Removed/Added source
+columns. Optional arbitrary comparison uses two labelled native ranges; the To
+version is restored. Complete typed block differences remain inspectable alongside
+the canonical HTML inspection format. Browser revisions live in
 the owning workspace v25 aggregate, retained independently of Undo with a
 100-record / 2 MiB budget. Test and Test2 read validated selected-document
 records from their existing bounded gateway history. Browsing is read-only;

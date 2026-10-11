@@ -434,7 +434,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             paneCollapsed: inspectorPaneCollapsed,
             onPaneCollapsedChange: setInspectorPaneCollapsed,
             documentControls: templateControls,
-            revisionsControl: <DocumentRevisionsControl key={`${selectedSite ?? "browser"}:${activeDocument.id}`} document={activeDocument} writable={editorWritable && !codeEditorDirty && !previewWindow} mediaUrls={media.blockUrls}
+            revisionsControl: <DocumentRevisionsControl key={`${selectedSite ?? "browser"}:${activeDocument.id}`} document={activeDocument} writable={editorWritable && !codeEditorDirty && !previewWindow} refreshKey={selectedSite ? testSite.snapshot : workspace} refreshStatus={saveLabel}
               load={async () => {
                 if (!selectedSite) return (browserWorkspaceRepository.load()?.documentRevisions ?? []).filter(item => item.document.id === activeDocument.id && item.document.kind === activeDocument.kind);
                 const result = await testSite.loadDocumentRevisions(activeDocument.id);
