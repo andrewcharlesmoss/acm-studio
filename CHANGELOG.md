@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Add individual resets to global defaults for template body typography and shared layout overrides.
+
 - Match the editor toolbar background to the white pane surface.
 
 - Give Studio panes consistent white backgrounds through a shared interface token.

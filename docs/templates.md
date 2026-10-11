@@ -174,6 +174,14 @@ The saturation/brightness plane previews a drag locally and commits its final
 colour on pointer release, keeping the picker open while the global save is in
 progress.
 
+Body Typography and Shared Layout also offer individual Reset actions only
+where values differ from the shared default. Resets use the latest successfully
+loaded saved shared styles; unsaved UI Library previews are not defaults.
+Offline and hosted sessions retain their last valid or bundled defaults.
+Size, line height and letter spacing reset only the desktop metric shown in
+the pane, preserving tablet and mobile values. Each reset uses template history
+and can be undone.
+
 Title-placeholder migration applies only when validating an active store or
 portable package from v0.11.0 or earlier. Default Page/Post templates migrate
 the adjacent plain Heading `Title` and Paragraph `Subtitle` pair only at the

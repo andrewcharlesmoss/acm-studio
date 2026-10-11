@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { universalStylePresetToCssVariables, validateUniversalStylePreset } from "@acm/styles";
 import { createSharedStylesClient } from "./shared-styles-client.mjs";
+import { publishSharedStylePreset } from "./shared-style-preset";
 
 /** Explicit source refresh avoids remounting drafts when preset JSON HMR is suppressed. */
 export function SharedStyleRuntime() {
@@ -21,8 +22,10 @@ export function SharedStyleRuntime() {
       try {
         const source = await client.load(sessionToken.current);
         sessionToken.current = source.token;
-        const variables = universalStylePresetToCssVariables(validateUniversalStylePreset(source.preset));
+        const preset = validateUniversalStylePreset(source.preset);
+        const variables = universalStylePresetToCssVariables(preset);
         if (!active || request !== epoch) return;
+        publishSharedStylePreset(preset);
         for (const [key, value] of Object.entries(variables)) document.body.style.setProperty(key, value);
         document.body.style.setProperty("--studio-selection-colour", variables["--acm-interaction-selection-colour"]);
         for (const [alias, token] of [["accent", "accent"], ["hover-accent", "hover"], ["pressed-accent", "pressed"]]) {

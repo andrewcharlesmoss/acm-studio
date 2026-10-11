@@ -55,6 +55,10 @@
 .template-inspector input[type=color] { height: 36px; }
 .template-palette-colour-setting { align-items: stretch; background: #fff; border: 1px solid #d1cfc7; border-radius: 4px; display: grid; grid-template-columns: minmax(0, 1fr) auto; min-width: 0; }
 .template-palette-colour-setting .inspector-colour-row-setting { min-width: 0; }
+.template-resettable-setting { position: relative; min-width: 0; }
+.template-resettable-setting > label { padding-top: 4px; }
+.template-inspector .inspector-scroll .template-resettable-setting > button.template-style-reset { position: absolute; top: 0; right: 0; min-height: 26px; padding: 3px 6px; border: 0; background: transparent; color: var(--accent); font: inherit; }
+.template-inspector .inspector-scroll .template-resettable-setting > button.template-style-reset:hover:not(:disabled) { background: var(--acm-interaction-neutral-hover-background, #f0f0f0); }
 .template-inspector .inspector-scroll .template-palette-colour-setting button.inspector-colour-row { align-items: center; background: transparent; border: 0; border-radius: 3px; display: flex; gap: 10px; min-height: 42px; padding: 8px 12px; text-align: start; width: 100%; }
 .template-palette-colour-setting .inspector-colour-row > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .template-inspector .inspector-scroll .template-palette-colour-setting .template-palette-colour-reset { align-items: center; background: transparent; border: 0; border-inline-start: 1px solid #d1cfc7; border-radius: 0 3px 3px 0; color: var(--accent); display: flex; min-height: 42px; padding: 8px 10px; }
