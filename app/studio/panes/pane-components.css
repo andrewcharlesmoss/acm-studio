@@ -83,5 +83,5 @@
 }
 
 /* Keep content clear of the centred circle without moving the pane divider. */
-.pane-track[data-side="left"] > .pane { box-sizing: border-box; padding-right: 8px; }
-.pane-track[data-side="right"] > .pane { box-sizing: border-box; padding-left: 8px; }
+.pane-track[data-side="left"] > .pane { box-sizing: border-box; padding-right: 4px; }
+.pane-track[data-side="right"] > .pane { box-sizing: border-box; padding-left: 4px; }
