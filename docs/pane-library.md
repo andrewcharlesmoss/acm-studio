@@ -114,7 +114,7 @@ collapse-control dimensions. Studio panes use the shared white
 `--studio-pane-surface` interface token for their surface, body and edge control.
 This interface token is independent of template and content palette colours.
 Width is a per-pane prop. The control uses the
-existing Studio chevron SVG at 18px in a 26 × 26px neutral circle, centred on the
+existing Studio chevron SVG at 18px in a 24 × 24px neutral circle, centred on the
 inner edge. A collapsed control moves fully inside the workspace boundary.
 The resize strip is 12px wide (24px for coarse pointers). Coarse pointers also
 receive a 44px collapse target around the visible circle. Dragging the circle
