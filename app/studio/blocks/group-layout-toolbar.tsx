@@ -40,7 +40,6 @@ function GroupLayoutToolbarControls({ block, writable, onUpdate }: Props) {
           onUpdate(currentBlock => currentBlock.layout === block.layout && groupUsesContentWidth(currentBlock) === groupUsesContentWidth(block) ? { ...currentBlock, [control.field]: choice.value } : currentBlock);
           close();
         }}><StudioHoverIcon name={choice.icon} /><span>{choice.label}</span></button>)}
-        <button type="button" role="menuitem" className="group-layout-menu-close" aria-label={`Close ${control.label.toLowerCase()} menu`} onClick={() => close()}><StudioHoverIcon name="action.close" /><span>Close</span></button>
       </StudioAnchoredMenu> : null}
     </div>;
   })}</div>;

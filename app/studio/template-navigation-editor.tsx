@@ -58,7 +58,7 @@ function NavigationAdd({ parentId, afterId, ...props }: NavigationEditingProps &
   </>;
 }
 
-function NavigationItemActions({ item, onEdit, ...props }: NavigationEditingProps & { item: SiteLink; onEdit?: () => void }) {
+function NavigationItemActions({ item, onEdit, toolbar = false, ...props }: NavigationEditingProps & { item: SiteLink; onEdit?: () => void; toolbar?: boolean }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const entries = navigationEntries(props.links);
@@ -74,7 +74,7 @@ function NavigationItemActions({ item, onEdit, ...props }: NavigationEditingProp
       <button type="button" role="menuitem" disabled={!entry || entry.index === entry.siblings.length - 1 || !props.writable} onClick={() => { props.onChange(moveNavigationItem(props.links, item.id, 1)); close(); }}><StudioIcon name="arrow-down" />Move Down</button>
       <button type="button" role="menuitem" disabled={entries.length + duplicateSize > 100 || !props.writable} onClick={() => { const copy = duplicate(item); if (props.onChange(insertNavigationItem(props.links, copy, undefined, item.id))) { props.onSelect(copy.id); close(false); focusNavigationItem(copy.id, props.blockId); } }}><StudioIcon name="copy" />Duplicate</button>
       <button type="button" role="menuitem" disabled={!props.writable} onClick={() => { const remaining = removeNavigationItem(props.links, item.id); const neighbour = navigationEntries(remaining)[0]?.link; const fallback = trigger.current?.closest(".navigation-editor, .navigation-menu-list")?.querySelector<HTMLButtonElement>(".navigation-appender > .navigation-add, .navigation-menu-add > .navigation-add"); if (props.onChange(remaining)) { props.onSelect(neighbour?.id ?? null); close(false); if (neighbour) focusNavigationItem(neighbour.id, props.blockId); else requestAnimationFrame(() => fallback?.focus()); } }}><StudioIcon name="trash" />Delete</button>
-      <button type="button" role="menuitem" onClick={() => close()}><StudioIcon name="close" />Close</button>
+      {!toolbar ? <button type="button" role="menuitem" onClick={() => close()}><StudioIcon name="close" />Close</button> : null}
     </StudioAnchoredMenu> : null}
   </>;
 }
@@ -132,7 +132,7 @@ function NavigationCanvasItem({ item, vertical, onDragItem, onDropItem, onDragEn
       <NavigationAdd {...props} parentId={item.id} />
       <button type="button" disabled={!props.writable} aria-label="Bold Page link" title="Bold" aria-pressed={bold} onClick={() => format(!bold, italic)}><StudioIcon name="format-bold" size={20} /></button>
       <button type="button" disabled={!props.writable} aria-label="Italic Page link" title="Italic" aria-pressed={italic} onClick={() => format(bold, !italic)}><StudioIcon name="format-italic" size={20} /></button>
-      <NavigationItemActions {...props} item={item} onEdit={() => setLinkOpen(true)} />
+      <NavigationItemActions {...props} item={item} toolbar onEdit={() => setLinkOpen(true)} />
     </div> : null}
     <input className="navigation-edit-label" data-navigation-link-id={item.id} aria-label={`Navigation link text: ${item.label || "Untitled"}`} value={item.label} maxLength={160} readOnly={!props.writable} style={{ ...paragraphStyleToCss(item.visualStyle), width: `${Math.max(1, item.label.length + 1)}ch` }} onFocus={() => props.onSelect(item.id)} onChange={event => props.onChange(updateNavigationItem(props.links, item.id, current => ({ ...current, label: event.target.value })))} onKeyDown={event => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); event.stopPropagation(); setLinkOpen(true); }

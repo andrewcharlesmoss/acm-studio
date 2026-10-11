@@ -2074,7 +2074,6 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .group-layout-toolbar { gap: 2px; }
 .group-layout-toolbar-menu button { align-items: center; display: flex; gap: 8px; }
 .studio-anchored-menu.group-layout-toolbar-menu button.is-active { background: var(--studio-toolbar-active, #e7e7e5); }
-.studio-anchored-menu.group-layout-toolbar-menu button.group-layout-menu-close { border-top: 1px solid var(--studio-toolbar-divider, #d5d3cb); margin-top: 4px; }
 
 .table-placeholder button:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 

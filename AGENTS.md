@@ -129,6 +129,12 @@ channel by 12%, and pressed by darkening hover a further 12%. Controls examples
 inherit the shared colour without temporary colour pickers; their reset affects
 example values only. Specialist hue and alpha tracks remain separate.
 
+Andrew authorised an exception to the visible-close-control rule on 11 October
+2026 for compact editor toolbar dropdowns: omit Close buttons and rows, following
+the Gutenberg reference. Escape closes the topmost dropdown and returns focus to
+its trigger; clicking outside or clicking the trigger again also dismisses it.
+Dialogs, inspector menus and larger editing popovers retain visible close controls.
+
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and
 UI Library specimens, including control menus, colour and gradient editors,

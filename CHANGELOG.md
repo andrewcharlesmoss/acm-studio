@@ -152,6 +152,9 @@
 
 ### Changed
 
+- Remove Close rows from compact toolbar dropdowns; retain Escape, outside-click
+  and trigger-toggle dismissal as a documented interface exception.
+
 - Move the Page/Post Bin action above organisation settings as a visible red
   outlined button, outside the Document actions accordion.
 
