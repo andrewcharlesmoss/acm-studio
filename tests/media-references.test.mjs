@@ -185,9 +185,9 @@ test("actual media deletion guard rejects files owned by Table cells and recover
     ASSET_STORE: "assets", withStore: async (_name, _mode, operation) => operation({ delete: id => deleted.push(id) }),
   };
   const remove = vm.runInNewContext(`${compiled}\ndeleteMediaAsset`, context);
-  for (const id of ["cell-a", "cell-d", "table-caption", "quote-recovery", "quote-child-image", "citation"]) await assert.rejects(remove(id), /used by a page or post/);
+  for (const id of ["cell-a", "cell-d", "table-caption", "quote-recovery", "quote-child-image", "citation"]) await assert.rejects(remove(id), /used by a page, post/);
   workspace = { documents: [], bin: [{ document: { blocks: [table, quote] } }] };
-  await assert.rejects(remove("cell-b"), /including an item in the Bin/);
+  await assert.rejects(remove("cell-b"), /saved revision or item in the Bin/);
   assert.deepEqual(deleted, []);
   const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post"), coverImage: null, blocks: [table] };
   workspace = { documents: [], bin: [{ document: { blocks: [] }, publication: { ...toLocallyPublishedArticle(document), mediaIds: [] } }] };

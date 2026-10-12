@@ -70,7 +70,7 @@ test("rich Button labels survive versioned workspace, publication, template and 
   assert.equal(workspace.version, 24);
   assert.deepEqual(plain(validation.validateStudioWorkspace(workspace).documents.find(document => document.id === post.id).blocks), [button]);
   assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 24);
-  assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 25 }));
+  assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 26 }));
   const article = publications.toLocallyPublishedArticle(post);
   const publicationStore = { version: 16, posts: [article] };
   assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publicationStore))[0].blocks), [button]);
@@ -80,13 +80,13 @@ test("rich Button labels survive versioned workspace, publication, template and 
   set.parts[0].nodes = [button];
   assert.deepEqual(plain(templates.templateNodesFromBlocks(templates.templateEditorBlocks([button]))), [button]);
   const templateStore = { ...templates.emptyTemplateStore(), sets: [set] };
-  assert.equal(templateStore.version, "0.26.0");
+  assert.equal(templateStore.version, "0.29.0");
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0" }).sets[0].parts[0].nodes), [button]);
   const pageTemplate = set.templates.find(template => template.kind === "page");
   pageTemplate.nodes = [{ id: "authored-title", type: "heading", level: 2, text: "Title" }, { id: "authored-subtitle", type: "paragraph", text: "Subtitle" }, { id: "content-slot", type: "element", element: "content" }];
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0", defaultTemplateIds: { page: pageTemplate.id } }).sets[0].templates.find(template => template.id === pageTemplate.id).nodes), pageTemplate.nodes, "the most recent legacy reader must preserve authored default Title/Subtitle copy");
   assert.deepEqual(plain(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.24.0", set, media: [] }).set.parts[0].nodes), [button]);
-  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.27.0", set, media: [] }));
+  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.30.0", set, media: [] }));
   const saved = backup.validateStudioBackup({ format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T00:00:00Z", workspace, publications: JSON.stringify(publicationStore), templates: templateStore, media: { folders: [], assets: [] } });
   assert.deepEqual(plain(saved.workspace.documents.find(document => document.id === post.id).blocks), [button]);
 });
@@ -136,7 +136,7 @@ test("Footnote objects survive owned repository saves, publications, templates, 
     repository.save(workspace);
     assert.deepEqual(plain(repository.load().documents.find(item => item.id === document.id).blocks), blocks);
     templateRepository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.26.0");
+    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.29.0");
     assert.deepEqual(plain(templateRepository.loadTemplates(env.storage).sets[0].parts[0].nodes), blocks);
     golf.miniGolfDraftRepository.save(golfWorkspace);
     assert.deepEqual(plain(golf.miniGolfDraftRepository.load().documents[0].blocks), blocks);
@@ -168,6 +168,7 @@ test("neutral templates validate and their editor projection round-trips without
       if (node.type !== "element") return;
       if (!["document-title", "cover-image"].includes(node.element)) node.align ??= "left";
       if (node.element === "content") node.inheritLayout ??= true;
+      if (node.element === "navigation") Object.assign(node, { layout: "row", horizontalAlign: node.align ?? "left", allowWrap: true, overlayMenu: "never", submenuOpenOnClick: false, showSubmenuIcon: true, ariaLabel: "Site navigation" });
     });
     assert.deepEqual(plain(actual), expected);
   }
@@ -199,7 +200,7 @@ test("Template layout controls retain semantics, alignment and Section styles th
   const { release } = await env.own();
   try {
     repository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.26.0");
+    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.29.0");
     assert.deepEqual(plain(repository.loadTemplates(env.storage).sets[0].parts[0].nodes), nodes);
   } finally { release(); }
   const document = env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0];
@@ -243,7 +244,7 @@ test("Template layout validation rejects unsupported semantics and unsafe styles
   }
 });
 
-test("Template v0.25 readers retain existing inline capabilities while writers emit v0.26", () => {
+test("Template v0.25 readers retain existing inline capabilities while writers emit v0.29", () => {
   const env = environment(); const model = env.load("studio/template-model.ts");
   const packages = env.load("studio/template-package.ts");
   const math = env.load("content/math-runs.ts");
@@ -253,9 +254,9 @@ test("Template v0.25 readers retain existing inline capabilities while writers e
   set.parts[0].nodes = [{ id: "legacy-inline", type: "paragraph", text: "\uFFFC\uFFFCFrench", runs }];
   const legacy = { ...model.emptyTemplateStore(), version: "0.25.0", sets: [set] };
   assert.deepEqual(plain(model.validateTemplateStore(legacy).sets[0].parts[0].nodes[0].runs), plain(runs));
-  assert.equal(model.validateTemplateStore(legacy).version, "0.26.0");
-  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.26.0");
-  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.26.0");
+  assert.equal(model.validateTemplateStore(legacy).version, "0.29.0");
+  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.29.0");
+  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.29.0");
   assert.throws(() => model.validateTemplateStore({ ...legacy, version: "0.24.0" }), /Inline objects/);
 });
 
@@ -976,7 +977,7 @@ test("template shell keeps configurable brand semantics and documented responsiv
   const snapshot = { version: m.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
   const html = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot, document }));
   assert.match(html, /template-brand-mark[^>]*>NS</); assert.match(html, /template-brand-name[^>]*>North Star Studio</);
-  assert.match(html, /<nav aria-label="Site navigation" class="template-navigation acm-navigation">/);
+  assert.match(html, /<nav aria-label="Site navigation" class="template-navigation acm-navigation"[^>]*data-navigation-layout="row"[^>]*data-navigation-align="left"[^>]*data-navigation-overlay="never"/);
   assert.match(html, /<nav class="template-social" aria-label="Social and support links">/);
   assert.match(html, /target="_blank" rel="noopener noreferrer"/);
   const css = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
@@ -1238,7 +1239,8 @@ test("template sync session survives workspace editability changes without recon
 
 test("template peers explain connection state and wait for an authoritative snapshot", async () => {
   const h = hooks(); let syncOptions; let status = "connecting";
-  const env = environment({ react: h.react, "./studio-sync": {
+  const actualSync = environment().load("studio/studio-sync.ts");
+  const env = environment({ react: h.react, "./studio-sync": { ...actualSync,
     createStudioSync(options) {
       syncOptions = options;
       return {
@@ -1256,16 +1258,16 @@ test("template peers explain connection state and wait for an authoritative snap
   render(); await h.flush(); let state = render(); await h.flush(); state = render();
   assert.ok(syncOptions);
   assert.equal(state.writable, false);
-  assert.equal(state.saveLabel, "Connecting to another ACM Studio tab…");
+  assert.equal(state.saveLabel, "Reconnecting local saving…");
 
   syncOptions.onSnapshot(plain(state.store), "welcome");
   status = "synced"; syncOptions.onStatus(status); state = render();
   assert.equal(state.writable, true);
-  assert.equal(state.saveLabel, "Synced with another ACM Studio tab");
+  assert.equal(state.saveLabel, "Local workspace connected");
 
   status = "disconnected"; syncOptions.onStatus(status); state = render();
   assert.equal(state.writable, false);
-  assert.equal(state.saveLabel, "Connection lost — template editing is paused");
+  assert.equal(state.saveLabel, "Local saving unavailable — template editing is paused");
 });
 
 test("an in-flight template edit survives becoming the persistence owner", async () => {

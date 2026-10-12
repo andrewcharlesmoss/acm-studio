@@ -10,8 +10,8 @@ const read = path => readStudioSource(path);
 test("all typed blocks and template Content have complete, ordered inspector capability profiles", () => {
   const profiles = Object.values(blockCapabilityProfiles);
   const typedProfiles = profiles.filter(profile => profile.type !== "template-content");
-  assert.equal(typedProfiles.length, 31);
-  assert.equal(profiles.length, 32);
+  assert.equal(typedProfiles.length, 33);
+  assert.equal(profiles.length, 34);
   assert.equal(new Set(profiles.map(profile => profile.type)).size, 29);
 
   for (const profile of profiles) {
@@ -118,7 +118,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(groupDimensions, /label="Vertical gap"/);
   assert.match(groupDimensions, /: <fieldset className="group-layout-dimension-group"><legend>Block spacing<\/legend><div className="inspector-two-column">/);
   assert.match(groupDimensions, /<legend>Block spacing<\/legend>/);
-  assert.match(inspectorSource, /resetGroupDimensionFields\(block, nextStyle, \{ padding: selectedIds.includes\("padding"\), layout: resetGroupLayout \}\)/);
+  assert.match(inspectorSource, /resetGroupDimensionFields\(block, nextStyle, \{ padding: selectedIds.includes\("padding"\), layout: resetGroupLayout \|\| selectedIds.includes\("gaps"\) \}\)/);
   assert.match(inspectorSource, /title="Position" options=\{\[\{ id: "position", label: "Position" \}\]\}/);
   const groupPositionInspector = inspectorSource.slice(inspectorSource.indexOf("function GroupPositionInspector"), inspectorSource.indexOf("function ColumnsInspector"));
   assert.match(groupPositionInspector, /configuredPosition: block\.position, visible: Boolean\(block\.position\)/);
@@ -264,7 +264,7 @@ test("List compatibility records recursive nesting and independent List Item ins
   const lineHeightControl = itemProfile.controls.find(control => control.id === "line-height");
   assert.ok(lineHeightControl);
   assert.ok(itemProfile.dependencies.some(dependency => dependency.id === lineHeightControl.id));
-  assert.deepEqual([...itemProfile.resetFields].sort(), ["additionalCss", "anchor", "appearance", "backgroundColor", "backgroundGradient", "borderColor", "borderRadius", "borderStyle", "borderWidth", "className", "fontFamily", "fontSize", "fontSizeCustom", "letterSpacing", "lineHeight", "linkColor", "linkHoverColor", "margin", "padding", "textColor", "textDecoration", "textTransform"].sort());
+  assert.deepEqual([...itemProfile.resetFields].sort(), ["additionalCss", "anchor", "appearance", "backgroundColor", "backgroundGradient", "backgroundImageMediaId", "backgroundSize", "backgroundRepeat", "backgroundFixedSize", "backgroundPositionX", "backgroundPositionY", "shadow", "borderColor", "borderRadius", "borderStyle", "borderWidth", "className", "fontFamily", "fontSize", "fontSizeCustom", "letterSpacing", "lineHeight", "linkColor", "linkHoverColor", "margin", "padding", "textColor", "textDecoration", "textTransform"].sort());
   assert.deepEqual([...listItemSupportedStyleFields].sort(), [...new Set(itemProfile.controls.flatMap(control => control.fields))].sort());
   assert.ok(!unsupported.includes("Nested List Item blocks"));
   assert.ok(!unsupported.some(item => item.includes("List Item anchor")));
@@ -283,7 +283,7 @@ test("List compatibility records recursive nesting and independent List Item ins
   assert.ok(listField, "the production ListField owns keyboard indentation");
   assert.match(listField, /event\.key === "Tab"/);
   assert.match(listField, /event\.shiftKey/);
-  assert.match(listField, /<ListItemIndentControls/);
+  assert.match(read("app/studio/studio-canvas.tsx"), /<ListToolbarControls[^>]*onChange=\{changeList\}/);
   assert.match(compatibility, /Table cells and caption support rich text; cell spanning remains unsupported/);
   assert.doesNotMatch(compatibility, /Known typed-model gaps remain nested List Items/);
   assert.match(read("app/studio/blocks/list-item-inspector.tsx"), /new Set\(listItemSupportedStyleFields\)/);
@@ -292,8 +292,8 @@ test("List compatibility records recursive nesting and independent List Item ins
 });
 
 test("every reusable Controls entry has a grouped anchor specimen and compatible direct route", () => {
-  assert.equal(studioControlEntries.length, 23);
-  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 23);
+  assert.equal(studioControlEntries.length, 24);
+  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 24);
   for (const entry of studioControlEntries) {
     assert.equal(studioControlEntryById[entry.id], entry);
     assert.ok(entry.purpose && entry.owner && entry.consumers.length && entry.states && entry.compatibility, entry.id);
@@ -323,8 +323,8 @@ test("shared line-height setting is used by block and List Item inspectors", () 
   assert.match(setting, /placeholder="Default"/);
   assert.match(setting, /onChange\(event\.target\.value \|\| undefined\)/);
   assert.match(inspector, /<LineHeightSetting value=\{style\.lineHeight\}/);
-  assert.match(listItemInspector, /import \{ ParagraphInspector \} from/);
-  assert.match(listItemInspector, /<ParagraphInspector profileOverride=\{listItemStyleInspectorProfile\}/);
+  assert.match(listItemInspector, /import \{ ParagraphInspector, ManagedBackgroundImageInspector \} from/);
+  assert.match(listItemInspector, /profileOverride=\{listItemStyleInspectorProfile\}/);
   assert.match(listItemInspector, /block=\{\{[^\n]*type: "paragraph"[^\n]*style \}\}/);
   assert.match(listItemInspector, /for \(const field of listItemSupportedStyleFields\) changes\[field as keyof ParagraphStyle\] = next\.style\?/);
   assert.ok(listItemCapabilityProfile.controls.find(control => control.id === "line-height")?.fields.includes("lineHeight"));

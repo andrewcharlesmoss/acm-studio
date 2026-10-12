@@ -28,7 +28,13 @@ test("editor navigation renders the shared authored part and preserves the body 
     for (const base of [{}, { renderDocument: (_context, content) => createElement("section", { className: "assigned-template" }, content) }]) {
       const presentation = navigation.withTestSiteNavigation(base, site, () => {}, () => {});
       const html = renderToStaticMarkup(presentation.renderDocument({ document: site.documents[1], mode }, createElement("p", null, "Editable body")));
-      assert.equal((html.match(/data-test-link=/g) ?? []).length, site.documents.length);
+      const branches = [...html.matchAll(/<div class="(?:template-navigation-desktop|template-navigation-overlay-content)"[^>]*>([\s\S]*?)<\/ul><\/div>/g)].map(match => match[1]);
+      assert.equal(branches.length, 2);
+      for (const branch of branches) {
+        assert.equal((branch.match(/data-test-link=/g) ?? []).length, site.documents.length);
+        assert.match(branch, /data-test-link="page-one" aria-current="page"/);
+        assert.match(branch, /&lt;script&gt;Fixture &amp; title&lt;\/script&gt;/);
+      }
       assert.match(html, /aria-label="Site navigation"/);
       assert.match(html, /data-test-link="page-one" aria-current="page"/);
       assert.match(html, /&lt;script&gt;Fixture &amp; title&lt;\/script&gt;/);
@@ -51,7 +57,7 @@ test("v1/v2 upgrade preserves home, metadata and regions without writing or cons
   assert.deepEqual(collection.documents[0].blocks.map(block => block.tagName), ["header", "main", "footer"]);
   const browser = workspace(); const before = JSON.stringify(browser); const site = contract.importBrowserTestContent(source, browser, model.emptyTemplateStore());
   valid(site); assert.equal(JSON.stringify(browser), before); assert.equal(site.documents.length, 3);
-  assert.deepEqual(contract.importBrowserTestContent(site, browser, model.emptyTemplateStore()), site);
+  assert.deepEqual(contract.importBrowserTestContent(site, browser, model.emptyTemplateStore()), contract.testSiteCollection(site));
 });
 test("collection validates ownership, home, duplicate IDs, categories, parents and portable media", () => {
   const good = imported(); valid(good);
@@ -92,9 +98,11 @@ test("renderer safely routes all documents and retains the home on an invalid do
   assert.equal(html.includes(site.documents[1].title), false);
   const pages = site.documents.map(page => ({ dataset: { testDocument: page.id, testHome: String(page.id === site.homeDocumentId), testTitle: page.title }, hidden: page.id !== site.homeDocumentId }));
   const links = pages.map(page => ({ dataset: { testLink: page.dataset.testDocument }, setAttribute() {}, removeAttribute() {} }));
-  const document = { title: "Test", querySelectorAll: selector => selector === "[data-test-document]" ? pages : links };
+  const listeners = new Map();
+  const document = { addEventListener: (name, callback) => listeners.set(name, callback), removeEventListener: (name, callback) => { if (listeners.get(name) === callback) listeners.delete(name); }, title: "Test", querySelectorAll: selector => selector === "[data-test-document]" ? pages : links };
   const location = { hash: "#document=post-one" }; let onHashChange;
   vm.runInNewContext(html.match(/<script>([\s\S]*)<\/script>/)[1], { document, location, addEventListener: (_name, callback) => { onHashChange = callback; } });
+  for (const name of ["click", "keydown", "toggle", "pointerover", "pointerout"]) assert.ok(listeners.has(name), name);
   assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "post-one");
   location.hash = "#footnote-one"; onHashChange(); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "post-one");
   location.hash = "#document=unknown"; onHashChange(); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "test-site");

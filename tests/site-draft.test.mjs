@@ -96,7 +96,7 @@ test("Mini Golf environments remain separate editor targets within one dashboard
 
 test("the dashboard catalogue includes only actual sites alphabetically", async () => {
   const { studioProjects } = await loadProductionModule(new URL("../app/studio/project-registry.ts", import.meta.url));
-  assert.deepEqual(studioProjects.map(project => project.id), ["acm-account", "acm-studio", "andrew-moss", "habit-tracker", "lid-angle", "loquafy", "loquage", "mini-golf-scorecard"]);
+  assert.deepEqual(studioProjects.map(project => project.id), ["acm-account", "acm-studio", "andrew-moss", "habit-tracker", "lid-angle", "loquafy", "loquage", "mini-golf-scorecard", "test", "test2"]);
   for (const id of ["acm-account", "habit-tracker", "loquafy", "mini-golf-scorecard"]) {
     assert.deepEqual(studioProjects.find(project => project.id === id).environments.map(environment => environment.name), ["Staging", "Production"]);
   }

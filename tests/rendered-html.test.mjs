@@ -26,7 +26,7 @@ test("renders the ACM Studio control centre at the root route", async () => {
   assert.match(html, /Content Studio/);
   assert.doesNotMatch(html, /Connection pending|View Repository|ACM Styles|Mission Control/);
   const cards = [...html.matchAll(/<article class="dashboard-site-card" data-project-id="([^"]+)"[^>]*>[\s\S]*?<h3>([^<]+)<\/h3>/g)];
-  assert.equal(cards.length, 8);
+  assert.equal(cards.length, 10);
   const names = cards.map(card => card[2]);
   assert.deepEqual(names, [...names].sort((left, right) => left.localeCompare(right, "en-GB")));
   assert.equal(cards.filter(card => card[1] === "mini-golf-scorecard").length, 1);
@@ -119,7 +119,7 @@ test("keeps hosted database, login and starter-preview surfaces out of the found
   assert.match(jsonExport, /application\/json/);
   assert.match(blockCommands, /function moveBlock/);
   assert.match(documentCommands, /function duplicateDocument/);
-  assert.match(studio, /useStudioCanvasActions\(\{ blockCommands, writable, insertAfterIndex/);
+  assert.match(studio, /useStudioCanvasActions\(\{ blockCommands, writable: editorWritable, insertAfterIndex/);
   assert.match(canvasActions, /function insertBlock/);
   assert.match(studioMedia, /mediaId/);
   assert.match(mediaStore, /indexedDB\.open/);

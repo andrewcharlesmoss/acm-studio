@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blockCapabilityProfiles, capabilityProfileFor } from "../app/studio/blocks/capability-profiles.ts";
+import { blockCapabilityProfiles, capabilityProfileFor, navigationCapabilityProfile } from "../app/studio/blocks/capability-profiles.ts";
 
 test("every conditional capability identifies its controlling field or editor context", () => {
   for (const profile of Object.values(blockCapabilityProfiles)) {
@@ -34,4 +34,11 @@ test("Columns preset availability describes the pending editor choice", () => {
   assert.equal(preset.placement, "canvas");
   assert.deepEqual(preset.fields, ["children"]);
   assert.equal(columns.dependencies.some(dependency => dependency.id === "pending-columns-layout"), false);
+});
+
+test("Navigation link controls declare their selected-entry context", () => {
+  const link = navigationCapabilityProfile.controls.find(control => control.id === "link");
+  assert.equal(link.dependency, "selected-navigation-entry");
+  assert.equal(link.availableWhen, "A menu entry is selected.");
+  assert.ok(link.fields.every(field => field.startsWith("TemplateSet.navigation[].")));
 });

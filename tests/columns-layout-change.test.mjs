@@ -39,13 +39,16 @@ test('Top, Centre, Bottom and Stretch share valid CSS values across layout owner
   assert.equal(layoutStyleProperties({})['--block-layout-vertical-align'], undefined);
 });
 
-test('production preview renders Top for Columns, Row, Grid and Section without changing saved values', () => {
+test('production preview renders active Top alignment and Grid stretch without changing saved values', () => {
   const columns = fixture();
   const blocks = [columns, ...['row', 'grid'].map(layout => ({ id: layout, type: 'group', layout, verticalAlign: 'top', children: [p(`${layout}-child`)] })), { id: 'section', type: 'section', layout: 'row', verticalAlign: 'top', children: [p('section-child')] }];
   assert.equal(validContentBlocks(blocks), true);
   const html = renderToStaticMarkup(React.createElement(BlockRenderer, { blocks, variant: 'studio' }));
-  assert.equal((html.match(/--block-layout-vertical-align:start/g) ?? []).length, 4);
+  assert.equal((html.match(/--block-layout-vertical-align:start/g) ?? []).length, 3);
   assert.equal(html.includes('--block-layout-vertical-align:top'), false);
+  const grid = blocks.find(block => block.id === "grid");
+  assert.match(renderToStaticMarkup(React.createElement(BlockRenderer, { blocks: [grid], variant: "studio" })), /--block-layout-vertical-align:stretch/);
+  assert.equal(grid.verticalAlign, "top");
   const source = blockToHtml(columns);
   assert.match(source, /data-layout-vertical-align="top"/);
   for (const id of ['columns', 'left', 'right', 'a', 'b', 'c']) assert.ok(source.includes(`data-block-id="${id}"`));

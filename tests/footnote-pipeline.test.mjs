@@ -441,17 +441,17 @@ test("the actual workspace commit boundary rejects note loss without consuming h
   const tree = ts.createSourceFile("use-studio-workspace.ts", source, ts.ScriptTarget.Latest, true);
   const functions = [];
   function visit(node) {
-    if (ts.isFunctionDeclaration(node) && ["commit", "updateDocument"].includes(node.name?.text)) functions.push(node.getText(tree));
+    if (ts.isFunctionDeclaration(node) && ["installLocalSnapshot", "commit", "updateDocument"].includes(node.name?.text)) functions.push(node.getText(tree));
     ts.forEachChild(node, visit);
   }
   visit(tree);
-  assert.equal(functions.length, 2);
+  assert.equal(functions.length, 3);
   const { outputText } = ts.transpileModule(`${functions.join("\n")}\nglobalThis.updateDocument = updateDocument;`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } });
   const original = freeze({ version: 23, documents: [{ id: "doc", updatedAt: "2026-10-04T00:00:00.000Z", blocks: [paragraph(), notes] }] });
   let current = original;
   const future = { version: 23, documents: [{ ...original.documents[0], title: "Previous future" }] };
   const availability = [];
-  const scope = { editable: true, MAX_HISTORY: 60, historyRef: { current: [] }, futureRef: { current: [future] }, cloneWorkspace: structuredClone, commitHistory, reconcileFootnoteBlocks, setWorkspace(update) { current = update(current); }, setHistoryAvailability(value) { availability.push(value); } };
+  const scope = { editable: true, MAX_HISTORY: 60, historyRef: { current: [] }, futureRef: { current: [future] }, workspaceRef: { current: original }, authoritativeWorkspaceRef: { current: original }, pendingPeerSaveRef: { current: null }, setSaveLabel() {}, cloneWorkspace: structuredClone, commitHistory, reconcileFootnoteBlocks, setWorkspace(next) { current = next; }, setHistoryAvailability(value) { availability.push(value); } };
   runInNewContext(outputText, scope);
   scope.updateDocument("doc", document => ({ ...document, blocks: [document.blocks[0]] }));
   assert.equal(current, original);
@@ -463,6 +463,9 @@ test("the actual workspace commit boundary rejects note loss without consuming h
   assert.equal(scope.historyRef.current.length, 0);
   scope.updateDocument("doc", document => ({ ...document, blocks: [{ ...document.blocks[0], text: "beforeafter", runs: [{ text: "beforeafter" }] }, document.blocks[1]] }));
   assert.equal(scope.historyRef.current.length, 1);
+  assert.equal(scope.workspaceRef.current, current);
+  assert.deepEqual(JSON.parse(JSON.stringify(scope.pendingPeerSaveRef.current.base)), original);
+  assert.deepEqual(JSON.parse(JSON.stringify(scope.pendingPeerSaveRef.current.snapshot)), JSON.parse(JSON.stringify(current)));
   assert.equal(scope.futureRef.current.length, 0);
   assert.equal(current.documents[0].blocks[1].notes.length, 0);
   const deleted = JSON.parse(JSON.stringify(current));
@@ -770,7 +773,7 @@ test("workspace and publication envelopes deliberately version inline-object sup
 });
 
 test("Template and Mini Golf contracts retain old records but require new envelopes for objects", () => {
-  assert.equal(TEMPLATE_VERSION, "0.26.0");
+  assert.equal(TEMPLATE_VERSION, "0.29.0");
   assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: "0.23.0" }).version, TEMPLATE_VERSION);
   const identity = { pageId: "mini-golf-home", instanceId: "prod", source: { revision: "fixture", fileHashes: {} } };
   const blocks = [...initialMiniGolfDraft.documents[0].blocks, paragraph(), notes];

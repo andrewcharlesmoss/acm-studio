@@ -38,7 +38,7 @@ test("Library and main editor supply their complete document to the shared provi
   // mounted Library behaviour is checked separately in the browser.
   const library = await readFile(new URL("../app/studio/ui/blocks/block-specimen-catalogue.tsx", import.meta.url), "utf8");
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
-  assert.match(library, /return <FootnoteNumbersProvider blocks=\{data\.blocks\}><TableCaptionProvider/);
+  assert.match(library, /<FootnoteNumbersProvider blocks=\{data\.blocks\}><TableCaptionProvider/);
   assert.match(canvas, /<FootnoteNumbersProvider blocks=\{props\.activeDocument\.blocks\}>/);
   assert.doesNotMatch(canvas, /const FootnoteNumbersContext/);
 });

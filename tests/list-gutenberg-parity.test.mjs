@@ -186,16 +186,19 @@ let renderControls;
 function findRenderControls(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === 'renderBlockControls') renderControls = node; ts.forEachChild(node, findRenderControls); }
 findRenderControls(tree);
 const compiledControls = ts.transpileModule(`${renderControls.getText(tree)};globalThis.render = renderBlockControls;`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-for (const selection of [undefined, { listId: 'root', itemIndex: 2 }, { listId: 'removed-nested', itemIndex: 0 }]) test(`the actual parent List toolbar retains List commands after stale item selection ${JSON.stringify(selection)}`, () => {
+function controlsFixture(selection, writable = true, presentation) {
   const root = list(['One', 'Two']);
   const scope = { exports: {}, require: () => jsxRuntime, activeDocument: { id: 'document', blocks: [root] }, findBlockById,
     selectedBlockId: 'root', activeListItems: { root: selection }, validListItemSelection: structure.validListItemSelection, listTextRange: null, parentOfNestedBlock: () => null,
-    writable: true, transformMenuBlockId: null, BlockTransformControl: 'transform-fixture', StudioHoverIcon: 'icon-fixture',
-    ListToolbarControls, finishBlockDrag() {}, blockLabel: () => 'List', canMove: () => true, isBlockAlignedBlock: () => true, isEditableTextBlock: () => false,
+    presentation, writable, transformMenuBlockId: null, BlockTransformControl: 'transform-fixture', StudioHoverIcon: 'icon-fixture',
+    ListToolbarControls, ListItemSwitcher, ListItemActions, richTextMenuBlockId: null, textMarkState: () => false, formatSelectedText() {}, finishBlockDrag() {}, blockLabel: () => 'List', canMove: () => true, isBlockAlignedBlock: () => true, isEditableTextBlock: () => false,
     isEditableRichTextBlock: () => true, preserveTextSelection() {}, blockMenuItems: () => [], blockMenuBlockId: null,
     hasMultiSelection: false, htmlEditorTriggerRef: { current: null }, linkEditor: null, htmlEditor: null };
   runInNewContext(compiledControls, scope);
-  const toolbar = scope.render(root).props.children[0];
+  return { scope, toolbar: scope.render(root)?.props.children[0] };
+}
+for (const selection of [undefined, { listId: 'root', itemIndex: 2 }, { listId: 'removed-nested', itemIndex: 0 }]) test(`the actual parent List toolbar retains List commands after stale item selection ${JSON.stringify(selection)}`, () => {
+  const { toolbar } = controlsFixture(selection);
   function expandedButtons(node) {
     if (Array.isArray(node)) return Array.from(node).flatMap(expandedButtons);
     if (!node?.props) return [];
@@ -205,6 +208,18 @@ for (const selection of [undefined, { listId: 'root', itemIndex: 2 }, { listId: 
   const labels = expandedButtons(toolbar).map(button => button.props['aria-label']);
   assert.deepEqual(labels, ['Drag to reorder List block', 'Move block up', 'Move block down', 'Convert to unordered list', 'Convert to ordered list', 'Outdent list item', 'More block options']);
 });
+for (const writable of [true, false]) test(`actual selected List Item formatting retains accessible writable=${writable} controls`, () => {
+  const { toolbar } = controlsFixture({ listId: 'root', itemIndex: 0 }, writable);
+  for (const label of ['Bold selected text', 'Italicise selected text', 'More text formatting', 'Add or edit hyperlink']) {
+    assert.equal(action(toolbar, label).props.disabled, !writable, label);
+  }
+  assert.equal(buttons(toolbar).some(button => button.props['aria-label'] === 'Text alignment'), false);
+});
+test('presentation-owned List controls are not duplicated by the canvas', () => {
+  const { toolbar } = controlsFixture({ listId: 'root', itemIndex: 0 }, true, { ownsBlockControls: () => true });
+  assert.equal(toolbar, undefined);
+});
+
 let selectListParent;
 function findParentSelect(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === 'selectListParent') selectListParent = node; ts.forEachChild(node, findParentSelect); }
 findParentSelect(tree);

@@ -26,7 +26,10 @@ test("keeps Studio commands behind focused hooks", async () => {
   assert.match(blocks, /function insertBlock/);
   assert.match(media, /URL\.revokeObjectURL/);
   assert.match(publishing, /browserPublishingRepository/);
-  assert.ok(coordinator.split("\n").length < 350, "Studio coordinator should remain a thin screen-level module");
+  // Size alone is not a boundary: the shell now coordinates fixture sites and revisions.
+  for (const boundary of ["useTestSite", "useTestSiteContext", "useGlobalTemplates", "DocumentRevisionsControl", "restoreDocumentRevision"]) assert.ok(coordinator.includes(boundary), boundary);
+  assert.doesNotMatch(coordinator, /localStorage\.setItem|new BroadcastChannel|indexedDB\.open|function validateStudioWorkspace|function restoreDocumentRevision|function createStudioTransaction/);
+  assert.ok(coordinator.split("\n").length < 600, "Keep the expanded screen coordinator bounded; persistence and domain implementations belong to their modules");
 });
 
 test("keeps public, Studio, media and backup styles in separate files", async () => {

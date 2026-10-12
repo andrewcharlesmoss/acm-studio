@@ -77,18 +77,18 @@ test("native modal Escape and Save leave its draft and underlying selection inta
 
 test("initial template and Bin URLs select their existing screen owners", () => {
   const templates = fixture({}, "?mode=templates"); templates.flush();
-  assert.deepEqual(templates.calls, [["setTemplateTarget", { setId: null, targetId: null }], ["setStudioSection", "templates"], ["setLibraryKind", "templates"]]);
-  const bin = fixture({}, "?mode=bin"); bin.flush(); assert.deepEqual(bin.calls, [["setTemplateTarget", { setId: null, targetId: null }], ["setStudioSection", "bin"]]);
-  const content = fixture(); content.flush(); assert.deepEqual(content.calls, [["setTemplateTarget", { setId: null, targetId: null }], ["setLibraryKind", "post"]]);
+  assert.deepEqual(templates.calls, [["setTemplateTarget", { setId: null, targetId: null, scope: "global" }], ["setStudioSection", "templates"], ["setLibraryKind", "templates"]]);
+  const bin = fixture({}, "?mode=bin"); bin.flush(); assert.deepEqual(bin.calls, [["setTemplateTarget", { setId: null, targetId: null, scope: "global" }], ["setStudioSection", "bin"]]);
+  const content = fixture(); content.flush(); assert.deepEqual(content.calls, [["setTemplateTarget", { setId: null, targetId: null, scope: "global" }], ["setLibraryKind", "post"]]);
 });
 
 test("Back and Forward synchronise the screen and leave Preview", () => {
   const h = fixture(); h.pop("?mode=templates&set=example&target=one", 1);
-  assert.deepEqual(h.calls, [["setStudioSection", "templates"], ["setTemplateTarget", { setId: "example", targetId: "one" }], ["setLibraryKind", "templates"], ["setPreviewing", false]]);
+  assert.deepEqual(h.calls, [["setStudioSection", "templates"], ["setTemplateTarget", { setId: "example", targetId: "one", scope: "site" }], ["setLibraryKind", "templates"], ["setPreviewing", false]]);
   h.calls.length = 0; h.pop("?mode=templates&set=example&target=two", 2);
-  assert.deepEqual(h.calls[1], ["setTemplateTarget", { setId: "example", targetId: "two" }]);
+  assert.deepEqual(h.calls[1], ["setTemplateTarget", { setId: "example", targetId: "two", scope: "site" }]);
   h.calls.length = 0; h.pop("", 0);
-  assert.deepEqual(h.calls, [["setStudioSection", "content"], ["setTemplateTarget", { setId: null, targetId: null }], ["setLibraryKind", "post"], ["setPreviewing", false]]);
+  assert.deepEqual(h.calls, [["setStudioSection", "content"], ["setTemplateTarget", { setId: null, targetId: null, scope: "global" }], ["setLibraryKind", "post"], ["setPreviewing", false]]);
 });
 
 test("unmounted and read-only preview initialisation do not change screens", () => {
@@ -106,11 +106,11 @@ test("mode URLs retain encoded template targets and avoid duplicate entries", ()
   const write = new Function("exports", "window", "isLocalFixtureSiteId", `${code}\nreturn exports.writeStudioNavigation;`)({}, window, siteId => siteId === "test" || siteId === "test2");
   write("templates", { setId: "set / one", targetId: "part & two" });
   const query = new URLSearchParams(location.search);
-  assert.equal(query.get("mode"), "templates"); assert.equal(query.get("set"), "set / one"); assert.equal(query.get("target"), "part & two");
+  assert.equal(query.get("mode"), "templates"); assert.equal(query.get("scope"), "global"); assert.equal(query.get("set"), "set / one"); assert.equal(query.get("target"), "part & two");
   write("templates", { setId: "set / one", targetId: "part & two" }); assert.equal(calls.length, 1);
   write("content"); assert.equal(calls.at(-1), "/studio"); assert.equal(location.search, "");
   write("bin"); assert.equal(calls.at(-1), "/studio?mode=bin");
-  write("templates"); assert.equal(calls.at(-1), "/studio?mode=templates");
+  write("templates"); assert.equal(calls.at(-1), "/studio?mode=templates&scope=global");
 });
 
 test("refused Back and Forward keep the draft mounted and restore the accepted history entry", () => {
@@ -134,7 +134,7 @@ test("accepted dirty-code history navigation projects the target after confirmat
   const h = fixture({ confirmCodeEditorDiscard: () => { confirmations++; return true; } });
   assert.equal(h.pop("?mode=templates&set=chosen&target=header", 1), false);
   assert.equal(confirmations, 1);
-  assert.deepEqual(h.calls[1], ["setTemplateTarget", { setId: "chosen", targetId: "header" }]);
+  assert.deepEqual(h.calls[1], ["setTemplateTarget", { setId: "chosen", targetId: "header", scope: "site" }]);
   assert.deepEqual(h.historyCalls, []);
 });
 

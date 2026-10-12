@@ -23,6 +23,9 @@ function loadDeclarations(path, names, environment) {
 
 const { groupVariations, changeGroupLayout } = await loadProductionModule(new URL("../app/studio/blocks/group-variations.ts", import.meta.url));
 const { GroupLayoutChooser } = loadDeclarations("../app/studio/blocks/group-layout-selection.tsx", ["GroupLayoutChooser"], { React, groupVariations });
+const { GroupEmptyAppender } = loadDeclarations("../app/studio/blocks/group-empty-appender.tsx", ["GroupEmptyAppender"], {
+  React, StudioIcon: () => null, useState: value => [value, () => {}], useRef: current => ({ current }), useLayoutEffect() {},
+});
 const BlockFieldContent = () => null;
 const { BlockField, NestedBlockAppender } = loadDeclarations("../app/studio/studio-canvas.tsx", ["BlockField", "NestedBlockAppender"], {
   React, GroupLayoutChooser, changeGroupLayout, BlockFieldContent, StudioIcon: () => null,
@@ -69,9 +72,10 @@ test("an established empty Group uses the normal canvas and visual style pipelin
 
 test("empty Group plus opens the child inserter for its own parent", () => {
   let target;
-  const button = NestedBlockAppender({ parentId: "chosen-group", compact: true, writable: true, onOpen: id => { target = id; } });
+  const appender = GroupEmptyAppender({ block: { id: "chosen-group", type: "group", layout: "flow", children: [] }, selected: true, writable: true, onOpen: id => { target = id; } });
+  const button = React.Children.toArray(appender.props.children).find(child => child.type === "div").props.children;
   assert.equal(button.props["aria-label"], "Add block");
-  assert.match(button.props.className, /is-compact/);
+  assert.match(button.props.className, /group-empty-add/);
   assert.equal(React.Children.toArray(button.props.children).length, 1);
   button.props.onClick();
   assert.equal(target, "chosen-group");
@@ -86,4 +90,7 @@ test("read-only layout choices and child appender cannot dispatch edits", () => 
   const appender = NestedBlockAppender({ parentId: "group", compact: true, writable: false, onOpen: () => assert.fail("Read-only child insertion") });
   assert.equal(appender.props.disabled, true);
   appender.props.onClick();
+  const empty = GroupEmptyAppender({ block: { id: "group", type: "group", layout: "flow", children: [] }, selected: true, writable: false, onOpen: () => assert.fail("Read-only empty Group insertion") });
+  const button = React.Children.toArray(empty.props.children).find(child => child.type === "div").props.children;
+  assert.equal(button.props.disabled, true); button.props.onClick();
 });

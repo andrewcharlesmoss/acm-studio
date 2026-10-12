@@ -10,7 +10,7 @@ const hash = text => createHash("sha256").update(text).digest("hex");
 const render = (document, revision) => `<meta name="acm-test-revision" content="${revision}"><p>${document.text}</p>`;
 async function fixture() {
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), "test-site-store-")));
-  const document = { text: "Original" };
+  const document = { siteId: "test", text: "Original" };
   await mkdir(path.join(root, "content")); await mkdir(path.join(root, "dist"));
   await writeFile(path.join(root, "content/site.json"), JSON.stringify(document));
   await writeFile(path.join(root, "dist/index.html"), render(document, revisionOf(document)));
@@ -22,13 +22,13 @@ test("shared gateway saves visual/prompt changes by revision and retains undo so
   const f = await fixture();
   try {
     const session = await f.store.connect(); await f.store.handle(session.token, { siteId: "test", action: "claim" });
-    const visual = await f.store.handle(session.token, { siteId: "test", action: "save", baseRevision: session.revision, document: { text: "Visual" } });
+    const visual = await f.store.handle(session.token, { siteId: "test", action: "save", baseRevision: session.revision, document: { siteId: "test", text: "Visual" } });
     assert.equal((await f.store.assertPrompt(session.token, visual.revision)).document.text, "Visual");
-    const prompt = await f.store.handle(session.token, { siteId: "test", action: "save", baseRevision: visual.revision, document: { text: "Prompt" } });
+    const prompt = await f.store.handle(session.token, { siteId: "test", action: "save", baseRevision: visual.revision, document: { siteId: "test", text: "Prompt" } });
     assert.match(await readFile(path.join(f.root, "dist/index.html"), "utf8"), /Prompt/);
     assert.equal(JSON.parse(await readFile(path.join(f.root, `.studio/history/${session.revision}.json`), "utf8")).text, "Original");
-    await assert.rejects(f.store.handle(session.token, { siteId: "test", action: "save", baseRevision: visual.revision, document: { text: "Stale" } }), error => error.status === 409);
-    const undo = await f.store.handle(session.token, { siteId: "test", action: "save", baseRevision: prompt.revision, document: { text: "Visual" } });
+    await assert.rejects(f.store.handle(session.token, { siteId: "test", action: "save", baseRevision: visual.revision, document: { siteId: "test", text: "Stale" } }), error => error.status === 409);
+    const undo = await f.store.handle(session.token, { siteId: "test", action: "save", baseRevision: prompt.revision, document: { siteId: "test", text: "Visual" } });
     assert.equal(undo.document.text, "Visual");
   } finally { await f.close(); }
 });
@@ -40,7 +40,12 @@ test("invalid/token/unknown-site/second-session updates cannot write", async () 
     await assert.rejects(f.store.handle("bad", { siteId: "test", action: "save" }), error => error.status === 401);
     await assert.rejects(f.store.handle(a.token, { siteId: "other", action: "save" }));
     await assert.rejects(f.store.handle(a.token, { siteId: "test", action: "save", baseRevision: a.revision, document: {} }));
-    assert.equal(JSON.parse(await readFile(path.join(f.root, "content/site.json"), "utf8")).text, "Original");
+    const sourceBefore = await readFile(path.join(f.root, "content/site.json"), "utf8");
+    const outputBefore = await readFile(path.join(f.root, "dist/index.html"), "utf8");
+    await assert.rejects(f.store.handle(a.token, { siteId: "test", action: "save", baseRevision: a.revision, document: { siteId: "test2", text: "Cross-site" } }));
+    assert.equal(await readFile(path.join(f.root, "content/site.json"), "utf8"), sourceBefore);
+    assert.equal(await readFile(path.join(f.root, "dist/index.html"), "utf8"), outputBefore);
+    assert.equal(JSON.parse(sourceBefore).text, "Original");
   } finally { await f.close(); }
 });
 test("external output edits and concurrent source edits during rendering are preserved", async () => {
@@ -48,15 +53,15 @@ test("external output edits and concurrent source edits during rendering are pre
   try {
     const a = await f.store.connect(); await f.store.handle(a.token, { siteId: "test", action: "claim" });
     await writeFile(path.join(f.root, "dist/index.html"), "external");
-    await assert.rejects(f.store.handle(a.token, { siteId: "test", action: "save", baseRevision: a.revision, document: { text: "Overwrite" } }), error => error.status === 409);
+    await assert.rejects(f.store.handle(a.token, { siteId: "test", action: "save", baseRevision: a.revision, document: { siteId: "test", text: "Overwrite" } }), error => error.status === 409);
     assert.equal(await readFile(path.join(f.root, "dist/index.html"), "utf8"), "external");
   } finally { await f.close(); }
   const g = await fixture();
   let edit = false;
-  const second = createTestSiteStore({ ...g.options, render: async (document, revision) => { if (edit) await writeFile(path.join(g.root, "content/site.json"), JSON.stringify({ text: "External" })); return render(document, revision); } });
+  const second = createTestSiteStore({ ...g.options, render: async (document, revision) => { if (edit) await writeFile(path.join(g.root, "content/site.json"), JSON.stringify({ siteId: "test", text: "External" })); return render(document, revision); } });
   try {
     const a = await second.connect(); await second.handle(a.token, { siteId: "test", action: "claim" }); edit = true;
-    await assert.rejects(second.handle(a.token, { siteId: "test", action: "save", baseRevision: a.revision, document: { text: "Overwrite" } }), error => error.status === 409);
+    await assert.rejects(second.handle(a.token, { siteId: "test", action: "save", baseRevision: a.revision, document: { siteId: "test", text: "Overwrite" } }), error => error.status === 409);
     assert.equal(JSON.parse(await readFile(path.join(g.root, "content/site.json"), "utf8")).text, "External");
   } finally { await second.close(); await g.close(); }
 });
@@ -66,7 +71,7 @@ test("a pending source commit recovers output and a live second server is exclud
     const a = await f.store.connect();
     const second = createTestSiteStore(f.options);
     await assert.rejects(second.connect(), error => error.status === 423);
-    const next = { text: "Committed before interruption" }; const revision = revisionOf(next);
+    const next = { siteId: "test", text: "Committed before interruption" }; const revision = revisionOf(next);
     const oldHtml = await readFile(path.join(f.root, "dist/index.html"), "utf8");
     await writeFile(path.join(f.root, ".studio/state.json"), JSON.stringify({ revision: a.revision, outputHash: hash(oldHtml), pending: { revision, outputHash: hash(render(next, revision)) } }));
     await writeFile(path.join(f.root, "content/site.json"), JSON.stringify(next));
@@ -98,7 +103,7 @@ test("recovery preserves an external edit made while output renders", async () =
   let recovery;
   try {
     const session = await f.store.connect();
-    const next = { text: "Pending" }; const revision = revisionOf(next);
+    const next = { siteId: "test", text: "Pending" }; const revision = revisionOf(next);
     const oldOutput = await readFile(path.join(f.root, "dist/index.html"), "utf8");
     await writeFile(path.join(f.root, ".studio/state.json"), JSON.stringify({ revision: session.revision, outputHash: hash(oldOutput), pending: { revision, outputHash: hash(render(next, revision)) } }));
     await writeFile(path.join(f.root, "content/site.json"), JSON.stringify(next));
@@ -170,7 +175,7 @@ test("journal-only and completed-output interrupted saves recover without overwr
   for (const phase of ["journal", "output"]) {
     const f = await fixture(); let recovered;
     try {
-      const session = await f.store.connect(); const next = { text: "Next" }; const revision = revisionOf(next); const html = render(next, revision);
+      const session = await f.store.connect(); const next = { siteId: "test", text: "Next" }; const revision = revisionOf(next); const html = render(next, revision);
       const old = await readFile(path.join(f.root, "dist/index.html"), "utf8");
       await writeFile(path.join(f.root, ".studio/state.json"), JSON.stringify({ revision: session.revision, outputHash: hash(old), pending: { revision, outputHash: hash(html) } }));
       if (phase === "output") { await writeFile(path.join(f.root, "content/site.json"), JSON.stringify(next)); await writeFile(path.join(f.root, "dist/index.html"), html); }
@@ -186,7 +191,7 @@ test("expired owner cannot commit after slow rendering or renew itself by readin
   const store = createTestSiteStore({ ...f.options, clock: () => now, render: (document, revision) => { if (slow) now = 40000; return render(document, revision); } });
   try {
     const session = await store.connect(); await store.handle(session.token, { siteId: "test", action: "claim" }); slow = true;
-    await assert.rejects(store.handle(session.token, { siteId: "test", action: "save", baseRevision: session.revision, document: { text: "Expired" } }), error => error.status === 423);
+    await assert.rejects(store.handle(session.token, { siteId: "test", action: "save", baseRevision: session.revision, document: { siteId: "test", text: "Expired" } }), error => error.status === 423);
     await assert.rejects(store.handle(session.token, { siteId: "test", action: "read" }), error => error.status === 423);
     assert.equal(JSON.parse(await readFile(path.join(f.root, "content/site.json"), "utf8")).text, "Original");
   } finally { await store.close(); await f.close(); }
@@ -219,7 +224,7 @@ test("renderer failure preserves canonical source, output and journal before com
     const session = await rejecting.connect(); await rejecting.handle(session.token, { siteId: "test", action: "claim" });
     const names = ["content/site.json", "dist/index.html", ".studio/state.json"];
     const before = await Promise.all(names.map(name => readFile(path.join(f.root, name), "utf8")));
-    await assert.rejects(rejecting.handle(session.token, { siteId: "test", action: "save", baseRevision: session.revision, document: { text: "Rejected rendering" } }), /Fixture renderer failed/);
+    await assert.rejects(rejecting.handle(session.token, { siteId: "test", action: "save", baseRevision: session.revision, document: { siteId: "test", text: "Rejected rendering" } }), /Fixture renderer failed/);
     assert.deepEqual(await Promise.all(names.map(name => readFile(path.join(f.root, name), "utf8"))), before);
     assert.equal((await rejecting.handle(session.token, { siteId: "test", action: "read" })).revision, session.revision);
   } finally { await rejecting.close(); await f.close(); }

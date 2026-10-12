@@ -139,7 +139,7 @@ test("Background reset owns image configuration while preserving foreground and 
     assert.deepEqual(plain(actions.resetSupportedInspectorStyleFields(style, ["background"], capabilityProfileFor(type).controls)), { textColor: "#112233", linkColor: "#224466", linkHoverColor: "#445566" });
   }
   const style = { borderWidth: "2px", borderColor: "#112233", shadow: "soft", textColor: "#222" };
-  assert.deepEqual(plain(actions.resetSupportedInspectorStyleFields(style, ["border", "shadow"], capabilityProfileFor("list").controls)), { shadow: "soft", textColor: "#222" });
+  assert.deepEqual(plain(actions.resetSupportedInspectorStyleFields(style, ["border", "shadow"], capabilityProfileFor("list").controls)), { textColor: "#222" });
 });
 
 test("List Item reset remains item-scoped and uses the same registered controls", () => {
@@ -206,7 +206,7 @@ test("blank custom measurement clears rather than storing an explicit zero; expl
     const writes = [];
     const source = readFileSync("app/studio/box-length-setting.tsx", "utf8").replace("function BoxLengthRow(", "export function BoxLengthRow(");
     const exports = {};
-    vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, require: id => id === "react" ? { useId: () => "test-box-value", useState: () => [index++ === 0 ? true : renderDraft, () => {}] } : id === "../content/box-lengths" ? {} : id === "@acm/icons/react" ? {} : id.startsWith(".") ? {} : require(id) });
+    vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, require: id => id === "react" ? { useId: () => "test-box-value", useState: () => [index++ === 0 ? true : renderDraft, () => {}] } : id === "@acm/icons/react" ? {} : id.startsWith(".") ? load([resolve("app/studio", id), `${resolve("app/studio", id)}.ts`, `${resolve("app/studio", id)}.tsx`].find(existsSync)) : require(id) });
     const row = exports.BoxLengthRow({ label: "All", settingLabel: "Padding", value: "8px", min: 0, max: 160, allowPercent: true, onChange: value => writes.push(value) });
     nodes(row).find(node => node.type === "input" && node.props.type === "number").props.onBlur();
     assert.deepEqual(writes, [draft === "" ? undefined : "0px"]);

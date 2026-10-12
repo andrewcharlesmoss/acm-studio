@@ -49,7 +49,7 @@ for (const file of ["studio-prototype.tsx", "mini-golf-site-editor.tsx"]) {
     const owner = file === "studio-prototype.tsx" ? "use-studio-canvas-actions.ts" : file;
     if (file === "studio-prototype.tsx") {
       const coordinator = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
-      assert.match(coordinator, /useStudioCanvasActions\(\{ blockCommands, writable, insertAfterIndex/);
+      assert.match(coordinator, /useStudioCanvasActions\(\{ blockCommands, writable: editorWritable, insertAfterIndex/);
       assert.match(coordinator, /onInsertBlock: \(type, parentId, options\) => insertBlock\(type, parentId, insertAfterIndex, options\?\.keepInserterOpen\)/);
     }
     const { insertBlock } = insertionFunctions(owner, ["insertBlock"], state);

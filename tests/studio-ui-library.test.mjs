@@ -209,7 +209,10 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(read("app/studio/controls/library-catalogue.ts"), /\["Foundation", "Colour", "Typography", "Sizing", "Style", "Media", "Inspector"\]/);
   assert.match(navigation, /href=\{`#\$\{entry\.id\}`\}/);
   assert.match(page, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\}/);
-  for (const [prop, value] of [["sliderAccent", "effectiveSliderAccent"], ["sliderHoverAccent", "effectiveSliderHoverAccent"], ["sliderPressAccent", "effectiveSliderPressAccent"], ["onSliderAccentChange", "setSliderAccent"], ["onSliderHoverAccentChange", "setSliderHoverAccent"], ["onSliderPressAccentChange", "setSliderPressAccent"]]) assert.ok(page.includes(`${prop}={${value}}`), prop);
+  assert.doesNotMatch(page, /sliderAccent|onSliderAccentChange|setSliderAccent/);
+  assert.match(detail, /<RangeControl/);
+  assert.match(detail, /function ControlSpecimen\(\{ entry \}/);
+  assert.doesNotMatch(detail, /onSliderAccentChange\(|onSliderHoverAccentChange\(|onSliderPressAccentChange\(/);
   assert.match(detail, /<section id=\{entry\.id\}/);
   assert.match(detail, /<h3 id=\{`control-entry-\$\{entry\.id\}`\}>/);
   assert.match(detail, /<h4 id=\{`control-specimen-\$\{entry\.id\}`\}>/);
@@ -267,8 +270,8 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(studioStyles, /\.inspector-sections input\[type="number"\] \{ width: var\(--studio-number-field-width\); \}/);
   assert.match(studioStyles, /\.paragraph-length-controls \{[^}]*grid-template-columns: minmax\(60px, 1fr\) var\(--studio-number-field-width\)/);
   assert.match(studioStyles, /\.box-length-custom \{[^}]*grid-template-columns: var\(--studio-number-field-width\) 70px/);
-  assert.match(studioStyles, /\.paragraph-custom-font-size-input input\[type="number"\],\.paragraph-length-controls input\[type="number"\],\.box-length-custom input\[type="number"\] \{ font-family: var\(--studio-ui-font\); font-size: var\(--studio-ui-size\); \}/);
-  assert.match(studioStyles, /\.paragraph-custom-font-size-input input\[type="number"\][^}]*width: var\(--studio-number-field-width\)/);
+  assert.match(read("app/studio/controls/number-unit-field.css"), /flex: 1 1 0; font: inherit;/);
+  assert.match(studioStyles, /\.paragraph-custom-font-size \{[^}]*grid-template-columns: calc\(var\(--studio-number-field-width\) \+ 44px\)/);
   assert.match(studioStyles, /\.paragraph-reset-button \{[^}]*color: var\(--ink\)/);
   assert.match(studioStyles, /\.paragraph-reset-button:disabled \{[^}]*color: var\(--muted\)/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-live \{ width:min\(100%,320px\)/);
@@ -340,7 +343,7 @@ test("Block Library catalogue previews the exact shared and Studio symbols used 
   assert.match(icons, /Regular-S · 16px/);
   assert.match(icons, /Regular-M · 24px/);
   assert.match(icons, /Regular-L · 32px/);
-  assert.match(templateEditor, /\.\.\.blockCatalogue, templateContentBlock/);
+  assert.match(templateEditor, /\.\.\.blockCatalogue, \.\.\.\(target\.kind === "page" \|\| target\.kind === "post" \? \[templateContentBlock\] : \[\]\), templateNavigationBlock, templatePageLinkBlock/);
   assert.match(blockSymbols, /group: \{ source: "ACM Icons", symbol: "layout\.flow" \}/);
   for (const symbol of ["text.paragraph", "block.heading", "block.list", "text.quote", "block.table", "block.code", "insert.embed", "block.image", "document.featured-image", "account.author", "social.block", "component.block", "insert.button", "layout.separator", "layout.spacer", "time.clock", "document.date", "layout.column", "text.list-numbered", "document.title", "document.content"]) {
     assert.ok(blockSymbols.includes(`symbol: "${symbol}"`), symbol);
@@ -369,7 +372,7 @@ test("keyboard inspector exposes each selected key's artwork provenance and avai
 
 test("Studio tool navigation points to one combined library entry", () => {
   const coordinator = read("app/studio/studio-prototype.tsx");
-  assert.match(coordinator, /<StudioNavigationPane workspace=\{workspace\}/);
+  assert.match(coordinator, /<StudioNavigationPane\b[\s\S]*?workspace=\{workspace\}/);
   for (const file of ["app/studio/studio-dashboard.tsx", "app/studio/studio-navigation-pane.tsx", "app/studio/template-workspace.tsx"]) {
     const source = read(file);
     assert.ok(source.includes("Studio UI Library"), file);

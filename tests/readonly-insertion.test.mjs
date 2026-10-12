@@ -87,9 +87,10 @@ test("actual Library activation and drag handlers refuse read-only events", () =
 
 test("Canvas dispatch uses current writable availability for content and template tiles", () => {
   for (const current of [true, false]) for (const type of ["paragraph", "template-content"]) {
-    const calls = [];
-    invoke(callbacks.get("StudioCanvasContent:onInsert"), { writableRef: { current }, inserterParentId: "target-parent", onInsertTemplateContent: (...args) => calls.push(["template", ...args]), onInsertBlock: (...args) => calls.push(["content", ...args]) }, [type]);
+    const calls = [], pendingGroups = [];
+    invoke(functions.get("insertFromBlockInserter"), { setPendingGroupLayoutBlockId: value => pendingGroups.push(value), writableRef: { current }, inserterParentId: "target-parent", onInsertTemplateContent: (...args) => calls.push(["template", ...args]), onInsertBlock: (...args) => calls.push(["content", ...args]) }, [type]);
     assert.equal(calls.length, current ? 1 : 0);
+    assert.deepEqual(pendingGroups, current ? [null] : []);
     if (current) assert.deepEqual(calls[0].slice(0, 3), type === "template-content" ? ["template", null, "target-parent"] : ["content", "paragraph", "target-parent"]);
   }
 });

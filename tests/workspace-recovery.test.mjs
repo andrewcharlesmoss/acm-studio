@@ -5,6 +5,9 @@ import path from "node:path";
 import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { loadProductionModule } from "./production-module.mjs";
 
 const require = createRequire(import.meta.url);
 const root = new URL("../", import.meta.url).pathname;
@@ -30,7 +33,7 @@ function modules(overrides = {}, globals = {}) {
     const source = ts.transpileModule(readFileSync(filename, "utf8"), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
     }).outputText;
-    vm.runInNewContext(source, { exports, structuredClone, ...globals, require: (specifier) => {
+    vm.runInNewContext(source, { exports, structuredClone, crypto: globalThis.crypto, ...globals, require: (specifier) => {
       if (specifier in overrides) return overrides[specifier];
       if (specifier.endsWith("write-ownership")) return { studioWriteOwnership: writer, ownershipMessage: () => null };
       if (!specifier.startsWith(".")) return require(specifier);
@@ -79,7 +82,9 @@ function hookHarness(repository, load, syncOverride = null, ownershipOverride = 
       }
     },
   };
-  const useWorkspace = modules({ react, "./editor-model": load("app/studio/editor-model.ts"), "./workspace-repository": { browserWorkspaceRepository: repository }, ...(syncOverride ? { "./studio-sync": syncOverride } : {}), ...(ownershipOverride ? { "./write-ownership": { studioWriteOwnership: ownershipOverride, ownershipMessage: state => state === "blocked" ? "Writer is read-only" : null } } : {}) }, {
+  const events = new EventTarget();
+  const useWorkspace = modules({ react, "./editor-model": load("app/studio/editor-model.ts"), "./workspace-repository": { browserWorkspaceRepository: repository }, ...(syncOverride ? { "./studio-sync": { ...load("app/studio/studio-sync.ts"), ...syncOverride } } : {}), ...(ownershipOverride ? { "./write-ownership": { studioWriteOwnership: ownershipOverride, ownershipMessage: state => state === "blocked" ? "Writer is read-only" : null } } : {}) }, {
+    window: { addEventListener: events.addEventListener.bind(events), removeEventListener: events.removeEventListener.bind(events), setTimeout },
     queueMicrotask: (fn) => microtasks.push(fn),
   })("app/studio/use-studio-workspace.ts").useStudioWorkspace;
   let result;
@@ -149,7 +154,8 @@ test("a genuinely absent workspace may initialise and save", () => {
   const state = hookHarness(load("app/studio/workspace-repository.ts").browserWorkspaceRepository, load).flush();
   assert.match(state.saveLabel, /Saved locally/);
   assert.equal(localStorage.writes.length, 1);
-  assert.equal(JSON.parse(localStorage.raw()).version, initialStudioWorkspace.version);
+  assert.equal(JSON.parse(localStorage.raw()).version, 25);
+  assert.ok(Array.isArray(JSON.parse(localStorage.raw()).documentRevisions));
 });
 
 test("autosave status reports persistence time rather than a stale document timestamp", () => {
@@ -213,12 +219,31 @@ test("explicit Save retries failed current data without a timestamp or consuming
   denied.flush();
 });
 
-test("the header Save action is separate from status and uses the shared primary button", () => {
-  const header = readFileSync(path.join(root, "app/studio/studio-header.tsx"), "utf8");
-  assert.match(header, /<div className="studio-save-group">\s*<span className="studio-save-status" aria-live="polite">\{saveLabel\}<\/span>\s*<button className="button-primary studio-save-button"/);
-  assert.match(header, /title="Save \(⌘S \/ Ctrl\+S\)" aria-keyshortcuts="Meta\+s Control\+s"/);
-  assert.match(header, /onSave=\{onSaveDocument\}/);
+test("the header Save action is separate from status and uses shared button states", async () => {
+  const source = readFileSync(path.join(root, "app/studio/studio-header.tsx"), "utf8");
+  const tree = ts.createSourceFile("header.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const declaration = tree.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "StudioSaveControl");
+  assert.ok(declaration);
+  const { StudioButton } = await loadProductionModule(new URL("../app/studio/controls/button.tsx", import.meta.url));
+  const code = ts.transpileModule(`${declaration.getText(tree)}; globalThis.render = StudioSaveControl;`, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const scope = { exports: {}, require: id => { assert.equal(id, "react/jsx-runtime"); return require(id); }, StudioButton };
+  vm.runInNewContext(code, scope);
+  for (const draft of [true, false]) for (const availability of ["writable", "readonly", "unavailable", "saving"]) {
+    const saveLabel = availability === "saving" ? "Saving…" : "Unsaved changes";
+    const element = scope.render({ draft, saveLabel, writable: availability !== "readonly", unavailable: availability === "unavailable", onSave() {} });
+    const html = renderToStaticMarkup(createElement(() => element));
+    const action = draft ? "Save Draft" : "Save";
+    assert.match(html, /<span class="studio-save-status" aria-live="polite">/);
+    assert.ok(html.includes(`>${saveLabel}</span>`));
+    assert.ok(html.includes(`title="${action} (⌘S / Ctrl+S)"`));
+    assert.match(html, /aria-keyshortcuts="Meta\+s Control\+s"/);
+    assert.ok(html.includes(draft ? "acm-button-text" : "acm-button studio-save-button"));
+    assert.ok(html.includes(`>${availability === "saving" ? "Saving…" : action}</button>`));
+    assert.equal(/disabled=""/.test(html), availability !== "writable");
+  }
+  assert.match(source, /onSave=\{onSaveDocument\}/);
 });
+
 
 test("the keyboard save action persists the current document without changing its status", () => {
   const source = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
@@ -227,10 +252,11 @@ test("the keyboard save action persists the current document without changing it
   function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === "saveCurrentDocument") declaration = node; ts.forEachChild(node, visit); }
   visit(parsed); assert.ok(declaration);
   const calls = [];
-  const scope = { selectedSite: null, writable: true, studioSession: { requestSave: () => calls.push("save") } };
+  const scope = { activeDocument: { kind: "post", status: "draft" }, selectedSite: null, writable: true, studioSession: { requestSave: () => calls.push("save") } };
   vm.runInNewContext(`${declaration.getText(parsed)}; saveCurrentDocument();`, scope);
   assert.deepEqual(calls, ["save"]);
-  assert.doesNotMatch(declaration.getText(parsed), /updateActiveField|publishing\.publish/);
+  assert.deepEqual(scope.activeDocument, { kind: "post", status: "draft" });
+  assert.doesNotMatch(declaration.getText(parsed), /updateActiveField/);
 });
 
 for (const succeeds of [true, false]) {
@@ -285,7 +311,10 @@ test("a pending Save completion cannot relabel a replacement writer session", as
     const label = current.saveLabel;
     gate.resolve();
     const after = await settleHook(h);
-    assert.equal(after.workspace.documents[0].title, "Replacement writer title");
+    assert.equal(after.workspace.documents[0].title, "Old writer edit", "an overlapping handover preserves the unsaved draft");
+    assert.ok(current.syncConflict);
+    assert.equal(after.syncConflict, current.syncConflict, "late Save cannot resolve the handover conflict");
+    assert.equal(after.syncConflict.remoteSnapshot.documents[0].title, "Replacement writer title");
     assert.equal(after.saveLabel, label);
     assert.equal(after.canUndo, false); assert.equal(after.canRedo, false);
   } finally { fixture.close(); }
@@ -395,15 +424,16 @@ test("authoritative workspace updates clear local undo and redo history", async 
   const sync = {
     createStudioSync(options) {
       syncOptions = options;
-      return { getStatus: () => "primary", getConflict: () => null, isAvailable: () => true, isPrimary: () => true, commitPrimary: async () => {}, close() {} };
+      return { getStatus: () => "primary", getConflict: () => null, isAvailable: () => true, isPrimary: () => true, commitPrimary: async snapshot => { await options.persistPrimary(snapshot); options.onCommittedSnapshot(snapshot, { source: "commit" }); options.onSnapshot(snapshot, "commit"); }, close() {} };
     },
   };
   const h = hookHarness({ load: () => null, save() {} }, modules(), sync);
   let state = h.flush();
   state.commit(workspace => ({ ...workspace, documents: workspace.documents.map((document, index) => index === 0 ? { ...document, title: "Local edit" } : document) }));
-  state = h.flush(); assert.equal(state.canUndo, true); assert.ok(syncOptions);
+  state = await settleHook(h); assert.equal(state.canUndo, true); assert.ok(syncOptions);
   const remote = structuredClone(state.workspace);
   remote.documents[0].title = "Remote edit";
+  syncOptions.onCommittedSnapshot(remote, { source: "update" });
   syncOptions.onSnapshot(remote, "update");
   state = h.flush();
   assert.equal(state.workspace.documents[0].title, "Remote edit");

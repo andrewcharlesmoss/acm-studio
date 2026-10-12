@@ -141,6 +141,7 @@ test('the actual workspace commit boundary rejects a width command when read-onl
   const functions = names.map(name => owner.body.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === name).getText(ast)).join('\n');
   const h = harness();
   const context = { editable: false, workspace: { activeDocumentId: h.original.id, documents: [h.original] }, setWorkspace() { assert.fail('Read-only commit scheduled a change'); } };
+  context.workspaceRef = { current: context.workspace };
   const update = vm.runInNewContext(ts.transpileModule(`${functions}\nupdateActiveDocument;`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, context);
   const commands = createBlockCommands({ activeDocument: h.original, updateActiveDocument: update });
   commands.updateColumnWidth(h.original.blocks[0], 'left', 25);

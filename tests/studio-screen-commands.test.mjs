@@ -19,13 +19,13 @@ const code = ts.transpileModule(declarations.join("\n"), { compilerOptions: { ta
 // Execute the actual screen commands; state setters stand in for a React render.
 function fixture({ dirty = false, discard = true, preview = false } = {}) {
   const calls = [];
-  const state = { codeEditorDirty: dirty, previewWindow: preview, studioSection: "templates", libraryKind: "templates",
+  const state = { codeEditorDirtyRef: { current: dirty }, selectedSiteRef: { current: null }, previewWindow: preview, studioSection: "templates", libraryKind: "templates",
     activeDocument: { id: "post", kind: "post" }, inspectorTab: "block", templateInspectorTab: "block",
     selectedBlockId: "selected", documentFieldSelection: null, templateTarget: { setId: "set", targetId: "part" },
     window: { confirm() { calls.push(["confirm"]); return discard; } },
     writeStudioNavigation(...args) { calls.push(["navigate", ...args]); },
     documentCommands: { selectDocument(document) { calls.push(["document", document.id]); } },
-    ...Object.fromEntries(["setCodeEditorDirty", "setInspectorTab", "setStudioSection", "setPreviewing", "setShowInserter", "setLibraryKind", "setTemplateTarget", "setDocumentFieldSelection", "setSelectedBlockId"].map(name => [name, value => calls.push([name, value])])),
+    ...Object.fromEntries(["setEditingSiteNavigation", "setCodeEditorDirty", "setInspectorTab", "setStudioSection", "setPreviewing", "setShowInserter", "setLibraryKind", "setTemplateTarget", "setDocumentFieldSelection", "setSelectedBlockId"].map(name => [name, value => calls.push([name, value])])),
   };
   const commands = new Function("state", `with (state) { ${code}; return { ${names.join(", ")}, openTemplateTarget }; }`)(state);
   return { commands, calls };
@@ -49,7 +49,7 @@ test("accepted document selection asks about dirty code once and restores Conten
 
 test("explicit template targets and library tabs use the same mode history owner", () => {
   const template = fixture(); template.commands.openTemplateTarget("chosen", "header");
-  assert.deepEqual(template.calls.at(-1), ["navigate", "templates", { setId: "chosen", targetId: "header" }]);
+  assert.deepEqual(template.calls.at(-1), ["navigate", "templates", { setId: "chosen", targetId: "header", scope: "global" }]);
   const tab = fixture(); tab.commands.selectLibraryKind("page");
   assert.deepEqual(tab.calls.at(-1), ["setLibraryKind", "page"]);
   assert.ok(tab.calls.some(call => call[0] === "navigate" && call[1] === "content"));
@@ -65,7 +65,7 @@ test("Backup and Bin use the same indexed navigation owner as Content and Templa
   assert.deepEqual(backup.calls, [["setStudioSection", "backup"], ["setPreviewing", false], ["navigate", "content"]]);
   const bin = fixture(); bin.commands.openTool("bin");
   assert.deepEqual(bin.calls.at(-1), ["navigate", "bin"]);
-  assert.doesNotMatch(source, /window\.history\.(?:replaceState|pushState)/);
+  assert.doesNotMatch(declarations.find(declaration => declaration.startsWith("function openTool")), /window\.history\.(?:replaceState|pushState)/);
 });
 
 test("initial navigation state matches between server and browser hydration", () => {

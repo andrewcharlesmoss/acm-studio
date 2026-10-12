@@ -373,7 +373,7 @@ export const navigationStyleProfile = makeProfile("group", "Navigation", "core/n
 
 const navigationControls: InspectorControlProfile[] = [
   { id: "menu", label: "Menu links and submenus", source: "gutenberg", section: "links", fields: ["TemplateSet.navigation"], resetFields: [] },
-  { id: "link", label: "Text, destination, new tab, description and rel", source: "gutenberg", section: "links", fields: ["TemplateSet.navigation[].label", "TemplateSet.navigation[].url", "TemplateSet.navigation[].opensInNewTab", "TemplateSet.navigation[].description", "TemplateSet.navigation[].rel"], resetFields: [], availableWhen: "A menu entry is selected." },
+  { id: "link", label: "Text, destination, new tab, description and rel", source: "gutenberg", section: "links", fields: ["TemplateSet.navigation[].label", "TemplateSet.navigation[].url", "TemplateSet.navigation[].opensInNewTab", "TemplateSet.navigation[].description", "TemplateSet.navigation[].rel"], resetFields: [], availableWhen: "A menu entry is selected.", dependency: "selected-navigation-entry" },
   { id: "overlay", label: "Off / Mobile / Always overlay", source: "gutenberg", section: "content", fields: ["overlayMenu"], resetFields: [] },
   { id: "submenus", label: "Click to open and submenu arrows", source: "gutenberg", section: "content", fields: ["submenuOpenOnClick", "showSubmenuIcon"], resetFields: [] },
   { id: "navigation-colours", label: "Text, background, submenu and overlay colours", source: "gutenberg", section: "background", fields: ["visualStyle.textColor", "visualStyle.backgroundColor", "submenuTextColor", "submenuBackgroundColor"], resetFields: [] },

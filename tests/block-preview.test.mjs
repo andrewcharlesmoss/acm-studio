@@ -124,7 +124,7 @@ test("read-only Button labels retain rich presentation and disable shared format
       activeDocument: { id: "readonly-document", kind: "post", status: "draft", title: "Read-only", blocks: [block] },
       previewing: false, writable: false, selectedBlockId: block.id, wordCount: 1, characterCount: 8, linkTargets: [], mediaBlockUrls: {},
     }));
-    for (const label of ["Bold selected text", "Italicise selected text", "More text formatting"]) {
+    for (const label of block.type === "list" ? ["Convert to unordered list", "Convert to ordered list", "Outdent list item"] : ["Bold selected text", "Italicise selected text", "More text formatting"]) {
       const button = html.match(new RegExp(`<button\\b[^>]*aria-label="${label}"[^>]*>`))?.[0];
       assert.ok(button, `${label} remains discoverable`);
       assert.match(button, /disabled=""/, `${label} advertises read-only availability`);
@@ -155,7 +155,8 @@ test("nested Lists render, validate and round-trip through the semantic HTML sou
   assert.equal(validContentBlocks([block]), true);
   assert.equal(validContentBlocks([{ ...block, items: [{ text: "Supported colour", style: { textColor: "#000000" } }] }]), true, "List Item retains authorised text-colour support");
   assert.equal(validContentBlocks([{ ...block, items: [{ text: "Invalid colour", style: { textColor: "not-a-colour" } }] }]), false);
-  assert.equal(validContentBlocks([{ ...block, items: [{ text: "Unsupported shadow", style: { shadow: "soft" } }] }]), false, "List Item still rejects unsupported generic styles");
+  assert.equal(validContentBlocks([{ ...block, items: [{ text: "Supported shadow", style: { shadow: "soft" } }] }]), true);
+  assert.equal(validContentBlocks([{ ...block, items: [{ text: "Invalid shadow", style: { shadow: "not-a-shadow" } }] }]), false, "List Item rejects invalid shadow values");
   assert.equal(validContentBlocks([{ ...block, items: [{ text: "Parent", children: [{ ...block, id: "parent-list" }] }] }]), false, "nested IDs must remain unique");
   const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
   const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block] }));
@@ -210,15 +211,15 @@ test("Gutenberg block-width alignment reaches HTML, Studio preview and public re
   }
 });
 
-test("List items expose the rich-text toolbar and item-scoped editors", async () => {
+test("parent List selection exposes structural controls and item-scoped editors", async () => {
   const { StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
   const html = renderToStaticMarkup(createElement(StudioCanvas, {
     activeDocument: { id: "list-document", kind: "post", status: "draft", title: "List", blocks: [{ id: "items", type: "list", style: "unordered", items: ["First", "Second"] }] },
     previewing: false, wordCount: 2, characterCount: 11, linkTargets: [], mediaBlockUrls: {}, selectedBlockId: "items",
   }));
-  assert.match(html, /aria-label="Bold selected text"/);
-  assert.match(html, /aria-label="Italicise selected text"/);
-  assert.match(html, /aria-label="Add or edit hyperlink"/);
+  assert.match(html, /aria-label="Convert to unordered list"/);
+  assert.match(html, /aria-label="Convert to ordered list"/);
+  assert.doesNotMatch(html, /aria-label="Bold selected text"|aria-label="Italicise selected text"|aria-label="Add or edit hyperlink"/);
   assert.match(html, /data-studio-block-id="items" data-list-context-id="items" data-list-item-index="0"/);
   assert.match(html, /data-studio-block-id="items" data-list-context-id="items" data-list-item-index="1"/);
   assert.doesNotMatch(html, /aria-label="Text alignment"/);

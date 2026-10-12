@@ -98,14 +98,14 @@ const owner = canvasAst.statements.find(node => ts.isFunctionDeclaration(node) &
 const handler = name => ts.transpileModule(`globalThis.handler = ${owner.body.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === name).getText(canvasAst)}`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 
 test("actual Column drop recalculates placement; equivalent projections survive indicator rerenders", () => {
-  const original = fixture(), insertions = []; let finished = 0;
+  const original = fixture(), insertions = [], pendingGroups = []; let finished = 0;
   const activeDocument = { id: "template", blocks: structuredClone(original) };
-  const scope = { activeDocument, blockDragBaseline: JSON.stringify(activeDocument.blocks), dragSessionRef: { current: { documentId: "template", baseline: JSON.stringify(original), libraryType: "paragraph" } }, writable: true, writableRef: { current: true }, previewing: false, codeEditor: null, Element: class {}, columnDropPosition: () => ({ target: { parentId: "right", index: 0 } }), nestedDragBlockIdRef: { current: null }, draggingIndexRef: { current: null }, onInsertBlockAt: (...args) => insertions.push(args), finishBlockDrag: () => finished++ };
+  const scope = { activeDocument, blockDragBaseline: JSON.stringify(activeDocument.blocks), dragSessionRef: { current: { documentId: "template", baseline: JSON.stringify(original), libraryType: "paragraph" } }, writable: true, writableRef: { current: true }, previewing: false, codeEditor: null, Element: class {}, columnDropPosition: () => ({ target: { parentId: "right", index: 0 } }), nestedDragBlockIdRef: { current: null }, draggingIndexRef: { current: null }, onInsertBlockAt: (...args) => insertions.push(args), setPendingGroupLayoutBlockId: value => pendingGroups.push(value), finishBlockDrag: () => finished++ };
   runInNewContext(handler("insertLibraryBlockAt"), scope);
   scope.insertLibraryBlockAt = scope.handler;
   runInNewContext(handler("handleCanvasDrop"), scope);
   scope.handler({ target: null, currentTarget: {}, preventDefault() {}, stopPropagation() {} });
-  assert.deepEqual(insertions, [["paragraph", 0, "right"]]); assert.equal(finished, 1);
+  assert.deepEqual(insertions, [["paragraph", 0, "right"]]); assert.equal(finished, 1); assert.deepEqual(pendingGroups, [null]);
 });
 
 test("actual drag handlers refuse stale documents, changed content, missing sessions and read-only drops", () => {

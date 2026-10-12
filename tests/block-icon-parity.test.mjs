@@ -27,8 +27,9 @@ const { blockLibraryEntries } = load("app/studio/blocks/library-catalogue.ts");
 const { blockLibrarySymbol, BlockLibraryIcon, BlockLibraryIconSample } = load("app/studio/block-library-icons.tsx");
 
 test("every canonical block including non-insertable types resolves to safe shared optical artwork", () => {
-  assert.equal(blockLibraryEntries.length, 29);
-  assert.equal(new Set(blockLibraryEntries.map(entry => entry.type)).size, 29);
+  assert.equal(blockLibraryEntries.length, 34);
+  assert.equal(new Set(blockLibraryEntries.map(entry => entry.type)).size, 34);
+  for (const type of ["row", "stack", "grid", "navigation", "page-link"]) assert.ok(blockLibraryEntries.some(entry => entry.type === type), type);
   assert.ok(blockLibraryEntries.some(entry => entry.type === "footnotes"));
   assert.ok(blockLibraryEntries.some(entry => entry.type === "template-content"));
   for (const entry of blockLibraryEntries) {
@@ -43,8 +44,9 @@ test("every canonical block including non-insertable types resolves to safe shar
       for (const path of iconGeometry[symbol.symbol][scale].paths) assert.ok(markup.includes(path.d), `${entry.type}:${scale}`);
     }
     const normal = renderToStaticMarkup(createElement(BlockLibraryIcon, { type: entry.type }));
-    const medium = renderToStaticMarkup(createElement(BlockLibraryIconSample, { type: entry.type, scale: "Regular-M", size: 24 }));
-    assert.equal(normal, medium, entry.type);
+    const scale = ["group", "row", "stack", "grid"].includes(entry.type) ? "Regular-L" : "Regular-M";
+    const defaultArtwork = renderToStaticMarkup(createElement(BlockLibraryIconSample, { type: entry.type, scale, size: 24 }));
+    assert.equal(normal, defaultArtwork, entry.type);
   }
 });
 
