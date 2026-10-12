@@ -74,7 +74,7 @@ This is an internal Studio module, not a published package.
   `indicatorVariant="selected"` limits the underline to the active tab. Both
   variants retain the same layout and focus behaviour. Space-constrained
   Studio Navigation uses a 4px inset to keep all three tab labels and counts
-  visible.
+  visible. Its content tabs are ordered Posts, Pages, then Templates.
 
 ### Inspector overlay ownership
 

@@ -378,8 +378,8 @@ export function TemplateWorkspacePanel({ editingScope, globalLibrary, previewSit
       <a className="library-tool-button" href={siteId ? `/studio?site=${siteId}&mode=bin` : "/studio?mode=bin"}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
       {siteId ? <LocalFixtureSiteNavigation selectedSite={siteId} onSelectSite={onSelectSite} /> : <SiteNavigation />}
       <div className="library-tabs" aria-label="Content type">
-        <button className={libraryKind === "page" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "page"} onClick={() => onSelectLibraryKind?.("page")}>Pages<span>{workspace.workspace.documents.filter(item => item.kind === "page").length}</span></button>
         <button className={libraryKind === "post" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "post"} onClick={() => onSelectLibraryKind?.("post")}>Posts<span>{workspace.workspace.documents.filter(item => item.kind === "post").length}</span></button>
+        <button className={libraryKind === "page" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "page"} onClick={() => onSelectLibraryKind?.("page")}>Pages<span>{workspace.workspace.documents.filter(item => item.kind === "page").length}</span></button>
         <button className={libraryKind === "templates" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "templates"} onClick={() => onSelectLibraryKind?.("templates")}>Templates<span>{templateEntryCount}</span></button>
       </div>
       <div className="document-list template-document-list">

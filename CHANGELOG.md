@@ -11,7 +11,9 @@
 
 - Make the New post, New page, and New from template actions icon-only, with accessible names and tooltips using the shared ACM catalogue icons.
 
-- Keep the Sites section above the Pages, Posts, and Templates tabs in the template workspace.
+- Order the content tabs Posts, Pages, and Templates in Studio Navigation and the template workspace.
+
+- Keep the Sites section above the Posts, Pages, and Templates tabs in the template workspace.
 
 - Remove the redundant publish status summary above the status control.
 

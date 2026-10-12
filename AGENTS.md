@@ -354,7 +354,7 @@ Andrew has authorised the local Test integration inside `/studio?site=test` and
 changes to the sibling `test` project for this fixture. The canonical source is
 Test's `content/site.json` v6 (backwards-readable v1–v5), containing documents,
 categories, Bin and templates; visual edits use one revision-checked gateway.
-Test drives the selected site's Pages, Posts and Templates lists and commands.
+Test drives the selected site's Posts, Pages and Templates lists and commands.
 Andrew authorised copying the existing browser test documents, templates and
 assignments into Test on 9 October 2026. Import once in an aggregate transaction,
 retain IDs and browser originals in Studio Drafts, reject collisions/non-portable

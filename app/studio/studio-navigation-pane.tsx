@@ -55,10 +55,10 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
             <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" onClick={onOpenBin}><span><StudioToolIcon tool="bin" /></span><strong>Bin</strong><small>{workspace.bin.length + templateSession.store.bin.length} deleted items</small></button>
           </div></>}
           tabs={<><button type="button" className="text-button studio-drafts-action" aria-pressed={!selectedSite} onClick={onSelectWorkspace}>Studio Drafts</button><LocalFixtureSiteNavigation selectedSite={selectedSite} onSelectSite={onSelectSite} /><div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
-            { id: "page", label: "Pages" }, { id: "post", label: "Posts" }, { id: "templates", label: "Templates" },
+            { id: "post", label: "Posts" }, { id: "page", label: "Pages" }, { id: "templates", label: "Templates" },
           ]} active={libraryKind} onChange={id => onSelectLibraryKind(id as StudioDocumentKind | "templates")} renderLabel={(tab) => <><span className="library-tab-label">{tab.label}</span><span>{tab.id === "templates" ? templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0) : workspace.documents.filter((item) => item.kind === tab.id).length}</span></>} /></div></>}
           footer={<div className="library-footer"><button type="button" onClick={() => onExportContent()}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>}>
-          {(["page", "post", "templates"] as const).map((kind) => <PaneTabPanel key={kind} id={libraryTabsId} tab={kind} active={libraryKind}>
+          {(["post", "page", "templates"] as const).map((kind) => <PaneTabPanel key={kind} id={libraryTabsId} tab={kind} active={libraryKind}>
             <div className="document-list">
               {kind === "templates" ? <>
                 {templateSession.store.sets.flatMap(set => [...set.templates, ...set.parts].map(entry => ({ set, entry }))).map(({ set, entry }) => (

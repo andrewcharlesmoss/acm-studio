@@ -3,7 +3,7 @@
 ## Scope and ownership
 
 Test opens inside the existing `/studio` editor. Select Test above
-Pages / Posts / Templates or open `/studio?site=test`. All three tabs, their
+Posts / Pages / Templates or open `/studio?site=test`. All three tabs, their
 counts, editing commands, categories, parent-page choices and template editor
 use the selected site's source. **Studio Drafts** opens the original browser
 workspace, including the recovery copies. The former `/studio/sites/test` route
