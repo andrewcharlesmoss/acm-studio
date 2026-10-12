@@ -4,6 +4,7 @@ import test from "node:test";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
 const { createTemplateSet, emptyTemplateStore, validateTemplateSet } = await loadProductionModule(new URL("../app/studio/template-model.ts", import.meta.url));
+const { templateLibraryContext } = await loadProductionModule(new URL("../app/studio/template-library.ts", import.meta.url));
 const { cloneTemplateIntoSet } = await loadProductionModule(new URL("../app/studio/template-cloning.ts", import.meta.url));
 const { createDocument } = await loadProductionModule(new URL("../app/studio/editor-model.ts", import.meta.url));
 const source = await readFile(new URL("../app/studio/use-studio-document-actions.ts", import.meta.url), "utf8");
@@ -15,7 +16,7 @@ function harness(options = {}) {
   const calls = [], feedback = [];
   const document = { ...createDocument("page"), id: "page", title: "Page" };
   const useState = value => { const key = index++; if (!(key in state)) state[key] = value; return [state[key], value => { state[key] = typeof value === "function" ? value(state[key]) : value; }]; };
-  const controller = new Function("exports", "useState", "createTemplateSet", "cloneTemplateIntoSet", `${code}\nreturn exports.useStudioDocumentActions;`)({}, useState, createTemplateSet, cloneTemplateIntoSet);
+  const controller = new Function("exports", "useState", "createTemplateSet", "cloneTemplateIntoSet", "templateLibraryContext", `${code}\nreturn exports.useStudioDocumentActions;`)({}, useState, createTemplateSet, cloneTemplateIntoSet, templateLibraryContext);
   const props = { workspace: { documents: [document] }, activeDocument: document, resolvedDocument: document,
     templateSession: { store, writable: true, commit(update) { calls.push("template"); if (options.saveThrows) throw new Error("Rejected"); if (options.saveRejected) return false; store = update(store); return true; } },
     documentCommands: { addDocument(kind, choice) { calls.push({ action: "create", kind, choice }); return options.createRejected ? null : { kind }; },
@@ -38,8 +39,8 @@ for (const rejected of ["saveRejected", "saveThrows"]) {
 }
 test("accepted template save closes the draft and produces reader-valid data", () => {
   const h = harness(); h.render().saveAsTemplate(); const a = h.render(); a.commitSaveAsTemplate(a.saveTemplateDialog);
-  assert.equal(h.render().saveTemplateDialog, undefined); assert.equal(h.store().sets[0].templates.length, 3);
-  validateTemplateSet(h.store().sets[0]);
+  assert.equal(h.render().saveTemplateDialog, undefined); assert.equal(h.store().sets.reduce((count,set)=>count+set.templates.length,0), 3);
+  h.store().sets.forEach(validateTemplateSet);
 });
 test("template controls refuse unavailable template ownership without blocking Rename", () => {
   const h = harness(); h.props.templateSession.writable = false;
@@ -73,4 +74,14 @@ test("failed rename and Bin retain their drafts and screen selection", () => {
 });
 test("document context duplication passes the explicit target", () => {
   const h = harness(); h.render().duplicateDocument("specific"); assert.deepEqual(h.calls, [{ action: "duplicate", id: "specific" }, "duplicated"]);
+});
+
+test("Studio Drafts Save as template writes the shared session without replacing recovery originals", () => {
+  const h = harness(); let global = { ...emptyTemplateStore(), sets:[createTemplateSet()] };
+  h.props.templateAuthoringSession = {store:global,writable:true,commit:update=>{global=update(global);return true;}};
+  h.props.templateAuthoringSnapshot = {version:global.version,set:global.sets[0],templateId:global.sets[0].templates[0].id};
+  h.props.templateSession.commit = ()=>{throw new Error("Must not write browser designs");};
+  h.render().saveAsTemplate(); const a=h.render();a.commitSaveAsTemplate(a.saveTemplateDialog);
+  assert.equal(global.sets[0].templates.length,3);assert.equal(h.store().sets[0].templates.length,2);
+  validateTemplateSet(global.sets[0]);
 });

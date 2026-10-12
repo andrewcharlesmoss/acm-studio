@@ -16,12 +16,12 @@ contracts.
   project card. Studio owns the verified site URLs and available actions in
   `app/studio/project-registry.ts`; shared libraries remain in the UI Library.
 
-- **Templates** at `/studio/templates`: create independent site designs with
+- **Templates** at `/studio/templates`: edit one shared design library for Studio Drafts, Test and Test2, with
   reusable page/post layouts, shared headers and footers, site identity,
   navigation and styles. Use **Site Template** in a document's inspector to
   apply a design. Templates share the block editor, List View, media library,
   undo/redo and responsive previews. JSON packages include managed images;
-  full backups include templates and assignments. See [Template editing](docs/templates.md).
+  full backups include original browser templates, assignments and shared recovery snapshots. See [Template editing](docs/templates.md).
 
 - **Studio UI Library** at `/studio/ui`: compare the Ribbon and both panes around
   one workspace. **Ribbon** at `/studio/ui/ribbon` documents shared components
@@ -136,9 +136,9 @@ posts are upgraded once to include Reading Time, Post Author and Post Date
 blocks; the underlying author and publication date remain document fields, so
 removing a display block does not lose metadata. Reading time uses 220 words
 per minute, excludes metadata and image alternative text, and counts nested
-ordinary content once. Workspace data is stored at version 3 with readers for
-version 2; local publication snapshots use version 2 and backups use version 2
-with readers for their earlier formats.
+ordinary content once. Workspace data uses version 25 with readers for versions 2–24; local publication
+snapshots use version 18 and backups use version 5, with readers for their earlier
+formats.
 
 The architecture and next decision gate are recorded in
 [`docs/FOUNDATION.md`](docs/FOUNDATION.md).

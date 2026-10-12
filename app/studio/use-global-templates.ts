@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { copyTemplateData, emptyTemplateStore, validateTemplateStore, type TemplateStore } from "./template-model";
 import { studioWriteOwnership } from "./write-ownership";
 import { createStudioSync, type StudioSyncSession, type StudioSyncStatus, type StudioSyncConflict } from "./studio-sync";
-import { validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "./global-template-contract";
+import { globalTemplateChangeCanUndo, validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "./global-template-contract";
 import type { useTestSite } from "./test-site/use-test-site";
 import type { useTemplates } from "./use-templates";
 
@@ -103,7 +103,7 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     store, ready: Boolean(library), writable, exclusiveWritable: writable && exclusive, error, saveLabel: label, syncStatus, syncConflict,
     resolveSyncConflict: async choice => { await sync.current?.resolveConflict(choice); pending.current = false; setSyncConflict(null); setError(null); },
     retryConnection: () => { if (pending.current && !window.confirm("Reload global templates and discard this unsaved global draft?")) return; pending.current = false; void load().catch(reason => setError(String(reason))); },
-    commit: update => { const before = current.current; try { if (!install(update(copyTemplateData(before)))) return false; past.current.push(before); future.current = []; setHistoryState({ undo: true, redo: false }); return true; } catch (reason) { setError(reason instanceof Error ? reason.message : "Invalid global template change."); return false; } },
+    commit: update => { const before = current.current; try { const next = update(copyTemplateData(before)); if (!install(next)) return false; past.current = globalTemplateChangeCanUndo(before, next) ? [...past.current, before] : []; future.current = []; setHistoryState({ undo: past.current.length > 0, redo: false }); return true; } catch (reason) { setError(reason instanceof Error ? reason.message : "Invalid global template change."); return false; } },
     undo: () => { const next = past.current.at(-1); if (!next || !install(next)) return false; past.current.pop(); future.current.push(store); setHistoryState({ undo: past.current.length > 0, redo: true }); return true; },
     redo: () => { const next = future.current.at(-1); if (!next || !install(next)) return false; future.current.pop(); past.current.push(store); setHistoryState({ undo: true, redo: future.current.length > 0 }); return true; },
     canUndo: writable && historyState.undo, canRedo: writable && historyState.redo,

@@ -20,7 +20,7 @@ function formattedDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 }
 
-export function StudioBin({ workspace, templates, siteId, commitContent }: { workspace: WorkspaceSession; templates: TemplateSession; siteId?: LocalFixtureSiteId; commitContent?: (update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) => boolean }) {
+export function StudioBin({ workspace, templates, siteId, commitContent, templateRecoveryOnly = false }: { workspace: WorkspaceSession; templates: TemplateSession; siteId?: LocalFixtureSiteId; templateRecoveryOnly?: boolean; commitContent?: (update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) => boolean }) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [permanentTarget, setPermanentTarget] = useState<BinTarget | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -43,7 +43,7 @@ export function StudioBin({ workspace, templates, siteId, commitContent }: { wor
       return;
     }
     if (item.assignment && !templates.store.sets.some(set => set.id === item.assignment!.setId && set.templates.some(template => template.id === item.assignment!.templateId && template.kind === item.assignment!.kind))) {
-      setFeedback("Restore the template assigned to this document before restoring the document.");
+      setFeedback(templateRecoveryOnly ? "This deleted document uses a recovery template that is unavailable in the shared library. Export a Backup for manual recovery. Its content and original assignment remain in the Bin." : "Restore the template assigned to this document before restoring the document.");
       return;
     }
     if (commitContent) {
@@ -74,6 +74,7 @@ export function StudioBin({ workspace, templates, siteId, commitContent }: { wor
   }
 
   function restoreTemplate(item: StudioBinnedTemplate) {
+    if (templateRecoveryOnly) { setFeedback("This browser template is a recovery copy. Export a Backup for manual recovery of its design. The original remains in the Bin."); return; }
     if (item.kind === "set") {
       if (templates.store.sets.some(set => set.id === item.set.id)) { setFeedback("A template set with this ID already exists. The binned copy has been kept."); return; }
       if (templates.commit(current => ({ ...current, bin: current.bin.filter(candidate => candidate.id !== item.id), sets: [...current.sets, copyTemplateData(item.set)] }))) setFeedback("Template set restored.");

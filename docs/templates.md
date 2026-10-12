@@ -1,6 +1,6 @@
 # Template editing
 
-Templates are Studio-owned designs. Test and Test2 use one canonical global library; Studio Drafts retains its separate browser recovery copies. Open **Templates** beside
+Templates are Studio-owned designs. Studio Drafts, Test and Test2 use one canonical global library. Studio Drafts keeps its original browser designs as recovery copies, with existing assignments resolved through shared IDs and retained migration aliases. Open **Templates** beside
 **Pages** and **Posts** in the Content Studio, or use the dashboard shortcut,
 then open or create an individual Page, Post, Header or Footer. The Content
 Studio keeps the template library and editor in the same workspace, so changing
@@ -234,8 +234,9 @@ managed Quote/Group background images are additive to the existing typed block
 contract. Group Row and Stack layouts also support Gutenberg's Space between
 justification. Table cells preserve per-cell header tags and scope. Workspace
 data is now version 25, with readers for versions 2–24; local publication
-snapshots are version 18 with readers for versions 1–17, and full backups remain
-version 4. Template packages are v0.29.0, with readers for v0.1.0–v0.28.0.
+snapshots are version 18 with readers for versions 1–17. Full backups use
+version 5 and read versions 1–4; they include both browser recovery templates and
+a validated shared-library snapshot when available. Template packages are v0.29.0, with readers for v0.1.0–v0.28.0.
 Group HTML elements, ARIA labels and block alignment, Columns alignment and
 Section visual styles round-trip through the editor, owned storage, portable
 packages and local publication snapshots. Resetting a field clears it rather
@@ -683,3 +684,34 @@ history and conflict recovery. Only menu content changes. Colours, alignment
 and other presentation remain inherited from the global Navigation template;
 the site menu editor offers no presentation controls. Close returns to the
 global template view without discarding pending site changes.
+
+### Studio Drafts and the shared library
+
+The Templates badge shows the same shared-library count in the Posts, Pages
+and Templates views. Studio Drafts owns its content and assignments, identity, menu links
+and social links; shared originals own presentation. Existing browser template
+sets remain in their original storage for recovery and media protection. A
+read-only projection resolves their IDs against shared originals without
+replacing those stored designs. Assignment changes use the existing browser
+writer, synchronisation and Undo history. New shared references append any
+missing reader-valid records without replacing existing artwork. Save as template
+in Studio Drafts creates a retained global original. Creating an original does
+not advertise Undo that would remove it; shared design edits retain Undo/Redo
+in Templates. Original removal remains protected. Published browser snapshots retain their immutable
+presentation until Update.
+
+Ambiguous or unmatched active assignments preserve the old presentation and
+pause editing. The document inspector offers an explicit shared-template choice
+or Existing Presentation; resolving one document preserves all other
+assignments. Names alone never establish ancestry. Unmatched deleted documents
+and legacy template Bin entries remain recoverable in full backups for manual
+recovery. Importing a design renews its IDs and does not automatically resolve
+a deleted document’s original assignment. Such documents remain in the Bin.
+Legacy designs cannot be restored over a shared original from the browser Bin.
+
+Backup v5 includes the raw browser originals and, when loaded, the shared library
+as a recovery snapshot. Shared and migration-base media references must be
+present in the backup. Browser restore restores local content and assignments
+against the current shared library. It does not replace global originals for
+all workspaces. A checked backup offers Export shared templates from backup;
+use the Templates import workflow to recover those designs deliberately.

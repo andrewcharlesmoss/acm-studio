@@ -7,6 +7,14 @@ export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" && key !== "prototype";
+
+/** Shared original creation is retained: an inverse may edit, but not remove it. */
+export function globalTemplateChangeCanUndo(before: TemplateStore, after: TemplateStore): boolean {
+  return after.sets.every(set => {
+    const previous = before.sets.find(item => item.id === set.id);
+    return previous && [...set.templates, ...set.parts].every(entry => [...previous.templates, ...previous.parts].some(item => item.id === entry.id && item.kind === entry.kind));
+  });
+}
 function keyed(value: unknown[]): value is (Record<string, unknown> & { id: string })[] { return value.every(item => object(item) && typeof item.id === "string") && new Set(value.map(item => (item as { id: string }).id)).size === value.length; }
 
 /** Legacy patch utilities remain for interpreting recovery data; effective designs never apply them. */

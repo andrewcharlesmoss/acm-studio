@@ -461,7 +461,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 
 ### Global local-fixture template originals
 
-Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
+Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
 (global library contract v1), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Template designs
@@ -475,6 +475,17 @@ initialisation. Legacy entry URLs map to originals. New originals are available
 to every site; removal remains protected. Library export/import and site backups
 preserve originals and recovery records. See `docs/templates.md` and
 `docs/test-site-integration.md`. No hosted publication is implied.
+
+Studio Drafts materialises the same global originals through its existing browser
+template session. Retain raw designs, Bin records, identity, links and assignments
+for recovery; never replace original artwork during assignment saving. Match
+ancestry by stable IDs and retained fixture aliases, never by names. Unmatched
+active assignments preserve their recovery presentation and offer explicit
+reassignment in the document inspector. Save as template in Studio Drafts writes
+a retained shared original. Creation does not offer an Undo that removes
+protected originals; ordinary shared design edits retain Undo/Redo. Full browser backups use v5, read
+v1–v4 and carry a validated shared snapshot when available; browser restore does
+not implicitly replace the global library. See `docs/templates.md`.
 
 ### Local fixture publication
 

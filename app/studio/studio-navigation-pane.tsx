@@ -12,7 +12,7 @@ import type { useTemplates } from "./use-templates";
 import { templateNameInitial } from "./template-library";
 
 export function StudioNavigationPane({ workspace, activeDocument, templateSession, templateTarget,
-  libraryKind, libraryPaneWidth, libraryPaneCollapsed, setLibraryPaneWidth, setLibraryPaneCollapsed,
+  libraryKind, templateCount, libraryPaneWidth, libraryPaneCollapsed, setLibraryPaneWidth, setLibraryPaneCollapsed,
   studioSection, writable, exclusiveWritable, codeEditorDirty, addDocument, addDocumentFromTemplate,
   openMediaLibrary, selectDocument, canDeleteDocument, requestRenameDocument, duplicateDocument,
   requestDeleteDocument, onOpenBackup, onOpenBin, onOpenTemplates, onSelectLibraryKind,
@@ -21,7 +21,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
   workspace: StudioWorkspace; activeDocument: StudioDocument;
   templateSession: Pick<ReturnType<typeof useTemplates>, "store" | "writable">;
   templateTarget: { setId: string | null; targetId: string | null };
-  libraryKind: StudioDocumentKind | "templates";
+  libraryKind: StudioDocumentKind | "templates"; templateCount: number | null;
   libraryPaneWidth: number; libraryPaneCollapsed: boolean;
   setLibraryPaneWidth: (width: number) => void; setLibraryPaneCollapsed: (collapsed: boolean) => void;
   studioSection: string; writable: boolean; exclusiveWritable: boolean; codeEditorDirty: boolean;
@@ -56,7 +56,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
           </div></>}
           tabs={<><button type="button" className="text-button studio-drafts-action" aria-pressed={!selectedSite} onClick={onSelectWorkspace}>Studio Drafts</button><LocalFixtureSiteNavigation selectedSite={selectedSite} onSelectSite={onSelectSite} /><div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
             { id: "post", label: "Posts" }, { id: "page", label: "Pages" }, { id: "templates", label: "Templates" },
-          ]} active={libraryKind} onChange={id => onSelectLibraryKind(id as StudioDocumentKind | "templates")} renderLabel={(tab) => <><span className="library-tab-label">{tab.label}</span><span>{tab.id === "templates" ? templateSession.store.sets.reduce((count, item) => count + item.templates.length + item.parts.length, 0) : workspace.documents.filter((item) => item.kind === tab.id).length}</span></>} /></div></>}
+          ]} active={libraryKind} onChange={id => onSelectLibraryKind(id as StudioDocumentKind | "templates")} renderLabel={(tab) => <><span className="library-tab-label">{tab.label}</span><span>{tab.id === "templates" ? (templateCount ?? "…") : workspace.documents.filter((item) => item.kind === tab.id).length}</span></>} /></div></>}
           footer={<div className="library-footer"><button type="button" onClick={() => onExportContent()}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>}>
           {(["post", "page", "templates"] as const).map((kind) => <PaneTabPanel key={kind} id={libraryTabsId} tab={kind} active={libraryKind}>
             <div className="document-list">

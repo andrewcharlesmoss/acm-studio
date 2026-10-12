@@ -13,16 +13,19 @@ export type SaveTemplateDraft = {
   includeTags: boolean; includeParentPage: boolean;
 };
 export function useStudioDocumentActions({ workspace, activeDocument, resolvedDocument, templateSnapshot,
-  templateSession, documentCommands, writable, codeEditorDirty, confirmCodeEditorDiscard,
+  templateSession, templateAuthoringSession, templateAuthoringSnapshot, documentCommands, writable, codeEditorDirty, confirmCodeEditorDiscard,
   onDocumentCreated, onDocumentDuplicated, onDocumentRemoved, feedback,
 }: {
   workspace: StudioWorkspace; activeDocument: StudioDocument; resolvedDocument: StudioDocument;
   templateSnapshot?: TemplateSnapshot; templateSession: DocumentTemplateSession;
+  templateAuthoringSession?: DocumentTemplateSession; templateAuthoringSnapshot?: TemplateSnapshot;
   documentCommands: ReturnType<typeof useStudioDocumentCommands>; writable: boolean; codeEditorDirty: boolean;
   confirmCodeEditorDiscard: () => boolean; onDocumentCreated: (kind: StudioDocumentKind) => void;
   onDocumentDuplicated: () => void; onDocumentRemoved: (documentId: string) => void;
   feedback: (message: string) => void;
 }) {
+  const authoringTemplates = templateAuthoringSession ?? templateSession;
+  const authoringSnapshot = templateAuthoringSession ? templateAuthoringSnapshot : templateSnapshot;
   const [saveTemplateDialog, setSaveTemplateDialog] = useState<SaveTemplateDraft>();
   const [newTemplateChoice, setNewTemplateChoice] = useState<string>();
   const [renameDocumentDialog, setRenameDocumentDialog] = useState<{ documentId: string; name: string; opener: HTMLElement | null } | null>(null);
@@ -49,20 +52,20 @@ export function useStudioDocumentActions({ workspace, activeDocument, resolvedDo
     setNewTemplateChoice(undefined); onDocumentCreated(choice.template.kind);
   }
   function saveAsTemplate() {
-    if (!writable || !templateSession.writable || !confirmCodeEditorDiscard()) return;
+    if (!writable || !authoringTemplates.writable || !confirmCodeEditorDiscard()) return;
     setActionError("");
     setSaveTemplateDialog({ name: `${activeDocument.kind === "post" ? "Post" : "Page"} template`, includeAuthor: false, includeCategory: false, includeTags: false, includeParentPage: false });
   }
   function commitSaveAsTemplate(draft: SaveTemplateDraft) {
-    if (!writable || !templateSession.writable || !draft.name.trim()) return;
+    if (!writable || !authoringTemplates.writable || !draft.name.trim()) return;
     try {
-      const saved = templateSession.commit(store => {
-        const destination = templateSnapshot
-          ? store.sets.find(item => item.id === templateSnapshot.set.id)
+      const saved = authoringTemplates.commit(store => {
+        const destination = authoringSnapshot
+          ? store.sets.find(item => item.id === authoringSnapshot.set.id)
           : templateLibraryContext(store);
         if (!destination) throw new Error("The source template is no longer available.");
-        const source = templateSnapshot?.set ?? createTemplateSet();
-        const assigned = source.templates.find(item => item.id === templateSnapshot?.templateId);
+        const source = authoringSnapshot?.set ?? createTemplateSet();
+        const assigned = source.templates.find(item => item.id === authoringSnapshot?.templateId);
         const fallback = source.templates.find(item => item.kind === activeDocument.kind)!;
         const sourceTemplate = assigned ?? { ...fallback, nodes: fallback.nodes.filter(node => node.type !== "element" || node.element !== "post-metadata") };
         const { template, parts } = cloneTemplateIntoSet(source, sourceTemplate, destination, draft.name.trim());

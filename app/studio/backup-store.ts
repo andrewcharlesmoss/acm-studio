@@ -1,3 +1,4 @@
+import { validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "./global-template-contract";
 import { withSavedDocumentRevisions } from "./workspace-repository";
 import { studioWriteOwnership } from "./write-ownership";
 import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY } from "../content/local-publishing";
@@ -17,11 +18,12 @@ export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
 
 export type StudioBackup = {
   format: "acm-studio-backup";
-  version: 1 | 2 | 3 | 4;
+  version: 1 | 2 | 3 | 4 | 5;
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
   templates?: TemplateStore;
+  globalTemplates?: GlobalTemplateLibrary;
   publications: string | null;
   media: {
     folders: MediaFolder[];
@@ -62,13 +64,15 @@ export function base64ToBlob(dataBase64: string, type: string) {
 }
 
 export function validateStudioBackup(value: unknown): StudioBackup {
-  if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2, 3, 4].includes(value.version as number)) {
+  if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2, 3, 4, 5].includes(value.version as number)) {
     throw new Error("This is not a supported ACM Studio backup.");
   }
   if (typeof value.exportedAt !== "string" || !Number.isFinite(Date.parse(value.exportedAt))) {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
   const workspace = validateWorkspacePublicationTemplates(migrateStudioWorkspace(value.workspace));
+  if (value.globalTemplates !== undefined && value.version !== 5) throw new Error("Shared template snapshots require backup v5.");
+  const globalTemplates = value.globalTemplates === undefined ? undefined : validateGlobalTemplateLibrary(value.globalTemplates);
   const templates = value.templates === undefined ? undefined : validateTemplateStore(value.templates, workspace.documents);
   if (value.designs !== undefined) {
     if (!Array.isArray(value.designs)) throw new Error("The design collection is invalid.");
@@ -134,8 +138,11 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     const set = item.kind === "set" ? item.set : item.setSnapshot;
     if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A binned template image is missing from the backup.");
   }
+  if (globalTemplates) for (const set of [...globalTemplates.templates.sets, ...globalTemplates.migrations.test.bases, ...globalTemplates.migrations.test2.bases]) {
+    if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A shared template recovery image is missing from the backup.");
+  }
   return { ...(value as unknown as StudioBackup), workspace,
-    ...(templates ? { templates } : {}), publications: publications as string | null };
+    ...(templates ? { templates } : {}), ...(globalTemplates ? { globalTemplates } : {}), publications: publications as string | null };
 }
 
 export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary {
@@ -162,7 +169,7 @@ export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary
   };
 }
 
-export async function createStudioBackup(workspace: StudioWorkspace) {
+export async function createStudioBackup(workspace: StudioWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
   workspace = withSavedDocumentRevisions(workspace);
   validateStudioWorkspace(workspace);
   const publications = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
@@ -176,11 +183,12 @@ export async function createStudioBackup(workspace: StudioWorkspace) {
   });
   const backup: StudioBackup = {
     format: "acm-studio-backup",
-    version: 4,
+    version: 5,
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),
     templates: loadTemplates(),
+    ...(globalTemplates ? { globalTemplates: validateGlobalTemplateLibrary(globalTemplates) } : {}),
     publications,
     media: { folders: library.folders, assets },
   };

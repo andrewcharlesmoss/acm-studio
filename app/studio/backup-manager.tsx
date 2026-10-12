@@ -1,4 +1,6 @@
 "use client";
+import type { GlobalTemplateLibrary } from "./global-template-contract";
+import { exportStudioJson } from "./studio-json-export";
 
 import { useEffect, useRef, useState } from "react";
 import { LOCAL_PUBLICATIONS_KEY, parseLocallyPublishedArticles } from "../content/local-publishing";
@@ -23,7 +25,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function BackupManager({ workspace }: { workspace: StudioWorkspace }) {
+export function BackupManager({ workspace, globalTemplates }: { workspace: StudioWorkspace; globalTemplates?: GlobalTemplateLibrary | null }) {
   const [currentSummary, setCurrentSummary] = useState<StudioBackupSummary | null>(null);
   const [selectedBackup, setSelectedBackup] = useState<StudioBackup | null>(null);
   const [selectedSummary, setSelectedSummary] = useState<StudioBackupSummary | null>(null);
@@ -57,7 +59,7 @@ export function BackupManager({ workspace }: { workspace: StudioWorkspace }) {
     setBusy(true);
     setStatus("Preparing content and media files…");
     try {
-      const backup = await createStudioBackup(workspace);
+      const backup = await createStudioBackup(workspace, globalTemplates);
       downloadStudioBackup(backup);
       setStatus(`Complete backup downloaded · ${backup.media.assets.length} ${backup.media.assets.length === 1 ? "file" : "files"} included`);
     } catch (error) {
@@ -111,7 +113,7 @@ export function BackupManager({ workspace }: { workspace: StudioWorkspace }) {
 
       <div className="backup-grid">
         <article className="backup-panel backup-export-panel">
-          <div className="backup-panel-heading"><span>01</span><div><h2>Download a complete backup</h2><p>One file containing editable content, published snapshots, folders and the actual media files.</p></div></div>
+          <div className="backup-panel-heading"><span>01</span><div><h2>Download a complete backup</h2><p>One file containing editable content, published snapshots, browser template recovery copies, shared templates when available, folders and the actual media files.</p></div></div>
           {currentSummary ? <BackupSummary summary={currentSummary} /> : <p className="backup-loading">Counting local content…</p>}
           <div className="backup-callout"><strong>Keep this file somewhere safe.</strong><p>It may contain private drafts and original media, so do not publish or share it casually.</p></div>
           <button className="backup-primary-action" type="button" onClick={() => void exportBackup()} disabled={busy}>{busy ? "Preparing backup…" : "Download complete backup"}</button>
@@ -126,6 +128,7 @@ export function BackupManager({ workspace }: { workspace: StudioWorkspace }) {
             <div className="restore-preview">
               <div className="restore-preview-heading"><span><StudioIcon name="check" /></span><div><strong>Valid ACM Studio backup</strong><small>Exported {new Date(selectedSummary.exportedAt).toLocaleString("en-GB")}</small></div></div>
               <BackupSummary summary={selectedSummary} />
+              {selectedBackup?.globalTemplates ? <><p>The shared template snapshot is included for recovery. Restoring browser content keeps the current shared library; import recovered designs through Templates.</p><button type="button" onClick={() => exportStudioJson(selectedBackup.globalTemplates!, "acm-shared-template-recovery.json")}>Export shared templates from backup</button></> : null}
               <div className="restore-warning"><strong>This restore replaces current local data.</strong><p>Download a backup of the current Studio first if it contains anything you may need.</p></div>
               <label className="restore-confirmation"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>I understand that this will replace the content and files currently stored by this browser.</span></label>
               <button className="restore-action" type="button" disabled={!confirmed || busy} onClick={() => void restoreBackup()}>{busy ? "Restoring…" : "Restore checked backup"}</button>

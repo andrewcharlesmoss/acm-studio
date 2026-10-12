@@ -9,6 +9,8 @@
 
 ### Changed
 
+- Use one shared template library for Studio Drafts, Test and Test2, with consistent counts, preserved browser recovery originals and shared-template snapshots in browser backups.
+
 - Make the New post, New page, and New from template actions icon-only, with accessible names and tooltips using the shared ACM catalogue icons.
 
 - Order the content tabs Posts, Pages, and Templates in Studio Navigation and the template workspace.
