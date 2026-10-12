@@ -35,7 +35,7 @@ function localStatus(snapshot: LocalSnapshot | null, project: LocalProject | und
   try {
     const url = new URL(project.href);
     const address = `${url.host}${url.pathname === "/" ? "" : url.pathname}`;
-    return `${statusLabels.running} — ${address}`;
+    return address;
   } catch { return statusLabels[project.status]; }
 }
 
@@ -128,7 +128,10 @@ export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = fa
 export function ProjectLocalStatus({ id }: { id: string }) {
   const { local, snapshot } = useContext(LocalProjectsContext);
   const project = snapshot?.projects.find(project => project.id === id);
-  return <small className="dashboard-local-status" role="status">{local ? localStatus(snapshot, project) : "Open ACM Studio on localhost to access local sites."}</small>;
+  const status = local ? localStatus(snapshot, project) : "Open Studio on localhost";
+  const description = local && project?.status === "running" && project.href
+    ? `${statusLabels.running} — ${status}` : status;
+  return <small className="dashboard-local-status" role="status" title={description} aria-label={description}>{status}</small>;
 }
 
 export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void }) {
