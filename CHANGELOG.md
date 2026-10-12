@@ -9,6 +9,8 @@
 
 ### Changed
 
+- Keep the Sites section above the Pages, Posts, and Templates tabs in the template workspace.
+
 - Remove the redundant publish status summary above the status control.
 
 ### Fixed

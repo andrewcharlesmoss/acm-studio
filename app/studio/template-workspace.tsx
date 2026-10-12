@@ -376,6 +376,7 @@ export function TemplateWorkspacePanel({ editingScope, globalLibrary, previewSit
       <a className="library-tool-button" href="/studio/ui"><span><AcmIcon name="layout.columns" /></span><strong>Studio UI Library</strong><small>Workspace, Ribbon, panes, shared icons and Styles</small></a>
       <button className="library-tool-button" type="button" onClick={onOpenBackup}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
       <a className="library-tool-button" href={siteId ? `/studio?site=${siteId}&mode=bin` : "/studio?mode=bin"}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
+      {siteId ? <LocalFixtureSiteNavigation selectedSite={siteId} onSelectSite={onSelectSite} /> : <SiteNavigation />}
       <div className="library-tabs" aria-label="Content type">
         <button className={libraryKind === "page" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "page"} onClick={() => onSelectLibraryKind?.("page")}>Pages<span>{workspace.workspace.documents.filter(item => item.kind === "page").length}</span></button>
         <button className={libraryKind === "post" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "post"} onClick={() => onSelectLibraryKind?.("post")}>Posts<span>{workspace.workspace.documents.filter(item => item.kind === "post").length}</span></button>
@@ -393,7 +394,7 @@ export function TemplateWorkspacePanel({ editingScope, globalLibrary, previewSit
         {libraryKind !== "templates" && !workspace.workspace.documents.some(document => document.kind === libraryKind) ? <p className="document-list-empty">No {libraryKind === "page" ? "pages" : "posts"} yet.</p> : null}
       </div>
       {libraryKind === "templates" ? <fieldset disabled={!writable}><legend>Add template</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div></fieldset> : null}
-      <>{siteId ? <LocalFixtureSiteNavigation selectedSite={siteId} onSelectSite={onSelectSite} /> : <SiteNavigation />}<div className="library-footer"><button type="button" onClick={onExportContent}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div></>
+      <div className="library-footer"><button type="button" onClick={onExportContent}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>
     </Pane> : <aside className="studio-library">
       <a className="library-tool-button" href="/studio"><span><StudioIcon name="pencil" /></span><strong>Content</strong><small>Pages and posts</small></a>
       <a className="library-tool-button" href={siteId ? `/studio?site=${siteId}&mode=bin` : "/studio?mode=bin"}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
