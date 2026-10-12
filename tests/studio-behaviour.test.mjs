@@ -11,7 +11,6 @@ import { readStudioSource } from "./studio-module-source.mjs";
 import { studioHistoryShortcut, handleStudioHistoryShortcut } from "../app/studio/studio-history-shortcuts.mjs";
 import { moveDesignLayer, reorderDesignLayers } from "../app/studio/design-layer-operations.mjs";
 import { blockCapabilityProfiles, capabilityProfileFor } from "../app/studio/blocks/capability-profiles.ts";
-import { groupAllowsChild, parentOfNestedBlock, blockInserterOptions } from "../app/studio/block-inserter-options.ts";
 import {
   addDocumentToWorkspace,
   commitHistory,
@@ -28,6 +27,8 @@ import {
   updateBlockById,
   undoHistory,
 } from "../app/studio/studio-command-operations.mjs";
+
+const { groupAllowsChild, parentOfNestedBlock, blockInserterOptions } = await loadProductionModule(new URL("../app/studio/block-inserter-options.ts", import.meta.url));
 
 function document() {
   return { id: "post-1", kind: "post", title: "Post", blocks: [{ id: "a", type: "paragraph" }, { id: "b", type: "heading" }] };
