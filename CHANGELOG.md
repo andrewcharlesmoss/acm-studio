@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Show blue date markers for days with existing published or scheduled posts in
+  the publish calendar, with post counts in each marked day's accessible name.
+
 ### Fixed
 
 - Keep toolbar menus on regular Studio UI typography instead of inheriting

@@ -490,6 +490,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             categories: workspace.categories,
             tagSuggestions,
             pages: workspace.documents.filter((item) => item.kind === "page"),
+            calendarPosts: workspace.documents.filter((item) => item.kind === "post"),
             siteContext: Boolean(selectedSite),
             writable: selectedSite ? editorWritable : undefined,
             canDelete: canDeleteDocument(activeDocument),
