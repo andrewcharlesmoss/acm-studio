@@ -25,10 +25,10 @@ async function readLocalProjects(signal?: AbortSignal): Promise<LocalSnapshot> {
   return response.json();
 }
 
-const LocalProjectsContext = createContext<{ local: boolean; snapshot: LocalSnapshot | null; refreshSnapshot: (snapshot: LocalSnapshot) => void }>({ local: false, snapshot: null, refreshSnapshot: () => {} });
+const LocalProjectsContext = createContext<{ local: boolean | null; snapshot: LocalSnapshot | null; refreshSnapshot: (snapshot: LocalSnapshot) => void }>({ local: null, snapshot: null, refreshSnapshot: () => {} });
 
 function localStatus(snapshot: LocalSnapshot | null, project: LocalProject | undefined) {
-  if (!snapshot) return "Checking local server…";
+  if (!snapshot) return "Checking…";
   if (!snapshot.available) return "Project Ports unavailable";
   if (!project) return statusLabels.unconfigured;
   if (project.status !== "running" || !project.href) return statusLabels[project.status];
@@ -41,9 +41,12 @@ function localStatus(snapshot: LocalSnapshot | null, project: LocalProject | und
 
 export function ProjectLocalLinksProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<LocalSnapshot | null>(null);
-  const [local, setLocal] = useState(false);
+  const [local, setLocal] = useState<boolean | null>(null);
   useEffect(() => {
-    if (window.location.hostname !== "localhost") return;
+    const isLocal = window.location.hostname === "localhost";
+    let active = true;
+    queueMicrotask(() => { if (active) setLocal(isLocal); });
+    if (!isLocal) return () => { active = false; };
     const controller = new AbortController();
     const refresh = () => {
       if (document.visibilityState === "hidden") return;
@@ -54,7 +57,7 @@ export function ProjectLocalLinksProvider({ children }: { children: ReactNode })
     refresh();
     const interval = window.setInterval(refresh, 15000);
     window.addEventListener("focus", refresh);
-    return () => { controller.abort(); window.clearInterval(interval); window.removeEventListener("focus", refresh); };
+    return () => { active = false; controller.abort(); window.clearInterval(interval); window.removeEventListener("focus", refresh); };
   }, []);
   return <LocalProjectsContext.Provider value={{ local, snapshot, refreshSnapshot: setSnapshot }}>{children}</LocalProjectsContext.Provider>;
 }
@@ -128,9 +131,10 @@ export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = fa
 export function ProjectLocalStatus({ id }: { id: string }) {
   const { local, snapshot } = useContext(LocalProjectsContext);
   const project = snapshot?.projects.find(project => project.id === id);
-  const status = local ? localStatus(snapshot, project) : "Open Studio on localhost";
-  const description = local && project?.status === "running" && project.href
-    ? `${statusLabels.running} — ${status}` : status;
+  const status = local === false ? "Local only" : localStatus(snapshot, project);
+  const description = local === false ? "Open Studio on localhost to access local sites"
+    : !snapshot ? "Checking local server…"
+      : local && project?.status === "running" && project.href ? `${statusLabels.running} — ${status}` : status;
   const serverState = local && snapshot?.available && project
     ? project.status === "failed" || project.status === "conflict" ? "failed"
       : project.status === "running" && project.href ? "running" : "unavailable"
