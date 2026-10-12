@@ -1,3 +1,4 @@
+.template-workspace, .template-workspace .block-editor { background: var(--studio-workspace-background, #f8fafc); }
 .template-library { padding: 24px; min-width: 0; overflow: auto; }
 .template-library h1 { font-size: 1.5rem; }
 .template-library-actions, .template-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

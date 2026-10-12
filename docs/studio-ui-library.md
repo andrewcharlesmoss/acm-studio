@@ -663,3 +663,7 @@ Both must inherit the authored template text colour (the fixtures currently use
 letter spacing, and alignment as well as colour; `start` and `left` are equivalent
 for these left-to-right documents. Do not edit or publish content during this
 check. Authored block/item colours must retain priority over inherited defaults.
+
+Templates lists and template editing workspaces use `--studio-workspace-background`,
+matching Posts and Pages. Pane surfaces remain independently controlled by
+`--studio-pane-surface`; authored template artwork retains its own background.
