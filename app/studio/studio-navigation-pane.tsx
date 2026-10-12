@@ -1,6 +1,7 @@
 "use client";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 import { useId, useRef, useState } from "react";
+import { AcmIcon } from "@acm/icons/react";
 import { StudioToolIcon } from "./studio-tool-icon";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { ProjectLocalLinksProvider, LocalFixtureSiteNavigation } from "./project-local-links";
@@ -43,9 +44,9 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
   return <ProjectLocalLinksProvider>
         <Pane trackClassName="studio-library-track" className="studio-library" bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={libraryPaneWidth} onWidthChange={setLibraryPaneWidth} minWidth={270} maxWidth={480} collapsed={libraryPaneCollapsed} onCollapsedChange={setLibraryPaneCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
           header={<><div className="library-create">
-            <button type="button" disabled={!writable} onClick={() => addDocument("post")}><StudioIcon name="add" size={16} /> New post</button>
-            <button type="button" disabled={!writable} onClick={() => addDocument("page")}><StudioIcon name="add" size={16} /> New page</button>
-            <button type="button" disabled={!writable || !templateSession.writable} onClick={addDocumentFromTemplate}>New from template</button>
+            <button type="button" disabled={!writable} onClick={() => addDocument("post")}><AcmIcon name="document.new-post" scale="Regular-S" size={16} /> New post</button>
+            <button type="button" disabled={!writable} onClick={() => addDocument("page")}><AcmIcon name="document.new-page" scale="Regular-S" size={16} /> New page</button>
+            <button type="button" disabled={!writable || !templateSession.writable} onClick={addDocumentFromTemplate}><AcmIcon name="document.from-template" scale="Regular-S" size={16} /> New from template</button>
           </div><div className="library-tools">
             <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioToolIcon tool="files" /></span><strong>Files</strong><small>Images and documents</small></button>
             <a className="library-tool-button" href="/studio/designs"><span><StudioToolIcon tool="designs" /></span><strong>Design Canvas</strong><small>Create and annotate images</small></a>

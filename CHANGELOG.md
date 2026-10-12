@@ -9,6 +9,8 @@
 
 ### Changed
 
+- Give the New post, New page, and New from template actions dedicated icons from the shared ACM catalogue.
+
 - Keep the Sites section above the Pages, Posts, and Templates tabs in the template workspace.
 
 - Remove the redundant publish status summary above the status control.
