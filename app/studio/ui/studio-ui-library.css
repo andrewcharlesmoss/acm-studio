@@ -91,3 +91,5 @@
   .ui-navigation-specimen { margin-inline: 1rem; padding: 1rem; }
   .ui-ribbon-page .rl-overview-cards { grid-template-columns: minmax(0, 1fr); }
 }
+
+.ui-library :is(.block-editor, .editor-canvas-scroll) { background: var(--studio-workspace-background, #f8fafc); }

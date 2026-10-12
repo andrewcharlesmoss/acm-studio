@@ -1,5 +1,5 @@
 /* Workspace presentation belongs to Studio; public pages retain globals.css. */
-html[data-studio-focus-mode] { --studio-pane-surface: #fff; }
+html[data-studio-focus-mode] { --studio-pane-surface: #fff; --studio-workspace-background: #f8fafc; }
 /* The route scope includes portalled menus; specialised drag cursors still win. */
 html[data-studio-focus-mode] :where(button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"]):where(:not(:disabled):not([aria-disabled="true"])) { cursor: pointer; }
 html[data-studio-focus-mode] :is(button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"]):is(:disabled, [aria-disabled="true"]) { cursor: default; }
@@ -28,7 +28,6 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
   --studio-range-hover-accent: var(--acm-interaction-control-hover-colour, #314dcd);
   --studio-range-pressed-accent: var(--acm-interaction-control-pressed-colour, #2b44b4);
   --studio-toolbar-active: #e7e7e5;
-  --studio-workspace-background: #f8fafc;
   --studio-canvas-background: #fff;
   background: #ecebe6;
   color: var(--ink);

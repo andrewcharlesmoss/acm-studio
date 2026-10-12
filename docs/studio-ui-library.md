@@ -665,5 +665,6 @@ for these left-to-right documents. Do not edit or publish content during this
 check. Authored block/item colours must retain priority over inherited defaults.
 
 Templates lists and template editing workspaces use `--studio-workspace-background`,
-matching Posts and Pages. Pane surfaces remain independently controlled by
+matching Posts and Pages. The UI Library’s template and content-editor specimens
+consume that same route-scoped token in Edit and Preview. Pane surfaces remain independently controlled by
 `--studio-pane-surface`; authored template artwork retains its own background.
