@@ -17,6 +17,7 @@ test("Templates and content editors consume the same workspace background token"
   for (const selector of [".template-workspace", ".template-workspace .block-editor", ".template-workspace .editor-canvas-scroll"]) {
     assert.ok(backgrounds(templates, selector).some(value => value.startsWith("var(--studio-workspace-background")), selector);
   }
+  assert.ok(backgrounds(studio, ".studio-shell :is(.block-editor, .editor-canvas-scroll)").some(value => value.startsWith("var(--studio-workspace-background")));
   assert.ok(backgrounds(library, ".ui-library :is(.block-editor, .editor-canvas-scroll)").some(value => value.startsWith("var(--studio-workspace-background")));
   assert.ok(backgrounds(studio, ".studio-test-context :is(.editor-canvas-scroll,.studio-site-preview-stage)").includes("var(--studio-workspace-background)"));
 });
