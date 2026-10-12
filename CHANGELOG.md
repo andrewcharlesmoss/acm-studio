@@ -9,8 +9,8 @@
 
 ### Fixed
 
-- Keep calendar post markers white inside selected dates and shade today grey
-  when it is not selected.
+- Keep selected calendar dates' text and post markers white, and shade today
+  grey when it is not selected.
 
 - Keep toolbar menus on regular Studio UI typography instead of inheriting
   template or block text styling.
