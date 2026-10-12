@@ -9,7 +9,7 @@
 
 ### Changed
 
-- Give the New post, New page, and New from template actions dedicated icons from the shared ACM catalogue.
+- Make the New post, New page, and New from template actions icon-only, with accessible names and tooltips using the shared ACM catalogue icons.
 
 - Keep the Sites section above the Pages, Posts, and Templates tabs in the template workspace.
 
