@@ -1680,11 +1680,6 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-actions a.button-secondary { align-items: center; display: inline-flex; }
 .publish-feedback { align-items: center; background: #e8f3e9; border-bottom: 1px solid #bdd6c1; color: #315d3b; display: flex; font-size: var(--studio-ui-size); justify-content: space-between; padding: 8px 16px; }
 .publish-feedback button { background: transparent; border: 0; color: inherit; cursor: pointer; font-size: 16px; }
-.local-publish-status { align-items: center; display: flex; gap: 9px; }
-.local-publish-status i { flex: 0 0 auto; }
-.local-publish-status > div { display: grid; }
-.local-publish-status strong { font-size: var(--studio-ui-size); }
-.local-publish-status small { color: var(--muted); font-size: var(--studio-ui-size); margin-top: 2px; }
 .inspector-setting-row { align-items: center; display: grid; gap: 12px; grid-template-columns: 1fr auto; }
 .inspector-setting-row > span { color: var(--muted); font-size: var(--studio-ui-size); }
 .inspector-value-row { align-items: baseline; display: flex; flex-wrap: wrap; gap: 4px 10px; min-width: 0; }

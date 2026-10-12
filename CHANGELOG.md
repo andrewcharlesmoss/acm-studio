@@ -7,6 +7,10 @@
 - Show blue date markers for days with existing published or scheduled posts in
   the publish calendar, with post counts in each marked day's accessible name.
 
+### Changed
+
+- Remove the redundant publish status summary above the status control.
+
 ### Fixed
 
 - Keep selected calendar dates' text and post markers white, and shade today
