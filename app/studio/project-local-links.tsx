@@ -131,7 +131,11 @@ export function ProjectLocalStatus({ id }: { id: string }) {
   const status = local ? localStatus(snapshot, project) : "Open Studio on localhost";
   const description = local && project?.status === "running" && project.href
     ? `${statusLabels.running} — ${status}` : status;
-  return <small className="dashboard-local-status" role="status" title={description} aria-label={description}>{status}</small>;
+  const serverState = local && snapshot?.available && project
+    ? project.status === "failed" || project.status === "conflict" ? "failed"
+      : project.status === "running" && project.href ? "running" : "unavailable"
+    : "unavailable";
+  return <small className="dashboard-local-status" role="status" title={description} aria-label={description}><span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" />{status}</small>;
 }
 
 export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void }) {
