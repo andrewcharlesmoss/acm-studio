@@ -94,24 +94,25 @@ export function ProjectLocalDocumentLink({ siteId, destination }: { siteId: Loca
   return <><button type="button" className="page-link-view" disabled={opening || !canVisit} title={canVisit ? "View page on the local website in a new tab" : "Local website unavailable"} onClick={() => void openLocal()}>View <StudioIcon name="external" size={16} /></button>{error ? <p role="alert">{error}</p> : null}</>;
 }
 
-export function ProjectLocalLink({ id, name, onEdit, active = false }: { id: string; name: string; onEdit?: () => void; active?: boolean }) {
+export function ProjectLocalLink({ id, name, onEdit, active = false, showStatus = false }: { id: string; name: string; onEdit?: () => void; active?: boolean; showStatus?: boolean }) {
   const { local, canVisit, opening, openLocal } = useLocalProjectVisit(id);
   const editHref = local && id === "acm-studio" ? "/studio" : local && isLocalFixtureSiteId(id) ? localFixtureHref(id) : undefined;
   const editName = `Edit Site — ${name} — Local${editHref ? "" : " — not available yet"}`;
   const visitName = `Visit Site — ${name} — Local${canVisit ? "" : " — local server unavailable"}`;
   return <div className="dashboard-project-environment dashboard-local-environment" data-active={active || undefined}>
-    <strong>{active && <span className="studio-active-environment-dot" aria-hidden="true" />}Local{active && <span className="visually-hidden"> — Active Environment</span>}</strong>
+    <strong>Local{active && <span className="visually-hidden"> — Active Environment</span>}</strong>
     <div className="dashboard-project-links">
       {editHref ? <a className="dashboard-card-link is-icon-only" href={editHref} aria-current={active ? "page" : undefined} onClick={onEdit ? event => { event.preventDefault(); onEdit(); } : undefined} aria-label={editName} title={editName}><StudioIcon name="pencil" size={20} /></a>
         : <button className="dashboard-card-link is-icon-only is-unavailable" type="button" disabled aria-label={editName} title={editName}><StudioIcon name="pencil" size={20} /></button>}
       <button type="button" className="dashboard-card-link is-icon-only dashboard-local-open" disabled={opening || !canVisit} onClick={() => void openLocal()} aria-label={visitName} title={visitName}><StudioIcon name="external" size={20} /></button>
     </div>
+    {showStatus ? <ProjectLocalStatus id={id} /> : null}
   </div>;
 }
 
 export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = false }: { id: string; name: string; onSelectTest?: () => void; active?: boolean }) {
   const project = studioProjects.find(item => item.id === id);
-  const localActions = <ProjectLocalLink id={id} name={name} onEdit={onSelectTest} active={active} />;
+  const localActions = <ProjectLocalLink id={id} name={name} onEdit={onSelectTest} active={active} showStatus />;
 
   return <div className={`studio-local-site-actions${active ? " is-active" : ""}`}>
       <a className="studio-local-site" href={isLocalFixtureSiteId(id) ? localFixtureHref(id) : "/studio"} aria-current={active ? "page" : undefined} aria-label={`Edit ${name} local site`} onClick={event => { if (isLocalFixtureSiteId(id) && onSelectTest) { event.preventDefault(); onSelectTest(); } }}>
@@ -120,7 +121,6 @@ export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = fa
       </a>
       <div className="studio-local-site-environments">
         {project ? <ProjectEnvironmentActions project={project} local={localActions} /> : localActions}
-        <ProjectLocalStatus id={id} />
       </div>
   </div>;
 }
