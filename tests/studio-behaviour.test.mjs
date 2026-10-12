@@ -559,8 +559,8 @@ test("the document inspector exposes Gutenberg-style status and publish date con
   assert.match(source, /publish-calendar-grid/);
   assert.match(source, /aria-label="Previous month"/);
   assert.match(source, /aria-label="Next month"/);
-  assert.match(source, /formatPublicationTimezone\(selectedDate\)/);
-  assert.match(source, /Times use this device’s local time zone/);
+  assert.match(source, /formatPublicationTimezone\(\)/);
+  assert.match(source, /Times are shown and saved as UTC\+0\./);
   assert.match(source, /Now/);
   assert.match(source, /const publishDate = document\.publishAt \? formatPublishDate\(document\.publishAt\) : "Immediately";/);
   assert.match(source, /function publishImmediately\(\) \{\s*const now = new Date\(\)\.toISOString\(\);\s*onChange\("publishAt", undefined\);/);
