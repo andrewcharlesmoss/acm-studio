@@ -34,7 +34,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     const content = renderBlockContent(block, previousParagraphIndent, blockSpacerOrientation);
     if (!block.visualStyle || block.type === "spacer") return content;
     const style = block.visualStyle;
-    const backgroundImageUrl = ["quote", "group", "heading", "code", "document-title"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
+    const backgroundImageUrl = ["quote", "group", "heading", "code", "document-title", "list"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
     const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
     if (block.type === "buttons") delete css.textDecoration;
     if (block.type === "social-icons" || block.type === "divider") { delete css.backgroundColor; delete css.backgroundImage; }
@@ -116,11 +116,11 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           const href = safeTextLink(documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
           // eslint-disable-next-line react/jsx-no-target-blank
           const title = block.isLink && href ? <a href={href} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={[block.rel, block.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{document.title}</a> : document.title;
-          return <div className={`document-dynamic-field align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{document.title ? block.level === 0 ? <p>{title}</p> : renderHeading(block.level ?? 2, "", block.id, title) : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
+          return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{document.title ? block.level === 0 ? <p className={studio ? "block-textarea paragraph-field" : undefined}>{title}</p> : renderHeading(block.level ?? 2, studio ? `block-textarea heading-field is-h${block.level ?? 2}` : "", block.id, title) : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
         }
         if (block.type === "document-subtitle") {
           if (!document || !documentFieldVisible(document, "subtitle")) return null;
-          return <div className={`document-dynamic-field align-${block.align ?? "left"}`} key={block.id}>{document.subtitle ? <p>{document.subtitle}</p> : <span className="metadata-missing">Add a subtitle in Document settings.</span>}</div>;
+          return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}`} key={block.id}>{document.subtitle ? <p className={studio ? "template-subtitle" : undefined}>{document.subtitle}</p> : <span className="metadata-missing">Add a subtitle in Document settings.</span>}</div>;
         }
         if (block.type === "cover-image") {
           if (!document || !documentFieldVisible(document, "coverImage") || !document.coverImage) return null;

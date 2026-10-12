@@ -4,11 +4,11 @@
 .rl-shell button { cursor:pointer; }
 .rl-shell button:disabled { cursor:default; }
 .rl-shell :focus-visible { outline:2px solid var(--focus-ring-colour); outline-offset:3px; }
-.rl-shell h1,.rl-shell h2,.rl-shell h3,.rl-shell p { margin:0; }
-.rl-shell h2 { font-size:1.125rem; font-weight:600; line-height:1.35; }
-.rl-shell h3 { font-size:1rem; font-weight:600; margin-top:1.5rem; }
-.rl-shell small,.rl-secondary { font-size:.875rem; color:var(--rl-muted); }
-.rl-shell code { font-size:.8125rem; overflow-wrap:anywhere; font-family:ui-monospace,monospace; }
+.rl-shell h1:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)),.rl-shell h2:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)),.rl-shell h3:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)),.rl-shell p:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)) { margin:0; }
+.rl-shell h2:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)) { font-size:1.125rem; font-weight:600; line-height:1.35; }
+.rl-shell h3:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)) { font-size:1rem; font-weight:600; margin-top:1.5rem; }
+.rl-shell small:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)),.rl-secondary { font-size:.875rem; color:var(--rl-muted); }
+.rl-shell code:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)) { font-size:.8125rem; overflow-wrap:anywhere; font-family:ui-monospace,monospace; }
 .rl-header { min-height:4.5rem; background:#FFF; display:flex; align-items:center; gap:1.5rem; padding:1rem 2rem; border-bottom:1px solid var(--rl-line); }
 .rl-header a { display:inline-flex; align-items:center; gap:.65rem; text-decoration:none; color:inherit; }
 .rl-header strong { padding-left:1.5rem; border-left:1px solid var(--rl-line); font-weight:600; }

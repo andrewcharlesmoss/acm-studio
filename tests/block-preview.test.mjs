@@ -592,7 +592,7 @@ test("dynamic Gutenberg fields and Group semantics retain their compatibility se
   ];
   const document = { kind: "post", slug: "example", title: "Example", publishAt: "2026-09-27T09:00:00.000Z", coverImage: { src: "https://example.com/cover.jpg", alt: "Cover" } };
   const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio", document }));
-  assert.match(rendered, /<h3 class=""><a href="\/writing\/example" target="_blank" rel="nofollow noopener noreferrer">Example<\/a><\/h3>/);
+  assert.match(rendered, /<h3 class="block-textarea heading-field is-h3"><a href="\/writing\/example" target="_blank" rel="nofollow noopener noreferrer">Example<\/a><\/h3>/);
   assert.match(rendered, /<a href="\/writing\/example"><time/);
   assert.match(rendered, /document-dynamic-cover[^>]*alignfull/);
   assert.match(rendered, /width:640px;height:360px;aspect-ratio:16 \/ 9;object-fit:contain/);

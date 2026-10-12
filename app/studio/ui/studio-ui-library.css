@@ -17,7 +17,7 @@
 .ui-library-content .ui-page-intro > .rl-eyebrow,
 .ui-library-content .ui-ribbon-page > .rl-title > .rl-eyebrow,
 .ui-library-content .ui-pane-page .pl-catalogue > .pl-intro > .pl-eyebrow { text-transform: uppercase; }
-.ui-library-content :is(.ui-page-intro, .rl-title, .pl-intro) h1 { margin: .45rem 0; font-size: clamp(1.65rem, 3vw, 2.2rem); font-weight: 600; line-height: 1.2; letter-spacing: -.035em; }
+.ui-library-content :is(.ui-page-intro, .rl-title, .pl-intro) > h1 { margin: .45rem 0; font-size: clamp(1.65rem, 3vw, 2.2rem); font-weight: 600; line-height: 1.2; letter-spacing: -.035em; }
 .ui-page-intro > h1 + p { color: var(--rl-muted); font-size: 1rem; }
 .ui-workspace-page { padding-bottom: 2rem; }
 .ui-workspace-tools { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 0 2rem 1rem; }

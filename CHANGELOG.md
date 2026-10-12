@@ -9,6 +9,8 @@
 
 ### Changed
 
+- Align Edit and Preview block typography, metadata, captions, and container spacing across Studio and the UI Library, including shared-template styles.
+
 - Use one shared template library for Studio Drafts, Test and Test2, with consistent counts, preserved browser recovery originals and shared-template snapshots in browser backups.
 
 - Make the New post, New page, and New from template actions icon-only, with accessible names and tooltips using the shared ACM catalogue icons.

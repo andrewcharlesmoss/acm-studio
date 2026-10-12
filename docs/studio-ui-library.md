@@ -638,3 +638,12 @@ and a circular double-chevron handle. Hover and keyboard focus show the author
 and date above the handle. Callers own history, comparison and restore actions;
 the Library specimen changes temporary selection only. This specialist timeline
 does not inherit the standard slider accent.
+
+### Block presentation in Edit and Preview
+
+Library page typography stays outside the editable block canvas. Both specimen
+modes use the same content typography and compact block gap; template Content
+projections apply the same template surface in both modes. Template heading
+presets target editable heading fields and semantic preview headings together.
+Metadata and authored captions retain the same presentation. Selection controls,
+empty-field prompts, appenders, and recovery inputs remain editing affordances.

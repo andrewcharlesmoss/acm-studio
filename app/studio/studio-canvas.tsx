@@ -2906,7 +2906,7 @@ function BlockFieldContent({ htmlEditorBlockId, renderBlockControls, block, root
     const TitleElement = block.level === 0 ? "p" : `h${block.level ?? 2}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
     const title = templatePlaceholder ? "Title" : document?.title || "Add a title in Document settings.";
     const href = document?.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
-    return documentFieldVisible(documentContext, "title") ? <TitleElement className={`metadata-block-editor document-dynamic-title${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{block.isLink && href ? <a href={href} onClick={(event) => event.preventDefault()}>{title}</a> : title}</TitleElement> : null;
+    return documentFieldVisible(documentContext, "title") ? <TitleElement className={`document-dynamic-title block-textarea ${block.level === 0 ? "paragraph-field" : `heading-field is-h${block.level ?? 2}`}${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{block.isLink && href ? <a href={href} onClick={(event) => event.preventDefault()}>{title}</a> : title}</TitleElement> : null;
   }
   if (block.type === "document-subtitle") return documentFieldVisible(documentContext, "subtitle") ? <p className={`metadata-block-editor document-dynamic-field template-subtitle${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}`}>{templatePlaceholder ? "Subtitle" : document?.subtitle || "Add a subtitle in Document settings."}</p> : null;
   if (block.type === "cover-image") {
