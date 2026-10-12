@@ -647,3 +647,19 @@ projections apply the same template surface in both modes. Template heading
 presets target editable heading fields and semantic preview headings together.
 Metadata and authored captions retain the same presentation. Selection controls,
 empty-field prompts, appenders, and recovery inputs remain editing affordances.
+
+#### Template list colour regression check
+
+`tests/template-list-colour.test.mjs` protects the shared inheritance rule in
+production CSS and runs with the normal test command. It fails against the
+original stylesheet. This structural guard supplements the browser check;
+Node's module tests do not run a browser CSS cascade.
+
+Open `/studio?site=test` and `/studio?site=test2`. For each site, select its
+existing Test post, switch between Edit and Preview, and compare the computed
+colour of `.list-item-editor` and `.list-item-text` inside the template surface.
+Both must inherit the authored template text colour (the fixtures currently use
+`#1C1C1E`). Check a page in each site too. Compare text size, weight, line height,
+letter spacing, and alignment as well as colour; `start` and `left` are equivalent
+for these left-to-right documents. Do not edit or publish content during this
+check. Authored block/item colours must retain priority over inherited defaults.
