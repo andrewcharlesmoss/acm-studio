@@ -5,6 +5,7 @@ import { normalisePostSlug, UnreadablePublicationsError, validatePostForPublicat
 import { browserPublishingRepository, type PublishingRepository } from "../content/publishing-repository";
 import { articles } from "../content/sample-content";
 import type { StudioDocument, StudioWorkspace } from "./editor-model";
+import { formatPublishDate, parsePublicationDate } from "./publication-date";
 
 export function useStudioPublishing({
   activeDocument,
@@ -35,20 +36,23 @@ export function useStudioPublishing({
 
   function publish() {
     if (!publishingWritable) { setPublishFeedback("Publishing is paused while another Studio tab owns local storage."); return false; }
-    const error = validatePostForPublication(activeDocument, workspace.documents, reservedSlugs);
+    const normalisedPublishAt = parsePublicationDate(activeDocument.publishAt)?.toISOString() ?? activeDocument.publishAt;
+    const normalisedPublishedAt = parsePublicationDate(activeDocument.publishedAt)?.toISOString() ?? activeDocument.publishedAt;
+    const documentToPublish = { ...activeDocument, publishAt: normalisedPublishAt, publishedAt: normalisedPublishedAt };
+    const error = validatePostForPublication(documentToPublish, workspace.documents, reservedSlugs);
     if (error) {
       setPublishFeedback(error);
       return false;
     }
-    const scheduled = activeDocument.status === "scheduled";
-    const firstPublication = activeDocument.status !== "published" && activeDocument.status !== "scheduled";
+    const scheduled = documentToPublish.status === "scheduled";
+    const firstPublication = documentToPublish.status !== "published" && documentToPublish.status !== "scheduled";
     const timestamp = new Date().toISOString();
     const slug = normalisePostSlug(activeDocument.slug);
     const publication: StudioDocument = {
-      ...activeDocument,
+      ...documentToPublish,
       slug,
       status: scheduled ? "scheduled" : "published",
-      publishedAt: scheduled ? activeDocument.publishAt : activeDocument.publishAt ?? activeDocument.publishedAt ?? timestamp,
+      publishedAt: scheduled ? documentToPublish.publishAt : documentToPublish.publishAt ?? documentToPublish.publishedAt ?? timestamp,
       publishedSlug: slug,
       updatedAt: timestamp,
     };
@@ -60,7 +64,7 @@ export function useStudioPublishing({
     }
     updateActiveDocument(() => publication);
     setPublishFeedback(scheduled
-      ? firstPublication ? `Scheduled locally for ${new Date(activeDocument.publishAt!).toLocaleString("en-GB")}. It will appear in the Writing archive on this browser at that time.` : "Scheduled post updated locally."
+      ? firstPublication ? `Scheduled locally for ${formatPublishDate(documentToPublish.publishAt!)} UTC+0. It will appear in the Writing archive on this browser at that time.` : "Scheduled post updated locally."
       : firstPublication ? "Published locally. This post is now visible in the Writing archive on this browser." : "Published post updated locally.");
     setSaveLabel(scheduled ? "Post scheduled locally" : "Published locally just now");
     return true;

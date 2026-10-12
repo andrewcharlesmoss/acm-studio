@@ -156,6 +156,8 @@
 
 ### Changed
 
+- Publish dates use UTC+0 consistently in the calendar, time fields and displayed date.
+
 - Publish calendar uses the shared interface selection colour for the selected day and Text action styling for Now and month arrows.
 
 - Published fixture pages/posts and browser posts show one blue Save action, which updates their local publication; drafts retain Save Draft and Publish. The save shortcut follows the same status rule.
