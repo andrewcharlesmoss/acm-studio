@@ -28,6 +28,7 @@ import { StudioListContextMenu, type StudioListContextMenuTarget } from "./studi
 import type { StudioDocumentKind } from "./editor-model";
 import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
 import { StudioButton } from "./controls/button";
+import { StudioTooltipGroup } from "./controls/tooltip-group";
 import { StudioNavigationFrame } from "./studio-navigation-frame";
 
 type NameDialog = { title: string; name: string; confirm: (name: string) => boolean | void };
@@ -43,10 +44,10 @@ function TemplateCreationActions({ writable, onCreate, onImport, importWritable 
   writable: boolean; onCreate: (kind: "post" | "page" | "header" | "footer") => void;
   onImport?: () => void; importWritable?: boolean;
 }) {
-  return <div className="library-create template-create" role="group" aria-label="Create template" style={{ "--library-create-columns": onImport ? 5 : 4 } as CSSProperties}>
-    {templateCreationActions.map(({ kind, label, icon }) => <button type="button" key={kind} disabled={!writable} aria-label={label} title={label} onClick={() => onCreate(kind)}><AcmIcon name={icon} scale="Regular-S" size={20} /></button>)}
-    {onImport ? <button type="button" disabled={!importWritable} aria-label="Import Templates" title="Import Templates" onClick={onImport}><AcmIcon name="action.upload" scale="Regular-S" size={20} /></button> : null}
-  </div>;
+  return <StudioTooltipGroup className="library-create template-create" role="group" aria-label="Create template" style={{ "--library-create-columns": onImport ? 5 : 4 } as CSSProperties}>
+    {templateCreationActions.map(({ kind, label, icon }) => <button type="button" key={kind} disabled={!writable} aria-label={label} data-studio-tooltip={label} onClick={() => onCreate(kind)}><AcmIcon name={icon} scale="Regular-S" size={20} /></button>)}
+    {onImport ? <button type="button" disabled={!importWritable} aria-label="Import Templates" data-studio-tooltip="Import Templates" onClick={onImport}><AcmIcon name="action.upload" scale="Regular-S" size={20} /></button> : null}
+  </StudioTooltipGroup>;
 }
 export function TemplateWorkspacePanel({ editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, onEditSiteNavigation, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
   onEditSiteNavigation?: () => void;

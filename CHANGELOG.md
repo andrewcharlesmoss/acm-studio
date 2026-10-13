@@ -11,6 +11,9 @@
 
 ### Changed
 
+- Show creation-button tooltips after 200 ms on first hover, immediately when
+  moving within a group, and immediately on keyboard focus.
+
 - Share compact template creation icons between the navigation pane and main
   template list, including an Import icon, with catalogue artwork and tooltips.
 

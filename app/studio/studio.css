@@ -2146,3 +2146,5 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-block-preview .article-footnotes, .footnotes-field { border-top: 1px solid var(--line); font-size: .9em; margin: 0; padding-top: 12px; }
 .studio-block-preview .article-footnotes ol, .footnotes-field ol { display: grid; gap: 8px; margin: 0; padding-left: 24px; }
 .studio-block-preview .article-footnotes li { margin: 0; }
+
+.studio-control-tooltip { background: var(--acm-color-text-primary, #1c1c1e); color: var(--acm-color-surface, #fff); border-radius: 4px; box-shadow: 0 2px 6px #0002; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); max-width: calc(100vw - 16px); padding: 6px 8px; pointer-events: auto; position: fixed; width: max-content; z-index: 2147483647; }

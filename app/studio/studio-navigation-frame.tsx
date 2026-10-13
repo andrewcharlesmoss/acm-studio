@@ -9,6 +9,8 @@ import { StudioToolIcon } from "./studio-tool-icon";
 import type { StudioDocumentKind } from "./editor-model";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 
+import { StudioTooltipGroup } from "./controls/tooltip-group";
+
 type LibraryKind = StudioDocumentKind | "templates";
 
 /** Navigation structure is shared by content and template workspaces. */
@@ -34,11 +36,11 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
     bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={width}
     onWidthChange={onWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed}
     onCollapsedChange={onCollapsedChange} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
-    header={<><div className="library-create">
-      <button type="button" aria-label="New post" title="New post" disabled={!writable || !onNewDocument} onClick={() => onNewDocument?.("post")}><AcmIcon name="document.new-post" scale="Regular-S" size={20} /></button>
-      <button type="button" aria-label="New page" title="New page" disabled={!writable || !onNewDocument} onClick={() => onNewDocument?.("page")}><AcmIcon name="document.new-page" scale="Regular-S" size={20} /></button>
-      <button type="button" aria-label="New from template" title="New from template" disabled={!writable || !templateWritable || !onNewFromTemplate} onClick={onNewFromTemplate}><AcmIcon name="document.from-template" scale="Regular-S" size={20} /></button>
-    </div><div className="library-tools">
+    header={<><StudioTooltipGroup className="library-create">
+      <button type="button" aria-label="New post" data-studio-tooltip="New post" disabled={!writable || !onNewDocument} onClick={() => onNewDocument?.("post")}><AcmIcon name="document.new-post" scale="Regular-S" size={20} /></button>
+      <button type="button" aria-label="New page" data-studio-tooltip="New page" disabled={!writable || !onNewDocument} onClick={() => onNewDocument?.("page")}><AcmIcon name="document.new-page" scale="Regular-S" size={20} /></button>
+      <button type="button" aria-label="New from template" data-studio-tooltip="New from template" disabled={!writable || !templateWritable || !onNewFromTemplate} onClick={onNewFromTemplate}><AcmIcon name="document.from-template" scale="Regular-S" size={20} /></button>
+    </StudioTooltipGroup><div className="library-tools">
       <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={onOpenFiles}><span><StudioToolIcon tool="files" /></span><strong>Files</strong><small>Images and documents</small></button>
       <a className="library-tool-button" href="/studio/designs"><span><StudioToolIcon tool="designs" /></span><strong>Design Canvas</strong><small>Create and annotate images</small></a>
       <a className="library-tool-button" href="/studio/ui"><span><StudioToolIcon tool="uiLibrary" /></span><strong>Studio UI Library</strong><small>Workspace, Ribbon, panes and shared icons</small></a>
