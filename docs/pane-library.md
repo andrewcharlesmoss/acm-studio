@@ -225,3 +225,9 @@ a scoped local commit. No push or deployment is authorised by this increment.
   code findings. Browser evidence was supplied by the Builder, not independently
   repeated by the Verifier. Concurrent Ribbon/icon documentation and lockfile
   changes are outside this increment and excluded from its commit.
+
+Studio Navigation uses `StudioNavigationFrame` in Posts, Pages and Templates.
+It owns one creation toolbar, tool menu, Studio Drafts/Sites area, shared tabs,
+scrolling list region and footer. Consumers supply counts and commands; Files
+and the other tool rows share one separator rule and the same catalogue icons.
+Template import and template creation remain in the template workspace.

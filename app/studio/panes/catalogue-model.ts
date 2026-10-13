@@ -6,7 +6,7 @@ export type PaneDefinition = {
   source: string; sourceComponent: string;
 };
 export const paneExamples: readonly PaneDefinition[] = [
-  { id: "navigation", label: "Studio Navigation", side: "left", width: 290, description: "Tools and tabbed document navigation, with persistent bottom actions.", tabs: ["Posts", "Pages", "Templates"], toolbar: true, footer: true, source: "app/studio/studio-prototype.tsx", sourceComponent: "StudioPrototype · studio-library" },
+  { id: "navigation", label: "Studio Navigation", side: "left", width: 290, description: "Tools and tabbed document navigation, with persistent bottom actions.", tabs: ["Posts", "Pages", "Templates"], toolbar: true, footer: true, source: "app/studio/studio-navigation-frame.tsx", sourceComponent: "StudioNavigationFrame" },
   { id: "blocks", label: "Block Library", side: "left", width: 320, description: "A searchable, grouped collection of blocks.", tabs: [], toolbar: true, footer: false, source: "app/studio/studio-canvas.tsx", sourceComponent: "StudioCanvas · block-inserter" },
   { id: "inspector", label: "Editor Inspector", side: "right", width: 300, description: "WordPress-familiar page and post settings, with Studio-specific controls on their own tab.", tabs: ["Page/Post", "Studio", "Block", "Styles"], toolbar: false, footer: false, source: "app/studio/studio-inspectors.tsx", sourceComponent: "StudioInspector" },
   { id: "design-navigation", label: "Design Pages/Layers", side: "left", width: 224, description: "Page thumbnails and layer rows share one navigation pane.", tabs: ["Pages", "Layers"], toolbar: false, footer: true, source: "app/studio/design-editor.tsx", sourceComponent: "DesignEditor · design-pages" },

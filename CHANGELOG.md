@@ -25,6 +25,8 @@
 
 ### Fixed
 
+- Share the Studio Navigation structure across Posts, Pages, and Templates, keeping toolbar heights, tool icons, and separators consistent.
+
 - Keep selected calendar dates' text and post markers white, and shade today
   grey when it is not selected.
 

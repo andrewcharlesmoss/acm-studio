@@ -1,11 +1,7 @@
 "use client";
 import type { LocalFixtureSiteId } from "./test-site/sites";
-import { useId, useRef, useState } from "react";
-import { AcmIcon } from "@acm/icons/react";
-import { StudioToolIcon } from "./studio-tool-icon";
-import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
-import { ProjectLocalLinksProvider, LocalFixtureSiteNavigation } from "./project-local-links";
-import { StudioIcon } from "./studio-icons";
+import { useRef, useState } from "react";
+import { StudioNavigationFrame } from "./studio-navigation-frame";
 import { StudioListContextMenu, type StudioListContextMenuTarget } from "./studio-list-context-menu";
 import type { StudioDocument, StudioDocumentKind, StudioWorkspace } from "./editor-model";
 import type { useTemplates } from "./use-templates";
@@ -34,31 +30,24 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
   onSelectLibraryKind: (kind: StudioDocumentKind | "templates") => void;
   onSelectTemplate: (setId: string, targetId: string) => void; onExportContent: () => void; onSelectSite?: (id: LocalFixtureSiteId) => void; onSelectWorkspace?: () => void; selectedSite?: LocalFixtureSiteId | null;
 }) {
-  const libraryTabsId = useId();
+  const kind = libraryKind;
   const documentContextMenuTriggerRef = useRef<HTMLElement | null>(null);
   const [documentContextMenu, setDocumentContextMenu] = useState<(StudioListContextMenuTarget & { id: string }) | null>(null);
   function closeDocumentContextMenu() {
     setDocumentContextMenu(null);
     requestAnimationFrame(() => documentContextMenuTriggerRef.current?.isConnected && documentContextMenuTriggerRef.current.focus());
   }
-  return <ProjectLocalLinksProvider>
-        <Pane trackClassName="studio-library-track" className="studio-library" bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={libraryPaneWidth} onWidthChange={setLibraryPaneWidth} minWidth={270} maxWidth={480} collapsed={libraryPaneCollapsed} onCollapsedChange={setLibraryPaneCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
-          header={<><div className="library-create">
-            <button type="button" aria-label="New post" title="New post" disabled={!writable} onClick={() => addDocument("post")}><AcmIcon name="document.new-post" scale="Regular-S" size={20} /></button>
-            <button type="button" aria-label="New page" title="New page" disabled={!writable} onClick={() => addDocument("page")}><AcmIcon name="document.new-page" scale="Regular-S" size={20} /></button>
-            <button type="button" aria-label="New from template" title="New from template" disabled={!writable || !templateSession.writable} onClick={addDocumentFromTemplate}><AcmIcon name="document.from-template" scale="Regular-S" size={20} /></button>
-          </div><div className="library-tools">
-            <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={() => openMediaLibrary()}><span><StudioToolIcon tool="files" /></span><strong>Files</strong><small>Images and documents</small></button>
-            <a className="library-tool-button" href="/studio/designs"><span><StudioToolIcon tool="designs" /></span><strong>Design Canvas</strong><small>Create and annotate images</small></a>
-            <a className="library-tool-button" href="/studio/ui"><span><StudioToolIcon tool="uiLibrary" /></span><strong>Studio UI Library</strong><small>Workspace, Ribbon, panes and shared icons</small></a>
-            <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={onOpenBackup}><span><StudioToolIcon tool="backup" /></span><strong>Backup</strong><small>Export and restore</small></button>
-            <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" onClick={onOpenBin}><span><StudioToolIcon tool="bin" /></span><strong>Bin</strong><small>{workspace.bin.length + templateSession.store.bin.length} deleted items</small></button>
-          </div></>}
-          tabs={<><button type="button" className="text-button studio-drafts-action" aria-pressed={!selectedSite} onClick={onSelectWorkspace}>Studio Drafts</button><LocalFixtureSiteNavigation selectedSite={selectedSite} onSelectSite={onSelectSite} /><div className="library-tabs"><PaneTabs id={libraryTabsId} label="Content type" tabs={[
-            { id: "post", label: "Posts" }, { id: "page", label: "Pages" }, { id: "templates", label: "Templates" },
-          ]} active={libraryKind} onChange={id => onSelectLibraryKind(id as StudioDocumentKind | "templates")} renderLabel={(tab) => <><span className="library-tab-label">{tab.label}</span><span>{tab.id === "templates" ? (templateCount ?? "…") : workspace.documents.filter((item) => item.kind === tab.id).length}</span></>} /></div></>}
-          footer={<div className="library-footer"><button type="button" onClick={() => onExportContent()}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>}>
-          {(["post", "page", "templates"] as const).map((kind) => <PaneTabPanel key={kind} id={libraryTabsId} tab={kind} active={libraryKind}>
+  return <StudioNavigationFrame width={libraryPaneWidth} collapsed={libraryPaneCollapsed}
+    onWidthChange={setLibraryPaneWidth} onCollapsedChange={setLibraryPaneCollapsed}
+    selectedSite={selectedSite} onSelectSite={onSelectSite} onSelectWorkspace={onSelectWorkspace}
+    libraryKind={libraryKind} onSelectLibraryKind={onSelectLibraryKind}
+    counts={{ post: workspace.documents.filter(item => item.kind === "post").length,
+      page: workspace.documents.filter(item => item.kind === "page").length, templates: templateCount }}
+    binCount={workspace.bin.length + templateSession.store.bin.length} studioSection={studioSection}
+    writable={writable} templateWritable={templateSession.writable}
+    onNewDocument={addDocument} onNewFromTemplate={addDocumentFromTemplate}
+    onOpenFiles={openMediaLibrary} onOpenBackup={onOpenBackup} onOpenBin={onOpenBin}
+    onExportContent={onExportContent}>
             <div className="document-list">
               {kind === "templates" ? <>
                 {templateSession.store.sets.flatMap(set => [...set.templates, ...set.parts].map(entry => ({ set, entry }))).map(({ set, entry }) => (
@@ -79,7 +68,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
               ))}
               {kind !== "templates" && !workspace.documents.some((document) => document.kind === kind) ? <p className="document-list-empty">No {kind === "page" ? "pages" : "posts"} yet.</p> : null}
             </div>
-          </PaneTabPanel>)}
+
           {documentContextMenu ? (() => {
             const contextDocument = workspace.documents.find((item) => item.id === documentContextMenu.id);
             const contextAssignment = templateSession.store.assignments.find((item) => item.documentId === documentContextMenu.id);
@@ -92,6 +81,5 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
             ] : [];
             return <StudioListContextMenu target={documentContextMenu} actions={actions} canDelete={canDelete} disabledReason={disabledReason} returnFocusRef={documentContextMenuTriggerRef} onDelete={() => requestDeleteDocument(documentContextMenu.id)} onClose={closeDocumentContextMenu} />;
           })() : null}
-        </Pane>
-  </ProjectLocalLinksProvider>;
+  </StudioNavigationFrame>;
 }

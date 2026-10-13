@@ -1122,18 +1122,21 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const templateStyles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   assert.match(studio, /<StudioNavigationPane[\s\S]*onSelectLibraryKind=\{selectLibraryKind\}/);
-  assert.match(navigation, /<PaneTabs[^>]*label="Content type"[\s\S]*\{ id: "templates", label: "Templates" \}/);
+  const frame = readFileSync(new URL("../app/studio/studio-navigation-frame.tsx", import.meta.url), "utf8");
+  assert.match(frame, /<PaneTabs[^>]*label="Content type"[\s\S]*\{ id: "templates", label: "Templates" \}/);
   assert.match(studio, /templateCount=\{globalTemplates\.session\.ready \? globalTemplates\.session\.store\.sets\.reduce\(\(count, set\) => count \+ set\.templates\.length \+ set\.parts\.length, 0\) : null\}/);
-  assert.match(navigation, /templateCount \?\? "…"/);
+  assert.match(navigation, /templates: templateCount/);
+  assert.match(frame, /counts\[tab\.id as LibraryKind\] \?\? "…"/);
   assert.match(studio, /const \[studioSection, setStudioSection\] = useState<"content" \| "templates" \| "files" \| "backup" \| "bin">\("content"\)/);
   assert.match(screen, /queueMicrotask\(\(\) => \{[\s\S]*navigation.section === "templates"[\s\S]*setStudioSection\("templates"\)/);
   assert.match(screen, /window\.addEventListener\("popstate", syncModeFromLocation, true\)/);
   assert.match(screen, /if \(currentPath !== nextPath\) \{[\s\S]*window\.history\.pushState/);
   assert.doesNotMatch(navigation, /<a className="library-tool-button" href="\/studio\/templates">/);
-  assert.match(styles, /\.library-tabs \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.match(styles, /\.library-tabs button/);
+  assert.match(styles, /\.studio-library \.library-tabs \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /\.library-tabs \.pane-tabs button/);
   const templateWorkspace = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
-  assert.match(templateWorkspace, /<div className="library-tabs" aria-label="Content type">[\s\S]*Templates<span>\{templateEntryCount}<\/span>/);
+  assert.match(templateWorkspace, /templates: templateEntryCount/);
+  assert.match(templateWorkspace, /<StudioNavigationFrame/);
   assert.doesNotMatch(templateWorkspace, /Manage Template Sets/);
   assert.match(templateWorkspace, /const templateEntries = templateLibraryEntries\(templates\.store\)/);
   assert.match(templateWorkspace, /className=\{`document-item template-target-item/);
@@ -2447,18 +2450,13 @@ test("overflow pointer and focus transitions reach toggle handlers before dismis
 });
 
 
-test("content type tabs follow the shared Studio tool menu", () => {
-  const prototype = readFileSync(new URL("../app/studio/studio-navigation-pane.tsx", import.meta.url), "utf8");
-  const prototypeLibrary = prototype.slice(prototype.indexOf('<Pane trackClassName="studio-library-track"'), prototype.indexOf('<div className="document-list">'));
-  assert.ok(prototypeLibrary.includes('className="library-tool-button"'));
-  assert.ok(prototypeLibrary.includes('className="library-tabs"'));
-  assert.ok(prototypeLibrary.indexOf('className="library-tool-button"') < prototypeLibrary.indexOf('className="library-tabs"'));
-
-  const templates = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
-  const templateLibrary = templates.slice(templates.indexOf('<Pane trackClassName="studio-library-track"'), templates.indexOf('<div className="document-list template-document-list">'));
-  assert.ok(templateLibrary.includes('className="library-tool-button"'));
-  assert.ok(templateLibrary.includes('className="library-tabs"'));
-  assert.ok(templateLibrary.indexOf('className="library-tool-button"') < templateLibrary.indexOf('className="library-tabs"'));
+test("content and template workspaces share one navigation structure", () => {
+  for (const name of ["studio-navigation-pane", "template-workspace"]) {
+    const source = readFileSync(new URL(`../app/studio/${name}.tsx`, import.meta.url), "utf8");
+    assert.match(source, /<StudioNavigationFrame/);
+    assert.doesNotMatch(source, /className="library-tool-button"/);
+    assert.doesNotMatch(source, /className="library-tabs"/);
+  }
 });
 
 test("Studio View menu exposes viewport, template and read-only preview actions", async () => {

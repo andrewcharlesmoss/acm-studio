@@ -16,9 +16,6 @@ import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";
 import { TemplateEditor } from "./template-editor";
 import { MediaManager } from "./media-manager";
 import { StudioIcon } from "./studio-icons";
-import { ProjectLocalLinksProvider, LocalFixtureSiteNavigation } from "./project-local-links";
-import { SiteNavigation } from "./site-navigation";
-import { AcmIcon } from "@acm/icons/react";
 import { createDocumentTemplateNodes, copyTemplateData, templateId, templateMediaIds, visitTemplateNodes, templatePartReference, TEMPLATE_STORAGE_KEY, duplicateTemplateSet, type TemplateSet, type PageTemplate, type TemplatePart, type TemplateNode } from "./template-model";
 import { templateLibraryContext, templateLibraryEntries, templateEntryExportContext, replaceTemplateLibraryContext, templateNameInitial } from "./template-library";
 import { exportTemplatePackage, importTemplatePackage, TEMPLATE_PACKAGE_LIMIT, validateTemplatePackage } from "./template-package";
@@ -30,12 +27,12 @@ import { StudioListContextMenu, type StudioListContextMenuTarget } from "./studi
 import type { StudioDocumentKind } from "./editor-model";
 import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
 import { StudioButton } from "./controls/button";
-import { Pane } from "./panes/pane-components";
+import { StudioNavigationFrame } from "./studio-navigation-frame";
 
 type NameDialog = { title: string; name: string; confirm: (name: string) => boolean | void };
 export type TemplateWorkspaceSession = ReturnType<typeof useStudioWorkspace>;
 export type TemplateStoreSession = ReturnType<typeof useTemplates>;
-export function TemplateWorkspacePanel({ editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, onEditSiteNavigation, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
+export function TemplateWorkspacePanel({ editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, onEditSiteNavigation, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
   onEditSiteNavigation?: () => void;
   siteNavigationEditor?: ReactNode;
   previewSite?: GlobalTemplatePreviewSite;
@@ -57,6 +54,12 @@ export function TemplateWorkspacePanel({ editingScope, globalLibrary, previewSit
   onInspectorTabChange?: (tab: "template" | "block" | "styles") => void;
   manageHistoryShortcuts?: boolean;
   onBackToContent?: () => void;
+  onSelectWorkspace?: () => void;
+  onNewDocument?: (kind: StudioDocumentKind) => void;
+  onNewFromTemplate?: () => void;
+  contentWritable?: boolean;
+  contentTemplateWritable?: boolean;
+  onOpenBin?: () => void;
   onOpenFiles?: () => void;
   onOpenBackup?: () => void;
   onExportContent?: () => void;
@@ -366,22 +369,16 @@ export function TemplateWorkspacePanel({ editingScope, globalLibrary, previewSit
   const panel = <>
     {templates.syncConflict ? <div className="template-status template-inline-status template-conflict-status" role="alert"><div><strong>Another Studio tab changed this template while you were editing.</strong><span>{templates.syncConflict.conflicts.length || 1} overlapping change{templates.syncConflict.conflicts.length === 1 ? "" : "s"} need your decision. Your changes are still available in this tab.</span><small>{studioConflictDetails(templates.syncConflict)} Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</small></div><div className="template-status-actions">{editingScope === "global" && globalLibrary ? <button type="button" onClick={() => exportStudioJson(validateGlobalTemplateLibrary({ ...globalLibrary, templates: templates.store }), "acm-global-template-draft.json")}>Export Unsaved Global Draft</button> : null}<button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}
     {!templates.syncConflict && (templates.error || feedback || media.error) ? <div className="template-status template-inline-status" role="alert"><span>{templates.error ?? feedback ?? media.error}</span>{editingScope === "global" ? <div className="template-status-actions"><button type="button" onClick={() => exportStudioJson(globalLibrary ? validateGlobalTemplateLibrary({ ...globalLibrary, templates: templates.store }) : templates.store, "acm-global-template-draft.json")}>Export Unsaved Global Draft</button><button type="button" onClick={templates.retryConnection}>Reload Global Originals</button></div> : !templates.ready ? <div className="template-status-actions"><button type="button" onClick={() => exportStudioJson({ raw: window.localStorage.getItem(TEMPLATE_STORAGE_KEY) }, "acm-template-recovery.json", 1000)}>Export Original Data</button></div> : null}</div> : null}
-    {onBackToContent ? <Pane trackClassName="studio-library-track" className="studio-library" bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={resolvedLibraryPaneWidth} onWidthChange={setResolvedLibraryPaneWidth} minWidth={270} maxWidth={480} collapsed={resolvedLibraryPaneCollapsed} onCollapsedChange={setResolvedLibraryPaneCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}>
-      <div className="library-create">
-        <button type="button" onClick={library} aria-pressed={showTemplateLibrary}>Templates</button>
-        <button type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</button>
-      </div>
-      <button className="library-tool-button" type="button" onClick={onOpenFiles}><span><StudioIcon name="image" /></span><strong>Files</strong><small>Images and documents</small></button>
-      <a className="library-tool-button" href="/studio/designs"><span><StudioIcon name="image" /></span><strong>Design Canvas</strong><small>Create and annotate images</small></a>
-      <a className="library-tool-button" href="/studio/ui"><span><AcmIcon name="layout.columns" /></span><strong>Studio UI Library</strong><small>Workspace, Ribbon, panes, shared icons and Styles</small></a>
-      <button className="library-tool-button" type="button" onClick={onOpenBackup}><span><StudioIcon name="archive" /></span><strong>Backup</strong><small>Export and restore</small></button>
-      <a className="library-tool-button" href={siteId ? `/studio?site=${siteId}&mode=bin` : "/studio?mode=bin"}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
-      {siteId ? <LocalFixtureSiteNavigation selectedSite={siteId} onSelectSite={onSelectSite} /> : <SiteNavigation />}
-      <div className="library-tabs" aria-label="Content type">
-        <button className={libraryKind === "post" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "post"} onClick={() => onSelectLibraryKind?.("post")}>Posts<span>{workspace.workspace.documents.filter(item => item.kind === "post").length}</span></button>
-        <button className={libraryKind === "page" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "page"} onClick={() => onSelectLibraryKind?.("page")}>Pages<span>{workspace.workspace.documents.filter(item => item.kind === "page").length}</span></button>
-        <button className={libraryKind === "templates" ? "is-active" : ""} type="button" aria-pressed={libraryKind === "templates"} onClick={() => onSelectLibraryKind?.("templates")}>Templates<span>{templateEntryCount}</span></button>
-      </div>
+    <StudioNavigationFrame width={resolvedLibraryPaneWidth} collapsed={resolvedLibraryPaneCollapsed}
+      onWidthChange={setResolvedLibraryPaneWidth} onCollapsedChange={setResolvedLibraryPaneCollapsed}
+      selectedSite={siteId} onSelectSite={onSelectSite} onSelectWorkspace={onSelectWorkspace ?? onBackToContent}
+      libraryKind={libraryKind} onSelectLibraryKind={onSelectLibraryKind}
+      counts={{ post: workspace.workspace.documents.filter(item => item.kind === "post").length,
+        page: workspace.workspace.documents.filter(item => item.kind === "page").length, templates: templateEntryCount }}
+      binCount={workspace.workspace.bin.length + templates.store.bin.length} studioSection="templates"
+      writable={contentWritable ?? workspace.writable} templateWritable={contentTemplateWritable ?? templates.writable}
+      onNewDocument={onNewDocument} onNewFromTemplate={onNewFromTemplate}
+      onOpenFiles={onOpenFiles} onOpenBackup={onOpenBackup} onOpenBin={onOpenBin} onExportContent={onExportContent}>
       <div className="document-list template-document-list">
         {libraryKind === "templates" ? <>
         {templateEntries.map(({ set: item, entry }) => <button className={`document-item template-target-item${!showTemplateLibrary && item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
@@ -394,12 +391,7 @@ export function TemplateWorkspacePanel({ editingScope, globalLibrary, previewSit
         {libraryKind !== "templates" && !workspace.workspace.documents.some(document => document.kind === libraryKind) ? <p className="document-list-empty">No {libraryKind === "page" ? "pages" : "posts"} yet.</p> : null}
       </div>
       {libraryKind === "templates" ? <fieldset disabled={!writable}><legend>Add template</legend><div className="template-targets">{(["page", "post", "header", "footer"] as const).map(kind => <button type="button" key={kind} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</button>)}</div></fieldset> : null}
-      <div className="library-footer"><button type="button" onClick={onExportContent}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>
-    </Pane> : <aside className="studio-library">
-      <a className="library-tool-button" href="/studio"><span><StudioIcon name="pencil" /></span><strong>Content</strong><small>Pages and posts</small></a>
-      <a className="library-tool-button" href={siteId ? `/studio?site=${siteId}&mode=bin` : "/studio?mode=bin"}><span><StudioIcon name="archive" /></span><strong>Bin</strong><small>{workspace.workspace.bin.length + templates.store.bin.length} deleted items</small></a>
-      <button className="library-tool-button is-active" type="button" onClick={library}><span><StudioIcon name="block" /></span><strong>Templates</strong><small>Shared presentation</small></button>
-    </aside>}
+    </StudioNavigationFrame>
 
     {siteNavigationEditor ? siteNavigationEditor : mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}>{scopeNotice}<button type="button" onClick={() => setMediaTarget(null)}>Back to Template</button><MediaManager writable={exclusiveWritable} targetLabel={mediaTarget.logo ? "Site logo" : mediaTarget.background ? "Background image" : "Template image"} targetKind={mediaTarget.background ? "background" : "block"} onInsertImage={insertMedia} /></section> : !showTemplateLibrary && set && target ? <TemplateEditor scopeNotice={scopeNotice} previewControls={previewControls} globalOriginal={editingScope === "global"} siteId={siteId} fixtureLinks={Boolean(siteId)} initialSelectedBlockId={editingScope === "global" && set.id === "studio-global-navigation" ? target.nodes[0]?.id : target.kind === "overlay" ? target.nodes[0]?.id : siteNavigation?.setId === set.id && siteNavigation.partId === target.id ? target.nodes.find(node => node.type === "element" && node.element === "navigation")?.id : undefined} siteNavigationPartId={siteNavigation?.setId === set.id ? siteNavigation.partId : undefined} sharedSiteNavigation={siteNavigation?.setId === set.id && siteNavigation.partId === target.id} key={`${set.id}/${target.id}`} set={editorSet ?? set} target={target} documents={preview?.documents ?? workspace.workspace.documents} mediaUrls={media.urls} loadInlineImages={loadStoredInlineImages} writable={writable} onChange={changeSet} onEditPart={(id, nextSet) => openSet(nextSet ?? set, id)} onOpenMedia={(blockId, logo = false, background = false, item) => { if (siteId) { setFeedback(`${localFixtureName(siteId ?? "test")} templates use portable image URLs. Browser-managed files remain in Studio Drafts.`); return; } setMediaTarget({ blockId, logo, background, item, targetId: target.id, setId: set.id }); }} inspectorTab={inspectorTab} onInspectorTabChange={onInspectorTabChange} inspectorPaneWidth={resolvedInspectorPaneWidth} onInspectorPaneWidthChange={setResolvedInspectorPaneWidth} inspectorPaneCollapsed={resolvedInspectorPaneCollapsed} onInspectorPaneCollapsedChange={setResolvedInspectorPaneCollapsed} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : <section className="template-library" style={{ gridColumn: "span 2" }}>{scopeNotice}<h1>Templates</h1><p>Reusable global originals and shared parts.</p><div className="template-library-actions">{(["page", "post", "header", "footer"] as const).map(kind => <StudioButton type="button" key={kind} disabled={!writable} onClick={() => addTarget(kind)}>New {kind === "page" ? "Page Template" : kind === "post" ? "Post Template" : kind === "header" ? "Header" : "Footer"}</StudioButton>)}<StudioButton variant="secondary" type="button" disabled={!exclusiveWritable} onClick={() => importRef.current?.click()}>Import</StudioButton></div>
       <ul className="template-entry-list" aria-label="Templates">{templateEntries.map(({ set: item, entry }) => <li key={`${item.id}/${entry.id}`}>
@@ -419,5 +411,5 @@ export function TemplateWorkspacePanel({ editingScope, globalLibrary, previewSit
       <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closeDialog}>Cancel</StudioButton><StudioButton type="submit" disabled={!writable}>Save</StudioButton></StudioDialogActions>
     </form>
   </StudioDialog> : null;
-  return siteId ? <ProjectLocalLinksProvider>{panel}{dialogElement}</ProjectLocalLinksProvider> : <>{panel}{dialogElement}</>;
+  return <>{panel}{dialogElement}</>;
 }
