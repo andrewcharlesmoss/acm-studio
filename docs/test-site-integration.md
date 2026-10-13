@@ -389,3 +389,23 @@ publication too large for the gateway fails visibly. No hosted deployment occurs
 Undoing creation of a newly published document removes that document from the
 local site together with its snapshot. Redo restores the authored document;
 Publish is required to make it visible again.
+
+### Editable publication status and dates
+
+Test and Test2 reuse the shared document Publishing controls for both posts and
+pages. Draft and Pending are saved editorial states and withdraw that document's
+local publication; Published captures the current draft through the existing
+owner, lease and revision-checked transaction. The required home page remains
+Published-only. Legacy publication snapshots remain readable without changing
+pre-edit output.
+
+Date edits, including Now, are undoable draft metadata. Publish or Update uses
+that selected UTC date, falling back to the previous publication date or the
+current time. Backdating is supported. Future dates, Scheduled, Private,
+password protection and Sticky are unavailable in this fixture integration.
+There is no automatic scheduler, access-protected publication or pinned archive.
+Ordinary Save Draft never replaces a publication snapshot. Explicit publication
+commands are preserved across content Undo/Redo, and save failures retain the
+draft with visible feedback. This remains local only; no hosted publication is
+implied. Production regression coverage is in
+`tests/site-publication-controls.test.mjs` and the existing local-site suites.

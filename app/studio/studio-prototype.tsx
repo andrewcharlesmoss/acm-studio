@@ -294,8 +294,19 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     setPublishingLocalSite(true);
     try {
       await testContext.publishDocument(activeDocument.id);
-      setSiteFeedback("Published to the local site preview. The live website is unchanged.");
+      setSiteFeedback(null);
     } catch (error) { setSiteFeedback(error instanceof Error ? error.message : "Local publishing failed. Your draft was kept."); }
+    finally { setPublishingLocalSite(false); }
+  }
+  async function changeSitePublicationStatus(status: string) {
+    if (!selectedSite || publishingLocalSite || !testSite.writable || previewWindow) return;
+    if (status !== "draft" && status !== "pending" && status !== "published") return;
+    if (codeEditorDirtyRef.current) { setSiteFeedback("Apply or discard code edits before changing publication status."); return; }
+    setPublishingLocalSite(true);
+    try {
+      await testContext.changePublicationStatus(activeDocument.id, status);
+      setSiteFeedback(null);
+    } catch (error) { setSiteFeedback(error instanceof Error ? error.message : "The status could not be saved. Your draft was kept."); }
     finally { setPublishingLocalSite(false); }
   }
   function saveCurrentDocument() {
@@ -504,6 +515,8 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             pages: workspace.documents.filter((item) => item.kind === "page"),
             calendarPosts: workspace.documents.filter((item) => item.kind === "post"),
             siteContext: Boolean(selectedSite),
+            allowedStatuses: selectedSite ? activeDocument.id === testContext.homeDocumentId ? ["published"] : ["draft", "pending", "published"] : undefined,
+            onStatusChange: selectedSite ? status => { void changeSitePublicationStatus(status); } : undefined,
             localPublication: selectedSite ? { ...testContext.publicationFor(activeDocument.id), busy: publishingLocalSite } : undefined,
             writable: selectedSite ? editorWritable : undefined,
             canDelete: canDeleteDocument(activeDocument),
@@ -520,7 +533,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             onOpenCoverMediaLibrary: openCoverMediaLibrary,
             onRemoveCoverImage: media.removeCoverImage,
             onPublish: () => { if (selectedSite) void publishLocalDocument(); else publishing.publish(); },
-            onUnpublish: () => { if (!selectedSite) publishing.unpublish(); },
+            onUnpublish: () => { if (selectedSite) void changeSitePublicationStatus("draft"); else publishing.unpublish(); },
             onDuplicate: duplicateDocument,
             onDelete: () => requestDeleteDocument(),
             resolvedDocument: displayedDocument,

@@ -46,6 +46,9 @@
 
 ### Fixed
 
+- Restored shared publication status and UTC date controls for local Test and Test2
+  posts and pages, including backdating and saved Draft/Pending withdrawal.
+
 - Apply featured images to Test and Test2 through their owning save transaction,
   with immutable local image copies and image-inclusive backups. Keep rejected
   selections open and use “Featured image” throughout the interface.

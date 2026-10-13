@@ -6,6 +6,7 @@ import { type StudioWorkspace } from "../editor-model";
 import { emptyTemplateStore, type TemplateStore, resolveTemplate } from "../template-model";
 import type { useStudioWorkspace } from "../use-studio-workspace";
 import type { useTemplates } from "../use-templates";
+import { changeLocalSiteStatus, type LocalSiteStatus } from "./local-publication";
 import { testSiteCollection, testSiteWorkspace } from "./contract";
 import type { useTestSite } from "./use-test-site";
 
@@ -57,25 +58,23 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       return blocks ? { ...next, blocks, updatedAt: new Date().toISOString() } : document;
     }) }));
   }
-  async function publishDocument(documentId: string) {
+  async function changePublicationStatus(documentId: string, status: LocalSiteStatus) {
     if (!site.writable || !globals || !globalsInitialised) throw new Error("Local publishing is unavailable. Your draft was kept.");
     if (!site.updateDraft(current => {
       const source = testSiteCollection(current);
       const document = source.documents.find(item => item.id === documentId);
-      if (!document || !document.title.trim()) throw new Error("Add a title before publishing.");
-      const published = { ...document, status: "published" as const, publishedAt: document.publishedAt ?? new Date().toISOString(), updatedAt: new Date().toISOString() };
+      if (!document) throw new Error("The document is unavailable. Your draft was kept.");
       const refs = source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, site.siteId);
       const effective = effectiveGlobalTemplates(source.templates, globals, refs);
       const publications = source.version === 6 ? source.publications : source.documents.map(document => {
         const presentation = resolveTemplate(effective, document);
         return { document: structuredClone(document), ...(presentation ? { assignment: { documentId: document.id, kind: document.kind, setId: presentation.set.id, templateId: presentation.templateId } } : {}) };
       });
-      const presentation = resolveTemplate(effective, published);
-      const publication = { document: structuredClone(published), ...(presentation ? { assignment: { documentId, kind: published.kind, setId: presentation.set.id, templateId: presentation.templateId } } : {}) };
-      return { ...source, version: 6, globalTemplates: refs, documents: source.documents.map(item => item.id === documentId ? published : item), publications: [...publications.filter(item => item.document.id !== documentId), publication] };
-    }, false)) throw new Error("The revision could not be published. Your draft was kept.");
+      return changeLocalSiteStatus({ ...source, version: 6, globalTemplates: refs, publications }, documentId, status, effective);
+    }, false)) throw new Error("The publication change could not be saved. Your draft was kept.");
     await site.flush();
   }
+  const publishDocument = (documentId: string) => changePublicationStatus(documentId, "published");
   const session: ReturnType<typeof useStudioWorkspace> = {
     ...browser, workspace, ready: Boolean(collection), writable: site.writable && Boolean(globals) && globalsInitialised, exclusiveWritable: site.writable && Boolean(globals) && globalsInitialised && browser.exclusiveWritable,
     loadError: site.failure, saveLabel: site.label, commit, setActiveDocument: setSelectedId,
@@ -101,5 +100,5 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     return { status: published?.status === "published" ? "published" as const : "draft" as const,
       publishedAt: published?.status === "published" ? published.publishedAt : undefined };
   }
-  return { publishDocument, publicationFor, siteNavigation: collection?.siteNavigation, collection, siteId: site.siteId, session, templates, commitContent, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
+  return { publishDocument, changePublicationStatus, publicationFor, siteNavigation: collection?.siteNavigation, collection, siteId: site.siteId, session, templates, commitContent, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
 }

@@ -516,3 +516,12 @@ sources seed publication snapshots from their pre-edit documents on the first
 owned content transaction, preserving existing output. Global designs and site
 navigation remain shared/live. Bin hides a publication while retaining its
 snapshot for recovery. This never deploys to a hosted site.
+
+
+Test and Test2 posts and pages share the document status and UTC date controls.
+Draft and Pending withdraw the selected local publication; Published captures
+its draft through the existing owner and revision-checked save. The required
+home page remains Published-only. Date edits, including Now and backdates, stay
+undoable in the draft until Publish or Update captures them. Scheduled, Private,
+password protection and Sticky are unavailable for these local fixtures. See
+`docs/test-site-integration.md` for the supported publication boundary.

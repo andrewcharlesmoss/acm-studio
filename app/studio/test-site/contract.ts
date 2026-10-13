@@ -175,8 +175,9 @@ export function retainLocalPublications(next: TestSiteDocument, current: TestSit
   const ids = new Set([...target.documents, ...target.bin.map(item => item.document)].map(document => document.id));
   const publications = current.publications.filter(item => ids.has(item.document.id));
   const documents = target.documents.map(document => {
-    const publication = publications.find(item => item.document.id === document.id)?.document;
-    return publication?.status === "published" ? { ...document, status: "published" as const, publishedAt: publication.publishedAt } : document;
+    const live = current.documents.find(item => item.id === document.id);
+    // Undo edits draft content/dates, but cannot undo explicit publication commands.
+    return live ? { ...document, status: live.status, publishedAt: live.publishedAt } : document;
   });
   return { ...target, documents, version: 6, globalTemplates: target.globalTemplates ?? current.globalTemplates, publications };
 }
