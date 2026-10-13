@@ -1102,9 +1102,12 @@ export function DesignEditor() {
 
   useEffect(() => {
     const retry = () => { if (studioWriteOwnership.getState() === "waiting") setOwnershipAttempt(value => value + 1); syncRef.current?.retryConnection(); };
+    const resume = () => { if (document.visibilityState === "visible") retry(); };
     const timer = setInterval(() => { if (studioWriteOwnership.getState() === "waiting") setOwnershipAttempt(value => value + 1); }, 1000);
     window.addEventListener("focus", retry);
-    return () => { clearInterval(timer); window.removeEventListener("focus", retry); };
+    window.addEventListener("pageshow", retry);
+    document.addEventListener("visibilitychange", resume);
+    return () => { clearInterval(timer); window.removeEventListener("focus", retry); window.removeEventListener("pageshow", retry); document.removeEventListener("visibilitychange", resume); };
   }, []);
 
   useEffect(() => {

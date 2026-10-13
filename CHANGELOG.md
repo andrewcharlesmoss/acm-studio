@@ -43,6 +43,11 @@
 
 ### Fixed
 
+- Resume the safe saving handover when Studio tabs return to the foreground,
+  retaining pending drafts while restarting the existing peer handshake. Revoke
+  saving authority on page-hide and release its lock after pending operations
+  finish, so idle cached pages don't prevent another tab taking over.
+
 - Keep the selected Posts, Pages, or Templates tab when switching between sites
   and Studio Drafts, including reloads and site links opened in another tab.
 

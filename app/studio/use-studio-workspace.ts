@@ -232,11 +232,17 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
       syncRef.current?.retryConnection();
       if (["waiting", "unavailable"].includes(ownership.getState())) setAttempt(value => value + 1);
     };
+    // Switching browser tabs may resume message delivery without window focus.
+    // Background timers can still be suspended: retry the handshake directly.
+    const foregroundDocument = globalThis.document;
+    const resume = () => { if (foregroundDocument?.visibilityState === "visible") reconnect(); };
     window.addEventListener?.("focus", reconnect);
     window.addEventListener?.("pageshow", reconnect);
+    foregroundDocument?.addEventListener("visibilitychange", resume);
     return () => {
       window.removeEventListener?.("focus", reconnect);
       window.removeEventListener?.("pageshow", reconnect);
+      foregroundDocument?.removeEventListener("visibilitychange", resume);
     };
   }, [ownership, readOnly]);
 

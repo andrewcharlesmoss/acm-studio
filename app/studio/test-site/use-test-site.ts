@@ -375,12 +375,18 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
         }
       } finally { refreshing = false; }
     };
-    const resume = () => { if (document.visibilityState === "visible") void refresh(); };
+    const resume = () => {
+      if (document.visibilityState !== "visible") return;
+      // Resume the existing typed session, retaining its draft and receipts.
+      // A gateway read alone cannot reconnect a peer to its saving tab.
+      sync.current?.retryConnection();
+      void refresh();
+    };
     const timer = window.setInterval(() => void refresh(), 5000);
-    window.addEventListener("focus", refresh);
-    window.addEventListener("pageshow", refresh);
+    window.addEventListener("focus", resume);
+    window.addEventListener("pageshow", resume);
     document.addEventListener("visibilitychange", resume);
-    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("pageshow", refresh); document.removeEventListener("visibilitychange", resume); };
+    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("focus", resume); window.removeEventListener("pageshow", resume); document.removeEventListener("visibilitychange", resume); };
   }, [request, requested, brokerRequested, fail, recoverConnectionAuthority, installSaved, siteName, validateSnapshot]);
   useEffect(() => {
     const protect = (event: BeforeUnloadEvent) => {

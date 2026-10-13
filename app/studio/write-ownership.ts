@@ -38,6 +38,15 @@ export class StudioWriteOwnership {
     if (this.owner) return () => {};
     let cancelled = false;
     let token: symbol | null = null;
+    const lifecycleWindow = globalThis.window;
+    // Cached history documents can stay alive after pagehide. They must not
+    // retain the writer lock while their saving brokers are suspended.
+    const cancel = () => {
+      cancelled = true;
+      lifecycleWindow?.removeEventListener?.("pagehide", cancel);
+      if (token) this.releaseOwner(token);
+    };
+    lifecycleWindow?.addEventListener?.("pagehide", cancel);
     if (!locks) this.notify("unavailable");
     else {
       this.notify("waiting");
@@ -58,10 +67,7 @@ export class StudioWriteOwnership {
         });
       }).catch(() => { if (!cancelled && !token) this.notify("unavailable"); });
     }
-    return () => {
-      cancelled = true;
-      if (token) this.releaseOwner(token);
-    };
+    return cancel;
   }
 
   loaded(token: symbol, readable: boolean) {

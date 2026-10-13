@@ -141,8 +141,19 @@ explicit lease rejection reconnects automatically after any save settles,
 keeping the pending draft and its original base. The fresh saved source passes
 through the existing owner/peer reconciliation before editing resumes;
 overlapping edits require a choice.
-Visibility, page-show and focus events also refresh the connection. Claiming
-still requires the Studio write lock, and stale writes remain denied. Other
+
+The Studio writer acquisition is also cancelled on page-hide, revoking saving
+authority before a cached history document's broker is suspended. Any
+in-flight writes or restore finish before the physical lock is released.
+Returning editor and Design Canvas pages retry acquisition and load fresh saved
+data through their existing draft reconciliation before editing resumes.
+
+Visibility, page-show and focus events also refresh the connection. Foreground
+return also retries the existing typed peer handshake directly,
+so suspended background timers don't leave an otherwise available saving tab
+disconnected. This retains pending drafts and transaction receipts; it does not
+use the discard-and-reload recovery path or replay an uncertain gateway save.
+Claiming still requires the Studio write lock, and stale writes remain denied. Other
 failures pause editing and offer **Reconnect** and **Export Draft**; unknown save
 failures are not retried automatically.
 
