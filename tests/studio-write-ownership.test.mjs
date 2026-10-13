@@ -15,7 +15,7 @@ function modules(globals = {}, overrides = {}) {
     if (cache.has(filename)) return cache.get(filename);
     const exports = {}; cache.set(filename, exports);
     const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-    vm.runInNewContext(source, { exports, AggregateError, Error, Blob, File, crypto, structuredClone, queueMicrotask, setInterval, clearInterval, ...globals, require(specifier) {
+    vm.runInNewContext(source, { exports, AggregateError, Error, Blob, File, Event, crypto, structuredClone, queueMicrotask, setInterval, clearInterval, ...globals, require(specifier) {
       if (specifier in overrides) return overrides[specifier];
       if (!specifier.startsWith(".")) return require(specifier);
       const base = path.resolve(path.dirname(filename), specifier);
@@ -256,7 +256,7 @@ function indexedDBFixture(mode) {
 for (const operation of ["folder", "upload", "replace", "read"]) {
   for (const mode of ["success", "abort", "request-error", "throw"]) test(`IndexedDB ${operation}: ${mode} settles on transaction and always closes`, async () => {
     const database = indexedDBFixture(mode);
-    const load = modules({ window: { indexedDB: database.indexedDB } });
+    const load = modules({ window: { indexedDB: database.indexedDB, dispatchEvent() {} } });
     await own(load("app/studio/write-ownership.ts").studioWriteOwnership, locks());
     const media = load("app/studio/media-store.ts");
     const promise = operation === "folder" ? media.createMediaFolder("folder", null)
@@ -540,7 +540,8 @@ test("missing parent folders are rejected before upload, child creation or file 
 
 function mediaHarness(initialProps, library) {
   const slots = []; let index = 0; let dirty = true; let effects = []; let tree; let props = initialProps;
-  const calls = []; const focusCalls = []; let rejectMutations = false;
+  const calls = []; const commands = []; const focusCalls = []; let rejectMutations = false;
+  let session = { ready: true, revision: 0, error: "" };
   const react = {
     useState(initial) {
       const id = index++;
@@ -556,14 +557,16 @@ function mediaHarness(initialProps, library) {
   };
   react.useLayoutEffect = react.useEffect;
   const prepareMediaFolderMove = modules()("app/studio/media-store.ts").prepareMediaFolderMove;
+  const validateMediaCommand = modules()("app/studio/media-command.ts").validateMediaCommand;
   const mutations = Object.fromEntries(["moveMediaFolder", "addMediaFiles", "createMediaFolder", "updateMediaAsset", "deleteMediaAsset", "renameMediaFolder", "deleteMediaFolder"].map((name) => [name, async (...args) => {
     calls.push({ name, args });
     if (rejectMutations) throw Error("Synthetic storage failure");
     if (name === "createMediaFolder") {
-      const folder = { id: "created-folder", name: args[0], parentId: args[1], createdAt: "2026-09-02T00:00:00Z" };
+      const folder = { id: commands.at(-1).folder.id, name: args[0], parentId: args[1], createdAt: "2026-09-02T00:00:00Z" };
       library.folders.push(folder);
       return folder;
     }
+    if (name === "updateMediaAsset") Object.assign(library.assets.find(item => item.id === args[0]), args[1]);
     if (name === "moveMediaFolder") {
       const next = prepareMediaFolderMove(library.folders, args[0], args[1]);
       Object.assign(library.folders.find((item) => item.id === args[0]), next);
@@ -573,10 +576,26 @@ function mediaHarness(initialProps, library) {
       if (folder) folder.name = args[1];
     }
   }]));
-  const load = modules({ requestAnimationFrame: (callback) => callback(), document: { addEventListener() {}, removeEventListener() {} }, window: { innerWidth: 1200, innerHeight: 800, prompt: () => "Folder", confirm: () => true }, URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} } }, { react, "./studio-icons": { StudioIcon: () => null }, "./media-store": { prepareMediaFolderMove, listMediaLibrary: async () => structuredClone(library), ...mutations } });
+  const load = modules({ requestAnimationFrame: (callback) => callback(), document: { addEventListener() {}, removeEventListener() {} }, window: { innerWidth: 1200, innerHeight: 800, prompt: () => "Folder", confirm: () => true }, URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} } }, { react, "./studio-icons": { StudioIcon: () => null }, "./media-store": { prepareMediaFolderMove, getMediaAsset: async id => structuredClone(library.assets.find(asset => asset.id === id)), listMediaLibrary: async () => structuredClone(library) },
+    "./media-sync": { useMediaSession: () => session, async submitMediaCommand(command) {
+      assert.equal(validateMediaCommand(command), true, "UI submits a valid typed Files command");
+      commands.push(structuredClone(command));
+      const operations = {
+        "create-folder": () => mutations.createMediaFolder(command.folder.name, command.folder.parentId),
+        "rename-folder": () => mutations.renameMediaFolder(command.id, command.name),
+        "move-folder": () => mutations.moveMediaFolder(command.id, command.parentId),
+        "update-asset": () => mutations.updateMediaAsset(command.id, command.update),
+        "delete-asset": () => mutations.deleteMediaAsset(command.id),
+        "delete-folder": () => mutations.deleteMediaFolder(command.id),
+        "upload": () => mutations.addMediaFiles(command.files.map(file => new File([file.blob], file.name, { type: file.type })), command.folderId),
+      };
+      assert.ok(operations[command.kind], "test covers the submitted command kind");
+      return operations[command.kind]();
+    } } });
   const Component = load("app/studio/media-manager.tsx").MediaManager;
   return {
-    calls, focusCalls, fail() { rejectMutations = true; },
+    calls, commands, focusCalls, fail() { rejectMutations = true; },
+    session(next) { session = { ...session, ...next }; dirty = true; },
     async flush() {
       for (let pass = 0; pass < 12; pass++) {
         if (dirty) { dirty = false; index = 0; tree = Component(props); for (const node of descendants(tree)) { if (node.type === "input" && node.props.className?.startsWith("media-inline-name")) node.props.ref.current = { focus() { focusCalls.push("focus"); }, select() { focusCalls.push("select-all"); } }; } const pending = effects; effects = []; pending.forEach((effect) => effect()); }
@@ -591,6 +610,7 @@ function mediaHarness(initialProps, library) {
 function descendants(node) {
   if (!node || typeof node !== "object") return [];
   if (Array.isArray(node)) return node.flatMap(descendants);
+  if (typeof node.type === "function" && node.type.name === "StudioButton") return descendants(node.type(node.props));
   return [node, ...descendants(node.props?.children)];
 }
 function textOf(node) {
@@ -601,8 +621,9 @@ function textOf(node) {
 const findButton = (tree, label) => descendants(tree).find((node) => node.type === "button" && textOf(node) === label);
 const sampleMedia = () => ({ assets: [{ id: "image", name: "Original", folderId: null, type: "image/png", size: 1, blob: new Blob(["x"]), createdAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z", altText: "Original alternative", caption: "" }], folders: [{ id: "folder", name: "Folder F", parentId: null, createdAt: "2026-09-01T00:00:00Z" }] });
 
-test("read-only media exposes browsing/downloads but disables every mutation and metadata edit", async () => {
+test("disconnected Files exposes browsing/downloads but disables mutations and destination insertion", async () => {
   const h = mediaHarness({ writable: false, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+  h.session({ ready: false });
   let tree = await h.flush();
   assert.equal(findButton(tree, "Folder").props.disabled, true);
   assert.equal(findButton(tree, "Upload files").props.disabled, true);
@@ -630,6 +651,7 @@ test("the Folder action creates and selects an editable local folder in the curr
   await findButton(tree, "Folder").props.onClick();
   tree = await h.flush();
   assert.deepEqual(h.calls, [{ name: "createMediaFolder", args: ["Untitled folder", "folder"] }]);
+  const createdId = h.commands[0].folder.id;
   const name = descendants(tree).find((node) => node.type === "input" && node.props.value === "Untitled folder");
   name.props.onChange({ target: { value: "Nested folder" } });
   tree = await h.flush();
@@ -638,51 +660,64 @@ test("the Folder action creates and selects an editable local folder in the curr
 
   assert.deepEqual(h.calls, [
     { name: "createMediaFolder", args: ["Untitled folder", "folder"] },
-    { name: "renameMediaFolder", args: ["created-folder", "Nested folder"] },
+    { name: "renameMediaFolder", args: [createdId, "Nested folder"] },
   ]);
   assert.match(textOf(tree), /Folder renamed/);
   h.close();
 });
 
-test("media failure restores canonical metadata, clears busy state and handles upload rejection", async () => {
+test("media failure retains unsaved metadata for explicit review, clears busy state and handles upload rejection", async () => {
   const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
   let tree = await h.flush(); h.fail();
   await findButton(tree, "Folder").props.onClick(); tree = await h.flush();
   assert.match(textOf(tree), /Synthetic storage failure/);
-  assert.equal(findButton(tree, "Folder").props.disabled, false);
+  assert.equal(findButton(tree, "Folder").props.disabled, true);
+  findButton(tree, "Use saved version").props.onClick(); tree = await h.flush();
   const fileInput = descendants(tree).find((node) => node.type === "input" && node.props.type === "file");
   fileInput.props.ref.current = { value: "selected" };
   fileInput.props.onChange({ target: { files: [new File(["x"], "x.png")] } });
   tree = await h.flush();
   assert.equal(fileInput.props.ref.current.value, "");
-  assert.equal(findButton(tree, "Upload files").props.disabled, false);
+  assert.equal(findButton(tree, "Upload files").props.disabled, true);
+  findButton(tree, "Use saved version").props.onClick(); tree = await h.flush();
   descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-file-card")).props.onClick(); tree = await h.flush();
   const name = descendants(tree).find((node) => node.type === "input" && node.props.value === "Original");
   name.props.onChange({ target: { value: "Unsaved" } }); tree = await h.flush();
   descendants(tree).find((node) => node.type === "input" && node.props.value === "Unsaved").props.onBlur({ target: { value: "Unsaved" } });
   tree = await h.flush();
-  assert.ok(descendants(tree).some((node) => node.type === "input" && node.props.value === "Original"));
+  assert.ok(descendants(tree).some((node) => node.type === "input" && node.props.value === "Unsaved"));
+  assert.equal(h.commands.at(-1).before.name, "Original");
   assert.match(textOf(tree), /Synthetic storage failure/);
+  findButton(tree, "Use saved version").props.onClick(); tree = await h.flush();
+  assert.ok(descendants(tree).some((node) => node.type === "input" && node.props.value === "Original"));
   h.close();
 });
 
-test("takeover remounts Files at root before enabling writes and cannot reuse an old folder callback", async () => {
-  const source = readFileSync(path.join(root, "app/studio/studio-prototype.tsx"), "utf8");
-  assert.match(source, /<MediaManager\s+key=\{ownershipGeneration\}\s+writable=\{exclusiveWritable\}/);
-  const old = mediaHarness({ writable: false, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
-  let tree = await old.flush();
-  descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card")).props.onDoubleClick();
-  tree = await old.flush(); const staleUpload = descendants(tree).find((node) => node.type === "input" && node.props.type === "file").props.onChange;
-  old.close();
-  const fresh = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, { assets: [], folders: [] });
-  tree = await fresh.flush();
-  staleUpload({ target: { files: [new File(["x"], "old.txt")] } }); await old.flush();
-  assert.deepEqual(old.calls, []);
-  const upload = descendants(tree).find((node) => node.type === "input" && node.props.type === "file");
-  upload.props.onChange({ target: { files: [new File(["x"], "fresh.txt")] } }); await fresh.flush();
-  assert.equal(fresh.calls[0].name, "addMediaFiles"); assert.equal(fresh.calls[0].args[1], null);
-  fresh.close();
+test("Files retains unfinished text and folder location while its saving session reconnects", async () => {
+  const library = sampleMedia(); library.assets[0].folderId = "folder";
+  const h = mediaHarness({ writable: false, targetLabel: "Post", onInsertImage() {} }, library);
+  let tree = await h.flush();
+  descendants(tree).find(node => node.props?.className?.includes("media-folder-card")).props.onDoubleClick();
+  tree = await h.flush();
+  descendants(tree).find(node => node.props?.className?.includes("media-file-card")).props.onClick();
+  tree = await h.flush();
+  const name = descendants(tree).find(node => node.type === "input" && node.props.value === "Original");
+  assert.equal(name.props.disabled, false, "connected peer may edit Files");
+  name.props.onChange({ target: { value: "Retained name" } });
+  h.session({ ready: false }); tree = await h.flush();
+  assert.ok(descendants(tree).some(node => node.type === "input" && node.props.value === "Retained name" && node.props.disabled));
+  library.assets[0].caption = "Independent saved caption";
+  h.session({ ready: true, revision: 1 }); tree = await h.flush();
+  const restored = descendants(tree).find(node => node.type === "input" && node.props.value === "Retained name");
+  assert.equal(restored.props.disabled, false);
+  assert.ok(descendants(tree).some(node => node.props?.className === "media-parent-card"), "folder location retained");
+  assert.equal(findButton(tree, "Insert into Post").props.disabled, true, "Files permission does not grant editor permission");
+  restored.props.onBlur({ target: { value: "Retained name" } }); await h.flush();
+  assert.deepEqual(h.commands, [{ kind: "update-asset", id: "image", update: { name: "Retained name" }, before: { name: "Original" } }]);
+  assert.equal(library.assets[0].caption, "Independent saved caption");
+  h.close();
 });
+
 
 
 test("empty media entries clear file and folder selection without intercepting cards", async () => {
@@ -713,8 +748,9 @@ test("empty media entries clear file and folder selection without intercepting c
 
 
 
-test("read-only file context actions remain disabled", async () => {
+test("disconnected Files context actions remain disabled", async () => {
   const h = mediaHarness({ writable: false, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
+  h.session({ ready: false });
   let tree = await h.flush();
   descendants(tree).find((node) => node.props?.className?.includes("media-file-card")).props.onContextMenu({ preventDefault() {}, currentTarget: {}, clientX: 100, clientY: 100 });
   tree = await h.flush();
@@ -746,6 +782,7 @@ for (const kind of ["folder", "file"]) {
     assert.equal(h.calls[0].name, kind === "folder" ? "renameMediaFolder" : "updateMediaAsset");
     assert.equal(h.calls[0].args[0], kind === "folder" ? "folder" : "image");
     assert.equal(kind === "folder" ? h.calls[0].args[1] : h.calls[0].args[1].name, "New name");
+    assert.equal(kind === "folder" ? h.commands[0].before : h.commands[0].before.name, kind === "folder" ? "Folder F" : "Original");
     h.close();
   });
 }
@@ -765,7 +802,7 @@ test("Escape cancels inline rename and a following blur cannot save it", async (
 });
 
 
-test("media drop moves files into folders and ignores external/read-only drags", async () => {
+test("media drop moves files from connected peers and ignores external or disconnected drags", async () => {
   const h = mediaHarness({ writable: true, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
   let tree = await h.flush();
   const folder = descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-folder-card"));
@@ -784,7 +821,11 @@ test("media drop moves files into folders and ignores external/read-only drags",
   assert.equal(h.calls[0].name, "updateMediaAsset");
   assert.equal(h.calls[0].args[0], "image");
   assert.equal(h.calls[0].args[1].folderId, "folder");
+  assert.deepEqual(h.commands[0].before, { folderId: null });
+  folder.props.onDoubleClick(); tree = await h.flush();
   h.props({ writable: false }); tree = await h.flush();
+  assert.equal(descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-file-card")).props.draggable, true, "connected peer can still move Files");
+  h.session({ ready: false }); tree = await h.flush();
   assert.equal(descendants(tree).find((node) => node.type === "button" && node.props.className?.includes("media-file-card")).props.draggable, false);
   h.close();
 });
@@ -803,6 +844,7 @@ test("folder drag rejects itself and moves to a valid sibling", async () => {
   destination.props.onDrop({ preventDefault() {}, stopPropagation() {} });
   tree = await h.flush();
   assert.equal(h.calls[0].name, "moveMediaFolder");
+  assert.equal(h.commands[0].before, null);
   assert.equal(library.folders.find((folder) => folder.id === "folder").parentId, "destination");
   h.close();
 });
@@ -855,7 +897,7 @@ test("Parent folder card appears first inside folders and navigates up in read-o
 
 
 for (const kind of ["file", "folder"]) {
-  test(`Parent folder drop moves a ${kind} to root with ownership gating`, async () => {
+  test(`Parent folder drop moves a ${kind} to root through the command broker`, async () => {
     const library = sampleMedia();
     if (kind === "file") library.assets[0].folderId = "folder";
     else library.folders.push({ id: "child", name: "Child", parentId: "folder", createdAt: "2026-09-09" });

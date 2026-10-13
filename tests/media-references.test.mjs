@@ -4,6 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
+import { mediaModules, mediaDatabase, mediaWindow } from "./support/media-browser-fixture.mjs";
 
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { contentMediaIds } = await load("../app/content/media-references.ts");
@@ -171,30 +172,30 @@ test("actual backup validator requires recovered template and Bin image bytes", 
 });
 
 test("actual media deletion guard rejects files owned by Table cells and recovery fields, including Bin", async () => {
-  const source = await readFile(new URL("../app/studio/media-store.ts", import.meta.url), "utf8");
-  const ast = ts.createSourceFile("media-store.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  const declaration = ast.statements.find(statement => ts.isFunctionDeclaration(statement) && statement.name?.text === "deleteMediaAsset");
-  assert.ok(declaration);
-  const compiled = ts.transpileModule(declaration.getText(ast).replace(/^export /, ""), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   let workspace = { documents: [{ blocks: [table, quote] }], bin: [] };
-  const deleted = [];
-  const context = {
-    studioWriteOwnership: { write: operation => operation() }, assertTemplateMediaCanBeDeleted() {},
-    window: { localStorage: { getItem: () => JSON.stringify(workspace) } }, LOCAL_WORKSPACE_KEY: "workspace",
-    validateStudioWorkspace: value => value, migrateStudioWorkspace: value => value, validateWorkspacePublicationTemplates, contentMediaIds,
-    ASSET_STORE: "assets", withStore: async (_name, _mode, operation) => operation({ delete: id => deleted.push(id) }),
-  };
-  const remove = vm.runInNewContext(`${compiled}\ndeleteMediaAsset`, context);
+  const database = mediaDatabase();
+  const window = mediaWindow(database.indexedDB);
+  window.localStorage.getItem = () => JSON.stringify(workspace);
+  const modules = mediaModules({ window }, {
+    "./write-ownership": { studioWriteOwnership: { write: operation => operation() } },
+    "./template-store": { assertTemplateMediaCanBeDeleted() {} },
+    "./template-model": { validateWorkspacePublicationTemplates },
+    "./workspace-validation": { validateStudioWorkspace: value => value, migrateStudioWorkspace: value => value },
+  });
+  const store = modules("app/studio/media-store.ts");
+  const sample = { id: "unreferenced", name: "Unused", folderId: null, type: "image/png", size: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), altText: "", caption: "", blob: new Blob(["x"]) };
+  await store.replaceMediaLibrary([sample], []);
+  const remove = store.deleteMediaAsset;
   for (const id of ["cell-a", "cell-d", "table-caption", "quote-recovery", "quote-child-image", "citation"]) await assert.rejects(remove(id), /used by a page, post/);
   workspace = { documents: [], bin: [{ document: { blocks: [table, quote] } }] };
   await assert.rejects(remove("cell-b"), /saved revision or item in the Bin/);
-  assert.deepEqual(deleted, []);
+  assert.equal(database.rows("assets").length, 1);
   const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post"), coverImage: null, blocks: [table] };
   workspace = { documents: [], bin: [{ document: { blocks: [] }, publication: { ...toLocallyPublishedArticle(document), mediaIds: [] } }] };
   await assert.rejects(remove("cell-b"), /published copy in the Bin/);
-  assert.deepEqual(deleted, []);
+  assert.equal(database.rows("assets").length, 1);
   await remove("unreferenced");
-  assert.deepEqual(deleted, ["unreferenced"]);
+  assert.equal(database.rows("assets").length, 0);
 });
 
 test("actual live-publication deletion guard uses recovered references after drafts remove them", async () => {

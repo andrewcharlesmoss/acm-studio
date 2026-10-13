@@ -46,6 +46,9 @@
 
 ### Fixed
 
+- Align Files regression checks with saving across tabs, retained unsaved details,
+  conflict review, and the current image-insertion permissions.
+
 - Keep local-site saving available across Studio tabs, including a Design Canvas
   owner. Reconnect retains unsaved drafts, recognises accepted saves and asks
   which version to keep when a previous saving session's outcome is uncertain.
