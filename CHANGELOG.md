@@ -37,6 +37,9 @@
 
 ### Fixed
 
+- Keep the selected Posts, Pages, or Templates tab when switching between sites
+  and Studio Drafts, including reloads and site links opened in another tab.
+
 - Align template content positions and spacing in Edit and Preview, including
   shared-part editors and selected-block controls.
 

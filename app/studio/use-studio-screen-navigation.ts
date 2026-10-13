@@ -4,6 +4,21 @@ import { useEffect, useEffectEvent, useRef } from "react";
 
 export type StudioSection = "content" | "templates" | "files" | "backup" | "bin";
 export type StudioTemplateTarget = { setId: string | null; targetId: string | null; scope?: "global" | "site" };
+export type StudioLibraryKind = "page" | "post" | "templates";
+
+/** Carry the chosen library between contexts, never a site-owned document target. */
+export function studioContextPath(siteId: "test" | "test2" | null, kind: StudioLibraryKind, target?: StudioTemplateTarget) {
+  const query = new URLSearchParams();
+  if (isLocalFixtureSiteId(siteId)) query.set("site", siteId);
+  if (kind === "templates") {
+    query.set("mode", "templates"); query.set("scope", "global");
+    if (target?.scope === "global" && target.setId) {
+      query.set("set", target.setId);
+      if (target.targetId) query.set("target", target.targetId);
+    }
+  } else query.set("library", kind);
+  return `/studio?${query.toString()}`;
+}
 
 function navigationIndex(state: unknown): number | null {
   const index = state && typeof state === "object" && "studioNavigationIndex" in state ? state.studioNavigationIndex : null;
@@ -21,14 +36,17 @@ export function readStudioNavigation(search: string) {
   const query = new URLSearchParams(search);
   const mode = query.get("mode");
   const section = mode === "templates" ? "templates" : mode === "bin" ? "bin" : "content";
-  return { section, target: { setId: query.get("set"), targetId: query.get("target"), scope: query.get("scope") === "global" || !query.get("target") ? "global" : "site" } } as const;
+  const libraryKind = query.get("library") === "post" ? "post" : query.get("library") === "page" ? "page" : null;
+  return { section, libraryKind, target: { setId: query.get("set"), targetId: query.get("target"), scope: query.get("scope") === "global" || !query.get("target") ? "global" : "site" } } as const;
 }
 
 /** Navigation history contains screen selection only, never document history. */
-export function writeStudioNavigation(mode: "content" | "templates" | "bin", target?: StudioTemplateTarget) {
+export function writeStudioNavigation(mode: "content" | "templates" | "bin", target?: StudioTemplateTarget, libraryKind?: "page" | "post") {
   const query = new URLSearchParams();
   const siteId = new URLSearchParams(window.location.search).get("site");
   if (isLocalFixtureSiteId(siteId)) query.set("site", siteId);
+  const contentKind = libraryKind ?? readStudioNavigation(window.location.search).libraryKind;
+  if (mode === "content" && contentKind) query.set("library", contentKind);
   if (mode !== "content") query.set("mode", mode);
   if (mode === "templates") query.set("scope", target?.scope ?? (new URLSearchParams(window.location.search).get("scope") === "site" ? "site" : "global"));
   if (mode === "templates" && target?.setId) {
@@ -95,7 +113,7 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
       setStudioSection(navigation.section);
       setTemplateTarget(navigation.target);
       if (navigation.section === "templates") setLibraryKind("templates");
-      else if (navigation.section === "content") setLibraryKind(activeDocument.kind);
+      else if (navigation.section === "content") setLibraryKind(navigation.libraryKind ?? activeDocument.kind);
       setPreviewing(false);
     };
     const navigation = readStudioNavigation(window.location.search);
@@ -108,7 +126,7 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
       setTemplateTarget(navigation.target);
       if (navigation.section === "templates") { setStudioSection("templates"); setLibraryKind("templates"); }
       else if (navigation.section === "bin") setStudioSection("bin");
-      else setLibraryKind(activeDocument.kind);
+      else setLibraryKind(navigation.libraryKind ?? activeDocument.kind);
     });
     window.addEventListener("popstate", syncModeFromLocation, true);
     window.addEventListener("studio-navigation", rememberLocation);

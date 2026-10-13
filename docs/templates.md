@@ -641,6 +641,9 @@ Global-original Navigation uses the shared runtime layout in both modes, with
 canvas-link selection retained for read-only inspection of site-owned links.
 
 The Templates list opens one global library independently of the selected site.
+The chosen Posts, Pages, or Templates tab travels with site and Studio Drafts
+navigation through the URL, independently of each context's active document.
+Global template targets may travel too; site-owned targets don't cross contexts.
 Every site uses the original layout and styles. There are no site template design
 customisations, colour overrides or reset controls. Old site-scoped entry URLs
 map through stable aliases to the canonical original. Context and entry IDs remain

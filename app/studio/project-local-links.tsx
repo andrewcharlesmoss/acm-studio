@@ -1,4 +1,5 @@
 "use client";
+import { studioContextPath, type StudioLibraryKind } from "./use-studio-screen-navigation";
 import { isLocalFixtureSiteId, localFixtureSites, localFixtureHref, type LocalFixtureSiteId } from "./test-site/sites";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
@@ -97,9 +98,9 @@ export function ProjectLocalDocumentLink({ siteId, destination }: { siteId: Loca
   return <><button type="button" className="page-link-view" disabled={opening || !canVisit} title={canVisit ? "View page on the local website in a new tab" : "Local website unavailable"} onClick={() => void openLocal()}>View <StudioIcon name="external" size={16} /></button>{error ? <p role="alert">{error}</p> : null}</>;
 }
 
-export function ProjectLocalLink({ id, name, onEdit, active = false, showStatus = false }: { id: string; name: string; onEdit?: () => void; active?: boolean; showStatus?: boolean }) {
+export function ProjectLocalLink({ id, name, onEdit, active = false, showStatus = false, studioHref }: { id: string; name: string; onEdit?: () => void; active?: boolean; showStatus?: boolean; studioHref?: string }) {
   const { local, canVisit, opening, openLocal } = useLocalProjectVisit(id);
-  const editHref = local && id === "acm-studio" ? "/studio" : local && isLocalFixtureSiteId(id) ? localFixtureHref(id) : undefined;
+  const editHref = local && id === "acm-studio" ? "/studio" : local && isLocalFixtureSiteId(id) ? studioHref ?? localFixtureHref(id) : undefined;
   const editName = `Edit Site — ${name} — Local${editHref ? "" : " — not available yet"}`;
   const visitName = `Visit Site — ${name} — Local${canVisit ? "" : " — local server unavailable"}`;
   return <div className="dashboard-project-environment dashboard-local-environment" data-active={active || undefined}>
@@ -113,12 +114,12 @@ export function ProjectLocalLink({ id, name, onEdit, active = false, showStatus 
   </div>;
 }
 
-export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = false }: { id: string; name: string; onSelectTest?: () => void; active?: boolean }) {
+export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = false, studioHref }: { id: string; name: string; onSelectTest?: () => void; active?: boolean; studioHref?: string }) {
   const project = studioProjects.find(item => item.id === id);
-  const localActions = <ProjectLocalLink id={id} name={name} onEdit={onSelectTest} active={active} showStatus />;
+  const localActions = <ProjectLocalLink id={id} name={name} onEdit={onSelectTest} active={active} showStatus studioHref={studioHref} />;
 
   return <div className={`studio-local-site-actions${active ? " is-active" : ""}`}>
-      <a className="studio-local-site" href={isLocalFixtureSiteId(id) ? localFixtureHref(id) : "/studio"} aria-current={active ? "page" : undefined} aria-label={`Edit ${name} local site`} onClick={event => { if (isLocalFixtureSiteId(id) && onSelectTest) { event.preventDefault(); onSelectTest(); } }}>
+      <a className="studio-local-site" href={isLocalFixtureSiteId(id) ? studioHref ?? localFixtureHref(id) : "/studio"} aria-current={active ? "page" : undefined} aria-label={`Edit ${name} local site`} onClick={event => { if (isLocalFixtureSiteId(id) && onSelectTest) { event.preventDefault(); onSelectTest(); } }}>
         <span className="studio-local-site-mark" aria-hidden="true">{name.slice(0, 1)}</span>
         <span className="studio-local-site-copy"><strong>{name}</strong></span>
       </a>
@@ -142,6 +143,6 @@ export function ProjectLocalStatus({ id }: { id: string }) {
   return <small className="dashboard-local-status" role="status" title={description} aria-label={description}><span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" />{status}</small>;
 }
 
-export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void }) {
-  return <section className="studio-local-sites" aria-label="Sites"><h2>Sites</h2>{localFixtureSites.map(site => <ProjectLocalSiteNavigation key={site.id} id={site.id} name={site.name} active={selectedSite === site.id} onSelectTest={onSelectSite ? () => onSelectSite(site.id) : undefined} />)}</section>;
+export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite, libraryKind }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void; libraryKind?: StudioLibraryKind }) {
+  return <section className="studio-local-sites" aria-label="Sites"><h2>Sites</h2>{localFixtureSites.map(site => <ProjectLocalSiteNavigation key={site.id} id={site.id} name={site.name} active={selectedSite === site.id} studioHref={libraryKind ? studioContextPath(site.id, libraryKind) : undefined} onSelectTest={onSelectSite ? () => onSelectSite(site.id) : undefined} />)}</section>;
 }
