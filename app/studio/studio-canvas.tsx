@@ -1,5 +1,6 @@
 "use client";
 import { useBlockInsertionGaps } from "./use-block-insertion-gaps";
+import { FeaturedImage } from "../components/blocks/featured-image";
 import { GroupEmptyAppender } from "./blocks/group-empty-appender";
 import { GroupLayoutToolbar } from "./blocks/group-layout-toolbar";
 import { changeGroupLayout, groupVariationFor, groupVariations } from "./blocks/group-variations";
@@ -70,7 +71,7 @@ import { BlockLibraryIcon } from "./block-library-icons";
 import { HeadingLevelIcon } from "./controls/heading-level-setting";
 import { StudioButton } from "./controls/button";
 import { GroupLayoutChooser } from "./blocks/group-layout-selection";
-import { blockCatalogueGroups, socialIconCatalogue, createBlock } from "./editor-model";
+import { blockCatalogueGroups, socialIconCatalogue, createBlock, FEATURED_IMAGE_LABEL } from "./editor-model";
 import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, socialIconsGapStyle } from "../components/social-icons";
 import { StudioIcon } from "./studio-icons";
 import { Pane } from "./panes/pane-components";
@@ -110,7 +111,7 @@ function blockLabel(type: ContentBlock["type"]) {
   if (type === "post-date") return "Date";
   if (type === "document-title") return "Title";
   if (type === "document-subtitle") return "Document Subtitle";
-  if (type === "cover-image") return "Featured Image";
+  if (type === "cover-image") return FEATURED_IMAGE_LABEL;
   if (type === "social-icons") return "Social Icons";
   if (type === "social-linkedin") return "LinkedIn";
   if (type === "social-tiktok") return "TikTok";
@@ -2349,12 +2350,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
           <article className={`document-preview is-${activeDocument.kind}`} style={viewportStyle}>
             {compose(<>
             {presentation?.renderHeader?.({ document: activeDocument, mode: "preview", selectedBlockId, selectedDocumentField, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} selectedDocumentField={selectedDocumentField} previewing onChange={onDocumentFieldChange} onFocus={selectDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
-            {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className={`preview-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
-              {safeCoverImageUrl ? (
-                // Local browser-managed media cannot be known to Next's image optimiser.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={safeCoverImageUrl} alt={activeDocument.coverImage?.alt || ""} />
-              ) : null}
+            {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="document-cover-shell document-dynamic-cover">
+              <FeaturedImage source={safeCoverImageUrl} alt={activeDocument.coverImage?.alt} />
             </div> : null}
             {presentation?.renderBlock ? activeDocument.blocks.filter(block => !block.editorial?.hidden).map((block) => presentation.renderBlock?.({ document: activeDocument, block, mediaUrls: mediaBlockUrls, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockRenderer key={block.id} blocks={[block]} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation.hideDividers ?? true} document={activeDocument} documentHref={linkTargets.find(target => target.id === activeDocument.id)?.href} buttonPreview={buttonPreview} />) : <BlockRenderer blocks={activeDocument.blocks} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation?.hideDividers ?? true} document={activeDocument} documentHref={linkTargets.find(target => target.id === activeDocument.id)?.href} buttonPreview={buttonPreview} />}
             {presentation?.renderFooter?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
@@ -2364,30 +2361,24 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
           <div className="block-canvas" style={viewportStyle}>
             {compose(<>
             {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, selectedDocumentField, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} selectedDocumentField={selectedDocumentField} previewing={false} onChange={onDocumentFieldChange} onFocus={selectDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
-            {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="canvas-cover-wrap">
-              <div className={`canvas-cover-image${safeCoverImageUrl ? " is-source" : ""}`} role="img" aria-label={activeDocument.coverImage?.alt || "Mock cover image"}>
-                {safeCoverImageUrl ? (
-                  // Local browser-managed media cannot be known to Next's image optimiser.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={safeCoverImageUrl} alt={activeDocument.coverImage?.alt || ""} />
-                ) : null}
-              </div>
+            {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="document-cover-shell document-dynamic-cover canvas-cover-wrap">
+              <FeaturedImage source={safeCoverImageUrl} alt={activeDocument.coverImage?.alt} />
               <div className="canvas-cover-actions">
-                <button className="cover-action-button" type="button" onClick={onOpenCoverMediaLibrary} aria-label="Change cover image" title="Change cover image">
+                <button className="cover-action-button" type="button" onClick={onOpenCoverMediaLibrary} aria-label="Change featured image" title="Change featured image">
                   <StudioIcon name="image" />
                 </button>
-                <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCoverImage} aria-label="Remove cover image" title="Remove cover image">
+                <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCoverImage} aria-label="Remove featured image" title="Remove featured image">
                   <StudioIcon name="trash" />
                 </button>
               </div>
-            </div> : allowCoverImage ? <button className="canvas-add-cover" type="button" onClick={onOpenCoverMediaLibrary}><StudioIcon name="add" size={18} />Add cover image</button> : null}
+            </div> : allowCoverImage ? <button className="canvas-add-cover" type="button" onClick={onOpenCoverMediaLibrary}><StudioIcon name="add" size={18} />Add featured image</button> : null}
 
             <div className="canvas-blocks" onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop} onDragLeave={event => {
               const bounds = event.currentTarget.getBoundingClientRect();
               if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) { onSetDragOverIndex(null); setColumnDrop(null); }
             }}>
               {columnDrop ? <div className="column-drop-indicator" aria-hidden="true" style={{ left: columnDrop.left, top: columnDrop.top, width: columnDrop.width, height: columnDrop.height }} /> : null}
-              {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" disabled={!writable} onClick={() => toggleInserter(-1)} aria-label="Add block below cover image" title="Add block below cover image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
+              {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" disabled={!writable} onClick={() => toggleInserter(-1)} aria-label="Add block below featured image" title="Add block below featured image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
               {activeDocument.blocks.map((block, index) => (
                 <div className="block-position" key={block.id} data-block-align={contentBlockAlignment(block)}
                 >
@@ -2910,18 +2901,13 @@ function BlockFieldContent({ htmlEditorBlockId, renderBlockControls, block, root
   }
   if (block.type === "document-subtitle") return documentFieldVisible(documentContext, "subtitle") ? <p className={`metadata-block-editor document-dynamic-field template-subtitle${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}`}>{templatePlaceholder ? "Subtitle" : document?.subtitle || "Add a subtitle in Document settings."}</p> : null;
   if (block.type === "cover-image") {
-    if (!documentFieldVisible(documentContext, "coverImage")) return null;
+    if (!documentFieldVisible(documentContext, "coverImage") || document?.coverImage === null) return null;
     const imageSource = resolveImageSource(document?.coverImage, mediaUrls, coverImageUrl);
     return <div className={`canvas-cover-wrap document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
-      <div className={`canvas-cover-image${imageSource ? " is-source" : ""}`} role="img" aria-label={document?.coverImage?.alt || "Mock cover image"}>
-        {imageSource ? <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="document-featured-image" draggable={false} src={imageSource} alt={document?.coverImage?.alt || ""} style={imageDisplayStyle(block, { includeFrame: false })} />
-        </> : null}
-      </div>
+      <FeaturedImage source={imageSource} alt={document?.coverImage?.alt} style={imageDisplayStyle(block, { includeFrame: false })} />
       {onOpenCoverMediaLibrary || onRemoveCoverImage ? <div className="canvas-cover-actions">
-        {onOpenCoverMediaLibrary ? <button className="cover-action-button" type="button" onClick={(event) => { event.stopPropagation(); onOpenCoverMediaLibrary(); }} aria-label="Change cover image" title="Change cover image"><StudioIcon name="image" /></button> : null}
-        {onRemoveCoverImage ? <button className="cover-action-button is-destructive" type="button" onClick={(event) => { event.stopPropagation(); onRemoveCoverImage(); }} aria-label="Remove cover image" title="Remove cover image"><StudioIcon name="trash" /></button> : null}
+        {onOpenCoverMediaLibrary ? <button className="cover-action-button" type="button" onClick={(event) => { event.stopPropagation(); onOpenCoverMediaLibrary(); }} aria-label="Change featured image" title="Change featured image"><StudioIcon name="image" /></button> : null}
+        {onRemoveCoverImage ? <button className="cover-action-button is-destructive" type="button" onClick={(event) => { event.stopPropagation(); onRemoveCoverImage(); }} aria-label="Remove featured image" title="Remove featured image"><StudioIcon name="trash" /></button> : null}
       </div> : null}
     </div>;
   }

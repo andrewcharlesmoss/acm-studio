@@ -9,7 +9,7 @@ import { GROUP_ALLOWED_BLOCK_TYPES } from "../../../content/model";
 import type { ButtonInteractionState, ColumnBlock, ContentBlock, GroupAllowedBlockType, DocumentTitleLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../../../content/model";
 import type { LayoutMode } from "../../../content/model";
 import { LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS } from "../../../content/layout";
-import { blockCatalogue } from "../../editor-model";
+import { blockCatalogue, FEATURED_IMAGE_LABEL } from "../../editor-model";
 import { BlockLibraryIcon } from "../../block-library-icons";
 import { HeadingLevelIcon, HeadingLevelSetting } from "../../controls/heading-level-setting";
 import { PaneTabPanel, PaneTabs } from "../../panes/pane-components";
@@ -39,6 +39,7 @@ import { ParagraphInspector, ManagedBackgroundImageInspector } from "./paragraph
 import type { ListItemBackgroundTarget } from "../../list-item-background";
 
 function blockLabel(type: ContentBlock["type"]) {
+  if (type === "cover-image") return FEATURED_IMAGE_LABEL;
   return type.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 }
 

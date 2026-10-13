@@ -393,6 +393,16 @@ No hosted publishing or external editor synchronisation is authorised by this
 local integration. See `docs/test-site-integration.md` for configuration, supported
 capabilities, commands, conflict handling, protocol details and recovery.
 
+Featured image imports use portable image contract v1: the existing snapshot
+owner copies bounded validated raster bytes into the selected fixture's
+`content/media/` and `dist/media/`, with UUID/content-digest filenames. Peer tabs
+still submit snapshot transactions and never write the gateway directly. Site
+backups and unsaved-draft exports include those bytes; copies remain immutable
+for publications, Bin and history. Other browser-local media IDs and blob URLs
+remain prohibited in fixture sources. See the integration document for limits,
+backup versioning and failure handling. Interface wording is “Featured image”;
+the existing `coverImage` and `cover-image` storage names remain compatible.
+
 ### Second local fixture
 
 Andrew authorised Test2 (`test2`) on 9 October 2026. `/studio?site=test2` uses

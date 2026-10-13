@@ -61,7 +61,7 @@ export function StudioDesignMediaHandoff({ documentId, writable, media, onInsert
       <p>Provide alternative text for people who cannot see the image.</p>
       <label><span>Alternative text</span><textarea rows={4} value={altText} onChange={event => setAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>
       {error ? <p role="alert">{error}</p> : null}
-      <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closePrompt}>Cancel</StudioButton><StudioButton type="submit" disabled={inserting} aria-busy={inserting}>{currentPrompt.target === "cover" ? "Use as cover image" : "Insert image"}</StudioButton></StudioDialogActions>
+      <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closePrompt}>Cancel</StudioButton><StudioButton type="submit" disabled={inserting} aria-busy={inserting}>{currentPrompt.target === "cover" ? "Use as featured image" : "Insert image"}</StudioButton></StudioDialogActions>
     </form>
   </StudioDialog>;
 }

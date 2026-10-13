@@ -70,6 +70,7 @@ export type StudioBinnedDocument = {
 export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column"> | GroupVariationType;
 export type BlockLibraryItemType = InsertableBlockType | "template-content" | "navigation" | "page-link";
 
+export const FEATURED_IMAGE_LABEL = "Featured Image";
 export const blockCatalogueGroups = ["Text", "Media", "Design", "Widgets", "Theme", "Embeds", "Other"] as const;
 export type BlockCatalogueGroup = (typeof blockCatalogueGroups)[number];
 
@@ -96,7 +97,7 @@ export const blockCatalogue: Array<{
   { type: "social-linkedin", label: "LinkedIn", description: "Link to a LinkedIn profile.", group: "Widgets" },
   { type: "social-tiktok", label: "TikTok", description: "Link to a TikTok profile.", group: "Widgets" },
   { type: "document-title", label: "Title", description: "Display the current page or post title.", group: "Theme" },
-  { type: "cover-image", label: "Featured Image", description: "Display the document cover image.", group: "Theme" },
+  { type: "cover-image", label: FEATURED_IMAGE_LABEL, description: "Display the document featured image.", group: "Theme" },
   { type: "post-author", label: "Author", description: "Show the document author when one is set.", group: "Theme" },
   { type: "post-date", label: "Date", description: "Show the document publication date.", group: "Theme" },
   { type: "embed", label: "Embed", description: "Add a block that displays content from other sites, like YouTube or Vimeo.", group: "Embeds" },

@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
-import { lstat, readFile, mkdir, realpath, rename, writeFile, unlink, readdir } from "node:fs/promises";
+import { lstat, readFile, mkdir, realpath, rename, writeFile, unlink, readdir, link } from "node:fs/promises";
 import { lstatSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { checkedSiteImages, checkedSavedSiteImage } from "./test-site-featured-images.mjs";
 
 export const revisionOf = document => createHash("sha256").update(JSON.stringify(document)).digest("hex");
 const hash = value => createHash("sha256").update(value).digest("hex");
@@ -47,7 +48,7 @@ export async function acquireTestFileGuard(root) {
 }
 
 // One serial gateway owns both visual saves and accepted prompt proposals.
-export function createTestSiteStore({ root, validate, render, documentsOf = value => value.documents ?? [], siteId = "test", clock = () => Date.now() }) {
+export function createTestSiteStore({ root, validate, render, documentsOf = value => value.documents ?? [], siteId = "test", clock = () => Date.now(), writeImageFile = writeFile }) {
   if (siteId !== "test" && siteId !== "test2") throw new TestSiteError("Unknown site.");
   const siteName = siteId === "test2" ? "Test2" : "Test";
   let queue = Promise.resolve();
@@ -170,11 +171,49 @@ export function createTestSiteStore({ root, validate, render, documentsOf = valu
     if (!owner || owner.token !== token || owner.expires < clock()) throw new TestSiteError(`Another session owns ${siteName} editing. Reconnect when it is available.`, 423);
     owner.expires = Math.max(owner.expires, clock() + 30000);
   }
-  async function save(token, baseRevision, document) {
+  async function publishImage(file, bytes) {
+    const temporary = `${file}.${randomBytes(12).toString("hex")}.tmp`;
+    try {
+      await writeImageFile(temporary, bytes, { flag: "wx", mode: 0o644 });
+      if (!(await readFile(temporary)).equals(bytes)) throw new TestSiteError("The featured image copy was incomplete.");
+      // An exclusive hard link publishes only complete bytes and cannot replace
+      // an immutable publication image. Interrupted temporary files are inert.
+      try { await link(temporary, file); }
+      catch (error) { if (error.code !== "EEXIST") throw error; }
+    } finally { await unlink(temporary).catch(error => { if (error.code !== "ENOENT") throw error; }); }
+  }
+  async function installImages(token, document, attachments, ownedPreview = false) {
+    let transfer;
+    try { transfer = checkedSiteImages(document, attachments); }
+    catch (error) { throw new TestSiteError(error.message); }
+    for (const name of transfer.referenced) {
+      if (!ownedPreview) writable(token);
+      const sourcePath = await safe(`content/media/${name}`, { createParent: true });
+      let bytes;
+      try {
+        if ((await lstat(sourcePath)).size > 2 * 1024 * 1024) throw new TestSiteError("The saved featured image exceeds its size limit.");
+        bytes = await readFile(sourcePath);
+      }
+      catch (error) { if (error.code !== "ENOENT") throw error; bytes = transfer.images.get(name); }
+      if (!bytes || !checkedSavedSiteImage(name, bytes)) throw new TestSiteError("The featured image is missing or changed. Choose it again; the site source was preserved.");
+      if (transfer.images.has(name) && !bytes.equals(transfer.images.get(name))) throw new TestSiteError("The featured image bytes do not match the saved image.");
+      // Immutable copies precede the content transaction. Interrupted imports can
+      // leave unreferenced files, but never replace publication/history bytes.
+      await publishImage(sourcePath, bytes);
+      if (!checkedSavedSiteImage(name, await readFile(await safe(`content/media/${name}`)))) throw new TestSiteError("The featured image changed during import.");
+      const outputPath = await safe(`dist/media/${name}`, { createParent: true });
+      await publishImage(outputPath, bytes);
+      const checkedOutputPath = await safe(`dist/media/${name}`);
+      if ((await lstat(checkedOutputPath)).size > 2 * 1024 * 1024 || !checkedSavedSiteImage(name, await readFile(checkedOutputPath))) throw new TestSiteError("The local featured image preview changed unexpectedly.");
+      if (!ownedPreview) writable(token);
+    }
+  }
+  async function save(token, baseRevision, document, featuredImages) {
     writable(token);
     if (document?.siteId !== siteId || !validate(document) || Buffer.byteLength(JSON.stringify(document)) > 500000) throw new TestSiteError("The proposed change contains unsupported content. Nothing was saved.");
     const current = await snapshot();
     if (current.revision !== baseRevision) throw new TestSiteError(`${siteName} has newer changes. Your draft has been preserved; export it before reloading.`, 409);
+    await installImages(token, document, featuredImages);
     const revision = revisionOf(document);
     if (revision === current.revision) return current;
     const source = JSON.stringify(document, null, 2) + "\n";
@@ -207,7 +246,7 @@ export function createTestSiteStore({ root, validate, render, documentsOf = valu
       const value = await snapshot();
       const token = randomBytes(32).toString("hex");
       sessions.set(token, { expires: clock() + 120000 });
-      return { ...value, token };
+      return { ...value, token, featuredImageVersion: 1 };
     }),
     handle: (token, input) => serial(async () => {
       session(token);
@@ -252,12 +291,13 @@ export function createTestSiteStore({ root, validate, render, documentsOf = valu
         return { revisions: entries };
       }
       if (input.action === "release") { if (owner?.token === token) owner = undefined; return { released: true }; }
-      if (input.action === "save") return save(token, input.baseRevision, input.document);
+      if (input.action === "save") return save(token, input.baseRevision, input.document, input.featuredImages);
       throw new TestSiteError(`Unknown ${siteName} operation.`);
     }),
     assertWriter: token => serial(async () => { writable(token); return snapshot(); }),
     refreshPreview: () => serial(async () => {
       const current = await snapshot();
+      await installImages(undefined, current.document, [], true);
       const previous = await read("dist/index.html");
       const output = checkedTestOutput(await render(current.document, current.revision));
       const fresh = await snapshot();

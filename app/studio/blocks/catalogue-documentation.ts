@@ -93,7 +93,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
     notes: ["This Studio-specific metadata block uses ACM-origin shared style controls. It has no exact Gutenberg core counterpart."],
   },
   "cover-image": {
-    context: `${documentContext} Media comes from the document’s cover image. New-tab and rel require Post link.`,
+    context: `${documentContext} Media comes from the document’s featured image. New-tab and rel require Post link.`,
     notes: ["This is Post Featured Image, not the content-bearing Cover block.", "Saved align and focal attributes are retained for rendering; there is no Alignment or Focal position inspector editor.", "Dimensions provides Original/named ratios and width/height. Non-original ratios expose Cover, Contain and Fill scaling."],
     insertionDefaults: "Default scale is Cover; the media source is inherited from the document.",
   },

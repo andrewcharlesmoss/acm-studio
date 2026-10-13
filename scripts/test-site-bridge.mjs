@@ -5,6 +5,8 @@ import { runnerImport } from "vite";
 import { createTestSiteStore, TestSiteError } from "./test-site-store.mjs";
 import { isLocalStudioRequest } from "./codex-history-bridge.mjs";
 import { createTestPromptClient } from "./test-site-prompt.mjs";
+import { parseSiteImageName, SITE_IMAGE_MAX_BYTES } from "../app/content/site-featured-image.mjs";
+import { checkedSavedSiteImage } from "./test-site-featured-images.mjs";
 
 export function createTestPromptGateway({ store, propose, validate }) {
   let busy = false;
@@ -85,6 +87,28 @@ export function testSiteBridge() {
     server.httpServer?.once("close", () => {
       void closeStores().catch(() => server.config.logger.error("Local fixture lock cleanup failed. Review the writer locks before reconnecting."));
     });
+    server.middlewares.use("/__studio/site-media", async (request, response) => {
+      response.setHeader("X-Content-Type-Options", "nosniff");
+      response.setHeader("Cache-Control", "no-store");
+      const address = server.httpServer?.address();
+      const origin = typeof address === "object" && address ? `http://localhost:${address.port}` : "";
+      const match = request.url?.match(/^\/(test|test2)\/([^/?]+)$/);
+      const parsed = match && parseSiteImageName(match[2]);
+      let refererOrigin;
+      try { refererOrigin = new URL(request.headers.referer).origin; } catch { /* Reject absent or malformed origins. */ }
+      if (request.method !== "GET" || !origin || request.headers.host !== new URL(origin).host || request.headers["sec-fetch-site"] !== "same-origin" || refererOrigin !== origin || !parsed) { response.statusCode = 403; response.end(); return; }
+      try {
+        const root = roots[match[1]];
+        if (await realpath(root) !== root) throw new Error("Unsafe fixture path.");
+        for (const relative of ["content", "content/media", `content/media/${parsed.name}`]) {
+          const entry = await lstat(path.join(root, relative));
+          if (entry.isSymbolicLink() || (relative === `content/media/${parsed.name}` ? !entry.isFile() || entry.size > SITE_IMAGE_MAX_BYTES : !entry.isDirectory())) throw new Error("Unsafe featured image path.");
+        }
+        const bytes = await readFile(path.join(root, "content/media", parsed.name));
+        if (!checkedSavedSiteImage(parsed.name, bytes)) throw new Error("Invalid featured image.");
+        response.setHeader("Content-Type", parsed.type); response.setHeader("Content-Length", bytes.length); response.end(bytes);
+      } catch (error) { response.statusCode = error.code === "ENOENT" ? 404 : 503; response.end(); }
+    });
     server.middlewares.use("/__studio/test-site", async (request, response) => {
       response.setHeader("Cache-Control", "no-store"); response.setHeader("Content-Type", "application/json"); response.setHeader("X-Content-Type-Options", "nosniff");
       const address = server.httpServer?.address();
@@ -93,7 +117,7 @@ export function testSiteBridge() {
       try {
         const chunks = [];
         let byteLength = 0;
-        for await (const chunk of request) { const bytes = Buffer.from(chunk); byteLength += bytes.length; if (byteLength > 550000) throw new TestSiteError("Test request is too large.", 413); chunks.push(bytes); }
+        for await (const chunk of request) { const bytes = Buffer.from(chunk); byteLength += bytes.length; if (byteLength > 8 * 1024 * 1024) throw new TestSiteError("Test request is too large.", 413); chunks.push(bytes); }
         const input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
         const fixture = input && stores.get(input.siteId);
         if (!fixture) throw new TestSiteError("Unknown site.");

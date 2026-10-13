@@ -26,6 +26,7 @@ import { useStudioBlockCommands } from "./use-studio-block-commands";
 import { findBlockById } from "./studio-command-operations.mjs";
 import { useStudioDocumentCommands } from "./use-studio-document-commands";
 import { useStudioMedia } from "./use-studio-media";
+import { portableFeaturedImage, siteImagePreviewUrls } from "./test-site/featured-images";
 import { useStudioPublishing } from "./use-studio-publishing";
 import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";
 import { useStudioWorkspace } from "./use-studio-workspace";
@@ -163,10 +164,12 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const displayedDocument = resolvedDocument;
   const editorWritable = selectedSite ? testSite.writable && !switchingSite : writable;
   const updateActiveDocument = (update: (document: StudioDocument) => StudioDocument) => {
-    if (!selectedSite) { updateWorkspaceDocument(update); return; }
+    if (!editorWritable) return false;
+    if (!selectedSite) { updateWorkspaceDocument(update); return true; }
     const saved = testContext.updateDocument(activeDocument.id, update);
-    if (!saved) { setSiteFeedback(`This change cannot be saved to ${siteName}. Browser-managed media needs a portable URL; your current draft has been preserved.`); return; }
+    if (!saved) { setSiteFeedback(`This change cannot be saved to ${siteName}. Browser-managed media needs a portable URL; your current draft has been preserved.`); return false; }
     setSiteFeedback(null);
+    return true;
   };
   const updateActiveField = <K extends keyof StudioDocument>(field: K, value: StudioDocument[K]) => updateActiveDocument(document => ({ ...document, [field]: value }));
   async function leaveTest(action: () => boolean | void) {
@@ -202,6 +205,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const showCoverImage = activeDocument ? (activeDocument.coverImage === undefined ? activeDocument.kind === "post" : activeDocument.coverImage !== null) : false;
   const blockCommands = useStudioBlockCommands({ activeDocument, updateActiveDocument });
   const media = useStudioMedia({
+    writable: editorWritable,
+    prepareFeaturedImage: selectedSite ? portableFeaturedImage : undefined,
+    saveFeaturedImage: selectedSite ? testSite.flush : undefined,
+    sourceUrls: selectedSite ? siteImagePreviewUrls(workspace, selectedSite) : undefined,
     documents: workspace.documents,
     activeDocument,
     updateActiveDocument,
@@ -365,9 +372,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
         canRetryEditing={canRetryEditing} retryEditing={retryEditing} previewWindow={previewWindow} viewViewport={viewViewport} setViewViewport={changeViewport}
         showTemplate={showTemplate} hasTemplate={hasTemplate} setShowTemplate={setShowTemplate} switchStudioMode={switchStudioMode} publishing={publishing} writable={writable && !selectedSite}
         onSaveDocument={saveCurrentDocument} onExportDocument={() => selectedSite ? testSite.exportDraft() : exportJson(activeDocument, `${activeDocument.slug}.json`)} />
-      {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected" || testSite.syncConflict) ? <div className="studio-test-notices">
+      {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected" || testSite.syncConflict || testSite.syncResolutionError) ? <div className="studio-test-notices">
       {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected") ? <div className="design-notice" role="alert">{testSite.failure || siteFeedback || `${siteName} sync is paused while its saving tab is unavailable. Your draft remains in this tab.`} <button type="button" onClick={testSite.exportDraft}>Export Draft</button><button type="button" onClick={() => void testSite.reconnect()}>Reconnect</button></div> : null}
       {selectedSite && testSite.syncConflict ? <div className="design-notice" role="alert"><span>Two tabs changed the same content in {siteName}. Choose which change to keep. Your changes remain in this tab.</span> <button type="button" onClick={() => void testSite.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void testSite.resolveSyncConflict("mine")}>Use My Change</button><button type="button" onClick={() => void testSite.exportDraft()}>Export Draft</button>{testSite.syncResolutionError ? <span>{testSite.syncResolutionError}</span> : null}</div> : null}
+      {testSite.syncResolutionError && !testSite.syncConflict ? <div className="design-notice" role="alert">{testSite.syncResolutionError}</div> : null}
       </div> : null}
       {syncConflict ? <div className="design-notice" role="alert"><span>{syncConflict.conflicts.length || 1} overlapping change{(syncConflict.conflicts.length || 1) === 1 ? " needs" : "s need"} review. {studioConflictDetails(syncConflict)} Your changes remain in this tab. Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</span> <button type="button" onClick={() => void resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void resolveSyncConflict("mine")}>Use My Change</button>{syncResolutionError ? <span> {syncResolutionError}</span> : null}</div> : null}
       <div className="studio-notice" role="note">{selectedSite ? <><strong>Local {siteName} website.</strong> Saved changes are stored on this workstation and update its local preview.{selectedSite === "test" ? " The live website is unchanged." : ""}</> : <><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</>}</div>
@@ -522,12 +530,12 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             onSaveAsTemplate: saveAsTemplate,
           }}
         /> : studioSection === "files" ? <MediaManager
-          writable={writable}
+          writable={editorWritable}
           targetOwnerId={`${activeDocument.id}/${media.targetBlockId ?? ""}`}
-          targetLabel={media.targetCover ? "Cover image" : media.targetBackground ? "Background image" : media.targetBlockId ? "Image block" : "Media library"}
+          targetLabel={media.targetCover ? "Featured image" : media.targetBackground ? "Background image" : media.targetBlockId ? "Image block" : "Media library"}
           targetKind={media.targetCover ? "cover" : media.targetBackground ? "background" : "block"}
-          onInsertImage={(asset, _objectUrl, altText) => {
-            media.insertImage(asset, media.targetBackground ? { target: "background" } : undefined, altText);
+          onInsertImage={(asset, _objectUrl, altText, signal) => {
+            return media.insertImage(asset, media.targetBackground ? { target: "background" } : undefined, altText, signal);
           }}
         /> : selectedSite ? <TestSiteBackup globalTemplates={globalTemplates.library} site={testSite} /> : <BackupManager workspace={workspace} globalTemplates={globalTemplates.library} />}
         </>}

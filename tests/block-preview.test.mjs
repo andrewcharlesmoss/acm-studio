@@ -654,7 +654,7 @@ test("Cover Image editor renders one styled frame without changing its canvas ma
     onChange() {},
   }));
   assert.match(html, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override" style="[^"]*border-style:solid/);
-  assert.match(html, /cover-image-visual-style-frame[^>]*><div class="canvas-cover-wrap document-dynamic-cover[^>]*><div class="canvas-cover-image is-source"/);
+  assert.match(html, /cover-image-visual-style-frame[^>]*><div class="canvas-cover-wrap document-dynamic-cover[^>]*><img class="document-featured-image"/);
   const imageStyle = html.match(/<img[^>]*style="([^"]+)"/)?.[1] ?? "";
   assert.doesNotMatch(imageStyle, /border-style|border-width|border-color|border-radius|box-shadow/);
   assert.equal(html.split("border-style:").length - 1, 1);
@@ -1169,7 +1169,7 @@ test("local publications preserve cover images and the default post cover", () =
     status: "draft", updatedAt: "2026-09-02T00:00:00.000Z", blocks: [{ id: "paragraph", type: "paragraph", text: "Content" }],
   };
   const defaultCover = toLocallyPublishedArticle(base);
-  assert.deepEqual(defaultCover.coverImage, { src: "", alt: "Mock cover image" });
+  assert.deepEqual(defaultCover.coverImage, { src: "", alt: "Mock featured image" });
 
   const selectedCover = toLocallyPublishedArticle({ ...base, coverImage: { src: "", mediaId: "media-1", alt: "A cover" } });
   assert.deepEqual(selectedCover.coverImage, { src: "", mediaId: "media-1", alt: "A cover" });

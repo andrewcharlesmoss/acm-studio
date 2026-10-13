@@ -23,7 +23,7 @@ export const DOCUMENT_FIELD_CATALOGUE: readonly DocumentField[] = [
   { id: "parentPageId", label: "Parent page", section: "Document Identity", appliesTo: "both", source: "template-or-document" },
   { id: "subtitle", label: "Subtitle", section: "Content Fields", appliesTo: "both", source: "document", displayBlocks: ["document-subtitle"], templateElements: ["subtitle"] },
   { id: "excerpt", label: "Excerpt", section: "Content Fields", appliesTo: "both", source: "document" },
-  { id: "coverImage", label: "Cover image", section: "Content Fields", appliesTo: "both", source: "document", displayBlocks: ["cover-image"], templateElements: ["cover-image"] },
+  { id: "coverImage", label: "Featured image", section: "Content Fields", appliesTo: "both", source: "document", displayBlocks: ["cover-image"], templateElements: ["cover-image"] },
   { id: "author", label: "Author", section: "Content Fields", appliesTo: "both", source: "template-or-document", displayBlocks: ["post-author"] },
   { id: "publicationDate", label: "Publication date", section: "Publishing", appliesTo: "both", source: "template-or-document", displayBlocks: ["post-date"] },
   { id: "status", label: "Status", section: "Publishing", appliesTo: "both", source: "document" },

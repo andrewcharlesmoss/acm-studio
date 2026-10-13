@@ -505,31 +505,26 @@ test("the block appender exposes Gutenberg's slash prompt and add control", asyn
 
 test("the cover image exposes a between-block inserter", async () => {
   const source = readStudioSource("app/studio/studio-canvas.tsx");
-  assert.match(source, /aria-label="Add block below cover image"/);
+  assert.match(source, /aria-label="Add block below featured image"/);
   assert.match(source, /toggleInserter\(-1\)/);
 });
 
 test("dynamic cover blocks keep selection borders tight to the image", async () => {
-  const styles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(styles, /\.canvas-block > \.canvas-cover-wrap\.document-dynamic-cover \{ margin: 0; \}/);
-  assert.match(styles, /\.canvas-block > \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ margin: 0; \}/);
-  assert.match(styles, /\.cover-image-visual-style-frame > \.document-dynamic-cover \{ margin: 0; \}/);
-  assert.match(styles, /\.canvas-block > \.cover-image-visual-style-frame > \.canvas-cover-wrap\.document-dynamic-cover \{ margin: 0; \}/);
-  assert.match(styles, /\.canvas-block > \.cover-image-visual-style-frame > \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ margin: 0; \}/);
-  assert.match(styles, /\.canvas-block > \.cover-image-visual-style-frame\.has-cover-image-frame-override > \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ border: 0; border-radius: 0; \}/);
-  assert.match(styles, /\.template-editing \.canvas-block\.is-cover-image \.canvas-cover-wrap\.document-dynamic-cover \{ margin: 0; \}/);
-  assert.match(styles, /\.template-editing \.canvas-block\.is-cover-image \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ margin: 0; \}/);
-  assert.match(styles, /\.template-editing \.canvas-block\.is-cover-image \.template-node-selectable \.cover-image-visual-style-frame\.has-cover-image-frame-override \.canvas-cover-wrap\.document-dynamic-cover > \.canvas-cover-image \{ border: 0; border-radius: 0; \}/);
+  const styles = await readFile(new URL("../app/content/featured-image.css", import.meta.url), "utf8");
+  assert.match(styles, /\.document-dynamic-cover \{ margin: 0; position: relative; \}/);
+  assert.match(styles, /\.document-featured-image\s*\{[^}]*border-radius: 0;/);
+  assert.match(styles, /\.has-cover-image-frame-override \.document-featured-placeholder \{ border-radius: 0; \}/);
 });
 
 test("template cover editing uses the shared hover actions", async () => {
   const source = await readFile(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8");
-  assert.match(source, /className=\{`canvas-cover-wrap document-dynamic-cover\$\{fieldVisualClassName \? ` \$\{fieldVisualClassName\}` : ""\}`\}/);
+  assert.match(source, /import \{ FeaturedImage \} from "\.\.\/components\/blocks\/featured-image"/);
+  assert.match(source, /editingDocument \? "canvas-cover-wrap" : ""/);
   assert.match(source, /className="canvas-cover-actions"/);
-  assert.match(source, /aria-label="Choose fixed cover image"/);
-  assert.match(source, /aria-label="Remove cover image"/);
-  assert.match(source, /aria-label="Delete cover image block"/);
-  assert.doesNotMatch(source, />Change Cover Image<\/button>/);
+  assert.match(source, /aria-label="Choose fixed featured image"/);
+  assert.match(source, /aria-label="Remove featured image"/);
+  assert.match(source, /aria-label="Delete featured image block"/);
+  assert.doesNotMatch(source, />Change Featured Image<\/button>/);
 });
 
 test("dynamic subtitle blocks use compact body sizing", async () => {

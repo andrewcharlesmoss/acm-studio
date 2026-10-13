@@ -92,7 +92,7 @@ publication date with long, short or ISO formatting and an optional clock
 icon. These are ordinary removable blocks, not template elements. Their values
 remain visible in the Document inspector even when a block is absent, and a
 missing author or date produces an editor prompt without inventing a Preview
-value. Title, Subtitle and Cover Image are also selectable dynamic blocks;
+value. Title, Subtitle and Featured Image are also selectable dynamic blocks;
 templates may supply their display defaults while documents can choose Use
 Template, Show or Hide locally.
 
@@ -257,13 +257,22 @@ explicit value and display overrides, including empty values;
 removing an assignment materialises the resolved values before detaching it.
 Existing documents migrate with local overrides so their appearance does not
 change. Older saved blocks and packages omit the new fields and continue using
-their existing presentation. A Cover Image template element may optionally
+their existing presentation. A Featured Image template element may optionally
 store a managed fixed image; when absent, it continues to resolve from each
-document's cover image. A hidden Cover Image element remains invisible in both
+document's featured image. A hidden Featured Image element remains invisible in both
 document Edit and Preview; it does not create an editing placeholder or discard
 the stored image. The document inspector retains featured-image access. Header,
 title and metadata elements belong to the assigned template, while their values
 resolve from the document and site.
+
+Featured images use the same Featured Image presentation in document Edit,
+Preview, template authoring and UI Library examples. Empty covers share a 16:9
+placeholder unless authored dimensions or aspect ratio specify another size.
+Resolved images retain their natural size or explicit width, height, scaling and
+focal position. Template authoring uses the same neutral placeholder in both
+modes for dynamic covers; fixed covers resolve their own image. Editing actions
+overlay the shared box without adding spacing. Explicitly removed document
+covers remain absent; template placeholders do not modify saved image data.
 
 The content and template inspectors share Document/Template, Block and Styles
 tabs and a field catalogue. Page and Post documents expose the same ordered
@@ -640,7 +649,7 @@ Template authoring alone sets them to zero and uses the canonical template gap.
 Root template and standalone shared-part wrappers follow the same rule.
 Column insertion controls also overlay the layout rather than adding height.
 Both modes use the same resolved sample document; authoring placeholders for
-Title and Subtitle remain consistent, and hidden cover images occupy no space.
+Title and Subtitle remain consistent, and hidden featured images occupy no space.
 Global-original Navigation uses the shared runtime layout in both modes, with
 canvas-link selection retained for read-only inspection of site-owned links.
 

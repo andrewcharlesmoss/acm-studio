@@ -15,6 +15,7 @@ import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDat
 import { readingTimeDisplay } from "../../content/reading-time";
 import { imageDisplayStyle, imageWrapperStyle } from "../../content/image-style";
 import { resolveImageSource } from "../../content/image-source";
+import { FeaturedImage } from "./featured-image";
 import { dividerRuleStyle } from "../../content/divider-style";
 import { ImageLightbox } from "../image-lightbox";
 import { ArticleMetaIcon } from "../article-meta-icon";
@@ -123,12 +124,10 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
           return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}`} key={block.id}>{document.subtitle ? <p className={studio ? "template-subtitle" : undefined}>{document.subtitle}</p> : <span className="metadata-missing">Add a subtitle in Document settings.</span>}</div>;
         }
         if (block.type === "cover-image") {
-          if (!document || !documentFieldVisible(document, "coverImage") || !document.coverImage) return null;
+          if (!document || !documentFieldVisible(document, "coverImage") || document.coverImage === null || (!studio && !document.coverImage)) return null;
           const source = resolveImageSource(document.coverImage, mediaUrls);
           const href = safeTextLink(documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
-          // Managed cover images can resolve to browser-local blob URLs.
-          // eslint-disable-next-line @next/next/no-img-element
-          const image = source ? <img className="document-featured-image" src={source} alt={document.coverImage.alt} style={imageDisplayStyle(block, { includeFrame: false })} /> : <div className="image-placeholder" role="img" aria-label={document.coverImage.alt || "Cover image placeholder"}>Cover image</div>;
+          const image = <FeaturedImage source={source} alt={document.coverImage?.alt} style={imageDisplayStyle(block, { includeFrame: false })} />;
           // eslint-disable-next-line react/jsx-no-target-blank
           return <figure className={`document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{block.isLink && href ? <a href={href} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={[block.rel, block.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image}</figure>;
         }

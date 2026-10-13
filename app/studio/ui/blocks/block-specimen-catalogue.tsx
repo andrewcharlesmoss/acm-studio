@@ -15,7 +15,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ButtonInteractionState, ContentBlock, RichTextRun, SocialIconBlock } from "../../../content/model";
 import { spacerOrientationFor } from "../../../content/spacer";
 import { BlockRenderer } from "../../../components/content";
-import { createBlock, type InsertableBlockType, type StudioDocument } from "../../editor-model";
+import { createBlock, FEATURED_IMAGE_LABEL, type InsertableBlockType, type StudioDocument } from "../../editor-model";
 import { TableCaptionControl, TableCaptionProvider } from "../../table-caption-control";
 import { BlockField } from "../../studio-canvas";
 import { FootnoteNumbersProvider } from "../../footnote-numbers-context";
@@ -200,6 +200,7 @@ function replaceBlock(blocks: ContentBlock[], replacement: ContentBlock): Conten
 }
 
 function specimenLabel(block: ContentBlock): string {
+  if (block.type === "cover-image") return FEATURED_IMAGE_LABEL;
   if (block.type === "group" && !block.data?.templateElement) return `${block.children.length ? "" : "Empty "}${groupVariationFor(block).label}`;
   if (block.type === "paragraph") return block.text.length > 42 ? `${block.text.slice(0, 42).trimEnd()}…` : block.text || "Paragraph";
   if (block.type === "heading") return block.text || "Heading";

@@ -9,6 +9,8 @@ import test from "node:test";
 import ts from "typescript";
 import { runnerImport } from "vite";
 import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs";
+import { siteImageName } from "../app/content/site-featured-image.mjs";
+import { createHash } from "node:crypto";
 
 const require = createRequire(import.meta.url);
 const projectRoot = new URL("../", import.meta.url).pathname;
@@ -38,7 +40,7 @@ async function fixture(t, siteId) {
     if (expireRender) { expireRender = false; renderSideEffect?.(); renderSideEffect = undefined; now += 40000; }
     return render(document, revision);
   } });
-  const rooms = new Map(); const tabs = []; const requests = []; const timers = new Map();
+  const rooms = new Map(); const tabs = []; const requests = []; const timers = new Map(); const assets = new Map();
   let nextTimer = 0; let lockHeld = false;
   const locks = { async request(_name, options, callback) {
     assert.equal(options.ifAvailable, true);
@@ -99,8 +101,13 @@ async function fixture(t, siteId) {
     }
     const document = { visibilityState: "visible", addEventListener, removeEventListener, createElement: () => ({ click() {} }) };
     async function fetch(_url, options) {
+      if (_url.startsWith("/__studio/site-media/")) {
+        const name = _url.split("/").at(-1);
+        try { const bytes = await readFile(path.join(root, "content/media", name)); return new Response(bytes, { headers: { "Content-Length": String(bytes.length) } }); }
+        catch { return new Response(null, { status: 404 }); }
+      }
       const input = JSON.parse(options.body); const token = options.headers["X-Studio-Test-Token"];
-      const request = { tab, action: input.action, document: input.document && clone(input.document) }; requests.push(request);
+      const request = { tab, action: input.action, document: input.document && clone(input.document), featuredImages: input.featuredImages }; requests.push(request);
       try {
         const result = input.action === "connect" ? await store.connect() : await store.handle(token, input);
         if (input.action === "save" && responseLost) { responseLost = false; throw new TypeError("The save response was lost."); }
@@ -113,13 +120,14 @@ async function fixture(t, siteId) {
     function load(file) {
       const filename = path.resolve(projectRoot, file);
       if (filename === path.join(projectRoot, "app/studio/test-site/contract.ts")) return contract;
+      if (filename === path.join(projectRoot, "app/studio/media-store.ts")) return { getMediaAsset: async id => assets.get(id), listMediaLibrary: async () => ({ assets: [...assets.values()], folders: [] }) };
       if (cache.has(filename)) return cache.get(filename);
       const exports = {}; cache.set(filename, exports);
       const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-      vm.runInNewContext(source, { exports, Error, Event, crypto, TextEncoder, Uint8Array, structuredClone, queueMicrotask, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, BroadcastChannel, Blob, fetch, document,
+      vm.runInNewContext(source, { exports, Error, Event, crypto, TextEncoder, Uint8Array, structuredClone, queueMicrotask, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, BroadcastChannel, Blob, btoa, atob, fetch, document,
         URL: { createObjectURL(blob) { exportsForDraft(blob); return "blob:fixture"; }, revokeObjectURL() {} },
         navigator: { locks }, window: { addEventListener, removeEventListener, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, confirm() { confirms++; return false; } },
-        require(name) { if (name === "react") return react; if (!name.startsWith(".")) return require(name); return load(path.resolve(path.dirname(filename), `${name}.ts`)); },
+        require(name) { if (name === "react") return react; if (!name.startsWith(".")) return require(name); return load(path.resolve(path.dirname(filename), path.extname(name) ? name : `${name}.ts`)); },
       }, { filename });
       return exports;
     }
@@ -166,7 +174,7 @@ async function fixture(t, siteId) {
   const source = async () => JSON.parse(await readFile(path.join(root, "content/site.json"), "utf8"));
   const call = (token, action, extra = {}) => store.handle(token, { siteId, action, ...extra });
   t.after(async () => { tabs.forEach(tab => tab.close()); await store.close(); await rm(root, { recursive: true, force: true }); });
-  return { open, until, pump, source, store, call, requests, initial,
+  return { open, until, pump, source, store, call, requests, initial, assets, root,
     advance(milliseconds) { now += milliseconds; }, expireDuringNextRender(callback) { expireRender = true; renderSideEffect = callback; },
     saves: () => requests.filter(request => request.action === "save"),
     async checkPreview() { const document = await source(); assert.match(await readFile(path.join(root, "dist/index.html"), "utf8"), new RegExp(revisionOf(document))); },
@@ -174,6 +182,28 @@ async function fixture(t, siteId) {
 }
 
 for (const siteId of ["test", "test2"]) {
+  test(`${siteId}: a peer's featured image is copied and saved only by its existing owner`, async t => {
+    const f = await fixture(t, siteId);
+    const owner = f.open(); await f.until(() => owner.state?.writable);
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    const bytes = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRz8AAAAASUVORK5CYII=", "base64");
+    const id = "b7f9d7c0-86a0-466d-9672-12e56898e441";
+    const name = siteImageName(id, createHash("sha256").update(bytes).digest("hex"), "image/png");
+    f.assets.set(id, { id, name: "Selected.png", type: "image/png", blob: new Blob([bytes]) });
+    const src = `/media/${name}`;
+    assert.equal(peer.state.updateDraft(document => {
+      document.documents[0].coverImage = { src, alt: "Chosen featured image" }; return document;
+    }), true);
+    peer.render(); f.advance(600);
+    await f.until(() => f.saves().some(request => request.status === 200));
+    assert.equal((await f.source()).documents[0].coverImage.src, src);
+    assert.equal(f.saves().some(request => request.tab === peer), false);
+    assert.deepEqual(f.saves().find(request => request.status === 200).featuredImages, [{ name, dataBase64: bytes.toString("base64") }]);
+    assert.deepEqual(await readFile(path.join(f.root, "content/media", name)), bytes);
+    assert.deepEqual(await readFile(path.join(f.root, "dist/media", name)), bytes);
+    await f.until(() => owner.state.snapshot.document.documents[0].coverImage?.src === src);
+    assert.equal(peer.state.draft.documents[0].coverImage.src, src);
+  });
   test(`${siteId}: read-only preview activation loads and refreshes content without claiming or saving`, async t => {
     const f = await fixture(t, siteId); const tab = f.open({ preview: true });
     await f.until(() => Boolean(tab.state?.draft));

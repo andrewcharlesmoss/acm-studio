@@ -77,6 +77,50 @@ test("missing managed sources remain deliberate placeholders without unrelated i
   }
 });
 
+test("empty covers share placeholder dimensions in Edit, Preview and template authoring", () => {
+  const block = { ...baseBlock, aspectRatio: "portrait", displayHeight: 420 };
+  const document = documentFixture({ src: "", alt: "Empty cover" });
+  for (const html of [editHtml(block, document), contentHtml(block, document), templateHtml(block, document, { editingDocument: true, authoring: true }), templateHtml(block, document, { templatePreview: true })]) {
+    assert.match(html, /class="document-featured-placeholder"/);
+    assert.match(html, /width:320px;height:420px;aspect-ratio:3 \/ 4/);
+  }
+});
+
+test("removed covers stay absent in both document modes while template authoring retains its placeholder", () => {
+  const document = documentFixture(null);
+  for (const html of [editHtml(baseBlock, document), contentHtml(baseBlock, document), templateHtml(baseBlock, document, { editingDocument: true }), templateHtml(baseBlock, document)]) assert.doesNotMatch(html, /document-featured-placeholder|<img/);
+  assert.match(templateHtml(baseBlock, document, { editingDocument: true, authoring: true }), /document-featured-placeholder/);
+});
+
+for (const kind of ["page", "post"]) {
+  test(`${kind} cover presentation matches for empty, missing and resolved images`, () => {
+    for (const coverImage of [undefined, { src: "", mediaId: "missing", alt: "Missing cover" }, managedCover]) {
+      const document = { ...documentFixture(coverImage), kind };
+      const box = html => html.match(/<(?:img|div) class="document-featured-(?:image|placeholder)"[^>]*>/)?.[0];
+      const html = [editHtml(baseBlock, document), contentHtml(baseBlock, document), templateHtml(baseBlock, document), templateHtml(baseBlock, document, { editingDocument: true })];
+      assert.ok(box(html[0]));
+      for (const value of html) assert.equal(box(value), box(html[0]));
+    }
+  });
+}
+
+test("hidden template covers remain invisible in all modes", () => {
+  for (const extra of [{}, { editingDocument: true }, { editingDocument: true, authoring: true }, { templatePreview: true }]) {
+    assert.doesNotMatch(templateHtml({ ...baseBlock, coverImageHidden: true }, documentFixture(managedCover), extra), /document-featured-(?:image|placeholder)|<img/);
+  }
+});
+
+test("empty cover frames keep one owner for explicit borders and corners", () => {
+  const block = { ...baseBlock, visualStyle: { borderRadius: "0px", borderStyle: "solid", borderWidth: "2px", borderColor: "#123456" } };
+  const document = documentFixture({ src: "", alt: "Empty cover" });
+  for (const html of [editHtml(block, document), contentHtml(block, document), templateHtml(block, document, { authoring: true, editingDocument: true }), templateHtml(block, document, { templatePreview: true })]) {
+    assert.match(html, /has-cover-image-frame-override/);
+    assert.equal(html.split("border-radius:").length - 1, 1);
+    assert.equal(html.split("border-style:").length - 1, 1);
+    assert.match(html, /document-featured-placeholder/);
+  }
+});
+
 test("fixed Template images use their own managed source and presentation class", () => {
   const html = templateHtml({ ...baseBlock, fixedImage: managedCover }, documentFixture({ src: "https://example.test/document.png", alt: "Document cover" }), { templatePreview: true });
   assert.match(html, /src="blob:http:\/\/localhost:3010\/featured-image-fixture"/);
@@ -125,12 +169,12 @@ test("link safety and single frame ownership remain intact", () => {
   for (const html of [contentHtml(block, document), templateHtml(block, document)]) assert.match(html, /href="\/writing\/featured-image-example" target="_blank" rel="nofollow noopener noreferrer"/);
 });
 
-test("shared CSS removes source-frame constraints while retaining empty cover frames", async () => {
+test("shared CSS owns source dimensions and the same empty cover box", async () => {
   const css = await readFile(new URL("../app/content/featured-image.css", import.meta.url), "utf8");
   const layout = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
   assert.match(layout, /import "\.\/content\/featured-image\.css"/);
   assert.match(css, /\.document-featured-image\s*\{[^}]*width: 100%;[^}]*height: auto;/);
-  assert.match(css, /\.document-dynamic-cover > \.canvas-cover-image\.is-source\s*\{[^}]*aspect-ratio: auto;/);
-  assert.match(css, /\.canvas-cover-image \.document-featured-image\s*\{\s*height: auto;/);
+  assert.match(css, /\.document-featured-placeholder\s*\{[^}]*aspect-ratio: 16 \/ 9;/);
+  assert.match(css, /\.document-dynamic-cover\s*\{ margin: 0;/);
   assert.doesNotMatch(css, /\.canvas-cover-image\s*\{/);
 });

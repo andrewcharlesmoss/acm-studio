@@ -7,20 +7,17 @@
   border-radius: 0;
 }
 
-/* A resolved image owns its dimensions; the mock frame is for empty states. */
-.document-dynamic-cover > .canvas-cover-image.is-source {
-  aspect-ratio: auto;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  margin: 0;
+.document-featured-placeholder {
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, var(--template-accent, #0088ff), var(--template-background, #fff));
+  border-radius: var(--template-radius, 10px);
+  display: block;
+  max-width: 100%;
+  width: 100%;
 }
 
-.canvas-cover-image .document-featured-image {
-  height: auto;
-  object-fit: fill;
-}
-
-.template-cover .document-featured-image {
-  border-radius: 0;
-}
+.document-dynamic-cover { margin: 0; position: relative; }
+.document-dynamic-cover.document-cover-shell { margin: var(--studio-block-gap, 24px) 0 0; }
+.document-cover-shell + .studio-block-preview { margin-top: var(--studio-block-gap, 24px); }
+.document-dynamic-cover > a { display: block; }
+.has-cover-image-frame-override .document-featured-placeholder { border-radius: 0; }

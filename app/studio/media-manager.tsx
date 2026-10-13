@@ -24,7 +24,7 @@ type MediaManagerProps = {
   targetLabel: string;
   targetOwnerId: string;
   targetKind?: "block" | "cover" | "background";
-  onInsertImage: (asset: MediaAsset, objectUrl?: string, altText?: string) => void;
+  onInsertImage: (asset: MediaAsset, objectUrl?: string, altText?: string, signal?: AbortSignal) => boolean | void | Promise<boolean | void>;
 };
 
 function fileKind(type: string): Exclude<MediaFilter, "all"> {
@@ -104,6 +104,8 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
   const [insertError, setInsertError] = useState("");
   const [insertionBusy, setInsertionBusy] = useState(false);
   const insertionBusyRef = useRef(false);
+  const imageAttempt = useRef<AbortController | null>(null);
+  function dismissImageInsert() { imageAttempt.current?.abort(); setInsertAltAsset(null); }
   const folderNameFocusTargetIdRef = useRef<string | null>(null);
   const objectUrlsRef = useRef<Record<string, string>>({});
 
@@ -239,7 +241,7 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     if (!canInsert || insertionBusyRef.current) return;
     setInsertError("");
     if (targetKind === "background") {
-      void checkedImage(asset.id).then(latest => { if (latest) insertionGuard.current.onInsertImage(latest, objectUrls[latest.id]); });
+      void checkedImage(asset.id).then(async latest => { if (latest) await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id]); }).catch(error => setStatus(error instanceof Error ? error.message : "The image was not inserted."));
       return;
     }
     insertAltTriggerRef.current = trigger ?? null;
@@ -249,10 +251,18 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
 
   async function confirmImageInsert() {
     if (!insertAltAsset || !canInsert) return;
+    const attempt = new AbortController(); imageAttempt.current = attempt;
     const latest = await checkedImage(insertAltAsset.id);
+    if (attempt.signal.aborted) return;
     if (!latest) return;
-    insertionGuard.current.onInsertImage(latest, objectUrls[latest.id], insertAltText.trim());
-    setInsertAltAsset(null);
+    insertionBusyRef.current = true; setInsertionBusy(true);
+    try {
+      const accepted = await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id], insertAltText.trim(), attempt.signal);
+      if (accepted === false) throw new Error("The featured image was not applied. Your selection and alternative text were kept; try again when editing is available.");
+      if (mountedRef.current) setInsertAltAsset(null);
+    } catch (error) {
+      if (mountedRef.current && !attempt.signal.aborted) setInsertError(error instanceof Error ? error.message : "The image was not applied. Your selection was kept.");
+    } finally { insertionBusyRef.current = false; if (mountedRef.current) setInsertionBusy(false); }
   }
 
   useEffect(() => {
@@ -721,7 +731,7 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
               </section>
               <section><h2>File details</h2><label><span>Name</span><input disabled={!canMutate} value={selectedAsset.name} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { name: event.target.value }); }} onBlur={(event) => void saveAsset({ name: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label><dl><div><dt>Type</dt><dd>{selectedAsset.type}</dd></div><div><dt>Size</dt><dd>{formatBytes(selectedAsset.size)}</dd></div><div><dt>Added</dt><dd>{new Date(selectedAsset.createdAt).toLocaleDateString("en-GB")}</dd></div></dl></section>
               <section><h2>Organisation</h2><label><span>Folder</span><select disabled={!canMutate} value={selectedAsset.folderId ?? ""} onChange={(event) => void saveAsset({ folderId: event.target.value || null })}><option value="">All files</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label></section>
-              {selectedAsset.type.startsWith("image/") ? <section><h2>Image information</h2>{targetKind !== "background" ? <label><span>Alternative text</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.altText} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { altText: event.target.value }); }} onBlur={(event) => void saveAsset({ altText: event.target.value })} placeholder="Describe the image for people who cannot see it" /></label> : <p className="setting-note">Background images are decorative and do not need alternative text.</p>}<label><span>Caption</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.caption} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { caption: event.target.value }); }} onBlur={(event) => void saveAsset({ caption: event.target.value })} /></label><button ref={insertAltTriggerRef} className="media-insert-button" type="button" disabled={!canInsert || insertionBusy} onClick={(event) => requestImageInsert(selectedAsset, event.currentTarget)}>{targetKind === "cover" ? "Use as cover image" : targetKind === "background" ? "Use as background image" : `Insert into ${targetLabel}`}</button></section> : null}
+              {selectedAsset.type.startsWith("image/") ? <section><h2>Image information</h2>{targetKind !== "background" ? <label><span>Alternative text</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.altText} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { altText: event.target.value }); }} onBlur={(event) => void saveAsset({ altText: event.target.value })} placeholder="Describe the image for people who cannot see it" /></label> : <p className="setting-note">Background images are decorative and do not need alternative text.</p>}<label><span>Caption</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.caption} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { caption: event.target.value }); }} onBlur={(event) => void saveAsset({ caption: event.target.value })} /></label><button ref={insertAltTriggerRef} className="media-insert-button" type="button" disabled={!canInsert || insertionBusy} onClick={(event) => requestImageInsert(selectedAsset, event.currentTarget)}>{targetKind === "cover" ? "Use as featured image" : targetKind === "background" ? "Use as background image" : `Insert into ${targetLabel}`}</button></section> : null}
               <section className="media-file-actions"><h2>Actions</h2><button type="button" onClick={downloadAsset}>Download</button><button className="danger-button" type="button" disabled={!canMutate} onClick={() => void removeAsset()}>Delete file</button></section>
             </div>
           ) : selectedFolder ? (
@@ -780,12 +790,13 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
           <img src={objectUrls[previewAsset.id]} alt={previewAsset.altText || previewAsset.name} />
       </dialog> : null}
 
-      {insertAltAsset ? <StudioDialog title="Describe this image" className="media-alt-dialog" returnFocus={insertAltTriggerRef} selectInitialText onClose={() => setInsertAltAsset(null)}>
+      {insertAltAsset ? <StudioDialog title="Describe this image" className="media-alt-dialog" returnFocus={insertAltTriggerRef} selectInitialText onClose={dismissImageInsert}>
         <form onSubmit={(event) => { event.preventDefault(); void confirmImageInsert(); }}>
           <p>Provide alternative text for people who cannot see the image.</p>
+          {insertionBusy ? <p role="status">Saving the image. Closing this window cancels preparation; an accepted change continues saving.</p> : null}
           {insertError || !assets.some(asset => asset.id === insertAltAsset.id) ? <p role="alert">{insertError || "This image was removed in another tab. Your alternative text is kept here."}</p> : null}
           <label><span>Alternative text</span><textarea disabled={!canInsert} rows={4} value={insertAltText} onChange={(event) => setInsertAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>
-          <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={() => setInsertAltAsset(null)}>Cancel</StudioButton><StudioButton type="submit" disabled={!canInsert || insertionBusy || !assets.some(asset => asset.id === insertAltAsset.id)}>{targetKind === "cover" ? "Use as cover image" : "Insert image"}</StudioButton></StudioDialogActions>
+          <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={dismissImageInsert}>Close</StudioButton><StudioButton type="submit" disabled={!canInsert || insertionBusy || !assets.some(asset => asset.id === insertAltAsset.id)}>{targetKind === "cover" ? "Use as featured image" : "Insert image"}</StudioButton></StudioDialogActions>
         </form>
       </StudioDialog> : null}
 

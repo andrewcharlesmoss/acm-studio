@@ -46,6 +46,14 @@
 
 ### Fixed
 
+- Apply featured images to Test and Test2 through their owning save transaction,
+  with immutable local image copies and image-inclusive backups. Keep rejected
+  selections open and use “Featured image” throughout the interface.
+
+- Share cover-image and placeholder presentation between Edit and Preview across
+  templates, documents and the UI Library, preserving authored dimensions and
+  spacing, hidden images and single border ownership.
+
 - Show one insertion line across invisible template fields instead of successive
   lines around an empty block frame; retain hidden fields in List View.
 

@@ -35,7 +35,7 @@ const studioIconConsumers: Partial<Record<IconName, Array<{ label: string; href:
   "action.add": [{ label: "Inspector options and block inserter controls", href: "/studio/ui/blocks/paragraph" }, { label: "Gradient stop controls", href: "/studio/ui/controls#background-selection" }],
   "action.close": [{ label: "Colour and gradient picker close controls", href: "/studio/ui/controls#background-selection" }, { label: "Inspector options menu close control", href: "/studio/ui/controls#inspector-tools" }, { label: "Remove a selected block", href: "/studio/ui/blocks/group" }, { label: "Collapse a Pane from its header", href: "/studio/ui/panes" }],
   "action.copy": [{ label: "Gradient stop colour copy control", href: "/studio/ui/controls#background-selection" }, { label: "Design canvas Copy, Paste and duplicate actions", href: "/studio/designs" }],
-  "action.delete": [{ label: "Remove blocks, List View items and cover images", href: "/studio/ui/blocks/group" }],
+  "action.delete": [{ label: "Remove blocks, List View items and featured images", href: "/studio/ui/blocks/group" }],
   "action.duplicate": [{ label: "Duplicate block action", href: "/studio/ui/blocks/group" }],
   "action.edit": [{ label: "Edit inline text links", href: "/studio/ui/blocks/paragraph" }],
   "action.more": [{ label: "Block toolbar options menu", href: "/studio/ui/blocks/group" }, { label: "Inspector options menu", href: "/studio/ui/blocks/paragraph" }],

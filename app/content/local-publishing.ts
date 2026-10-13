@@ -53,7 +53,7 @@ export function restoreLegacyPublicationCover(article: LocallyPublishedArticle, 
     if (!document) return article;
     const coverImage = document.coverImage === null
       ? null
-      : isCoverImage(document.coverImage) ? document.coverImage : { src: "", alt: "Mock cover image" };
+      : isCoverImage(document.coverImage) ? document.coverImage : { src: "", alt: "Mock featured image" };
     const mediaIds = [...article.mediaIds, coverImage?.mediaId].filter((id): id is string => Boolean(id)).filter((id, index, ids) => ids.indexOf(id) === index);
     return { ...article, coverImage, mediaIds };
   } catch {
@@ -128,7 +128,7 @@ export function toLocallyPublishedArticle(document: StudioDocument, templateSnap
   // Posts show the Studio's generated cover treatment until a real cover is
   // selected. Preserve that same presentation in the browser-local article.
   const coverImage = document.coverImage === undefined && document.kind === "post"
-    ? { src: "", alt: "Mock cover image" }
+    ? { src: "", alt: "Mock featured image" }
     : document.coverImage === null ? null : document.coverImage;
   const mediaIds = Array.from(new Set([...contentMediaIds(document.blocks), ...(templateSnapshot ? templateMediaIds(templateSnapshot.set) : []), coverImage?.mediaId].filter((id): id is string => Boolean(id))));
   return {

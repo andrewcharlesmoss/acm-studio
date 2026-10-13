@@ -63,7 +63,7 @@ export function LocalArticlePage({ slug }: { slug: string }) {
   // Older local publications predate cover metadata. Treat their missing
   // value as the same generated cover that Studio shows for posts.
   const coverImage = article?.coverImage === undefined
-    ? { src: "", alt: "Mock cover image" }
+    ? { src: "", alt: "Mock featured image" }
     : article?.coverImage;
   const coverImageUrl = coverImage?.mediaId
     ? mediaUrls[coverImage.mediaId] || coverImage.src

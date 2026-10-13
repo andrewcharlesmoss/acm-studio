@@ -6,5 +6,6 @@ type ImageReference = { src?: string; mediaId?: string };
 export function resolveImageSource(reference: ImageReference | null | undefined, mediaUrls: Readonly<Record<string, string>> = {}, resolvedMediaUrl?: string): string | null {
   if (!reference) return null;
   if (reference.mediaId) return safeImageSource(resolvedMediaUrl ?? mediaUrls[reference.mediaId] ?? "", { allowBlob: true });
-  return safeImageSource(reference.src ?? "");
+  const source = reference.src ?? "";
+  return mediaUrls[source] ? safeImageSource(mediaUrls[source], { allowBlob: true }) : safeImageSource(source);
 }

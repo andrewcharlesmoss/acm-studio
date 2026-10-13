@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { BlockRenderer } from "../components/content";
+import { FeaturedImage } from "../components/blocks/featured-image";
 import { documentFieldVisible } from "../content/document-metadata";
 import { readingTimeLabel } from "../content/reading-time";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
@@ -127,7 +128,7 @@ export type TemplateRenderContext = {
 };
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
-  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
+  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, authoring, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
   function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false, spacerOrientation: SpacerOrientation = "vertical"): ReactNode {
@@ -194,25 +195,21 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const frameStyle = paragraphStyleToCss(node.visualStyle);
           if (node.visualStyle?.borderRadius) frameStyle.overflow = "hidden";
           const frameProps = { id: fieldVisualId, style: frameStyle };
-          const frameClassName = ["template-cover", fieldVisualClassName].filter(Boolean).join(" ");
-          const image = src ? <TemplateImage src={src} alt={cover?.alt ?? ""} style={imageStyle} className="document-featured-image" /> : null;
+          const frameClassName = ["template-cover", "document-dynamic-cover", editingDocument ? "canvas-cover-wrap" : "", node.visualStyle?.borderRadius !== undefined || node.visualStyle?.borderStyle !== undefined ? "has-cover-image-frame-override" : "", fieldVisualClassName].filter(Boolean).join(" ");
+          const hidden = node.coverImageHidden === true;
+          const fixed = Boolean(node.fixedImage);
+          const isTemplateExample = Boolean(templatePreview || authoring);
+          const image = <FeaturedImage source={isTemplateExample && !fixed ? null : src} alt={isTemplateExample && !fixed ? "" : cover?.alt} style={imageStyle} placeholderLabel={fixed ? "Fixed featured image placeholder" : "Featured image placeholder"} />;
           const href = safeTextLink(context.documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
           // eslint-disable-next-line react/jsx-no-target-blank -- blank targets include both safety tokens.
-          const linkedImage = image && node.isLink && href ? <a href={href} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={[node.rel, node.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image;
-          const hidden = node.coverImageHidden === true;
-          const fixed = Boolean(node.fixedImage) && !hidden;
-          const placeholder = <div {...frameProps} className={`template-cover-placeholder${fieldVisualClassName ? ` ${fieldVisualClassName}` : ""}`} role="img" aria-label={hidden ? "Cover image hidden" : fixed ? "Fixed cover image placeholder" : "Cover image placeholder"} />;
+          const linkedImage = !editingDocument && node.isLink && href ? <a href={href} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={[node.rel, node.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image;
           const actions = onChangeCover ? <div className="canvas-cover-actions">
-            <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label="Choose fixed cover image" title="Choose fixed cover image"><StudioIcon name="image" /></button>
-            {!hidden && onRemoveCoverImage ? <button className="cover-action-button" type="button" onClick={onRemoveCoverImage} aria-label="Remove cover image" title="Remove cover image"><StudioIcon name="close" /></button> : null}
-            {onRemoveCoverBlock ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCoverBlock} aria-label="Delete cover image block" title="Delete cover image block"><StudioIcon name="trash" /></button> : null}
+            <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label="Choose fixed featured image" title="Choose fixed featured image"><StudioIcon name="image" /></button>
+            {!hidden && onRemoveCoverImage ? <button className="cover-action-button" type="button" onClick={onRemoveCoverImage} aria-label="Remove featured image" title="Remove featured image"><StudioIcon name="close" /></button> : null}
+            {onRemoveCoverBlock ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCoverBlock} aria-label="Delete featured image block" title="Delete featured image block"><StudioIcon name="trash" /></button> : null}
           </div> : null;
-          element = hidden ? null
-            : documentFieldVisible(document, "coverImage") ? fixed && templatePreview ? src ? <figure {...frameProps} className={frameClassName}>{linkedImage}</figure> : placeholder
-            : templatePreview ? placeholder : editingDocument ? <div {...frameProps} className={`canvas-cover-wrap document-dynamic-cover${fieldVisualClassName ? ` ${fieldVisualClassName}` : ""}`}>
-              <div className={`canvas-cover-image${src ? " is-source" : ""}`} role="img" aria-label={cover?.alt || "Mock cover image"}>{image}</div>
-              {actions}
-            </div> : <>{src ? <figure {...frameProps} className={frameClassName}>{linkedImage}</figure> : cover !== null && document.kind === "post" ? placeholder : null}</> : null;
+          element = !hidden && documentFieldVisible(document, "coverImage") && (isTemplateExample || fixed || cover !== null)
+            ? <figure {...frameProps} className={frameClassName}>{linkedImage}{editingDocument ? actions : null}</figure> : null;
           break;
         }
         case "site-identity": {

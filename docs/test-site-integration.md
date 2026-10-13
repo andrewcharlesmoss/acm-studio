@@ -63,9 +63,40 @@ title/cover/date links use the same explicit permalink. Template assignments and
 field visibility apply in Edit, Preview and generated output. Output records the
 whole source revision. These are local-preview routes; physical per-slug files
 and hosted publication remain outside this integration.
-Direct image URLs are portable. Browser media IDs, background media IDs and blob
-URLs cannot be saved to Test until a separately scoped media adapter exists;
-rejected edits are reported visibly and preserve the current draft.
+Direct image URLs are portable. Featured image selection also imports PNG,
+JPEG, WebP and GIF files through the existing snapshot-saving owner. Portable
+image contract v1 uses `/media/acm-<media UUID>-<SHA-256>.<extension>` references;
+the browser media ID is not stored as a document field. The owner validates the
+selected bytes and transfers them with the normal lease- and revision-checked
+save. Peer tabs never receive gateway write authority. Images are copied without
+resizing, limited to 2 MiB each and 5 MiB per transfer (32 attachments). The JSON
+request ceiling is 8 MiB; the existing 500 KB document and 1 MiB source/output
+limits remain unchanged. Older servers must advertise featured image support
+before a client may save these references.
+
+Immutable copies live in the selected fixture's `content/media/` and
+`dist/media/`. The gateway validates raster signatures, content digests and fixed
+filenames, refuses symlinks and changed existing bytes, and installs copies before
+committing source/output. Interrupted imports may retain unreferenced files;
+this phase performs no image deletion. Publications, Bin entries and source
+history therefore retain their image versions. A normal save or global preview
+refresh repairs missing output copies from the canonical image files.
+Studio reads them through a fixed-site, same-origin dev-only image route; local
+website output uses the relative `/media/` reference. Temporary object URLs give
+the selecting tab an immediate preview and never enter saved data.
+
+Local site backup envelope v1 (`acm-local-site-backup`) includes referenced image
+bytes, the site ID, source and optional global library. Old JSON source backups
+remain readable. Restore validates all bytes before staging copies through the
+existing browser media broker, then uses the normal site owner save. Backups are
+limited to 10 MiB, with the same 5 MiB/32-image bundle limit. Unsaved-draft exports
+also include referenced image bytes. Failed imports retain the picker, selection
+and alternative text; the document is shown only after its save acknowledgement.
+
+Browser media IDs, background media IDs and blob URLs remain prohibited in site
+sources. This adapter applies to featured images; other browser-managed media
+uses still require their own supported portable import. No hosted publication is
+implied by a local image import.
 
 Prompts are deferred. There is no prompt panel in the current editor. The
 previous confined proposal service remains dormant and does not expand visual

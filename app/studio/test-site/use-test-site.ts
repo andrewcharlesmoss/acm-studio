@@ -7,6 +7,8 @@ import { studioWriteOwnership } from "../write-ownership";
 import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus } from "../studio-sync";
 import { reconcileStudioPendingSave, type StudioPendingSave } from "../studio-pending-save";
 import { retainLocalPublications, testSiteCollection, validTestSiteDocument, type TestSiteDocument, type TestSnapshot } from "./contract";
+import { collectSiteImages } from "./featured-images";
+import { siteImageNames } from "../../content/site-featured-image.mjs";
 
 class ConnectionError extends Error { constructor(message: string, public status: number, public code?: string) { super(message); } }
 // Retain compatibility with an already-running local gateway during a source update.
@@ -70,6 +72,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
   function pauseEditing(paused: boolean) { editingPausedRef.current = paused; setEditingPaused(paused); }
   const ownership = useSyncExternalStore(studioWriteOwnership.subscribe, studioWriteOwnership.getState, () => "waiting" as const);
   const token = useRef<string | null>(null);
+  const featuredImageVersion = useRef<number | null>(null);
   const live = useRef({ snapshot, draft, past, future, failure, promptRunning });
   useLayoutEffect(() => { live.current = { snapshot, draft, past, future, failure, promptRunning }; }, [snapshot, draft, past, future, failure, promptRunning]);
   const sync = useRef<StudioSyncSession<TestSiteDocument> | null>(null);
@@ -148,6 +151,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
       try {
         const result = await request({ action: "connect" });
         connectionToken = result.token;
+        featuredImageVersion.current = result.featuredImageVersion ?? null;
         if (typeof connectionToken !== "string" || !/^[a-f0-9]{64}$/.test(connectionToken)) throw new Error(`${siteName} returned an invalid editing session.`);
         const saved = validateSnapshot(result);
         if (cancelled) { releaseSession(); return; }
@@ -221,7 +225,10 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
         try {
           const saved = await studioWriteOwnership.write(async () => {
             if (!claimed.current || token.current !== connectionToken) throw new Error(`${siteName}'s saving session changed. The draft was preserved.`);
-            return validateSnapshot(await request({ action: "save", baseRevision: disk.snapshot.revision, document }, connectionToken));
+            if (siteImageNames(document).length && featuredImageVersion.current !== 1) throw new Error("The local Studio server needs to be restarted before it can save featured image files. Your draft was preserved.");
+            const featuredImages = await collectSiteImages(document, siteId);
+            if (!claimed.current || token.current !== connectionToken) throw new Error(`${siteName}'s saving session changed. The draft was preserved.`);
+            return validateSnapshot(await request({ action: "save", baseRevision: disk.snapshot.revision, document, featuredImages }, connectionToken));
           });
           disk.snapshot = saved;
         } catch (error) {
@@ -443,13 +450,25 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     finally { live.current.promptRunning = false; setPromptRunning(false); }
   }
   async function exportDraft() {
-    const current = live.current;
-    const base = pending.current?.base ?? current.snapshot?.document;
-    const revision = base ? pending.current && pendingBaseRevision.current
-      ? pendingBaseRevision.current
-      : legacyBase.current && equal(base, legacyBase.current.document) ? legacyBase.current.revision : await documentRevision(base) : undefined;
-    const blob = new Blob([JSON.stringify(testDraftRecoveryEnvelope(current.draft, revision, preservedProposal), null, 2)], { type: "application/json" });
-    const href = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = href; link.download = `${siteId}-unsaved-draft.json`; link.click(); window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+    setSyncResolutionError(null);
+    try {
+      const current = live.current;
+      const base = pending.current?.base ?? current.snapshot?.document;
+      const revision = base ? pending.current && pendingBaseRevision.current
+        ? pendingBaseRevision.current
+        : legacyBase.current && equal(base, legacyBase.current.document) ? legacyBase.current.revision : await documentRevision(base) : undefined;
+      const recovery = testDraftRecoveryEnvelope(current.draft, revision, preservedProposal);
+      const featuredImages = await collectSiteImages(recovery, siteId, true);
+      const blob = new Blob([JSON.stringify({ ...recovery, featuredImages }, null, 2)], { type: "application/json" });
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = `${siteId}-unsaved-draft.json`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+    } catch (error) {
+      setSyncResolutionError(error instanceof Error ? error.message : "The draft export could not include its featured images. Your draft remains in this tab.");
+    }
   }
   async function reconnect() {
     if (reconnecting || promptRunning) return;
