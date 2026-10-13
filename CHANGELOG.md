@@ -11,6 +11,9 @@
 
 ### Changed
 
+- Present Studio Drafts as a full-width catalogue-icon button with a pressed
+  selected state and an explanatory tooltip above Sites.
+
 - Reuse the shared View dropdown in Templates, with Focus Outline and preview
   viewport choices when a template canvas is open.
 
