@@ -44,11 +44,12 @@ export type DesignSyncOptions = {
   persistPrimary: (snapshot: DesignProject) => Promise<void>;
   channelFactory?: (name: string) => DesignSyncChannel | null;
   clientId?: string;
+  requestPrimary?: () => void;
 };
 
-type PendingPeerOperation = { requestId: string; transaction: DesignTransaction; resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> };
+type PendingPeerOperation = { requestId: string; transaction: DesignTransaction; beforeSnapshot: DesignProject; resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> };
 type QueuedPrimaryOperation = { requestId?: string; transaction: DesignTransaction; local: boolean; resolve?: () => void; reject?: (error: Error) => void };
-type ConflictState = DesignSyncConflict & { operation: PendingPeerOperation | QueuedPrimaryOperation | null };
+type ConflictState = DesignSyncConflict & { beforeSnapshot: DesignProject; operation: PendingPeerOperation | QueuedPrimaryOperation | null };
 
 const MAX_DESIGN_SYNC_BYTES = 8_000_000;
 const HELLO_TIMEOUT_MS = 2_500;
@@ -126,6 +127,9 @@ export class DesignSyncSession {
   private brokerTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private closed = false;
+  private helloRequestId: string | null = null;
+  private recovery: { before: DesignProject; local: DesignProject; requiresReview?: boolean } | null = null;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly onMessage = (event: { data: unknown }) => {
     const message = validateDesignSyncMessage(event.data, this.options.designId);
@@ -164,14 +168,21 @@ export class DesignSyncSession {
     else { this.stopHeartbeat(); this.brokerEpoch = ""; this.setStatus("connecting"); this.sendHello(); }
   }
 
+  retryConnection() {
+    if (this.closed || this.role !== "peer" || !this.channel || this.status === "synced" || this.conflict && this.status === "conflict") return;
+    this.setStatus("connecting");
+    this.sendHello();
+  }
+
   submit(snapshot: DesignProject) {
     if (!this.isConnectedPeer()) return Promise.reject(new Error("The design is not connected to its primary Studio tab."));
     const validated = this.validateSnapshot(snapshot);
+    const beforeSnapshot = cloneDesign(this.optimisticSnapshot);
     const transaction = this.makeTransaction(this.optimisticSnapshot, validated, this.revision + this.peerQueue.length + this.pendingPeer.size);
     this.optimisticSnapshot = cloneDesign(validated);
     if (!transaction.changes.length) return Promise.resolve();
     return new Promise<void>((resolve, reject) => {
-      const queued: PendingPeerOperation = { requestId: id("operation"), transaction, resolve, reject, timer: setTimeout(() => undefined, 0) };
+      const queued: PendingPeerOperation = { requestId: id("operation"), transaction, beforeSnapshot, resolve, reject, timer: setTimeout(() => undefined, 0) };
       clearTimeout(queued.timer);
       this.peerQueue.push(queued);
       void this.processPeerQueue();
@@ -191,9 +202,10 @@ export class DesignSyncSession {
   }
 
   resolveConflict(choice: "mine" | "theirs") {
+    if (this.role === "peer" && this.status !== "conflict") return Promise.reject(new Error("Wait for the design connection before resolving this conflict."));
     if (!this.conflict || this.closed) return Promise.reject(new Error("There is no design conflict to resolve."));
     const conflict = this.conflict;
-    const candidate = choice === "mine" ? resolveDesignConflicts(conflict.result.snapshot, conflict.transaction, conflict.result, "mine") : conflict.result.snapshot;
+    const candidate = choice === "mine" ? resolveDesignConflicts(this.snapshot, conflict.transaction, conflict.result, "mine") : this.snapshot;
     this.conflict = null;
     this.setStatus(this.role === "primary" ? "primary" : "synced");
     const transaction = this.makeTransaction(this.snapshot, candidate, this.revision);
@@ -214,7 +226,7 @@ export class DesignSyncSession {
         if ("timer" in conflict.operation) clearTimeout(conflict.operation.timer);
         this.pendingPeer.delete(conflict.operation.requestId);
       }
-      const queued: PendingPeerOperation = { requestId: id("resolution"), transaction, resolve: () => {
+      const queued: PendingPeerOperation = { requestId: id("resolution"), transaction, beforeSnapshot: cloneDesign(this.snapshot), resolve: () => {
         if (conflict.operation && "resolve" in conflict.operation) conflict.operation.resolve?.();
         resolve();
       }, reject: (error) => {
@@ -233,6 +245,7 @@ export class DesignSyncSession {
     this.closed = true;
     if (this.helloTimer) clearTimeout(this.helloTimer);
     if (this.brokerTimer) clearTimeout(this.brokerTimer);
+    if (this.retryTimer) clearTimeout(this.retryTimer);
     this.stopHeartbeat();
     this.pendingPeer.forEach((pending) => { clearTimeout(pending.timer); pending.reject(new Error("The design broker closed.")); });
     this.peerQueue.forEach((pending) => pending.reject(new Error("The design broker closed.")));
@@ -252,40 +265,73 @@ export class DesignSyncSession {
   }
 
   private notifyStatus() { this.options.onStatus?.(this.status); }
+  private retainRecovery() {
+    if (this.recovery) return;
+    if (this.conflict) {
+      // Retain the whole optimistic draft, including changes queued behind the
+      // rejected operation. Its original base preserves competing remote edits.
+      this.recovery = { before: cloneDesign(this.conflict.beforeSnapshot), local: cloneDesign(this.conflict.localSnapshot), requiresReview: true };
+      return;
+    }
+    const transaction = this.makeTransaction(this.snapshot, this.optimisticSnapshot, this.revision);
+    if (transaction.changes.length) this.recovery = { before: cloneDesign(this.snapshot), local: cloneDesign(this.optimisticSnapshot) };
+  }
   private setStatus(status: DesignSyncStatus) {
     if (this.status === status) return;
+    if (status === "disconnected") this.retainRecovery();
     this.status = status;
     this.notifyStatus();
-    if (status === "disconnected") this.failPending(new Error("The primary Studio tab stopped responding."));
+    if (status === "disconnected") {
+      this.failPending(new Error("The primary Studio tab stopped responding."));
+      if (!this.closed && this.role === "peer" && !this.retryTimer) {
+        this.retryTimer = setTimeout(() => { this.retryTimer = null; this.retryConnection(); }, 1000);
+      }
+    }
   }
   private failPending(error: Error) {
-    this.pendingPeer.forEach((pending) => { clearTimeout(pending.timer); pending.reject(error); });
-    this.pendingPeer.clear();
+    this.pendingPeer.forEach(pending => { clearTimeout(pending.timer); pending.reject(error); });
+    this.peerQueue.forEach(pending => { clearTimeout(pending.timer); pending.reject(error); });
+    this.pendingPeer.clear(); this.peerQueue = [];
   }
   private send(message: DesignSyncMessage) { if (!this.channel || this.closed) return; try { this.channel.postMessage(message); } catch { this.setStatus("disconnected"); } }
   private announce(kind: "announce" | "status") { this.send({ protocol: DESIGN_SYNC_PROTOCOL, designId: this.options.designId, senderId: this.clientId, kind, brokerEpoch: this.brokerEpoch, revision: this.revision, ...(kind === "status" ? { state: "primary" as const } : {}) } as DesignSyncMessage); }
   private becomePrimary() {
-    this.pendingPeer.forEach((pending) => { clearTimeout(pending.timer); pending.reject(new Error("The Design persistence owner changed. Reload the latest saved state before continuing.")); });
-    this.pendingPeer.clear();
-    this.peerQueue.forEach((pending) => pending.reject(new Error("The Design persistence owner changed.")));
-    this.peerQueue = [];
+    this.retainRecovery();
+    this.failPending(new Error("The Design persistence owner changed."));
     try {
       if (this.options.loadAuthoritative) this.snapshot = this.validateSnapshot(this.options.loadAuthoritative());
       this.optimisticSnapshot = cloneDesign(this.snapshot);
-      this.options.onSnapshot(this.snapshot, "failover");
-    } catch {
-      this.setStatus("disconnected");
-      return;
-    }
+    } catch { this.setStatus("disconnected"); return; }
     this.brokerEpoch = id("epoch");
     this.setStatus("primary");
     this.announce("announce"); this.announce("status");
     this.stopHeartbeat(); this.heartbeatTimer = setInterval(() => this.announce("status"), HEARTBEAT_MS);
+    this.rebaseRecovery("failover");
+  }
+  private rebaseRecovery(source: "welcome" | "failover") {
+    const recovery = this.recovery;
+    this.recovery = null;
+    if (!recovery) { this.options.onSnapshot(this.snapshot, source); return; }
+    const transaction = this.makeTransaction(recovery.before, recovery.local, this.revision);
+    const result = applyDesignTransaction(this.snapshot, transaction);
+    if (result.conflicts.length || recovery.requiresReview) {
+      this.optimisticSnapshot = cloneDesign(recovery.local);
+      this.openConflict(transaction, result, recovery.local, "Your unsaved changes conflict with the latest saved design.", null, recovery.before);
+      this.options.onSnapshot(recovery.local, "conflict");
+      return;
+    }
+    // Replay the semantic difference, so an already saved operation with a lost
+    // acknowledgement becomes a no-op instead of being applied twice.
+    const saving = this.role === "primary" ? this.commitPrimary(result.snapshot) : this.submit(result.snapshot);
+    void saving.catch(() => { /* Disconnect retains this optimistic draft again. */ });
+    this.options.onSnapshot(result.snapshot, source);
   }
   private stopHeartbeat() { if (this.heartbeatTimer) clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }
   private sendHello() {
     if (!this.channel || this.closed) return;
     const requestId = id("hello");
+    this.helloRequestId = requestId;
+    try { this.options.requestPrimary?.(); } catch { /* Saving stays paused until a broker is available. */ }
     this.send({ protocol: DESIGN_SYNC_PROTOCOL, designId: this.options.designId, senderId: this.clientId, kind: "hello", requestId });
     if (this.helloTimer) clearTimeout(this.helloTimer);
     this.helloTimer = setTimeout(() => { if (this.role === "peer" && this.status === "connecting") this.setStatus("disconnected"); }, HELLO_TIMEOUT_MS);
@@ -296,8 +342,8 @@ export class DesignSyncSession {
   }
   private handleMessage(message: DesignSyncMessage) {
     if (message.kind === "hello") { if (this.isPrimary()) this.sendWelcome(message); return; }
-    if (message.kind === "announce") { if (this.role === "peer" && message.brokerEpoch !== this.brokerEpoch) { this.brokerEpoch = message.brokerEpoch; this.revision = message.revision; this.setStatus("connecting"); this.sendHello(); } return; }
-    if (message.kind === "status") { if (this.role === "peer" && (!this.brokerEpoch || message.brokerEpoch === this.brokerEpoch)) { this.brokerEpoch = message.brokerEpoch; this.refreshBrokerTimer(); if (this.status !== "synced") this.sendHello(); } return; }
+    if (message.kind === "announce") { if (this.role === "peer" && message.brokerEpoch !== this.brokerEpoch) { this.retainRecovery(); this.failPending(new Error("The Design persistence owner changed.")); this.brokerEpoch = message.brokerEpoch; this.setStatus("connecting"); this.sendHello(); } return; }
+    if (message.kind === "status") { if (this.role === "peer" && (!this.brokerEpoch || message.brokerEpoch === this.brokerEpoch)) { this.brokerEpoch = message.brokerEpoch; this.refreshBrokerTimer(); if (this.status !== "synced" && (!this.conflict || this.status === "connecting" || this.status === "disconnected")) this.sendHello(); } return; }
     if (message.kind === "welcome") { this.receiveWelcome(message); return; }
     if (message.kind === "operation") { if (this.isPrimary()) void this.receiveOperation(message); return; }
     if (message.kind === "update") { this.receiveUpdate(message); return; }
@@ -306,11 +352,17 @@ export class DesignSyncSession {
   }
   private sendWelcome(message: Extract<DesignSyncMessage, { kind: "hello" }>) { this.send({ protocol: DESIGN_SYNC_PROTOCOL, designId: this.options.designId, senderId: this.clientId, kind: "welcome", requestId: message.requestId, brokerEpoch: this.brokerEpoch, revision: this.revision, snapshot: this.snapshot }); }
   private receiveWelcome(message: Extract<DesignSyncMessage, { kind: "welcome" }>) {
-    if (this.role !== "peer") return;
+    if (this.role !== "peer" || message.requestId !== this.helloRequestId) return;
     if (this.brokerEpoch && this.brokerEpoch !== message.brokerEpoch && this.status === "synced") return;
-    this.brokerEpoch = message.brokerEpoch; this.revision = message.revision; this.snapshot = message.snapshot; this.optimisticSnapshot = cloneDesign(message.snapshot);
+    this.retainRecovery();
+    this.failPending(new Error("The design connection was refreshed."));
+    this.helloRequestId = null;
+    this.brokerEpoch = message.brokerEpoch; this.revision = message.revision;
+    this.snapshot = message.snapshot; this.optimisticSnapshot = cloneDesign(message.snapshot);
+    this.conflict = null;
     if (this.helloTimer) clearTimeout(this.helloTimer);
-    this.refreshBrokerTimer(); this.setStatus("synced"); this.options.onSnapshot(message.snapshot, "welcome");
+    if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = null; }
+    this.refreshBrokerTimer(); this.setStatus("synced"); this.rebaseRecovery("welcome");
   }
   private async receiveOperation(message: Extract<DesignSyncMessage, { kind: "operation" }>) {
     const transaction = message.transaction;
@@ -359,7 +411,7 @@ export class DesignSyncSession {
   private rememberOperation(transactionId: string, accepted: boolean, reason?: string, revision = this.revision) { this.completedOperations.set(transactionId, { accepted, revision, reason }); if (this.completedOperations.size > 100) this.completedOperations.delete(this.completedOperations.keys().next().value!); }
   private sendReject(requestId: string, transaction: DesignTransaction, reason: string, conflicts: DesignMergeConflict[]) { this.send({ protocol: DESIGN_SYNC_PROTOCOL, designId: this.options.designId, senderId: this.clientId, kind: "reject", requestId, revision: this.revision, reason, snapshot: this.snapshot, conflicts }); }
   private receiveUpdate(message: Extract<DesignSyncMessage, { kind: "update" }>) {
-    if (this.role !== "peer" || message.transaction.brokerEpoch !== this.brokerEpoch || message.revision <= this.revision) return;
+    if (this.role !== "peer" || this.conflict || this.recovery || this.status !== "synced" || message.transaction.brokerEpoch !== this.brokerEpoch || message.revision <= this.revision) return;
     if (message.revision !== this.revision + 1) { this.setStatus("conflict"); this.openConflict(message.transaction, { snapshot: this.snapshot, conflicts: [] }, this.optimisticSnapshot, "The design revision sequence is incomplete.", null); this.sendHello(); return; }
     const result = applyDesignTransaction(this.snapshot, message.transaction);
     if (result.conflicts.length) { this.setStatus("conflict"); this.openConflict(message.transaction, result, this.optimisticSnapshot, "The committed change could not be applied to this tab.", null); return; }
@@ -378,11 +430,11 @@ export class DesignSyncSession {
     if (this.processingPeer || this.closed || this.conflict) return;
     this.processingPeer = true;
     try {
-      while (this.peerQueue.length && !this.conflict) {
+      while (this.peerQueue.length && this.isConnectedPeer()) {
         const pending = this.peerQueue.shift()!;
         pending.transaction = { ...pending.transaction, baseRevision: this.revision, brokerEpoch: this.brokerEpoch };
         this.pendingPeer.set(pending.requestId, pending);
-        pending.timer = setTimeout(() => { if (this.pendingPeer.delete(pending.requestId)) { this.setStatus("disconnected"); pending.reject(new Error("The primary Studio tab stopped responding.")); } }, OPERATION_TIMEOUT_MS);
+        pending.timer = setTimeout(() => { if (this.pendingPeer.has(pending.requestId)) this.setStatus("disconnected"); }, OPERATION_TIMEOUT_MS);
         this.send({ protocol: DESIGN_SYNC_PROTOCOL, designId: this.options.designId, senderId: this.clientId, kind: "operation", requestId: pending.requestId, transaction: pending.transaction });
         await new Promise<void>((resolve) => { const check = () => { if (!this.pendingPeer.has(pending.requestId) || this.conflict) resolve(); else setTimeout(check, 0); }; check(); });
       }
@@ -400,8 +452,8 @@ export class DesignSyncSession {
     clearTimeout(pending.timer); this.pendingPeer.delete(message.requestId); this.revision = message.revision; this.snapshot = message.snapshot;
     this.setStatus("conflict"); this.openConflict(pending.transaction, { snapshot: message.snapshot, conflicts: message.conflicts ?? [] }, this.optimisticSnapshot, message.reason, pending); pending.reject(new Error(message.reason));
   }
-  private openConflict(transaction: DesignTransaction, result: DesignMergeResult, localSnapshot: DesignProject, reason: string, operation: PendingPeerOperation | QueuedPrimaryOperation | null) {
-    this.conflict = { transaction, result, remoteSnapshot: result.snapshot, localSnapshot: cloneDesign(localSnapshot), reason, operation };
+  private openConflict(transaction: DesignTransaction, result: DesignMergeResult, localSnapshot: DesignProject, reason: string, operation: PendingPeerOperation | QueuedPrimaryOperation | null, beforeSnapshot = operation && "beforeSnapshot" in operation ? operation.beforeSnapshot : this.snapshot) {
+    this.conflict = { transaction, result, beforeSnapshot: cloneDesign(beforeSnapshot), remoteSnapshot: cloneDesign(this.snapshot), localSnapshot: cloneDesign(localSnapshot), reason, operation };
     this.setStatus("conflict"); this.options.onConflict?.(this.conflict);
   }
 }

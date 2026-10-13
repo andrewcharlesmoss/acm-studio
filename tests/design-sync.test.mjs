@@ -188,3 +188,179 @@ test("design sync exposes a same-property conflict and accepts a local resolutio
   assert.ok(["First name", "Second name"].includes(persisted.name));
   primary.close(); peerA.close(); peerB.close();
 });
+
+function manualTimers() {
+  let next = 0;
+  const tasks = new Map();
+  return {
+    globals: {
+      setTimeout(fn, delay) { const id = ++next; tasks.set(id, { fn, delay }); return id; },
+      clearTimeout(id) { tasks.delete(id); },
+      setInterval() { return ++next; }, clearInterval() {},
+    },
+    fire(delay) { for (const [id, task] of [...tasks]) if (task.delay === delay) { tasks.delete(id); task.fn(); } },
+  };
+}
+
+for (const scenario of ["compatible", "already saved", "conflicting"]) {
+  test(`design reconnection preserves unsaved work when ${scenario}`, async () => {
+    const timers = manualTimers();
+    const load = modules(timers.globals);
+    const model = load("app/studio/design-model.ts");
+    const sync = load("app/studio/design-sync.ts");
+    const base = model.createDesign();
+    const bus = channelBus();
+    let dropOperations = true;
+    const channelFactory = name => {
+      const channel = bus(name);
+      return { ...channel, postMessage(message) { if (!(dropOperations && message.kind === "operation")) channel.postMessage(message); } };
+    };
+    const original = sync.createDesignSync({ designId: base.id, initialSnapshot: base, role: "primary", channelFactory, onSnapshot() {}, persistPrimary: async () => {} });
+    let visible = base;
+    const peer = sync.createDesignSync({ designId: base.id, initialSnapshot: base, role: "peer", channelFactory, onSnapshot(next) { visible = next; }, persistPrimary: async () => { throw new Error("peer cannot save"); } });
+    await settle();
+    const unsaved = { ...base, name: "My unsaved name" };
+    const pending = peer.submit(unsaved).catch(() => undefined);
+    await settle();
+    timers.fire(5000);
+    await pending;
+    timers.fire(0);
+    await settle();
+    original.close();
+    dropOperations = false;
+    let saved = scenario === "already saved" ? unsaved : scenario === "conflicting" ? { ...base, name: "Other name" } : { ...base, pages: [{ ...base.pages[0], name: "Other page name" }] };
+    let writes = 0;
+    const replacement = sync.createDesignSync({ designId: base.id, initialSnapshot: saved, role: "primary", channelFactory, onSnapshot() {}, persistPrimary: async next => { writes++; saved = next; } });
+    for (let index = 0; index < 4; index++) await settle();
+    assert.equal(visible.name, "My unsaved name");
+    if (scenario === "conflicting") {
+      assert.equal(peer.getStatus(), "conflict");
+      assert.equal(peer.getConflict().localSnapshot.name, "My unsaved name");
+      assert.equal(peer.getConflict().remoteSnapshot.name, "Other name");
+      assert.equal(writes, 0);
+      await peer.resolveConflict("mine");
+      assert.equal(saved.name, "My unsaved name");
+    } else {
+      assert.equal(peer.getStatus(), "synced");
+      assert.equal(saved.name, "My unsaved name");
+      assert.equal(writes, scenario === "already saved" ? 0 : 1);
+      if (scenario === "compatible") assert.equal(saved.pages[0].name, "Other page name");
+    }
+    replacement.close(); peer.close();
+  });
+}
+
+test("a Studio owner serves different design rooms without opening their canvases", async () => {
+  const load = modules();
+  const model = load("app/studio/design-model.ts");
+  const sync = load("app/studio/design-sync.ts");
+  const hostModule = load("app/studio/design-broker-host.ts");
+  const first = model.createDesign();
+  const second = model.createDesign();
+  let stored = [first, second];
+  let writable = true;
+  const channelFactory = channelBus();
+  const host = hostModule.createDesignBrokerHost({ load: () => stored, canWrite: () => writable, channelFactory, persist: async next => { stored = stored.map(item => item.id === next.id ? next : item); } });
+  const peers = stored.map(initialSnapshot => sync.createDesignSync({ designId: initialSnapshot.id, initialSnapshot, role: "peer", channelFactory, onSnapshot() {}, persistPrimary: async () => { throw new Error("peer cannot save"); } }));
+  await settle();
+  assert.equal(peers[0].isConnectedPeer(), true);
+  assert.equal(peers[1].isConnectedPeer(), true);
+  await Promise.all([peers[0].submit({ ...first, name: "First updated" }), peers[1].submit({ ...second, name: "Second updated" })]);
+  assert.deepEqual(stored.map(item => item.name), ["First updated", "Second updated"]);
+  writable = false;
+  await assert.rejects(peers[0].submit({ ...stored[0], name: "Denied write" }));
+  assert.equal(stored[0].name, "First updated");
+  host.close(); peers.forEach(peer => peer.close());
+});
+
+test("single-design saves load their aggregate inside ownership and retain concurrent rooms", async () => {
+  const storage = new Map();
+  const load = modules({ window: { localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, dispatchEvent() {} }, Event: class { constructor(type) { this.type = type; } } });
+  const model = load("app/studio/design-model.ts");
+  const ownership = load("app/studio/write-ownership.ts").studioWriteOwnership;
+  const store = load("app/studio/design-store.ts");
+  const release = ownership.acquire(token => ownership.loaded(token, true), { request: async (_name, _options, callback) => callback({}) });
+  await settle();
+  const first = model.createDesign(); const second = model.createDesign();
+  await Promise.all([store.saveDesign(first), store.saveDesign(second)]);
+  assert.equal(store.loadDesigns().length, 2);
+  await Promise.all([store.saveDesign({ ...first, name: "First saved" }), store.saveDesign({ ...second, name: "Second saved" })]);
+  assert.deepEqual(Array.from(store.loadDesigns(), item => item.name), ["First saved", "Second saved"]);
+  release(); await settle();
+  await assert.rejects(store.saveDesign({ ...first, name: "Forbidden" }));
+  assert.equal(store.loadDesigns()[0].name, "First saved");
+});
+
+for (const choice of ["mine", "theirs"]) {
+  test(`an existing conflict survives owner replacement with queued intent (${choice})`, async () => {
+    const load = modules();
+    const model = load("app/studio/design-model.ts");
+    const sync = load("app/studio/design-sync.ts");
+    const base = model.createDesign();
+    const channelFactory = channelBus();
+    let saved = base;
+    const primary = sync.createDesignSync({ designId: base.id, initialSnapshot: base, role: "primary", channelFactory, onSnapshot() {}, persistPrimary: async next => { saved = next; } });
+    const a = sync.createDesignSync({ designId: base.id, initialSnapshot: base, role: "peer", channelFactory, onSnapshot() {}, persistPrimary: async () => assert.fail("peer write") });
+    let visible = base;
+    const b = sync.createDesignSync({ designId: base.id, initialSnapshot: base, role: "peer", channelFactory, onSnapshot(next) { visible = next; }, persistPrimary: async () => assert.fail("peer write") });
+    let replacement;
+    try {
+      await settle();
+      const mine = { ...base, name: "Mine" };
+      const remote = a.submit({ ...base, name: "Theirs" });
+      const rejected = b.submit(mine).catch(() => undefined);
+      const queued = b.submit({ ...mine, pages: [{ ...mine.pages[0], name: "Queued page" }] }).catch(() => undefined);
+      await remote; await rejected; await settle();
+      assert.equal(b.getStatus(), "conflict");
+      assert.equal(b.getConflict().localSnapshot.pages[0].name, "Queued page");
+      primary.close();
+      replacement = sync.createDesignSync({ designId: base.id, initialSnapshot: saved, role: "primary", channelFactory, onSnapshot() {}, persistPrimary: async next => { saved = next; } });
+      await queued;
+      for (let index = 0; index < 4; index++) await settle();
+      assert.equal(b.getStatus(), "conflict");
+      assert.equal(visible.name, "Mine");
+      assert.equal(visible.pages[0].name, "Queued page");
+      await b.resolveConflict(choice);
+      for (let index = 0; index < 4; index++) await settle();
+      assert.equal(saved.name, choice === "mine" ? "Mine" : "Theirs");
+      assert.equal(saved.pages[0].name, choice === "mine" ? "Queued page" : base.pages[0].name);
+      assert.equal(b.getStatus(), "synced");
+    } finally { primary.close(); replacement?.close(); a.close(); b.close(); }
+  });
+}
+
+test("missing synchronisation channels keep design clients read-only", async () => {
+  const load = modules();
+  const model = load("app/studio/design-model.ts");
+  const sync = load("app/studio/design-sync.ts");
+  const design = model.createDesign();
+  for (const channelFactory of [() => null, () => { throw new Error("denied"); }]) {
+    let writes = 0;
+    const peer = sync.createDesignSync({ designId: design.id, initialSnapshot: design, role: "peer", channelFactory, onSnapshot() {}, persistPrimary: async () => { writes++; } });
+    assert.equal(peer.getStatus(), "unsupported");
+    await assert.rejects(peer.submit({ ...design, name: "Cannot save" }));
+    peer.retryConnection();
+    assert.equal(writes, 0);
+    peer.close();
+  }
+});
+
+test("unsolicited welcome replies cannot replace a connected design", async () => {
+  const load = modules();
+  const model = load("app/studio/design-model.ts");
+  const sync = load("app/studio/design-sync.ts");
+  const design = model.createDesign();
+  const channelFactory = channelBus();
+  let visible = design;
+  const primary = sync.createDesignSync({ designId: design.id, initialSnapshot: design, role: "primary", channelFactory, onSnapshot() {}, persistPrimary: async () => {} });
+  const peer = sync.createDesignSync({ designId: design.id, initialSnapshot: design, role: "peer", channelFactory, onSnapshot(next) { visible = next; }, persistPrimary: async () => assert.fail("peer write") });
+  const sender = channelFactory(`acm-studio-design-${design.id}`);
+  try {
+    await settle();
+    await peer.submit({ ...design, name: "Saved edit" });
+    sender.postMessage({ protocol: sync.DESIGN_SYNC_PROTOCOL, designId: design.id, senderId: "old-broker", kind: "welcome", requestId: "stale-request", brokerEpoch: "old-epoch", revision: 0, snapshot: design });
+    await settle();
+    assert.equal(visible.name, "Saved edit");
+    assert.equal(peer.getStatus(), "synced");
+  } finally { sender.close(); peer.close(); primary.close(); }
+});

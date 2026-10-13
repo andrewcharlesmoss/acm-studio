@@ -13,7 +13,8 @@ import {
   DESIGN_IMAGE_TYPES, migrateDesignProject, sanitiseFilename,
   type DesignArrowObject, type DesignAsset, type DesignObject, type DesignPage, type DesignProject, type DesignShapeKind, type DesignShapeObject, type DesignTextObject,
 } from "./design-model";
-import { loadDesigns, saveDesigns } from "./design-store";
+import { loadDesigns, saveDesign } from "./design-store";
+import { requestDesignBroker } from "./design-broker-host";
 import { createDesignSync, type DesignSyncConflict, type DesignSyncSession, type DesignSyncStatus } from "./design-sync";
 import type { DesignChange, DesignMergeConflict } from "./design-merge";
 import { StudioMenuItem, focusStudioMenu, navigateStudioMenu } from "./overlays/menu";
@@ -745,6 +746,11 @@ export function DesignEditor() {
   const [designs, setDesigns] = useState<DesignProject[]>([]);
   const [design, setDesign] = useState<DesignProject | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [ownershipAttempt, setOwnershipAttempt] = useState(0);
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
+  const initialDesignLoad = useRef(false);
+  const newDesignId = useRef<string | null>(null);
+  const bootstrappingDesign = useRef(false);
   const [ownershipState, setOwnershipState] = useState<OwnershipState>(studioWriteOwnership.getState());
   const [status, setStatus] = useState("Loading designs…");
   const [ribbonTab, setRibbonTab] = useState<StudioRibbonTab>("home");
@@ -826,12 +832,13 @@ export function DesignEditor() {
   const syncRef = useRef<DesignSyncSession | null>(null);
   const saveStatusSequenceRef = useRef(0);
   const activePageIdRef = useRef<string | null>(null);
+  const urlHandoffApplied = useRef(false);
   const designsRef = useRef<DesignProject[]>([]);
   const requestedDesignId = useState(() => typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("designId"))[0];
 
   const primaryWritable = ownershipState === "writable";
-  const peerWritable = ownershipState === "waiting" && syncStatus === "synced";
-  const writable = (primaryWritable || peerWritable) && !syncConflict;
+  const peerWritable = ["waiting", "writable"].includes(ownershipState) && syncStatus === "synced";
+  const writable = peerWritable && !syncConflict;
   const activePage = design?.pages.find((page) => page.id === design.activePageId) ?? design?.pages[0] ?? null;
   if (activePage && !design?.pages.some((page) => page.id === activePageIdRef.current)) activePageIdRef.current = activePage.id;
   const activePageIndex = activePage && design ? design.pages.findIndex((page) => page.id === activePage.id) : 0;
@@ -1068,24 +1075,22 @@ export function DesignEditor() {
   useEffect(() => {
     let mounted = true;
     const unsubscribe = studioWriteOwnership.subscribe(() => setOwnershipState(studioWriteOwnership.getState()));
-    try {
-      const saved = loadDesigns();
-      const requested = requestedDesignId ? saved.find((item) => item.id === requestedDesignId) : undefined;
-      queueMicrotask(() => { if (mounted) { setDesigns(saved); setDesign(requested ?? saved[0] ?? createDesign()); setLoaded(true); setStatus(saved.length ? "Saved locally" : "New design ready"); } });
-    } catch (loadError) { queueMicrotask(() => { if (mounted) { setError(loadError instanceof Error ? loadError.message : "Saved designs could not be read."); setDesign(createDesign()); setLoaded(true); } }); }
-    const release = studioWriteOwnership.acquire((token) => {
+    if (!initialDesignLoad.current) {
       try {
+        const saved = loadDesigns();
+        const requested = requestedDesignId ? saved.find(item => item.id === requestedDesignId) : undefined;
+        const initial = requested ?? saved[0] ?? createDesign();
+        if (!saved.length) newDesignId.current = initial.id;
+        queueMicrotask(() => { if (mounted) { initialDesignLoad.current = true; designsRef.current = saved; setDesigns(saved); setDesign(initial); setLoaded(true); setStatus(saved.length ? "Saved locally" : "New design ready"); } });
+      } catch (loadError) { queueMicrotask(() => { if (mounted) { initialDesignLoad.current = true; setError(loadError instanceof Error ? loadError.message : "Saved designs could not be read."); setDesign(createDesign()); setLoaded(true); } }); }
+    }
+    const release = studioWriteOwnership.canWrite() ? () => {} : studioWriteOwnership.acquire(token => {
+      try {
+        // Validate the latest aggregate before accepting ownership. The sync session
+        // rebases local changes; acquisition must not replace the displayed draft.
         const latest = loadDesigns();
-        if (latest.length) {
-          setDesigns(latest);
-          setDesign((current) => latest.find((item) => item.id === current?.id) ?? latest[0]);
-        } else {
-          // An empty persisted snapshot is authoritative after a restore or a
-          // newly cleared workspace; never re-enable the old in-memory design.
-          setDesigns([]);
-          setDesign(createDesign());
-          setStatus("New design ready");
-        }
+        designsRef.current = latest;
+        setDesigns(latest);
         studioWriteOwnership.loaded(token, true);
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "Saved designs could not be read.");
@@ -1093,19 +1098,34 @@ export function DesignEditor() {
       }
     });
     return () => { mounted = false; unsubscribe(); release(); };
-  }, [requestedDesignId]);
+  }, [requestedDesignId, ownershipAttempt]);
+
+  useEffect(() => {
+    const retry = () => { if (studioWriteOwnership.getState() === "waiting") setOwnershipAttempt(value => value + 1); syncRef.current?.retryConnection(); };
+    const timer = setInterval(() => { if (studioWriteOwnership.getState() === "waiting") setOwnershipAttempt(value => value + 1); }, 1000);
+    window.addEventListener("focus", retry);
+    return () => { clearInterval(timer); window.removeEventListener("focus", retry); };
+  }, []);
+
+  useEffect(() => {
+    if (!primaryWritable || !design || bootstrappingDesign.current || newDesignId.current !== design.id) return;
+    bootstrappingDesign.current = true;
+    void saveDesign(design).then(() => { newDesignId.current = null; syncRef.current?.retryConnection(); }).catch(error => setError(designSaveErrorMessage(error))).finally(() => { bootstrappingDesign.current = false; });
+  }, [primaryWritable, design, bootstrapAttempt]);
 
   useEffect(() => {
     if (!loaded || !design) return;
     const session = createDesignSync({
       designId: design.id,
       initialSnapshot: design,
-      role: primaryWritable ? "primary" : "peer",
+      role: "peer",
+      requestPrimary: () => requestDesignBroker(design.id),
       onStatus: (next) => {
         setSyncStatus(next);
         if (next === "synced") setStatus("Synced with another ACM Studio tab");
         else if (next === "conflict") setStatus("Resolve conflicting changes");
-        else if (next === "disconnected") setStatus("Connection lost — unsaved changes");
+        else if (next === "disconnected") setStatus("Saving connection unavailable");
+        else if (next === "connecting") setStatus("Connecting to local saving…");
       },
       onConflict: (next) => { setSyncConflict(next); setConflictPanelOpen(true); setStatus("Resolve conflicting changes"); },
       loadAuthoritative: () => loadDesigns().find((item) => item.id === design.id) ?? design,
@@ -1125,14 +1145,7 @@ export function DesignEditor() {
         setSelectedIds((ids) => ids.filter((id) => snapshot.pages.some((page) => page.objects.some((object) => object.id === id))));
         setSelectedId((id) => id && snapshot.pages.some((page) => page.objects.some((object) => object.id === id)) ? id : null);
       },
-      persistPrimary: async (snapshot) => {
-        const updated = designsRef.current.some((item) => item.id === snapshot.id)
-          ? designsRef.current.map((item) => item.id === snapshot.id ? snapshot : item)
-          : [...designsRef.current, snapshot];
-        await saveDesigns(updated);
-        designsRef.current = updated;
-        setDesigns(updated);
-      },
+      persistPrimary: async () => { throw new Error("Design editor clients cannot persist directly."); },
     });
     syncRef.current = session;
     setSyncStatus(session.getStatus());
@@ -1141,14 +1154,10 @@ export function DesignEditor() {
       if (syncRef.current === session) syncRef.current = null;
       setSyncStatus("disconnected");
     };
-    // The session is scoped to the loaded design. Role changes are applied
-    // separately so a lock transition cannot accidentally join another design.
+    // The client stays in its loaded design room while the shared runtime
+    // serves persistence from whichever Studio route owns the lifetime lock.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [design?.id, loaded]);
-
-  useEffect(() => {
-    syncRef.current?.setRole(primaryWritable ? "primary" : "peer");
-  }, [primaryWritable]);
 
   useEffect(() => {
     if (primaryWritable || designEditable) return;
@@ -1179,12 +1188,13 @@ export function DesignEditor() {
   }, [activePage]);
 
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || urlHandoffApplied.current) return;
     const params = new URLSearchParams(window.location.search);
     const designId = params.get("designId");
     const pageId = params.get("pageId");
     const mediaId = params.get("mediaId");
     if (mediaId && design) {
+      urlHandoffApplied.current = true;
       window.history.replaceState({}, "", window.location.pathname);
       void getMediaAsset(mediaId).then((asset) => {
         if (!asset) { setError("The selected Studio image could not be found."); return; }
@@ -1198,6 +1208,7 @@ export function DesignEditor() {
     if (!next) return;
     const page = next.pages.find((item) => item.id === pageId) ?? next.pages.find((item) => item.id === next.activePageId) ?? next.pages[0];
     if (!page) return;
+    urlHandoffApplied.current = true;
     const opened = page.id === next.activePageId ? next : { ...next, activePageId: page.id };
     setDesign(opened); setPageName(page.name); setHistory([]); setFuture([]); selectObjects([]);
     window.history.replaceState({}, "", window.location.pathname);
@@ -1225,15 +1236,12 @@ export function DesignEditor() {
     if (primaryWritable) setStatus("Saving…");
     else if (syncRef.current?.isConnectedPeer()) setStatus("Syncing changes");
     try {
-      if (primaryWritable) {
-        if (syncRef.current?.isPrimary()) await syncRef.current.commitPrimary(next);
-        else await saveDesigns(updated);
-        const remaining = SAVE_STATUS_MINIMUM_MS - (Date.now() - saveStartedAt);
-        if (remaining > 0) await new Promise<void>((resolve) => window.setTimeout(resolve, remaining));
-        if (saveSequence === saveStatusSequenceRef.current) { setStatus("Saved locally"); setError(""); }
-      } else if (syncRef.current?.isConnectedPeer()) {
+      if (syncRef.current?.isConnectedPeer()) {
         await syncRef.current.submit(next);
-        setStatus("Synced with another ACM Studio tab"); setError("");
+        const remaining = SAVE_STATUS_MINIMUM_MS - (Date.now() - saveStartedAt);
+        if (saveSequence !== null && remaining > 0) await new Promise<void>(resolve => window.setTimeout(resolve, remaining));
+        if (saveSequence !== null && saveSequence !== saveStatusSequenceRef.current) return;
+        setStatus(primaryWritable ? "Saved locally" : "Synced with another ACM Studio tab"); setError("");
       } else {
         setStatus(ownershipMessage(ownershipState) ?? "Read-only");
       }
@@ -1258,10 +1266,6 @@ export function DesignEditor() {
       setStatus("Resolve conflicting changes");
     }
   }
-
-  useEffect(() => {
-    if (loaded && primaryWritable && design && designs.length === 0) void persist(design);
-  }, [design, designs.length, loaded, persist, primaryWritable]);
 
   function updateDesign(next: DesignProject, record = true) {
     const normalised = { ...next, updatedAt: new Date().toISOString() };
@@ -1656,7 +1660,7 @@ export function DesignEditor() {
     const updated = [...designsRef.current, opened];
     setStatus("Saving…");
     try {
-      await saveDesigns(updated);
+      await saveDesign(opened);
       designsRef.current = updated;
       setDesigns(updated); setDesign(opened); setPageName(page.name); setHistory([]); setFuture([]); selectObjects([]);
       setStatus("New design opened from Studio media");
@@ -2039,7 +2043,7 @@ export function DesignEditor() {
     const updated = [...designsRef.current, next];
     setStatus("Saving…");
     try {
-      await saveDesigns(updated);
+      await saveDesign(next);
       designsRef.current = updated;
       setDesigns(updated); setDesign(next); setHistory([]); setFuture([]); selectObjects([]); setPageName(next.pages[0].name);
       setStatus("Saved locally just now");
@@ -2121,7 +2125,7 @@ export function DesignEditor() {
       const copy = { ...imported, id: makeId("design"), name: `${imported.name} copy`, updatedAt: new Date().toISOString() };
       const updated = [...designsRef.current, copy];
       setStatus("Saving…");
-      await saveDesigns(updated);
+      await saveDesign(copy);
       designsRef.current = updated;
       setDesigns(updated); setDesign(copy); setStatus("Design imported");
     }
@@ -2211,9 +2215,9 @@ export function DesignEditor() {
           </StudioRibbonGroup>
         </StudioRibbonPanel>
       </StudioRibbon>
-    {!peerWritable && ownershipMessage(ownershipState) ? <div className="design-notice" role="status">{ownershipMessage(ownershipState)}{ownershipState === "waiting" ? " Close the other editing tab before making changes." : ""}</div> : null}
-    {!primaryWritable && syncStatus === "unsupported" ? <div className="design-notice" role="status">Read-only: this browser cannot synchronise duplicate design tabs.</div> : null}
-    {!primaryWritable && syncStatus === "disconnected" ? <div className="design-notice" role="status">Connection to the primary Studio tab was lost — editing is paused. Export an editable backup before closing this tab.</div> : null}
+    {!peerWritable && syncStatus !== "connecting" && syncStatus !== "disconnected" && ownershipMessage(ownershipState) ? <div className="design-notice" role="status">{ownershipMessage(ownershipState)}{ownershipState === "waiting" ? " Close the other editing tab before making changes." : ""}</div> : null}
+    {syncStatus === "unsupported" ? <div className="design-notice" role="status">Read-only: this browser cannot connect to safe local design saving. Export an editable backup before closing this tab.</div> : null}
+    {syncStatus === "disconnected" || syncStatus === "connecting" ? <div className="design-notice" role="status">{syncStatus === "connecting" ? "Connecting to safe local saving…" : "Local saving is unavailable — your design is preserved and editing is paused."}<button type="button" onClick={() => { syncRef.current?.retryConnection(); if (studioWriteOwnership.getState() === "waiting") setOwnershipAttempt(value => value + 1); else if (studioWriteOwnership.canWrite()) setBootstrapAttempt(value => value + 1); }}>Try Editing Here</button><button type="button" onClick={exportDesignJson}>Export Editable Backup</button></div> : null}
     {syncConflict && !conflictPanelOpen ? <div className="design-notice" role="status">Conflicting changes need review. <button ref={conflictReviewButtonRef} type="button" onClick={() => setConflictPanelOpen(true)}>Review conflicts</button></div> : null}
     {error ? <div className="design-error" role="alert">{error}</div> : null}
     {syncConflict && conflictPanelOpen ? <section className="design-conflict-panel" role="dialog" aria-modal="true" aria-labelledby="design-conflict-title">
@@ -2221,7 +2225,7 @@ export function DesignEditor() {
       <p>{syncConflict.reason}</p>
       <p>{syncConflict.result.conflicts.length || 1} change{syncConflict.result.conflicts.length === 1 ? "" : "s"} needs your decision. Your document remains protected until you choose a version.</p>
       {syncConflict.result.conflicts.length ? <ul className="design-conflict-list" aria-label="Conflicting values">{syncConflict.result.conflicts.map((conflict, index) => { const details = conflictDetails(conflict); return <li key={`${details.target}-${index}`}><strong>{details.target}</strong><span><b>Other:</b> {details.other}</span><span><b>Yours:</b> {details.yours}</span></li>; })}</ul> : null}
-      <div className="design-conflict-actions"><button type="button" className="button-secondary" onClick={() => void resolveDesignConflict("theirs")}>Use Other Change</button><button type="button" className="button-primary" onClick={() => void resolveDesignConflict("mine")}>Use My Change</button></div>
+      <div className="design-conflict-actions"><button type="button" className="button-secondary" disabled={syncStatus !== "conflict"} onClick={() => void resolveDesignConflict("theirs")}>Use Other Change</button><button type="button" className="button-primary" disabled={syncStatus !== "conflict"} onClick={() => void resolveDesignConflict("mine")}>Use My Change</button></div>
     </section> : null}
     <div className={`design-workspace${pagesCollapsed ? " pages-collapsed" : ""}${inspectorCollapsed ? " inspector-collapsed" : ""}`}
       style={{ "--design-pages-width": `${pagesCollapsed ? 0 : pagesPaneWidth}px`, "--design-inspector-width": `${inspectorCollapsed ? 0 : inspectorPaneWidth}px` } as CSSProperties}>

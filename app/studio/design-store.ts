@@ -14,17 +14,27 @@ export async function saveDesigns(designs: DesignProject[]) {
   return studioWriteOwnership.write(async () => {
     designs.forEach(validateDesignProject);
     window.localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(designs.map(compactDesignAssets)));
+    window.dispatchEvent(new Event("studio-designs-saved"));
   });
 }
 
 export async function saveDesign(design: DesignProject) {
-  const designs = loadDesigns();
-  const index = designs.findIndex((item) => item.id === design.id);
-  if (index === -1) designs.push(design);
-  else designs[index] = design;
-  await saveDesigns(designs);
+  // Read and replace within ownership so independent design rooms cannot save stale aggregates.
+  return studioWriteOwnership.write(async () => {
+    validateDesignProject(design);
+    const designs = loadDesigns();
+    const index = designs.findIndex(item => item.id === design.id);
+    if (index === -1) designs.push(design);
+    else designs[index] = design;
+    window.localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(designs.map(compactDesignAssets)));
+    window.dispatchEvent(new Event("studio-designs-saved"));
+  });
 }
 
 export async function deleteDesign(id: string) {
-  await saveDesigns(loadDesigns().filter((design) => design.id !== id));
+  return studioWriteOwnership.write(async () => {
+    const designs = loadDesigns().filter(design => design.id !== id);
+    window.localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(designs.map(compactDesignAssets)));
+    window.dispatchEvent(new Event("studio-designs-saved"));
+  });
 }

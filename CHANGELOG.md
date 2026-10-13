@@ -25,6 +25,9 @@
 
 ### Fixed
 
+- Keep Design Canvas saving connected when Content or Templates owns the Studio
+  writer, and reconnect safely while preserving pending edits and conflicts.
+
 - Share the Studio Navigation structure across Posts, Pages, and Templates, keeping toolbar heights, tool icons, and separators consistent.
 
 - Keep selected calendar dates' text and post markers white, and shade today

@@ -36,14 +36,27 @@ and Solid defaults.
 
 Duplicate tabs for the same design can edit together when the browser supports
 Web Locks and BroadcastChannel. The tab holding the Studio writer lock remains
-the persistence owner; the other tab sends versioned design transactions to it
-and receives committed transactions. Compatible changes to separate objects or
+the persistence owner, whether it displays Content, Templates or Designs. A
+shared runtime serves saved design rooms on every Studio route; canvas clients
+send versioned transactions to it and receive committed transactions. Each
+save reads the latest design aggregate inside the owned write, preserving
+changes to other designs. Compatible changes to separate objects or
 properties merge automatically. Competing edits open a conflict review with
 Use My Change and Use Other Change actions; document editing pauses until the
 conflict is resolved, while navigation and export remain available. Studio
 media, backups, restores and switching or creating designs remain primary-tab
 operations. If tab synchronisation is unavailable, the existing read-only
 protection remains in place.
+
+When the owner closes or reloads, the canvas automatically retries local saving
+and discovery. Returning focus or choosing **Try Editing Here** also retries.
+Pending and queued edits retain their original base and local snapshot; a fresh
+connection merges compatible changes, recognises an already saved operation,
+or opens conflict review without replacing the local draft. An existing conflict
+also survives owner replacement. **Use My Change** retains the full pending
+draft; **Use Other Change** deliberately takes the latest saved design. While
+saving is unavailable, editing stays paused and **Export Editable Backup**
+remains available. No disconnected client writes directly to browser storage.
 
 The annotation tools are arranged in a horizontal toolbar above the canvas,
 with a Hide pages / Show pages control for giving the canvas more room during

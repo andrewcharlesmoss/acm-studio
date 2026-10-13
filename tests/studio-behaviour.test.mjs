@@ -1797,7 +1797,9 @@ test("duplicate design tabs keep the global writer lock and route peer edits thr
   assert.match(editor, /createDesignSync\(/);
   assert.match(editor, /source === "welcome" \|\| source === "failover"/);
   assert.match(editor, /const primaryWritable = ownershipState === "writable"/);
-  assert.match(editor, /const peerWritable = ownershipState === "waiting" && syncStatus === "synced"/);
+  assert.match(editor, /const peerWritable = \["waiting", "writable"\]\.includes\(ownershipState\) && syncStatus === "synced"/);
+  assert.match(editor, /role: "peer"/);
+  assert.match(editor, /requestPrimary: \(\) => requestDesignBroker\(design.id\)/);
   assert.match(editor, /syncRef\.current\.submit\(next\)/);
   assert.match(editor, /if \(!primaryWritable\) \{ setError\("Only the primary Studio tab can write to Studio media\."\)/);
   assert.match(sync, /BroadcastChannel/);
