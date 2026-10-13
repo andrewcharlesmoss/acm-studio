@@ -723,6 +723,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .between-blocks > span { align-items: center; background: var(--studio-shared-button-background); border: 3px solid var(--paper); border-radius: 5px; box-sizing: border-box; color: var(--studio-shared-button-foreground); display: inline-flex; font-size: 20px; height: 30px; justify-content: center; line-height: 1; position: relative; width: 30px; }
 .between-blocks:hover:not(:disabled) > span, .between-blocks:focus-visible > span { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .between-blocks:hover, .between-blocks:focus-visible { opacity: 1; }
+.block-position > .between-blocks[hidden] { display: none; }
 .canvas-block, .studio-block-preview > .content-block { border: 1px solid transparent; border-radius: 6px; margin: 0; min-width: 0; padding: 0; position: relative; }
 .canvas-block.has-block-align-wide, .studio-block-preview > .content-block.has-block-align-wide { margin-inline: calc(var(--studio-canvas-inline-padding, 0px) * -.5); width: calc(100% + var(--studio-canvas-inline-padding, 0px)); }
 .canvas-block.has-block-align-full, .studio-block-preview > .content-block.has-block-align-full { margin-inline: calc(var(--studio-canvas-inline-padding, 0px) * -1); width: calc(100% + (var(--studio-canvas-inline-padding, 0px) * 2)); }

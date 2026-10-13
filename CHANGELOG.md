@@ -46,6 +46,9 @@
 
 ### Fixed
 
+- Show one insertion line across invisible template fields instead of successive
+  lines around an empty block frame; retain hidden fields in List View.
+
 - Respect hidden template cover images in document Edit as well as Preview,
   without discarding stored images or removing inspector access.
 
