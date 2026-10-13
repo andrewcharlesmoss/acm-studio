@@ -22,9 +22,11 @@ import { reconcileFootnoteBlocks } from "../content/footnote-reconciliation";
 import { NavigationCanvasEditor } from "./template-navigation-editor";
 import { testDocumentHref } from "./test-site/contract";
 import { insertNavigationItem, navigationEntries } from "./navigation-items";
+import { viewportWidthFor, type StudioViewport } from "./studio-view-menu";
 import type { SiteLink } from "./template-model";
 
-export function TemplateEditor({ scopeNotice, previewControls, globalOriginal = false, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
+export function TemplateEditor({ viewControls, scopeNotice, previewControls, globalOriginal = false, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
+  viewControls?: { viewport: StudioViewport; onViewportChange: (viewport: StudioViewport) => void };
   scopeNotice?: import("react").ReactNode;
   previewControls?: import("react").ReactNode;
   globalOriginal?: boolean; initialSelectedBlockId?: string; sharedSiteNavigation?: boolean; siteNavigationPartId?: string; fixtureLinks?: boolean; siteId?: import("./test-site/sites").LocalFixtureSiteId;
@@ -49,7 +51,8 @@ export function TemplateEditor({ scopeNotice, previewControls, globalOriginal = 
   const [navigationSelection, setNavigationSelection] = useState<{ blockId: string; linkId: string | null } | null>(null);
   const [localInspectorTab, setLocalInspectorTab] = useState<"template" | "block" | "styles">(initialSelectedBlockId ? "block" : "template");
   const [previewing, setPreviewing] = useState(false);
-  const [width, setWidth] = useState(1200);
+  const [localViewport, setLocalViewport] = useState<StudioViewport>("desktop");
+  const width = viewportWidthFor(viewControls?.viewport ?? localViewport);
   const [zoom, setZoom] = useState(TEMPLATE_ZOOM_DEFAULT);
   const templateWorkspaceActiveRef = useRef(false);
   const [showInserter, setShowInserter] = useState(false);
@@ -289,7 +292,7 @@ export function TemplateEditor({ scopeNotice, previewControls, globalOriginal = 
   const toolbar = <div className="template-toolbar">
     {previewControls}
     <label>Preview Content<select value={sample.id} disabled={!candidates.length} onChange={event => setSampleId(event.target.value)}>{candidates.length ? candidates.map(document => <option key={document.id} value={document.id}>{document.title}</option>) : <option value={sample.id}>No pages or posts yet</option>}</select></label>
-    <label>Width<select value={width} onChange={event => setWidth(Number(event.target.value))}><option value={1200}>Desktop</option><option value={768}>Tablet</option><option value={390}>Mobile</option></select></label>
+    {!viewControls ? <label>Width<select value={localViewport} onChange={event => setLocalViewport(event.target.value as StudioViewport)}><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></select></label> : null}
     <div className="template-zoom-control" role="group" aria-label="Template canvas zoom">
       <span className="template-zoom-label">Zoom</span>
       <button type="button" onClick={() => setZoom(value => changeTemplateZoom(value, "out"))} disabled={zoom <= TEMPLATE_ZOOM_MIN} aria-label="Zoom out" title="Zoom out"><StudioIcon name="zoom-out" size={18} /></button>

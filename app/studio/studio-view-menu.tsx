@@ -14,15 +14,16 @@ const viewports: { id: StudioViewport; label: string; width: number }[] = [
   { id: "mobile", label: "Mobile", width: 390 },
 ];
 
-export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTemplate, onShowTemplateChange, onPreviewInNewTab, viewMode = "editing", onViewModeChange }: {
+export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTemplate, onShowTemplateChange, onPreviewInNewTab, viewMode = "editing", onViewModeChange, showResponsiveStylesNotice = true }: {
   viewMode?: StudioViewMode;
   onViewModeChange?: (mode: StudioViewMode) => void;
   viewport: StudioViewport;
-  onViewportChange: (viewport: StudioViewport) => void;
-  showTemplate: boolean;
-  hasTemplate: boolean;
-  onShowTemplateChange: (show: boolean) => void;
-  onPreviewInNewTab: () => void;
+  onViewportChange?: (viewport: StudioViewport) => void;
+  showTemplate?: boolean;
+  hasTemplate?: boolean;
+  onShowTemplateChange?: (show: boolean) => void;
+  onPreviewInNewTab?: () => void;
+  showResponsiveStylesNotice?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -37,7 +38,7 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
 
   useEffect(() => {
     if (!open) return;
-    activeViewportRef.current?.focus();
+    (activeViewportRef.current ?? closeRef.current)?.focus();
     function onPointerDown(event: PointerEvent) {
       if (event.target instanceof Node && !rootRef.current?.contains(event.target)) closeMenu(false);
     }
@@ -66,7 +67,7 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
   }, [open, closeMenu]);
 
   function chooseViewport(next: StudioViewport) {
-    onViewportChange(next);
+    onViewportChange?.(next);
     closeMenu();
   }
 
@@ -88,27 +89,27 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
           <strong>{label}</strong>{viewMode === id ? <StudioIcon name="check" size={18} aria-hidden="true" /> : null}
         </button>)}
       </div> : null}
-      <div className="studio-view-group" aria-label="Preview viewport">
+      {onViewportChange ? <div className="studio-view-group" aria-label="Preview viewport">
         {viewports.map(item => <button ref={viewport === item.id ? activeViewportRef : null} className="studio-view-option" type="button" role="menuitemradio" aria-checked={viewport === item.id} key={item.id} onClick={() => chooseViewport(item.id)}>
           <span><strong>{item.label}</strong><small>Preview {item.label.toLowerCase()} viewport.</small></span>
           {viewport === item.id ? <StudioIcon name="check" size={18} aria-hidden="true" /> : null}
         </button>)}
-      </div>
+      </div> : null}
       <div className="studio-view-group"><StudioFocusOutlineSetting /></div>
-      <div className="studio-view-group studio-view-responsive" aria-disabled="true">
+      {showResponsiveStylesNotice ? <div className="studio-view-group studio-view-responsive" aria-disabled="true">
         <span className="studio-view-option is-unavailable"><span><strong>Responsive styles</strong><small>Viewport-specific style editing is not available in Studio yet.</small></span></span>
-      </div>
-      <div className="studio-view-group">
+      </div> : null}
+      {onShowTemplateChange ? <div className="studio-view-group">
         <button className="studio-view-option" type="button" role="menuitemcheckbox" aria-checked={showTemplate} disabled={!hasTemplate || viewMode !== "editing"} onClick={() => onShowTemplateChange(!showTemplate)}>
           <span><strong>Show template</strong>{!hasTemplate ? <small>No template is assigned to this document.</small> : null}</span>
           {showTemplate ? <StudioIcon name="check" size={18} aria-hidden="true" /> : null}
         </button>
-      </div>
-      <div className="studio-view-group">
+      </div> : null}
+      {onPreviewInNewTab ? <div className="studio-view-group">
         <button className="studio-view-option" type="button" role="menuitem" onClick={() => { closeMenu(); onPreviewInNewTab(); }}>
           <span><strong>Preview in new tab</strong></span><StudioIcon name="external" size={18} aria-hidden="true" />
         </button>
-      </div>
+      </div> : null}
     </div> : null}
   </div>;
 }

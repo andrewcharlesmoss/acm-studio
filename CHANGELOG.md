@@ -11,6 +11,9 @@
 
 ### Changed
 
+- Reuse the shared View dropdown in Templates, with Focus Outline and preview
+  viewport choices when a template canvas is open.
+
 - Use catalogue icons and quick tooltips for Edit Navigation and Export Saved
   Global Library in the template scope notice.
 

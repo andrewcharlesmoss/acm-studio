@@ -619,6 +619,15 @@ the same focus containment, Escape dismissal and focus-return runtime.
 
 ## Global templates
 
+Templates reuses `StudioViewMenu` in the main header. Focus Outline is available
+throughout this section. Desktop, Tablet, and Mobile appear only while a
+template canvas is visible and use the same viewport widths as Posts and Pages
+in both Edit and Preview. Viewport selection is tab-local and separate from the
+content editor's viewport. The template list, image picker, and site menu-item
+editor expose Focus Outline without canvas controls. Document-only view modes,
+Show Template, and Preview in New Tab are omitted. Standalone template specimens
+retain their local Width control when no header view controls are supplied.
+
 The Templates list opens one global library independently of the selected site.
 Every site uses the original layout and styles. There are no site template design
 customisations, colour overrides or reset controls. Old site-scoped entry URLs

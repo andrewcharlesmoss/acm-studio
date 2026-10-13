@@ -8,8 +8,9 @@ import { studioSaveControlState } from "./studio-save-control";
 
 export function StudioHeader({ studioSection, hasContentDocuments, activeDocument, saveLabel, templateSession,
   canRetryEditing, retryEditing, previewWindow, viewViewport, setViewViewport, showTemplate, hasTemplate,
-  setShowTemplate, switchStudioMode, publishing, writable, onSaveDocument, onExportDocument, siteContext, viewMode, onViewModeChange,
+  setShowTemplate, switchStudioMode, publishing, writable, onSaveDocument, onExportDocument, siteContext, viewMode, onViewModeChange, templateViewport = "desktop", onTemplateViewportChange,
 }: {
+  templateViewport?: StudioViewport; onTemplateViewportChange?: (viewport: StudioViewport) => void;
   viewMode?: StudioViewMode; onViewModeChange?: (mode: StudioViewMode) => void;
   studioSection: string; hasContentDocuments: boolean; activeDocument: StudioDocument; saveLabel: string;
   templateSession: { saveLabel: string }; canRetryEditing: boolean; retryEditing: () => void;
@@ -29,6 +30,7 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
         <div className="studio-breadcrumbs">{siteContext && studioSection === "content" ? <><span>Sites</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{localFixtureName(siteContext.siteId)}</strong><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><strong>{activeDocument.title}</strong></> : studioSection === "templates" ? <><span>Templates</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Shared presentation</strong></> : studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"}</strong></> : hasContentDocuments ? <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></> : <><span>Content</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Empty workspace</strong></>}</div>
         <div className="studio-state"><span className="prototype-pill">LOCAL</span>{!showSaveControl ? <span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span> : null}{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
+          {studioSection === "templates" ? <StudioViewMenu viewport={templateViewport} onViewportChange={onTemplateViewportChange} showResponsiveStylesNotice={false} /> : null}
           {studioSection === "content" && hasContentDocuments && !previewWindow ? <StudioViewMenu viewMode={viewMode} onViewModeChange={onViewModeChange} viewport={viewViewport} onViewportChange={setViewViewport} showTemplate={showTemplate} hasTemplate={hasTemplate} onShowTemplateChange={setShowTemplate} onPreviewInNewTab={() => {
             const query = new URLSearchParams(siteContext ? { preview: "1", site: siteContext.siteId, documentId: activeDocument.id, viewport: viewViewport, template: showTemplate ? "1" : "0" } : { preview: "1", documentId: activeDocument.id, viewport: viewViewport, template: showTemplate ? "1" : "0" });
             window.open(`/studio?${query.toString()}`, "_blank", "noopener,noreferrer");
