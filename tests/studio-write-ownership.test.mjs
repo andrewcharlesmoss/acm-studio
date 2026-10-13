@@ -998,3 +998,15 @@ for (const colour of [undefined, "#ff3b30", "#007aff"]) {
     h.close();
   });
 }
+
+test("disposing synchronously during acquisition cannot orphan the lifetime lock", async () => {
+  const { StudioWriteOwnership } = modules()("app/studio/write-ownership.ts");
+  const manager = locks(); const owner = new StudioWriteOwnership();
+  owner.subscribe(() => { if (owner.getState() === "loading") owner.dispose(); });
+  owner.acquire(() => assert.fail("a disposed owner must not load"), manager);
+  await tick();
+  assert.equal(owner.canWrite(), false);
+  assert.equal(manager.held(), false);
+  const next = new StudioWriteOwnership(); const release = await own(next, manager);
+  assert.equal(next.canWrite(), true); release();
+});

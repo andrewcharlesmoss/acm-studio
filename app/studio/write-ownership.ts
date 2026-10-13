@@ -58,9 +58,12 @@ export class StudioWriteOwnership {
           if (cancelled || this.disposed || !lock) return;
           token = Symbol("Studio writer");
           this.owner = token;
-          this.notify("loading");
           await new Promise<void>((resolve) => {
             this.releaseLock = resolve;
+            // A synchronous subscriber can unmount or dispose the owner. Install
+            // its release before notifying so that handover cannot orphan a lock.
+            this.notify("loading");
+            if (cancelled || this.disposed || this.owner !== token) return;
             try { onLoad(token!); }
             catch { this.loaded(token!, false); }
           });

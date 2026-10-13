@@ -48,10 +48,10 @@ async function fixture(t, siteId) {
     lockHeld = true;
     try { return await callback({}); } finally { lockHeld = false; }
   } };
-  function open({ peer = false, preview = false } = {}) {
+  function open({ peer = false, preview = false, brokerOnly = false } = {}) {
     const listeners = new Map(); const cache = new Map(); const slots = [];
     let cursor = 0; let dirty = true; let effects = []; let layouts = []; let state;
-    let suspended = false; let closed = false; let responseLost = false; let confirms = 0;
+    let suspended = false; let closed = false; let responseLost = false; let confirms = 0; let dropMessages = false;
     const queuedMessages = []; const exports = [];
     const addEventListener = (name, listener) => { const set = listeners.get(name) ?? new Set(); set.add(listener); listeners.set(name, set); };
     const removeEventListener = (name, listener) => listeners.get(name)?.delete(listener);
@@ -92,6 +92,7 @@ async function fixture(t, siteId) {
         for (const channel of this.room) if (channel !== this) channel.deliver(clone(message));
       }
       deliver(message) {
+        if (dropMessages) return;
         const invoke = () => { if (!closed) this.handlers.forEach(listener => listener({ data: clone(message) })); };
         if (suspended) queuedMessages.push(invoke); else queueMicrotask(invoke);
       }
@@ -123,7 +124,8 @@ async function fixture(t, siteId) {
       if (filename === path.join(projectRoot, "app/studio/media-store.ts")) return { getMediaAsset: async id => assets.get(id), listMediaLibrary: async () => ({ assets: [...assets.values()], folders: [] }) };
       if (cache.has(filename)) return cache.get(filename);
       const exports = {}; cache.set(filename, exports);
-      const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+      const sourceFile = filename.endsWith("/test-site/use-test-site.ts") && process.env.SITE_RECOVERY_SOURCE || filename;
+      const source = ts.transpileModule(readFileSync(sourceFile, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
       vm.runInNewContext(source, { exports, Error, Event, crypto, TextEncoder, Uint8Array, structuredClone, queueMicrotask, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, BroadcastChannel, Blob, btoa, atob, fetch, document,
         URL: { createObjectURL(blob) { exportsForDraft(blob); return "blob:fixture"; }, revokeObjectURL() {} },
         navigator: { locks }, window: { addEventListener, removeEventListener, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, confirm() { confirms++; return false; } },
@@ -134,18 +136,27 @@ async function fixture(t, siteId) {
     function exportsForDraft(blob) { exports.push(blob); }
     const { useTestSite } = load("app/studio/test-site/use-test-site.ts");
     const ownership = load("app/studio/write-ownership.ts").studioWriteOwnership;
-    const releaseLock = peer ? () => {} : ownership.acquire(token => ownership.loaded(token, true), locks);
+    let releaseLock = () => {};
+    // Model the owning editor's acquisition on mount and pageshow. The site
+    // adapter only borrows this lock; it must never acquire one itself.
+    const acquire = () => {
+      if (peer || preview || ownership.canWrite()) return;
+      releaseLock();
+      releaseLock = ownership.acquire(token => ownership.loaded(token, true), locks);
+    };
+    acquire();
     const tab = {
       get state() { return state; }, get suspended() { return suspended; }, get confirms() { return confirms; }, exports,
       event(name) { listeners.get(name)?.forEach(listener => listener({})); },
       suspend({ pagehide = false } = {}) { if (pagehide) tab.event("pagehide"); suspended = true; document.visibilityState = "hidden"; },
-      resume(name = "pageshow") { suspended = false; document.visibilityState = "visible"; queuedMessages.splice(0).forEach(callback => queueMicrotask(callback)); tab.event(name); },
+      resume(name = "pageshow") { suspended = false; document.visibilityState = "visible"; acquire(); queuedMessages.splice(0).forEach(callback => queueMicrotask(callback)); tab.event(name); },
       loseNextSaveResponse() { responseLost = true; },
+      dropSyncMessages(value) { dropMessages = value; },
       render() {
         if (!dirty || closed || suspended) return;
         dirty = false; cursor = 0;
         // eslint-disable-next-line react-hooks/rules-of-hooks -- Isolated dispatcher drives the production hook.
-        state = useTestSite(!preview, !peer && ownership.canWrite(), siteId, preview);
+        state = useTestSite(!preview && !brokerOnly, !peer && ownership.canWrite(), siteId, preview);
         const pendingLayouts = layouts; layouts = []; pendingLayouts.forEach(callback => callback());
         const pendingEffects = effects; effects = []; pendingEffects.forEach(callback => callback());
       },
@@ -169,12 +180,13 @@ async function fixture(t, siteId) {
   }
   async function until(predicate) {
     for (let pass = 0; pass < 250; pass++) { await pump(); if (predicate()) return; }
-    assert.fail(`Recovery did not settle: ${JSON.stringify(tabs.map(tab => ({ label: tab.state?.label, failure: tab.state?.failure, writable: tab.state?.writable, conflict: Boolean(tab.state?.syncConflict) })))}`);
+    assert.fail(`Recovery did not settle: ${JSON.stringify(tabs.map(tab => ({ label: tab.state?.label, failure: tab.state?.failure, writable: tab.state?.writable, conflict: Boolean(tab.state?.syncConflict), saved: tab.state?.snapshot && navigationLabel(tab.state.snapshot.document), draft: tab.state?.draft && navigationLabel(tab.state.draft) })))}, requests: ${JSON.stringify(requests.map(request => ({ action: request.action, status: request.status, failure: request.failure })))}`);
   }
   const source = async () => JSON.parse(await readFile(path.join(root, "content/site.json"), "utf8"));
   const call = (token, action, extra = {}) => store.handle(token, { siteId, action, ...extra });
   t.after(async () => { tabs.forEach(tab => tab.close()); await store.close(); await rm(root, { recursive: true, force: true }); });
   return { open, until, pump, source, store, call, requests, initial, assets, root,
+    lockHeld: () => lockHeld,
     advance(milliseconds) { now += milliseconds; }, expireDuringNextRender(callback) { expireRender = true; renderSideEffect = callback; },
     saves: () => requests.filter(request => request.action === "save"),
     async checkPreview() { const document = await source(); assert.match(await readFile(path.join(root, "dist/index.html"), "utf8"), new RegExp(revisionOf(document))); },
@@ -291,10 +303,10 @@ for (const siteId of ["test", "test2"]) {
     assert.equal(navigationLabel(peer.state.draft), "Peer unsaved menu");
     assert.equal(navigationLabel(await f.source()), "Home");
     assert.equal(f.saves().length, 0, "the peer must never bypass its suspended saving tab");
-    owner.resume(); await f.until(() => owner.state.writable && peer.state.writable);
+    owner.resume(); await f.until(() => owner.state.writable && Boolean(peer.state.syncConflict));
     assert.equal(navigationLabel(peer.state.draft), "Peer unsaved menu");
-    await f.pump(); f.advance(600); await f.pump();
-    await f.pump();
+    assert.equal(f.saves().length, 0, "a replacement session cannot infer whether the timed-out request was accepted");
+    await peer.state.resolveSyncConflict("mine");
     await f.until(() => peer.state.label.includes("Synced with another"));
     assert.match((await submitted).message, /stopped responding/, "the timed-out submission must retain its input until a real receipt arrives");
     assert.equal(navigationLabel(await f.source()), "Peer unsaved menu");
@@ -340,5 +352,115 @@ for (const siteId of ["test", "test2"]) {
     for (let pass = 0; pass < 3; pass++) { f.advance(10000); tab.event("focus"); await f.pump(); }
     assert.equal(tab.state.writable, false); assert.equal(f.saves().length, 1);
     await tab.state.exportDraft(); assert.equal(navigationLabel(JSON.parse(await tab.exports.at(-1).text()).draft), "Saved but unacknowledged");
+  });
+}
+
+for (const siteId of ["test", "test2"]) {
+  for (const peer of [false, true]) {
+    test(`${siteId}: explicit reconnect preserves a ${peer ? "peer" : "primary"} draft and saves it once`, async t => {
+      const f = await fixture(t, siteId);
+      const owner = f.open(); await f.until(() => owner.state?.writable);
+      const tab = peer ? f.open({ peer: true }) : owner;
+      await f.until(() => tab.state?.writable);
+      assert.equal(editNavigation(tab.state, "Retained through Reconnect"), true); tab.render();
+      await tab.state.reconnect();
+      await f.until(() => tab.state.writable);
+      assert.equal(navigationLabel(tab.state.draft), "Retained through Reconnect");
+      assert.equal(tab.confirms, 0);
+      f.advance(600); await f.until(() => f.saves().some(request => request.status === 200));
+      await f.until(() => navigationLabel(owner.state.snapshot.document) === "Retained through Reconnect");
+      assert.equal(navigationLabel(await f.source()), "Retained through Reconnect");
+      assert.equal(f.saves().length, 1);
+      assert.ok(f.saves().every(request => request.tab === owner));
+      await f.checkPreview();
+    });
+  }
+
+  test(`${siteId}: explicit reconnect reads back a lost save receipt without saving twice`, async t => {
+    const f = await fixture(t, siteId); const tab = f.open(); await f.until(() => tab.state?.writable);
+    editNavigation(tab.state, "Already saved"); tab.render(); tab.loseNextSaveResponse();
+    await assert.rejects(tab.state.flush(), /response was lost/);
+    await f.until(() => Boolean(tab.state.failure));
+    await tab.state.reconnect(); await f.until(() => tab.state.writable);
+    f.advance(600); await f.pump();
+    assert.equal(navigationLabel(tab.state.draft), "Already saved");
+    assert.equal(navigationLabel(await f.source()), "Already saved");
+    assert.equal(f.saves().length, 1);
+    assert.equal(tab.confirms, 0);
+  });
+
+  test(`${siteId}: peer reconnect retains receipts and does not undo another tab's revert`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open(); await f.until(() => owner.state?.writable);
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    const original = navigationLabel(peer.state.draft);
+    peer.dropSyncMessages(true);
+    editNavigation(peer.state, "Saved without acknowledgement"); peer.render();
+    const submission = peer.state.flush().catch(error => error);
+    await f.until(() => f.saves().some(request => request.status === 200));
+    await f.until(() => navigationLabel(owner.state.draft) === "Saved without acknowledgement");
+    editNavigation(owner.state, original); owner.render(); await owner.state.flush();
+    assert.equal(navigationLabel(await f.source()), original);
+    f.advance(20000); await f.pump(); await submission;
+    peer.dropSyncMessages(false);
+    await peer.state.reconnect(); await f.pump();
+    f.advance(5000); await f.pump(); peer.event("focus");
+    await f.until(() => peer.state.writable);
+    f.advance(600); await f.pump();
+    assert.equal(navigationLabel(peer.state.draft), original);
+    assert.equal(navigationLabel(await f.source()), original);
+    assert.equal(f.saves().length, 2, "reconnecting must not replay an already accepted edit");
+  });
+
+  test(`${siteId}: a non-editor owner wakes its broker and saves peer edits`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open({ brokerOnly: true });
+    await f.pump();
+    assert.equal(f.requests.length, 0, "an unused broker must not open site sessions");
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    assert.equal(owner.state.writable, false, "the background broker is not an editor");
+    assert.equal(editNavigation(peer.state, "Saved through Design owner"), true); peer.render();
+    await peer.state.flush(); await f.until(() => navigationLabel(owner.state.snapshot.document) === "Saved through Design owner");
+    assert.equal(navigationLabel(await f.source()), "Saved through Design owner");
+    assert.ok(f.saves().every(request => request.tab === owner));
+  });
+
+  test(`${siteId}: uncertain peer save requires review after the owner changes and reverts`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open(); await f.until(() => owner.state?.writable);
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    const original = navigationLabel(peer.state.draft); peer.dropSyncMessages(true);
+    editNavigation(peer.state, "Unacknowledged peer edit"); peer.render();
+    const submission = peer.state.flush().catch(error => error);
+    await f.until(() => navigationLabel(owner.state.draft) === "Unacknowledged peer edit");
+    editNavigation(owner.state, original); owner.render(); await owner.state.flush();
+    f.advance(20000); await f.pump(); await submission;
+    owner.close(); await f.until(() => !f.lockHeld()); peer.dropSyncMessages(false);
+    const replacement = f.open(); await f.until(() => replacement.state?.writable);
+    await peer.state.reconnect(); await f.pump(); f.advance(5000); await f.pump(); peer.event("focus");
+    await f.until(() => Boolean(peer.state.syncConflict));
+    assert.equal(navigationLabel(peer.state.draft), "Unacknowledged peer edit");
+    assert.equal(navigationLabel(await f.source()), original);
+    assert.equal(f.saves().length, 2);
+    await peer.state.resolveSyncConflict("theirs"); await f.pump();
+    assert.equal(navigationLabel(peer.state.draft), original);
+    assert.equal(f.saves().length, 2);
+  });
+
+  test(`${siteId}: a lost gateway response followed by a remote revert requires review`, async t => {
+    const f = await fixture(t, siteId); const tab = f.open(); await f.until(() => tab.state?.writable);
+    const original = navigationLabel(tab.state.draft);
+    editNavigation(tab.state, "Unacknowledged gateway edit"); tab.render(); tab.loseNextSaveResponse();
+    await assert.rejects(tab.state.flush(), /response was lost/);
+    tab.suspend({ pagehide: true }); await f.pump();
+    const other = await f.store.connect(); await f.call(other.token, "claim");
+    const reverted = clone(other.document);
+    reverted.templates.sets.find(set => set.id === reverted.siteNavigation.setId).navigation[0].label = original;
+    await f.call(other.token, "save", { baseRevision: other.revision, document: reverted });
+    await f.call(other.token, "release"); tab.resume();
+    await f.until(() => Boolean(tab.state.syncConflict));
+    assert.equal(navigationLabel(tab.state.draft), "Unacknowledged gateway edit");
+    assert.equal(navigationLabel(await f.source()), original);
+    assert.equal(f.saves().length, 1);
+    await tab.state.resolveSyncConflict("theirs"); await f.pump();
+    assert.equal(navigationLabel(tab.state.draft), original);
+    assert.equal(f.saves().length, 1);
   });
 }

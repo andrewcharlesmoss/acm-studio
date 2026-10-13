@@ -12,7 +12,8 @@ const root = new URL("../", import.meta.url).pathname;
 function load(file, globals = {}) {
   const filename = path.resolve(root, file);
   const exports = {};
-  const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const sourceFile = filename.endsWith("/studio-sync.ts") && process.env.STUDIO_SYNC_SOURCE || filename;
+  const source = ts.transpileModule(readFileSync(sourceFile, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInNewContext(source, {
     exports, Error, AggregateError, Promise, JSON, Math, Number, Object, Array, Set, Map,
     Date, String, Boolean, Symbol, structuredClone, crypto: globalThis.crypto,
@@ -94,9 +95,9 @@ function connectionFixture(t) {
       close() { room.delete(listeners); listeners.clear(); },
     };
   };
-  let persisted = { text: "Initial" }; let displayed; const states = []; const sessions = [];
+  let persisted = { text: "Initial" }; let displayed; let saveGate; const writes = []; const states = []; const sessions = [];
   const owner = () => {
-    const session = sync.createStudioSync({ storeKey: "workspace", initialSnapshot: persisted, role: "primary", channelFactory: factory, validateSnapshot: value => value, onSnapshot() {}, persistPrimary: snapshot => { persisted = snapshot; } });
+    const session = sync.createStudioSync({ storeKey: "workspace", initialSnapshot: persisted, role: "primary", channelFactory: factory, validateSnapshot: value => value, onSnapshot() {}, persistPrimary: snapshot => { writes.push(structuredClone(snapshot)); if (saveGate) return saveGate.then(() => { persisted = snapshot; }); persisted = snapshot; } });
     sessions.push(session); return session;
   };
   const primary = owner();
@@ -111,7 +112,7 @@ function connectionFixture(t) {
     assert.equal(timers.size, 0, "closing must remove reconnect and heartbeat timers");
   });
   return {
-    primary, peer, owner, states, messages, persisted: () => persisted, displayed: () => displayed,
+    primary, peer, owner, states, messages, writes, gate(promise) { saveGate = promise; }, persisted: () => persisted, displayed: () => displayed,
     drop(predicate) { drop = predicate; }, delayWelcome(delay) { welcomeDelay = delay; },
     async advance(duration) {
       const end = now + duration;
@@ -794,4 +795,74 @@ test("an unresolved conflict survives promotion to the persistence owner", async
   } finally {
     primary.close(); other.close(); mine.close();
   }
+});
+
+test("a timed-out request retries its original ID against the same saving owner", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  f.drop(message => message.kind === "operation");
+  const submitted = f.peer.submit({ text: "Retained input" }).catch(error => error);
+  await f.advance(6000); assert.match((await submitted).message, /stopped responding/);
+  assert.equal(f.writes.length, 0);
+  f.drop(() => false); f.peer.retryConnection(); await f.advance(1000);
+  assert.equal(f.persisted().text, "Retained input");
+  assert.equal(f.writes.length, 1);
+  const ids = f.messages.filter(message => message.kind === "operation").map(message => message.transaction.transactionId);
+  assert.ok(ids.length > 1);
+  assert.equal(new Set(ids).size, 1, "retries use the owner's existing receipt identity");
+});
+
+test("a lost receipt followed by another tab's revert never replays the original edit", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  f.drop(message => ["ack", "update", "welcome"].includes(message.kind));
+  const submitted = f.peer.submit({ text: "First edit" }).catch(error => error);
+  await f.advance(6000); await submitted;
+  assert.equal(f.persisted().text, "First edit");
+  await f.primary.commitPrimary({ text: "Initial" });
+  f.drop(() => false); f.peer.retryConnection(); await f.advance(4000);
+  assert.equal(f.persisted().text, "Initial");
+  assert.equal(f.displayed().text, "Initial");
+  assert.equal(f.writes.length, 2, "only the original edit and deliberate revert persist");
+});
+
+test("a retried operation arriving during the original write persists only once", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  let finish;
+  f.gate(new Promise(resolve => { finish = resolve; }));
+  const submitted = f.peer.submit({ text: "Slow save" }).catch(error => error);
+  await f.advance(6500); await submitted;
+  assert.ok(f.messages.filter(message => message.kind === "operation").length > 1, "retry reaches an in-flight save");
+  finish(); await f.advance(1000);
+  assert.equal(f.persisted().text, "Slow save");
+  assert.equal(f.writes.length, 1);
+  assert.equal(f.peer.getStatus(), "synced");
+});
+
+test("an uncertain timed-out edit requires review with a replacement saving owner", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  f.drop(message => message.kind === "operation");
+  const submitted = f.peer.submit({ text: "Keep through handover" }).catch(error => error);
+  await f.advance(6000); await submitted;
+  f.primary.close(); f.drop(() => false); f.owner(); await f.advance(1000);
+  assert.equal(f.displayed().text, "Keep through handover");
+  assert.equal(f.peer.getStatus(), "conflict");
+  assert.equal(f.writes.length, 0);
+  await f.peer.resolveConflict("mine"); await f.advance(0);
+  assert.equal(f.persisted().text, "Keep through handover");
+  assert.equal(f.writes.length, 1);
+});
+
+test("a replacement owner cannot replay an unacknowledged edit over a deliberate revert", async t => {
+  const f = connectionFixture(t); await f.advance(0);
+  f.drop(message => ["ack", "update", "welcome"].includes(message.kind));
+  const submitted = f.peer.submit({ text: "First edit" }).catch(error => error);
+  await f.advance(6000); await submitted;
+  await f.primary.commitPrimary({ text: "Initial" });
+  f.primary.close(); f.drop(() => false); f.owner(); await f.advance(4000);
+  assert.equal(f.peer.getStatus(), "conflict");
+  assert.equal(f.persisted().text, "Initial");
+  assert.equal(f.displayed().text, "First edit");
+  assert.equal(f.writes.length, 2);
+  await f.peer.resolveConflict("theirs"); await f.advance(0);
+  assert.equal(f.displayed().text, "Initial");
+  assert.equal(f.writes.length, 2);
 });

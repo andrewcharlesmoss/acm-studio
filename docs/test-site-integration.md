@@ -162,6 +162,9 @@ paragraph require review rather than character-by-character merging. A choice
 uses the latest saved state and retains unrelated changes from other tabs.
 
 An ordinary browser-draft editor tab can serve Test when another tab requests it.
+Other Studio routes, including Design Canvas and the UI Library, mount lazy
+Test and Test2 brokers too. They borrow the existing global writer lock when
+woken by an editor; they do not acquire a second lock or save directly as peers.
 Full-page site switches release the prior session. Another editor tab can take over,
 loading the current source and rebasing pending edits before saving. Tabs retain
 their own navigation, selection and unsaved draft. The owner checks and renews
@@ -178,20 +181,20 @@ authority before a cached history document's broker is suspended. Any
 in-flight writes or restore finish before the physical lock is released.
 Returning editor and Design Canvas pages retry acquisition and load fresh saved
 data through their existing draft reconciliation before editing resumes.
+Cached editor pages retain their in-memory draft instead of forcing a reload.
 
 Visibility, page-show and focus events also refresh the connection. Foreground
 return also retries the existing typed peer handshake directly,
 so suspended background timers don't leave an otherwise available saving tab
 disconnected. This retains pending drafts and transaction receipts; it does not
-use the discard-and-reload recovery path or replay an uncertain gateway save.
+discard drafts or replay an uncertain gateway save.
 Claiming still requires the Studio write lock, and stale writes remain denied. Other
 failures pause editing and offer **Reconnect** and **Export Draft**; unknown save
 failures are not retried automatically.
 
-This initial arrangement covers ordinary `/studio` editor tabs on the same
+This arrangement covers Studio tabs on the same
 origin. It does not synchronise separate browsers, different ports or hosted
-sites. If another full-page Studio route owns the global lock without a Test
-broker, Test remains safely paused until an editor tab can own saving.
+sites.
 
 `.studio/history/` retains up to 100 source revisions. In-session visual changes
 share Undo/Redo within each tab. Reloading, handover or receiving another tab's
@@ -200,14 +203,18 @@ from overwriting newer work.
 
 On a connection failure or conflict, the current draft remains in memory.
 **Export Draft** downloads the draft, base revision and any preserved prompt
-proposal. For an expiry or lost-ownership warning, **Reconnect** keeps and
-reconciles the draft.
+proposal. **Reconnect** keeps and reconciles the draft for every connection
+failure. Peer gateway renewal retains its synchronisation session and transaction
+receipts. A missing request may retry with the same transaction ID against the
+same owner, which deduplicates accepted and in-flight requests. If the owner
+changes and an outstanding save cannot be confirmed from the fresh source,
+Studio retains both versions for an explicit choice rather than replaying it.
 An unreconciled draft's export retains its original saved base revision, even
 when reconnecting has loaded a newer source. Once the draft is reconciled, its
 base advances to that saved source. Late commit acknowledgements refresh the
 save status after a suspended saving tab resumes.
-For other failures it reloads the saved source and asks before discarding a
-changed draft. Do not rely on browser memory surviving a closed tab; export
+An uncertain gateway response also requires fresh readback; an unresolved
+outcome requires review. Do not rely on browser memory surviving a closed tab; export
 unsaved content before leaving.
 
 For a stale process guard after a crash, stop the owning Studio server and check

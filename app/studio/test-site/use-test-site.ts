@@ -4,7 +4,7 @@ import { shouldProtectTestSiteBeforeUnload } from "./before-unload";
 import { canApplyTestProposal, testDraftRecoveryEnvelope } from "./draft-recovery";
 import { useCallback, useEffect, useMemo, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { studioWriteOwnership } from "../write-ownership";
-import { createStudioSync, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus } from "../studio-sync";
+import { createStudioSync, createStudioTransaction, type StudioSyncConflict, type StudioSyncSession, type StudioSyncStatus } from "../studio-sync";
 import { reconcileStudioPendingSave, type StudioPendingSave } from "../studio-pending-save";
 import { retainLocalPublications, testSiteCollection, validTestSiteDocument, type TestSiteDocument, type TestSnapshot } from "./contract";
 import { collectSiteImages } from "./featured-images";
@@ -63,13 +63,15 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
   const [promptRunning, setPromptRunning] = useState(false);
   const [promptResult, setPromptResult] = useState("");
   const [connectionGeneration, setConnectionGeneration] = useState(0);
+  const [syncConnectionGeneration, setSyncConnectionGeneration] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [reconnecting, setReconnecting] = useState(false);
   const recoveringAuthority = useRef(false);
+  const connectionSuspended = useRef(false);
   const authorityRecoveryPending = useRef(false);
   const [editingPaused, setEditingPaused] = useState(false);
   const editingPausedRef = useRef(false);
-  function pauseEditing(paused: boolean) { editingPausedRef.current = paused; setEditingPaused(paused); }
+  const pauseEditing = useCallback((paused: boolean) => { editingPausedRef.current = paused; setEditingPaused(paused); }, []);
   const ownership = useSyncExternalStore(studioWriteOwnership.subscribe, studioWriteOwnership.getState, () => "waiting" as const);
   const token = useRef<string | null>(null);
   const featuredImageVersion = useRef<number | null>(null);
@@ -77,6 +79,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
   useLayoutEffect(() => { live.current = { snapshot, draft, past, future, failure, promptRunning }; }, [snapshot, draft, past, future, failure, promptRunning]);
   const sync = useRef<StudioSyncSession<TestSiteDocument> | null>(null);
   const pending = useRef<StudioPendingSave<TestSiteDocument> | null>(null);
+  const submitted = useRef<StudioPendingSave<TestSiteDocument> | null>(null);
   // Reconnecting installs a newer source, but an unreconciled draft still belongs
   // to its original saved revision (including pre-normalisation envelopes).
   const pendingBaseRevision = useRef<string | null>(null);
@@ -119,7 +122,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     authorityRecoveryPending.current = false;
     claimed.current = false;
     setIsClaimed(false); setReconnecting(true); setSyncStatus("connecting");
-    sync.current?.close(); sync.current = null;
+    // A peer's transaction IDs are its receipts for uncertain saves. Keep the
+    // channel across gateway-token renewal so welcome can acknowledge them.
+    if (sync.current?.isPrimary()) { sync.current.close(); sync.current = null; }
     setLabel(`Reconnecting ${siteName} — draft preserved`);
     setAttempt(value => value + 1);
   }, [siteName]);
@@ -144,7 +149,8 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     let cancelled = false;
     let connectionToken: string | null = null;
     const releaseSession = () => { if (connectionToken) void request({ action: "release" }, connectionToken, true).catch(() => {}); };
-    window.addEventListener("pagehide", releaseSession);
+    const suspendSession = () => { connectionSuspended.current = true; releaseSession(); };
+    window.addEventListener("pagehide", suspendSession);
     mounted.current = true;
     claimed.current = false;
     async function connect() {
@@ -161,12 +167,14 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
         installSaved(saved);
         if (!pending.current) { live.current.draft = live.current.snapshot!.document; setDraft(live.current.draft); }
         setConnectionGeneration(value => value + 1);
+        if (!sync.current || sync.current.isPrimary()) setSyncConnectionGeneration(value => value + 1);
         recoveringAuthority.current = false;
         setLabel(`Connecting ${siteName} tabs…`); setReconnecting(false);
+        sync.current?.retryConnection();
       } catch (error) { if (!cancelled) { recoveringAuthority.current = false; fail(error instanceof Error ? error.message : `${siteName} could not be loaded.`); setReconnecting(false); } }
     }
     queueMicrotask(() => { if (!cancelled) { setIsClaimed(false); setLabel(`Loading ${siteName}…`); void connect(); } });
-    return () => { cancelled = true; mounted.current = false; claimed.current = false; token.current = null; window.removeEventListener("pagehide", releaseSession); releaseSession(); };
+    return () => { cancelled = true; mounted.current = false; claimed.current = false; token.current = null; window.removeEventListener("pagehide", suspendSession); releaseSession(); };
   }, [attempt, request, requested, fail, installSaved, siteName, validateSnapshot]);
 
   useEffect(() => {
@@ -202,6 +210,19 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     const connectionToken = token.current;
     const owner = Boolean(borrowedOwnership) && isClaimed;
     const disk = { snapshot: live.current.snapshot };
+    if (submitted.current && pending.current && !conflict.current) {
+      const remaining = reconcileStudioPendingSave(submitted.current, disk.snapshot.document, validateDocument, "Save outcome unknown");
+      if (remaining.pending) {
+        // A new channel cannot recover the old owner's receipts. Keep the draft
+        // for an explicit choice instead of replaying a possibly accepted save.
+        conflict.current = {
+          transaction: createStudioTransaction(pending.current.base, pending.current.snapshot, { transactionId: "uncertain-save", clientId: "local-peer", brokerEpoch: "handover", baseRevision: 0 }),
+          conflicts: remaining.conflict?.conflicts ?? [], baseSnapshot: pending.current.base,
+          localSnapshot: pending.current.snapshot, remoteSnapshot: disk.snapshot.document,
+          reason: "The saving session changed before this save was acknowledged. Review which changes to keep.",
+        };
+      } else submitted.current = null;
+    }
     const reconcile = (document: TestSiteDocument, acknowledgedTransaction?: Parameters<typeof reconcileStudioPendingSave>[4]) => {
       const previous = pending.current;
       const next = reconcileStudioPendingSave(previous, document, validateDocument, `${siteName} changes overlap with unsaved changes in this tab.`, acknowledgedTransaction);
@@ -255,6 +276,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
         installSaved({ ...current, document, ...(owner ? { revision: disk.snapshot.revision, previewRevision: disk.snapshot.previewRevision } : {}) });
         if (conflict.current) return;
         const next = reconcile(document, commit.acknowledgedTransaction);
+        if (!next.pending) submitted.current = null;
         if (next.conflict) queueMicrotask(() => { if (!closed) session.resumeConflict(next.conflict!); });
         // ACKs never erase newer keystrokes, including those still waiting for autosave.
         live.current.draft = next.snapshot; setDraft(next.snapshot);
@@ -266,6 +288,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
       },
       onSnapshot: (document, source) => {
         if (closed || conflict.current || live.current.failure) return;
+        // Renewing a peer's gateway token retains the same synced channel;
+        // welcome still completes reconnect even without a status transition.
+        if (source === "welcome") setSyncStatus(session.getStatus());
         const displayed = pending.current?.snapshot ?? document;
         live.current.draft = displayed; setDraft(displayed);
         if (["update", "welcome", "failover", "recovery"].includes(source)) { live.current.past = []; live.current.future = []; setPast([]); setFuture([]); }
@@ -289,7 +314,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     setSyncStatus(session.getStatus());
     if (conflict.current) session.resumeConflict(conflict.current);
     return () => { closed = true; session.close(); if (sync.current === session) sync.current = null; };
-  }, [brokerRequested, connectionGeneration, borrowedOwnership, isClaimed, ownership, request, fail, installSaved, recoverConnectionAuthority, siteId, siteName, validateDocument, validateSnapshot]);
+  }, [brokerRequested, syncConnectionGeneration, borrowedOwnership, isClaimed, ownership, request, fail, installSaved, recoverConnectionAuthority, siteId, siteName, validateDocument, validateSnapshot]);
 
   const installDraft = useCallback((next: TestSiteDocument, history = true) => {
     const current = live.current;
@@ -322,9 +347,12 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     const session = sync.current;
     if (!session || !(session.isPrimary() && claimed.current && studioWriteOwnership.canWrite() || session.isConnectedPeer())) throw new Error(`${siteName} is waiting for its saving tab. Your draft has been preserved.`);
     setLabel("Saving…");
+    submitted.current = pending.current;
     const operation = (session.isPrimary() ? session.commitPrimary(current.draft) : session.submit(current.draft)).then(() => {
+      submitted.current = null;
       if (mounted.current) setLabel(pending.current ? "Unsaved changes" : session.isPrimary() ? "Saved locally" : `Synced with another ${siteName} tab`);
     }).catch(error => {
+      if (rejectedConnectionAuthority(error, siteName)) submitted.current = null;
       if (mounted.current && sync.current === session && !conflict.current && !["connecting", "disconnected"].includes(session.getStatus())) fail(error instanceof Error ? error.message : "Save failed.");
       throw error;
     }).finally(() => {
@@ -346,6 +374,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     let refreshing = false;
     const refresh = async () => {
       if (!token.current || refreshing || recoveringAuthority.current || saving.current || gatewayWriting.current || live.current.promptRunning) return;
+      // On resume, the editor may still be reacquiring the lifetime lock. A
+      // stale claimed flag must not turn that normal handover into a fatal save error.
+      if (claimed.current && !studioWriteOwnership.canWrite()) return;
       if (live.current.failure) {
         // Recover a pre-update authority banner without discarding the draft. Other
         // failures still require explicit review/export and are never retried.
@@ -384,6 +415,12 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     };
     const resume = () => {
       if (document.visibilityState !== "visible") return;
+      if (connectionSuspended.current && brokerRequested) {
+        connectionSuspended.current = false;
+        authorityRecoveryPending.current = true;
+        recoverConnectionAuthority();
+        return;
+      }
       // Resume the existing typed session, retaining its draft and receipts.
       // A gateway read alone cannot reconnect a peer to its saving tab.
       sync.current?.retryConnection();
@@ -425,7 +462,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
       // against the session's latest authoritative state, retaining all local edits.
       session.resumeConflict(conflict.current);
       await session.resolveConflict(choice);
-      conflict.current = null; pending.current = null; pendingBaseRevision.current = null; setSyncConflict(null);
+      conflict.current = null; pending.current = null; submitted.current = null; pendingBaseRevision.current = null; setSyncConflict(null);
       live.current.past = []; live.current.future = []; setPast([]); setFuture([]);
       const saved = live.current.snapshot;
       if (saved) { live.current.draft = saved.document; setDraft(saved.document); }
@@ -472,14 +509,13 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
   }
   async function reconnect() {
     if (reconnecting || promptRunning) return;
-    if (authorityRecoveryPending.current || live.current.failure && authorityFailureMessage(live.current.failure, siteName)) { recoverConnectionAuthority(); return; }
     setReconnecting(true);
     try { await saving.current; } catch { /* The user is reconnecting to inspect a failed or interrupted save. */ }
-    if ((pending.current || preservedProposal || conflict.current) && !window.confirm(`Reload ${siteName} and discard the current draft? Export it first if you need to keep it.`)) { setReconnecting(false); return; }
-    pending.current = null; pendingBaseRevision.current = null; conflict.current = null; setSyncConflict(null); setPast([]); setFuture([]);
-    setPreservedProposal(null); setSyncResolutionError(null);
-    live.current.failure = null; setFailure(null); setIsClaimed(false); setLabel(`Connecting to ${siteName}…`);
-    setAttempt(value => value + 1);
+    // Reconnect is a fresh authority/readback handshake, never a discard action.
+    // Keep the original pending base, newest draft, and unresolved conflict so
+    // the new broker can rebase or ask about overlap before sending any write.
+    authorityRecoveryPending.current = true;
+    recoverConnectionAuthority();
   }
   return { loadDocumentRevisions: (documentId: string) => request({ action: "revisions", documentId }), canSaveGlobalTemplates: primary && !failure && !syncConflict && !reconnecting && !editingPaused, requestGlobalTemplates: (input: Record<string, unknown>) => request(input), siteId, siteName, snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, updateDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush, pauseEditing };
 }

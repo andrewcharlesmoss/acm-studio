@@ -377,7 +377,11 @@ tab-synchronisation contract, while only the owner saves under the server lease
 and revision checks. Tokens remain private to each tab. Keep independent-edit
 merging, explicit overlap choices, pending-draft preservation and fresh-source
 handover; never grant peer tabs direct gateway write access.
-The normal block library and inspector are reused. Prompts are deferred with no
+The normal block library and inspector are reused. Other Studio routes retain lazy Test/Test2
+brokers under the existing global writer lock. Reconnect preserves drafts and
+peer transaction receipts; an uncertain save across owner replacement requires
+explicit review unless fresh source confirms it. Cached-page return must not
+force a reload that discards unsaved input. Prompts are deferred with no
 prompt panel in the current editor. `dist/index.html` is generated using Studio's
 canonical BlockRenderer, assigned TemplateDocument and Test's scoped styles.
 Local document links use stable hash routes in the single generated file; physical

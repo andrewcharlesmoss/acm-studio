@@ -92,13 +92,17 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const secondSite = useTestSite(selectedSite === "test2", canOwnSite, "test2", studioSection === "templates" && templatePreviewSite === "test2");
   const testSite = selectedSite === "test2" ? secondSite : firstSite;
   const siteName = localFixtureName(selectedSite ?? "test");
+  const pauseFirstSite = firstSite.pauseEditing;
+  const pauseSecondSite = secondSite.pauseEditing;
   useEffect(() => {
-    // Cached history restores retain released leases and transient switching state.
-    // Remount from the current source before enabling editing again.
-    const refreshCachedPage = (event: PageTransitionEvent) => { if (event.persisted) window.location.reload(); };
+    // Ownership and site hooks reconnect against fresh source on pageshow while
+    // retaining pending input. A forced reload here would discard that draft.
+    const refreshCachedPage = (event: PageTransitionEvent) => {
+      if (event.persisted) { setSwitchingSite(false); pauseFirstSite(false); pauseSecondSite(false); }
+    };
     window.addEventListener("pageshow", refreshCachedPage);
     return () => window.removeEventListener("pageshow", refreshCachedPage);
-  }, []);
+  }, [pauseFirstSite, pauseSecondSite]);
   const globalTemplates = useGlobalTemplates(testSite, true, canOwnSite, previewWindow);
   useEffect(() => {
     if (!globalTemplates.library || !templateTarget.setId || !templateTarget.targetId) return;

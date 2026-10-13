@@ -46,6 +46,10 @@
 
 ### Fixed
 
+- Keep local-site saving available across Studio tabs, including a Design Canvas
+  owner. Reconnect retains unsaved drafts, recognises accepted saves and asks
+  which version to keep when a previous saving session's outcome is uncertain.
+
 - Restored shared publication status and UTC date controls for local Test and Test2
   posts and pages, including backdating and saved Draft/Pending withdrawal.
 

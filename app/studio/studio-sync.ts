@@ -412,7 +412,7 @@ export class StudioSyncSession<T> {
   private acknowledgedTransactions = new Set<string>();
   // Transport timeouts reject promises, but cannot prove an operation was not
   // saved. Retain bounded receipt candidates until the owner confirms them.
-  private unacknowledgedSubmissions = new Map<string, { transaction: StudioSyncTransaction; resolution?: true }>();
+  private unacknowledgedSubmissions = new Map<string, { transaction: StudioSyncTransaction; baseSnapshot?: unknown; resolution?: true }>();
   private brokerTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -724,6 +724,7 @@ export class StudioSyncSession<T> {
     const interruptedConflict = this.conflict ?? this.pendingResumedConflict;
     this.conflict = null;
     this.pendingResumedConflict = null;
+    const changedOwner = Boolean(this.brokerEpoch && this.brokerEpoch !== message.brokerEpoch);
     const receipts = new Set(message.acceptedTransactionIds ?? []);
     const candidates = new Map(this.unacknowledgedSubmissions);
     this.pending.forEach(operation => candidates.set(operation.transaction.transactionId, operation));
@@ -740,6 +741,22 @@ export class StudioSyncSession<T> {
     this.brokerEpoch = message.brokerEpoch; this.revision = message.revision; this.snapshot = this.validate(message.snapshot);
     const rebased = applyStudioTransaction(this.snapshot, unsaved);
     if (!rebased.conflicts.length) this.optimisticSnapshot = this.validate(rebased.snapshot);
+    const resumedSnapshot = this.cloneSnapshot(this.optimisticSnapshot);
+    const uncertainHandover = changedOwner && [...candidates.values()].some(operation => {
+      const applied = applyStudioTransaction(this.snapshot, operation.transaction, operation.resolution === true);
+      return applied.conflicts.length || this.makeTransaction(this.snapshot, applied.snapshot, this.revision).changes.length;
+    });
+    if (changedOwner) {
+      // Old-epoch operations cannot be sent to the new broker. Keep their
+      // rebased draft visible, but base its next submission on the fresh save.
+      this.failPending(new Error("The saving tab changed. Your draft was preserved."));
+      this.peerQueue.splice(0).forEach(operation => {
+        clearTimeout(operation.timer);
+        operation.reject(new Error("The saving tab changed. Your draft was preserved."));
+      });
+      this.unacknowledgedSubmissions.clear();
+      if (!rebased.conflicts.length && !uncertainHandover) this.optimisticSnapshot = this.cloneSnapshot(this.snapshot);
+    }
     if (this.helloTimer) clearTimeout(this.helloTimer);
     this.helloTimer = null;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
@@ -750,13 +767,31 @@ export class StudioSyncSession<T> {
     // for the primary tab to answer.
     if (accepted.length) accepted.forEach(operation => this.notifyCommitted("welcome", operation.transaction));
     else this.notifyCommitted("welcome");
-    this.options.onSnapshot(this.optimisticSnapshot, "welcome");
+    this.options.onSnapshot(resumedSnapshot, "welcome");
     this.setStatus("synced");
     if (interruptedConflict) this.installResumedConflict(interruptedConflict);
+    else if (uncertainHandover) this.openConflict(unsaved, { snapshot: this.snapshot, conflicts: rebased.conflicts }, null, "The saving tab changed before this save was acknowledged. Review which changes to keep.");
     else if (rebased.conflicts.length) this.openConflict(unsaved, { snapshot: this.snapshot, conflicts: rebased.conflicts }, null, "Studio changes conflict with your local changes.");
     for (const [requestId, operation] of this.pending) {
-      if (!receipts.has(operation.transaction.transactionId) || operation.transaction.brokerEpoch !== message.brokerEpoch) continue;
+      if (operation.transaction.brokerEpoch !== message.brokerEpoch) continue;
+      if (!receipts.has(operation.transaction.transactionId)) {
+        if (!this.conflict) this.send({ ...this.base(), kind: "operation", requestId, transaction: operation.transaction, ...(operation.resolution ? { resolution: true } : {}) });
+        continue;
+      }
       this.pending.delete(requestId); clearTimeout(operation.timer); operation.resolve();
+    }
+    if (!changedOwner && !this.conflict) {
+      // A timeout may have rejected the caller while its operation was merely
+      // delayed. Retry the same ID after readback so the owner can return its
+      // receipt, even if another tab has since changed that field again.
+      const retries: PendingPeer[] = [];
+      for (const previous of this.unacknowledgedSubmissions.values()) {
+        if (previous.transaction.brokerEpoch !== this.brokerEpoch
+          || receipts.has(previous.transaction.transactionId)
+          || [...this.pending.values(), ...this.peerQueue].some(operation => operation.transaction.transactionId === previous.transaction.transactionId)) continue;
+        retries.push({ ...previous, requestId: id("retry"), resolve() {}, reject() {}, timer: setTimeout(() => {}, OPERATION_TIMEOUT_MS) });
+      }
+      this.peerQueue.unshift(...retries);
     }
     void this.processPeerQueue();
   }
@@ -771,6 +806,14 @@ export class StudioSyncSession<T> {
     try {
       while (this.primaryQueue.length) {
         const operation = this.primaryQueue.shift()!; const previousSnapshot = this.snapshot;
+        const receipt = this.completed.get(operation.transaction.transactionId);
+        if (!operation.local && receipt) {
+          // The duplicate may have arrived while the original save was still
+          // running, before receiveOperation could see its receipt.
+          if (receipt.accepted) this.send({ ...this.base(), kind: "ack", requestId: operation.requestId!, revision: this.revision, snapshot: this.snapshot });
+          else this.sendReject(operation.requestId!, receipt.reason ?? "Duplicate operation.", []);
+          continue;
+        }
         try {
           const result = applyStudioTransaction(previousSnapshot, operation.transaction, operation.resolution === true);
           if (result.conflicts.length) { const error = new Error("Studio changes conflict with another tab."); if (operation.local) { this.openConflict(operation.transaction, { ...result, snapshot: previousSnapshot }, operation, error.message); operation.reject?.(error); break; } this.remember(operation.transaction.transactionId, false, this.revision, error.message); this.sendReject(operation.requestId ?? operation.transaction.transactionId, error.message, result.conflicts); continue; }
@@ -882,7 +925,7 @@ export class StudioSyncSession<T> {
         operation.transaction = { ...operation.transaction, baseRevision: this.revision };
         clearTimeout(operation.timer);
         operation.timer = setTimeout(() => this.failPeer(operation.requestId, new Error("The primary Studio tab stopped responding.")), OPERATION_TIMEOUT_MS);
-        this.unacknowledgedSubmissions.set(operation.transaction.transactionId, { transaction: operation.transaction, resolution: operation.resolution });
+        this.unacknowledgedSubmissions.set(operation.transaction.transactionId, { transaction: operation.transaction, baseSnapshot: operation.baseSnapshot, resolution: operation.resolution });
         if (this.unacknowledgedSubmissions.size > 500) this.unacknowledgedSubmissions.delete(this.unacknowledgedSubmissions.keys().next().value!);
         this.pending.set(operation.requestId, operation); this.send({ ...this.base(), kind: "operation", requestId: operation.requestId, transaction: operation.transaction, ...(operation.resolution ? { resolution: true } : {}) });
         await new Promise<void>(resolve => { const check = () => { if (!this.pending.has(operation.requestId)) resolve(); else setTimeout(check, 20); }; check(); });
