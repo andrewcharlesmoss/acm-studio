@@ -34,6 +34,9 @@
 
 ### Fixed
 
+- Use the shared neutral hover background for file and folder cards, keeping
+  the blue selection outline distinct from hover.
+
 - Allow Files actions from connected Studio tabs, synchronise open libraries,
   and preserve unfinished edits with explicit conflict review.
 

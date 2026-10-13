@@ -23,7 +23,7 @@
 .media-entries.is-grid { display: grid; gap: 11px; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); }
 .media-entries button { color: var(--ink); }
 .media-file-card, .media-folder-card { background: #f9f8f4; border: 1px solid #d7d5cd; border-radius: 9px; cursor: pointer; overflow: hidden; padding: 0; text-align: left; }
-.media-file-card:hover, .media-folder-card:hover, .media-file-card.is-selected, .media-folder-card.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.media-file-card:hover:not(:disabled, .is-selected, .is-drop-target), .media-folder-card:hover:not(:disabled, .is-selected, .is-drop-target), .media-parent-card:hover:not(:disabled, .is-drop-target, .is-invalid-drop) { background: var(--acm-interaction-list-item-hover-background, #f0f0f0); }
 .media-thumbnail { align-items: center; background: #e3e1da; display: flex; height: 105px; justify-content: center; overflow: hidden; }
 .media-thumbnail img { height: 100%; object-fit: cover; width: 100%; }
 .media-thumbnail i { align-items: center; color: #6f716d; display: inline-flex; font-style: normal; justify-content: center; }
@@ -126,7 +126,6 @@
 .media-folder-card.is-drop-target { background: var(--accent-soft); border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
 
 .media-parent-card { background: #f1f0ea; border: 1px dashed #c5c3bb; border-radius: 9px; cursor: pointer; display: grid; min-height: 151px; overflow: hidden; padding: 18px 12px 12px; text-align: left; }
-.media-parent-card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .media-parent-card strong { align-self: end; font-size: var(--studio-ui-size); }
 .media-parent-card small { color: var(--muted); font-size: var(--studio-ui-size); margin-top: 3px; }
 .parent-folder-glyph { justify-self: center; position: relative; }
