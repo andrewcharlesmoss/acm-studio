@@ -508,7 +508,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-library .library-tabs .pane-tabs .pane-tab-label > .library-tab-label { background: transparent; border-radius: 0; flex: 0 1 auto; height: auto; min-width: 0; overflow: hidden; padding: 0; text-align: center; text-overflow: ellipsis; white-space: nowrap; width: auto; }
 .studio-library .document-list { align-content: start; flex: 1; min-height: 0; }
 .studio-library .library-footer { margin-top: 0; }
-.library-create { display: grid; gap: 7px; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 15px; }
+.library-create { display: grid; gap: 7px; grid-template-columns: repeat(var(--library-create-columns, 3), minmax(0, 1fr)); padding: 15px; }
 .library-create button { align-items: center; background: white; border: 1px solid #d5d3cb; border-radius: 8px; cursor: pointer; display: flex; justify-content: center; min-height: 42px; padding: 9px 6px; }
 .library-create button:hover { border-color: #969791; }
 .library-create svg { color: var(--ink); flex: none; height: 20px; width: 20px; }

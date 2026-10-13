@@ -26,6 +26,8 @@ const studioIconConsumers: Partial<Record<IconName, Array<{ label: string; href:
   "document.new-post": [{ label: "New post action in the Studio navigation pane", href: "/studio" }],
   "document.new-page": [{ label: "New page action in the Studio navigation pane", href: "/studio" }],
   "document.from-template": [{ label: "New from template action in the Studio navigation pane", href: "/studio" }],
+  "layout.header": [{ label: "Create a shared Header in Templates", href: "/studio?mode=templates&scope=global" }],
+  "layout.footer": [{ label: "Create a shared Footer in Templates", href: "/studio?mode=templates&scope=global" }],
   "text.caption": [{ label: "Table caption visibility control", href: "/studio/ui/blocks/table" }],
   "view.styles": [{ label: "Table inspector Styles tab", href: "/studio/ui/blocks/table" }],
   "action.settings": [{ label: "Table inspector Settings tab", href: "/studio/ui/blocks/table" }],

@@ -11,6 +11,9 @@
 
 ### Changed
 
+- Share compact template creation icons between the navigation pane and main
+  template list, including an Import icon, with catalogue artwork and tooltips.
+
 - Align Edit and Preview block typography, metadata, captions, and container spacing across Studio and the UI Library, including shared-template styles.
 
 - Use one shared template library for Studio Drafts, Test and Test2, with consistent counts, preserved browser recovery originals and shared-template snapshots in browser backups.
