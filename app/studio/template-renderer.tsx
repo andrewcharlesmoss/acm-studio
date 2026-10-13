@@ -127,7 +127,7 @@ export type TemplateRenderContext = {
 };
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
-  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, authoring, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
+  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
   function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false, spacerOrientation: SpacerOrientation = "vertical"): ReactNode {
@@ -207,7 +207,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
             {!hidden && onRemoveCoverImage ? <button className="cover-action-button" type="button" onClick={onRemoveCoverImage} aria-label="Remove cover image" title="Remove cover image"><StudioIcon name="close" /></button> : null}
             {onRemoveCoverBlock ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCoverBlock} aria-label="Delete cover image block" title="Delete cover image block"><StudioIcon name="trash" /></button> : null}
           </div> : null;
-          element = hidden ? authoring ? null : editingDocument ? <div {...frameProps} className={`canvas-cover-wrap document-dynamic-cover${fieldVisualClassName ? ` ${fieldVisualClassName}` : ""}`}><div className="canvas-cover-image" role="img" aria-label="Cover image hidden" />{actions}</div> : null
+          element = hidden ? null
             : documentFieldVisible(document, "coverImage") ? fixed && templatePreview ? src ? <figure {...frameProps} className={frameClassName}>{linkedImage}</figure> : placeholder
             : templatePreview ? placeholder : editingDocument ? <div {...frameProps} className={`canvas-cover-wrap document-dynamic-cover${fieldVisualClassName ? ` ${fieldVisualClassName}` : ""}`}>
               <div className={`canvas-cover-image${src ? " is-source" : ""}`} role="img" aria-label={cover?.alt || "Mock cover image"}>{image}</div>

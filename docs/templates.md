@@ -259,7 +259,11 @@ Existing documents migrate with local overrides so their appearance does not
 change. Older saved blocks and packages omit the new fields and continue using
 their existing presentation. A Cover Image template element may optionally
 store a managed fixed image; when absent, it continues to resolve from each
-document's cover image.
+document's cover image. A hidden Cover Image element remains invisible in both
+document Edit and Preview; it does not create an editing placeholder or discard
+the stored image. The document inspector retains featured-image access. Header,
+title and metadata elements belong to the assigned template, while their values
+resolve from the document and site.
 
 The content and template inspectors share Document/Template, Block and Styles
 tabs and a field catalogue. Page and Post documents expose the same ordered

@@ -14,6 +14,9 @@
 
 ### Changed
 
+- Mark selected Posts, Pages and Templates rows with the shared selection-colour
+  tint, border and side marker.
+
 - Present Studio Drafts as a full-width catalogue-icon button with a pressed
   selected state and an explanatory tooltip above Sites.
 
@@ -42,6 +45,9 @@
 - Remove the redundant publish status summary above the status control.
 
 ### Fixed
+
+- Respect hidden template cover images in document Edit as well as Preview,
+  without discarding stored images or removing inspector access.
 
 - Restore the shared Publishing section for Test and Test2 posts and pages,
   showing saved publication status, UTC publication time, and the supported
