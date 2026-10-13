@@ -649,8 +649,9 @@ test("the document inspector exposes Gutenberg-style status and publish date con
   assert.match(source, /formatPublicationTimezone\(\)/);
   assert.match(source, /Times are shown and saved as UTC\+0\./);
   assert.match(source, /Now/);
-  assert.match(source, /const publishDate = document\.publishAt \? formatPublishDate\(document\.publishAt\) : "Immediately";/);
-  assert.match(source, /function publishImmediately\(\) \{\s*const now = new Date\(\)\.toISOString\(\);\s*onChange\("publishAt", undefined\);/);
+  assert.match(source, /const dateValue = document\.publishAt \?\? \(siteContext \? document\.publishedAt : undefined\);/);
+  assert.match(source, /const publishDate = dateValue \? formatPublishDate\(dateValue\) : "Immediately";/);
+  assert.match(source, /function publishImmediately\(\) \{\s*setPublicationDateError\(null\);\s*const now = new Date\(\)\.toISOString\(\);\s*if \(siteContext\) \{ onChange\("publishAt", now\);[\s\S]*?return; \}\s*onChange\("publishAt", undefined\);/);
   assert.doesNotMatch(source, /Use immediately/);
   assert.match(source, /documentStatusDescription/);
   assert.match(source, /onChange\("publishAt"/);
@@ -1030,7 +1031,7 @@ test("between-block and drag insertion cues stay centred in the reserved gap", (
   assert.match(css, /\.block-position \+ \.block-position \.canvas-block \{ margin-top: var\(--studio-block-gap\); \}/);
   assert.match(css, /\.block-position \+ \.block-position \.between-blocks \{ top: calc\(\(\(var\(--studio-block-gap\) - var\(--studio-block-grid-gap, 0px\)\) \/ 2\) - 15px\); \}/);
   assert.match(css, /\.block-position \+ \.block-position \.drop-indicator \{ top: calc\(\(\(var\(--studio-block-gap\) - var\(--studio-block-grid-gap, 0px\)\) \/ 2\) - 2px\); \}/);
-  assert.match(css, /\.block-position:has\(\+ \.block-position \.canvas-block\.is-selected\) \+ \.block-position \.drop-indicator:not\(\.is-after\) \{ top: calc\(\(\(var\(--studio-block-gap\) - var\(--studio-block-grid-gap, 0px\)\) \/ 2\) - 21px\); \}/);
+  assert.match(css, /\.block-editor:not\(\.is-block-dragging\) \.block-position:has\(\+ \.block-position \.canvas-block\.is-selected\) \+ \.block-position \.drop-indicator:not\(\.is-after\) \{ top: calc\(\(\(var\(--studio-block-gap\) - var\(--studio-block-grid-gap, 0px\)\) \/ 2\) - 2px - \(var\(--studio-selected-toolbar-gap, 38px\) \/ 2\)\); \}/);
   assert.match(canvas, /function canvasInsertionIndex\(event: DragEvent<HTMLDivElement>\)/);
   assert.match(canvas, /onMoveBlockTo\(from, index > from \? index - 1 : index\)/);
   assert.match(canvas, /onDragOver=\{handleCanvasDragOver\} onDrop=\{handleCanvasDrop\}/);
@@ -1103,7 +1104,9 @@ test("templates use the shared resizable panes and readable document status labe
   const inspector = readFileSync(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8");
   const prototype = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(workspace, /<Pane trackClassName="studio-library-track" className="studio-library"/);
+  assert.match(workspace, /<StudioNavigationFrame width=\{resolvedLibraryPaneWidth\} collapsed=\{resolvedLibraryPaneCollapsed\}[\s\S]*onWidthChange=\{setResolvedLibraryPaneWidth\}/);
+  const frame = readFileSync(new URL("../app/studio/studio-navigation-frame.tsx", import.meta.url), "utf8");
+  assert.match(frame, /<Pane trackClassName="studio-library-track" className="studio-library"[\s\S]*onWidthChange=\{onWidthChange\}/);
   assert.match(inspector, /<Pane trackClassName="studio-inspector-track" className=\{`studio-inspector template-inspector\$\{/);
   assert.match(prototype, /libraryPaneWidth=\{libraryPaneWidth\}[\s\S]*inspectorPaneWidth=\{inspectorPaneWidth\}/);
   assert.match(styles, /\.document-item \.document-status \{[^}]*min-width: 42px;/);
@@ -1152,7 +1155,7 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateStyles, /\.template-part \{ display: block; min-width: 0; \}/);
   assert.match(templateStyles, /\.template-edit-part \{[^}]*position: absolute; right: calc\(100% \+ 12px\); top: 0;/);
   assert.match(templateStyles, /\.template-workspace \.studio-library \{ padding: 0; overflow-y: auto; gap: 0; \}/);
-  assert.match(templateStyles, /\.template-workspace \.studio-library fieldset \{ border: 0; padding: 12px; margin: 0; \}/);
+  assert.doesNotMatch(templateWorkspace, /<fieldset/);
   assert.match(templateStyles, /\.template-workspace \.studio-library \.template-document-list \{[^}]*padding: 10px;/);
   assert.match(templateStyles, /\.template-inspector \.inspector-scroll button:not\(\.inspector-accordion-heading\)/);
   assert.doesNotMatch(templateStyles, /\.template-inspector button \{/);
@@ -1588,8 +1591,8 @@ test("design save status settles on a local storage label", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /if \(primaryWritable\) setStatus\("Saving…"\);/);
   assert.match(editor, /SAVE_STATUS_MINIMUM_MS - \(Date\.now\(\) - saveStartedAt\)/);
-  assert.match(editor, /saveSequence === saveStatusSequenceRef\.current/);
-  assert.match(editor, /setStatus\("Saved locally"\); setError\(""\);/);
+  assert.match(editor, /if \(saveSequence !== null && saveSequence !== saveStatusSequenceRef\.current\) return/);
+  assert.match(editor, /setStatus\(primaryWritable \? "Saved locally" : "Synced with another ACM Studio tab"\); setError\(""\);/);
   assert.doesNotMatch(editor, /setStatus\("Changes saved"\)/);
 });
 
@@ -2190,7 +2193,7 @@ test("between-block add controls toggle the shared block library", () => {
 });
 
 
-test("folder menus offer keyboard-accessible owner-gated actions and persistent colours", () => {
+test("folder menus offer keyboard-accessible broker-gated actions and persistent colours", () => {
   const manager = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
   assert.match(manager, /onContextMenu=\{/);
   assert.match(manager, /event.key === "ContextMenu" \|\| \(event.shiftKey && event.key === "F10"\)/);
@@ -2200,10 +2203,11 @@ test("folder menus offer keyboard-accessible owner-gated actions and persistent 
   assert.match(manager, /event.key === "Escape"/);
   assert.match(manager, /disabled=\{!canMutate\}[\s\S]*?>Rename/);
   assert.match(manager, /void removeFolder\(\)/);
-  assert.match(manager, /await mutate\(async \(\) => \{\s*await colourMediaFolder\(id, colour \|\| null\)/);
+  assert.match(manager, /await sendCommand\(\{ kind: "colour-folder", id, colour: colour \|\| null, before: folder\.colour \?\? null \}\)/);
   const store = readFileSync(new URL("../app/studio/media-store.ts", import.meta.url), "utf8");
   assert.match(store, /colour\?: string/);
-  assert.match(store, /function colourMediaFolder[^}]*studioWriteOwnership.write/);
+  assert.match(store, /function colourMediaFolder[^}]*writeMedia/);
+  assert.match(store, /function writeMedia<T>[^}]*studioWriteOwnership\.write/);
   assert.match(store, /if \(colour === null\) delete next.colour;\s*else next.colour = colour/);
   const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
   assert.match(css, /\.folder-glyph svg \{ height: 64px; width: 64px/);
@@ -2262,7 +2266,7 @@ test("folder rename focus waits for a writable rendered input and is retried aft
   const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
   assert.match(source, /if \(!canMutate \|\| folderMenu \|\| folderNameFocusTargetIdRef.current !== selectedFolder\?\.id \|\| !folderNameInputRef.current\) return/);
   assert.match(source, /\[selectedFolder\?\.id, folders, folderMenu, canMutate\]/);
-  assert.match(source, /setInlineRename\(\{ id: item.id, kind: folderMenu.kind, name: item.name \}\);[\s\S]*?closeFolderMenu\(false\)/);
+  assert.match(source, /setInlineRename\(\{ id: item.id, kind: folderMenu.kind, name: item.name, before: item.name \}\);[\s\S]*?closeFolderMenu\(false\)/);
 });
 
 
@@ -2300,7 +2304,7 @@ test("inline card rename cancels before blur can save and preserves the details 
   const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
   assert.match(source, /inlineRenameFinishedRef.current = true; setInlineRename\(null\)/);
   assert.match(source, /if \(!inlineRename \|\| inlineRenameFinishedRef.current \|\| !canMutate\) return/);
-  assert.match(source, /await saveAsset\(\{ name \}, inlineRename.id\)/);
+  assert.match(source, /await saveAsset\(\{ name \}, inlineRename.id, inlineRename.before\)/);
   assert.match(source, /inlineRename\?\.id === folder.id \? inlineNameEditor/);
   assert.match(source, /inlineRename\?\.id === asset.id \? inlineNameEditor/);
   assert.match(source, /<h2>File details<\/h2>/);
@@ -2321,16 +2325,17 @@ test("inline rename matches the name rectangle without changing card flow", () =
 });
 
 
-test("media drag-and-drop is owner-gated and folders have a keyboard move equivalent", () => {
+test("media drag-and-drop is broker-gated and folders have a keyboard move equivalent", () => {
   const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
   assert.match(source, /draggable=\{canMutate && !inlineRename\}/);
   assert.match(source, /onDrop=\{\(event\) => dropIntoFolder\(event, folder.id\)\}/);
   assert.match(source, /if \(canMutate && entry\) void moveMediaEntry\(entry, id\)/);
   assert.match(source, /entry.kind === "folder" && !allowedFolderDestination\(entry.id, id\)/);
-  assert.match(source, /await updateMediaAsset\(entry.id, \{ folderId: parentId \}\)/);
+  assert.match(source, /await sendCommand\(\{ kind: "update-asset", id: entry.id, update: \{ folderId: parentId \}, before: \{ folderId: asset.folderId \} \}\)/);
   assert.match(source, /<span>Move to folder<\/span>/);
   const store = readFileSync(new URL("../app/studio/media-store.ts", import.meta.url), "utf8");
-  assert.match(store, /function moveMediaFolder[^}]*studioWriteOwnership.write/);
+  assert.match(store, /function moveMediaFolder[^}]*writeMedia/);
+  assert.match(store, /function writeMedia<T>[^}]*studioWriteOwnership\.write/);
   assert.match(store, /runTransaction\(database, FOLDER_STORE, "readwrite"/);
 });
 

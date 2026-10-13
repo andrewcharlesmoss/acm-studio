@@ -1,31 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
-import { createRequire } from "node:module";
-import { resolve, dirname } from "node:path";
-import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
 import { createElement as h, Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import ts from "typescript";
+import { loadProductionModule } from "./production-module.mjs";
 import { paneExamples, skeletonDefinition, paneStructure, defaultRegions, initialPaneDemo, updatePaneDemo, demoRows } from "../app/studio/panes/catalogue-model.ts";
 
-const require = createRequire(import.meta.url);
 const base = resolve("app/studio/panes");
-const compiled = new Map();
-function moduleUrl(file) {
-  if (compiled.has(file)) return compiled.get(file);
-  const source = readFileSync(file, "utf8").replace(/^import "[^"]+\.css";\s*$/gm, "");
-  const output = ts.transpileModule(source, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext } }).outputText
-    .replace(/from "([^"]+)"/g, (_, name) => {
-      const url = name.startsWith(".") ? moduleUrl(resolve(dirname(file), name + (name.endsWith("catalogue-model") ? ".ts" : ".tsx"))) : pathToFileURL(require.resolve(name)).href;
-      return `from ${JSON.stringify(url)}`;
-    });
-  const url = "data:text/javascript;base64," + Buffer.from(output).toString("base64");
-  compiled.set(file, url);
-  return url;
-}
-const { Pane, PaneWorkspace, PaneSection, PaneTabs, PaneTabPanel } = await import(moduleUrl(resolve(base, "pane-components.tsx")));
-const { PaneSpecimen } = await import(moduleUrl(resolve(base, "pane-specimen.tsx")));
+const { Pane, PaneWorkspace, PaneSection, PaneTabs, PaneTabPanel } = await loadProductionModule(new URL("../app/studio/panes/pane-components.tsx", import.meta.url));
+const { PaneSpecimen } = await loadProductionModule(new URL("../app/studio/panes/pane-specimen.tsx", import.meta.url));
 const pane = (side, collapsed = false, slots = {}) => h(Pane, { side, label: `${side} sample`, width: side === "left" ? 290 : 300, collapsed, onCollapsedChange() {}, collapseIcon: h("svg"), ...slots }, h("input", { defaultValue: "Retained" }));
 
 test("optional pane regions render only when supplied", () => {

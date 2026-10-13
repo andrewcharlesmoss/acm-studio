@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import os from "node:os";
+import { performance } from "node:perf_hooks";
 import path from "node:path";
 import vm from "node:vm";
 import test from "node:test";
@@ -179,7 +180,10 @@ async function fixture(t, siteId) {
     await new Promise(resolve => setTimeout(resolve, 2));
   }
   async function until(predicate) {
-    for (let pass = 0; pass < 250; pass++) { await pump(); if (predicate()) return; }
+    // The real file gateway can take longer under a concurrently running suite.
+    // Bound elapsed monotonic time rather than the number of scheduling turns.
+    const deadline = performance.now() + 15000;
+    do { await pump(); if (predicate()) return; } while (performance.now() < deadline);
     assert.fail(`Recovery did not settle: ${JSON.stringify(tabs.map(tab => ({ label: tab.state?.label, failure: tab.state?.failure, writable: tab.state?.writable, conflict: Boolean(tab.state?.syncConflict), saved: tab.state?.snapshot && navigationLabel(tab.state.snapshot.document), draft: tab.state?.draft && navigationLabel(tab.state.draft) })))}, requests: ${JSON.stringify(requests.map(request => ({ action: request.action, status: request.status, failure: request.failure })))}`);
   }
   const source = async () => JSON.parse(await readFile(path.join(root, "content/site.json"), "utf8"));

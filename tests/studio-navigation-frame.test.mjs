@@ -19,6 +19,8 @@ const props = {
 test("Posts, Pages and Templates render the same navigation structure around the selected list", () => {
   const html = ["post", "page", "templates"].map(libraryKind => renderToStaticMarkup(createElement(StudioNavigationFrame, { ...props, libraryKind, studioSection: libraryKind === "templates" ? "templates" : "content" })));
   const structure = value => value
+    // Site links deliberately retain the active Posts, Pages or Templates tab.
+    .replace(/href="\/studio\?site=(test2?)(?:&amp;library=(?:post|page)|&amp;mode=templates&amp;scope=global)"/g, 'href="/studio?site=$1&amp;selected-library=STATE"')
     .replace(/_R_[^"\s]+/g, "GENERATED-ID")
     .replace(/aria-selected="(?:true|false)"/g, 'aria-selected="STATE"')
     .replace(/(?:id|aria-labelledby)="GENERATED-ID-(?:post|page|templates)-(?:tab|panel)"/g, 'data-tab-identity="TAB"')
@@ -26,6 +28,12 @@ test("Posts, Pages and Templates render the same navigation structure around the
   const navigation = value => structure(value).split(/<div role="tabpanel"/)[0];
   assert.equal(navigation(html[0]), navigation(html[1]));
   assert.equal(navigation(html[1]), navigation(html[2]));
+  for (const [index, kind] of ["post", "page", "templates"].entries()) {
+    for (const site of ["test", "test2"]) {
+      const query = kind === "templates" ? "mode=templates&amp;scope=global" : `library=${kind}`;
+      assert.ok(html[index].includes(`href="/studio?site=${site}&amp;${query}"`));
+    }
+  }
   for (const value of html) {
     assert.equal((value.match(/class="library-create"/g) ?? []).length, 1);
     assert.equal((value.match(/class="library-tools"/g) ?? []).length, 1);

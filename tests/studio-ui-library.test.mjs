@@ -111,7 +111,7 @@ test("shared inspector icons link back to their Studio catalogue examples", () =
     ["state.warning", [["Background contrast warning", "/studio/ui/controls#background-selection"]]],
     ["action.adjust", [["Box dimensions controls", "/studio/ui/controls#box-length"]]],
     ["action.add", [["Inspector options and block inserter controls", "/studio/ui/blocks/paragraph"]]],
-    ["action.delete", [["Remove blocks, List View items and cover images", "/studio/ui/blocks/group"]]],
+    ["action.delete", [["Remove blocks, List View items and featured images", "/studio/ui/blocks/group"]]],
     ["action.duplicate", [["Duplicate block action", "/studio/ui/blocks/group"]]],
     ["action.edit", [["Edit inline text links", "/studio/ui/blocks/paragraph"]]],
     ["action.link", [["Add a link to selected text", "/studio/ui/blocks/paragraph"]]],
@@ -373,11 +373,17 @@ test("keyboard inspector exposes each selected key's artwork provenance and avai
 test("Studio tool navigation points to one combined library entry", () => {
   const coordinator = read("app/studio/studio-prototype.tsx");
   assert.match(coordinator, /<StudioNavigationPane\b[\s\S]*?workspace=\{workspace\}/);
-  for (const file of ["app/studio/studio-dashboard.tsx", "app/studio/studio-navigation-pane.tsx", "app/studio/template-workspace.tsx"]) {
+  for (const file of ["app/studio/studio-dashboard.tsx", "app/studio/studio-navigation-frame.tsx"]) {
     const source = read(file);
     assert.ok(source.includes("Studio UI Library"), file);
     assert.ok(source.includes('href="/studio/ui"'), file);
     assert.ok(!source.includes('href="/studio/ribbon"'), file);
     assert.ok(!source.includes('href="/studio/panes"'), file);
+  }
+  for (const file of ["app/studio/studio-navigation-pane.tsx", "app/studio/template-workspace.tsx"]) {
+    const source = read(file);
+    assert.match(source, /import \{ StudioNavigationFrame \} from "\.\/studio-navigation-frame"/, file);
+    assert.match(source, /<StudioNavigationFrame\b/, file);
+    assert.doesNotMatch(source, /href="\/studio\/(?:ui|ribbon|panes)"/, file);
   }
 });

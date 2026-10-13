@@ -62,6 +62,9 @@ function inTimezone(timezone, body) {
   // Child processes isolate host timezones; the extracted handlers are production code.
   const script = `import * as dates from ${JSON.stringify(datesUrl.href)};
     const { makePublicationDate, formatPublicationTimezone } = dates;
+    let siteContext = false;
+    let publicationDateError = null;
+    const setPublicationDateError = error => { publicationDateError = error; };
     ${compiledDateHandlers}
     ${body}`;
   const result = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", script], { encoding: "utf8", env: { ...process.env, TZ: timezone } });
@@ -102,6 +105,30 @@ for (const timezone of timezones) {
         return { changes: [...changes], label: formatPublicationTimezone() };
       })));`);
     assert.deepEqual(result, editCases.map(([, , expected]) => ({ changes: [["publishAt", expected]], label: "UTC+0" })));
+  });
+
+  test(`site Publish date accepts backdates and now, rejects scheduling, and clears its error in ${timezone}`, () => {
+    const result = inTimezone(timezone, `const RealDate = Date;
+      const now = "2026-10-14T12:30:00.000Z";
+      globalThis.Date = class extends RealDate {
+        constructor(...args) { super(...(args.length ? args : [now])); }
+        static now() { return RealDate.parse(now); }
+      };
+      siteContext = true;
+      const changes = [];
+      const onChange = (field, value) => changes.push([field, value]);
+      const inputs = ["2020-02-29T09:15:00.000Z", now, "2026-10-14T12:30:00.001Z", "2026-10-01T10:00:00.000Z"];
+      process.stdout.write(JSON.stringify(inputs.map(instant => {
+        changes.length = 0;
+        updatePublicationDate(new Date(instant));
+        return { changes: [...changes], error: publicationDateError };
+      })));`);
+    assert.deepEqual(result, [
+      { changes: [["publishAt", "2020-02-29T09:15:00.000Z"]], error: null },
+      { changes: [["publishAt", "2026-10-14T12:30:00.000Z"]], error: null },
+      { changes: [], error: "Choose a past or current date. Automatic scheduling is unavailable for this local site." },
+      { changes: [["publishAt", "2026-10-01T10:00:00.000Z"]], error: null },
+    ]);
   });
 
   test(`production calendar retains UTC padding, leap rules and year rollover in ${timezone}`, () => {

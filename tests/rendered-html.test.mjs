@@ -143,7 +143,7 @@ test("keeps hosted database, login and starter-preview surfaces out of the found
   assert.match(localPublishing, /validatePostForPublication/);
   assert.match(localPublishing, /publishDocumentLocally/);
   assert.match(localPublishing, /coverImage/);
-  assert.match(localPublishing, /Mock cover image/);
+  assert.match(localPublishing, /Mock featured image/);
   assert.match(archive, /parseLocallyPublishedArticles/);
   assert.match(localArticle, /BlockRenderer/);
   assert.match(localArticle, /variant="studio" hideDividers/);

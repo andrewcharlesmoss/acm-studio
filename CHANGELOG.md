@@ -46,6 +46,10 @@
 
 ### Fixed
 
+- Update Studio regression checks for shared pane navigation, featured-image
+  wording, and brokered Files saving; cover supported local-site date edits and
+  allow real file transactions to settle under a concurrently running suite.
+
 - Align Files regression checks with saving across tabs, retained unsaved details,
   conflict review, and the current image-insertion permissions.
 
