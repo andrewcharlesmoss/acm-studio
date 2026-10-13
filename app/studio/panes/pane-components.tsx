@@ -2,6 +2,7 @@
 
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import "./pane-components.css";
+import { fitPaneWidth } from "./pane-fit-width";
 
 export type PaneSide = "left" | "right";
 export type PaneProps = {
@@ -62,6 +63,9 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
   const resizeMin = Math.min(minWidth, maxWidth);
   const resizeMax = Math.max(minWidth, maxWidth);
   const clampWidth = (next: number) => Math.max(resizeMin, Math.min(resizeMax, Math.round(next)));
+  function optimiseWidth() {
+    if (!collapsed && onWidthChange && container.current) onWidthChange(fitPaneWidth(container.current, resizeMin, resizeMax));
+  }
   function startResize(event: PointerEvent<HTMLElement>) {
     suppressCollapse.current = false;
     if (event.button !== 0 || collapsed || !onWidthChange) return;
@@ -127,12 +131,14 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
     {onWidthChange && !collapsed ? <div className="pane-resize-edge" data-side={side}
       data-resize-pressed={resizePressed} role="separator" tabIndex={0}
       aria-label={`Resize ${label}`} aria-orientation="vertical" aria-controls={id}
+      title="Drag to resize; double-click or press Enter to fit content. Use Left and Right arrows to adjust width."
       aria-valuemin={resizeMin} aria-valuemax={resizeMax} aria-valuenow={width}
       onFocus={() => { focusWasInside.current = true; }}
       onBlur={(event) => { if (event.relatedTarget) focusWasInside.current = false; }}
       aria-valuetext={`${width} pixels`} onPointerDown={startResize} onPointerMove={moveResize}
       onPointerUp={finishResize} onPointerCancel={cancelResize} onLostPointerCapture={cancelResize}
-      onKeyDown={resizeWithKeyboard} /> : null}
+      onDoubleClick={optimiseWidth}
+      onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); optimiseWidth(); } else resizeWithKeyboard(event); }} /> : null}
     {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
     {collapsible ? <PaneCollapseButton buttonRef={toggle} side={side} collapsed={collapsed} label={label}
       controls={id} icon={collapseIcon} onClick={changeCollapsed} resizable={Boolean(onWidthChange)} resizePressed={resizePressed}

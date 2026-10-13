@@ -4,6 +4,9 @@
 
 ### Added
 
+- Fit resizable panes to their primary labels and controls by double-clicking
+  the resize edge or pressing Enter while it is focused, within existing limits.
+
 - Add Workspace Background to Styles → Colours, updating the surrounding workspace across Studio Drafts, local sites, Templates, and the UI Library.
 
 - Show blue date markers for days with existing published or scheduled posts in

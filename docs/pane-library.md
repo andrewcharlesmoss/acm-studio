@@ -29,7 +29,13 @@ product APIs, or read/write browser persistence. No real documents, designs or
 media are involved. Product data, commands, persistence and pane-specific
 interaction remain owned by their existing features.
 
-## Internal component contract — v1.2.0
+## Internal component contract — v1.3.0
+
+Double-click a resizable pane’s edge, or press Enter while its separator is
+focused, to fit primary labels and controls within the existing width limits.
+Secondary descriptions may wrap. Measurement uses the current content and tab
+allocation without cloning the DOM, changing styles, or moving focus. The round
+collapse control retains its normal click and keyboard behaviour.
 
 The compatibility contract covers the React props, slots, accessible behaviour
 and CSS tokens in `app/studio/panes/pane-components.tsx` and its scoped CSS.
