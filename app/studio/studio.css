@@ -1,5 +1,5 @@
 /* Workspace presentation belongs to Studio; public pages retain globals.css. */
-html[data-studio-focus-mode] { --studio-pane-surface: #fff; --studio-workspace-background: #f8fafc; }
+html[data-studio-focus-mode] { --studio-pane-surface: #fff; }
 /* The route scope includes portalled menus; specialised drag cursors still win. */
 html[data-studio-focus-mode] :where(button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"]):where(:not(:disabled):not([aria-disabled="true"])) { cursor: pointer; }
 html[data-studio-focus-mode] :is(button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"]):is(:disabled, [aria-disabled="true"]) { cursor: default; }

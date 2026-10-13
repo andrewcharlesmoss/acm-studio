@@ -664,6 +664,13 @@ letter spacing, and alignment as well as colour; `start` and `left` are equivale
 for these left-to-right documents. Do not edit or publish content during this
 check. Authored block/item colours must retain priority over inherited defaults.
 
+Styles → Colours exposes Workspace Background as `palette.workspaceBackground`
+in the shared preset (schema v0.8.0, reading v0.1.0–v0.7.0). It defaults to
+`#F8FAFC` and exports `--acm-color-workspace-background`. Save Shared Styles
+updates the stable `--studio-workspace-background` alias in loaded Studio tabs
+without remounting their drafts. The surrounding workspace is independent of
+pane surfaces and authored document backgrounds.
+
 Templates lists and template editing workspaces use `--studio-workspace-background`,
 matching Posts and Pages, including browser-local Studio Drafts in Edit and
 Preview. The UI Library’s template and content-editor specimens

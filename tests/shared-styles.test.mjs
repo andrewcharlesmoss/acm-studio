@@ -66,6 +66,26 @@ test("invalid values, unknown targets and schema changes leave files unchanged",
   assert.equal((await f.store.load()).revision, state.revision);
 });
 
+test("Workspace Background saves through the owned source transaction with normalised guide and bundle values", async t => {
+  const f = await fixture(t);
+  const before = await f.store.load();
+  const changed = structuredClone(before.preset);
+  changed.palette.workspaceBackground = "#dceeff";
+  const saved = await f.store.save({ revision: before.revision, preset: changed });
+  assert.equal(saved.preset.palette.workspaceBackground, "#DCEEFF");
+  assert.equal(saved.preset.palette.surface, before.preset.palette.surface);
+  assert.equal(JSON.parse(await readFile(f.presetPath, "utf8")).palette.workspaceBackground, "#DCEEFF");
+  const written = await readFile(f.guidePath, "utf8");
+  assert.match(written, /palette.workspaceBackground \| --acm-color-workspace-background \| #DCEEFF/);
+  const bundle = JSON.parse(await readFile(f.bundlePath, "utf8"));
+  assert.equal(bundle.document, written);
+  assert.match(bundle.mappings["palette.workspaceBackground"].excerpt, /#DCEEFF/);
+  const invalid = structuredClone(saved.preset);
+  invalid.palette.workspaceBackground = "url(unsafe)";
+  await assert.rejects(f.store.save({ revision: saved.revision, preset: invalid }));
+  assert.equal((await f.store.load()).revision, saved.revision);
+});
+
 test("external source changes and competing saves reject stale drafts", async t => {
   const f = await fixture(t);
   const state = await f.store.load();

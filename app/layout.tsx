@@ -28,6 +28,7 @@ export const metadata: Metadata = {
 const universalStyleTokens = universalStylePresetToCssVariables(UNIVERSAL_STYLE_PRESET) as Record<string, string>;
 const universalStyleVariables = {
   ...universalStyleTokens,
+  "--studio-workspace-background": universalStyleTokens["--acm-color-workspace-background"],
   // Editor controls must keep the shared action colours inside authored style scopes.
   "--studio-selection-colour": universalStyleTokens["--acm-interaction-selection-colour"],
   "--studio-range-accent": universalStyleTokens["--acm-interaction-control-accent-colour"],

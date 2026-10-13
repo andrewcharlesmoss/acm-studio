@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add Workspace Background to Styles → Colours, updating the surrounding workspace across Studio Drafts, local sites, Templates, and the UI Library.
+
 - Show blue date markers for days with existing published or scheduled posts in
   the publish calendar, with post counts in each marked day's accessible name.
 

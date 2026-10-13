@@ -221,3 +221,7 @@
 .acm-universal-style-preset .sg-interaction-specimen.sg-neutralControlHoverBackground:hover { background: var(--acm-interaction-neutral-control-hover-background); }
 .acm-universal-style-preset .sg-interaction-specimen.sg-menuItemHoverBackground:hover { background: var(--acm-interaction-menu-item-hover-background); }
 .acm-universal-style-preset .sg-interaction-specimen.sg-listItemHoverBackground:hover { background: var(--acm-interaction-list-item-hover-background); }
+
+.sg-workspace-hex { width: 100%; min-width: 0; padding: .25rem; border: 1px solid var(--rl-line); border-radius: 4px; font: inherit; color: var(--rl-muted); background: #fff; }
+
+.sg-colour-setting:has(.sg-workspace-hex) { grid-template-columns: minmax(0, 1fr) 42px 78px auto; }

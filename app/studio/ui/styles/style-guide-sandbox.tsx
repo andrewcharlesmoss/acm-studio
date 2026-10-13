@@ -59,6 +59,7 @@ const typographyRoles: { id: TypographyRole; label: string }[] = [
 ];
 const paletteRoles = [
   ["surface", "Surface"], ["surfaceRaised", "Raised surface"], ["surfaceSubtle", "Subtle surface"],
+  ["workspaceBackground", "Workspace Background"],
   ["textPrimary", "Primary text"], ["textSecondary", "Secondary text"], ["border", "Border"],
   ["accent", "Accent"], ["onAccent", "Text on accent"], ["success", "Success"],
   ["information", "Information"], ["alert", "Alert"], ["warning", "Warning"], ["rating", "Rating"],
@@ -463,7 +464,7 @@ export function StyleGuideSandbox() {
           </nav>
           <fieldset className="sg-setting-content" disabled={busy}>
             <div className="sg-setting-heading"><div><p className="rl-eyebrow">ACM UNIVERSAL STYLE</p><h3>{panel === "palette" ? "Colours" : panel === "typography" ? "Typography" : panel === "buttons" ? "Buttons" : panel === "interactions" ? "Interactions" : "Layout"}</h3></div>{panel !== "interactions" ? <button type="button" className="sg-reset-section" onClick={resetSection}>Reset section</button> : null}</div>
-            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting" data-style-path={`palette.${key}`} data-source-selected={selectedColourPath === `palette.${key}` ? "true" : undefined}><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} /><code>{preset.palette[key]}</code><button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, baseline.palette[key], false)}>Reset</button></div>)}</div> : null}
+            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting" data-style-path={`palette.${key}`} data-source-selected={selectedColourPath === `palette.${key}` ? "true" : undefined}><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} />{key === "workspaceBackground" ? <WorkspaceBackgroundHex key={preset.palette[key]} value={preset.palette[key]} onChange={value => setPaletteColour(key, value)} /> : <code>{preset.palette[key]}</code>}<button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, baseline.palette[key], false)}>Reset</button></div>)}</div> : null}
             {panel === "typography" ? <>
               <div className="sg-role-list" role="group" aria-label="Typography role">
                 {typographyRoles.map(item => <button type="button" key={item.id} aria-pressed={role === item.id} onClick={() => setRole(item.id)}>{item.label}</button>)}
@@ -541,6 +542,12 @@ export function StyleGuideSandbox() {
         />
       </div>
     </section>;
+}
+
+function WorkspaceBackgroundHex({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const valid = /^#[0-9a-f]{6}$/i.test(draft);
+  return <input className="sg-workspace-hex" data-style-path="palette.workspaceBackground" aria-label="Workspace Background hex colour" aria-invalid={!valid || undefined} type="text" maxLength={7} spellCheck={false} value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onBlur={() => { if (valid) onChange(draft.toUpperCase()); else setDraft(value); }} />;
 }
 
 function ColourControl({ stylePath, label, visibleLabel = label, descriptionId, value, onChange, onReset }: { stylePath: string; label: string; visibleLabel?: string; descriptionId?: string; value: string; onChange: (value: string) => void; onReset: () => void }) {
