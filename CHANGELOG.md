@@ -34,6 +34,9 @@
 
 ### Fixed
 
+- Allow Files actions from connected Studio tabs, synchronise open libraries,
+  and preserve unfinished edits with explicit conflict review.
+
 - Keep Design Canvas saving connected when Content or Templates owns the Studio
   writer, and reconnect safely while preserving pending edits and conflicts.
 

@@ -335,6 +335,14 @@ Restore uses its scoped permit, drains existing media work and keeps editing
 paused until reload or a complete rollback. Preserve read-only browsing and
 exports when another tab owns editing.
 
+Ordinary Files actions use the `acm-studio-media-v1` command broker: any connected
+Studio tab may submit, while the lifetime Web Lock owner alone saves. IndexedDB
+v2 commits command receipts with mutations, and library replacement renews its
+generation to block stale replay. Keep field-level conflict review, unfinished
+text and removed-item recovery visible. Notifications refresh open libraries
+and editor media URLs. Full replacement remains exclusive and image insertion
+retains the destination editor's own permission. See `docs/files-saving.md`.
+
 ## Project Ports local navigation
 
 The homepage discovers local website addresses through the dev-only

@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useMediaSession } from "./media-sync";
 import { getMediaAsset } from "./media-store";
 export { contentMediaIds } from "../content/media-references";
 
 export function useTemplateMedia(ids: string[]) {
+  const { revision: mediaRevision } = useMediaSession();
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const key = JSON.stringify([...new Set(ids)].sort());
@@ -17,6 +19,6 @@ export function useTemplateMedia(ids: string[]) {
       setUrls(next); setError(records.some(record => !record.asset) ? "A referenced image is missing from this browser." : null);
     }).catch(() => { if (!cancelled) setError("Template images could not be loaded."); });
     return () => { cancelled = true; created.forEach(url => URL.revokeObjectURL(url)); };
-  }, [key]);
+  }, [key, mediaRevision]);
   return { urls, error };
 }

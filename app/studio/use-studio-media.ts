@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ContentBlock } from "../content/model";
 import type { StudioCoverImage, StudioDocument } from "./editor-model";
+import { useMediaSession } from "./media-sync";
 import { getMediaAsset, type MediaAsset } from "./media-store";
 import { contentMediaIds } from "../content/media-references";
 
@@ -25,6 +26,7 @@ export function useStudioMedia({
   onReturnToDocument: (target: "document" | "block") => void;
   onFeedback?: (message: string) => void;
 }) {
+  const { revision: mediaRevision } = useMediaSession();
   const [targetBlockId, setTargetBlockId] = useState<string | null>(null);
   const [targetCover, setTargetCover] = useState(false);
   const [targetBackground, setTargetBackground] = useState(false);
@@ -61,7 +63,7 @@ export function useStudioMedia({
       });
     }).catch(() => undefined);
     return () => { cancelled = true; };
-  }, [referencedMediaKey]);
+  }, [referencedMediaKey, mediaRevision]);
 
   useEffect(() => () => {
     Object.values(blockUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));

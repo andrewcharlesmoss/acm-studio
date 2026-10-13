@@ -6,19 +6,14 @@ import { StudioButton } from "./controls/button";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { StudioIcon, type StudioIconName } from "./studio-icons";
 import {
-  addMediaFiles,
-  createMediaFolder,
-  colourMediaFolder,
-  deleteMediaAsset,
-  deleteMediaFolder,
   listMediaLibrary,
-  moveMediaFolder,
+  getMediaAsset,
   prepareMediaFolderMove,
-  renameMediaFolder,
-  updateMediaAsset,
   type MediaAsset,
   type MediaFolder,
 } from "./media-store";
+import { assetBefore, folderBefore, type MediaCommand, type MediaAssetPatch } from "./media-command";
+import { submitMediaCommand, useMediaSession } from "./media-sync";
 import { loadDesigns } from "./design-store";
 
 type MediaFilter = "all" | "image" | "document" | "video" | "audio";
@@ -27,6 +22,7 @@ type MediaSort = "newest" | "name" | "size";
 type MediaManagerProps = {
   writable: boolean;
   targetLabel: string;
+  targetOwnerId: string;
   targetKind?: "block" | "cover" | "background";
   onInsertImage: (asset: MediaAsset, objectUrl?: string, altText?: string) => void;
 };
@@ -52,7 +48,14 @@ function fileIcon(type: string): StudioIconName {
   return "file";
 }
 
-export function MediaManager({ writable, targetLabel, targetKind = "block", onInsertImage }: MediaManagerProps) {
+export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind = "block", onInsertImage }: MediaManagerProps) {
+  const mediaSession = useMediaSession();
+  const canonicalRef = useRef<{ assets: MediaAsset[]; folders: MediaFolder[] }>({ assets: [], folders: [] });
+  const assetDrafts = useRef(new Map<string, { before: MediaAssetPatch; update: MediaAssetPatch }>());
+  const folderDrafts = useRef(new Map<string, { before: string; name: string }>());
+  const refreshSequence = useRef(0);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [conflict, setConflict] = useState<{ command: MediaCommand; retry: MediaCommand | null; latest: string; reason: string } | null>(null);
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [designLinks, setDesignLinks] = useState<Record<string, { designId: string; pageId: string }>>({});
   const [folders, setFolders] = useState<MediaFolder[]>([]);
@@ -81,11 +84,15 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
   const mountedRef = useRef(false);
   const epochRef = useRef(0);
   const renderEpoch = epochRef.current;
-  const canMutate = writable && libraryReady && !busy;
+  const canMutate = mediaSession.ready && libraryReady && !busy && !conflict;
+  const canInsert = writable && libraryReady && !busy;
+  const insertionGuard = useRef({ allowed: false, context: "", onInsertImage });
+  const insertionContext = `${targetOwnerId}/${targetKind}/${targetLabel}`;
+  useLayoutEffect(() => { insertionGuard.current = { allowed: canInsert, context: insertionContext, onInsertImage }; }, [canInsert, insertionContext, onInsertImage]);
   const [status, setStatus] = useState("Loading local files…");
   const [objectUrls, setObjectUrls] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [inlineRename, setInlineRename] = useState<{ id: string; kind: "folder" | "file"; name: string } | null>(null);
+  const [inlineRename, setInlineRename] = useState<{ id: string; kind: "folder" | "file"; name: string; before: string } | null>(null);
   const inlineRenameRef = useRef<HTMLInputElement>(null);
   const inlineRenameFinishedRef = useRef(false);
   const folderNameInputRef = useRef<HTMLInputElement>(null);
@@ -94,14 +101,18 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
   const insertAltTriggerRef = useRef<HTMLButtonElement>(null);
   const [insertAltAsset, setInsertAltAsset] = useState<MediaAsset | null>(null);
   const [insertAltText, setInsertAltText] = useState("");
+  const [insertError, setInsertError] = useState("");
+  const [insertionBusy, setInsertionBusy] = useState(false);
+  const insertionBusyRef = useRef(false);
   const folderNameFocusTargetIdRef = useRef<string | null>(null);
   const objectUrlsRef = useRef<Record<string, string>>({});
 
   async function refreshLibrary(message = "Files stored locally in this browser") {
     const epoch = epochRef.current;
+    const sequence = ++refreshSequence.current;
     try {
       const library = await listMediaLibrary();
-      if (!mountedRef.current || epoch !== epochRef.current) return;
+      if (!mountedRef.current || epoch !== epochRef.current || sequence !== refreshSequence.current) return;
       const nextUrls: Record<string, string> = {};
       for (const asset of library.assets) {
         if (asset.type.startsWith("image/")) nextUrls[asset.id] = URL.createObjectURL(asset.blob);
@@ -109,13 +120,15 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
       Object.values(objectUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
       objectUrlsRef.current = nextUrls;
       setObjectUrls(nextUrls);
-      setAssets(library.assets);
+      canonicalRef.current = library;
+      setAssets(library.assets.map(asset => ({ ...asset, ...assetDrafts.current.get(asset.id)?.update })));
+      setLibraryReady(true);
       try {
         const links: Record<string, { designId: string; pageId: string }> = {};
         for (const design of loadDesigns()) for (const page of design.pages) if (page.renderedMediaId) links[page.renderedMediaId] = { designId: design.id, pageId: page.id };
         setDesignLinks(links);
       } catch { setDesignLinks({}); }
-      setFolders(library.folders);
+      setFolders(library.folders.map(folder => ({ ...folder, ...(folderDrafts.current.has(folder.id) ? { name: folderDrafts.current.get(folder.id)!.name } : {}) })));
       setCurrentFolderId((id) => id && !library.folders.some((folder) => folder.id === id) ? null : id);
       setStatus(message);
     } catch {
@@ -124,43 +137,74 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
   }
 
   useEffect(() => {
-    let cancelled = false;
     mountedRef.current = true;
     epochRef.current += 1;
-    void listMediaLibrary().then((library) => {
-      if (cancelled) return;
-      const nextUrls: Record<string, string> = {};
-      for (const asset of library.assets) {
-        if (asset.type.startsWith("image/")) nextUrls[asset.id] = URL.createObjectURL(asset.blob);
-      }
-      queueMicrotask(() => {
-        if (cancelled) {
-          Object.values(nextUrls).forEach((url) => URL.revokeObjectURL(url));
-          return;
-        }
-        objectUrlsRef.current = nextUrls;
-        setObjectUrls(nextUrls);
-        setAssets(library.assets);
-        try {
-          const links: Record<string, { designId: string; pageId: string }> = {};
-          for (const design of loadDesigns()) for (const page of design.pages) if (page.renderedMediaId) links[page.renderedMediaId] = { designId: design.id, pageId: page.id };
-          setDesignLinks(links);
-        } catch { setDesignLinks({}); }
-        setFolders(library.folders);
-        setLibraryReady(true);
-        setStatus("Files stored locally in this browser");
-      });
-    }).catch(() => {
-      if (!cancelled) queueMicrotask(() => { if (!cancelled) setStatus("The local media library is unavailable in this browser"); });
-    });
+    queueMicrotask(() => { if (mountedRef.current) void refreshLibrary(); });
     return () => {
-      cancelled = true;
       mountedRef.current = false;
       epochRef.current += 1;
-      Object.values(objectUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      Object.values(objectUrlsRef.current).forEach(url => URL.revokeObjectURL(url));
       objectUrlsRef.current = {};
     };
+    // The refresh reads refs rather than render state.
   }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => { if (mountedRef.current) void refreshLibrary(); });
+  }, [mediaSession.revision]);
+
+  function draftAsset(asset: MediaAsset, update: MediaAssetPatch) {
+    const draft = assetDrafts.current.get(asset.id) ?? { before: {}, update: {} };
+    for (const key of Object.keys(update) as Array<keyof MediaAssetPatch>) {
+      if (!(key in draft.before)) Object.assign(draft.before, { [key]: canonicalRef.current.assets.find(item => item.id === asset.id)?.[key] ?? asset[key] });
+    }
+    Object.assign(draft.update, update);
+    assetDrafts.current.set(asset.id, draft);
+    setAssets(current => current.map(item => item.id === asset.id ? { ...item, ...update } : item));
+  }
+
+  function draftFolder(folder: MediaFolder, name: string) {
+    const before = folderDrafts.current.get(folder.id)?.before ?? canonicalRef.current.folders.find(item => item.id === folder.id)?.name ?? folder.name;
+    folderDrafts.current.set(folder.id, { before, name });
+    setFolders(current => current.map(item => item.id === folder.id ? { ...item, name } : item));
+  }
+
+  function clearCommandDraft(command: MediaCommand) {
+    if (command.kind === "update-asset") {
+      const draft = assetDrafts.current.get(command.id);
+      if (draft) {
+        for (const key of Object.keys(command.update) as Array<keyof MediaAssetPatch>) { delete draft.before[key]; delete draft.update[key]; }
+        if (!Object.keys(draft.update).length) assetDrafts.current.delete(command.id);
+      }
+    } else if (command.kind === "rename-folder") folderDrafts.current.delete(command.id);
+  }
+
+  async function reviewCommand(command: MediaCommand, error: unknown) {
+    const reason = error instanceof Error ? error.message : "The file action was not saved.";
+    if (mountedRef.current) { setReviewOpen(true); setConflict({ command, retry: null, latest: "Loading latest details…", reason }); }
+    try {
+      const library = await listMediaLibrary();
+      const asset = "id" in command ? library.assets.find(item => item.id === command.id) : undefined;
+      const folder = "id" in command ? library.folders.find(item => item.id === command.id) : undefined;
+      let retry: MediaCommand | null = command;
+      if (command.kind === "update-asset") retry = asset ? { ...command, before: Object.fromEntries(Object.keys(command.update).map(key => [key, asset[key as keyof MediaAssetPatch]])) } : null;
+      else if (command.kind === "rename-folder") retry = folder ? { ...command, before: folder.name } : null;
+      else if (command.kind === "colour-folder") retry = folder ? { ...command, before: folder.colour ?? null } : null;
+      else if (command.kind === "move-folder") retry = folder ? { ...command, before: folder.parentId } : null;
+      else if (command.kind === "delete-folder") retry = folder ? { ...command, before: folderBefore(folder) } : null;
+      else if (command.kind === "delete-asset") retry = asset ? { ...command, before: assetBefore(asset) } : null;
+      else if (command.kind === "create-folder" && library.folders.some(item => item.id === command.folder.id)) retry = null;
+      else if (command.kind === "upload" && command.files.some(file => library.assets.some(item => item.id === file.id))) retry = null;
+      if (mountedRef.current) setConflict({ command, retry, latest: asset ? `Name: ${asset.name}\nFolder: ${library.folders.find(item => item.id === asset.folderId)?.name ?? "All files"}\nAlternative text: ${asset.altText || "None"}\nCaption: ${asset.caption || "None"}` : folder ? `Name: ${folder.name}\nFolder: ${library.folders.find(item => item.id === folder.parentId)?.name ?? "All files"}\nColour: ${folder.colour ?? "None"}` : "The item is missing, or this creation may already have been saved. Check the latest library.", reason });
+    } catch {
+      if (mountedRef.current) setConflict({ command, retry: null, latest: "The latest library is unavailable. Your action is kept here; reload the details before retrying.", reason });
+    }
+  }
+
+  async function sendCommand(command: MediaCommand) {
+    try { await submitMediaCommand(command); clearCommandDraft(command); }
+    catch (error) { await reviewCommand(command, error); throw error; }
+  }
 
   const folderMap = useMemo(() => new Map(folders.map((folder) => [folder.id, folder])), [folders]);
   const selectedAsset = assets.find((asset) => asset.id === selectedAssetId) ?? null;
@@ -170,10 +214,32 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
   const selectedContainerId = selectedAsset?.folderId ?? selectedFolder?.parentId ?? null;
   const selectedContainer = selectedContainerId ? folderMap.get(selectedContainerId) ?? null : null;
 
+  async function checkedImage(id: string) {
+    if (insertionBusyRef.current) return;
+    insertionBusyRef.current = true;
+    setInsertionBusy(true);
+    const epoch = epochRef.current;
+    const context = insertionGuard.current.context;
+    try {
+      const latest = await getMediaAsset(id).catch(() => undefined);
+      if (!mountedRef.current || epoch !== epochRef.current || !insertionGuard.current.allowed || context !== insertionGuard.current.context) return;
+      if (!latest?.type.startsWith("image/")) {
+        setInsertError("This image is no longer available. Your alternative text is kept here.");
+        setStatus("This image is no longer available. Choose another image.");
+        return;
+      }
+      return latest;
+    } finally {
+      insertionBusyRef.current = false;
+      if (mountedRef.current && epoch === epochRef.current) setInsertionBusy(false);
+    }
+  }
+
   function requestImageInsert(asset: MediaAsset, trigger?: HTMLButtonElement) {
-    if (!canMutate) return;
+    if (!canInsert || insertionBusyRef.current) return;
+    setInsertError("");
     if (targetKind === "background") {
-      onInsertImage(asset, objectUrls[asset.id]);
+      void checkedImage(asset.id).then(latest => { if (latest) insertionGuard.current.onInsertImage(latest, objectUrls[latest.id]); });
       return;
     }
     insertAltTriggerRef.current = trigger ?? null;
@@ -181,9 +247,11 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
     setInsertAltAsset(asset);
   }
 
-  function confirmImageInsert() {
-    if (!insertAltAsset || !canMutate) return;
-    onInsertImage(insertAltAsset, objectUrls[insertAltAsset.id], insertAltText.trim());
+  async function confirmImageInsert() {
+    if (!insertAltAsset || !canInsert) return;
+    const latest = await checkedImage(insertAltAsset.id);
+    if (!latest) return;
+    insertionGuard.current.onInsertImage(latest, objectUrls[latest.id], insertAltText.trim());
     setInsertAltAsset(null);
   }
 
@@ -265,8 +333,7 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
     setBusy(true);
     try { return await operation(); }
     catch (error) {
-      // Reload canonical metadata after a failed edit so an unsaved field is
-      // not left looking like a successful file update.
+      // Refresh other records while retaining this tab's unsaved field values.
       await refreshLibrary(error instanceof Error ? error.message : "The file operation could not be completed.");
     } finally {
       busyRef.current = false;
@@ -282,7 +349,7 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
         const tooLarge = selected.find((file) => file.size > 100 * 1024 * 1024);
         if (tooLarge) throw new Error(`${tooLarge.name} is larger than the 100 MB local limit`);
         setStatus(`Adding ${selected.length} ${selected.length === 1 ? "file" : "files"}…`);
-        await addMediaFiles(selected, currentFolderId);
+        await sendCommand({ kind: "upload", folderId: currentFolderId, createdAt: new Date().toISOString(), files: selected.map(file => ({ id: `media-${crypto.randomUUID()}`, name: file.name, type: file.type || "application/octet-stream", blob: file })) });
         await refreshLibrary(`${selected.length} ${selected.length === 1 ? "file" : "files"} added locally`);
       });
     } finally { if (fileInputRef.current) fileInputRef.current.value = ""; }
@@ -299,7 +366,8 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
   async function createFolder() {
     const name = nextUntitledFolderName();
     await mutate(async () => {
-      const folder = await createMediaFolder(name, currentFolderId);
+      const folder: MediaFolder = { id: `folder-${crypto.randomUUID()}`, name, parentId: currentFolderId, createdAt: new Date().toISOString() };
+      await sendCommand({ kind: "create-folder", folder });
       await refreshLibrary(`Folder “${name}” created`);
       setSelectedAssetId(null);
       setSelectedFolderId(folder.id);
@@ -307,19 +375,26 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
     });
   }
 
-  async function saveFolderName(folderId: string, name: string) {
+  async function saveFolderName(folderId: string, name: string, before?: string) {
     await mutate(async () => {
       const nextName = name.trim();
       if (!nextName) throw new Error("A folder name is required.");
-      await renameMediaFolder(folderId, nextName);
+      const original = before ?? folderDrafts.current.get(folderId)?.before ?? canonicalRef.current.folders.find(folder => folder.id === folderId)?.name;
+      if (original === undefined) throw new Error("This folder no longer exists.");
+      if (original === nextName && !folderDrafts.current.has(folderId)) return;
+      await sendCommand({ kind: "rename-folder", id: folderId, name: nextName, before: original });
       await refreshLibrary("Folder renamed");
     });
   }
 
-  async function saveAsset(update: Partial<Pick<MediaAsset, "name" | "folderId" | "altText" | "caption">>, assetId = selectedAsset?.id) {
+  async function saveAsset(update: Partial<Pick<MediaAsset, "name" | "folderId" | "altText" | "caption">>, assetId = selectedAsset?.id, originalName?: string) {
     if (!assetId) return;
     await mutate(async () => {
-      await updateMediaAsset(assetId, update);
+      const original = canonicalRef.current.assets.find(asset => asset.id === assetId);
+      if (!original) throw new Error("This file no longer exists.");
+      const draft = assetDrafts.current.get(assetId);
+      const before = Object.fromEntries(Object.keys(update).map(key => [key, key === "name" && originalName !== undefined ? originalName : draft?.before[key as keyof MediaAssetPatch] ?? original[key as keyof MediaAssetPatch]]));
+      await sendCommand({ kind: "update-asset", id: assetId, update, before });
       await refreshLibrary("File details saved locally");
     });
   }
@@ -328,7 +403,7 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
     if (!selectedAsset) return;
     await mutate(async () => {
       if (!window.confirm(`Delete “${selectedAsset.name}” from this browser?`)) return;
-      await deleteMediaAsset(selectedAsset.id);
+      await sendCommand({ kind: "delete-asset", id: selectedAsset.id, before: assetBefore(canonicalRef.current.assets.find(asset => asset.id === selectedAsset.id) ?? selectedAsset) });
       setSelectedAssetId(null);
       await refreshLibrary("File deleted from this browser");
     });
@@ -338,7 +413,7 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
     if (!selectedFolder) return;
     await mutate(async () => {
       if (!window.confirm(`Delete the empty folder “${selectedFolder.name}”?`)) return;
-      await deleteMediaFolder(selectedFolder.id);
+      await sendCommand({ kind: "delete-folder", id: selectedFolder.id, before: folderBefore(canonicalRef.current.folders.find(folder => folder.id === selectedFolder.id) ?? selectedFolder) });
       setSelectedFolderId(null);
       await refreshLibrary("Folder deleted");
     });
@@ -420,7 +495,9 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
   async function changeFolderColour(id: string, colour: string) {
     closeFolderMenu();
     await mutate(async () => {
-      await colourMediaFolder(id, colour || null);
+      const folder = canonicalRef.current.folders.find(item => item.id === id);
+      if (!folder) throw new Error("This folder no longer exists.");
+      await sendCommand({ kind: "colour-folder", id, colour: colour || null, before: folder.colour ?? null });
       await refreshLibrary("Folder colour changed");
     });
   }
@@ -461,8 +538,15 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
 
   async function moveMediaEntry(entry: { id: string; kind: "folder" | "file" }, parentId: string | null) {
     await mutate(async () => {
-      if (entry.kind === "folder") await moveMediaFolder(entry.id, parentId);
-      else await updateMediaAsset(entry.id, { folderId: parentId });
+      if (entry.kind === "folder") {
+        const folder = canonicalRef.current.folders.find(item => item.id === entry.id);
+        if (!folder) throw new Error("This folder no longer exists.");
+        await sendCommand({ kind: "move-folder", id: entry.id, parentId, before: folder.parentId });
+      } else {
+        const asset = canonicalRef.current.assets.find(item => item.id === entry.id);
+        if (!asset) throw new Error("This file no longer exists.");
+        await sendCommand({ kind: "update-asset", id: entry.id, update: { folderId: parentId }, before: { folderId: asset.folderId } });
+      }
       await refreshLibrary(`Moved to ${parentId ? folderMap.get(parentId)?.name ?? "folder" : "All files"}`);
     });
   }
@@ -526,8 +610,10 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
     const name = inlineRename.name.trim();
     setInlineRename(null);
     if (!name) { setStatus("A name is required. The original name was kept."); return; }
-    if (inlineRename.kind === "folder") await saveFolderName(inlineRename.id, name);
-    else await saveAsset({ name }, inlineRename.id);
+    if (inlineRename.kind === "folder") { folderDrafts.current.set(inlineRename.id, { name, before: inlineRename.before }); }
+    else { assetDrafts.current.set(inlineRename.id, { update: { ...assetDrafts.current.get(inlineRename.id)?.update, name }, before: { ...assetDrafts.current.get(inlineRename.id)?.before, name: inlineRename.before } }); }
+    if (inlineRename.kind === "folder") await saveFolderName(inlineRename.id, name, inlineRename.before);
+    else await saveAsset({ name }, inlineRename.id, inlineRename.before);
   }
 
   const totalSize = assets.reduce((total, asset) => total + asset.size, 0);
@@ -633,13 +719,13 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
                   <img src={objectUrls[selectedAsset.id]} alt="" />
                 ) : <span><StudioIcon name={fileIcon(selectedAsset.type)} /></span>}
               </section>
-              <section><h2>File details</h2><label><span>Name</span><input disabled={!canMutate} value={selectedAsset.name} onChange={(event) => { if (canMutate) setAssets((current) => current.map((asset) => asset.id === selectedAsset.id ? { ...asset, name: event.target.value } : asset)); }} onBlur={(event) => void saveAsset({ name: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label><dl><div><dt>Type</dt><dd>{selectedAsset.type}</dd></div><div><dt>Size</dt><dd>{formatBytes(selectedAsset.size)}</dd></div><div><dt>Added</dt><dd>{new Date(selectedAsset.createdAt).toLocaleDateString("en-GB")}</dd></div></dl></section>
+              <section><h2>File details</h2><label><span>Name</span><input disabled={!canMutate} value={selectedAsset.name} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { name: event.target.value }); }} onBlur={(event) => void saveAsset({ name: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label><dl><div><dt>Type</dt><dd>{selectedAsset.type}</dd></div><div><dt>Size</dt><dd>{formatBytes(selectedAsset.size)}</dd></div><div><dt>Added</dt><dd>{new Date(selectedAsset.createdAt).toLocaleDateString("en-GB")}</dd></div></dl></section>
               <section><h2>Organisation</h2><label><span>Folder</span><select disabled={!canMutate} value={selectedAsset.folderId ?? ""} onChange={(event) => void saveAsset({ folderId: event.target.value || null })}><option value="">All files</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label></section>
-              {selectedAsset.type.startsWith("image/") ? <section><h2>Image information</h2>{targetKind !== "background" ? <label><span>Alternative text</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.altText} onChange={(event) => { if (canMutate) setAssets((current) => current.map((asset) => asset.id === selectedAsset.id ? { ...asset, altText: event.target.value } : asset)); }} onBlur={(event) => void saveAsset({ altText: event.target.value })} placeholder="Describe the image for people who cannot see it" /></label> : <p className="setting-note">Background images are decorative and do not need alternative text.</p>}<label><span>Caption</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.caption} onChange={(event) => { if (canMutate) setAssets((current) => current.map((asset) => asset.id === selectedAsset.id ? { ...asset, caption: event.target.value } : asset)); }} onBlur={(event) => void saveAsset({ caption: event.target.value })} /></label><button ref={insertAltTriggerRef} className="media-insert-button" type="button" disabled={!canMutate} onClick={(event) => requestImageInsert(selectedAsset, event.currentTarget)}>{targetKind === "cover" ? "Use as cover image" : targetKind === "background" ? "Use as background image" : `Insert into ${targetLabel}`}</button></section> : null}
+              {selectedAsset.type.startsWith("image/") ? <section><h2>Image information</h2>{targetKind !== "background" ? <label><span>Alternative text</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.altText} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { altText: event.target.value }); }} onBlur={(event) => void saveAsset({ altText: event.target.value })} placeholder="Describe the image for people who cannot see it" /></label> : <p className="setting-note">Background images are decorative and do not need alternative text.</p>}<label><span>Caption</span><textarea disabled={!canMutate} rows={3} value={selectedAsset.caption} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { caption: event.target.value }); }} onBlur={(event) => void saveAsset({ caption: event.target.value })} /></label><button ref={insertAltTriggerRef} className="media-insert-button" type="button" disabled={!canInsert || insertionBusy} onClick={(event) => requestImageInsert(selectedAsset, event.currentTarget)}>{targetKind === "cover" ? "Use as cover image" : targetKind === "background" ? "Use as background image" : `Insert into ${targetLabel}`}</button></section> : null}
               <section className="media-file-actions"><h2>Actions</h2><button type="button" onClick={downloadAsset}>Download</button><button className="danger-button" type="button" disabled={!canMutate} onClick={() => void removeAsset()}>Delete file</button></section>
             </div>
           ) : selectedFolder ? (
-            <div className="media-detail-sections"><section className="folder-detail"><span style={{ color: selectedFolder.colour }}><StudioIcon name="folder" /></span><label><span>Name</span><input ref={folderNameInputRef} disabled={!canMutate} value={selectedFolder.name} onChange={(event) => { if (canMutate) setFolders((current) => current.map((folder) => folder.id === selectedFolder.id ? { ...folder, name: event.target.value } : folder)); }} onBlur={(event) => void saveFolderName(selectedFolder.id, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label><p>Folder in {currentFolder?.name ?? "All files"}</p></section><section className="media-file-actions"><h2>Folder actions</h2><label><span>Move to folder</span><select disabled={!canMutate} value={selectedFolder.parentId ?? ""} onChange={(event) => void moveMediaEntry({ id: selectedFolder.id, kind: "folder" }, event.target.value || null)}><option value="">All files</option>{folders.filter((folder) => allowedFolderDestination(selectedFolder.id, folder.id)).map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label><button type="button" onClick={openFolder.bind(null, selectedFolder)}>Open folder</button><button className="danger-button" type="button" disabled={!canMutate} onClick={() => void removeFolder()}>Delete empty folder</button></section></div>
+            <div className="media-detail-sections"><section className="folder-detail"><span style={{ color: selectedFolder.colour }}><StudioIcon name="folder" /></span><label><span>Name</span><input ref={folderNameInputRef} disabled={!canMutate} value={selectedFolder.name} onChange={(event) => { if (canMutate) draftFolder(selectedFolder, event.target.value); }} onBlur={(event) => void saveFolderName(selectedFolder.id, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label><p>Folder in {currentFolder?.name ?? "All files"}</p></section><section className="media-file-actions"><h2>Folder actions</h2><label><span>Move to folder</span><select disabled={!canMutate} value={selectedFolder.parentId ?? ""} onChange={(event) => void moveMediaEntry({ id: selectedFolder.id, kind: "folder" }, event.target.value || null)}><option value="">All files</option>{folders.filter((folder) => allowedFolderDestination(selectedFolder.id, folder.id)).map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label><button type="button" onClick={openFolder.bind(null, selectedFolder)}>Open folder</button><button className="danger-button" type="button" disabled={!canMutate} onClick={() => void removeFolder()}>Delete empty folder</button></section></div>
           ) : (
             <div className="media-details-empty"><span><StudioIcon name="info" /></span><p>Select a file or folder to see its information and actions.</p></div>
           )}
@@ -664,7 +750,7 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
           const item = folderMenu.kind === "file" ? selectedAsset : selectedFolder;
           if (!item) return;
           inlineRenameFinishedRef.current = false;
-          setInlineRename({ id: item.id, kind: folderMenu.kind, name: item.name });
+          setInlineRename({ id: item.id, kind: folderMenu.kind, name: item.name, before: item.name });
           closeFolderMenu(false);
         }}><StudioIcon name="pencil" size={16} />Rename</button>
         {selectedContainer ? <button type="button" role="menuitem" disabled={!canMutate} onClick={() => {
@@ -695,14 +781,38 @@ export function MediaManager({ writable, targetLabel, targetKind = "block", onIn
       </dialog> : null}
 
       {insertAltAsset ? <StudioDialog title="Describe this image" className="media-alt-dialog" returnFocus={insertAltTriggerRef} selectInitialText onClose={() => setInsertAltAsset(null)}>
-        <form onSubmit={(event) => { event.preventDefault(); confirmImageInsert(); }}>
+        <form onSubmit={(event) => { event.preventDefault(); void confirmImageInsert(); }}>
           <p>Provide alternative text for people who cannot see the image.</p>
-          <label><span>Alternative text</span><textarea disabled={!canMutate} rows={4} value={insertAltText} onChange={(event) => setInsertAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>
-          <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={() => setInsertAltAsset(null)}>Cancel</StudioButton><StudioButton type="submit" disabled={!canMutate}>{targetKind === "cover" ? "Use as cover image" : "Insert image"}</StudioButton></StudioDialogActions>
+          {insertError || !assets.some(asset => asset.id === insertAltAsset.id) ? <p role="alert">{insertError || "This image was removed in another tab. Your alternative text is kept here."}</p> : null}
+          <label><span>Alternative text</span><textarea disabled={!canInsert} rows={4} value={insertAltText} onChange={(event) => setInsertAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>
+          <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={() => setInsertAltAsset(null)}>Cancel</StudioButton><StudioButton type="submit" disabled={!canInsert || insertionBusy || !assets.some(asset => asset.id === insertAltAsset.id)}>{targetKind === "cover" ? "Use as cover image" : "Insert image"}</StudioButton></StudioDialogActions>
         </form>
       </StudioDialog> : null}
 
-      <footer className="media-status"><span aria-live="polite">{writable ? status : "Read-only files. Browsing and downloads remain available."}</span><span>{assets.length} {assets.length === 1 ? "file" : "files"} · {folders.length} {folders.length === 1 ? "folder" : "folders"} · {formatBytes(totalSize)}</span></footer>
+      {conflict && reviewOpen ? <StudioDialog title="Review file change" className="media-change-dialog" onClose={() => setReviewOpen(false)}>
+        <p>{conflict.reason}</p>
+        <p>Your action: {conflict.command.kind.replaceAll("-", " ")}</p>
+        {conflict.command.kind === "rename-folder" ? <p>Your name: {conflict.command.name}</p> : conflict.command.kind === "update-asset" ? <p>{Object.entries(conflict.command.update).map(([key, value]) => `${key === "altText" ? "Alternative text" : key === "folderId" ? "Folder" : key === "caption" ? "Caption" : "Name"}: ${key === "folderId" ? folders.find(folder => folder.id === value)?.name ?? "All files" : value || "None"}`).join("; ")}</p> : null}
+        <h3>Latest saved details</h3><p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{conflict.latest}</p>
+        <StudioDialogActions>
+          <StudioButton variant="secondary" disabled={busy} onClick={() => void reviewCommand(conflict.command, new Error(conflict.reason))}>Reload details</StudioButton>
+          <StudioButton variant="secondary" disabled={busy} onClick={() => { clearCommandDraft(conflict.command); setConflict(null); void refreshLibrary("Latest saved details loaded"); }}>Use saved version</StudioButton>
+          <StudioButton disabled={!mediaSession.ready || busy || !conflict.retry} onClick={() => {
+            const retry = conflict.retry;
+            if (!retry) return;
+            setBusy(true); busyRef.current = true;
+            void sendCommand(retry).then(() => { setConflict(null); return refreshLibrary("File change saved"); }).catch(() => undefined).finally(() => { busyRef.current = false; if (mountedRef.current) setBusy(false); });
+          }}>{conflict.command.kind.startsWith("delete-") ? "Delete reviewed item" : "Apply my change"}</StudioButton>
+        </StudioDialogActions>
+      </StudioDialog> : null}
+
+      {[...assetDrafts.current].filter(([id]) => !assets.some(asset => asset.id === id)).map(([id, draft]) => <section key={id} role="note" className="media-recovery-note"><h2>Unsaved details for a removed file</h2><p>Another tab removed this file. Your text is kept here so you can copy it.</p>{Object.entries(draft.update).map(([field, value]) => <p key={field}>{field === "altText" ? "Alternative text" : field === "caption" ? "Caption" : "Name"}: {value}</p>)}<StudioButton onClick={() => { assetDrafts.current.delete(id); void refreshLibrary(); }}>Discard unsaved details</StudioButton></section>)}
+      {[...folderDrafts.current].filter(([id]) => !folders.some(folder => folder.id === id)).map(([id, draft]) => <section key={id} role="note" className="media-recovery-note"><h2>Unsaved name for a removed folder</h2><p>{draft.name}</p><StudioButton onClick={() => { folderDrafts.current.delete(id); void refreshLibrary(); }}>Discard unsaved name</StudioButton></section>)}
+      {inlineRename && !(inlineRename.kind === "file" ? assets : folders).some(item => item.id === inlineRename.id) ? <section role="note" className="media-recovery-note"><h2>Unsaved name for a removed item</h2><p>{inlineRename.name}</p><StudioButton onClick={() => setInlineRename(null)}>Discard unsaved name</StudioButton></section> : null}
+
+      {conflict && !reviewOpen ? <section role="note" className="media-recovery-note"><p>An unfinished file action needs review. Your change is kept.</p><StudioButton onClick={() => setReviewOpen(true)}>Review file change</StudioButton></section> : null}
+
+      <footer className="media-status"><span aria-live="polite">{mediaSession.ready ? assetDrafts.current.size || folderDrafts.current.size ? "Unsaved file details — leave the field to save, or review any conflict." : status : mediaSession.error || "Files reconnecting. Browsing and downloads remain available."}</span><span>{assets.length} {assets.length === 1 ? "file" : "files"} · {folders.length} {folders.length === 1 ? "folder" : "folders"} · {formatBytes(totalSize)}</span></footer>
     </section>
   );
 }

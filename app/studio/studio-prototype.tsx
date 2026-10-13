@@ -106,7 +106,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     return () => { cancelled = true; };
   }, [globalTemplates.library, templateTarget, selectedSite, previewWindow]);
   const testContext = useTestSiteContext(testSite, studioSession, previewDocumentId, globalTemplates.library, globalTemplates.initialised);
-  const { workspace, ownershipGeneration, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument: updateWorkspaceDocument, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot, templateAuthoringSnapshot, browserTemplateSession } = useDocumentTemplates(studioSession, openTemplateTarget, selectedSite ? testContext : undefined, globalTemplates);
+  const { workspace, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument: updateWorkspaceDocument, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot, templateAuthoringSnapshot, browserTemplateSession } = useDocumentTemplates(studioSession, openTemplateTarget, selectedSite ? testContext : undefined, globalTemplates);
   const currentWorkspaceSession = selectedSite ? testContext.session : studioSession;
   const importAttempt = useRef(false);
   useEffect(() => {
@@ -517,8 +517,8 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             onSaveAsTemplate: saveAsTemplate,
           }}
         /> : studioSection === "files" ? <MediaManager
-          key={ownershipGeneration}
-          writable={exclusiveWritable}
+          writable={writable}
+          targetOwnerId={`${activeDocument.id}/${media.targetBlockId ?? ""}`}
           targetLabel={media.targetCover ? "Cover image" : media.targetBackground ? "Background image" : media.targetBlockId ? "Image block" : "Media library"}
           targetKind={media.targetCover ? "cover" : media.targetBackground ? "background" : "block"}
           onInsertImage={(asset, _objectUrl, altText) => {
