@@ -11,6 +11,9 @@
 
 ### Changed
 
+- Use catalogue icons and quick tooltips for Edit Navigation and Export Saved
+  Global Library in the template scope notice.
+
 - Show creation-button tooltips after 200 ms on first hover, immediately when
   moving within a group, and immediately on keyboard focus.
 

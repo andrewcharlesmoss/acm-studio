@@ -452,3 +452,6 @@
 .template-entry-actions:not(:disabled):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
 
 .template-reset-all-styles { padding: 16px; border-top: 1px solid var(--studio-border, #d1d1d6); }
+
+.template-scope-actions { display: flex; gap: 8px; }
+.template-scope-actions .acm-button { align-items: center; display: flex; justify-content: center; min-height: 42px; min-width: 42px; padding: 8px; }
