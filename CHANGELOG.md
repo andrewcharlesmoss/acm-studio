@@ -43,6 +43,10 @@
 
 ### Fixed
 
+- Restore the shared Publishing section for Test and Test2 posts and pages,
+  showing saved publication status, UTC publication time, and the supported
+  local Publish or Update action.
+
 - Resume the safe saving handover when Studio tabs return to the foreground,
   retaining pending drafts while restarting the existing peer handshake. Revoke
   saving authority on page-hide and release its lock after pending operations

@@ -330,6 +330,14 @@ never permits persistence before owned initialisation.
 
 ## Save Draft and local Publish
 
+Posts and Pages use the shared Publishing inspector section. Status and UTC
+publication time come from the retained publication snapshot, independently of
+unsaved authored changes; legacy collections use their pre-migration documents.
+The section exposes only Publish or Update through the same guarded local
+publication command as the header. Status and time are read-only here. Scheduling,
+privacy, password protection, sticky posts, and Return to Draft aren't offered
+by this local site workflow. Studio Drafts retains its existing controls.
+
 Fixture source v6 reads v1–v5 and stores `publications` separately from authored
 `documents`. Each snapshot retains the document and its resolved template
 assignment. Save Draft and autosave preserve these snapshots. Publish (or the single blue Save action

@@ -10,7 +10,7 @@ import { InspectorAccordionSection } from "./inspector-accordion";
 import { type FieldUsage } from "./document-fields";
 import { findColumnsParent, maximumColumnWidth } from "../content/columns";
 import { spacerOrientationFor } from "../content/spacer";
-import { DocumentInspector, DocumentStylesInspector } from "./blocks/inspectors/document-inspector";
+import { DocumentInspector, DocumentStylesInspector, type LocalDocumentPublication } from "./blocks/inspectors/document-inspector";
 import { BlockInspector, type ColumnsBlock, type FontSizeViewMode } from "./blocks/inspectors/block-inspector";
 export { DocumentInspector, DocumentStylesInspector } from "./blocks/inspectors/document-inspector";
 export { BlockInspector, fontSizeModeKey, type ColumnsBlock, type FontSizeViewMode } from "./blocks/inspectors/block-inspector";
@@ -24,6 +24,7 @@ export type StudioInspectorProps = {
   documentControls?: ReactNode;
   revisionsControl?: ReactNode;
   siteContext?: boolean;
+  localPublication?: LocalDocumentPublication;
   writable?: boolean;
   inspectorTab: "document" | "studio" | "block" | "styles";
   selectedBlock: ContentBlock | null;
@@ -63,7 +64,7 @@ export type StudioInspectorProps = {
 };
 
 
-export function StudioInspector({ siteContext = false, writable = true, paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, revisionsControl, inspectorTab, selectedBlock, selectedListItem = null, selectedDocumentField = null, activeDocument, pages, calendarPosts = [], categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onColumnWidthChange, onColumnCountChange, onButtonPreviewChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
+export function StudioInspector({ siteContext = false, localPublication, writable = true, paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, revisionsControl, inspectorTab, selectedBlock, selectedListItem = null, selectedDocumentField = null, activeDocument, pages, calendarPosts = [], categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onColumnWidthChange, onColumnCountChange, onButtonPreviewChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, onPublish, onUnpublish, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
   const [localCollapsed, setLocalCollapsed] = useState(false);
@@ -85,7 +86,7 @@ export function StudioInspector({ siteContext = false, writable = true, paneWidt
       ]} active={inspectorTab} onChange={(tab) => onSelectTab(tab as StudioInspectorProps["inspectorTab"])} />}>
       <fieldset disabled={!writable} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>{tabs.map((panel) => <PaneTabPanel key={panel} id={tabPrefix} tab={panel} active={inspectorTab}>
         {panel === "document" || panel === "studio" ? (
-          <DocumentInspector siteContext={siteContext} key={activeDocument.id} panel={panel} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} categories={categories} tagSuggestions={tagSuggestions} onCategorySelectionChange={onCategorySelectionChange} onAddCategory={onAddCategory} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} calendarPosts={calendarPosts} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
+          <DocumentInspector siteContext={siteContext} localPublication={localPublication} key={activeDocument.id} panel={panel} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} categories={categories} tagSuggestions={tagSuggestions} onCategorySelectionChange={onCategorySelectionChange} onAddCategory={onAddCategory} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} calendarPosts={calendarPosts} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onPublish={onPublish} onUnpublish={onUnpublish} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
         ) : panel === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedDocumentField ? (
           <div className="block-inspector-settings">
             <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span><BlockLibraryIcon type={selectedDocumentFieldBlockType} /></span><h2>{selectedDocumentFieldInfo?.label ?? `Document ${selectedDocumentField}`}</h2></div><p className="setting-note">{selectedDocumentFieldInfo?.description}</p></section></div>

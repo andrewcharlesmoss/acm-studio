@@ -94,5 +94,12 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     commit: update => commitContent((current, store) => ({ workspace: current, templates: update(store) })),
     undo: () => { site.undo(); return true; }, redo: () => { site.redo(); return true; }, canUndo: site.canUndo, canRedo: site.canRedo,
   };
-  return { publishDocument, siteNavigation: collection?.siteNavigation, collection, siteId: site.siteId, session, templates, commitContent, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
+  function publicationFor(documentId: string) {
+    const published = collection?.version === 6
+      ? collection.publications.find(item => item.document.id === documentId)?.document
+      : collection?.documents.find(item => item.id === documentId);
+    return { status: published?.status === "published" ? "published" as const : "draft" as const,
+      publishedAt: published?.status === "published" ? published.publishedAt : undefined };
+  }
+  return { publishDocument, publicationFor, siteNavigation: collection?.siteNavigation, collection, siteId: site.siteId, session, templates, commitContent, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
 }
