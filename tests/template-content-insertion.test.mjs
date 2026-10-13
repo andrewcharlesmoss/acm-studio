@@ -162,7 +162,7 @@ function presentationRenderer(writable) {
     ts.forEachChild(node, visit);
   }
   visit(syntax); assert.ok(renderer);
-  const scope = { React: { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) }, writable,
+  const scope = { React: { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) }, writable, globalOriginal: false,
     TemplateNodes: 'TemplateNodes', BlockField: 'BlockField', BlockRenderer: 'BlockRenderer', TemplateContentSlot: 'TemplateContentSlot',
     templateNodesFromBlocks: model.templateNodesFromBlocks, templateEditorBlocks: model.templateEditorBlocks,
     findTemplateNode() {}, set: {}, resolvedSample: {}, templatePreviewDocument: {}, mediaUrls: {}, selected: 'slot',

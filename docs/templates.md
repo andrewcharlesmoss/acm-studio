@@ -628,6 +628,18 @@ editor expose Focus Outline without canvas controls. Document-only view modes,
 Show Template, and Preview in New Tab are omitted. Standalone template specimens
 retain their local Width control when no header view controls are supplied.
 
+Template authoring surfaces share their rendered spacing with Preview. Their
+editor wrappers add no border dimensions or toolbar reserves; selected controls
+overlay the content without moving it. Shared canvas rules expose the toolbar
+reserve as variables, which retain the content editor's existing defaults.
+Template authoring alone sets them to zero and uses the canonical template gap.
+Root template and standalone shared-part wrappers follow the same rule.
+Column insertion controls also overlay the layout rather than adding height.
+Both modes use the same resolved sample document; authoring placeholders for
+Title and Subtitle remain consistent, and hidden cover images occupy no space.
+Global-original Navigation uses the shared runtime layout in both modes, with
+canvas-link selection retained for read-only inspection of site-owned links.
+
 The Templates list opens one global library independently of the selected site.
 Every site uses the original layout and styles. There are no site template design
 customisations, colour overrides or reset controls. Old site-scoped entry URLs

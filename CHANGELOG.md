@@ -37,6 +37,9 @@
 
 ### Fixed
 
+- Align template content positions and spacing in Edit and Preview, including
+  shared-part editors and selected-block controls.
+
 - Use the shared neutral hover background for file and folder cards, keeping
   the blue selection outline distinct from hover.
 

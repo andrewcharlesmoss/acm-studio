@@ -2759,7 +2759,7 @@ function BlockInserter({ writable, closing, onCloseAnimationEnd, inserterQuery, 
 }
 
 function NestedBlockAppender({ parentId, writable, onOpen }: { parentId: string; writable: boolean; onOpen?: (parentId: string) => void }) {
-  return <button type="button" className="nested-add-block" aria-label="Add block" title="Add block" disabled={!writable || !onOpen} onClick={() => { if (writable) onOpen?.(parentId); }}><StudioIcon name="add" size={16} /> Add block</button>;
+  return <button type="button" className="nested-add-block" aria-label="Add block" title="Add block" disabled={!writable || !onOpen} onClick={() => { if (writable) onOpen?.(parentId); }}><StudioIcon name="add" size={16} /><span className="nested-add-label">Add block</span></button>;
 }
 
 function ColumnsLayoutChooser({ block, onSelect }: { block: Extract<ContentBlock, { type: "columns" }>; onSelect: (widths: readonly number[]) => void }) {

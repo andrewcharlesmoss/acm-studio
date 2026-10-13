@@ -70,11 +70,11 @@ export function templateStyleProperties(styles: SiteStyles): CSSProperties {
   } as CSSProperties;
 }
 
-export function TemplateSurface({ set, children, editing = false, editorCanvas = false }: { set: TemplateSet; children: ReactNode; editing?: boolean; editorCanvas?: boolean }) {
+export function TemplateSurface({ set, children, editing = false, editorCanvas = false, authoring = false }: { set: TemplateSet; children: ReactNode; editing?: boolean; editorCanvas?: boolean; authoring?: boolean }) {
   const styleKey = `acm-template-style-${stylePresetKey(set.styles)}`;
   // Rich-text fields handle links first; bubbling then prevents static editing links from navigating.
   // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-  return <><style>{universalStylePresetToCss(set.styles, `.${styleKey}`)}</style><div className={`template-surface${editorCanvas ? "" : " acm-universal-style-preset"} ${styleKey}`} style={templateStyleProperties(set.styles)} onClick={event => { if (editing && event.target instanceof Element && event.target.closest("a")) event.preventDefault(); }}>{children}</div></>;
+  return <><style>{universalStylePresetToCss(set.styles, `.${styleKey}`)}</style><div className={`template-surface${authoring ? " template-authoring-surface" : ""}${editorCanvas ? "" : " acm-universal-style-preset"} ${styleKey}`} style={templateStyleProperties(set.styles)} onClick={event => { if (editing && event.target instanceof Element && event.target.closest("a")) event.preventDefault(); }}>{children}</div></>;
 }
 
 function stylePresetKey(styles: SiteStyles): string {
@@ -112,6 +112,7 @@ export type TemplateRenderContext = {
   content?: ReactNode;
   editingDocument?: boolean;
   templatePreview?: boolean;
+  authoring?: boolean;
   selectedDocumentField?: "title" | "subtitle" | null;
   onFocusDocumentField?: (field?: "title" | "subtitle") => void;
   onDocumentChange?: (field: "title" | "subtitle", value: string) => void;
@@ -119,14 +120,14 @@ export type TemplateRenderContext = {
   onRemoveCoverImage?: () => void;
   onRemoveCoverBlock?: () => void;
   onEditPart?: (id: string) => void;
-  renderNavigationLink?: (link: TemplateSet["navigation"][number]) => ReactNode;
+  renderNavigationLink?: (link: TemplateSet["navigation"][number], node: NavigationTemplateNode) => ReactNode;
   renderNavigation?: (node: NavigationTemplateNode) => ReactNode;
   renderOrdinary?: (node: TemplateNode, spacerOrientation: SpacerOrientation) => ReactNode;
   decorate?: (node: TemplateNode, result: ReactNode) => ReactNode;
 };
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
-  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
+  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, authoring, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
   function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false, spacerOrientation: SpacerOrientation = "vertical"): ReactNode {
@@ -206,7 +207,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
             {!hidden && onRemoveCoverImage ? <button className="cover-action-button" type="button" onClick={onRemoveCoverImage} aria-label="Remove cover image" title="Remove cover image"><StudioIcon name="close" /></button> : null}
             {onRemoveCoverBlock ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCoverBlock} aria-label="Delete cover image block" title="Delete cover image block"><StudioIcon name="trash" /></button> : null}
           </div> : null;
-          element = hidden ? editingDocument ? <div {...frameProps} className={`canvas-cover-wrap document-dynamic-cover${fieldVisualClassName ? ` ${fieldVisualClassName}` : ""}`}><div className="canvas-cover-image" role="img" aria-label="Cover image hidden" />{actions}</div> : null
+          element = hidden ? authoring ? null : editingDocument ? <div {...frameProps} className={`canvas-cover-wrap document-dynamic-cover${fieldVisualClassName ? ` ${fieldVisualClassName}` : ""}`}><div className="canvas-cover-image" role="img" aria-label="Cover image hidden" />{actions}</div> : null
             : documentFieldVisible(document, "coverImage") ? fixed && templatePreview ? src ? <figure {...frameProps} className={frameClassName}>{linkedImage}</figure> : placeholder
             : templatePreview ? placeholder : editingDocument ? <div {...frameProps} className={`canvas-cover-wrap document-dynamic-cover${fieldVisualClassName ? ` ${fieldVisualClassName}` : ""}`}>
               <div className={`canvas-cover-image${src ? " is-source" : ""}`} role="img" aria-label={cover?.alt || "Mock cover image"}>{image}</div>
@@ -223,7 +224,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const part = node.overlayPartId ? set.parts.find(part => part.id === node.overlayPartId && part.kind === "overlay") : undefined;
           const overlayContent = part && !ancestors.has(part.id)
             ? part.nodes.map(child => <div key={child.id} className="navigation-overlay-layout">{render(child, new Set([...ancestors, part.id]), depth + 1, true)}</div>) : undefined;
-          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={node} links={set.navigation} documentHref={context.documentHref} renderLink={context.renderNavigationLink} overlayContent={overlayContent} />;
+          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={node} links={set.navigation} documentHref={context.documentHref} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} />;
           break;
         }
         case "copyright": element = <p className="template-copyright">{resolveTemplateCopyright(set.identity.copyright, set.identity.name)}</p>; break;
