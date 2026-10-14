@@ -32,5 +32,8 @@ test("Studio shell and workspace focus rules have one stylesheet owner", () => {
 test("public focus and presentation baselines remain independent from Studio selectors", () => {
   assert.doesNotMatch(publicStyles, /\.studio-shell|\.design-shell|\.design-library-shell|\.pane-workspace|\.pl-catalogue|\.rl-shell|\.template-surface|\.mini-golf-editor-surface/);
   assert.match(publicStyles, /background: radial-gradient\(circle at 83% 8%, rgba\(49, 88, 201, 0\.08\), transparent 26rem\), var\(--paper\);/);
-  assert.match(publicStyles, /a:focus-visible,\s*button:focus-visible,\s*input:focus-visible,\s*textarea:focus-visible,\s*select:focus-visible\s*\{\s*outline: var\(--focus-ring-width\) solid var\(--focus-ring-colour\);\s*outline-offset: var\(--focus-ring-offset\);\s*\}/);
+  // The route flag is removed outside Studio. Its zero-specificity qualifier
+  // leaves every public focus selector and declaration unchanged there.
+  const baseline = publicStyles.replaceAll(':where(html:not([data-studio-focus-visible="false"]) *)', "");
+  assert.match(baseline, /a:focus-visible,\s*button:focus-visible,\s*input:focus-visible,\s*textarea:focus-visible,\s*select:focus-visible\s*\{\s*outline: var\(--focus-ring-width\) solid var\(--focus-ring-colour\);\s*outline-offset: var\(--focus-ring-offset\);\s*\}/);
 });

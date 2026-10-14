@@ -102,6 +102,15 @@ writer or a bounded claim of the same Web Lock; load the latest preference befor
 writing and never save without ownership. A denied or failed save applies only
 to the current page and must be reported visibly. See `docs/studio-ui-library.md`.
 
+Decorative focus selectors consult the document's `data-studio-focus-visible`
+flag through the zero-specificity `:where(html:not([data-studio-focus-visible="false"]) *)`
+guard on the focus branch. This includes borders, shadows, SVG handle marks,
+and parent, sibling, or pseudo-element rings in portalled overlays. Preserve
+hover and active branches, semantic selections, authored content focus styles,
+and forced-colours overrides. `tests/focus-decoration-contract.test.mjs` checks
+the application stylesheets for new unguarded decorations. Shared package
+adaptations belong at Studio's consumer boundary.
+
 The Pane section of the Studio UI Library documents the shared internal Pane
 components used by Studio Navigation, Block Library, Editor Inspector, Design
 Pages/Layers and Design Properties. Its component contract is v1.3.0; see

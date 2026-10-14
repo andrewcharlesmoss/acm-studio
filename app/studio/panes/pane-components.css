@@ -55,7 +55,7 @@
 .pane-collapse:hover { background: var(--pane-hover); color: var(--pane-text); }
 .pane-collapse[data-resizable="true"] { cursor: pointer; touch-action: none; }
 .pane-collapse[data-resize-pressed="true"] { cursor: col-resize; }
-.pane-workspace :focus-visible { outline: 2px solid #555; outline-offset: -3px; }
+.pane-workspace :focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid #555; outline-offset: -3px; }
 .pane-tabs { display: flex; padding: 0 8px; }
 .pane-tabs button { display: flex; align-items: center; justify-content: center; flex: 1; min-width: 0; position: relative; background: transparent; color: var(--pane-muted); border: 0; padding: 12px 4px 14px; cursor: pointer; font: inherit; }
 .pane-tabs [aria-selected="true"] { color: var(--pane-text); font-weight: 600; }
@@ -63,7 +63,7 @@
 .pane-tabs .pane-tab-label::after { position: absolute; right: var(--pane-tab-label-inset, 16px); bottom: 0; left: var(--pane-tab-label-inset, 16px); height: 3px; background: transparent; content: ""; transition: left .12s ease, right .12s ease, background-color .12s ease; }
 .pane-tabs [aria-selected="true"] .pane-tab-label::after { background: #555; }
 .pane-tabs button[aria-selected="true"]:not(:disabled):hover .pane-tab-label::after { right: 6px; left: 6px; }
-.pane-tabs button:not(:disabled):not([aria-selected="true"]):is(:hover, :focus-visible) .pane-tab-label::after { background: var(--pane-tab-hover-indicator, #b8b6ae); }
+.pane-tabs button:not(:disabled):not([aria-selected="true"]):is(:hover, :focus-visible:where(html:not([data-studio-focus-visible="false"]) *)) .pane-tab-label::after { background: var(--pane-tab-hover-indicator, #b8b6ae); }
 .pane-tabs--selected-only button:not(:disabled):not([aria-selected="true"]):is(:hover, :focus-visible) .pane-tab-label::after { background: transparent; }
 .pane-tabs--selected-only button[aria-selected="true"]:not(:disabled):hover .pane-tab-label::after { right: var(--pane-tab-label-inset, 16px); left: var(--pane-tab-label-inset, 16px); }
 @media (prefers-reduced-motion: reduce) { .pane-tabs .pane-tab-label::after { transition: none; } }
@@ -74,7 +74,7 @@
 .pane-resize-edge { position: absolute; top: 0; bottom: 0; width: 12px; z-index: 2; cursor: col-resize; touch-action: none; }
 .pane-resize-edge[data-side="left"] { right: -6px; }
 .pane-resize-edge[data-side="right"] { left: -6px; }
-.pane-resize-edge:focus-visible { outline: 2px solid var(--pane-muted); outline-offset: -4px; }
+.pane-resize-edge:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--pane-muted); outline-offset: -4px; }
 @media (pointer: coarse) {
   .pane-collapse::before { content: ""; position: absolute; inset: -9px; border-radius: 50%; }
   .pane-resize-edge { width: 24px; }

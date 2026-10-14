@@ -6,7 +6,7 @@
 .studio-toggle-setting:has(> .studio-toggle-track) > span:last-child { color: var(--ink); font-size: var(--studio-ui-size, 13px); font-weight: 400; min-width: 0; }
 .studio-toggle-setting input:checked + .studio-toggle-track { background: var(--acm-interaction-control-accent-colour, #3858e9); border-color: var(--acm-interaction-control-accent-colour, #3858e9); }
 .studio-toggle-setting input:checked + .studio-toggle-track::after { background: #fff; left: 17px; }
-.studio-toggle-setting input:focus-visible + .studio-toggle-track { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c); outline-offset: 2px; }
+.studio-toggle-setting input:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) + .studio-toggle-track { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c); outline-offset: 2px; }
 html[data-studio-focus-visible="false"] .studio-toggle-setting input:focus + .studio-toggle-track { outline: none; }
 html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .studio-toggle-track { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c); outline-offset: 2px; }
 .studio-toggle-setting:has(input:disabled) { cursor: default; opacity: .5; }
@@ -41,7 +41,7 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .studio-border-width.is-split .studio-border-input { justify-self: center; max-width: 100%; width: var(--border-input-width); }
 .studio-border-width.is-split .studio-border-link { grid-area: 1 / 4 / 2 / 5; justify-self: end; }
 .studio-border-diagram { border: 8px solid #e0e0e0; box-sizing: border-box; inset: 20px 16%; pointer-events: none; position: absolute; }
-.studio-border-colour:focus-visible, .studio-border-link:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -2px; }
+.studio-border-colour:focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .studio-border-link:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -2px; }
 .studio-border-width :disabled { cursor: default; opacity: .5; }
 .studio-border-shared-note { color: var(--muted); font: inherit; margin: 0; }
 .studio-border-style { display: grid; gap: 8px; }

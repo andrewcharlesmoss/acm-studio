@@ -6,7 +6,7 @@
 .pl-catalogue h3 { font-size: .875rem; font-weight: 600; }
 .pl-catalogue button, .pl-catalogue input, .pl-catalogue select { font: inherit; }
 .pl-catalogue button, .pl-catalogue select, .pl-catalogue input[type="checkbox"] { cursor: pointer; }
-.pl-catalogue :focus-visible { outline: 2px solid #555; outline-offset: 2px; }
+.pl-catalogue :focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid #555; outline-offset: 2px; }
 .pl-header { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; padding: 18px 28px; border-bottom: 1px solid var(--pl-line); background: white; }
 .pl-header a, .pl-related { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; }
 .pl-header strong { font-weight: 600; }

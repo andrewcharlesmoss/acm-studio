@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import { readFileSync } from "node:fs";
+import { readFile as readRawFile } from "node:fs/promises";
+import { readFileSync as readRawFileSync } from "node:fs";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
@@ -28,6 +28,15 @@ import {
   updateBlockById,
   undoHistory,
 } from "../app/studio/studio-command-operations.mjs";
+
+// These geometry and colour assertions inspect baseline CSS selectors. The
+// separate focus contract validates their zero-specificity visibility guards.
+const focusVisibilityGuard = ':where(html:not([data-studio-focus-visible="false"]) *)';
+function baselineStyleSelectors(file, source) {
+  return String(file).endsWith('.css') ? source.replaceAll(focusVisibilityGuard, '') : source;
+}
+async function readFile(file, encoding) { return baselineStyleSelectors(file, await readRawFile(file, encoding)); }
+function readFileSync(file, encoding) { return baselineStyleSelectors(file, readRawFileSync(file, encoding)); }
 
 const { groupAllowsChild, parentOfNestedBlock, blockInserterOptions } = await loadProductionModule(new URL("../app/studio/block-inserter-options.ts", import.meta.url));
 

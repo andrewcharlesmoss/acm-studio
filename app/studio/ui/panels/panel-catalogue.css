@@ -10,7 +10,7 @@
 .ui-panels-close { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 9px; background: transparent; color: #626262; cursor: pointer; }
 .ui-panels-close svg { width: 20px; height: 20px; }
 .ui-panels-close:hover { background: #f2f2f2; color: #1c1c1e; }
-.ui-panels-close:focus-visible, .ui-panels-show:focus-visible, .ui-panels-actions button:focus-visible { outline: 2px solid #555; outline-offset: 2px; }
+.ui-panels-close:focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .ui-panels-show:focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .ui-panels-actions button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid #555; outline-offset: 2px; }
 .ui-panels-fields { display: grid; margin: 0; }
 .ui-panels-fields > div { display: grid; grid-template-columns: minmax(92px, 1fr) minmax(0, 1.25fr); align-items: center; gap: 12px; min-height: 48px; padding: 10px 0; border-bottom: 1px solid var(--acm-panel-border, #d1d1d6); }
 .ui-panels-fields dt { color: #636366; font-size: .875rem; font-weight: 600; }

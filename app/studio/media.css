@@ -85,7 +85,7 @@
 .media-preview-dialog h2 { font-size: var(--studio-ui-size); font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .media-preview-dialog button { align-items: center; background: transparent; border: 0; border-radius: 5px; color: var(--ink); cursor: pointer; display: inline-flex; flex: 0 0 auto; height: 32px; justify-content: center; padding: 0; width: 32px; }
 .media-preview-dialog button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
-.media-preview-dialog button:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
+.media-preview-dialog button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
 .media-preview-dialog button svg { height: 18px; width: 18px; }
 .media-preview-dialog img { display: block; max-height: min(720px, calc(100dvh - 136px)); max-width: 100%; object-fit: contain; }
 .media-alt-dialog { background: #f9f8f4; border: 1px solid #d2d0c8; border-radius: 10px; box-shadow: 0 20px 50px rgba(0, 0, 0, .32); color: var(--ink); margin: auto; max-width: min(460px, calc(100vw - 32px)); padding: 0; width: 100%; }

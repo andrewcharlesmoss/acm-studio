@@ -3,7 +3,7 @@
 .rl-shell button:not(.acm-ribbon-button),.rl-shell input,.rl-shell select { font:inherit; }
 .rl-shell button { cursor:pointer; }
 .rl-shell button:disabled { cursor:default; }
-.rl-shell :focus-visible { outline:2px solid var(--focus-ring-colour); outline-offset:3px; }
+.rl-shell :focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--focus-ring-colour); outline-offset:3px; }
 .rl-shell h1:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)),.rl-shell h2:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)),.rl-shell h3:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)),.rl-shell p:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)) { margin:0; }
 .rl-shell h2:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)) { font-size:1.125rem; font-weight:600; line-height:1.35; }
 .rl-shell h3:not(:where(.ui-block-canvas *, .block-canvas *, .document-preview *, .template-surface *)) { font-size:1rem; font-weight:600; margin-top:1.5rem; }

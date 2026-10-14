@@ -46,7 +46,8 @@ test("multiple component instances have unique IDs and resolvable ARIA targets",
 });
 
 test("pane tabs default to line-only hover indicators", () => {
-  const componentCss = readFileSync(resolve(base, "pane-components.css"), "utf8");
+  // The focus contract verifies the qualifier separately from tab geometry.
+  const componentCss = readFileSync(resolve(base, "pane-components.css"), "utf8").replaceAll(':where(html:not([data-studio-focus-visible="false"]) *)', "");
   const html = renderToStaticMarkup(h(PaneTabs, { id: "default", label: "Default tabs", tabs: [{ id: "one", label: "One" }, { id: "two", label: "Two" }], active: "one", onChange() {} }));
   const selectedOnlyHtml = renderToStaticMarkup(h(PaneTabs, { id: "selected-only", label: "Selected only tabs", tabs: [{ id: "one", label: "One" }], active: "one", onChange() {}, indicatorVariant: "selected" }));
   assert.match(html, /class="pane-tabs"/);

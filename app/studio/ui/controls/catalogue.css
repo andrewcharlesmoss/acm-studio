@@ -11,7 +11,7 @@
 .ui-control-entry-header h3 { margin:0 0 .35rem; font-size:1.1rem; }
 .ui-control-entry-header > div > p:last-child { max-width:68ch; margin:.2rem 0 0; color:var(--rl-muted); }
 .ui-control-reset, .ui-control-action { min-height:40px; display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; gap:.45rem; border:1px solid var(--rl-line); border-radius:6px; padding:.45rem .75rem; background:#fff; color:inherit; font:inherit; }
-.ui-control-reset:focus-visible, .ui-control-action:focus-visible { outline:2px solid var(--rl-accent); outline-offset:3px; }
+.ui-control-reset:focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .ui-control-action:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--rl-accent); outline-offset:3px; }
 .ui-control-detail-card { margin:1rem 0 .25rem; overflow:visible; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }
 .ui-control-detail-header { padding:.65rem 1rem; border-bottom:1px solid var(--rl-line); background:#faf9f6; }
 .ui-control-detail-header h4 { margin:0; font-size:.9rem; }
@@ -60,7 +60,7 @@
 .ui-control-facts > summary svg { flex:0 0 auto; transition:transform .15s ease; }
 .ui-control-facts[open] > summary svg { transform:rotate(90deg); }
 .ui-control-facts > summary:hover { color:var(--rl-accent); }
-.ui-control-facts > summary:focus-visible { outline:2px solid #465b78; outline-offset:3px; }
+.ui-control-facts > summary:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid #465b78; outline-offset:3px; }
 .ui-control-facts > dl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.75rem; margin:.5rem 0 0; }
 .ui-control-facts dl > div { min-width:0; }
 .ui-control-facts dl > .ui-control-fact-dependencies { grid-column:1 / -1; }
@@ -68,7 +68,7 @@
 .ui-control-facts dd { margin:.2rem 0 0; color:var(--rl-muted); overflow-wrap:anywhere; }
 .ui-control-facts dd a { color:var(--rl-accent); }
 .ui-control-dependency-list { display:grid; gap:.3rem; margin:0; padding-left:1.2rem; }
-.ui-control-dependency-list a:focus-visible { outline:2px solid var(--rl-accent); outline-offset:2px; }
+.ui-control-dependency-list a:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--rl-accent); outline-offset:2px; }
 .ui-control-image-dimensions { display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,1fr); align-items:start; gap:1rem; }
 .ui-control-image-preview-frame { min-width:0; max-width:100%; overflow:auto; overscroll-behavior:contain; }
 .image-dimensions-setting { display:grid; min-width:0; gap:.65rem; margin:0; padding:0; border:0; }
@@ -79,7 +79,7 @@
 .ui-control-focal-preview { width:min(100%,520px); min-height:220px; background-size:190% 190%, 180% 180%, 200% 200%; }
 .border-settings-control { display:grid; gap:.75rem; }
 .ui-controls-page .border-settings-control { max-width:520px; }
-.ui-control-entry button:focus-visible,.ui-control-entry input:focus-visible,.ui-control-entry select:focus-visible { outline:2px solid #465b78; outline-offset:2px; }
+.ui-control-entry button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *),.ui-control-entry input:focus-visible:where(html:not([data-studio-focus-visible="false"]) *),.ui-control-entry select:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid #465b78; outline-offset:2px; }
 @media(max-width:720px) {
   .ui-controls-layout { display:block; }
   .ui-controls-main.ui-page-intro { padding:1.25rem 1rem 1rem; }

@@ -83,6 +83,10 @@
 
 ### Fixed
 
+- Apply Focus Outline Off to decorative borders, shadows, composite controls,
+  sliders, and Design handles across Studio, including portalled menus and
+  popups; retain selection marks and add a stylesheet regression check.
+
 - Respect Focus Outline Off when applying the shared focused-control border,
   including keyboard navigation in the View menu.
 

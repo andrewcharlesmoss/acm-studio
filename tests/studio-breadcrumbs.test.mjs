@@ -24,7 +24,7 @@ test("breadcrumb links use Gutenberg link colour without button-like hover treat
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(styles, /\.studio-breadcrumb-list a\s*\{[^}]*color:\s*var\(--muted\)[^}]*text-decoration:\s*none/s);
   assert.match(styles, /\.studio-breadcrumb-list a:hover\s*\{[^}]*color:\s*var\(--gutenberg-accent\)[^}]*text-decoration:\s*none/s);
-  assert.match(styles, /\.studio-breadcrumb-list a:focus-visible\s*\{[^}]*outline:/s);
+  assert.match(styles, /\.studio-breadcrumb-list a:focus-visible:where\(html:not\(\[data-studio-focus-visible="false"\]\) \*\)\s*\{[^}]*outline:/s);
   const hover = styles.match(/\.studio-breadcrumb-list a:hover\s*\{([^}]*)\}/)?.[1] ?? "";
   assert.doesNotMatch(hover, /background|border-radius|padding/);
 });
