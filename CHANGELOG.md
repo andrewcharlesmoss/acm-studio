@@ -46,6 +46,14 @@
 
 ### Fixed
 
+- Show featured images in local-site Existing Presentation across Edit, Preview
+  and publication output, and preview the selected image in the document pane.
+  Apply featured-image selections directly using their existing alternative text.
+
+- Restore template editing across normal Studio tabs, retain safe local Undo
+  after saving, hide unavailable insertion lines, centre template image actions,
+  and provide an explicit Restore action for hidden template images.
+
 - Update Studio regression checks for shared pane navigation, featured-image
   wording, and brokered Files saving; cover supported local-site date edits and
   allow real file transactions to settle under a concurrently running suite.

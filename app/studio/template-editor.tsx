@@ -26,11 +26,12 @@ import { viewportWidthFor, type StudioViewport } from "./studio-view-menu";
 import type { SiteLink } from "./template-model";
 import { safeTextLink } from "../content/rich-text";
 
-export function TemplateEditor({ viewControls, scopeNotice, previewControls, globalOriginal = false, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
+export function TemplateEditor({ viewControls, scopeNotice, previewControls, globalOriginal = false, canChooseFixedImage = true, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
   viewControls?: { viewport: StudioViewport; onViewportChange: (viewport: StudioViewport) => void };
   scopeNotice?: import("react").ReactNode;
   previewControls?: import("react").ReactNode;
   globalOriginal?: boolean; initialSelectedBlockId?: string; sharedSiteNavigation?: boolean; siteNavigationPartId?: string; fixtureLinks?: boolean; siteId?: import("./test-site/sites").LocalFixtureSiteId;
+  canChooseFixedImage?: boolean;
   set: TemplateSet; target: PageTemplate | TemplatePart; documents: StudioDocument[]; mediaUrls: Record<string, string>; writable: boolean;
   onChange: (set: TemplateSet) => boolean; onEditPart: (id: string, nextSet?: TemplateSet) => void; onOpenMedia: (blockId: string | null, logo?: boolean, background?: boolean, item?: ListItemBackgroundTarget) => void;
   loadInlineImages?: import("./inline-image-picker").InlineImageLibrary;
@@ -143,6 +144,14 @@ export function TemplateEditor({ viewControls, scopeNotice, previewControls, glo
       if (candidate.id !== id || candidate.type !== "element" || candidate.element !== "cover-image") return;
       delete candidate.fixedImage;
       candidate.coverImageHidden = true;
+    });
+    updateNodes(next);
+  }
+  function restoreCoverImage(id: string) {
+    if (!writable) return;
+    const next = copyTemplateData(nodesRef.current);
+    visitTemplateNodes(next, candidate => {
+      if (candidate.id === id && candidate.type === "element" && candidate.element === "cover-image") delete candidate.coverImageHidden;
     });
     updateNodes(next);
   }
@@ -321,7 +330,7 @@ export function TemplateEditor({ viewControls, scopeNotice, previewControls, glo
         const contentSlot = <TemplateContentSlot />;
         const sourceNode = currentBlock.type === "cover-image" ? findTemplateNode(currentBlock.id) : undefined;
         const nodes = sourceNode ? [sourceNode] : templateNodesFromBlocks([currentBlock]);
-        return <TemplateNodes authoring key={currentBlock.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={nodes} mediaUrls={mediaUrls} content={contentSlot} editingDocument={context.mode === "edit" && writable} templatePreview={context.mode === "preview"} onChangeCover={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => onOpenMedia(currentBlock.id) : undefined} onRemoveCoverImage={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => clearCoverImage(currentBlock.id) : undefined} onRemoveCoverBlock={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => commands.removeBlock(currentBlock.id) : undefined} onEditPart={context.mode === "edit" ? onEditPart : undefined}
+        return <TemplateNodes authoring key={currentBlock.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={nodes} mediaUrls={mediaUrls} content={contentSlot} editingDocument={context.mode === "edit" && writable} templatePreview={context.mode === "preview"} onChangeCover={context.mode === "edit" && writable && canChooseFixedImage && currentBlock.type === "cover-image" ? () => onOpenMedia(currentBlock.id) : undefined} onRemoveCoverImage={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => clearCoverImage(currentBlock.id) : undefined} onRemoveCoverBlock={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => commands.removeBlock(currentBlock.id) : undefined} onRestoreCoverImage={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => restoreCoverImage(currentBlock.id) : undefined} onEditPart={context.mode === "edit" ? onEditPart : undefined}
           renderNavigation={context.mode === "edit" && !globalOriginal ? node => <NavigationCanvasEditor key={`${node.id}:${writable}`} node={node} links={set.navigation} writable={writable && !globalOriginal} selectedId={navigationSelection?.blockId === node.id ? navigationSelection.linkId : null} suggestions={linkSuggestions} onSelect={id => selectNavigationLink(node.id, id)} onChange={changeNavigation} /> : undefined}
           renderNavigationLink={context.mode === "edit" && globalOriginal ? (link, node) => findBlockById(blocks, node.id) ? <a href={safeTextLink(link.url) ?? "#"} onClick={event => { event.preventDefault(); event.stopPropagation(); selectNavigationLink(node.id, link.id); }}>{link.label}</a> : null : undefined}
           renderOrdinary={context.mode === "edit" && writable ? (node, spacerOrientation) => context.renderEditableBlock?.(templateEditorBlocks([node])[0] as ContentBlock, { document: resolvedSample, templatePlaceholder: true, spacerOrientation }) : undefined}

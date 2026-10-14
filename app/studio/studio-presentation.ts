@@ -9,6 +9,8 @@ export type StudioEditableBlockOptions = {
   document?: StudioDocument;
   templatePlaceholder?: boolean;
   spacerOrientation?: SpacerOrientation;
+  /** Transient presentation content before a container's authored children. */
+  leadingContent?: ReactNode;
 };
 
 export type StudioPresentationContext = {

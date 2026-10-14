@@ -274,6 +274,20 @@ modes for dynamic covers; fixed covers resolve their own image. Editing actions
 overlay the shared box without adding spacing. Explicitly removed document
 covers remain absent; template placeholders do not modify saved image data.
 
+The document inspector previews the selected featured image with overlaid
+Replace and Remove actions. Files applies a featured image directly using its
+existing alternative text; ordinary body-image insertion retains its description
+dialog. Template image actions use the shared centred overlay. A hidden template
+image offers Restore in authoring Edit; it remains absent from document views
+and template Preview.
+
+Global template peers reconnect their saving channel on foreground refresh.
+Other Studio routes can wake the same global broker under the existing writer
+lock. Connection status reflects saving availability. Exact own acknowledgements
+retain Undo; foreign changes and merged acknowledgements clear whole-design
+history so Undo cannot revert another tab's work. Unavailable insertion lines
+are hidden until editing resumes.
+
 The content and template inspectors share Document/Template, Block and Styles
 tabs and a field catalogue. Page and Post documents expose the same ordered
 controls. Document fields show their resolved value, whether the value is a

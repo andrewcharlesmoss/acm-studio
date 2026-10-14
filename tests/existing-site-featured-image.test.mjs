@@ -1,0 +1,99 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { loadProductionModule } from "./production-module.mjs";
+import { runnerImport } from "vite";
+import { fileURLToPath } from "node:url";
+
+const load = path => loadProductionModule(new URL(path, import.meta.url));
+const { ExistingSiteBody, existingSitePresentation } = await load("../app/studio/test-site/existing-presentation.tsx");
+const { BlockField, StudioCanvas } = await load(process.env.STUDIO_CANVAS_SOURCE || "../app/studio/studio-canvas.tsx");
+const { FeaturedImageControl } = await load("../app/studio/controls/featured-image-control.tsx");
+const { createWorkspacePreviewDocument } = await load("../app/studio/editor-model.ts");
+const { module: { renderTestSite } } = await runnerImport(process.env.EXISTING_SITE_RENDER_SOURCE || fileURLToPath(new URL("../app/studio/test-site/render.tsx", import.meta.url)), { root: process.cwd(), resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } }, esbuild: { jsx: "automatic" } });
+const { testSiteCollection } = await load("../app/studio/test-site/contract.ts");
+const noop = () => {};
+const markup = value => renderToStaticMarkup(value).replace(/<link\b[^>]*>/g, "");
+function fixture(kind = "page") {
+  return { ...createWorkspacePreviewDocument(kind, "test-site"), title: "Fixture", slug: "", coverImage: { src: "https://example.test/featured.png", alt: "Featured fixture" }, blocks: [
+    { id: "header", type: "group", tagName: "header", layout: "flow", children: [{ id: "brand", type: "paragraph", text: "Site brand" }] },
+    { id: "main", type: "group", tagName: "main", layout: "flow", children: [{ id: "body", type: "paragraph", text: "Body content" }] },
+    { id: "footer", type: "group", tagName: "footer", layout: "flow", children: [{ id: "copyright", type: "paragraph", text: "Copyright" }] },
+  ] };
+}
+function canvas(document, writable) {
+  const props = { activeDocument: document, writable, previewing: false, wordCount: 2, characterCount: 12, linkTargets: [], mediaBlockUrls: {}, selectedBlockId: null, dragOverIndex: null, showInserter: false, inserterQuery: "", filteredBlocks: [], publishFeedback: null, showCoverImage: false };
+  for (const name of ["onPreviewChange", "onOpenInserter", "onSetPublishFeedback", "onDocumentFieldChange", "onApplyDocumentCode", "onFocusDocumentField", "onOpenCoverMediaLibrary", "onRemoveCoverImage", "onSelectBlock", "onClearBlockSelection", "onSetDragOverIndex", "onMoveBlockTo", "onMoveBlock", "onDuplicateBlock", "onRemoveBlock", "onRemoveBlocks", "onUpdateBlock", "onInsertBlock", "onInsertBlockAt", "onSetShowInserter", "onSetInserterQuery"]) props[name] = noop;
+  return markup(createElement(StudioCanvas, props));
+}
+
+for (const kind of ["page", "post"]) {
+  test(`${kind} Existing Presentation places metadata image inside main in Edit, Preview and output without changing body IDs`, () => {
+    const document = fixture(kind); const before = JSON.stringify(document);
+    const presentation = existingSitePresentation(document, {}, true, noop, noop);
+    const main = document.blocks[1];
+    const edit = markup(presentation.renderBlock({ document, block: main, mode: "edit", renderEditableBlock: (block, options) => createElement(BlockField, { block, document, ...options, onChange: noop, onTextSelection: noop, onLinkActivate: noop, onTableCellFocus: noop }) }));
+    const preview = markup(presentation.renderBlock({ document, block: main, mode: "preview" }));
+    const output = markup(createElement(ExistingSiteBody, { document }));
+    for (const html of [edit, preview, output]) {
+      assert.match(html, /<main[^>]*>[\s\S]*class="document-featured-image"[^>]*src="https:\/\/example.test\/featured.png"/);
+      const body = html.includes('data-studio-block-id="body"') ? 'data-studio-block-id="body"' : "Body content";
+      assert.ok(html.indexOf("featured.png") < html.indexOf(body));
+      assert.equal((html.match(/class="document-featured-image"/g) ?? []).length, 1);
+    }
+    assert.match(edit, /aria-label="Change featured image"/);
+    assert.doesNotMatch(preview, /Change featured image/);
+    assert.ok(output.indexOf("Site brand") < output.indexOf("featured.png"));
+    assert.ok(output.indexOf("featured.png") < output.indexOf("Copyright"));
+    assert.equal(JSON.stringify(document), before);
+  });
+}
+
+test("Existing Presentation respects removed and hidden images and an authored dynamic block's placement", () => {
+  for (const change of [document => document.coverImage = null, document => document.displayOverrides = { coverImage: "hide" }]) {
+    const document = fixture(); change(document);
+    assert.doesNotMatch(markup(createElement(ExistingSiteBody, { document })), /document-featured-image|document-featured-placeholder/);
+  }
+  const document = fixture();
+  document.blocks[1].children.push({ id: "authored-image", type: "cover-image" });
+  const html = markup(createElement(ExistingSiteBody, { document }));
+  assert.equal((html.match(/class="document-featured-image"/g) ?? []).length, 1);
+  assert.ok(html.indexOf("Body content") < html.indexOf("featured.png"));
+});
+
+test("generated publication uses its own featured image while explicit draft preview uses the draft", () => {
+  const draft = fixture();
+  const source = testSiteCollection({ format: "acm-test-site", version: 2, siteId: "test2", document: draft });
+  source.version = 6;
+  source.publications = [{ document: { ...structuredClone(draft), status: "published", coverImage: { src: "https://example.test/published.png", alt: "Published image" } } }];
+  const published = renderTestSite(source, "a".repeat(64));
+  const preview = renderTestSite(source, "a".repeat(64), draft.id);
+  assert.match(published, /src="https:\/\/example.test\/published.png"/);
+  assert.doesNotMatch(published, /src="https:\/\/example.test\/featured.png"/);
+  assert.match(preview, /src="https:\/\/example.test\/featured.png"/);
+});
+
+test("read-only canvas exposes no horizontal insertion actions; editable canvas retains them", () => {
+  const document = fixture();
+  assert.doesNotMatch(canvas(document, false), /class="between-blocks"/);
+  assert.match(canvas(document, true), /class="between-blocks"/);
+});
+
+
+test("document featured image control previews managed and portable sources with overlay actions", () => {
+  for (const [image, sourceUrl] of [
+    [{ src: "", mediaId: "managed", alt: "Managed image" }, "blob:http://localhost:3010/managed"],
+    [{ src: "/media/portable.png", alt: "Portable image" }, "/__studio/site-media/test2/portable.png"],
+  ]) {
+    const html = markup(createElement(FeaturedImageControl, { image, sourceUrl, onReplace: noop, onRemove: noop }));
+    assert.ok(html.includes(`src="${sourceUrl}"`));
+    assert.match(html, /class="page-featured-image-actions"/);
+    assert.match(html, /aria-label="Replace featured image"/);
+    assert.match(html, /aria-label="Remove featured image"/);
+  }
+  const missing = markup(createElement(FeaturedImageControl, { image: null, onReplace: noop, onRemove: noop }));
+  assert.match(missing, /Set featured image/); assert.doesNotMatch(missing, /Replace|Remove|<img/);
+  const unsafe = markup(createElement(FeaturedImageControl, { image: { src: "", mediaId: "managed", alt: "Missing" }, sourceUrl: "javascript:alert(1)", onReplace: noop }));
+  assert.doesNotMatch(unsafe, /<img|javascript:/); assert.match(unsafe, /document-featured-placeholder/);
+});

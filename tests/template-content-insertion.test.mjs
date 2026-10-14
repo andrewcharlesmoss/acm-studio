@@ -155,18 +155,18 @@ test('nested Column Content renders the shared slot rather than the empty Group 
   assert.match(html, /color:#123456/);
 });
 
-function presentationRenderer(writable) {
+function presentationRenderer(writable, canChooseFixedImage = true) {
   let renderer;
   function visit(node) {
     if (ts.isPropertyAssignment(node) && node.name.getText(syntax) === 'renderBlock' && ts.isArrowFunction(node.initializer)) renderer = node.initializer.getText(syntax);
     ts.forEachChild(node, visit);
   }
   visit(syntax); assert.ok(renderer);
-  const scope = { React: { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) }, writable, globalOriginal: false,
+  const scope = { React: { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) }, writable, canChooseFixedImage, globalOriginal: false,
     TemplateNodes: 'TemplateNodes', BlockField: 'BlockField', BlockRenderer: 'BlockRenderer', TemplateContentSlot: 'TemplateContentSlot',
     templateNodesFromBlocks: model.templateNodesFromBlocks, templateEditorBlocks: model.templateEditorBlocks,
     findTemplateNode() {}, set: {}, resolvedSample: {}, templatePreviewDocument: {}, mediaUrls: {}, selected: 'slot',
-    editingProjection: { blocks: [] }, blocks: [], commands: {}, onEditPart() {}, onOpenMedia() {}, clearCoverImage() {},
+    editingProjection: { blocks: [] }, blocks: [], commands: {}, onEditPart() {}, onOpenMedia() {}, clearCoverImage() {}, restoreCoverImage() {},
     splitParagraph() {}, splitParagraphs() {}, openNestedInserter() {}, insertBlock() {}, selectBlock() {},
   };
   const compiled = ts.transpileModule(`globalThis.render = ${renderer};`, { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } }).outputText;
@@ -178,6 +178,17 @@ for (const writable of [true, false]) for (const mode of ['edit', 'preview']) te
   assert.equal(result.type, 'TemplateNodes');
   assert.equal(result.props.nodes[0].children[0].children[0].element, 'content');
   assert.equal(result.props.content.type, 'TemplateContentSlot');
+});
+
+for (const canChooseFixedImage of [true, false]) test(`actual template featured-image presentation advertises supported chooser=${canChooseFixedImage} and retains recovery controls`, () => {
+  const block = model.templateEditorBlocks([{ id: 'featured', type: 'element', element: 'cover-image' }])[0];
+  const editable = presentationRenderer(true, canChooseFixedImage)({ mode: 'edit', block });
+  assert.equal(typeof editable.props.onChangeCover, canChooseFixedImage ? 'function' : 'undefined');
+  for (const name of ['onRemoveCoverImage', 'onRemoveCoverBlock', 'onRestoreCoverImage']) assert.equal(typeof editable.props[name], 'function');
+  for (const context of [{ mode: 'edit', writable: false }, { mode: 'preview', writable: true }]) {
+    const result = presentationRenderer(context.writable, canChooseFixedImage)({ mode: context.mode, block });
+    for (const name of ['onChangeCover', 'onRemoveCoverImage', 'onRemoveCoverBlock', 'onRestoreCoverImage']) assert.equal(result.props[name], undefined);
+  }
 });
 
 test('Content root and nested projections share constrained layout, appearance, media and alignment', async () => {

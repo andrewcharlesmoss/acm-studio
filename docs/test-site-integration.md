@@ -314,6 +314,14 @@ normal block commands and the site's shared Undo history apply. Preview links
 select the document through the existing editor command. The same part surrounds
 Existing Presentation and assigned templates in all views and local output.
 
+Existing Presentation renders a selected document's featured image inside its
+root Main group, following the site header. Documents without that region show
+it before their body. This is transient presentation content, not an inserted
+or saved body block. An authored Featured Image block retains its own placement;
+removed and hidden images remain absent. Edit, Preview and generated output
+reuse the shared image box. Generated output resolves the publication snapshot's
+image, while an explicit draft preview resolves the authored draft's image.
+
 Legacy collections seed their current document links with deterministic IDs;
 the next accepted owned save stores v5 through the existing revision gateway.
 Migration requires one free template-set slot; an existing collection at the

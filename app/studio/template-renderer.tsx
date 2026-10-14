@@ -120,6 +120,7 @@ export type TemplateRenderContext = {
   onChangeCover?: () => void;
   onRemoveCoverImage?: () => void;
   onRemoveCoverBlock?: () => void;
+  onRestoreCoverImage?: () => void;
   onEditPart?: (id: string) => void;
   renderNavigationLink?: (link: TemplateSet["navigation"][number], node: NavigationTemplateNode) => ReactNode;
   renderNavigation?: (node: NavigationTemplateNode) => ReactNode;
@@ -128,7 +129,7 @@ export type TemplateRenderContext = {
 };
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
-  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, authoring, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onEditPart, renderOrdinary, decorate } = context;
+  const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, authoring, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onRestoreCoverImage, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
   function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false, spacerOrientation: SpacerOrientation = "vertical"): ReactNode {
@@ -203,13 +204,15 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const href = safeTextLink(context.documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
           // eslint-disable-next-line react/jsx-no-target-blank -- blank targets include both safety tokens.
           const linkedImage = !editingDocument && node.isLink && href ? <a href={href} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={[node.rel, node.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image;
-          const actions = onChangeCover ? <div className="canvas-cover-actions">
-            <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label="Choose fixed featured image" title="Choose fixed featured image"><StudioIcon name="image" /></button>
+          const changeImageLabel = authoring ? "Choose fixed featured image" : "Change featured image";
+          const actions = onChangeCover || onRemoveCoverImage || onRemoveCoverBlock ? <div className="canvas-cover-actions">
+            {onChangeCover ? <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label={changeImageLabel} title={changeImageLabel}><StudioIcon name="image" /></button> : null}
             {!hidden && onRemoveCoverImage ? <button className="cover-action-button" type="button" onClick={onRemoveCoverImage} aria-label="Remove featured image" title="Remove featured image"><StudioIcon name="close" /></button> : null}
             {onRemoveCoverBlock ? <button className="cover-action-button is-destructive" type="button" onClick={onRemoveCoverBlock} aria-label="Delete featured image block" title="Delete featured image block"><StudioIcon name="trash" /></button> : null}
           </div> : null;
           element = !hidden && documentFieldVisible(document, "coverImage") && (isTemplateExample || fixed || cover !== null)
-            ? <figure {...frameProps} className={frameClassName}>{linkedImage}{editingDocument ? actions : null}</figure> : null;
+            ? <figure {...frameProps} className={frameClassName}>{linkedImage}{editingDocument ? actions : null}</figure>
+            : hidden && authoring && editingDocument && onRestoreCoverImage ? <div className="template-hidden-featured-image"><span>Featured image is hidden.</span><button type="button" onClick={onRestoreCoverImage}>Restore featured image</button></div> : null;
           break;
         }
         case "site-identity": {

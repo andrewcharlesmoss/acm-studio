@@ -240,6 +240,18 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
   function requestImageInsert(asset: MediaAsset, trigger?: HTMLButtonElement) {
     if (!canInsert || insertionBusyRef.current) return;
     setInsertError("");
+    if (targetKind === "cover") {
+      const attempt = new AbortController(); imageAttempt.current = attempt;
+      void checkedImage(asset.id).then(async latest => {
+        if (!latest || attempt.signal.aborted) return;
+        insertionBusyRef.current = true; setInsertionBusy(true);
+        try {
+          const accepted = await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id], latest.altText || latest.name.replace(/\.[^.]+$/, ""), attempt.signal);
+          if (accepted === false) throw new Error("The featured image was not applied. Try again when editing is available.");
+        } finally { insertionBusyRef.current = false; if (mountedRef.current) setInsertionBusy(false); }
+      }).catch(error => { if (mountedRef.current && !attempt.signal.aborted) setStatus(error instanceof Error ? error.message : "The featured image was not applied."); });
+      return;
+    }
     if (targetKind === "background") {
       void checkedImage(asset.id).then(async latest => { if (latest) await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id]); }).catch(error => setStatus(error instanceof Error ? error.message : "The image was not inserted."));
       return;

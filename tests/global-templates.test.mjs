@@ -10,6 +10,7 @@ import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs"
 const root = fileURLToPath(new URL("..", import.meta.url));
 const { module: model } = await runnerImport(path.join(root, "app/studio/global-template-contract.ts"), { root, resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } });
 const { module: templates } = await runnerImport(path.join(root, "app/studio/template-model.ts"), { root, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } });
+const { module: sync } = await runnerImport(path.join(root, "app/studio/studio-sync.ts"), { root });
 const { module: preview } = await runnerImport(path.join(root, "app/studio/global-template-preview.ts"), { root, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } });
 function fixtures() {
   const set = templates.createTemplateSet("Original");
@@ -167,8 +168,8 @@ test("global hook installs merged acknowledgements and restarts its broker after
     if (name === "./template-model") return templates;
     if (name === "./global-template-contract") return model;
     if (name === "./write-ownership") return { studioWriteOwnership: { write: callback => callback() } };
-    if (name === "./studio-sync") return { createStudioSync(options) {
-      const session = { options, closed: false, close() { this.closed = true; }, async submit(next) {
+    if (name === "./studio-sync") return { createStudioTransaction: sync.createStudioTransaction, createStudioSync(options) {
+      const session = { options, closed: false, isPrimary: () => false, getStatus: () => "synced", retryConnection() {}, close() { this.closed = true; }, async submit(next) {
         if (failSave) throw new Error("CAS conflict");
         // Another peer has committed a different property before this operation.
         const merged = structuredClone(next); merged.sets[0].name = "Other peer original";
@@ -186,6 +187,7 @@ test("global hook installs merged acknowledgements and restarts its broker after
   await settle(); hook = render();
   assert.equal(hook.session.store.sets[0].name, "Other peer original");
   assert.equal(hook.session.store.sets[1].name, "This peer original");
+  assert.equal(hook.session.canUndo, false, "a merged acknowledgement cannot retain a whole-store Undo that would revert another peer");
   authoritative.templates = structuredClone(hook.session.store);
   authoritative.templates.sets[0].name = "Polled source"; hash = "b".repeat(64);
   intervals[0](); await settle(); render(); hook = render();

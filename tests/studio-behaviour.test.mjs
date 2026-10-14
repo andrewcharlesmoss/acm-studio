@@ -521,7 +521,8 @@ test("template cover editing uses the shared hover actions", async () => {
   assert.match(source, /import \{ FeaturedImage \} from "\.\.\/components\/blocks\/featured-image"/);
   assert.match(source, /editingDocument \? "canvas-cover-wrap" : ""/);
   assert.match(source, /className="canvas-cover-actions"/);
-  assert.match(source, /aria-label="Choose fixed featured image"/);
+  assert.match(source, /const changeImageLabel = authoring \? "Choose fixed featured image" : "Change featured image"/);
+  assert.match(source, /aria-label=\{changeImageLabel\}/);
   assert.match(source, /aria-label="Remove featured image"/);
   assert.match(source, /aria-label="Delete featured image block"/);
   assert.doesNotMatch(source, />Change Featured Image<\/button>/);
@@ -572,7 +573,7 @@ test("template cover actions only render when handlers are available", async () 
     readFile(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
-  assert.match(renderer, /const actions = onChangeCover \? <div className="canvas-cover-actions">/);
+  assert.match(renderer, /const actions = onChangeCover \|\| onRemoveCoverImage \|\| onRemoveCoverBlock \? <div className="canvas-cover-actions">/);
   assert.match(renderer, /onRemoveCoverImage \? <button className="cover-action-button"/);
   assert.match(renderer, /onRemoveCoverBlock \? <button className="cover-action-button is-destructive"/);
   assert.match(styles, /\.canvas-cover-wrap:hover \.canvas-cover-actions, \.canvas-cover-wrap:focus-within \.canvas-cover-actions \{[^}]*pointer-events: auto/);

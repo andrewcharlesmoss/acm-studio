@@ -1,0 +1,144 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import vm from "node:vm";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import ts from "typescript";
+import { runnerImport } from "vite";
+
+const require = createRequire(import.meta.url);
+const options = { root: process.cwd(), environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } };
+const { module: templates } = await runnerImport("app/studio/template-model.ts", options);
+const { module: contracts } = await runnerImport("app/studio/global-template-contract.ts", options);
+const { module: syncModule } = await runnerImport("app/studio/studio-sync.ts", options);
+
+function fixture(t) {
+  const rooms = new Map(); const drivers = []; const sessions = []; const writes = [];
+  let revision = "a".repeat(64);
+  let source = contracts.validateGlobalTemplateLibrary({ format: "acm-global-templates", version: 1, templates: { ...templates.emptyTemplateStore(), sets: [templates.createTemplateSet("Original")] }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } });
+  class Channel {
+    constructor(name) { this.name = name; this.listeners = new Map(); this.room = rooms.get(name) ?? new Set(); rooms.set(name, this.room); this.room.add(this); }
+    postMessage(data) { for (const other of this.room) if (other !== this) queueMicrotask(() => other.listeners.get("message")?.forEach(listener => listener({ data: structuredClone(data) }))); }
+    addEventListener(name, listener) { const group = this.listeners.get(name) ?? new Set(); group.add(listener); this.listeners.set(name, group); }
+    removeEventListener(name, listener) { this.listeners.get(name)?.delete(listener); }
+    close() { this.room.delete(this); this.listeners.clear(); }
+  }
+  function open(owner, runtime = false) {
+    const slots = []; const effects = []; const events = new Map(); const intervals = new Map(); let cursor = 0; let dirty = true; let result;
+    const react = {
+      useState(initial) { const index = cursor++; if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial; return [slots[index], update => { const next = typeof update === "function" ? update(slots[index]) : update; if (!Object.is(next, slots[index])) { slots[index] = next; dirty = true; } }]; },
+      useRef(initial) { const index = cursor++; return slots[index] ??= { current: initial }; },
+      useEffect(effect, deps) { const index = cursor++; const old = slots[index]; if (!old || deps.some((value, i) => !Object.is(value, old.deps[i]))) { slots[index] = { deps }; effects.push(() => { old?.cleanup?.(); slots[index].cleanup = effect(); }); } },
+      useSyncExternalStore() { return owner ? "writable" : "waiting"; },
+    };
+    const ownership = { canWrite: () => owner, write: async callback => { assert.equal(owner, true, "only the existing lock owner writes"); return callback(); } };
+    async function request(input) {
+      if (input.action === "global-save") {
+        assert.equal(owner, true, "peer must submit through the typed broker");
+        assert.equal(input.revision, revision, "gateway CAS revision stays current");
+        source = contracts.validateGlobalTemplateLibrary({ ...source, templates: input.templates });
+        writes.push(structuredClone(source)); revision = String(writes.length + 1).padStart(64, "0");
+      }
+      return { library: structuredClone(source), revision, initialised: true };
+    }
+    const site = { siteId: "test", requestGlobalTemplates: request, canSaveGlobalTemplates: owner };
+    const modules = new Map();
+    function load(file) {
+      if (modules.has(file)) return modules.get(file);
+      const exports = {}; modules.set(file, exports);
+      const sourceFile = file.endsWith("use-global-templates.ts") ? process.env.GLOBAL_TEMPLATE_HOOK_SOURCE || file : file.endsWith("broker-runtime.tsx") ? process.env.GLOBAL_TEMPLATE_RUNTIME_SOURCE || file : file;
+      const code = ts.transpileModule(readFileSync(sourceFile, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText;
+      vm.runInNewContext(code, { exports, Error, Boolean, JSON, BroadcastChannel: Channel,
+        setInterval: callback => { const id = intervals.size + 1; intervals.set(id, callback); return id; }, clearInterval: id => intervals.delete(id),
+        window: { setInterval: callback => { const id = intervals.size + 1; intervals.set(id, callback); return id; }, clearInterval: id => intervals.delete(id), addEventListener: (name, callback) => { const group = events.get(name) ?? new Set(); group.add(callback); events.set(name, group); }, removeEventListener: (name, callback) => events.get(name)?.delete(callback), confirm: () => { throw new Error("Reconnect must not discard a draft"); } },
+        require(name) {
+          if (name === "react") return react;
+          if (name === "next/navigation") return { usePathname: () => "/studio/designs" };
+          if (name.endsWith("template-model")) return templates;
+          if (name.endsWith("global-template-contract")) return contracts;
+          if (name.endsWith("write-ownership")) return { studioWriteOwnership: ownership };
+          if (name.endsWith("use-test-site")) return { useTestSite: (enabled, borrowed, siteId) => ({ ...site, siteId, canSaveGlobalTemplates: enabled && borrowed && owner }) };
+          if (name.endsWith("use-global-templates")) return load("app/studio/use-global-templates.ts");
+          if (name.endsWith("studio-sync")) return { createStudioTransaction: syncModule.createStudioTransaction, createStudioSync: options => { const session = syncModule.createStudioSync({ ...options, channelFactory: name => new Channel(name) }); sessions.push(session); return session; } };
+          return require(name);
+        },
+      }, { filename: file });
+      return exports;
+    }
+    const globals = load("app/studio/use-global-templates.ts");
+    const shell = runtime ? load("app/studio/test-site/broker-runtime.tsx") : null;
+    const driver = {
+      render() { if (!dirty) return; dirty = false; cursor = 0; result = shell ? shell.LocalSiteBrokerRuntime().type() : globals.useGlobalTemplates(site, true, owner); while (effects.length) effects.shift()(); },
+      get state() { return result; },
+      focus() { events.get("focus")?.forEach(callback => callback()); },
+      refresh() { intervals.forEach(callback => callback()); },
+      close() { slots.forEach(slot => slot?.cleanup?.()); },
+    };
+    drivers.push(driver); return driver;
+  }
+  async function settle() { for (let i = 0; i < 25; i++) { for (const driver of drivers) driver.render(); await new Promise(resolve => setTimeout(resolve, 3)); } }
+  async function until(predicate) {
+    const deadline = Date.now() + 2000;
+    while (Date.now() < deadline) {
+      for (const driver of drivers) driver.render();
+      if (predicate()) return;
+      await new Promise(resolve => setTimeout(resolve, 3));
+    }
+    assert.fail("Global template outcome did not settle before its deadline");
+  }
+  t.after(() => { drivers.forEach(driver => driver.close()); sessions.forEach(session => session.close()); });
+  return { open, settle, until, writes, rooms, sessions, source: () => source };
+}
+
+test("Design route owner wakes and serves a global template peer without another writer", async t => {
+  const f = fixture(t); const owner = f.open(true, true); owner.render(); const peer = f.open(false);
+  await f.until(() => peer.state?.session.writable); assert.equal(peer.state.session.writable, true);
+  assert.equal(peer.state.session.commit(store => {
+    const template = store.sets[0].templates[1];
+    const blocks = templates.templateEditorBlocks(template.nodes);
+    blocks.find(block => block.type === "cover-image").displayWidth = 360;
+    template.nodes = templates.templateNodesFromBlocks(blocks, template.nodes);
+    return store;
+  }), true);
+  await f.until(() => f.writes.length === 1 && peer.state.session.writable);
+  assert.equal(f.writes.length, 1);
+  assert.equal(f.source().templates.sets[0].templates[1].nodes.find(node => node.element === "cover-image").displayWidth, 360);
+  assert.equal(peer.state.session.writable, true);
+  assert.equal(peer.state.session.canUndo, true);
+  peer.refresh(); await f.settle();
+  assert.equal(peer.state.session.canUndo, true, "acknowledged own save does not erase Undo on gateway readback");
+  assert.equal(peer.state.session.undo(), true); await f.until(() => f.writes.length === 2 && peer.state.session.writable);
+  assert.equal(f.writes.length, 2, peer.state.session.error || peer.state.session.saveLabel);
+  assert.equal(f.source().templates.sets[0].templates[1].nodes.find(node => node.element === "cover-image").displayWidth, undefined);
+});
+
+test("foreground refresh reconnects a stale global peer and reports its paused status", async t => {
+  const f = fixture(t); f.open(true); const peer = f.open(false); await f.settle();
+  assert.equal(peer.state.session.writable, true);
+  const room = f.rooms.get("acm-studio-sync-global-template-library-templates");
+  // Drop the peer's handshake state using the same browser messageerror boundary.
+  const peerChannel = [...room].at(-1);
+  peerChannel.listeners.get("messageerror")?.forEach(callback => callback());
+  peer.render(); assert.equal(peer.state.session.writable, false);
+  assert.match(peer.state.session.saveLabel, /connection paused/);
+  peer.focus(); await f.settle();
+  assert.equal(peer.state.session.writable, true);
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = "After reconnect"; return store; }), true);
+  await f.settle(); assert.equal(f.source().templates.sets[0].name, "After reconnect"); assert.equal(f.writes.length, 1);
+});
+
+test("external template changes invalidate full-design Undo instead of reverting another peer", async t => {
+  const f = fixture(t); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  assert.equal(first.state.session.commit(store => { store.sets[0].templates[1].nodes.find(node => node.element === "cover-image").displayWidth = 320; return store; }), true);
+  await f.until(() => f.writes.length === 1 && first.state.session.writable && second.state.session.store.sets[0].templates[1].nodes.find(node => node.element === "cover-image").displayWidth === 320);
+  assert.equal(first.state.session.canUndo, true);
+  assert.equal(second.state.session.commit(store => { store.sets[0].name = "Other peer's name"; return store; }), true);
+  await f.until(() => f.writes.length === 2 && second.state.session.writable && first.state.session.store.sets[0].name === "Other peer's name");
+  first.refresh(); await f.settle();
+  assert.equal(first.state.session.canUndo, false);
+  assert.equal(first.state.session.undo(), false);
+  assert.equal(f.source().templates.sets[0].name, "Other peer's name");
+  assert.equal(f.source().templates.sets[0].templates[1].nodes.find(node => node.element === "cover-image").displayWidth, 320);
+  assert.equal(f.writes.length, 2);
+});

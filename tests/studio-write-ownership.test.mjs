@@ -15,7 +15,7 @@ function modules(globals = {}, overrides = {}) {
     if (cache.has(filename)) return cache.get(filename);
     const exports = {}; cache.set(filename, exports);
     const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-    vm.runInNewContext(source, { exports, AggregateError, Error, Blob, File, Event, crypto, structuredClone, queueMicrotask, setInterval, clearInterval, ...globals, require(specifier) {
+    vm.runInNewContext(source, { exports, AggregateError, Error, Blob, File, Event, AbortController, crypto, structuredClone, queueMicrotask, setInterval, clearInterval, ...globals, require(specifier) {
       if (specifier in overrides) return overrides[specifier];
       if (!specifier.startsWith(".")) return require(specifier);
       const base = path.resolve(path.dirname(filename), specifier);
@@ -541,6 +541,7 @@ test("missing parent folders are rejected before upload, child creation or file 
 function mediaHarness(initialProps, library) {
   const slots = []; let index = 0; let dirty = true; let effects = []; let tree; let props = initialProps;
   const calls = []; const commands = []; const focusCalls = []; let rejectMutations = false;
+  let readImage;
   let session = { ready: true, revision: 0, error: "" };
   const react = {
     useState(initial) {
@@ -576,7 +577,7 @@ function mediaHarness(initialProps, library) {
       if (folder) folder.name = args[1];
     }
   }]));
-  const load = modules({ requestAnimationFrame: (callback) => callback(), document: { addEventListener() {}, removeEventListener() {} }, window: { innerWidth: 1200, innerHeight: 800, prompt: () => "Folder", confirm: () => true }, URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} } }, { react, "./studio-icons": { StudioIcon: () => null }, "./media-store": { prepareMediaFolderMove, getMediaAsset: async id => structuredClone(library.assets.find(asset => asset.id === id)), listMediaLibrary: async () => structuredClone(library) },
+  const load = modules({ requestAnimationFrame: (callback) => callback(), document: { addEventListener() {}, removeEventListener() {} }, window: { innerWidth: 1200, innerHeight: 800, prompt: () => "Folder", confirm: () => true }, URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} } }, { react, "./studio-icons": { StudioIcon: () => null }, "./media-store": { prepareMediaFolderMove, getMediaAsset: async id => readImage ? readImage(id) : structuredClone(library.assets.find(asset => asset.id === id)), listMediaLibrary: async () => structuredClone(library) },
     "./media-sync": { useMediaSession: () => session, async submitMediaCommand(command) {
       assert.equal(validateMediaCommand(command), true, "UI submits a valid typed Files command");
       commands.push(structuredClone(command));
@@ -594,7 +595,7 @@ function mediaHarness(initialProps, library) {
     } } });
   const Component = load("app/studio/media-manager.tsx").MediaManager;
   return {
-    calls, commands, focusCalls, fail() { rejectMutations = true; },
+    calls, commands, focusCalls, fail() { rejectMutations = true; }, readImage(callback) { readImage = callback; },
     session(next) { session = { ...session, ...next }; dirty = true; },
     async flush() {
       for (let pass = 0; pass < 12; pass++) {
@@ -1052,3 +1053,46 @@ test("disposing synchronously during acquisition cannot orphan the lifetime lock
   const next = new StudioWriteOwnership(); const release = await own(next, manager);
   assert.equal(next.canWrite(), true); release();
 });
+
+test("featured image selection applies existing alternative text directly while body images retain Describe", async () => {
+  for (const targetKind of ["cover", "block"]) {
+    const inserted = [];
+    const h = mediaHarness({ writable: true, targetLabel: "Post", targetOwnerId: "post", targetKind, onInsertImage(...args) { inserted.push(args); return true; } }, sampleMedia());
+    let tree = await h.flush();
+    descendants(tree).find(node => node.type === "button" && node.props.className?.includes("media-file-card")).props.onClick(); tree = await h.flush();
+    findButton(tree, targetKind === "cover" ? "Use as featured image" : "Insert into Post").props.onClick({ currentTarget: {} }); tree = await h.flush();
+    if (targetKind === "cover") {
+      assert.equal(inserted.length, 1);
+      assert.equal(inserted[0][2], "Original alternative");
+      assert.ok(inserted[0][3] instanceof AbortSignal);
+      assert.doesNotMatch(textOf(tree), /Describe this image/);
+      assert.equal(descendants(tree).some(node => node.props?.title === "Describe this image"), false);
+    } else {
+      assert.equal(inserted.length, 0);
+      assert.equal(descendants(tree).some(node => node.props?.title === "Describe this image"), true);
+    }
+    h.close();
+  }
+});
+
+for (const outcome of ["missing", "not an image", "destination changed", "insertion rejected"]) {
+  test(`direct featured image selection refuses ${outcome} without losing Files selection`, async () => {
+    const inserted = []; const library = sampleMedia();
+    const h = mediaHarness({ writable: true, targetLabel: "Featured image", targetOwnerId: "post-one", targetKind: "cover", onInsertImage(...args) { inserted.push(args); return outcome !== "insertion rejected"; } }, library);
+    let tree = await h.flush();
+    descendants(tree).find(node => node.type === "button" && node.props.className?.includes("media-file-card")).props.onClick(); tree = await h.flush();
+    let complete;
+    if (outcome === "missing") h.readImage(async () => undefined);
+    else if (outcome === "not an image") h.readImage(async () => ({ ...library.assets[0], type: "application/pdf" }));
+    else if (outcome === "destination changed") h.readImage(() => new Promise(resolve => complete = resolve));
+    findButton(tree, "Use as featured image").props.onClick({ currentTarget: {} });
+    if (outcome === "destination changed") {
+      h.props({ targetOwnerId: "post-two" }); await h.flush(); complete(library.assets[0]);
+    }
+    tree = await h.flush();
+    assert.equal(inserted.length, outcome === "insertion rejected" ? 1 : 0);
+    assert.ok(descendants(tree).some(node => node.type === "input" && node.props.value === "Original"), "selected Files details remain available");
+    if (outcome === "insertion rejected") assert.match(textOf(tree), /featured image was not applied/);
+    h.close();
+  });
+}

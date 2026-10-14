@@ -1,3 +1,4 @@
+import { ExistingSiteBody } from "./existing-presentation";
 import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, type GlobalTemplateLibrary } from "../global-template-contract";
 export { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } from "../global-template-contract";
 export { testSiteCollection } from "./contract";
@@ -58,7 +59,7 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
       const content = <BlockRenderer blocks={resolved.blocks} document={resolved} documentHref={testDocumentHref(page.id)} variant="studio" />;
       return <section key={page.id} data-test-document={page.id} data-test-home={page.id === site.homeDocumentId ? "true" : "false"} data-test-title={page.title || siteName} data-test-initial={initialDocumentId && page.id === initialId ? "true" : undefined} hidden={page.id !== initialId}>
         <TestSiteNavigation site={site} document={resolved} />
-        {snapshot ? <TemplateDocument snapshot={snapshot} document={resolved} documentHref={testDocumentHref(page.id)} content={content} /> : <div className="test-site-page">{page.id !== site.homeDocumentId ? <h1>{page.title}</h1> : null}{content}</div>}
+        {snapshot ? <TemplateDocument snapshot={snapshot} document={resolved} documentHref={testDocumentHref(page.id)} content={content} /> : <div className="test-site-page">{page.id !== site.homeDocumentId ? <h1>{page.title}</h1> : null}{<ExistingSiteBody document={resolved} />}</div>}
       </section>;
     })}
   </>);

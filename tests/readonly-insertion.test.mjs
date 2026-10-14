@@ -110,8 +110,8 @@ for (const writable of [true, false]) test(`cover and between-block appenders ad
     mediaBlockUrls: {}, linkTargets: [], wordCount: 0, characterCount: 0,
   }));
   const appenders = [...html.matchAll(/<button\b[^>]*class="between-blocks(?: cover-inserter)?"[^>]*>/g)].map(match => match[0]);
-  assert.equal(appenders.length, 2);
-  for (const button of appenders) if (writable) assert.doesNotMatch(button, /disabled/); else assert.match(button, /disabled=""/);
+  assert.equal(appenders.length, writable ? 2 : 0);
+  for (const button of appenders) assert.doesNotMatch(button, /disabled/);
   const input = html.match(/<input\b[^>]*aria-label="Type \/ to choose a block"[^>]*>/)?.[0];
   assert.ok(input);
   if (writable) assert.doesNotMatch(input, /disabled/); else assert.match(input, /disabled=""/);

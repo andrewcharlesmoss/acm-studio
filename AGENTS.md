@@ -158,6 +158,12 @@ for editor previews, not the public article's prose theme. Keep selection
 controls and empty-field prompts editor-only; excerpts are metadata, not
 additional body content. Verify both modes when changing a block's appearance.
 
+Document featured-image controls show the resolved image with overlaid Replace
+and Remove actions. Featured-image selection uses existing Files alternative
+text directly; body-image insertion retains its description dialog. Template
+featured-image actions use the shared centred image overlay.
+Hidden template images remain recoverable through Restore in authoring Edit.
+
 Every block must be content-fitting by default. Optimise each block's height
 and width from its actual content: avoid gratuitous `min-height`, fixed
 heights, vertical padding, margins or line-height that create empty space,
@@ -510,6 +516,11 @@ v1–v4 and carry a validated shared snapshot when available; browser restore do
 not implicitly replace the global library. See `docs/templates.md`.
 
 ### Local fixture publication
+
+Global originals also use a lazy broker on other Studio routes under the same
+writer lock. Foreground refresh reconnects disconnected global peers. Exact own
+save acknowledgements retain local Undo; foreign or merged saved designs clear
+whole-design history so Undo cannot revert another tab's properties.
 
 Test and Test2 source v6 retains independent document publication snapshots and
 template assignments. Save Draft and automatic saving change authored documents

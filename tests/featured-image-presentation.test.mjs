@@ -10,6 +10,7 @@ const { resolveImageSource } = await load("../app/content/image-source.ts");
 const { BlockRenderer } = await load("../app/components/content.tsx");
 const { BlockField } = await load("../app/studio/studio-canvas.tsx");
 const { TemplateNodes } = await load("../app/studio/template-renderer.tsx");
+const { templateMediaTargetKind } = await load("../app/studio/template-media-target.ts");
 const { createTemplateSet } = await load("../app/studio/template-model.ts");
 const { validContentBlocks } = await load("../app/studio/workspace-validation.ts");
 const { blockToHtml } = await load("../app/studio/studio-html-editor.ts");
@@ -110,6 +111,17 @@ test("hidden template covers remain invisible in all modes", () => {
   }
 });
 
+test("hidden template image offers Restore only in editable authoring and document action wording stays accurate", () => {
+  const block = { ...baseBlock, coverImageHidden: true };
+  const document = documentFixture(managedCover);
+  const html = templateHtml(block, document, { authoring: true, editingDocument: true, onRestoreCoverImage() {} });
+  assert.match(html, /Restore featured image/);
+  assert.doesNotMatch(html, /document-featured-image|document-featured-placeholder/);
+  assert.doesNotMatch(templateHtml(block, document, { templatePreview: true, onRestoreCoverImage() {} }), /Restore featured image/);
+  assert.match(templateHtml(baseBlock, document, { editingDocument: true, onChangeCover() {} }), /aria-label="Change featured image"/);
+  assert.match(templateHtml(baseBlock, document, { authoring: true, editingDocument: true, onChangeCover() {} }), /aria-label="Choose fixed featured image"/);
+});
+
 test("empty cover frames keep one owner for explicit borders and corners", () => {
   const block = { ...baseBlock, visualStyle: { borderRadius: "0px", borderStyle: "solid", borderWidth: "2px", borderColor: "#123456" } };
   const document = documentFixture({ src: "", alt: "Empty cover" });
@@ -177,4 +189,22 @@ test("shared CSS owns source dimensions and the same empty cover box", async () 
   assert.match(css, /\.document-featured-placeholder\s*\{[^}]*aspect-ratio: 16 \/ 9;/);
   assert.match(css, /\.document-dynamic-cover\s*\{ margin: 0;/);
   assert.doesNotMatch(css, /\.canvas-cover-image\s*\{/);
+});
+
+
+test("nested template featured images select direct insertion while ordinary images, logos and backgrounds retain their own flow", () => {
+  const nodes = [{ id: "group", type: "group", layout: "stack", children: [
+    { id: "featured", type: "element", element: "cover-image" },
+    { id: "ordinary", type: "image", src: "", alt: "" },
+  ] }];
+  assert.equal(templateMediaTargetKind(nodes, { blockId: "featured" }), "cover");
+  assert.equal(templateMediaTargetKind(nodes, { blockId: "ordinary" }), "block");
+  assert.equal(templateMediaTargetKind(nodes, { blockId: "featured", logo: true }), "block");
+  assert.equal(templateMediaTargetKind(nodes, { blockId: "featured", background: true }), "background");
+  assert.equal(templateMediaTargetKind(nodes, { blockId: "missing" }), "block");
+  const document = documentFixture(managedCover);
+  const html = templateHtml(baseBlock, document, { authoring: true, editingDocument: true, onRemoveCoverImage() {}, onRemoveCoverBlock() {} });
+  assert.doesNotMatch(html, /Choose fixed featured image/);
+  assert.match(html, /aria-label="Remove featured image"/);
+  assert.match(html, /aria-label="Delete featured image block"/);
 });
