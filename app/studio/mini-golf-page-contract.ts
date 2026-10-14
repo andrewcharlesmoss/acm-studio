@@ -1,3 +1,4 @@
+import { containsResponsiveStyles } from "../content/responsive-styles";
 import { containsRichTextInlineObjects, containsExtendedLanguage } from "../content/rich-text-contract";
 import { migrateLegacyFootnoteBlocks } from "../content/footnote-blocks";
 import type { ContentBlock } from "../content/model";
@@ -6,7 +7,7 @@ import { isRecord, validContentBlocks } from "./workspace-validation";
 /** Portable authored page data, independent of React and guest game sessions. */
 export type MiniGolfPageDefinition = {
   format: "mini-golf-page-definition";
-  version: 5;
+  version: 6;
   pageId: string;
   instanceId: string;
   source: { revision: string; fileHashes: Record<string, string> };
@@ -75,12 +76,13 @@ export function blocksToMiniGolfPageDefinition(blocks: ContentBlock[], identity:
   if (!validContentBlocks(copy)) throw new Error("Unsupported Mini Golf block structure, duplicate identity or invalid block data. The page has not been converted.");
   if (!validIdentity(identity)) throw new Error("Invalid Mini Golf page, instance or source identity.");
   const canonicalBlocks = migrateLegacyFootnoteBlocks(copy);
-  return JSON.parse(canonicalMiniGolfJson({ format: "mini-golf-page-definition", version: 5, pageId: identity.pageId, instanceId: identity.instanceId, source: identity.source, blocks: canonicalBlocks, ...descriptors(canonicalBlocks) })) as MiniGolfPageDefinition;
+  return JSON.parse(canonicalMiniGolfJson({ format: "mini-golf-page-definition", version: 6, pageId: identity.pageId, instanceId: identity.instanceId, source: identity.source, blocks: canonicalBlocks, ...descriptors(canonicalBlocks) })) as MiniGolfPageDefinition;
 }
 
 export function parseMiniGolfPageDefinition(value: unknown): MiniGolfPageDefinition {
-  if (!isRecord(value) || value.format !== "mini-golf-page-definition" || ![1, 2, 3, 4, 5].includes(value.version as number) || !validIdentity(value)) throw new Error("Unsupported Mini Golf page definition or version.");
-  if ((![4, 5].includes((value as Record<string, unknown>).version as number) && containsRichTextInlineObjects(value) || (value as Record<string, unknown>).version !== 5 && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) throw new Error("Inline objects require the current Mini Golf page definition.");
+  if (!isRecord(value) || value.format !== "mini-golf-page-definition" || ![1, 2, 3, 4, 5, 6].includes(value.version as number) || !validIdentity(value)) throw new Error("Unsupported Mini Golf page definition or version.");
+  if ((value as Record<string, unknown>).version !== 6 && containsResponsiveStyles(value)) throw new Error("Responsive styles require the current Mini Golf page definition.");
+  if ((![4, 5, 6].includes((value as Record<string, unknown>).version as number) && containsRichTextInlineObjects(value) || ![5, 6].includes((value as Record<string, unknown>).version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) throw new Error("Inline objects require the current Mini Golf page definition.");
   const keys = ["format", "version", "pageId", "instanceId", "source", "blocks", "defaults", "leaderboardTemplates"];
   if (Object.keys(value).some(key => !keys.includes(key))) throw new Error("Unsupported page-definition fields. No data has been discarded.");
   const payload = value as Identity & Record<string, unknown>;

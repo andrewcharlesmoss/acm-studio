@@ -124,7 +124,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(groupPositionInspector, /configuredPosition: block\.position, visible: Boolean\(block\.position\)/);
   assert.match(groupPositionInspector, /positionVisibility\.configuredPosition === block\.position/);
   assert.doesNotMatch(groupPositionInspector, /alwaysShow/, "Group Position stays optional until selected or already configured");
-  assert.match(inspectorSource, /sectionId === "background" && groupLayoutControls/);
+  assert.match(inspectorSource, /sectionId === "background" && !deviceScope && groupLayoutControls/);
   assert.equal(capabilityProfileFor("group").controls.some(control => control.id === "allowed-blocks"), false);
   assert.doesNotMatch(inspectorSource, /AllowedBlocksInspector|Manage allowed blocks/);
   const columnPane = capabilityProfileFor("column");
@@ -259,7 +259,7 @@ test("List compatibility records recursive nesting and independent List Item ins
   assert.ok(lineHeightControl);
   assert.ok(itemProfile.dependencies.some(dependency => dependency.id === lineHeightControl.id));
   assert.deepEqual([...itemProfile.resetFields].sort(), ["additionalCss", "anchor", "appearance", "backgroundColor", "backgroundGradient", "backgroundImageMediaId", "backgroundSize", "backgroundRepeat", "backgroundFixedSize", "backgroundPositionX", "backgroundPositionY", "shadow", "borderColor", "borderRadius", "borderStyle", "borderWidth", "className", "fontFamily", "fontSize", "fontSizeCustom", "letterSpacing", "lineHeight", "linkColor", "linkHoverColor", "margin", "padding", "textColor", "textDecoration", "textTransform"].sort());
-  assert.deepEqual([...listItemSupportedStyleFields].sort(), [...new Set(itemProfile.controls.flatMap(control => control.fields))].sort());
+  assert.deepEqual([...listItemSupportedStyleFields].sort(), ["responsive", ...new Set(itemProfile.controls.flatMap(control => control.fields))].sort());
   assert.ok(!unsupported.includes("Nested List Item blocks"));
   assert.ok(!unsupported.some(item => item.includes("List Item anchor")));
   assert.ok(!unsupported.includes("List Item block-level indent and outdent controls"));

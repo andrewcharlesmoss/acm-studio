@@ -304,7 +304,7 @@ test("version 5 transitional scorecard groups recover their table and become edi
   assert.equal(scorecard.children[0].children[0].text, "Our scores");
   assert.equal(scorecard.children.find((block) => block.type === "table").rows.length, 11);
   miniGolfDraftRepository.save(loaded);
-  assert.equal(JSON.parse(records.get(MINI_GOLF_DRAFT_KEY)).version, 13);
+  assert.equal(JSON.parse(records.get(MINI_GOLF_DRAFT_KEY)).version, 14);
   assert.equal(JSON.stringify(miniGolfDraftRepository.load()), JSON.stringify(loaded));
 });
 

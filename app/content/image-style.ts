@@ -18,7 +18,12 @@ export function imageWrapperStyle(block: Pick<ImageBlock, "visualStyle">): Recor
   const style = paragraphStyleToCss(block.visualStyle);
   // The frame belongs to the image, while spacing and Additional CSS belong
   // to its wrapper. Both renderers must use the same split.
-  for (const property of imageFrameProperties) delete style[property];
+  for (const property of imageFrameProperties) {
+    delete style[property];
+    const name = property.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
+    delete style[`--studio-rs-tablet-${name}`];
+    delete style[`--studio-rs-mobile-${name}`];
+  }
   return style;
 }
 
@@ -36,6 +41,7 @@ export function imageDisplayStyle(block: ImagePresentation, options: { includeFr
   }
   if (options.includeFrame !== false) {
     const frame = paragraphStyleToCss(block.visualStyle);
+    for (const [property, value] of Object.entries(frame)) if (imageFrameProperties.some(key => property === `--studio-rs-tablet-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}` || property === `--studio-rs-mobile-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`)) style[property] = value;
     for (const key of imageFrameProperties) {
       if (frame[key]) style[key] = frame[key];
     }

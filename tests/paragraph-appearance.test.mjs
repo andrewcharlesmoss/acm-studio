@@ -3,13 +3,9 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import ts from "typescript";
 
-const source = await readFile(new URL("../app/content/paragraph-styles.ts", import.meta.url), "utf8");
-const gradientSource = await readFile(new URL("../app/content/background-gradient.ts", import.meta.url), "utf8");
-const gradientCompiled = ts.transpileModule(gradientSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const gradientUrl = `data:text/javascript;base64,${Buffer.from(gradientCompiled).toString("base64")}`;
-const { validBackgroundGradient, DEFAULT_GRADIENTS } = await import(gradientUrl);
-const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText.replace('"./background-gradient"', JSON.stringify(gradientUrl));
-const { fitTextEnabled, paragraphStyleToCss, paragraphStyleClassName, visualStyleClassName, parseAdditionalCssDeclarations, paragraphLinkColourHasPoorContrast, paragraphTextColourHasPoorContrast, paragraphBackgroundGradientCss, buttonVisualCss, buttonInteractionClassName, buttonInteractionLayoutCss } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const { loadProductionModule } = await import("./production-module.mjs");
+const { validBackgroundGradient, DEFAULT_GRADIENTS } = await loadProductionModule(new URL("../app/content/background-gradient.ts", import.meta.url));
+const { fitTextEnabled, paragraphStyleToCss, paragraphStyleClassName, visualStyleClassName, parseAdditionalCssDeclarations, paragraphLinkColourHasPoorContrast, paragraphTextColourHasPoorContrast, paragraphBackgroundGradientCss, buttonVisualCss, buttonInteractionClassName, buttonInteractionLayoutCss } = await loadProductionModule(new URL("../app/content/paragraph-styles.ts", import.meta.url));
 const layoutSource = await readFile(new URL("../app/content/layout.ts", import.meta.url), "utf8");
 const compiledLayout = ts.transpileModule(layoutSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
 const { layoutStyleProperties, validLayoutOptions } = await import(`data:text/javascript;base64,${Buffer.from(compiledLayout).toString("base64")}`);

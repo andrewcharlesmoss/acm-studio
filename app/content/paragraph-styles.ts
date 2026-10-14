@@ -1,3 +1,4 @@
+import { responsiveStyleCss } from "./responsive-styles";
 import type { ButtonInteractionState, ButtonInteractionStyle, ParagraphStyle, ParagraphWeight, ParagraphGradientPreset } from "./model";
 
 import { validBackgroundGradient } from "./background-gradient";
@@ -227,6 +228,10 @@ export function parseAdditionalCssDeclarations(source?: string): Record<string, 
 }
 
 export function paragraphStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: string, previousParagraphIndent?: string): Record<string, string> {
+  return responsiveStyleCss(style, effective => paragraphBaseStyleToCss(effective, backgroundImageUrl, previousParagraphIndent));
+}
+
+function paragraphBaseStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: string, previousParagraphIndent?: string): Record<string, string> {
   if (!style && !previousParagraphIndent) return {};
   style ??= {};
   const css: Record<string, string> = {};
@@ -282,6 +287,7 @@ export function paragraphStyleToCss(style?: ParagraphStyle, backgroundImageUrl?:
     css.borderWidth = style.borderWidth || "1px";
     css.borderColor = style.borderColor || "#d1cfc7";
   }
+  if (style.borderStyle === "none") css.borderStyle = "none";
   if (style.borderRadius) css.borderRadius = style.borderRadius;
   if (style.shadow) css.boxShadow = style.shadow === "soft" ? "0 4px 16px rgb(0 0 0 / 12%)" : style.shadow === "strong" ? "0 12px 32px rgb(0 0 0 / 22%)" : "none";
   if (style.textShadow) css.textShadow = style.textShadow === "soft" ? "0 1px 2px rgb(0 0 0 / 28%)" : style.textShadow === "strong" ? "0 2px 5px rgb(0 0 0 / 40%)" : "none";
@@ -292,6 +298,7 @@ export function paragraphStyleToCss(style?: ParagraphStyle, backgroundImageUrl?:
 export function listItemTextStyle(style?: ParagraphStyle): Record<string, string> {
   if (!style) return {};
   return paragraphStyleToCss({
+    responsive: style.responsive ? Object.fromEntries(Object.entries(style.responsive).map(([viewport, override]) => [viewport, Object.fromEntries(Object.entries(override).filter(([field]) => ["textColor", "fontFamily", "appearance", "letterSpacing", "textTransform", "textDecoration", "fontSize", "fontSizeCustom", "lineHeight", "linkColor", "linkHoverColor"].includes(field)))])) : undefined,
     textColor: style.textColor,
     fontFamily: style.fontFamily,
     appearance: style.appearance,
@@ -338,6 +345,8 @@ export function buttonInteractionClassName(styles?: Partial<Record<ButtonInterac
 export function buttonVisualCss(style?: ParagraphStyle, interactionStyles?: Partial<Record<ButtonInteractionState, ButtonInteractionStyle>>): Record<string, string> {
   const css = paragraphStyleToCss(style);
   delete css.margin;
+  delete css["--studio-rs-tablet-margin"];
+  delete css["--studio-rs-mobile-margin"];
   if (style?.borderStyle === "none") css.borderStyle = "none";
   if (!interactionStyles) return css;
 
@@ -391,4 +400,9 @@ export function visualStyleClassName(style: ParagraphStyle) {
 export function paragraphStyleAnchor(style?: ParagraphStyle) {
   const anchor = style?.anchor?.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
   return anchor || undefined;
+}
+
+export function buttonWrapperCss(style?: ParagraphStyle): Record<string, string> {
+  const css = paragraphStyleToCss(style);
+  return Object.fromEntries(Object.entries(css).filter(([property]) => ["margin", "--studio-rs-tablet-margin", "--studio-rs-mobile-margin"].includes(property)));
 }

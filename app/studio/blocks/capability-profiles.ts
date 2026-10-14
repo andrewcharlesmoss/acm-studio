@@ -360,7 +360,7 @@ export const listItemCapabilityProfile: NestedBlockCapabilityProfile = {
 };
 
 export const listItemSupportedStyleFields = Array.from(new Set(
-  listItemCapabilityProfile.controls.flatMap(control => control.fields),
+  ["responsive", ...listItemCapabilityProfile.controls.flatMap(control => control.fields)],
 ));
 
 export const navigationStyleProfile = makeProfile("group", "Navigation", "core/navigation (typed template menu)", {

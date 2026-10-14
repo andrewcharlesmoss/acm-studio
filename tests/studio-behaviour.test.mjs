@@ -760,7 +760,7 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   assert.match(inspector, /const profile = capabilityProfileFor\(block\.type\)/);
   assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
   assert.match(inspector, /const scopedTypographyOptions = typographyOptions\.filter\(option => \(visibleSource === undefined \|\| \(option\.source \?\? "gutenberg"\) === visibleSource\)\)/);
-  assert.match(inspector, /function clearTools\(ids: Iterable<string>, resetGroupLayout = false\) \{\s*const selectedIds = \[\.\.\.ids\];\s*const nextStyle = resetSupportedInspectorStyleFields\(style, selectedIds, styleControls\)/);
+  assert.match(inspector, /function clearTools\(ids: Iterable<string>, resetGroupLayout = false\) \{[\s\S]*?if \(deviceScope\) \{ writeStyle\(resetSupportedInspectorStyleFields\(style, selectedIds, styleControls\)\); return; \}/);
   assert.match(inspector, /<FontSizeAppearanceSetting/);
   assert.match(inspector, /<BackgroundSelection/);
   assert.doesNotMatch(inspector.slice(inspector.indexOf("export function BlockInspector"), inspector.indexOf("type AdvancedFields")), /<PaneTabs/);
@@ -2490,7 +2490,8 @@ test("Studio View menu exposes viewport, template and read-only preview actions"
   assert.match(menu, /\{ id: "mobile", label: "Mobile", width: 390 \}/);
   assert.match(menu, /role="menuitemradio" aria-checked=\{viewport === item\.id\}/);
   assert.match(menu, /role="menuitemcheckbox" aria-checked=\{showTemplate\}/);
-  assert.match(menu, /Viewport-specific style editing is not available in Studio yet/);
+  assert.match(menu, /role="menuitemcheckbox" aria-checked=\{responsiveStyles\}/);
+  assert.match(menu, /Style changes apply only to the selected viewport\./);
   assert.match(menu, /event\.key === "Escape"/);
   assert.equal(jsxProp(prototype, "StudioHeader", "studioSection"), "studioSection");
   assert.match(header, /window\.open\(`\/studio\?\$\{query\.toString\(\)\}`, "_blank", "noopener,noreferrer"\)/);

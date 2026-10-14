@@ -646,7 +646,11 @@ the same focus containment, Escape dismissal and focus-return runtime.
 
 ## Global templates
 
-Templates reuses `StudioViewMenu` in the main header. Focus Outline is available
+Templates reuses `StudioViewMenu` in the main header, including the shared
+Responsive styles checkbox while a canvas is visible. Supported block styles
+use independent Tablet/Mobile overrides; shared template styles and unsupported
+marker settings remain Desktop controls. See [Responsive block styles](responsive-styles.md).
+Focus Outline is available
 throughout this section. Desktop, Tablet, and Mobile appear only while a
 template canvas is visible and use the same viewport widths as Posts and Pages
 in both Edit and Preview. Viewport selection is tab-local and separate from the

@@ -12,6 +12,7 @@ import { AdvancedFieldsControl } from "./controls/advanced-fields-control";
 import { ToggleSetting } from "./controls/toggle-setting";
 import { StudioAnchoredMenu } from "./overlays/anchored-menu";
 import { GroupLayoutControls } from "./blocks/group-layout-controls";
+import { useResponsiveStyleScope } from "./responsive-style-context";
 import { ParagraphInspector } from "./blocks/inspectors/paragraph-inspector";
 import { navigationStyleProfile } from "./blocks/capability-profiles";
 import { InspectorToolsSection } from "./inspector-tools-section";
@@ -195,6 +196,7 @@ export function LinkSetting({ label, value, maxLength = 2000, onCommit, onDraftC
 }
 
 export function NavigationInspector({ linksWritable = true, block, menuName = "Navigation", onBlockChange, overlayContext = false, overlayParts = [], canCreateOverlay = true, onCreateOverlay, onEditOverlay, ...props }: NavigationEditingProps & { linksWritable?: boolean; menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void; overlayContext?: boolean; overlayParts?: TemplatePart[]; canCreateOverlay?: boolean; onCreateOverlay?: () => void; onEditOverlay?: (id: string) => void }) {
+  const { editingViewport } = useResponsiveStyleScope();
   const [activeTab, setActiveTab] = useState("menu");
   const tabId = useId();
   const [menuOptionsOpen, setMenuOptionsOpen] = useState(false);
@@ -206,6 +208,7 @@ export function NavigationInspector({ linksWritable = true, block, menuName = "N
     for (const [key, value] of Object.entries(patch)) { if (value === undefined) delete next[key]; else next[key] = value; }
     if (props.writable) onBlockChange({ ...block, data: next });
   };
+  if (editingViewport !== "desktop") return <div className="navigation-inspector inspector-sections"><h3>Navigation</h3><p className="setting-note">Style {editingViewport} only. Unset values inherit Desktop.</p><ParagraphInspector key={`${block.id}:${editingViewport}`} profileOverride={navigationStyleProfile} block={block} onChange={next => { if (props.writable) onBlockChange(next); }} fontSizeViewMode={fontSizeViewMode} onFontSizeViewModeChange={setFontSizeViewMode} /></div>;
   return <div className="navigation-inspector inspector-sections">
     <div className="navigation-block-summary"><h3><AcmIcon name="navigation.menu" size={24} />Navigation</h3><p>A collection of blocks that allow visitors to get around your site.</p></div>
     <PaneTabs id={tabId} label="Navigation controls" indicatorVariant="selected" className="navigation-inspector-tabs" tabs={[{ id: "menu", label: "Menu" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]} active={activeTab} onChange={setActiveTab} renderLabel={tab => <><AcmIcon name={tab.id === "menu" ? "view.list" : tab.id === "settings" ? "action.settings" : "view.styles"} size={24} /><span className="visually-hidden">{tab.label}</span></>} />

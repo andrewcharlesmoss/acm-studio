@@ -1,5 +1,6 @@
 "use client";
 
+import { useResponsiveStyleScope } from "../responsive-style-context";
 import { useState } from "react";
 import type { ListBlock, ListItem, ParagraphStyle } from "../../content/model";
 import { InspectorAccordionSection } from "../inspector-accordion";
@@ -20,6 +21,7 @@ export function ListItemInspector({ block, listId, itemIndex, onChange, onOpenBa
   onChange: (block: ListBlock) => void;
   onOpenBackgroundMedia?: (target: ListItemBackgroundTarget) => void;
 }) {
+  const { editingViewport } = useResponsiveStyleScope();
   const list = findListBlock(block, listId);
   const item = list?.items[itemIndex] ?? (list && !list.items.length && itemIndex === 0 ? "" : undefined);
   const style = item && typeof item !== "string" ? item.style ?? {} : {};
@@ -56,13 +58,13 @@ export function ListItemInspector({ block, listId, itemIndex, onChange, onOpenBa
         for (const field of listItemSupportedStyleFields) changes[field as keyof ParagraphStyle] = next.style?.[field as keyof ParagraphStyle] as never;
         updateStyles(changes);
       }} />
-      <InspectorAccordionSection title="Advanced" className="advanced-fields-section">
+      {editingViewport === "desktop" ? <InspectorAccordionSection title="Advanced" className="advanced-fields-section">
         <AdvancedFieldsControl fields={{ anchor: true, className: true, additionalCss: true }} style={style} blockName="List Item" placeholders onChange={(field, value) => {
           if (field === "anchor" && value && !/^[a-z][a-z0-9_-]*$/i.test(value)) return;
           if (field === "className" && value && !/^[a-z0-9 _-]*$/i.test(value)) return;
           updateStyle(field, value || undefined);
         }} />
-      </InspectorAccordionSection>
+      </InspectorAccordionSection> : null}
     </div>
   </div>;
 }

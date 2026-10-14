@@ -147,6 +147,17 @@ as far as available space allows, without automatically flipping to the right.
 Reposition on pane/popup resize and scrolling, and preserve close controls,
 Escape dismissal and focus return. See `docs/pane-library.md`.
 
+Posts, pages, and template block editors share View → Responsive styles. Desktop
+edits the shared baseline; Tablet (>480px and ≤782px) and Mobile (≤480px) have
+independent bounded ParagraphStyle overrides inheriting Desktop. Turning the
+session toggle off preserves overrides and edits Desktop at any preview width.
+Device inspectors expose supported typography, colours, borders, and spacing;
+native layout/content, assets, Advanced fields, interaction states, and shared
+site styles remain Desktop controls. Fit-text blocks retain shared fitted sizing.
+Block toolbars remain shared. Canonical CSS mappers emit escaped device deltas;
+editor container queries and local publication media queries share the ranges.
+See `docs/responsive-styles.md` for contracts and acceptance checks.
+
 The main content editor, template editor and Mini Golf editor remain
 three-pane desktop workspaces at narrow viewport widths. They keep a minimum
 workspace width and scroll horizontally until a dedicated mobile arrangement is
@@ -197,20 +208,20 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.31.0 and read versions
-v0.1.0 through v0.30.0. Group semantic elements, ARIA labels and block alignment,
+Template packages and stored template contracts use v0.32.0 and read versions
+v0.1.0 through v0.31.0. Group semantic elements, ARIA labels and block alignment,
 Columns alignment and Section visual styles survive the template projection.
 Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 25 and reads versions 2–24. Local publication
-snapshots use version 18 and read versions 1–17. Publications freeze the effective
+Workspace data uses version 26 and reads versions 2–25. Local publication
+snapshots use version 19 and read versions 1–18. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
 workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
 publication 16. Legacy marked-text references and equations remain readable.
-Studio block clipboard envelopes use version 4 and read versions 1–3. Partial
+Studio block clipboard envelopes use version 5 and read versions 1–4. Partial
 selections carry referenced document note companions; paste attaches them outside
 restricted child lists within the same content/history transaction. Math objects
 require clipboard 4; Footnote companions remain readable in clipboard 3. Cut may remove
@@ -266,7 +277,7 @@ screen, with a chronological slider, Previous/Next and Removed/Added source
 columns. Optional arbitrary comparison uses two labelled native ranges; the To
 version is restored. Complete typed block differences remain inspectable alongside
 the canonical HTML inspection format. Browser revisions live in
-the owning workspace v25 aggregate, retained independently of Undo with a
+the owning workspace v26 aggregate, retained independently of Undo with a
 100-record / 2 MiB budget. Test and Test2 read validated selected-document
 records from their existing bounded gateway history. Browsing is read-only;
 restoration saves current content first, restores only editorial fields through
@@ -284,9 +295,9 @@ reset editing state. Preview may run the shared Mini Golf game locally with isol
 session storage. Page authoring and game sessions remain separate. Writes to the
 Mini Golf project or live site are not part of the page-draft pilot.
 
-Mini Golf drafts use envelope version 13 and read versions 1–12; page
-definitions use version 5 and read versions 1–4. Math objects require these
-current envelopes; their Footnote predecessors remain readable.
+Mini Golf drafts use envelope version 14 and read versions 1–13; page
+definitions use version 6 and read versions 1–5. Math objects require draft envelope 13 and page definition 5 or later; their
+Footnote predecessors remain readable.
 
 Mini Golf runtime Preview uses an ephemeral block projection for calculated
 fields and repeated leaderboard cards. The first player retains the authored
@@ -366,7 +377,7 @@ relative `/studio` link on every host.
 
 Andrew has authorised the local Test integration inside `/studio?site=test` and
 changes to the sibling `test` project for this fixture. The canonical source is
-Test's `content/site.json` v7 (backwards-readable v1–v6), containing documents,
+Test's `content/site.json` v8 (backwards-readable v1–v7), containing documents,
 categories, Bin and templates; visual edits use one revision-checked gateway.
 Test drives the selected site's Posts, Pages and Templates lists and commands.
 Andrew authorised copying the existing browser test documents, templates and
@@ -424,7 +435,7 @@ the existing `coverImage` and `cover-image` storage names remain compatible.
 ### Second local fixture
 
 Andrew authorised Test2 (`test2`) on 9 October 2026. `/studio?site=test2` uses
-the same local integration with an independent v7 source in sibling
+the same local integration with an independent v8 source in sibling
 `test2/content/site.json`. Only fixed IDs `test` and `test2` are accepted.
 Each owns separate gateway sessions, leases, process guards, revisions, history,
 wake channels and synchronisation rooms. Every ordinary Studio shell retains
@@ -530,7 +541,7 @@ writer lock. Foreground refresh reconnects disconnected global peers. Exact own
 save acknowledgements retain local Undo; foreign or merged saved designs clear
 whole-design history so Undo cannot revert another tab's properties.
 
-Test and Test2 source v7 retains independent document publication snapshots and
+Test and Test2 source v8 retains independent document publication snapshots and
 template assignments. Save Draft and automatic saving change authored documents
 only. Publish/Save atomically replaces the selected publication through the
 existing owned, revision-checked source/output transaction. Static local output
@@ -551,8 +562,8 @@ remain local plaintext, so do not describe it as hosted security. Sticky is a
 post-only editorial flag shared with Studio Drafts. It is saved
 through normal owned draft transactions and enters a local publication only on
 Publish, Schedule or Update. Fixtures currently have no post archive, so it does
-not reorder document navigation or the manually ordered editor list. Source v7
+not reorder document navigation or the manually ordered editor list. Source v8
 permits an absent home publication while retaining the
-required authored home document and v1–v6 readers; a withheld home shows a neutral
+required authored home document and v1–v7 readers; a withheld home shows a neutral
 unavailable message. Date edits, Now and backdates stay draft metadata until
 capture. See `docs/test-site-integration.md` for this deliberate local extension.

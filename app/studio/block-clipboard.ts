@@ -1,3 +1,4 @@
+import { containsResponsiveStyles } from "../content/responsive-styles";
 import { containsRichTextInlineObjects, containsExtendedLanguage } from "../content/rich-text-contract";
 import { footnoteReferenceIds, migrateLegacyFootnoteBlocks } from "../content/footnote-blocks";
 import { childContentBlocks, findContentBlock } from "../content/block-tree";
@@ -40,7 +41,7 @@ function companionBlock(payload: BlockClipboardPayload): Extract<ContentBlock, {
 
 export function blockClipboardHtml(blocks: ContentBlock[], documentBlocks: ContentBlock[] = blocks) {
   const content = createBlockClipboardPayload(blocks, documentBlocks);
-  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 4, ...content });
+  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 5, ...content });
   const escaped = payload.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const portable = content.footnotes.length ? [...blocks, companionBlock(content)] : blocks;
   return `<div ${marker}="${escaped}">${blocksToHtml(portable)}</div>`;
@@ -51,9 +52,10 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
   const element = new DOMParser().parseFromString(html, "text/html").querySelector(`[${marker}]`);
   try {
     const value = JSON.parse(element?.getAttribute(marker) ?? "null");
-    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4].includes(value.version)
+    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5].includes(value.version)
+      || value.version !== 5 && containsResponsiveStyles(value)
       || value.version === 1 && containsRichTextInlineObjects(value.blocks)
-      || value.version !== 4 && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
+      || ![4, 5].includes(value.version) && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
       || !Array.isArray(value.blocks) || !value.blocks.length || value.blocks.length > 1000
       || value.blocks.some((block: unknown) => block === null || typeof block !== "object")) return null;
     const footnotes = value.version >= 3 ? value.footnotes : [];

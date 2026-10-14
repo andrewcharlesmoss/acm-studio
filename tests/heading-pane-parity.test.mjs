@@ -29,7 +29,7 @@ function load(file, overrides = {}, cache = new Map()) {
 function nodes(element) { return element && typeof element === "object" ? [element, ...[element.props?.children].flat(Infinity).flatMap(nodes)] : []; }
 const { HeadingLevelIcon, HeadingLevelSetting } = load("app/studio/controls/heading-level-setting.tsx");
 const { BlockInspector } = load("app/studio/studio-inspectors.tsx", {
-  react: { ...require("react"), useId: () => "heading-inspector-fixture", useState: value => [typeof value === "function" ? value() : value, () => {}], useEffect: () => {} },
+  react: { ...require("react"), useContext: context => context._currentValue, useId: () => "heading-inspector-fixture", useState: value => [typeof value === "function" ? value() : value, () => {}], useEffect: () => {} },
 });
 function inspector(block, onChange = () => {}) {
   return BlockInspector({ block, onChange, onOpenFiles: () => {}, canOpenFiles: false, fontSizeModeScope: "fixture", fontSizeViewModes: {}, onFontSizeViewModeChange: () => {} });

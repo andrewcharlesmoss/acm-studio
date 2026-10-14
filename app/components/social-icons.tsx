@@ -1,3 +1,4 @@
+import { responsiveStyleCss } from "../content/responsive-styles";
 import { AcmIcon } from "@acm/icons/react";
 import { safeTextLink } from "../content/rich-text";
 import { blockAlignmentClass } from "../content/block-alignment";
@@ -33,6 +34,13 @@ export function socialIconsColourStyle(block: SocialIconsBlock): CSSProperties {
     "--social-icon-background": block.visualStyle?.backgroundColor,
     "--social-icon-background-image": block.visualStyle?.backgroundGradient ? paragraphBackgroundGradientCss(block.visualStyle.backgroundGradient) : undefined,
     "--social-icon-colour": block.visualStyle?.textColor,
+    ...responsiveStyleCss(block.visualStyle, style => {
+    const css: Record<string, string> = {};
+    if (style.backgroundColor) css["--social-icon-background"] = style.backgroundColor;
+    if (style.backgroundGradient) css["--social-icon-background-image"] = paragraphBackgroundGradientCss(style.backgroundGradient)!;
+    if (style.textColor) css["--social-icon-colour"] = style.textColor;
+    return css;
+    }),
   } as CSSProperties;
 }
 

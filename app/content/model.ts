@@ -100,6 +100,7 @@ export function listMarker(block: { items: ListItem[]; start?: number; reversed?
   return `${number}.`;
 }
 export type ParagraphStyle = {
+  responsive?: import("./responsive-styles").ResponsiveStyles;
   fontFamily?: ParagraphFontFamily;
   fontSize?: ParagraphFontSize;
   fontSizeCustom?: string;

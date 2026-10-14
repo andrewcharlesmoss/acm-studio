@@ -9,7 +9,8 @@ export function tablePresentation(style?: ParagraphStyle) {
   const table: Record<string, string> = {};
   const wrapperProperties = new Set(["padding", "margin", "width", "minWidth", "maxWidth", "height", "minHeight", "maxHeight"]);
   for (const [property, value] of Object.entries(css)) {
-    (wrapperProperties.has(property) ? wrapper : table)[property] = value;
+    const standardProperty = property.startsWith("--studio-rs-") ? property.replace(/^--studio-rs-(?:tablet|mobile)-/, "").replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase()) : property;
+    (wrapperProperties.has(standardProperty) ? wrapper : table)[property] = value;
   }
   const hasBorder = Boolean(table.borderStyle || table.borderWidth || table.borderColor);
   if (hasBorder) {

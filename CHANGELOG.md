@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add Responsive styles to the View menu for posts, pages, and templates, with
+  independent Tablet and Mobile block styles, Desktop inheritance, and saved
+  local preview and publication rendering.
+
 - Share the post-only Sticky checkbox across Studio Drafts, Test and Test2,
   retaining separate draft saves and publication captures.
 

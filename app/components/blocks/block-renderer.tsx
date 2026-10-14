@@ -6,7 +6,7 @@ import { tablePresentation } from "../../content/table-presentation";
 import { highlightCode } from "../../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink } from "../../content/rich-text";
 import { type ButtonInteractionState, type ContentBlock, type DocumentRenderContext } from "../../content/model";
-import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../../content/paragraph-styles";
+import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, buttonWrapperCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../../content/spacer";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../../content/layout";
 import { blockAlignmentClass, contentBlockAlignment } from "../../content/block-alignment";
@@ -36,9 +36,11 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
     if (!block.visualStyle || block.type === "spacer") return content;
     const style = block.visualStyle;
     const backgroundImageUrl = ["quote", "group", "heading", "code", "document-title", "list"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
-    const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
+    const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? buttonWrapperCss(style) : paragraphStyleToCss(style, backgroundImageUrl);
     if (block.type === "buttons") delete css.textDecoration;
-    if (block.type === "social-icons" || block.type === "divider") { delete css.backgroundColor; delete css.backgroundImage; }
+    if (block.type === "social-icons" || block.type === "divider") {
+    for (const property of ["backgroundColor", "backgroundImage", "--studio-rs-tablet-background-color", "--studio-rs-mobile-background-color", "--studio-rs-tablet-background-image", "--studio-rs-mobile-background-image"]) delete css[property];
+  }
     if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
     const coverFrameClass = block.type === "cover-image"
       ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`

@@ -473,3 +473,14 @@ uses the same source validation, peer broker, ownership, gateway CAS and rollbac
 Failures retain the draft with visible feedback. Regression coverage is in
 `tests/site-publication-controls.test.mjs`, `tests/site-publication-runtime.test.mjs`
 and the existing local-site suites. This does not publish a hosted website.
+
+
+## Responsive block styles
+
+Test and Test2 use source v8, reading v1–v7, for bounded Tablet and Mobile block
+style overrides. Existing sources are projected without writing; the next normal
+owned content transaction saves the current format. Save Draft retains authored
+styles independently of local publication capture. Generated output includes
+the canonical responsive CSS and uses browser width; editor previews use canvas
+width. See [Responsive block styles](responsive-styles.md) for ranges, scope,
+compatibility gates, and acceptance checks.

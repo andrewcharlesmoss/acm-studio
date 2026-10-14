@@ -29,10 +29,12 @@ const actions = load("app/studio/blocks/inspector-style-actions.ts");
 const plain = value => JSON.parse(JSON.stringify(value));
 const types = ["paragraph", "heading", "list", "quote", "table", "code"];
 
+let editingViewport = "desktop";
 const { ParagraphInspector } = load("app/studio/studio-inspectors.tsx", {
-  react: { ...require("react"), useId: () => "layout-inspector-fixture", useState: value => [typeof value === "function" ? value() : value, () => {}], useRef: value => ({ current: value }), useEffect: () => {}, useLayoutEffect: () => {} },
+  react: { ...require("react"), useContext: context => context._currentValue && Object.hasOwn(context._currentValue, "editingViewport") ? { ...context._currentValue, editingViewport } : context._currentValue, useId: () => "layout-inspector-fixture", useState: value => [typeof value === "function" ? value() : value, () => {}], useRef: value => ({ current: value }), useEffect: () => {}, useLayoutEffect: () => {} },
 });
-function layoutInspector(block, onChange = () => {}) {
+function layoutInspector(block, onChange = () => {}, viewport = "desktop") {
+  editingViewport = viewport;
   return nodes(ParagraphInspector({ block, onChange, fontSizeViewMode: "presets", onFontSizeViewModeChange() {} }));
 }
 
@@ -272,4 +274,28 @@ test("default Settings controls remain visible while customised controls expose 
   custom.props.onReset(); assert.equal(writes.length, 1); assert.equal(writes[0].items, original.items);
   const empty = TableSettingsInspector({ block: { id: "table", type: "table", rows: [] }, onChange() {} });
   assert.deepEqual(plain(empty.props.menuOptions.map(option => option.id)), ["fixedWidth"]);
+});
+
+
+test("responsive inspector mutations and resets preserve base styles, native Group layout and other devices", () => {
+  let block = { id: "responsive-group", type: "group", layout: "row", children: [], paddingX: 20, paddingY: 16, gap: 12, visualStyle: { padding: "16px 20px", fontSizeCustom: "24px", responsive: { tablet: { padding: "8px", fontSizeCustom: "20px" }, mobile: { padding: "4px" } } } };
+  const tree = layoutInspector(block, next => { block = next; }, "tablet");
+  const typography = tree.find(node => node.type.name === "FontSizeAppearanceSetting");
+  assert.equal(typography.props.customSize, "20px");
+  typography.props.onCustomSizeChange("18px");
+  assert.equal(block.visualStyle.fontSizeCustom, "24px");
+  assert.equal(block.visualStyle.responsive.tablet.fontSizeCustom, "18px");
+  assert.equal(block.visualStyle.responsive.mobile.padding, "4px");
+  const updated = layoutInspector(block, next => { block = next; }, "tablet");
+  const dimensions = updated.find(node => node.type.name === "InspectorToolsSection" && node.props.title === "Dimensions");
+  dimensions.props.onReset();
+  assert.equal(block.visualStyle.responsive.tablet.padding, undefined);
+  assert.equal(block.visualStyle.responsive.tablet.fontSizeCustom, "18px");
+  assert.equal(block.visualStyle.padding, "16px 20px");
+  assert.equal(block.paddingX, 20); assert.equal(block.paddingY, 16); assert.equal(block.gap, 12);
+  const desktop = layoutInspector(block, next => { block = next; });
+  desktop.find(node => node.type.name === "FontSizeAppearanceSetting").props.onCustomSizeChange("28px");
+  assert.equal(block.visualStyle.fontSizeCustom, "28px");
+  assert.equal(block.visualStyle.responsive.tablet.fontSizeCustom, "18px");
+  assert.equal(block.visualStyle.responsive.mobile.padding, "4px");
 });

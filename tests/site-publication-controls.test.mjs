@@ -161,7 +161,7 @@ test("all home statuses retain the authored home and v7 permits an unavailable p
   const source = fixture("test", "page");
   for (const status of ["draft", "pending", "private"]) {
     const saved = changeLocalSiteStatus(source, "home", status, source.templates, now);
-    assert.equal(saved.version, 7);
+    assert.equal(saved.version, 8);
     assert.equal(validTestSiteDocument(saved), true);
     assert.equal(saved.documents.find(document => document.id === "home").status, status);
     assert.equal(saved.publications.some(item => item.document.id === "home"), false);

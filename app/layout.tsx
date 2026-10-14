@@ -1,3 +1,4 @@
+import { responsiveBlockCss } from "./content/responsive-styles";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { UNIVERSAL_STYLE_PRESET, universalStylePresetToCssVariables } from "@acm/styles";
@@ -48,7 +49,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-GB">
-      <body style={universalStyleVariables}><SharedStyleRuntime />{children}</body>
+      <body style={universalStyleVariables}><style>{responsiveBlockCss}</style><SharedStyleRuntime />{children}</body>
     </html>
   );
 }

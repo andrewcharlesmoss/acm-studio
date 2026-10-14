@@ -1,4 +1,5 @@
 "use client";
+import { useResponsiveStyleScope } from "../../responsive-style-context";
 import { GroupLayoutControls } from "../group-layout-controls";
 import { changeGroupLayout, groupVariationFor } from "../group-variations";
 
@@ -49,6 +50,7 @@ export function fontSizeModeKey(scope: string, block: ContentBlock) {
 }
 
 export function BlockInspector({ contentSlot = false, block, selectedListItem = null, canSetSticky = false, spacerOrientation = "vertical", onChange, onButtonPreviewChange, onColumnWidthChange, onColumnCountChange, columnWidthMax = 95, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { contentSlot?: boolean; block: ContentBlock; selectedListItem?: ListItemSelection | null; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; onChange: (block: ContentBlock) => void; onButtonPreviewChange?: (preview: { blockId: string; state: ButtonInteractionState } | null) => void; onColumnWidthChange?: (columnId: string, width: number) => void; columnWidthMax?: number; onColumnCountChange?: (count: number) => void; onOpenFiles: () => void; onOpenBackgroundMedia?: (item?: ListItemBackgroundTarget) => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
+  const { editingViewport } = useResponsiveStyleScope();
   const [buttonState, setButtonState] = useState<ButtonInteractionState | "default">("default");
   const [showButtonStatePreview, setShowButtonStatePreview] = useState(true);
   const tableInspectorId = useId();
@@ -73,6 +75,10 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
       return <ListItemInspector key={`${selectedListItem.listId}-${selectedListItem.itemIndex}`} block={block} listId={selectedListItem.listId} itemIndex={selectedListItem.itemIndex} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} />;
     }
   }
+  if (editingViewport !== "desktop") return <div className="block-inspector-settings">
+    <div className="inspector-sections"><section className="inspector-block-summary"><h2>{blockName}</h2><p className="setting-note">Style {editingViewport} only. Unset values inherit Desktop.</p></section></div>
+    <ParagraphInspector key={`${block.id}:${editingViewport}`} profileOverride={profile} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} />
+  </div>;
   const alignedBlock = block.type === "document-title" ? block : null;
   const alignment = alignedBlock?.align ?? null;
   const advanced = advancedFieldsForBlock(block, "gutenberg");

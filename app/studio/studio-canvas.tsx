@@ -66,7 +66,7 @@ import { imageDisplayStyle, imageWrapperStyle } from "../content/image-style";
 import { resolveImageSource } from "../content/image-source";
 import { dividerRuleStyle } from "../content/divider-style";
 import { highlightCode } from "../content/code-highlighting.mjs";
-import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
+import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, buttonWrapperCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../content/spacer";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
 import { BlockLibraryIcon } from "./block-library-icons";
@@ -2390,7 +2390,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
           <button type="button" aria-label="Clear block selection" title="Clear selection" onClick={() => { clearMultiSelection(); window.getSelection()?.removeAllRanges(); canvasScrollRef.current?.focus(); }}><StudioIcon name="close" size={20} /></button>
         </div></div> : null}
         {codeEditor ? <StudioCodeEditor document={activeDocument} writable={writable} state={codeEditor} inputRef={codeEditorInputRef} onChange={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onFormat={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onDocumentFieldChange={onDocumentFieldChange} onApply={applyCodeEditor} onExit={() => closeCodeEditor(true)} /> : previewing ? (
-          <article className={`document-preview is-${activeDocument.kind}`} style={viewportStyle}>
+          <article className={`document-preview studio-responsive-container is-${activeDocument.kind}`} style={viewportStyle}>
             {compose(<>
             {presentation?.renderHeader?.({ document: activeDocument, mode: "preview", selectedBlockId, selectedDocumentField, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} selectedDocumentField={selectedDocumentField} previewing onChange={onDocumentFieldChange} onFocus={selectDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
             {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="document-cover-shell document-dynamic-cover">
@@ -2401,7 +2401,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
             </>, "preview")}
           </article>
         ) : (
-          <div className="block-canvas" style={viewportStyle}>
+          <div className="block-canvas studio-responsive-container" style={viewportStyle}>
             {compose(<>
             {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, selectedDocumentField, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} selectedDocumentField={selectedDocumentField} previewing={false} onChange={onDocumentFieldChange} onFocus={selectDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
             {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="document-cover-shell document-dynamic-cover canvas-cover-wrap">
@@ -2882,9 +2882,11 @@ export function BlockField(props: BlockFieldProps) {
   if (!block.visualStyle || block.type === "spacer") return content;
   const style = block.visualStyle;
   const backgroundImageUrl = ["quote", "group", "heading", "code", "list", "document-title"].includes(block.type) && style.backgroundImageMediaId ? props.mediaUrls?.[style.backgroundImageMediaId] : undefined;
-  const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? (style.margin ? { margin: style.margin } : {}) : paragraphStyleToCss(style, backgroundImageUrl);
+  const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? buttonWrapperCss(style) : paragraphStyleToCss(style, backgroundImageUrl);
   if (block.type === "buttons") delete css.textDecoration;
-  if (block.type === "social-icons" || block.type === "divider") { delete css.backgroundColor; delete css.backgroundImage; }
+  if (block.type === "social-icons" || block.type === "divider") {
+    for (const property of ["backgroundColor", "backgroundImage", "--studio-rs-tablet-background-color", "--studio-rs-mobile-background-color", "--studio-rs-tablet-background-image", "--studio-rs-mobile-background-image"]) delete css[property];
+  }
   if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
   const coverFrameClass = block.type === "cover-image"
     ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`

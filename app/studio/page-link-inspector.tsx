@@ -1,5 +1,6 @@
 "use client";
 
+import { useResponsiveStyleScope } from "./responsive-style-context";
 import { useId, useRef, useState } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import type { ContentBlock } from "../content/model";
@@ -21,6 +22,7 @@ import type { LocalFixtureSiteId } from "./test-site/sites";
 
 /** Selection is transient; every edit targets the canonical Navigation entry. */
 export function PageLinkInspector(props: NavigationEditingProps & { onView?: (link: SiteLink) => void; siteId?: LocalFixtureSiteId; contentOnly?: boolean }) {
+  const { editingViewport } = useResponsiveStyleScope();
   const tabId = useId();
   const [tab, setTab] = useState("content");
   const [linkOpen, setLinkOpen] = useState(false);
@@ -32,6 +34,7 @@ export function PageLinkInspector(props: NavigationEditingProps & { onView?: (li
   const update = (patch: Partial<SiteLink>) => props.writable && props.onChange(updateNavigationItem(props.links, link.id, current => ({ ...current, ...patch })));
   const close = (focus: boolean) => { setLinkOpen(false); if (focus) trigger.current?.focus(); };
   const styleBlock: Extract<ContentBlock, { type: "group" }> = { id: link.id, type: "group", layout: "row", children: [], visualStyle: link.visualStyle };
+  if (editingViewport !== "desktop") return <div className="page-link-inspector"><h3>Page link</h3><p className="setting-note">Style {editingViewport} only. Unset values inherit Desktop.</p><fieldset disabled={!props.writable}><ParagraphInspector key={`${link.id}:${editingViewport}`} profileOverride={pageLinkStyleProfile} block={styleBlock} onChange={next => update({ visualStyle: next.visualStyle })} fontSizeViewMode={fontSizeMode} onFontSizeViewModeChange={setFontSizeMode} /></fieldset></div>;
   const destination = safeTextLink(link.url);
   return <div className="navigation-inspector page-link-inspector inspector-sections">
     <div className="page-link-summary"><button type="button" aria-label="Select parent block: Navigation" title="Go to Navigation" onClick={() => props.onSelect(null)}><StudioIcon name="chevron-right" size={20} style={{ transform: "rotate(180deg)" }} /></button><AcmIcon name="view.pages" size={20} /><h3>Page link</h3></div>

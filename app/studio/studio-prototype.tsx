@@ -1,4 +1,5 @@
 "use client";
+import { ResponsiveStyleProvider } from "./responsive-style-context";
 import { reorderLibraryDocuments, reorderLibraryTemplates } from "./library-reordering";
 import { existingSitePresentation } from "./test-site/existing-presentation";
 import { DocumentRevisionsControl } from "./document-revisions-control";
@@ -119,7 +120,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const currentWorkspaceSession = selectedSite ? testContext.session : studioSession;
   const importAttempt = useRef(false);
   useEffect(() => {
-    if (previewWindow || !selectedSite || !testSite.writable || !testSite.draft || !studioSession.ready || !browserTemplateSession.ready || importAttempt.current || (testSite.draft.version === 3 || testSite.draft.version === 4 || (testSite.draft.version === 5 || testSite.draft.version === 6 || testSite.draft.version === 7)) && testSite.draft.browserImportComplete) return;
+    if (previewWindow || !selectedSite || !testSite.writable || !testSite.draft || !studioSession.ready || !browserTemplateSession.ready || importAttempt.current || (testSite.draft.version === 3 || testSite.draft.version === 4 || (testSite.draft.version === 5 || testSite.draft.version === 6 || (testSite.draft.version === 7 || testSite.draft.version === 8))) && testSite.draft.browserImportComplete) return;
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled || importAttempt.current) return;
@@ -405,7 +406,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   }
 
   return (
-    <div className={`studio-shell studio-desktop-only${selectedSite ? " studio-test-context" : ""}${previewWindow ? " studio-preview-window" : ""}${websiteView ? ` studio-website-view${viewMode === "full" ? " studio-full-preview" : ""}` : ""}`} onBeforeInputCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
+    <ResponsiveStyleProvider viewport={studioSection === "templates" ? templateViewport : viewViewport}><div className={`studio-shell studio-desktop-only${selectedSite ? " studio-test-context" : ""}${previewWindow ? " studio-preview-window" : ""}${websiteView ? ` studio-website-view${viewMode === "full" ? " studio-full-preview" : ""}` : ""}`} onBeforeInputCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       {selectedSite ? <style>{testSiteCss}</style> : null}
       <StudioHeader libraryKind={libraryKind} onBreadcrumbNavigate={target => { void navigateBreadcrumb(target); }} templateViewport={templateViewport} onTemplateViewportChange={templateCanvasVisible ? setTemplateViewport : undefined} viewMode={viewMode} onViewModeChange={selectedSite ? changeViewMode : undefined} siteContext={selectedSite ? { siteId: selectedSite, writable: testSite.writable, onSave: saveCurrentDocument, onPublish: () => { void publishLocalDocument(); }, publishing: publishingLocalSite } : undefined} studioSection={studioSection} hasContentDocuments={hasContentDocuments || Boolean(selectedSite)} activeDocument={activeDocument} saveLabel={selectedSite ? testSite.label : saveLabel} templateSession={editingTemplates}
         canRetryEditing={canRetryEditing} retryEditing={retryEditing} previewWindow={previewWindow} viewViewport={viewViewport} setViewViewport={changeViewport}
@@ -516,7 +517,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
                 return result.revisions.map((item: DocumentRevision) => {
                   if (!item || typeof item.id !== "string" || !/^[a-f0-9]{64}$/.test(item.id) || !Number.isFinite(Date.parse(item.savedAt)) || typeof item.confirmed !== "boolean" || item.document?.id !== activeDocument.id || item.document.kind !== activeDocument.kind) throw new Error("The revision history is invalid.");
                   const document = revisionDocument(item.document);
-                  validateStudioWorkspace({ version: 24, documents: [document], activeDocumentId: document.id, categories: [], bin: [] });
+                  validateStudioWorkspace({ version: 26, documents: [document], activeDocumentId: document.id, categories: [], bin: [] });
                   return { ...item, document };
                 });
               }}
@@ -584,6 +585,6 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
       <StudioDocumentDialogs actions={documentActions} workspace={workspace} templates={templateSession.store} writable={writable} templateWritable={templateSession.writable} />
       {!selectedSite ? <StudioDesignMediaHandoff key={`${activeDocument.id}:${writable}`} documentId={activeDocument.id} writable={writable} media={media}
         onInsert={(documentId, asset, target, alt) => insertDesignMedia({ workspace, writable, commit, onSelectBlock: setSelectedBlockId, onInspectorTab: setInspectorTab, onClearDocumentField: () => setDocumentFieldSelection(null) }, documentId, asset, target, alt)} /> : null}
-    </div>
+    </div></ResponsiveStyleProvider>
   );
 }

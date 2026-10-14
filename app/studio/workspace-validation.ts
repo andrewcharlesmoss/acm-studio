@@ -1,3 +1,4 @@
+import { containsResponsiveStyles, RESPONSIVE_STYLE_FIELDS } from "../content/responsive-styles";
 import { validRichTextRuns as validRuns } from "../content/rich-text-validation";
 import { validDocumentDisplay } from "../content/document-metadata";
 import { containsRichTextInlineObjects, containsExtendedLanguage } from "../content/rich-text-contract";
@@ -17,7 +18,7 @@ import { validLayoutOptions } from "../content/layout";
 import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
 import { listItemSupportedStyleFields } from "./blocks/capability-profiles";
 
-export const PUBLICATION_VERSION = 18 as const;
+export const PUBLICATION_VERSION = 19 as const;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -71,6 +72,7 @@ function withUniqueBlockIds(block: ContentBlock, ids: Set<string>): ContentBlock
 export function validParagraphStyle(value: unknown) {
   if (value === undefined) return true;
   if (!isRecord(value)) return false;
+  if (value.responsive !== undefined && (!isRecord(value.responsive) || Object.keys(value.responsive).some(key => key !== "tablet" && key !== "mobile") || !Object.values(value.responsive).every(override => isRecord(override) && Object.keys(override).length > 0 && Object.keys(override).every(key => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])) && validParagraphStyle(override)))) return false;
   return (value.fontFamily === undefined || ["inter", "helvetica-neue", "helvetica", "arial"].includes(value.fontFamily as string))
     && (value.fontSize === undefined || ["small", "medium", "large", "x-large", "xx-large"].includes(value.fontSize as string))
     && optionalCustomFontSize(value.fontSizeCustom)
@@ -114,7 +116,7 @@ export function validButtonInteractionStyles(value: unknown) {
 }
 
 export function validListItemStyle(value: unknown) {
-  return validParagraphStyle(value) && (value === undefined || (isRecord(value) && Object.keys(value).every(field => listItemStyleFields.has(field))));
+  return validParagraphStyle(value) && (value === undefined || (isRecord(value) && Object.keys(value).every(field => listItemStyleFields.has(field)) && (value.responsive === undefined || isRecord(value.responsive) && Object.values(value.responsive).every(override => isRecord(override) && Object.keys(override).every(field => listItemStyleFields.has(field))))));
 }
 
 
@@ -310,8 +312,9 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
-  if ((![23, 24, 25].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if ((![23, 24, 25, 26].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
+  if (value.version !== 26 && containsResponsiveStyles(value)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -400,16 +403,17 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25].includes(value.version as number) || !Array.isArray(value.documents)
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
-  if ((![23, 24, 25].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
+  if (value.version !== 26 && containsResponsiveStyles(value)) return invalid();
+  if ((![23, 24, 25, 26].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
   if (value.documentRevisions !== undefined) {
-    if (value.version !== 25 || !Array.isArray(value.documentRevisions) || value.documentRevisions.length > 100
+    if (![25, 26].includes(value.version as number) || !Array.isArray(value.documentRevisions) || value.documentRevisions.length > 100
       || JSON.stringify(value.documentRevisions).length > 2 * 1024 * 1024 || !uniqueIds(value.documentRevisions)) return invalid();
     for (const revision of value.documentRevisions) {
       if (!isRecord(revision) || !date(revision.savedAt) || !isRecord(revision.document)
         || revision.confirmed !== undefined && typeof revision.confirmed !== "boolean") return invalid();
-      validateStudioWorkspace({ version: 24, documents: [revision.document], activeDocumentId: revision.document.id, categories: [], bin: [] });
+      validateStudioWorkspace({ version: 26, documents: [revision.document], activeDocumentId: revision.document.id, categories: [], bin: [] });
     }
   }
   const categories = value.categories === undefined && typeof value.version === "number" && value.version < 7 ? [] : value.categories;
@@ -481,7 +485,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
     return blocks === document.blocks ? document : { ...document, blocks };
   };
   const source = value as unknown as StudioWorkspace;
-  return { ...source, version: value.documentRevisions !== undefined ? 25 : 24, categories: categories as StudioWorkspace["categories"],
+  return { ...source, version: 26, categories: categories as StudioWorkspace["categories"],
     documents: source.documents.map(migrateDocument),
     bin: source.bin.map(item => ({ ...item, document: migrateDocument(item.document),
       ...(item.publication ? { publication: validatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [item.publication] }).posts[0] } : {}),
@@ -490,8 +494,9 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
 }
 
 export function validatePublicationSnapshot(value: unknown): { version: typeof PUBLICATION_VERSION; posts: LocallyPublishedArticle[] } {
-  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
-  if ((![16, 17, 18].includes(value.version as number) && containsRichTextInlineObjects(value) || ![17, 18].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) throw new Error("Inline objects require a current published-post snapshot.");
+  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
+  if (value.version !== 19 && containsResponsiveStyles(value)) throw new Error("Responsive styles require the current published-post snapshot.");
+  if ((![16, 17, 18, 19].includes(value.version as number) && containsRichTextInlineObjects(value) || ![17, 18, 19].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) throw new Error("Inline objects require a current published-post snapshot.");
   const ids = new Set();
   for (const post of value.posts) {
     if (!isRecord(post) || !["localDocumentId", "slug", "title", "summary", "displayDate", "readingTime"].every((field) => typeof post[field] === "string")

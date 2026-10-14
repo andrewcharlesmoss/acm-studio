@@ -1,5 +1,7 @@
 "use client";
 
+import { useResponsiveStyleScope } from "../../responsive-style-context";
+import { editableViewportStyle, replaceViewportStyle, RESPONSIVE_STYLE_FIELDS } from "../../../content/responsive-styles";
 import { Fragment, useId, useRef, useState, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import type { ButtonInteractionState, ButtonWidth, ContentBlock, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle } from "../../../content/model";
@@ -29,12 +31,13 @@ function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { t
 }
 
 export function ParagraphInspector({ profileOverride, block, interactionState = "default", onChange, fontSizeViewMode, onFontSizeViewModeChange, backgroundImageControls, backgroundImageOptions, groupLayoutControls, groupDimensionControls, onResetGroupDimensions }: { profileOverride?: ReturnType<typeof capabilityProfileFor>; block: StyledBlock; interactionState?: ButtonInteractionState | "default"; onChange: (block: ContentBlock) => void; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void; backgroundImageControls?: ReactNode; backgroundImageOptions?: ReactNode; groupLayoutControls?: ReactNode; groupDimensionControls?: ReactNode; onResetGroupDimensions?: () => void }) {
+  const { editingViewport } = useResponsiveStyleScope();
+  const deviceScope = editingViewport !== "desktop";
   const inspectorRef = useRef<HTMLDivElement>(null);
   const renderedColours = useRenderedColours(inspectorRef, block.id);
   const baseVisualStyle = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
-  const style: ParagraphStyle = block.type === "button" && interactionState !== "default"
-    ? block.interactionStyles?.[interactionState] ?? {}
-    : baseVisualStyle;
+  const currentStoredStyle: ParagraphStyle = block.type === "button" && interactionState !== "default" ? block.interactionStyles?.[interactionState] ?? {} : baseVisualStyle;
+  const style = editableViewportStyle(currentStoredStyle, editingViewport);
   const textContrastWarning = blockContrastWarning({ backgroundColor: renderedColours?.background, textColor: renderedColours?.text, enableAlphaChecker: true });
   const blockWarning = blockContrastWarning({ backgroundColor: renderedColours?.background, textColor: renderedColours?.text, linkColor: renderedColours?.link, enableAlphaChecker: true });
   const buttonWidth = block.type === "button"
@@ -42,13 +45,13 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
     : undefined;
   const profile = profileOverride ?? capabilityProfileFor(block.type);
   const visibleSource = profileOverride && profileOverride.label === "List Item" ? undefined : block.type === "document-subtitle" ? "studio" : "gutenberg";
-  const styleControls = [...profile.controls, ...retainedLegacyStyleControls(profile, style)].filter(control => control.fields.length > 0 && (visibleSource === undefined || control.source === visibleSource));
+  const styleControls = [...profile.controls, ...retainedLegacyStyleControls(profile, style)].filter(control => control.fields.length > 0 && (!deviceScope || control.fields.some(field => RESPONSIVE_STYLE_FIELDS.includes(field as typeof RESPONSIVE_STYLE_FIELDS[number])) && !["width", "gaps", "fit-text", "drop-cap", "line-indent"].includes(control.id) && !(currentStoredStyle.fitText && ["size", "columns"].includes(control.id))) && (visibleSource === undefined || control.source === visibleSource));
   const optionsFor = (section: "typography" | "dimensions" | "border" | "elements"): InspectorToolOption[] => styleControls.filter(control => control.enabled !== false && control.section === section).map(({ id, label, source }) => ({ id, label, source }));
   const defaults = profile.defaults;
-  const defaultTypography = new Set(defaults.typography ?? []);
-  const defaultDimensions = new Set(defaults.dimensions ?? []);
-  const defaultBorder = new Set(defaults.border ?? []);
-  const defaultElements = new Set(defaults.elements ?? []);
+  const defaultTypography = new Set((defaults.typography ?? []).filter(id => !deviceScope || styleControls.some(control => control.id === id)));
+  const defaultDimensions = new Set((defaults.dimensions ?? []).filter(id => !deviceScope || styleControls.some(control => control.id === id)));
+  const defaultBorder = new Set((defaults.border ?? []).filter(id => !deviceScope || styleControls.some(control => control.id === id)));
+  const defaultElements = new Set((defaults.elements ?? []).filter(id => !deviceScope || styleControls.some(control => control.id === id)));
   const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");
   const fontSizeMode = fontSizeViewMode
     ? fontSizeViewMode
@@ -97,7 +100,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
   const backgroundControl = profile.controls.find(control => control.id === "background");
   const showBackground = backgroundControl && (visibleSource === undefined || backgroundControl.source === visibleSource);
   function writeStyle(nextStyle: ParagraphStyle) {
-    const updatedStyle = Object.keys(nextStyle).length ? nextStyle : undefined;
+    const updatedStyle = replaceViewportStyle(currentStoredStyle, editingViewport, nextStyle);
     if (block.type === "button" && interactionState !== "default") {
       const interactionStyles = { ...(block.interactionStyles ?? {}) };
       if (updatedStyle) interactionStyles[interactionState] = updatedStyle;
@@ -107,7 +110,8 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
   }
   function clearTools(ids: Iterable<string>, resetGroupLayout = false) {
     const selectedIds = [...ids];
-    const nextStyle = resetSupportedInspectorStyleFields(style, selectedIds, styleControls);
+    if (deviceScope) { writeStyle(resetSupportedInspectorStyleFields(style, selectedIds, styleControls)); return; }
+    const nextStyle = replaceViewportStyle(currentStoredStyle, "desktop", resetSupportedInspectorStyleFields(style, selectedIds, styleControls)) ?? {};
     if (block.type === "group" && (resetGroupLayout || selectedIds.includes("padding") || selectedIds.includes("gaps"))) {
       onChange(resetGroupDimensionFields(block, nextStyle, { padding: selectedIds.includes("padding"), layout: resetGroupLayout || selectedIds.includes("gaps") }));
       return;
@@ -172,8 +176,8 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
       {typographyVisible.has("text-shadow") ? <label><span>Text shadow</span><select value={style.textShadow ?? ""} onChange={event => updateStyle("textShadow", (event.target.value || undefined) as ParagraphStyle["textShadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select></label> : null}
     </InspectorToolsSection>,
     background: showBackground ? <GroupBackgroundSection group canReset={inspectorStyleHasValues(style, ["background"], styleControls)} onReset={() => writeStyle(resetSupportedInspectorStyleFields(style, ["background"], styleControls))}>
-      <BackgroundSelection imageControl={backgroundImageControls} mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} contrastWarning={blockWarning?.message ?? null} announceWarning={false} onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
-      {backgroundImageOptions}
+      <BackgroundSelection imageControl={deviceScope ? undefined : backgroundImageControls} mode={activeBackgroundMode} colour={style.backgroundColor} gradient={style.backgroundGradient} contrastWarning={blockWarning?.message ?? null} announceWarning={false} onModeChange={setBackgroundMode} onColourChange={value => updateBackground(value, undefined)} onGradientChange={value => updateBackground(undefined, value)} />
+      {deviceScope ? null : backgroundImageOptions}
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </GroupBackgroundSection> : null,
     dimensions: <InspectorToolsSection title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} canReset={optionalDimensionOptions.some(option => dimensionsVisible.has(option.id)) || inspectorStyleHasValues(style, dimensionsVisible, styleControls) || Boolean((block.type === "group" || block.type === "columns") && (block.paddingX !== undefined || block.paddingY !== undefined || block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined))} alwaysShow={block.type !== "group" && Boolean(groupDimensionControls)} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible, true); if (block.type !== "group" && block.type !== "columns") onResetGroupDimensions?.(); setDimensionsVisible(new Set()); }}>
@@ -190,11 +194,11 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
           onChange({ ...block, interactionStyles: Object.keys(interactionStyles).length ? interactionStyles : undefined });
         }
       }}><option value="">Auto</option><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option></select></label> : null}
-      {dimensionsVisible.has("padding") ? <BoxLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding ?? (block.type === "group" && (block.paddingX !== undefined || block.paddingY !== undefined) ? `${block.paddingY ?? 0}px ${block.paddingX ?? 0}px` : undefined)} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} onChange={value => { if (block.type === "group") { const next = { ...style, padding: value }; if (!value) delete next.padding; onChange({ ...block, paddingX: undefined, paddingY: undefined, visualStyle: Object.keys(next).length ? next : undefined }); } else updateStyle("padding", value); }} /> : null}
+      {dimensionsVisible.has("padding") ? <BoxLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding ?? (block.type === "group" && (block.paddingX !== undefined || block.paddingY !== undefined) ? `${block.paddingY ?? 0}px ${block.paddingX ?? 0}px` : undefined)} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} onChange={value => { if (block.type === "group" && !deviceScope) { const next = { ...style, padding: value }; if (!value) delete next.padding; onChange({ ...block, paddingX: undefined, paddingY: undefined, visualStyle: replaceViewportStyle(currentStoredStyle, "desktop", next) }); } else updateStyle("padding", value); }} /> : null}
       {dimensionsVisible.has("margin") ? <BoxLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} layout={block.type === "group" || ["paragraph", "heading", "list", "quote", "table"].includes(block.type) ? "all" : marginLayout} presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
       {dimensionsVisible.has("min-height") ? <ParagraphLengthSetting key={`${block.id}-min-height`} label="Minimum height" value={style.minHeight} min={0} max={4000} onChange={(value) => updateStyle("minHeight", value)} /> : null}
       {dimensionsVisible.has("min-width") ? <ParagraphLengthSetting key={`${block.id}-min-width`} label="Minimum width" value={style.minWidth} min={0} max={4000} onChange={(value) => updateStyle("minWidth", value)} /> : null}
-      {block.type !== "group" || dimensionsVisible.has("gaps") ? groupDimensionControls : null}
+      {!deviceScope && (block.type !== "group" || dimensionsVisible.has("gaps")) ? groupDimensionControls : null}
     </InspectorToolsSection>,
     border: <InspectorToolsSection title="Border" options={optionalBorderOptions} visible={borderVisible} canReset={optionalBorderOptions.some(option => borderVisible.has(option.id)) || inspectorStyleHasValues(style, borderVisible, styleControls)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools(borderVisible); setBorderVisible(new Set()); }}>
       {borderVisible.has("border") ? <BorderSettings style={style} compact idPrefix={block.id} includeRadius={false} includeShadow={false} onChange={changes => { const nextStyle = { ...style, ...changes }; for (const key of Object.keys(nextStyle) as (keyof ParagraphStyle)[]) if (!nextStyle[key]) delete nextStyle[key]; writeStyle(nextStyle); }} /> : null}
@@ -207,7 +211,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
   };
   const orderedSharedStyleSections = scopedStyleSectionIds(profile, style, visibleSource)
     .filter(sectionId => sectionId in sharedStyleSectionContent)
-    .flatMap(sectionId => [<Fragment key={sectionId}>{sharedStyleSectionContent[sectionId]}</Fragment>, ...(sectionId === "background" && groupLayoutControls ? [<Fragment key="group-layout">{groupLayoutControls}</Fragment>] : [])]);
+    .flatMap(sectionId => [<Fragment key={sectionId}>{sharedStyleSectionContent[sectionId]}</Fragment>, ...(sectionId === "background" && !deviceScope && groupLayoutControls ? [<Fragment key="group-layout">{groupLayoutControls}</Fragment>] : [])]);
   return <div ref={inspectorRef} className={`inspector-sections${block.type === "group" ? " group-block-inspector" : ""}`}>{orderedSharedStyleSections}{blockWarning ? <div className="paragraph-colour-contrast-warning inspector-block-contrast-warning" role="status"><AcmIcon name="state.warning" size={18} /><span>{blockWarning.message}</span></div> : null}</div>;
 }
 

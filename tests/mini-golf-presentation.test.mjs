@@ -529,7 +529,7 @@ test("versioned page definitions round-trip authored structure and report source
   assert.equal(contract.equalMiniGolfPageDefinitions(baseline, JSON.parse(JSON.stringify(baseline))), true);
   assert.throws(() => contract.blocksToMiniGolfPageDefinition([{ id: "unknown", type: "react-component" }], identity), /Unsupported/);
   assert.throws(() => contract.blocksToMiniGolfPageDefinition([table, table], identity), /duplicate/);
-  assert.throws(() => contract.parseMiniGolfPageDefinition({ ...baseline, version: 6 }), /version/);
+  assert.throws(() => contract.parseMiniGolfPageDefinition({ ...baseline, version: 7 }), /version/);
   assert.throws(() => contract.parseMiniGolfPageDefinition({ ...baseline, defaults: {} }), /disagree/);
   assert.throws(() => contract.parseMiniGolfPageDefinition({ ...baseline, unknown: true }), /Unsupported/);
   assert.throws(() => contract.blocksToMiniGolfPageDefinition([{ ...table, unsupported: () => null }], identity), /non-JSON/);

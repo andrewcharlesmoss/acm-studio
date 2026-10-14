@@ -1,3 +1,4 @@
+import { responsiveStyleCss } from "./responsive-styles";
 import type { ParagraphStyle } from "./model";
 import { paragraphBackgroundGradientCss } from "./paragraph-styles";
 
@@ -5,6 +6,10 @@ type DividerAppearance = "default" | "wide" | "dots";
 
 /** Applies Gutenberg-style background colour and gradients to the separator rule. */
 export function dividerRuleStyle(style: ParagraphStyle | undefined, appearance: DividerAppearance = "default"): Record<string, string> {
+  return responsiveStyleCss(style, effective => dividerBaseStyle(effective, appearance));
+}
+
+function dividerBaseStyle(style: ParagraphStyle, appearance: DividerAppearance): Record<string, string> {
   const css: Record<string, string> = {};
   const colour = style?.backgroundColor ?? style?.textColor;
   if (colour) {

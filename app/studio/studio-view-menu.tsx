@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { StudioFocusOutlineSetting } from "./focus-outline-preferences";
+import { useResponsiveStyleScope } from "./responsive-style-context";
 import { StudioIcon } from "./studio-icons";
 
 export type StudioViewMode = "editing" | "website" | "full";
@@ -25,6 +26,7 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
   onPreviewInNewTab?: () => void;
   showResponsiveStylesNotice?: boolean;
 }) {
+  const { enabled: responsiveStyles, setEnabled: setResponsiveStyles } = useResponsiveStyleScope();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -91,13 +93,13 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
       </div> : null}
       {onViewportChange ? <div className="studio-view-group" aria-label="Preview viewport">
         {viewports.map(item => <button ref={viewport === item.id ? activeViewportRef : null} className="studio-view-option" type="button" role="menuitemradio" aria-checked={viewport === item.id} key={item.id} onClick={() => chooseViewport(item.id)}>
-          <span><strong>{item.label}</strong><small>Preview {item.label.toLowerCase()} viewport.</small></span>
+          <span><strong>{item.label}</strong><small>{responsiveStyles ? item.id === "desktop" ? "Style all viewports." : `Style ${item.label.toLowerCase()} only.` : `Preview ${item.label.toLowerCase()} viewport.`}</small></span>
           {viewport === item.id ? <StudioIcon name="check" size={18} aria-hidden="true" /> : null}
         </button>)}
       </div> : null}
       <div className="studio-view-group"><StudioFocusOutlineSetting /></div>
-      {showResponsiveStylesNotice ? <div className="studio-view-group studio-view-responsive" aria-disabled="true">
-        <span className="studio-view-option is-unavailable"><span><strong>Responsive styles</strong><small>Viewport-specific style editing is not available in Studio yet.</small></span></span>
+      {showResponsiveStylesNotice && onViewportChange ? <div className="studio-view-group studio-view-responsive">
+        <button className="studio-view-option" type="button" role="menuitemcheckbox" aria-checked={responsiveStyles} onClick={() => setResponsiveStyles(!responsiveStyles)}><span><strong>Responsive styles</strong><small>Style changes apply only to the selected viewport.</small></span>{responsiveStyles ? <StudioIcon name="check" size={18} aria-hidden="true" /> : null}</button>
       </div> : null}
       {onShowTemplateChange ? <div className="studio-view-group">
         <button className="studio-view-option" type="button" role="menuitemcheckbox" aria-checked={showTemplate} disabled={!hasTemplate || viewMode !== "editing"} onClick={() => onShowTemplateChange(!showTemplate)}>

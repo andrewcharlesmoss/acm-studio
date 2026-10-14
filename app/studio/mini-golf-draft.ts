@@ -1,3 +1,4 @@
+import { containsResponsiveStyles } from "../content/responsive-styles";
 import { containsRichTextInlineObjects, containsExtendedLanguage } from "../content/rich-text-contract";
 import type { ContentBlock, SiteComponentData, SiteComponentName } from "../content/model";
 import { completeMiniGolfPage, applyMiniGolfSourceContract, bindMiniGolfRuntime } from "./mini-golf-page-blocks";
@@ -261,8 +262,9 @@ export function createMiniGolfDraftRepository(storageKey: string): WorkspaceRepo
     if (raw === null) return null;
     const parsed: unknown = JSON.parse(raw);
     const envelopeVersion = isRecord(parsed) && parsed.format === "mini-golf-page-draft" && typeof parsed.version === "number" ? parsed.version : undefined;
-    const source = envelopeVersion && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].includes(envelopeVersion) ? (parsed as Record<string, unknown>).workspace : parsed;
-    if ((![12, 13].includes(envelopeVersion ?? 0) && containsRichTextInlineObjects(source) || envelopeVersion !== 13 && (containsRichTextInlineObjects(source, "math") || containsRichTextInlineObjects(source, "image") || containsExtendedLanguage(source)))) throw new Error("Inline objects require the current Mini Golf draft format.");
+    const source = envelopeVersion && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].includes(envelopeVersion) ? (parsed as Record<string, unknown>).workspace : parsed;
+    if (envelopeVersion !== 14 && containsResponsiveStyles(source)) throw new Error("Responsive styles require the current Mini Golf draft format.");
+    if ((![12, 13, 14].includes(envelopeVersion ?? 0) && containsRichTextInlineObjects(source) || ![13, 14].includes(envelopeVersion ?? 0) && (containsRichTextInlineObjects(source, "math") || containsRichTextInlineObjects(source, "image") || containsExtendedLanguage(source)))) throw new Error("Inline objects require the current Mini Golf draft format.");
     const parsedWorkspace = validateStudioWorkspace(source);
     const page = parsedWorkspace.documents[0];
     const shouldMigrate = envelopeVersion === 1 || envelopeVersion === 2 || (envelopeVersion === undefined && page.blocks.some((block) => block.type !== "component" && (["setup", "scorecard", "leaderboard", "share"].includes(block.id) || /^(setup|scorecard|leaderboard|share)-/.test(block.id))));
@@ -275,15 +277,15 @@ export function createMiniGolfDraftRepository(storageKey: string): WorkspaceRepo
     const migrated = transitionalIds.size > 0 && envelopeVersion === 5 ? hydrateTransitionalSections(converted, transitionalIds) : converted;
     const wasLegacy = migrated !== page.blocks;
     if (wasLegacy) page.blocks = migrated;
-    if (envelopeVersion !== 7 && envelopeVersion !== 8 && envelopeVersion !== 9 && envelopeVersion !== 10 && envelopeVersion !== 11 && envelopeVersion !== 12 && envelopeVersion !== 13) page.blocks = completeMiniGolfPage(page.blocks, page.title, page.subtitle ?? "");
-    if (envelopeVersion !== 9 && envelopeVersion !== 10 && envelopeVersion !== 11 && envelopeVersion !== 12 && envelopeVersion !== 13) page.blocks = applyMiniGolfSourceContract(page.blocks, storageKey === MINI_GOLF_STAGING_DRAFT_KEY, envelopeVersion !== 8);
-    if (envelopeVersion !== 10 && envelopeVersion !== 11 && envelopeVersion !== 12 && envelopeVersion !== 13) page.blocks = bindMiniGolfRuntime(page.blocks);
+    if (envelopeVersion !== 7 && envelopeVersion !== 8 && envelopeVersion !== 9 && envelopeVersion !== 10 && envelopeVersion !== 11 && envelopeVersion !== 12 && envelopeVersion !== 13 && envelopeVersion !== 14) page.blocks = completeMiniGolfPage(page.blocks, page.title, page.subtitle ?? "");
+    if (envelopeVersion !== 9 && envelopeVersion !== 10 && envelopeVersion !== 11 && envelopeVersion !== 12 && envelopeVersion !== 13 && envelopeVersion !== 14) page.blocks = applyMiniGolfSourceContract(page.blocks, storageKey === MINI_GOLF_STAGING_DRAFT_KEY, envelopeVersion !== 8);
+    if (envelopeVersion !== 10 && envelopeVersion !== 11 && envelopeVersion !== 12 && envelopeVersion !== 13 && envelopeVersion !== 14) page.blocks = bindMiniGolfRuntime(page.blocks);
     const legacy = validateMiniGolfDraft(parsedWorkspace);
     return legacy;
   },
   save(workspace) {
     studioWriteOwnership.assertWritable();
-    window.localStorage.setItem(storageKey, JSON.stringify({ format: "mini-golf-page-draft", version: 13, workspace: validateMiniGolfDraft(workspace) }));
+    window.localStorage.setItem(storageKey, JSON.stringify({ format: "mini-golf-page-draft", version: 14, workspace: validateMiniGolfDraft(workspace) }));
   },
 }; }
 

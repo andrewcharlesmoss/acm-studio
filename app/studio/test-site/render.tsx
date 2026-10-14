@@ -1,3 +1,4 @@
+import { responsiveBlockCss } from "../../content/responsive-styles";
 import { localPublicationScript } from "./publication-runtime";
 import { StudioIcon } from "../studio-icons";
 import { ExistingSiteBody } from "./existing-presentation";
@@ -47,7 +48,7 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
   const source = testSiteCollection(document);
   const site = globals ? { ...source, templates: effectiveGlobalTemplates(source.templates, globals, source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, source.siteId)) } : source;
   // Explicit editor preview remains a draft preview; the generated site uses publications.
-  const publications = (source.version === 6 || source.version === 7) && initialDocumentId === undefined ? source.publications.filter(item => source.documents.some(document => document.id === item.document.id) && (source.version === 6 || item.document.status === "published" || item.document.status === "scheduled")) : null;
+  const publications = (source.version === 6 || (source.version === 7 || source.version === 8)) && initialDocumentId === undefined ? source.publications.filter(item => source.documents.some(document => document.id === item.document.id) && (source.version === 6 || item.document.status === "published" || item.document.status === "scheduled")) : null;
   const displayedDocuments = publications ? publications.map(item => item.document) : site.documents;
   const displayTemplates = publications ? { ...site.templates, assignments: publications.flatMap(item => item.assignment ? [item.assignment] : []), defaultTemplateIds: {} } : site.templates;
   const initialId = initialDocumentId !== undefined && displayedDocuments.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;
@@ -71,5 +72,5 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
       </section>;
     })}
   </>);
-  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="acm-test-revision" content="${revision}">${globals ? `<meta name="acm-global-template-revision" content="${globalRevision ?? "current-draft"}">` : ""}<meta name="theme-color" content="#f2f2f7"><title>${siteName}</title><style>html{font-size:100%}body{margin:0}${contentCss.replace(/@import[^;]+;/g, "")}${studioBlockCss}${groupLayoutCss}${buttonsCss}${featuredImageCss}${templateCss}${testSiteCss}body [hidden]{display:none!important}</style></head><body>${body}<script>${publications ? localPublicationScript() : ""}${templateNavigationScript}${initialDocumentId ? previewRoutingScript + routingScript.replace("const hash=location.hash;", "const hash=previewHash;") : routingScript}</script></body></html>`;
+  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="acm-test-revision" content="${revision}">${globals ? `<meta name="acm-global-template-revision" content="${globalRevision ?? "current-draft"}">` : ""}<meta name="theme-color" content="#f2f2f7"><title>${siteName}</title><style>html{font-size:100%}body{margin:0}${contentCss.replace(/@import[^;]+;/g, "")}${studioBlockCss}${groupLayoutCss}${buttonsCss}${featuredImageCss}${templateCss}${testSiteCss}${responsiveBlockCss}body [hidden]{display:none!important}</style></head><body>${body}<script>${publications ? localPublicationScript() : ""}${templateNavigationScript}${initialDocumentId ? previewRoutingScript + routingScript.replace("const hash=location.hash;", "const hash=previewHash;") : routingScript}</script></body></html>`;
 }
