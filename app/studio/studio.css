@@ -8,7 +8,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
   background: radial-gradient(circle at 83% 8%, rgba(92, 94, 92, 0.06), transparent 26rem), var(--paper);
 }
 
-:where(.studio-shell, .design-shell, .design-library-shell, .pane-workspace, .pl-catalogue, .rl-shell, .template-surface, .mini-golf-editor-surface, .mini-golf-standalone-page) :focus-visible {
+html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shell, .design-library-shell, .pane-workspace, .pl-catalogue, .rl-shell, .template-surface, .mini-golf-editor-surface, .mini-golf-standalone-page) :focus-visible {
   border-color: #5c5e5c !important;
   outline-style: solid;
   outline-width: var(--focus-ring-width);

@@ -83,6 +83,9 @@
 
 ### Fixed
 
+- Respect Focus Outline Off when applying the shared focused-control border,
+  including keyboard navigation in the View menu.
+
 - Use ticks alone for selected View menu options, preserving the separate
   keyboard focus indicator.
 
