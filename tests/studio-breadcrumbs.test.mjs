@@ -22,7 +22,7 @@ test("site breadcrumbs separate all four levels and keep the document current", 
 
 test("breadcrumb links use Gutenberg link colour without button-like hover treatment", () => {
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(styles, /\.studio-breadcrumb-list a\s*\{[^}]*color:\s*var\(--gutenberg-accent\)[^}]*text-decoration:\s*none/s);
+  assert.match(styles, /\.studio-breadcrumb-list a\s*\{[^}]*color:\s*var\(--muted\)[^}]*text-decoration:\s*none/s);
   assert.match(styles, /\.studio-breadcrumb-list a:hover\s*\{[^}]*color:\s*var\(--gutenberg-accent\)[^}]*text-decoration:\s*none/s);
   assert.match(styles, /\.studio-breadcrumb-list a:focus-visible\s*\{[^}]*outline:/s);
   const hover = styles.match(/\.studio-breadcrumb-list a:hover\s*\{([^}]*)\}/)?.[1] ?? "";

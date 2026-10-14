@@ -431,7 +431,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-breadcrumb-list { align-items: center; display: flex; gap: 8px; list-style: none; margin: 0; min-width: 0; padding: 0; }
 .studio-breadcrumb-list li { align-items: center; display: flex; gap: 8px; min-width: 0; }
 .studio-breadcrumb-list li:not(:last-child), .studio-breadcrumb-list svg { flex-shrink: 0; }
-.studio-breadcrumb-list a { color: var(--gutenberg-accent); text-decoration: none; white-space: nowrap; }
+.studio-breadcrumb-list a { color: var(--muted); text-decoration: none; white-space: nowrap; }
 .studio-breadcrumb-list a:hover { color: var(--gutenberg-accent); text-decoration: none; }
 .studio-breadcrumb-list a:focus-visible { outline: 2px solid var(--studio-selection-colour); outline-offset: 2px; }
 
