@@ -96,6 +96,11 @@
 
 ### Fixed
 
+- Use one measured, centred insertion line for blocks, nested containers,
+  Navigation links, Design pages, and layers, with shared pointer/native
+  placement rules, no-op protection, and cancellable edge scrolling. All ordered
+  placement consumers inherit one controller, geometry module, and line renderer.
+
 - Keep one centred drag indicator for each library gap, including site cards,
   when crossing between either neighbouring row or the empty gap.
 

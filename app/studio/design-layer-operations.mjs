@@ -23,6 +23,8 @@ export function reorderDesignLayers(objects, sourceId, targetId, position) {
   if (sourceIndex < 0 || targetIndex < 0 || layers[sourceIndex]?.locked || layers[targetIndex]?.locked) return objects;
   const [source] = layers.splice(sourceIndex, 1);
   const nextTargetIndex = layers.findIndex((object) => object.id === targetId);
-  layers.splice(position === "before" ? nextTargetIndex : nextTargetIndex + 1, 0, source);
+  const insertion = position === "before" ? nextTargetIndex : nextTargetIndex + 1;
+  if (insertion === sourceIndex) return objects;
+  layers.splice(insertion, 0, source);
   return layers.reverse();
 }

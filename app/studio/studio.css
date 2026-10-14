@@ -674,7 +674,6 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .canvas-add-cover { align-items: center; display: inline-flex; gap: 5px; justify-content: center; margin: 24px 0 34px; width: 100%; }
 .canvas-blocks, .studio-block-preview { display: grid; min-width: 0; }
 .canvas-blocks { padding-top: var(--studio-toolbar-top-space, 52px); position: relative; }
-.column-drop-indicator { background: var(--acm-color-alert, #ff383c); pointer-events: none; position: absolute; z-index: 6; }
 .inline-image-popover { display: grid; gap: 12px; padding: 16px; width: 260px; }
 .inline-image-popover form, .inline-image-picker form { display: grid; gap: 12px; }
 .inline-image-popover label, .inline-image-picker label { display: grid; gap: 4px; }
@@ -690,12 +689,6 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 /* Reserve toolbar space only while it is visible; dragging uses the ordinary gap. */
 .block-editor:not(.is-block-dragging) .block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom: var(--studio-selected-toolbar-gap, 38px); }
 .block-editor:not(.is-block-dragging) .canvas-blocks:has(> .block-position:nth-child(1 of .block-position) .canvas-block.is-selected) { padding-top: var(--studio-selected-toolbar-top-space, 58px); }
-.drop-indicator { background: var(--gutenberg-accent); border-radius: 2px; height: 4px; left: -14px; pointer-events: none; position: absolute; right: -14px; top: -2px; z-index: 5; }
-.block-position + .block-position .drop-indicator { top: calc(((var(--studio-block-gap) - var(--studio-block-grid-gap, 0px)) / 2) - 2px); }
-.block-editor:not(.is-block-dragging) .block-position:has(+ .block-position .canvas-block.is-selected) + .block-position .drop-indicator:not(.is-after) { top: calc(((var(--studio-block-gap) - var(--studio-block-grid-gap, 0px)) / 2) - 2px - (var(--studio-selected-toolbar-gap, 38px) / 2)); }
-.canvas-appender > .drop-indicator.is-at-end { border-radius: 0; height: 24px; left: 0; right: 0; top: 50%; transform: translateY(-50%); }
-.canvas-appender:has(> .drop-indicator.is-at-end) > :is(input, button) { visibility: hidden; }
-.canvas-blocks:has(.drop-indicator) .between-blocks { visibility: hidden; }
 .between-blocks { align-items: center; background: transparent; border: 0; border-radius: 0; color: transparent; cursor: pointer; display: flex; height: 30px; justify-content: center; left: 0; opacity: 0; padding: 0; position: absolute; top: 0; transition: opacity .15s; width: 100%; z-index: 3; }
 .block-position + .block-position .between-blocks { top: calc(((var(--studio-block-gap) - var(--studio-block-grid-gap, 0px)) / 2) - 15px); }
 .block-editor:not(.is-block-dragging) .block-position:has(+ .block-position .canvas-block.is-selected) + .block-position .between-blocks { top: calc(((var(--studio-block-gap) - var(--studio-block-grid-gap, 0px)) / 2) - 15px - (var(--studio-selected-toolbar-gap, 38px) / 2)); }
@@ -1840,7 +1833,6 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .editor-canvas-scroll.has-multi-block-selection .block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom: 0; }
 .editor-canvas-scroll.has-multi-block-selection .canvas-blocks:has(> .block-position:nth-child(1 of .block-position) .canvas-block.is-selected) { padding-top: var(--studio-toolbar-top-space, 52px); }
 .editor-canvas-scroll.has-multi-block-selection .block-position + .block-position .between-blocks { top: calc(((var(--studio-block-gap) - var(--studio-block-grid-gap, 0px)) / 2) - 15px); }
-.editor-canvas-scroll.has-multi-block-selection .block-position + .block-position .drop-indicator:not(.is-after) { top: calc(((var(--studio-block-gap) - var(--studio-block-grid-gap, 0px)) / 2) - 2px); }
 
 /* Heading marks reuse the shared three-scale icon catalogue. */
 .heading-level-setting { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; }
@@ -2135,9 +2127,6 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .library-drag-handle[data-reorder-enabled="true"] { cursor: grab; opacity: 1; }
 .library-drag-handle[data-reorder-enabled="true"]:active { cursor: grabbing; }
 .library-drag-handle > svg { pointer-events: none; }
-.document-item[data-drop-edge]::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: var(--studio-selection-colour, #0088FF); pointer-events: none; }
-.document-item[data-drop-edge="before"]::after { top: var(--library-drop-top, -2.5px); }
-.document-item[data-drop-edge="after"]::after { top: var(--library-drop-top, calc(100% - 1px)); }
 
 /* Canvas insertions use a compact chooser; Browse All explicitly opens the pane. */
 .studio-anchored-popover.canvas-block-chooser { background: #fff; border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 4px 12px #00000026; color: var(--ink); font-family: var(--studio-ui-font); font-size: var(--studio-ui-size); overflow: auto; padding: 0; width: 350px; }
@@ -2179,8 +2168,15 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-site-drag-button { align-items: center; background: transparent; border: 0; color: var(--muted); cursor: grab; display: flex; flex: none; height: 32px; justify-content: center; margin-right: 8px; padding: 0; width: 28px; }
 .studio-site-drag-button:active { cursor: grabbing; }
 .studio-site-drag-button .library-drag-handle { margin: 0; }
-.studio-local-site-actions[data-drop-edge]::after { background: var(--studio-selection-colour, #0088ff); content: ""; height: 2px; left: 0; pointer-events: none; position: absolute; right: 0; z-index: 1; }
-.studio-local-site-actions[data-drop-edge="before"]::after { top: var(--library-drop-top, -1px); }
-.studio-local-site-actions[data-drop-edge="after"]::after { top: var(--library-drop-top, calc(100% - 1px)); }
 .studio-site-order-status { color: var(--muted); font-size: var(--studio-ui-size); margin: 8px; }
 .studio-site-drag-button[aria-disabled="true"] { cursor: default; }
+
+/* One measured insertion marker belongs to the complete sibling list. */
+.studio-gap-line { background: var(--studio-selection-colour, #0088FF); border: 0; list-style: none; margin: 0; padding: 0; pointer-events: none; position: absolute; z-index: 6; }
+.navigation-editor ul { position: relative; }
+
+.canvas-blocks:has(> .studio-gap-line) .between-blocks { visibility: hidden; }
+/* Empty authoring Columns retain a compact, hittable insertion surface. */
+.studio-column-content:has(> .nested-add-block):not(:has(> [data-studio-nested-block-id])) { min-height: 24px; }
+
+.document-list, .studio-local-sites { position: relative; }

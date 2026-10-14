@@ -1,4 +1,5 @@
 "use client";
+import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { useLibraryReordering } from "./use-library-reordering";
 import { LibraryDragHandle } from "./library-drag-handle";
 import { reorderLibraryDocuments, reorderLibraryTemplates, type LibraryMove } from "./library-reordering";
@@ -417,7 +418,8 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
       onNewDocument={onNewDocument} onNewFromTemplate={onNewFromTemplate}
       onOpenFiles={onOpenFiles} onOpenBackup={onOpenBackup} onOpenBin={onOpenBin} onExportContent={onExportContent}>
       {libraryKind === "templates" ? <TemplateCreationActions writable={writable} onCreate={addTarget} /> : null}
-      <div className="document-list template-document-list">
+      <div className="document-list template-document-list" {...reordering.listProps}>
+        <DragPlacementIndicator line={reordering.line} />
         {libraryKind === "templates" ? <>
         {templateEntries.map(({ set: item, entry }) => <button {...reordering.rowProps(`${item.id}/${entry.id}`)} className={`document-item template-target-item${!showTemplateLibrary && item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { reordering.rowProps(`${item.id}/${entry.id}`).onKeyDown(event); if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
           <span className="document-kind-mark" aria-hidden="true">{templateNameInitial(entry.name)}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" || entry.kind === "overlay" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />

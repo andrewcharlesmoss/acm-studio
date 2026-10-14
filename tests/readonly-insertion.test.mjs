@@ -97,10 +97,11 @@ test("Canvas dispatch uses current writable availability for content and templat
 
 test("Canvas refuses opening, drag start and drop insertion before transient changes", () => {
   const scope = { writableRef: { current: false } };
-  for (const name of ["openInserter", "beginBlockDrag", "insertLibraryBlockAt"]) {
+  for (const name of ["openInserter", "insertLibraryBlockAt"]) {
     // No setters or commands are supplied: reaching one would fail the test.
-    invoke(functions.get(name), scope, name === "openInserter" ? [null] : name === "beginBlockDrag" ? ["paragraph"] : ["paragraph", 0]);
+    invoke(functions.get(name), scope, name === "openInserter" ? [null] : ["paragraph", 0]);
   }
+  assert.equal(invoke(functions.get("canStartCanvasPlacement"), scope, [{ libraryType: "paragraph" }]), false);
 });
 
 for (const writable of [true, false]) test(`cover and between-block appenders advertise writable=${writable}`, () => {

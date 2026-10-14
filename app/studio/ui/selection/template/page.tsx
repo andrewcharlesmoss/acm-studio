@@ -9,12 +9,22 @@ import { useStudioHistoryShortcuts } from "../../../use-studio-history-shortcuts
 
 function exampleSet() {
   const set = createTemplateSet();
+  set.navigation = [
+    { id: "drag-menu-first", label: "First link", url: "/first" },
+    { id: "drag-menu-second", label: "Second link", url: "/second", children: [
+      { id: "drag-submenu-first", label: "First child", url: "/child-first" },
+      { id: "drag-submenu-second", label: "Second child", url: "/child-second" },
+      { id: "drag-submenu-third", label: "Third child", url: "/child-third" },
+    ] },
+    { id: "drag-menu-third", label: "Third link", url: "/third" },
+  ];
   set.parts[0].nodes = [
     { id: "template-drag-source", type: "paragraph", text: "Drag this template paragraph into a column." },
     { id: "template-drop-columns", type: "columns", children: [
       { id: "template-drop-left", type: "column", children: [{ id: "template-existing", type: "paragraph", text: "Existing template column item" }] },
       { id: "template-drop-right", type: "column", children: [] },
     ] },
+    { id: "template-drop-navigation", type: "element", element: "navigation", layout: "row" },
     { id: "template-list", type: "list", style: "unordered", items: ["Template first item", "Template second item"] },
     { id: "template-table", type: "table", rows: [["First template cell", "Second template cell"], ["Third template cell", "Fourth template cell"]], caption: "Template caption" },
     { id: "template-row", type: "group", layout: "row", children: [

@@ -17,9 +17,10 @@ import { InlineImagePicker, type InlineImageLibrary } from "./inline-image-picke
 import { InlineImagePopover } from "./inline-image-popover";
 import { addDocumentFootnote, addDocumentFootnotes } from "./footnote-command";
 import { tableRowSections } from "../content/table-row-sections";
-import { editBlockSiblings, moveBlockAmongSiblings, reorderBlockAmongSiblings } from "./block-sibling-operations";
-import { moveBlockToTarget } from "./block-placement";
-import { columnDropPosition } from "./column-drop-position";
+import { editBlockSiblings, moveBlockAmongSiblings } from "./block-sibling-operations";
+import { useDragPlacement } from "./use-drag-placement";
+import { resolveBlockDrag, type BlockDragSource, type BlockDragTarget } from "./block-drag-placement";
+import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { fieldSelectOptions } from "../content/field-options";
 import { richTextPointAtOffset } from "./rich-text-dom";
 import { navigateStudioMenu } from "./overlays/menu";
@@ -309,15 +310,8 @@ export function StudioCanvas(props: StudioCanvasProps) {
   return <RichTextEditingProvider writable={props.writable !== false}><FootnoteNumbersProvider blocks={props.activeDocument.blocks}><TableCaptionProvider key={props.activeDocument.id}><StudioCanvasContent {...props} /></TableCaptionProvider></FootnoteNumbersProvider></RichTextEditingProvider>;
 }
 
-function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, dragOverIndex, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplatePageLink, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
-  const nestedDragBlockIdRef = useRef<string | null>(null);
-  const draggingIndexRef = useRef<number | null>(null);
-  const blockDragActiveRef = useRef(false);
-  const [blockDragActive, setBlockDragActive] = useState(false);
-  const [columnDrop, setColumnDrop] = useState<ReturnType<typeof columnDropPosition>>(null);
+function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplatePageLink, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const [pendingGroupLayoutBlockId, setPendingGroupLayoutBlockId] = useState<string | null>(null);
-  const blockDragBaseline = JSON.stringify(activeDocument.blocks);
-  const dragSessionRef = useRef<{ documentId: string; baseline: string; libraryType?: BlockLibraryItemType } | null>(null);
   const crossBlockSelectionRef = useRef<{ pointerId: number; blockIdentity: Element; blockId: string | null; start: Range | null; last: Range | null; endBlockId: string | null; active: boolean; pointerStart?: { x: number; y: number }; listRoot?: HTMLElement; listEditor?: HTMLElement; listText?: boolean } | null>(null);
   const canvasScrollRef = useRef<HTMLDivElement>(null);
   const inspectorCanvasRef = useContext(ListInspectorCanvasContext);
@@ -761,150 +755,28 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     focusInsertedBlock(blockId, false);
   }
 
-  function beginBlockDrag(libraryType?: BlockLibraryItemType) {
-    if (!writableRef.current) return;
-    dragSessionRef.current = { documentId: activeDocument.id, baseline: blockDragBaseline, libraryType };
-    setColumnDrop(null);
-    blockDragActiveRef.current = true;
-    setBlockDragActive(true);
-    setHoveredBlockId(null);
-    setBlockMenuBlockId(null);
-    setAlignmentMenuBlockId(null);
-    setBlockAlignmentMenuBlockId(null);
-    setRichTextMenuBlockId(null);
-    setTransformMenuBlockId(null);
-    onSetDragOverIndex(null);
+  const rootDragTypes = blockInserterOptions(filteredBlocks ?? [], undefined, "", socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation) }).map(item => item.type);
+  const blockDrag = useDragPlacement<BlockDragSource, BlockDragTarget>({
+    version: JSON.stringify([activeDocument.id, activeDocument.blocks]), writable: writable && !previewing && !codeEditor,
+    canStart: canStartCanvasPlacement,
+    effect: source => source.libraryType ? "copy" : "move",
+    resolve: (source, canvas, x, y) => resolveBlockDrag({ blocks: activeDocument.blocks, source, rootTypes: rootDragTypes }, canvas, x, y),
+    commit: (_source, target) => commitCanvasPlacement(target),
+    onActivate() { setHoveredBlockId(null); setBlockMenuBlockId(null); setAlignmentMenuBlockId(null); setBlockAlignmentMenuBlockId(null); setRichTextMenuBlockId(null); setTransformMenuBlockId(null); },
+    onPreview: target => onSetDragOverIndex(target?.kind === "insert" && !target.parentId ? target.index : target?.kind === "move" && target.root ? target.root.index : null),
+    onCancel: () => onSetDragOverIndex(null),
+  });
+  function canStartCanvasPlacement(source: BlockDragSource) {
+    if (!writableRef.current || currentDocumentRef.current.id !== activeDocument.id || JSON.stringify(currentDocumentRef.current.blocks) !== JSON.stringify(activeDocument.blocks)) return false;
+    return source.libraryType ? rootDragTypes.includes(source.libraryType) : Boolean(source.id && findBlockById(activeDocument.blocks, source.id) && !findBlockById(activeDocument.blocks, source.id)?.editorial?.lock?.move);
   }
-  const finishBlockDrag = useCallback(() => {
-    dragSessionRef.current = null;
-    setColumnDrop(null);
-    blockDragActiveRef.current = false;
-    draggingIndexRef.current = null;
-    nestedDragBlockIdRef.current = null;
-    setBlockDragActive(false);
-    onSetDragOverIndex(null);
-  }, [onSetDragOverIndex]);
-
-  useLayoutEffect(() => {
-    function finish() {
-      dragSessionRef.current = null;
-      setColumnDrop(null);
-      blockDragActiveRef.current = false;
-      draggingIndexRef.current = null;
-      nestedDragBlockIdRef.current = null;
-      setBlockDragActive(false);
-      onSetDragOverIndex(null);
-    }
-    function leaveCanvas(event: globalThis.DragEvent) {
-      if (!blockDragActiveRef.current) return;
-      if (!(event.target instanceof Element) || !event.target.closest(".canvas-blocks") || !canvasScrollRef.current?.contains(event.target)) { onSetDragOverIndex(null); setColumnDrop(null); }
-    }
-    function outsideDrop(event: globalThis.DragEvent) {
-      if (!canvasScrollRef.current?.contains(event.target as Node)) finish();
-    }
-    function cancel(event: KeyboardEvent) { if (event.key === "Escape") finish(); }
-    document.addEventListener("dragover", leaveCanvas, true);
-    document.addEventListener("dragend", finish, true);
-    document.addEventListener("drop", outsideDrop, true);
-    document.addEventListener("keydown", cancel, true);
-    window.addEventListener("blur", finish);
-    return () => {
-      document.removeEventListener("dragover", leaveCanvas, true);
-      document.removeEventListener("dragend", finish, true);
-      document.removeEventListener("drop", outsideDrop, true);
-      document.removeEventListener("keydown", cancel, true);
-      window.removeEventListener("blur", finish);
-    };
-  }, [onSetDragOverIndex]);
-
-  useLayoutEffect(() => {
-    const session = dragSessionRef.current;
-    if (session && (!writable || previewing || codeEditor || session.documentId !== activeDocument.id || session.baseline !== blockDragBaseline)) finishBlockDrag();
-  }, [activeDocument.id, blockDragBaseline, writable, previewing, codeEditor, finishBlockDrag]);
-
-  function canvasInsertionIndex(event: DragEvent<HTMLDivElement>) {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) return null;
-    const positions = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(":scope > .block-position > .canvas-block"));
-    const appender = event.currentTarget.querySelector<HTMLElement>(":scope > .canvas-appender")?.getBoundingClientRect();
-    // Appending replaces the typing prompt, so its feedback and drop target share that area.
-    if (appender && event.clientX >= appender.left && event.clientX <= appender.right && event.clientY >= appender.top && event.clientY <= appender.bottom) return positions.length;
-    for (let index = 0; index < positions.length; index++) {
-      const block = positions[index].getBoundingClientRect();
-      if (event.clientY < block.top + block.height / 2) return index;
-    }
-    return null;
-  }
-  function handleCanvasDragOver(event: DragEvent<HTMLDivElement>) {
-    const session = dragSessionRef.current;
-    if (!writable || previewing || codeEditor || !session || session.documentId !== activeDocument.id || session.baseline !== blockDragBaseline) { finishBlockDrag(); return; }
-    const column = columnDropPosition(event.currentTarget, event.target instanceof Element ? event.target : null, event.clientX, event.clientY);
-    const sourceId = nestedDragBlockIdRef.current ?? (draggingIndexRef.current === null ? null : activeDocument.blocks[draggingIndexRef.current]?.id);
-    if (column && (!sourceId || findBlockById(activeDocument.blocks, sourceId)?.type !== "column")) {
-      const parent = findBlockById(activeDocument.blocks, column.target.parentId!);
-      const allowed = session.libraryType ? parent?.type === "column" && groupAllowsChild(parent, session.libraryType)
-        : sourceId && moveBlockToTarget(activeDocument.blocks, sourceId, column.target) !== activeDocument.blocks;
-      event.preventDefault(); event.stopPropagation();
-      event.dataTransfer.dropEffect = allowed ? session.libraryType ? "copy" : "move" : "none";
-      onSetDragOverIndex(null); setColumnDrop(allowed ? column : null);
-      return;
-    }
-    setColumnDrop(null);
-    if (nestedDragBlockIdRef.current) {
-      event.preventDefault(); event.stopPropagation();
-      event.dataTransfer.dropEffect = "move";
-      const index = canvasInsertionIndex(event);
-      onSetDragOverIndex(index !== null && moveBlockToTarget(activeDocument.blocks, nestedDragBlockIdRef.current, { parentId: null, index }) !== activeDocument.blocks ? index : null);
-      return;
-    }
-    const libraryDrag = event.dataTransfer.types.includes("application/x-acm-studio-block");
-    const from = draggingIndexRef.current;
-    if (!libraryDrag && from === null) return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect = libraryDrag ? "copy" : "move";
-    const index = canvasInsertionIndex(event);
-    onSetDragOverIndex(!libraryDrag && (index === from || index === from! + 1) ? null : index);
-  }
-  function handleCanvasDrop(event: DragEvent<HTMLDivElement>) {
-    const session = dragSessionRef.current;
-    if (!writable || previewing || codeEditor || !session || session.documentId !== activeDocument.id || session.baseline !== blockDragBaseline) { event.preventDefault(); finishBlockDrag(); return; }
-    const column = columnDropPosition(event.currentTarget, event.target instanceof Element ? event.target : null, event.clientX, event.clientY);
-    const sourceId = nestedDragBlockIdRef.current ?? (draggingIndexRef.current === null ? null : activeDocument.blocks[draggingIndexRef.current]?.id);
-    if (column && (!sourceId || findBlockById(activeDocument.blocks, sourceId)?.type !== "column")) {
-      event.preventDefault(); event.stopPropagation();
-      if (session.libraryType) insertLibraryBlockAt(session.libraryType, column.target.index, column.target.parentId!);
-      else if (sourceId) { const next = moveBlockToTarget(activeDocument.blocks, sourceId, column.target); if (next !== activeDocument.blocks && applyBlockList(next)) onSelectBlock(sourceId); }
-      finishBlockDrag(); return;
-    }
-    const nestedId = nestedDragBlockIdRef.current;
-    if (nestedId) {
-      event.preventDefault(); event.stopPropagation();
-      const frame = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]") : null;
-      const targetId = frame?.dataset.studioNestedBlockId;
-      if (writable && targetId && frame) {
-        const bounds = frame.getBoundingClientRect();
-        const next = reorderBlockAmongSiblings(activeDocument.blocks, nestedId, targetId, event.clientY >= bounds.top + bounds.height / 2);
-        if (next !== activeDocument.blocks && applyBlockList(next)) onSelectBlock(nestedId);
-      } else {
-        const index = canvasInsertionIndex(event);
-        if (index !== null) { const next = moveBlockToTarget(activeDocument.blocks, nestedId, { parentId: null, index }); if (next !== activeDocument.blocks && applyBlockList(next)) onSelectBlock(nestedId); }
-      }
-      finishBlockDrag();
-      return;
-    }
-    const libraryType = event.dataTransfer.getData("application/x-acm-studio-block");
-    const libraryDrag = filteredBlocks.some(item => item.type === libraryType && (item.type !== "template-content" || Boolean(onInsertTemplateContent)) && (item.type !== "navigation" || Boolean(onInsertTemplateNavigation)) && item.type !== "page-link");
-    const from = draggingIndexRef.current;
-    if (!libraryDrag && from === null) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const index = canvasInsertionIndex(event);
-    if (writable && index !== null) {
-      if (libraryDrag) insertLibraryBlockAt(libraryType as BlockLibraryItemType, index);
-      else if (from !== null && index !== from && index !== from + 1) onMoveBlockTo(from, index > from ? index - 1 : index);
-    }
-    finishBlockDrag();
+  const blockDragActive = blockDrag.active;
+  const finishBlockDrag = blockDrag.cancel;
+  function commitCanvasPlacement(target: BlockDragTarget) {
+    if (target.kind === "insert") return Boolean(insertLibraryBlockAt(target.type, target.index, target.parentId));
+    if (target.root) { const { from, index } = target.root; onMoveBlockTo(from, index > from ? index - 1 : index); return true; }
+    if (!applyBlockList(target.blocks)) return false;
+    onSelectBlock(target.id); return true;
   }
   const allowCoverImage = presentation?.allowCoverImage ?? activeDocument.kind === "post";
   const compose = (content: ReactNode, mode: "edit" | "preview") => presentation?.renderDocument?.({ document: activeDocument, mode, selectedBlockId, selectedDocumentField, onSelectBlock, onDocumentFieldChange, onFocusDocumentField }, content) ?? content;
@@ -1952,17 +1824,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     return <>
                     <div className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}`}>
                       {itemSelection && listRoot && block.type === "list" ? <ListItemSwitcher onSelectParent={() => selectListParent(itemSelection.listId)} /> : <BlockTransformControl block={block} parent={parentOfNestedBlock(activeDocument.blocks, block.id)} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} />}
-                      {!itemSelection ? <><button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} onClick={() => selectBlockBoundary(block.id)} onDragStart={(event) => {
-                        event.stopPropagation();
-                        const index = activeDocument.blocks.findIndex(root => root.id === block.id);
-                        draggingIndexRef.current = index >= 0 ? index : null;
-                        nestedDragBlockIdRef.current = index < 0 ? block.id : null;
-                        event.dataTransfer.effectAllowed = "move";
-                        event.dataTransfer.setData("application/x-acm-studio-move", block.id);
-                        onSetDragOverIndex(null);
-                        // Let the browser capture the source before collapsing its toolbar space.
-                        requestAnimationFrame(() => { if (draggingIndexRef.current !== null || nestedDragBlockIdRef.current) beginBlockDrag(); });
-                      }} onDragEnd={finishBlockDrag} aria-label={`Drag to reorder ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)} block`} title="Drag to reorder block"><StudioHoverIcon name="arrange.reorder" /></button>
+                      {!itemSelection ? <><button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} {...blockDrag.handleProps({ id: block.id })} onClick={() => selectBlockBoundary(block.id)}
+                      onDragStart={event => blockDrag.start(event, { id: block.id })} onDragEnd={finishBlockDrag} aria-label={`Drag to reorder ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)} block`} title="Drag to reorder block"><StudioHoverIcon name="arrange.reorder" /></button>
                       <div className="block-move-controls" role="group" aria-label="Move block">
                         <button className="move-block-up" type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, -1); }} disabled={!canMove(block, -1)} aria-label="Move block up" title="Move up"><StudioHoverIcon name="arrange.move-up" /></button>
                         <button type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, 1); }} disabled={!canMove(block, 1)} aria-label="Move block down" title="Move down"><StudioHoverIcon name="arrange.move-down" /></button>
@@ -2126,7 +1989,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
       }} /> : null}
       {toolbarContent}
       <div className="editor-work-area">
-      {showInserter && !previewing && !codeEditor ? <BlockInserter writable={writable} closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={blockInserterOptions(filteredBlocks, inserterParentId ? findBlockById(activeDocument.blocks, inserterParentId) ?? undefined : undefined, inserterQuery, socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation), allowTemplatePageLink: Boolean(onInsertTemplatePageLink) })} onSetQuery={onSetInserterQuery} onInsert={insertFromBlockInserter} onDragStart={beginBlockDrag} onDragEnd={finishBlockDrag} onDismiss={dismissInserter} /> : null}
+      {showInserter && !previewing && !codeEditor ? <BlockInserter writable={writable} closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={blockInserterOptions(filteredBlocks, inserterParentId ? findBlockById(activeDocument.blocks, inserterParentId) ?? undefined : undefined, inserterQuery, socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation), allowTemplatePageLink: Boolean(onInsertTemplatePageLink) })} onSetQuery={onSetInserterQuery} onInsert={insertFromBlockInserter} onDragStart={(type, event) => blockDrag.start(event, { libraryType: type })} onDragEnd={finishBlockDrag} onDismiss={dismissInserter} /> : null}
       {!previewing && !showInserter && listViewOpen ? <button className="studio-list-backdrop" type="button" aria-label="Close List View" onClick={closeListView} /> : null}
       {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlockFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} writable={writable} onShowBlock={id => onUpdateBlock(id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} onRemoveBlock={onRemoveBlock} canMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); return Boolean(block && canMove(block, direction)); }} onMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); if (block) moveSibling(block, direction); }} /> : null}
 
@@ -2416,16 +2279,12 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
               </div>
             </div> : allowCoverImage ? <button className="canvas-add-cover" type="button" onClick={onOpenCoverMediaLibrary}><StudioIcon name="add" size={18} />Add featured image</button> : null}
 
-            <div className="canvas-blocks" onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop} onDragLeave={event => {
-              const bounds = event.currentTarget.getBoundingClientRect();
-              if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) { onSetDragOverIndex(null); setColumnDrop(null); }
-            }}>
-              {columnDrop ? <div className="column-drop-indicator" aria-hidden="true" style={{ left: columnDrop.left, top: columnDrop.top, width: columnDrop.width, height: columnDrop.height }} /> : null}
+            <div className="canvas-blocks" {...blockDrag.listProps}>
+              <DragPlacementIndicator line={blockDrag.line} />
               {writable && allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, -1)} aria-haspopup="dialog" aria-label="Add block below featured image" title="Add block below featured image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
               {activeDocument.blocks.map((block, index) => (
                 <div className="block-position" key={block.id} data-block-align={contentBlockAlignment(block)}
                 >
-                  {dragOverIndex === index ? <div className="drop-indicator" aria-hidden="true" /> : null}
                   {writable && index > 0 ? <button className="between-blocks" type="button" disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, index - 1)} aria-haspopup="dialog" aria-label={`Add block before ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
                   <article
                     className={`canvas-block is-${block.type}${contentBlockAlignment(block) ? ` has-block-align-${contentBlockAlignment(block)}` : ""}${selectedBlockId === block.id ? " is-selected" : ""}`}
@@ -2469,7 +2328,6 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                 </div>
               ))}
               <div className={`canvas-appender${appenderActive ? " is-active" : ""}`}>
-                {dragOverIndex === activeDocument.blocks.length ? <div className="drop-indicator is-at-end" aria-hidden="true" /> : null}
                 <input
                   ref={appenderInputRef}
                   type="text"
@@ -2753,7 +2611,7 @@ function HoverBlockTypeIcon({ type, headingLevel }: { type: import("./block-libr
   return <BlockTypeIcon type={type} />;
 }
 
-function BlockInserter({ writable, closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDragStart, onDragEnd, onDismiss }: { writable: boolean; closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: BlockLibraryItemType) => void; onDragStart: (type: BlockLibraryItemType) => void; onDragEnd: () => void; onDismiss: () => void }) {
+function BlockInserter({ writable, closing, onCloseAnimationEnd, inserterQuery, filteredBlocks, onSetQuery, onInsert, onDragStart, onDragEnd, onDismiss }: { writable: boolean; closing: boolean; onCloseAnimationEnd: () => void; inserterQuery: string; filteredBlocks: StudioCanvasProps["filteredBlocks"]; onSetQuery: (query: string) => void; onInsert: (type: BlockLibraryItemType) => void; onDragStart: (type: BlockLibraryItemType, event: DragEvent<HTMLButtonElement>) => void; onDragEnd: () => void; onDismiss: () => void }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const dismiss = useCallback(() => {
@@ -2786,7 +2644,7 @@ function BlockInserter({ writable, closing, onCloseAnimationEnd, inserterQuery, 
           {blockCatalogueGroups.map((group) => {
             const items = filteredBlocks.filter((item) => item.group === group);
             if (!items.length) return null;
-            return <div className="inserter-group" key={group}><h3>{group}</h3><div>{items.map((item) => <button type="button" disabled={!writable} draggable={writable && item.type !== "page-link"} key={item.type} title={item.description} onDragStart={event => { if (!writable || item.type === "page-link") { event.preventDefault(); return; } event.dataTransfer.effectAllowed = "copy"; event.dataTransfer.setData("application/x-acm-studio-block", item.type); onDragStart(item.type); }} onDragEnd={onDragEnd} onClick={() => { if (writable) onInsert(item.type); }}><span><BlockTypeIcon type={item.type} /></span><strong>{item.label}</strong></button>)}</div></div>;
+            return <div className="inserter-group" key={group}><h3>{group}</h3><div>{items.map((item) => <button type="button" disabled={!writable} draggable={writable && item.type !== "page-link"} key={item.type} title={item.description} onDragStart={event => { if (!writable || item.type === "page-link") { event.preventDefault(); return; } event.dataTransfer.effectAllowed = "copy"; event.dataTransfer.setData("application/x-acm-studio-block", item.type); onDragStart(item.type, event); }} onDragEnd={onDragEnd} onClick={() => { if (writable) onInsert(item.type); }}><span><BlockTypeIcon type={item.type} /></span><strong>{item.label}</strong></button>)}</div></div>;
           })}
       </Pane>
     </div>

@@ -35,14 +35,17 @@ export function navigationLinkRel(link: SiteLink): string | undefined {
 }
 
 /** Dragging moves within the existing sibling list; it never reparents a submenu. */
-export function reorderNavigationItem(links: SiteLink[], id: string, targetId: string): SiteLink[] | null {
+export function reorderNavigationItem(links: SiteLink[], id: string, targetId: string, edge?: "before" | "after"): SiteLink[] | null {
   const entries = navigationEntries(links);
   const source = entries.find(entry => entry.link.id === id);
   const target = entries.find(entry => entry.link.id === targetId);
   if (!source || !target || source.siblings !== target.siblings || source.index === target.index) return null;
   const reordered = [...source.siblings];
   reordered.splice(source.index, 1);
-  reordered.splice(target.index, 0, source.link);
+  const targetIndex = reordered.findIndex(link => link.id === targetId);
+  const insertion = edge ? targetIndex + (edge === "after" ? 1 : 0) : target.index;
+  if (insertion === source.index) return null;
+  reordered.splice(insertion, 0, source.link);
   const replace = (items: SiteLink[]): SiteLink[] => items === source.siblings ? reordered : items.map(link => link.children ? { ...link, children: replace(link.children) } : link);
   return replace(links);
 }

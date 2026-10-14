@@ -172,6 +172,17 @@ three-pane desktop workspaces at narrow viewport widths. They keep a minimum
 workspace width and scroll horizontally until a dedicated mobile arrangement is
 designed; do not reflow their editing panes as a responsive fix.
 
+All Studio insertion-gap dragging inherits `use-drag-placement.ts`,
+`drop-gap-geometry.ts`, and `DragPlacementIndicator` for input, cancellation,
+freshness, geometry, and the single measured, centred line per logical boundary.
+Domain adapters define valid destinations and commits; do not duplicate the
+controller, geometry, renderer, or edge-scrolling lifecycle. Preserve
+effective-change, source freshness, ownership, container, and lock checks in both feedback and commit. Content, template, and Mini Golf
+canvases share block placement; Navigation and Design share sibling gap
+reordering. Template wrappers and toolbars are not additional siblings.
+Captured mouse drags retain cancellable edge scrolling. See
+`docs/drag-placement.md` for the inventory, exclusions, and verification recipe.
+
 Edit and Preview must share block presentation rules, including typography,
 colours, spacing and dimensions. Use the Studio variant of `BlockRenderer`
 for editor previews, not the public article's prose theme. Keep selection

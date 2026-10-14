@@ -1,10 +1,12 @@
 "use client";
+import { DragPlacementIndicator } from "./drag-placement-indicator";
 
 import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
 import type { BackgroundRemovalMode } from "./background-removal-models";
 import { formatRotationAngle, resizeRotatedObject, rotationCursorCss } from "./design-transform";
 import { createDesignTextMeasurer, layoutDesignText } from "./design-text";
+import { useGapReordering } from "./use-gap-reordering";
 import { moveDesignLayer, reorderDesignLayers } from "./design-layer-operations.mjs";
 import { addMediaFiles, getMediaAsset, listMediaLibrary, replaceMediaAssetContent, type MediaAsset } from "./media-store";
 import { studioWriteOwnership, ownershipMessage, type OwnershipState } from "./write-ownership";
@@ -107,7 +109,6 @@ function conflictDetails(conflict: DesignMergeConflict) {
   return { target: conflictTarget(conflict.change), other: conflictValue(conflict.change, conflict.current), yours: conflictValue(conflict.change, yours) };
 }
 const ZOOM_SHORTCUT_STEPS = [10, 25, 50, 75, 100, 125, 200, 300, 500] as const;
-const PAGE_DROP_GUIDE_HEIGHT = 2;
 const SAVE_STATUS_MINIMUM_MS = 500;
 
 function centredScrollOffset(contentCentre: number, viewportSize: number, scrollSize: number, clientSize: number) {
@@ -613,72 +614,24 @@ function PositionControls({ writable, selectedCount, canAlign, onAlignToPage }: 
 }
 
 function LayerList({ page, selectedIds, writable, onSelect, onReorder }: { page: DesignPage; selectedIds: string[]; writable: boolean; onSelect: (id: string) => void; onReorder: (sourceId: string, targetId: string, position: LayerDropPosition) => void }) {
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<{ id: string; position: LayerDropPosition } | null>(null);
   const layers = [...page.objects].reverse();
+  const reorder = useGapReordering({ ids: layers.map(object => object.id), version: JSON.stringify(page), writable,
+    accepts: move => reorderDesignLayers(page.objects, move.id, move.targetId, move.edge) !== page.objects,
+    onMove: move => { onReorder(move.id, move.targetId, move.edge); return true; },
+  });
   if (!page.objects.length) return <p>No objects yet.</p>;
-  const dropTolerance = 64;
-  const getDropTarget = (container: HTMLElement, clientY: number) => {
-    const rows = Array.from(container.querySelectorAll<HTMLElement>('[data-layer-row="true"]'));
-    const row = rows.filter((item) => {
-      const bounds = item.getBoundingClientRect();
-      return clientY >= bounds.top - dropTolerance && clientY <= bounds.bottom + dropTolerance;
-    }).sort((a, b) => {
-      const aBounds = a.getBoundingClientRect();
-      const bBounds = b.getBoundingClientRect();
-      return Math.abs(clientY - (aBounds.top + aBounds.height / 2)) - Math.abs(clientY - (bBounds.top + bBounds.height / 2));
-    })[0];
-    if (!row) return null;
-    const bounds = row.getBoundingClientRect();
-    const targetId = row.dataset.layerId;
-    if (!targetId || targetId === draggedId || row.dataset.layerDroppable !== "true") return null;
-    return { id: targetId, position: clientY < bounds.top + bounds.height / 2 ? "before" as const : "after" as const };
-  };
-  const updateDropTarget = (event: DragEvent<HTMLDivElement>) => {
-    if (!draggedId) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    const container = event.currentTarget.closest<HTMLElement>(".design-layer-list");
-    if (container) setDropTarget(getDropTarget(container, event.clientY));
-  };
-  return <div className="design-layer-list" aria-label="Layers, top to bottom" onDragOver={updateDropTarget} onDragLeave={(event) => { const relatedTarget = event.relatedTarget; if (!relatedTarget || !(relatedTarget instanceof Node) || !event.currentTarget.contains(relatedTarget)) setDropTarget(null); }}>
-    {layers.map((object) => {
+  return <div className="design-layer-list" aria-label="Layers, top to bottom" {...reorder.listProps}>
+    {layers.map(object => {
       const label = toolLabels[object.type as Tool] ?? object.type;
       const canMove = writable && !object.locked;
-      const dropPosition = dropTarget?.id === object.id ? dropTarget.position : null;
-      return <div
-        key={object.id}
-        data-layer-row="true"
-        data-layer-id={object.id}
-        data-layer-droppable={canMove ? "true" : "false"}
-        className={`design-layer-row${draggedId === object.id ? " is-dragging" : ""}${dropPosition ? ` is-drop-${dropPosition}` : ""}`}
-        draggable={canMove}
-        onDragStart={(event: DragEvent<HTMLDivElement>) => {
-          if (!canMove) { event.preventDefault(); return; }
-          event.dataTransfer.effectAllowed = "move";
-          event.dataTransfer.setData("text/plain", object.id);
-          setDraggedId(object.id);
-        }}
-        onDragEnd={() => { setDraggedId(null); setDropTarget(null); }}
-        onDragOver={(event) => { if (canMove) updateDropTarget(event); else setDropTarget(null); }}
-        onDrop={(event) => {
-          event.preventDefault();
-          const sourceId = draggedId ?? event.dataTransfer.getData("text/plain");
-          if (sourceId && sourceId !== object.id && canMove) {
-            const bounds = event.currentTarget.getBoundingClientRect();
-            onReorder(sourceId, object.id, event.clientY < bounds.top + bounds.height / 2 ? "before" : "after");
-          }
-          setDraggedId(null);
-          setDropTarget(null);
-        }}
-      >
-        <button type="button" className={`design-layer-select${selectedIds.includes(object.id) ? " is-selected" : ""}`} aria-pressed={selectedIds.includes(object.id)} onClick={() => onSelect(object.id)}>
-          <StudioIcon name="drag-handle" size={16} />
-          <span>{label}</span>
-          <small>{object.locked ? "Locked" : ""}</small>
+      return <div key={object.id} {...reorder.rowProps(object.id)} className="design-layer-row" draggable={canMove}
+        onDragStart={event => { if (!canMove) { event.preventDefault(); return; } reorder.start(event, object.id); }} onDragEnd={reorder.cancel}>
+        <button {...(canMove ? reorder.handleProps(object.id) : {})} type="button" className={`design-layer-select${selectedIds.includes(object.id) ? " is-selected" : ""}`} aria-pressed={selectedIds.includes(object.id)} onClick={() => onSelect(object.id)}>
+          <StudioIcon name="drag-handle" size={16} /><span>{label}</span><small>{object.locked ? "Locked" : ""}</small>
         </button>
       </div>;
     })}
+    <DragPlacementIndicator line={reorder.line} />
   </div>;
 }
 
@@ -772,7 +725,6 @@ export function DesignEditor() {
   const [exportScale, setExportScale] = useState(1);
   const [exportQuality, setExportQuality] = useState(.92);
   const [zoom, setZoom] = useState(60);
-  const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
   const pageSelectionAnchorRef = useRef<string | null>(null);
   const pageSelectionModifiersRef = useRef({ metaKey: false, ctrlKey: false, shiftKey: false });
@@ -805,7 +757,6 @@ export function DesignEditor() {
   const svgRef = useRef<SVGSVGElement>(null);
   const interactionRef = useRef<Interaction | null>(null);
   const pageResizeRef = useRef<PageResizeInteraction | null>(null);
-  const pageDropPositionRef = useRef<{ id: string; position: "before" | "after" } | null>(null);
   const contextMenuReturnRef = useRef<HTMLElement | null>(null);
   const conflictReviewButtonRef = useRef<HTMLButtonElement>(null);
   const conflictCloseButtonRef = useRef<HTMLButtonElement>(null);
@@ -843,6 +794,10 @@ export function DesignEditor() {
   if (activePage && !design?.pages.some((page) => page.id === activePageIdRef.current)) activePageIdRef.current = activePage.id;
   const activePageIndex = activePage && design ? design.pages.findIndex((page) => page.id === activePage.id) : 0;
   const designEditable = writable && !activePage?.locked;
+  const pageReorder = useGapReordering({ ids: design?.pages.map(page => page.id) ?? [], version: JSON.stringify(design?.pages ?? []), writable,
+    accepts: move => Boolean(design && reorderedPages(design.pages, move.id, move.targetId, move.edge)),
+    onMove: move => reorderPage(move.id, move.targetId, move.edge),
+  });
   const selectedObject = activePage?.objects.find((object) => object.id === selectedId) ?? null;
   const selectedImageAsset = selectedObject?.type === "image" ? design?.assets.find((asset) => asset.id === selectedObject.assetId) : undefined;
 
@@ -961,17 +916,10 @@ export function DesignEditor() {
     setEditingTextId(null);
   }
 
-  const reorderPageFromListener = useEffectEvent((sourceId: string, targetId: string, position: "before" | "after") => reorderPage(sourceId, targetId, position));
   const selectPageSetFromListener = useEffectEvent((pageId: string, event: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; checked: boolean }) => selectPageSet(pageId, event));
   useEffect(() => {
     const panel = document.getElementById("design-pages-tabpanel");
     if (!panel) return;
-    const clearDropGuide = () => {
-      panel.querySelectorAll(".is-drop-before, .is-drop-after").forEach((item) => item.classList.remove("is-drop-before", "is-drop-after"));
-      panel.classList.remove("is-drop-active");
-      panel.style.removeProperty("--page-drop-guide-top");
-      pageDropPositionRef.current = null;
-    };
     const handlePageSelectionClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       const checkbox = target.closest<HTMLInputElement>(".design-page-select input");
@@ -1002,75 +950,10 @@ export function DesignEditor() {
       pageSelectionModifiersRef.current = { metaKey: false, ctrlKey: false, shiftKey: false };
       selectPageSetFromListener(page.id, { ...modifiers, checked: target.checked });
     };
-    const handleDragOver = (event: globalThis.DragEvent) => {
-      event.preventDefault();
-      const items = Array.from(panel.querySelectorAll<HTMLElement>(".design-page-item"));
-      const pages = design?.pages;
-      if (!pages || !draggedPageId || !items.length || pages.length !== items.length) {
-        clearDropGuide();
-        return;
-      }
-
-      const itemBounds = items.map((item) => item.getBoundingClientRect());
-      const panelBounds = panel.getBoundingClientRect();
-      const itemWidth = Math.max(...itemBounds.map((bounds) => bounds.width));
-      if (event.clientX < panelBounds.left - itemWidth || event.clientX > panelBounds.right + itemWidth) {
-        clearDropGuide();
-        return;
-      }
-
-      const rowGap = Number.parseFloat(getComputedStyle(panel).rowGap) || 10;
-      const gapPositions = [
-        itemBounds[0].top - rowGap / 2,
-        ...itemBounds.slice(1).map((bounds, index) => (itemBounds[index].bottom + bounds.top) / 2),
-        itemBounds[itemBounds.length - 1].bottom + rowGap / 2,
-      ];
-      const gapIndex = gapPositions.reduce((nearestIndex, gapPosition, index) => (
-        Math.abs(event.clientY - gapPosition) < Math.abs(event.clientY - gapPositions[nearestIndex])
-          ? index
-          : nearestIndex
-      ), 0);
-      const targetIndex = Math.min(gapIndex, pages.length - 1);
-      const targetPage = pages[targetIndex];
-      const position = gapIndex === pages.length ? "after" : "before";
-
-      if (!reorderedPages(pages, draggedPageId, targetPage.id, position)) {
-        clearDropGuide();
-        return;
-      }
-
-      clearDropGuide();
-      const guideTop = Math.max(
-        0,
-        Math.min(
-          panel.scrollHeight - PAGE_DROP_GUIDE_HEIGHT,
-          Math.round(gapPositions[gapIndex] - panelBounds.top + panel.scrollTop - PAGE_DROP_GUIDE_HEIGHT / 2),
-        ),
-      );
-      panel.style.setProperty("--page-drop-guide-top", `${guideTop}px`);
-      panel.classList.add("is-drop-active");
-      pageDropPositionRef.current = { id: targetPage.id, position };
-    };
-    const handleDragEnd = () => clearDropGuide();
-    const handlePageDrop = (event: globalThis.DragEvent) => {
-      const dropTarget = pageDropPositionRef.current;
-      if (!draggedPageId) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if (!dropTarget) {
-        setDraggedPageId(null);
-        return;
-      }
-      reorderPageFromListener(draggedPageId, dropTarget.id, dropTarget.position);
-      setDraggedPageId(null);
-    };
-    document.addEventListener("dragover", handleDragOver);
-    document.addEventListener("dragend", handleDragEnd);
-    document.addEventListener("drop", handlePageDrop, true);
     panel.addEventListener("click", handlePageSelectionClick, true);
     panel.addEventListener("change", handlePageSelectionChange, true);
-    return () => { document.removeEventListener("dragover", handleDragOver); document.removeEventListener("dragend", handleDragEnd); document.removeEventListener("drop", handlePageDrop, true); panel.removeEventListener("click", handlePageSelectionClick, true); panel.removeEventListener("change", handlePageSelectionChange, true); clearDropGuide(); };
-  }, [design?.pages, draggedPageId, selectedPageIds]);
+    return () => { panel.removeEventListener("click", handlePageSelectionClick, true); panel.removeEventListener("change", handlePageSelectionChange, true); };
+  }, [design?.pages, selectedPageIds]);
 
   useEffect(() => {
     let mounted = true;
@@ -1928,12 +1811,11 @@ export function DesignEditor() {
   }
 
   function reorderPage(sourceId: string, targetId: string, position: "before" | "after" = "after") {
-    if (!design || sourceId === targetId) return;
-    const dropPosition = pageDropPositionRef.current?.id === targetId ? pageDropPositionRef.current.position : position;
-    const pages = reorderedPages(design.pages, sourceId, targetId, dropPosition);
-    pageDropPositionRef.current = null;
-    if (!pages) return;
+    if (!design || !writable || sourceId === targetId) return false;
+    const pages = reorderedPages(design.pages, sourceId, targetId, position);
+    if (!pages) return false;
     updateDesign({ ...design, pages });
+    return true;
   }
 
   function updateSelected(update: (object: DesignObject) => DesignObject) { if (!selectedId) return; updatePage((page) => ({ ...page, objects: page.objects.map((object) => { if (object.id !== selectedId) return object; const next = update(object); rememberStyle(next); return next; }) })); }
@@ -2236,10 +2118,11 @@ export function DesignEditor() {
       header={<div className="design-pages-heading"><PaneTabs id={designNavigationTabsId} label="Design navigation" className="design-pane-tabs" tabs={[{ id: "pages", label: "Pages" }, { id: "layers", label: "Layers" }]} active={leftPaneTab} onChange={(tab) => setLeftPaneTab(tab as "pages" | "layers")} /><div><button type="button" onClick={() => addPage()} disabled={!writable} aria-label="Add page">＋</button></div></div>}
       footer={<><div className="design-page-actions"><button type="button" onClick={() => addPage()} disabled={!writable}>Add page</button><button type="button" onClick={deletePage} disabled={!writable || design.pages.length === 1}>Delete page</button><button type="button" onClick={() => void createNewDesign()} disabled={!primaryWritable}>New design</button></div><label className="design-import-label">Import design<input ref={importInputRef} type="file" accept="application/json,.json" disabled={!primaryWritable} onChange={(event) => void importDesign(event.target.files?.[0])} /></label><select className="design-switcher" value={design.id} disabled={!primaryWritable} onChange={(event) => { if (!primaryWritable) return; const next = designs.find((item) => item.id === event.target.value); if (next) { setDesign(next); setPageName(next.pages.find((page) => page.id === next.activePageId)?.name ?? ""); setHistory([]); setFuture([]); selectObjects([]); } }} aria-label="Open design">{designs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></>}>
       <PaneTabPanel className="design-page-list" id={designNavigationTabsId} tab="pages" active={leftPaneTab}>
-        {design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} draggable={writable} onDragStart={() => setDraggedPageId(page.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); const position = event.clientY < bounds.top + bounds.height / 2 ? "before" : "after"; if (draggedPageId) reorderPage(draggedPageId, page.id, position); setDraggedPageId(null); }}><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button><button type="button" onClick={() => deletePageById(page.id)} disabled={!writable || design.pages.length === 1} aria-label={`Delete ${page.name}`}><StudioIcon name="trash" size={20} /></button></div><label className="design-page-select"><input type="checkbox" checked={selectedPageIds.includes(page.id)} onChange={(event) => setSelectedPageIds((items) => event.target.checked ? [...items, page.id] : items.filter((id) => id !== page.id))} aria-label={`Select ${page.name} for export`} /></label><button type="button" className="design-thumbnail-button" onClick={() => selectPage(page.id)} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><PageSvg showHoverHandles={false} page={page} assets={design.assets} selectedIds={[]} guides={[]} onCanvasPointerDown={() => undefined} onObjectPointerDown={() => undefined} onResizePointerDown={() => undefined} onRotatePointerDown={() => undefined} onArrowEndpointPointerDown={() => undefined} onArrowBendPointerDown={() => undefined} onArrowBendKeyDown={() => undefined} onResizeKeyDown={() => undefined} onRotateKeyDown={() => undefined} onArrowEndpointKeyDown={() => undefined} /></div><span>{index + 1}. {page.name}</span></button></div>)}
-      </PaneTabPanel>
+        <div className="design-page-gap-list" {...pageReorder.listProps}>
+        {design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} {...pageReorder.rowProps(page.id)} draggable={writable} onDragStart={event => pageReorder.start(event, page.id)} onDragEnd={pageReorder.cancel}><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button><button type="button" onClick={() => deletePageById(page.id)} disabled={!writable || design.pages.length === 1} aria-label={`Delete ${page.name}`}><StudioIcon name="trash" size={20} /></button></div><label className="design-page-select"><input type="checkbox" checked={selectedPageIds.includes(page.id)} onChange={(event) => setSelectedPageIds((items) => event.target.checked ? [...items, page.id] : items.filter((id) => id !== page.id))} aria-label={`Select ${page.name} for export`} /></label><button {...pageReorder.handleProps(page.id)} type="button" className="design-thumbnail-button" onClick={() => selectPage(page.id)} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><PageSvg showHoverHandles={false} page={page} assets={design.assets} selectedIds={[]} guides={[]} onCanvasPointerDown={() => undefined} onObjectPointerDown={() => undefined} onResizePointerDown={() => undefined} onRotatePointerDown={() => undefined} onArrowEndpointPointerDown={() => undefined} onArrowBendPointerDown={() => undefined} onArrowBendKeyDown={() => undefined} onResizeKeyDown={() => undefined} onRotateKeyDown={() => undefined} onArrowEndpointKeyDown={() => undefined} /></div><span>{index + 1}. {page.name}</span></button></div>)}
+      <DragPlacementIndicator line={pageReorder.line} /></div></PaneTabPanel>
       <PaneTabPanel className="design-pages-layers" id={designNavigationTabsId} tab="layers" active={leftPaneTab}>
-        <LayerList page={activePage} selectedIds={selectedIds} writable={writable} onSelect={(id) => selectObjects([id])} onReorder={reorderLayer} />
+        <LayerList page={activePage} selectedIds={selectedIds} writable={designEditable} onSelect={(id) => selectObjects([id])} onReorder={reorderLayer} />
       </PaneTabPanel>
     </Pane>
       <section className="design-main" aria-label="Design Canvas">

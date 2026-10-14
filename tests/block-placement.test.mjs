@@ -4,8 +4,10 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
+import { dragControl, box } from "./drag-placement-harness.mjs";
 import { commitHistory, undoHistory, redoHistory } from "../app/studio/studio-command-operations.mjs";
 const { moveBlockToTarget, insertBlockAtTarget } = await loadProductionModule(new URL("../app/studio/block-placement.ts", import.meta.url));
+const { resolveBlockDrag } = await loadProductionModule(new URL("../app/studio/block-drag-placement.ts", import.meta.url));
 const { columnDropPosition } = await loadProductionModule(new URL("../app/studio/column-drop-position.ts", import.meta.url));
 const { useStudioBlockCommands: createBlockCommands } = await loadProductionModule(new URL("../app/studio/use-studio-block-commands.ts", import.meta.url));
 const { validContentBlocks } = await loadProductionModule(new URL("../app/studio/workspace-validation.ts", import.meta.url));
@@ -83,13 +85,13 @@ test("column geometry measures direct children and compensates transformed canva
   const canvas = { offsetWidth: 300, contains: candidate => candidate === column, getBoundingClientRect: () => box(100, 100, 600, 500) };
   const element = { closest: selector => { assert.equal(selector, "[data-studio-column-drop-id]"); return column; } };
   const first = columnDropPosition(canvas, element, 140, 130);
-  assert.deepEqual(first.target, { parentId: "left", index: 0 }); assert.equal(first.left, 10); assert.equal(first.width, 80); assert.equal(first.top, 18);
+  assert.deepEqual(first.target, { parentId: "left", index: 0 }); assert.equal(first.left, 10); assert.equal(first.width, 80); assert.equal(first.top, 19);
   assert.equal(columnDropPosition(canvas, element, 140, 210).target.index, 1);
   assert.equal(columnDropPosition(canvas, element, 140, 300).target.index, 2);
   assert.equal(columnDropPosition(canvas, element, 10, 130), null);
   children = [];
   assert.equal(columnDropPosition(canvas, element, 140, 130).target.index, 0);
-  assert.equal(columnDropPosition(canvas, element, 140, 130).height, 24);
+  assert.equal(columnDropPosition(canvas, element, 140, 130).height, 2);
 });
 
 const canvasSource = readStudioSource("app/studio/studio-canvas.tsx");
@@ -97,29 +99,26 @@ const canvasAst = ts.createSourceFile("canvas.tsx", canvasSource, ts.ScriptTarge
 const owner = canvasAst.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "StudioCanvasContent");
 const handler = name => ts.transpileModule(`globalThis.handler = ${owner.body.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === name).getText(canvasAst)}`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 
-test("actual Column drop recalculates placement; equivalent projections survive indicator rerenders", () => {
-  const original = fixture(), insertions = [], pendingGroups = []; let finished = 0;
-  const activeDocument = { id: "template", blocks: structuredClone(original) };
-  const scope = { activeDocument, blockDragBaseline: JSON.stringify(activeDocument.blocks), dragSessionRef: { current: { documentId: "template", baseline: JSON.stringify(original), libraryType: "paragraph" } }, writable: true, writableRef: { current: true }, previewing: false, codeEditor: null, Element: class {}, columnDropPosition: () => ({ target: { parentId: "right", index: 0 } }), nestedDragBlockIdRef: { current: null }, draggingIndexRef: { current: null }, onInsertBlockAt: (...args) => insertions.push(args), setPendingGroupLayoutBlockId: value => pendingGroups.push(value), finishBlockDrag: () => finished++ };
-  runInNewContext(handler("insertLibraryBlockAt"), scope);
-  scope.insertLibraryBlockAt = scope.handler;
-  runInNewContext(handler("handleCanvasDrop"), scope);
-  scope.handler({ target: null, currentTarget: {}, preventDefault() {}, stopPropagation() {} });
-  assert.deepEqual(insertions, [["paragraph", 0, "right"]]); assert.equal(finished, 1); assert.deepEqual(pendingGroups, [null]);
+function columnSurface() {
+ const column={dataset:{studioColumnDropId:"right"},getBoundingClientRect:()=>box(110,10,80,170),querySelectorAll:()=>[]};
+ const canvas={offsetWidth:200,getBoundingClientRect:()=>box(0,0,200,200),contains:element=>element===column,querySelectorAll:()=>[],ownerDocument:{elementFromPoint:()=>({closest:()=>column})}};
+ return canvas;
+}
+test("actual Column proposal and commit survive equivalent template projections",()=>{
+ const original=fixture(),activeDocument={id:"template",blocks:structuredClone(original)},insertions=[],pendingGroups=[];
+ const proposal=resolveBlockDrag({blocks:activeDocument.blocks,source:{libraryType:"paragraph"},rootTypes:["paragraph"]},columnSurface(),150,90);assert.equal(proposal.target.parentId,"right");assert.equal(proposal.target.index,0);
+ const scope={writableRef:{current:true},onInsertBlockAt:(...args)=>{insertions.push(args);return p("inserted");},setPendingGroupLayoutBlockId:value=>pendingGroups.push(value)};
+ runInNewContext(handler("insertLibraryBlockAt"),scope);scope.insertLibraryBlockAt=scope.handler;runInNewContext(handler("commitCanvasPlacement"),scope);assert.equal(scope.handler(proposal.target),true);assert.deepEqual(insertions,[["paragraph",0,"right"]]);assert.deepEqual(pendingGroups,[null]);
 });
-
-test("actual drag handlers refuse stale documents, changed content, missing sessions and read-only drops", () => {
-  for (const name of ["handleCanvasDragOver", "handleCanvasDrop"]) for (const mode of ["document", "content", "readonly", "missing", "preview", "code"]) {
-    let finished = 0;
-    const blocks = fixture();
-    const scope = { activeDocument: { id: "current", blocks }, blockDragBaseline: JSON.stringify(blocks), dragSessionRef: { current: { documentId: "current", baseline: JSON.stringify(blocks), libraryType: "paragraph" } }, writable: true, previewing: false, codeEditor: null, finishBlockDrag: () => finished++, columnDropPosition: () => assert.fail("Invalid session reached the drop target") };
-    if (mode === "document") scope.dragSessionRef.current.documentId = "old";
-    if (mode === "content") scope.blockDragBaseline = "changed";
-    if (mode === "readonly") scope.writable = false;
-    if (mode === "missing") scope.dragSessionRef.current = null;
-    if (mode === "preview") scope.previewing = true;
-    if (mode === "code") scope.codeEditor = {};
-    runInNewContext(handler(name), scope);
-    scope.handler({ preventDefault() {} }); assert.equal(finished, 1, name + mode);
-  }
+test("blocks inherit shared stale, missing-source and read-only drag rejection",()=>{
+ for(const mode of ["document","content","readonly","missing"]){let resolves=0;const f=dragControl({mode:"raw",policy:{resolve:()=>{resolves++;return {target:"move",line:{left:0,top:0,width:10,height:2}};}}});let ui=f.render();if(mode!=="missing")ui.start(f.event(30),{id:"root"});if(mode==="readonly")f.setWritable(false);if(mode==="document"||mode==="content")f.setVersion(mode);ui=f.render();ui.listProps.onDragOver(f.event(130));ui.listProps.onDrop(f.event(130));assert.equal(resolves,0,mode);assert.equal(f.moves.length,0,mode);}
+});
+test("block policy rejects locked moves, self/adjacent slots and forbidden insertions",()=>{
+ const before=fixture(),canvas=columnSurface();before[0].editorial={lock:{move:true}};assert.equal(resolveBlockDrag({blocks:before,source:{id:"root"},rootTypes:[]},canvas,150,90),null);
+ before[1].children[1].allowedBlocks=["heading"];assert.ok(resolveBlockDrag({blocks:before,source:{libraryType:"paragraph"},rootTypes:["paragraph"]},canvas,150,90));assert.equal(resolveBlockDrag({blocks:before,source:{libraryType:"page-link"},rootTypes:[]},canvas,150,90),null);
+ const rootCanvas={offsetWidth:200,getBoundingClientRect:()=>box(0,0,200,200),querySelectorAll:()=>[box(10,20,100,30),box(10,70,100,50),box(10,140,100,40)].map(bounds=>({getBoundingClientRect:()=>bounds})),ownerDocument:{elementFromPoint:()=>null}};
+ assert.equal(resolveBlockDrag({blocks:[p("a"),p("b"),p("c")],source:{id:"a"},rootTypes:[]},rootCanvas,30,60),null);assert.equal(resolveBlockDrag({blocks:[p("a")],source:{libraryType:"button"},rootTypes:["paragraph"]},rootCanvas,30,130),null);
+});
+test("block pointer placement inherits the same production controller and commits once",()=>{
+ const f=dragControl({mode:"raw",policy:{resolve:(_source,_owner,_x,y)=>({target:y,line:{left:0,top:y,width:20,height:2}})}});let ui=f.render();ui.handleProps({id:"root"}).onPointerDown(f.pointer(30));ui.handleProps({id:"root"}).onPointerMove(f.pointer(33));assert.equal(f.render().line,null);ui.handleProps({id:"root"}).onPointerMove(f.pointer(130));ui=f.render();assert.equal(ui.line.top,130);ui.handleProps({id:"root"}).onPointerUp(f.pointer(140));assert.deepEqual(f.moves,[140]);assert.equal(f.render().line,null);
 });

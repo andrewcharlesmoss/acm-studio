@@ -1,3 +1,4 @@
+import { insertionGapIndex, insertionGapLine, dropLineInContainer, dropContainerScale } from "./drop-gap-geometry";
 import type { BlockInsertionTarget } from "./block-placement";
 
 /** Immediate children of the deepest Column define the visible drop boundary. */
@@ -7,11 +8,10 @@ export function columnDropPosition(canvas: HTMLElement, element: Element | null,
   const bounds = column.getBoundingClientRect();
   if (x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) return null;
   const children = Array.from(column.querySelectorAll<HTMLElement>(":scope > [data-studio-nested-block-id]"));
-  const index = children.findIndex(child => { const box = child.getBoundingClientRect(); return y < box.top + box.height / 2; });
-  const insertion = index < 0 ? children.length : index;
-  const boundary = children[insertion]?.getBoundingClientRect().top ?? children.at(-1)?.getBoundingClientRect().bottom ?? bounds.top + bounds.height / 2;
+  const insertion = insertionGapIndex(children.map(child => child.getBoundingClientRect()), x, y);
   const canvasBounds = canvas.getBoundingClientRect();
   // Canvas zoom is a transform; CSS positions must use the unscaled coordinates.
-  const scale = canvas.offsetWidth ? canvasBounds.width / canvas.offsetWidth : 1;
-  return { target: { parentId: column.dataset.studioColumnDropId!, index: insertion }, left: (bounds.left - canvasBounds.left) / scale, top: (boundary - canvasBounds.top) / scale - (children.length ? 2 : 12), width: bounds.width / scale, height: children.length ? 4 : 24 };
+  const scale = dropContainerScale(canvas);
+  const line = insertionGapLine(children.map(child => child.getBoundingClientRect()), insertion, bounds, scale);
+  return { target: { parentId: column.dataset.studioColumnDropId!, index: insertion }, ...dropLineInContainer(line, bounds, canvasBounds, scale, { scrollLeft: canvas.scrollLeft, scrollTop: canvas.scrollTop, borderLeft: canvas.clientLeft, borderTop: canvas.clientTop }) };
 }

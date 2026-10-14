@@ -1,4 +1,5 @@
 "use client";
+import { DragPlacementIndicator } from "./drag-placement-indicator";
 
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
@@ -20,6 +21,8 @@ import { InspectorAccordionSection } from "./inspector-accordion";
 import { StudioIcon } from "./studio-icons";
 import { templateId, type NavigationTemplateNode, type TemplatePart, type SiteLink } from "./template-model";
 import { insertNavigationItem, moveNavigationItem, navigationEntries, reorderNavigationItem, removeNavigationItem, updateNavigationItem } from "./navigation-items";
+
+import { useGapReordering } from "./use-gap-reordering";
 
 export type NavigationEditingProps = {
   blockId?: string; links: SiteLink[]; selectedId: string | null; writable: boolean; suggestions: LinkSuggestion[];
@@ -82,13 +85,14 @@ function NavigationItemActions({ item, onEdit, toolbar = false, ...props }: Navi
 }
 
 type NavigationCanvasItemProps = NavigationEditingProps & {
-  item: SiteLink; vertical: boolean;
-  onDragItem: (event: DragEvent, id: string) => void;
-  onDropItem: (event: DragEvent, id: string) => void;
+  item: SiteLink; vertical: boolean; version: string;
+  onDragItem: (event: DragEvent<HTMLElement>, id: string) => void;
+  handleProps: ReturnType<typeof useGapReordering>["handleProps"];
+  rowProps: (id: string) => { "data-gap-row": string; "data-gap-owner": string };
   onDragEndItem: () => void;
 };
 
-function NavigationCanvasItem({ item, vertical, onDragItem, onDropItem, onDragEndItem, ...props }: NavigationCanvasItemProps) {
+function NavigationCanvasItem({ item, vertical, version, onDragItem, rowProps, handleProps, onDragEndItem, ...props }: NavigationCanvasItemProps) {
   const selected = props.selectedId === item.id;
   const itemRef = useRef<HTMLLIElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -123,11 +127,11 @@ function NavigationCanvasItem({ item, vertical, onDragItem, onDropItem, onDragEn
     const nextAppearance = (nextItalic ? nextWeight === "regular" ? "italic" : `${nextWeight}-italic` : nextWeight) as ParagraphAppearance;
     props.onChange(updateNavigationItem(props.links, item.id, link => ({ ...link, visualStyle: { ...link.visualStyle, appearance: nextAppearance } })));
   }
-  return <li ref={itemRef} id={paragraphStyleAnchor(item.visualStyle)} style={paragraphStyleToCss(item.visualStyle)} className={`navigation-edit-item${selected ? " is-selected" : ""} ${paragraphStyleClassName(item.visualStyle)}`} onDragOver={event => { if (props.writable && event.dataTransfer.types.includes("application/x-acm-navigation-link")) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = "move"; } }} onDrop={event => onDropItem(event, item.id)}>
+  return <li ref={itemRef} id={paragraphStyleAnchor(item.visualStyle)} style={paragraphStyleToCss(item.visualStyle)} className={`navigation-edit-item${selected ? " is-selected" : ""} ${paragraphStyleClassName(item.visualStyle)}`} {...rowProps(item.id)}>
     {selected ? <div ref={toolbarRef} className="navigation-link-toolbar" style={{ insetInlineStart: toolbarBounds.offset, maxWidth: toolbarBounds.width }} role="toolbar" aria-label="Page link tools">
       <button type="button" className="navigation-parent-select" onClick={() => props.onSelect(null)} aria-label="Select parent block: Navigation" title="Select parent block: Navigation"><AcmIcon name="navigation.menu" size={24} /></button>
       <span className="navigation-link-type" title="Page link"><AcmIcon name="view.pages" size={24} /><span className="visually-hidden">Page link</span></span>
-      <button type="button" draggable={props.writable} disabled={!props.writable} onDragStart={event => onDragItem(event, item.id)} onDragEnd={onDragEndItem} aria-label="Drag Page link" title="Drag"><StudioIcon name="drag-handle" size={20} /></button>
+      <button {...handleProps(item.id)} type="button" draggable={props.writable} disabled={!props.writable} onDragStart={event => onDragItem(event, item.id)} onDragEnd={onDragEndItem} aria-label="Drag Page link" title="Drag"><StudioIcon name="drag-handle" size={20} /></button>
       <button type="button" disabled={!props.writable || entry.index === 0} onClick={() => { if (props.onChange(moveNavigationItem(props.links, item.id, -1))) focusNavigationItem(item.id, props.blockId); }} aria-label={vertical ? "Move Page link up" : "Move Page link left"} title={vertical ? "Move up" : "Move left"}><StudioIcon name={vertical ? "arrow-up" : "arrow-left"} size={20} /></button>
       <button type="button" disabled={!props.writable || entry.index === entry.siblings.length - 1} onClick={() => { if (props.onChange(moveNavigationItem(props.links, item.id, 1))) focusNavigationItem(item.id, props.blockId); }} aria-label={vertical ? "Move Page link down" : "Move Page link right"} title={vertical ? "Move down" : "Move right"}><StudioIcon name={vertical ? "arrow-down" : "arrow-right"} size={20} /></button>
       <button ref={trigger} type="button" disabled={!props.writable} onClick={() => setLinkOpen(true)} aria-label="Edit Page link" title="Link" aria-haspopup="dialog" aria-expanded={linkOpen}><StudioIcon name="link" size={20} /></button>
@@ -142,7 +146,7 @@ function NavigationCanvasItem({ item, vertical, onDragItem, onDropItem, onDragEn
       if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
       if (event.key === "Escape") { event.stopPropagation(); props.onSelect(null); }
     }} />
-    {item.children?.length ? <div className="navigation-edit-submenu"><StudioIcon name="chevron-down" size={16} /><ul>{item.children.map(child => <NavigationCanvasItem key={child.id} {...props} item={child} vertical onDragItem={onDragItem} onDropItem={onDropItem} onDragEndItem={onDragEndItem} />)}</ul></div> : null}
+    {item.children?.length ? <div className="navigation-edit-submenu"><StudioIcon name="chevron-down" size={16} /><NavigationCanvasList {...props} version={version} siblings={item.children} vertical /></div> : null}
     {selected && linkOpen && props.writable ? <LinkDestinationPopover key={item.id} value={item} mode="edit" anchor={() => trigger.current} focusOnMount suggestions={props.suggestions} onEdit={() => {}} onClose={close} onRemove={() => {
       const remaining = removeNavigationItem(props.links, item.id);
       const neighbour = navigationEntries(remaining)[0]?.link;
@@ -162,26 +166,21 @@ function NavigationCanvasItem({ item, vertical, onDragItem, onDropItem, onDragEn
   </li>;
 }
 
+function NavigationCanvasList({ siblings, vertical, version, root = false, ...props }: NavigationEditingProps & { siblings: SiteLink[]; vertical: boolean; version: string; root?: boolean }) {
+  const reorder = useGapReordering({ ids: siblings.map(link => link.id), version, writable: props.writable, axis: vertical ? "y" : "x",
+    accepts: move => Boolean(reorderNavigationItem(props.links, move.id, move.targetId, move.edge)),
+    onMove: move => { const next = reorderNavigationItem(props.links, move.id, move.targetId, move.edge); if (!next || !props.onChange(next)) return false; props.onSelect(move.id); focusNavigationItem(move.id, props.blockId); return true; },
+  });
+  return <ul className={root ? "template-navigation-items" : undefined} {...reorder.listProps}>
+    {siblings.map(item => <NavigationCanvasItem key={item.id} {...props} item={item} vertical={vertical} version={version} handleProps={reorder.handleProps} rowProps={reorder.rowProps} onDragItem={reorder.start} onDragEndItem={reorder.cancel} />)}
+    {root && props.writable ? <li className="navigation-appender"><NavigationAdd {...props} /></li> : null}
+    <DragPlacementIndicator as="li" line={reorder.line} />
+  </ul>;
+}
+
 export function NavigationCanvasEditor({ node, ...props }: NavigationEditingProps & { node: NavigationTemplateNode }) {
-  const drag = useRef<{ id: string; baseline: string } | null>(null);
-  const onDragItem = (event: DragEvent, id: string) => {
-    event.stopPropagation();
-    if (!props.writable) { event.preventDefault(); return; }
-    drag.current = { id, baseline: JSON.stringify(props.links) };
-    event.dataTransfer.setData("application/x-acm-navigation-link", id);
-    event.dataTransfer.effectAllowed = "move";
-  };
-  const onDropItem = (event: DragEvent, targetId: string) => {
-    if (!event.dataTransfer.types.includes("application/x-acm-navigation-link")) return;
-    event.preventDefault(); event.stopPropagation();
-    const source = drag.current;
-    drag.current = null;
-    if (!props.writable || !source || source.baseline !== JSON.stringify(props.links) || source.id !== event.dataTransfer.getData("application/x-acm-navigation-link")) return;
-    const next = reorderNavigationItem(props.links, source.id, targetId);
-    if (next && props.onChange(next)) { props.onSelect(source.id); focusNavigationItem(source.id, node.id); }
-  };
   return <nav id={paragraphStyleAnchor(node.visualStyle)} className={["template-navigation acm-navigation navigation-editor", paragraphStyleClassName(node.visualStyle)].filter(Boolean).join(" ")} data-navigation-block-id={node.id} aria-label={node.ariaLabel || "Site navigation"} data-navigation-layout={node.layout ?? "row"} data-navigation-align={node.horizontalAlign ?? node.align ?? "left"} style={{ ...paragraphStyleToCss(node.visualStyle), "--navigation-submenu-text": node.submenuTextColor, "--navigation-submenu-background": node.submenuBackgroundColor, justifyContent: (node.horizontalAlign ?? node.align) === "centre" ? "center" : (node.horizontalAlign ?? node.align) === "right" ? "flex-end" : node.horizontalAlign === "space-between" ? "space-between" : "flex-start", flexWrap: node.allowWrap === false ? "nowrap" : "wrap", gap: node.gap === undefined ? undefined : `${node.gap}px` } as CSSProperties} onPointerDown={event => event.stopPropagation()}>
-    <ul className="template-navigation-items">{props.links.map(item => <NavigationCanvasItem key={item.id} {...props} blockId={node.id} item={item} vertical={node.layout === "stack"} onDragItem={onDragItem} onDropItem={onDropItem} onDragEndItem={() => { drag.current = null; }} />)}{props.writable ? <li className="navigation-appender"><NavigationAdd {...props} blockId={node.id} /></li> : null}</ul>
+    <NavigationCanvasList {...props} version={JSON.stringify([props.links, node])} blockId={node.id} siblings={props.links} vertical={node.layout === "stack"} root />
   </nav>;
 }
 

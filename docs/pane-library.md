@@ -278,6 +278,8 @@ Studio library lists and site cards use one marker per effective insertion gap.
 Either neighbouring row edge resolves to the following full row, with the line
 centred between their measured borders. Pointer movement through the empty gap
 retains that same marker; handles do not supply the card geometry.
+The complete Studio drag inventory and shared block, Navigation, and Design
+placement contracts are documented in [Drag placement](drag-placement.md).
 
 The order is a browser interface preference in `acm-studio-site-order-v1`, saved
 through the existing Studio preference repository and writer coordinator. It does

@@ -1,4 +1,5 @@
 "use client";
+import { DragPlacementIndicator } from "./drag-placement-indicator";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 import { useRef, useState } from "react";
 import { StudioNavigationFrame } from "./studio-navigation-frame";
@@ -58,7 +59,8 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
     onNewDocument={addDocument} onNewFromTemplate={addDocumentFromTemplate}
     onOpenFiles={openMediaLibrary} onOpenBackup={onOpenBackup} onOpenBin={onOpenBin}
     onExportContent={onExportContent}>
-            <div className="document-list">
+            <div className="document-list" {...reordering.listProps}>
+              <DragPlacementIndicator line={reordering.line} />
               {kind === "templates" ? <>
                 {entries.map(({ set, entry }) => (
                   <button {...reordering.rowProps(`${set.id}/${entry.id}`)} className={`document-item template-target-item${templateTarget.setId === set.id && templateTarget.targetId === entry.id ? " is-active" : ""}`} type="button" key={`${set.id}/${entry.id}`} onClick={() => onSelectTemplate(set.id, entry.id)}>

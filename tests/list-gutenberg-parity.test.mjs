@@ -190,7 +190,7 @@ function controlsFixture(selection, writable = true, presentation) {
   const root = list(['One', 'Two']);
   const scope = { exports: {}, require: () => jsxRuntime, activeDocument: { id: 'document', blocks: [root] }, findBlockById,
     selectedBlockId: 'root', activeListItems: { root: selection }, validListItemSelection: structure.validListItemSelection, listTextRange: null, parentOfNestedBlock: () => null,
-    presentation, writable, transformMenuBlockId: null, BlockTransformControl: 'transform-fixture', StudioHoverIcon: 'icon-fixture',
+    presentation, writable, blockDrag: { handleProps: () => ({}), start() {} }, transformMenuBlockId: null, BlockTransformControl: 'transform-fixture', StudioHoverIcon: 'icon-fixture',
     ListToolbarControls, ListItemSwitcher, ListItemActions, richTextMenuBlockId: null, textMarkState: () => false, formatSelectedText() {}, finishBlockDrag() {}, blockLabel: () => 'List', canMove: () => true, isBlockAlignedBlock: () => true, isEditableTextBlock: () => false,
     isEditableRichTextBlock: () => true, preserveTextSelection() {}, blockMenuItems: () => [], blockMenuBlockId: null,
     hasMultiSelection: false, htmlEditorTriggerRef: { current: null }, linkEditor: null, htmlEditor: null };

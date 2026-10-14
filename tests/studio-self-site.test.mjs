@@ -8,6 +8,7 @@ import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
 
 const production = await loadProductionModule(new URL("../app/studio/project-local-links.tsx", import.meta.url));
+const indicator = await loadProductionModule(new URL("../app/studio/drag-placement-indicator.tsx", import.meta.url));
 const registry = await loadProductionModule(new URL("../app/studio/project-registry.ts", import.meta.url));
 const fixtures = await loadProductionModule(new URL("../app/studio/test-site/sites.ts", import.meta.url));
 const navigation = await loadProductionModule(new URL("../app/studio/use-studio-screen-navigation.ts", import.meta.url));
@@ -27,7 +28,7 @@ function component(name, bindings) {
 
 test("Sites includes ACM Studio before Test and Test2 without changing fixture contexts", () => {
   const calls = [];
-  const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
+  const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
   const tree = list({ selectedSite: "test2", libraryKind: "page", onSelectSite: id => calls.push(id) });
   const cards = nodes(tree).filter(node => node.type === production.ProjectLocalSiteNavigation);
   assert.deepEqual(cards.map(node => node.props.id), ["acm-studio", "test", "test2"]);

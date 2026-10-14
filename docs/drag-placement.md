@@ -1,0 +1,88 @@
+# Drag placement in Studio
+
+Studio follows the shared Workspace Style Guide's one centred line per logical
+insertion gap rule. The guide is unversioned; this implementation applies its
+baseline at governance commit `dd61013` (14 October 2026). The canonical source
+is `workspace-governance/STYLE_GUIDE.md`, under Interface clarity and Verification.
+
+## Owned insertion gaps
+
+| Action | Production path | Placement contract |
+| --- | --- | --- |
+| Sites, posts, pages, and templates in Studio Navigation | `use-library-reordering.ts` | Shared controller and renderer, centred between full neighbouring rows, with unchanged order snapshots rejected. |
+| Root blocks and Block Library insertion | `studio-canvas.tsx`, `block-drop-position.ts` | One canvas overlay at the measured boundary; feedback and commit use the same insertion index. |
+| Nested block siblings, including Groups, Rows, Stacks, Buttons, Social Icons, Quotes, and nested List content | `block-drop-position.ts`, `block-sibling-operations.ts` | Actual model siblings determine the common rendered container. Template wrappers and repeated toolbar anchors do not create extra rows or destinations. |
+| Blocks moving into or within Columns | `column-drop-position.ts`, `block-placement.ts` | One measured line between immediate children; moves preserve identities and apply container and lock rules atomically. |
+| Navigation links and submenus | `template-navigation-editor.tsx`, `use-gap-reordering.ts` | Explicit before/after sibling boundaries, horizontal root menus and vertical submenus, with no implicit reparenting. |
+| Design pages and layers | `design-editor.tsx`, `use-gap-reordering.ts` | One list-owned overlay, validated against the current source and permissions on preview and release. Layers also respect page and object locks. |
+
+The content editor, template editor, Mini Golf editor, and UI Library specimens
+share the block canvas implementation. These changes do not introduce separate
+editor or persistence paths.
+
+## Single implementation owner
+
+Every insertion-gap consumer inherits `use-drag-placement.ts`. It owns native
+and captured mouse input, source freshness, cancellation, destination refresh,
+and the `drag-auto-scroll.ts` lifecycle. `use-gap-reordering.ts` adapts sibling
+ordering; `use-library-reordering.ts` adds keyboard moves and announcements.
+Block adapters describe legal destinations and commits, including reparenting.
+New consumers must reuse these owners rather than fork their interaction code.
+`DragPlacementIndicator` is the only line renderer and `.studio-gap-line` is its
+shared appearance. Native insertion uses copy feedback; reordering uses move.
+
+`drop-gap-geometry.ts` measures full item boundaries and converts viewport
+coordinates into the owning container's CSS coordinates. Wrapped horizontal
+lists use complete visual-row envelopes, including unequal item heights. A
+logical gap has the same position from either neighbouring edge or its empty
+space. Empty authoring Columns retain a compact 24px insertion surface; that
+placeholder size is not saved as a content dimension or added to publication.
+
+## Validity and cancellation
+
+- Show feedback only for a valid, effective placement change. Equivalent
+  adjacent no-op slots create no write, history entry, or move announcement.
+- Capture the owning source snapshot when dragging starts. Changed content,
+  order, permissions, invalid destinations, and foreign owners prevent commits.
+- Recalculate the destination on release using the same geometry and policy
+  that produced the line. A cached previous destination cannot authorise a drop
+  outside the owning list or canvas.
+- Escape, pointer cancellation, lost capture, drag end, and ownership loss clear
+  feedback. Captured dragging stops its edge-scrolling loop when cancelled,
+  unmounted, or invalidated by a source or permission change.
+- Mouse capture and native drag paths share placement rules. Touch retains its
+  ordinary scrolling behaviour. Existing keyboard move controls remain available.
+- Edge scrolling refreshes the measured placement while scrolling; it does not
+  change saved data until a valid release.
+
+Files and folders use containment destinations rather than insertion gaps.
+Canvas object movement uses spatial alignment guides. Pane resizing, ranges,
+and gradient controls manipulate dimensions or values. Their feedback remains
+appropriate to those operations; they do not draw ordered insertion-gap lines.
+
+## Verification
+
+From the ACM Studio root, run `npm test`. Its normal regression command includes
+`tests/drop-gap-reordering.test.mjs`, `tests/block-placement.test.mjs`, and the
+existing library ordering checks. These exercise production geometry, pointer
+and native handlers, wrapped and scaled layouts, template wrappers, no-op
+identity, locked destinations, stale sources, cancellation, and edge scrolling.
+Existing List selection and toolbar checks retain their production event owners.
+
+For rendered checks, use the memory-only `/studio/ui/selection/template` specimen
+for root blocks, Columns, wrapped Row children, Navigation, and submenus. Drag
+across both sides and the empty gap; inspect the line before releasing. Repeat at
+200% canvas zoom and supported viewport widths. Use Reset Example or Undo to
+restore the fixture. The main editors retain their documented minimum-width
+workspace and horizontal scrolling at narrow viewport sizes.
+
+In Design, check a populated unlocked page, an adjacent no-op, a genuine layer
+move, a page move, and Undo. Preserve the original page and layer orders. Check
+that locked pages and objects do not expose a valid layer placement.
+
+The October 2026 implementation checks used browser gestures for Navigation,
+submenus, root blocks, an empty Column, wrapped Row children, Design layers, and
+Design pages, restoring their orders afterwards. Navigation dragging was also
+checked at 200% zoom. Automated production tests cover the exact midpoint and
+its stability across hover coordinates; the browser tool performs complete
+gestures and cannot pause a drag for a mid-gesture screenshot.

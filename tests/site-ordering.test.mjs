@@ -28,6 +28,7 @@ test('stale, invalid, denied and failed saves preserve the last stored site orde
 const options={resolve:{dedupe:['react','react-dom']},environments:{inline:{resolve:{noExternal:[/^@acm\//]}}}};
 const {module: links}=await runnerImport('app/studio/project-local-links.tsx',options);
 const {module: libraryMoves}=await runnerImport('app/studio/library-reordering.ts',options);
+const {module: gapGeometry}=await runnerImport('app/studio/drop-gap-geometry.ts',options);
 test('Sites renders three named catalogue handles alongside separate edit/visit controls',()=>{
  const html=renderToStaticMarkup(React.createElement(links.LocalFixtureSiteNavigation,{selectedSite:'test'}));
  for(const name of ['ACM Studio','Test','Test2'])assert.match(html,new RegExp(`aria-label="Reorder ${name}"`));
@@ -38,15 +39,16 @@ test('Sites renders three named catalogue handles alongside separate edit/visit 
 function hookHarness(store=storage(),allowed=true){
  const slots=[];let cursor=0,effects=[];const events=new Map();
  const same=(a,b)=>a&&a.length===b.length&&a.every((v,i)=>Object.is(v,b[i]));
- const react={useId:()=> 'sites-test',useRef(value){const i=cursor++;return slots[i]??={current:value};},useState(value){const i=cursor++;if(!(i in slots))slots[i]=value;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];},useEffect(fn,deps){const i=cursor++;if(!same(slots[i]?.deps,deps)){effects.push(()=>{slots[i]?.cleanup?.();slots[i]={deps,cleanup:fn()};});}}};
- const modules={react,'./site-order-repository.mjs':{createSiteOrderRepository:opts=>createSiteOrderRepository({...opts,ownership:ownership(allowed),locks:null}),orderedSiteIds,siteOrderPreferenceKey},'./library-reordering':libraryMoves};
- function load(path){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require:name=>modules[name],queueMicrotask,JSON,Error,window:{localStorage:store,addEventListener:(name,fn)=>events.set(name,fn),removeEventListener:name=>events.delete(name)}});return exports;}
+ const react={useCallback:fn=>fn,useLayoutEffect:(fn,deps)=>react.useEffect(fn,deps),useId:()=> 'sites-test',useRef(value){const i=cursor++;return slots[i]??={current:value};},useState(value){const i=cursor++;if(!(i in slots))slots[i]=value;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];},useEffect(fn,deps){const i=cursor++;if(!deps||!same(slots[i]?.deps,deps)){effects.push(()=>{slots[i]?.cleanup?.();slots[i]={deps,cleanup:fn()};});}}};
+ const modules={react,'./site-order-repository.mjs':{createSiteOrderRepository:opts=>createSiteOrderRepository({...opts,ownership:ownership(allowed),locks:null}),orderedSiteIds,siteOrderPreferenceKey},'./library-reordering':libraryMoves,'./drop-gap-geometry':gapGeometry,'./drag-auto-scroll':{startDragAutoScroll:()=>()=>{}}};
+ function load(path){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require:name=>modules[name],queueMicrotask,JSON,Error,document:{addEventListener(){},removeEventListener(){},querySelectorAll:()=>[]},window:{localStorage:store,addEventListener:(name,fn)=>events.set(name,fn),removeEventListener:name=>events.delete(name)}});return exports;}
+ modules['./use-drag-placement']=load('../app/studio/use-drag-placement.ts');modules['./use-gap-reordering']=load('../app/studio/use-gap-reordering.ts');
  modules['./use-library-reordering']=load('../app/studio/use-library-reordering.ts');const hook=load('../app/studio/use-site-ordering.ts').useSiteOrdering;
  return{store,render(){cursor=0;const ui=hook(ids);const pending=effects;effects=[];pending.forEach(fn=>fn());return ui;},event(event){events.get('storage')?.(event);}};
 }
 test('site keyboard reordering persists, cancels stale drags and follows cross-tab saved order',async()=>{
  const h=hookHarness();h.render();await Promise.resolve();let ui=h.render();ui.reordering.rowProps('test2').onKeyDown({key:'ArrowUp',altKey:true,preventDefault(){}});await new Promise(resolve=>setTimeout(resolve,0));ui=h.render();assert.deepEqual([...ui.order],['acm-studio','test2','test']);assert.deepEqual(readSiteOrder(h.store,ids),['acm-studio','test2','test']);
- const values=new Map();const drag={dataTransfer:{setData:(key,value)=>values.set(key,value),getData:key=>values.get(key)},preventDefault(){},currentTarget:{getBoundingClientRect:()=>({top:0,height:40})},clientY:30};ui.reordering.rowProps('acm-studio').onDragStart(drag);
+ const values=new Map();const drag={dataTransfer:{setData:(key,value)=>values.set(key,value),getData:key=>values.get(key)},preventDefault(){},stopPropagation(){},currentTarget:{getBoundingClientRect:()=>({top:0,height:40})},clientY:30};ui.reordering.rowProps('acm-studio').onDragStart(drag);
  h.store.setItem(siteOrderPreferenceKey,JSON.stringify(['test','test2','acm-studio']));h.event({key:siteOrderPreferenceKey});ui=h.render();ui.reordering.rowProps('test2').onDrop(drag);assert.deepEqual([...h.render().order],['test','test2','acm-studio']);
  const fresh=hookHarness(h.store);fresh.render();await Promise.resolve();assert.deepEqual([...fresh.render().order],['test','test2','acm-studio']);
 });

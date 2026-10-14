@@ -60,7 +60,10 @@ const owner = ast.statements.find(node => ts.isFunctionDeclaration(node) && node
 function handler(name, scope) {
   let expression;
   function visit(node) {
-    if (ts.isJsxAttribute(node) && node.name.getText(ast) === name && !expression) expression = node.initializer.expression;
+    if (ts.isJsxOpeningElement(node) && node.attributes.properties.some(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(ast) === "className" && attribute.initializer?.getText(ast).includes("editor-canvas-scroll"))) {
+      const attribute = node.attributes.properties.find(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(ast) === name);
+      if (attribute) expression = attribute.initializer.expression;
+    }
     ts.forEachChild(node, visit);
   }
   visit(owner);
