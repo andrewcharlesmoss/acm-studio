@@ -213,3 +213,37 @@ test("legacy Undo retention keeps v6 seeded captures in their valid reader envel
   assert.deepEqual(retained.publications, source.publications);
   assert.equal(retained.documents[1].title, "Edited legacy title");
 });
+
+for (const siteId of ["test", "test2"]) test(`${siteId}: Sticky survives peer draft save and reload; only publication capture updates its snapshot`, async () => {
+  const { createStudioTransaction, applyStudioTransaction } = await load("app/studio/studio-sync.ts");
+  const root = await realpath(await mkdtemp(path.join(os.tmpdir(), "studio-sticky-")));
+  const source = changeLocalSiteStatus(fixture(siteId, "post"), "selected", "published", emptyTemplateStore(), now);
+  const baselineDocuments = source.documents.map(document => document.id);
+  const store = createTestSiteStore({ root, siteId, validate: validTestSiteDocument, render: renderTestSite });
+  try {
+    await mkdir(path.join(root, "content")); await mkdir(path.join(root, "dist"));
+    await writeFile(path.join(root, "content/site.json"), JSON.stringify(source));
+    await writeFile(path.join(root, "dist/index.html"), renderTestSite(source, revisionOf(source)));
+    const session = await store.connect(); await store.handle(session.token, { siteId, action: "claim" });
+    let latest = session;
+    for (const sticky of [true, false]) {
+      const draft = structuredClone(latest.document);
+      draft.documents.find(document => document.id === "selected").sticky = sticky;
+      const transaction = createStudioTransaction(latest.document, draft, { clientId: "peer", transactionId: `sticky-${sticky}`, brokerEpoch: "epoch", baseRevision: 0 });
+      const applied = applyStudioTransaction(latest.document, transaction);
+      assert.equal(applied.conflicts.length, 0);
+      const priorPublication = JSON.parse(JSON.stringify(latest.document.publications.find(item => item.document.id === "selected")));
+      latest = await store.handle(session.token, { siteId, action: "save", baseRevision: latest.revision, document: applied.snapshot });
+      const reloaded = await store.connect();
+      assert.equal(reloaded.document.documents.find(document => document.id === "selected").sticky, sticky);
+      assert.deepEqual(reloaded.document.publications.find(item => item.document.id === "selected"), priorPublication);
+      assert.deepEqual(reloaded.document.documents.map(document => document.id), baselineDocuments);
+      assert.deepEqual(reloaded.document.templates, source.templates);
+      const captured = changeLocalSiteStatus(reloaded.document, "selected", "published", reloaded.document.templates, now);
+      latest = await store.handle(session.token, { siteId, action: "save", baseRevision: latest.revision, document: captured });
+      const afterCapture = await store.connect();
+      assert.equal(afterCapture.document.publications.find(item => item.document.id === "selected").document.sticky, sticky);
+      assert.equal(JSON.parse(await readFile(path.join(root, "content/site.json"), "utf8")).publications.find(item => item.document.id === "selected").document.sticky, sticky);
+    }
+  } finally { await store.close(); await rm(root, { recursive: true, force: true }); }
+});

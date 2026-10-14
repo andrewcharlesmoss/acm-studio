@@ -430,7 +430,12 @@ The generated page keeps the protected body in an inert template until a correct
 password unlocks its visible preview. The editorial data and static source remain
 local plaintext; this gate does not secure a hosted page. Password changes apply
 to the preview only after Publish, Schedule or Update captures them.
-Sticky remains unavailable because fixtures have no Writing archive.
+Posts share the Sticky checkbox with Studio Drafts. Its existing boolean saves
+through ordinary owned draft transactions and peer synchronisation; Publish,
+Schedule or Update captures it in the publication snapshot. Studio Drafts pins
+sticky posts in its Writing archive. Test and Test2 currently have no post
+archive, so their saved flag does not change authored navigation or manually
+ordered editor entries. Pages do not expose Sticky.
 
 Source v7 permits an absent home publication while retaining the required,
 non-deletable authored home document. Legacy v6 readers keep their original

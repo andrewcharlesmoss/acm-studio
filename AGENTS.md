@@ -539,8 +539,12 @@ local publication. Published captures the draft through the owning revision-chec
 save. Scheduled captures a future snapshot for the local preview browser's display
 timer; this is not a server scheduler or hosted publication. Password protected
 reuses the shared salted PBKDF2 local preview gate; editorial and static source
-remain local plaintext, so do not describe it as hosted security. Sticky remains
-unavailable. Source v7 permits an absent home publication while retaining the
+remain local plaintext, so do not describe it as hosted security. Sticky is a
+post-only editorial flag shared with Studio Drafts. It is saved
+through normal owned draft transactions and enters a local publication only on
+Publish, Schedule or Update. Fixtures currently have no post archive, so it does
+not reorder document navigation or the manually ordered editor list. Source v7
+permits an absent home publication while retaining the
 required authored home document and v1–v6 readers; a withheld home shows a neutral
 unavailable message. Date edits, Now and backdates stay draft metadata until
 capture. See `docs/test-site-integration.md` for this deliberate local extension.

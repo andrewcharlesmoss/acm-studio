@@ -4,6 +4,9 @@
 
 ### Added
 
+- Share the post-only Sticky checkbox across Studio Drafts, Test and Test2,
+  retaining separate draft saves and publication captures.
+
 - Share Draft, Pending, Private, Scheduled, Published and password preview controls
   across Test and Test2 posts and pages, including the home page; retain local
   ownership and saving, with explicit unavailable-home previews and UTC timing.
