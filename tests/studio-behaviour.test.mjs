@@ -338,7 +338,7 @@ test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped pa
   assert.match(advancedInspector, /paragraph-advanced-fields/);
   assert.match(blockSettings, /<AdvancedFieldsInspector semanticElement=\{!contentSlot\} block=\{block\} onChange=\{onChange\} fields=\{advanced\} \/>/);
   assert.match(blockSettings, /fields=\{advanced\}/);
-  assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: uppercase; \}/);
+  assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: none; \}/);
   assert.match(advancedControl, /const fieldId = useId\(\)/);
   assert.match(advancedInspector, /placeholders=\{block\.type !== "paragraph" && block\.type !== "embed"\}/);
   assert.match(advancedControl, /fields\.className \? <div className="advanced-field"><label htmlFor=\{`\$\{fieldId\}-class-name`\}><span>Additional CSS class\(es\)<\/span><\/label><input id=\{`\$\{fieldId\}-class-name`\} aria-describedby=\{`\$\{fieldId\}-class-name-help`\} value=\{style\.className \?\? ""\}/);
@@ -661,8 +661,8 @@ test("the document inspector exposes Gutenberg-style status and publish date con
   assert.match(source, /onChange\("publishAt"/);
   assert.match(source, /aria-haspopup="dialog" aria-controls="publish-date-popover"/);
   assert.match(source, /publishOpen && portalRoot \? createPortal\(<div ref=\{publishPopoverRef\} id="publish-date-popover"[\s\S]*?portalRoot\) : null\}/);
-  assert.match(source, /className="post-excerpt-control"[\s\S]*?post-content-summary[\s\S]*?title="Publishing"[\s\S]*?title="Address"[\s\S]*?title="Author"/);
-  assert.match(source, /document\.kind === "post" \? <div className="post-summary-block">[\s\S]*?className="post-excerpt-control"[\s\S]*?className="post-content-summary"/);
+  assert.match(source, /className="post-excerpt-control"[\s\S]*?post-content-summary[\s\S]*?className="document-properties"[\s\S]*?label="Slug"[\s\S]*?label="Author"/);
+  assert.match(source, /<div className="post-summary-block">[\s\S]*?document\.kind === "post" \? <>[\s\S]*?className="post-excerpt-control"[\s\S]*?className="post-content-summary"/);
   assert.match(source, /watchInspectorPopover\(publishTriggerRef\.current, publishPopoverRef\.current, 320, setPublishPopoverPosition, \{ topOffset: -12 \}\)/);
   assert.match(source, /globalThis\.document\.addEventListener\("pointerdown", closePublishPopover\)/);
   assert.match(source, /event\.target\.closest\("button, input, select, textarea, a\[href\], \[tabindex\]:not\(\[tabindex='-1'\]\)"\)/);
@@ -688,9 +688,9 @@ test("post excerpts open in a Gutenberg-style pane beside the inspector", async 
   const positioning = await readFile(new URL("../app/studio/panes/inspector-popover-geometry.mjs", import.meta.url), "utf8");
   assert.match(positioning, /Math\.min\(ownerLeft, boundaryLeft\) - width - 12/, "the shared owner positions the excerpt to the pane's left");
   assert.match(styles, /\.post-excerpt-popover \{[^}]*position: fixed[^}]*z-index: 80/);
-  assert.match(styles, /\.post-document-inspector > \.post-summary-block \{[^}]*display: grid[^}]*gap: 12px[^}]*padding: 14px 18px 18px/);
+  assert.match(styles, /\.document-settings-pane > \.post-summary-block \{[^}]*display: grid[^}]*gap: 12px[^}]*padding: 0 16px 16px/);
   assert.match(styles, /\.post-document-inspector \.post-excerpt-trigger \{[^}]*color: var\(--accent-strong\)[^}]*display: inline-flex/);
-  assert.match(styles, /\.post-document-inspector \.post-content-summary \{[^}]*display: grid[^}]*gap: 6px/);
+  assert.match(styles, /\.document-settings-pane \.post-content-summary \{[^}]*display: grid[^}]*gap: 6px/);
 });
 
 test("Gutenberg controls use the single block inspector and nonessential ACM options stay hidden", async () => {
@@ -839,7 +839,7 @@ test("document settings keep WordPress-like fields separate from Studio-specific
   assert.match(source, /documentControls=\{documentControls\}/);
   assert.match(source, /panel === "document" \|\| panel === "studio"/);
   assert.match(source, /const isDocumentPanel = panel === "document"/);
-  assert.match(source, /<span>Slug<\/span>/);
+  assert.match(source, /label="Slug"/);
   assert.match(source, /className="post-tags-section inspector-accordion-section"/);
   assert.match(source, /title="Studio template presentation"/);
   assert.match(source, /"Search preview"/);

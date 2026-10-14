@@ -42,6 +42,22 @@ insertion. Close, Escape, outside clicks, and native Tab navigation use the
 shared anchored-popover contract. Specialised Add Button, Add Paragraph, and
 social-icon controls retain their contextual commands.
 
+## Document and template settings
+
+The main Post, Page and Template tabs use the same overview, spacing and compact
+label/value rows. Categories and Tags are their only collapsible groups.
+Block and Styles tabs retain their specialised grouping. Inspector headings and
+field labels use regular case, including their portalled editors.
+
+`app/studio/controls/inspector-setting-row.tsx` owns these property rows and
+static sections. A setting button exposes both its label and current value;
+its editor uses the existing pane-facing popover geometry. Close and Escape
+return focus to the opener. Moving focus or clicking outside dismisses the
+editor, so keyboard navigation cannot stack property popovers. Template text
+fields commit on blur before the editor unmounts. Portalled fields retain the
+owning pane's disabled state, and existing content/template handlers own all
+mutations and saves.
+
 ## Internal component contract — v1.3.0
 
 Double-click a resizable pane’s edge, or press Enter while its separator is

@@ -34,6 +34,10 @@
 
 ### Changed
 
+- Share compact property rows across Post, Page and Template settings, with
+  Categories and Tags as their only collapsible groups and regular-case
+  inspector labels. Setting values open editors beside the pane.
+
 - Container authoring shows every structurally supported block. Manage allowed blocks is removed; saved legacy restrictions remain recoverable.
 
 - Separate each editor breadcrumb with a chevron and make ancestors clickable,

@@ -148,7 +148,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <button ref={previewRef} type="button" className="paragraph-colour-preview" disabled={disabled} aria-label={`Custom ${colourLabel.toLowerCase()} picker`} aria-haspopup="dialog" aria-expanded={customOpen} onClick={() => setCustomOpen(current => !current)} style={activeValue ? { backgroundColor: activeValue, backgroundImage: "none" } : undefined} />
         <div><span>{activeValue ? selectedRole?.label ?? "Custom colour" : "No colour selected"}</span><span className="paragraph-colour-preview-value" title={cssToken}>{cssToken || " "}</span></div>
       </div>
-      <strong className="paragraph-colour-theme-heading">THEME</strong>
+      <strong className="paragraph-colour-theme-heading">Theme</strong>
       <ColourSwatches value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={() => changeActiveColour(undefined)} disabled={disabled} />
       {activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
       {additionalControls}

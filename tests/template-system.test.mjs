@@ -1019,7 +1019,7 @@ test("template text settings commit on blur or Enter, not while text is being en
   const { TemplateTextSetting } = env.load("studio/template-inspector.tsx");
   const committed = [];
   const setting = TemplateTextSetting({ label: "Author", value: "", onCommit: value => committed.push(value) });
-  const input = setting.props.children[1];
+  const input = setting.props.children.props.children[1];
   assert.equal(input.props.defaultValue, "");
   assert.equal(input.props.onChange, undefined);
   const target = { value: "Template Example Author" };

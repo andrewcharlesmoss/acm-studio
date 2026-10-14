@@ -2,6 +2,7 @@
 import { useSharedStylePreset } from "../../ui/styles/shared-style-preset";
 import { StudioButton } from "../../controls/button";
 import { FeaturedImageControl } from "../../controls/featured-image-control";
+import { InspectorSettingRow, InspectorSettingsSection } from "../../controls/inspector-setting-row";
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { watchInspectorPopover } from "../../panes/inspector-popover-position";
@@ -203,9 +204,16 @@ export function DocumentInspector({ writable = true, siteContext = false, localP
       if (statusPopoverRef.current?.contains(event.target as Node) || statusTriggerRef.current?.contains(event.target as Node)) return;
       setStatusOpen(false);
     }
+    function closeOnOutsideFocus(event: globalThis.FocusEvent) {
+      if (!statusPopoverRef.current?.contains(event.target as Node) && !statusTriggerRef.current?.contains(event.target as Node)) setStatusOpen(false);
+    }
+    const focusFrame = requestAnimationFrame(() => statusPopoverRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());
+    globalThis.document.addEventListener("focusin", closeOnOutsideFocus);
     globalThis.document.addEventListener("keydown", closeWithEscape);
     globalThis.document.addEventListener("pointerdown", closeOnOutsidePointer);
     return () => {
+      cancelAnimationFrame(focusFrame);
+      globalThis.document.removeEventListener("focusin", closeOnOutsideFocus);
       globalThis.document.removeEventListener("keydown", closeWithEscape);
       globalThis.document.removeEventListener("pointerdown", closeOnOutsidePointer);
     };
@@ -247,11 +255,16 @@ export function DocumentInspector({ writable = true, siteContext = false, localP
       requestAnimationFrame(() => publishTriggerRef.current?.focus());
     }
     const stopPositioning = watchInspectorPopover(publishTriggerRef.current, publishPopoverRef.current, 320, setPublishPopoverPosition, { topOffset: -12 });
+    function closeOnOutsideFocus(event: globalThis.FocusEvent) {
+      if (!publishPopoverRef.current?.contains(event.target as Node) && !publishTriggerRef.current?.contains(event.target as Node)) setPublishOpen(false);
+    }
+    globalThis.document.addEventListener("focusin", closeOnOutsideFocus);
     globalThis.document.addEventListener("pointerdown", closePublishPopover);
     globalThis.document.addEventListener("keydown", closeWithEscape);
     requestAnimationFrame(() => publishHourInputRef.current?.focus());
     return () => {
       stopPositioning();
+      globalThis.document.removeEventListener("focusin", closeOnOutsideFocus);
       globalThis.document.removeEventListener("pointerdown", closePublishPopover);
       globalThis.document.removeEventListener("keydown", closeWithEscape);
     };
@@ -272,11 +285,16 @@ export function DocumentInspector({ writable = true, siteContext = false, localP
       requestAnimationFrame(() => excerptTriggerRef.current?.focus());
     }
     const stopPositioning = watchInspectorPopover(excerptTriggerRef.current, excerptPopoverRef.current, 640, setExcerptPopoverPosition, { topOffset: -12 });
+    function closeOnOutsideFocus(event: globalThis.FocusEvent) {
+      if (!excerptPopoverRef.current?.contains(event.target as Node) && !excerptTriggerRef.current?.contains(event.target as Node)) setExcerptOpen(false);
+    }
+    globalThis.document.addEventListener("focusin", closeOnOutsideFocus);
     globalThis.document.addEventListener("pointerdown", closeExcerptPopover);
     globalThis.document.addEventListener("keydown", closeWithEscape);
     requestAnimationFrame(() => excerptInputRef.current?.focus());
     return () => {
       stopPositioning();
+      globalThis.document.removeEventListener("focusin", closeOnOutsideFocus);
       globalThis.document.removeEventListener("pointerdown", closeExcerptPopover);
       globalThis.document.removeEventListener("keydown", closeWithEscape);
     };
@@ -284,38 +302,36 @@ export function DocumentInspector({ writable = true, siteContext = false, localP
 
   const isDocumentPanel = panel === "document";
   const hasCategories = document.kind === "post";
-  const postWordCount = document.kind === "post" ? contentWordCount(document.blocks) : 0;
-  const postReadingTime = document.kind === "post" ? readingTimeMinutes(document.blocks) : 0;
-  const lastEdited = new Date(document.updatedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
+  const postWordCount = contentWordCount(document.blocks);
+  const postReadingTime = readingTimeMinutes(document.blocks);
+  const lastEdited = new Date(document.updatedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
 
   return (
-    <div className={`inspector-sections${document.kind === "post" && isDocumentPanel ? " post-document-inspector" : ""}`}>
+    <div className={`inspector-sections${isDocumentPanel ? " document-settings-pane" : ""}${document.kind === "post" && isDocumentPanel ? " post-document-inspector" : ""}`}>
       {isDocumentPanel ? <>
-        <InspectorAccordionSection kind={document.kind} title={document.kind === "page" ? "Page" : "Post"}>
-          <div className="document-summary"><span className={`kind-badge is-${document.kind}`}>{document.kind === "page" ? "P" : "A"}</span><div><strong>{document.title}</strong><small>{document.kind} · {statusLabel}</small></div></div>
-          <label><span>Title</span><input value={document.title} onChange={event => onChange("title", event.target.value)} /></label>
+        <InspectorSettingsSection className="document-overview">
+          <div className="document-summary"><span className={`kind-badge is-${document.kind}`}>{document.kind === "page" ? "P" : "A"}</span><InspectorSettingRow label="Title" value={document.title || "Untitled"} hideLabel className="document-title-control" disabled={!writable}><label>Title<input value={document.title} onChange={event => onChange("title", event.target.value)} /></label></InspectorSettingRow></div>
           {onOpenCoverMediaLibrary ? <FeaturedImageControl image={document.coverImage} sourceUrl={coverImageUrl} onReplace={onOpenCoverMediaLibrary} onRemove={onRemoveCoverImage} /> : null}
-        </InspectorAccordionSection>
-        {document.kind === "post" ? <div className="post-summary-block">
+        </InspectorSettingsSection>
+        <div className="post-summary-block">
+          {document.kind === "post" ? <>
           <div className="post-excerpt-control">
             <button ref={excerptTriggerRef} className="post-excerpt-trigger" type="button" aria-expanded={excerptOpen} aria-haspopup="dialog" aria-controls={excerptPopoverId} onClick={() => { setStatusOpen(false); setPublishOpen(false); setExcerptOpen(open => !open); }}>{document.excerpt.trim() ? "Edit excerpt" : "Add an excerpt…"}</button>
             {excerptOpen && portalRoot ? createPortal(<section ref={excerptPopoverRef} id={excerptPopoverId} className="inspector-popover post-excerpt-popover" role="dialog" aria-label="Excerpt" style={excerptPopoverPosition ?? undefined}><div className="inspector-popover-heading"><h2>Excerpt</h2><button type="button" aria-label="Close excerpt" onClick={() => { setExcerptOpen(false); requestAnimationFrame(() => excerptTriggerRef.current?.focus()); }}><StudioIcon name="close" size={20} /></button></div><textarea ref={excerptInputRef} aria-label="Excerpt" rows={6} value={document.excerpt} onChange={(event) => onChange("excerpt", event.target.value)} /><p className="setting-note">Leave blank and Studio will generate a summary.</p></section>, portalRoot) : null}
           </div>
-          <div className="post-content-summary" aria-label="Post content summary"><span>{postWordCount} {postWordCount === 1 ? "word" : "words"}</span><span>{postReadingTime} {postReadingTime === 1 ? "minute" : "minutes"} reading time</span><span>Last edited {lastEdited}</span></div>
+          </> : null}
+          <div className="post-content-summary" aria-label="Document content summary"><span>{postWordCount} {postWordCount === 1 ? "word" : "words"}, {postReadingTime} {postReadingTime === 1 ? "minute" : "minutes"} reading time</span><span>Last edited {lastEdited}</span></div>
         </div>
-        : null}
-        <InspectorAccordionSection kind={document.kind} title="Publishing">
-          <div className="inspector-setting-row"><span>Status</span><button ref={statusTriggerRef} className="inspector-setting-trigger" type="button" disabled={siteContext && localPublication?.busy} aria-expanded={statusOpen} aria-haspopup="dialog" aria-controls={statusPopoverId} onClick={() => { setExcerptOpen(false); setStatusOpen((open) => !open); }}>{statusLabel}<StudioIcon name="chevron-right" size={16} /></button></div>
+        <InspectorSettingsSection className="document-properties">
+          <div className="inspector-setting-row"><span>Status</span><button ref={statusTriggerRef} className="inspector-setting-trigger" type="button" disabled={siteContext && localPublication?.busy} aria-expanded={statusOpen} aria-haspopup="dialog" aria-controls={statusPopoverId} onClick={() => { setExcerptOpen(false); setStatusOpen((open) => !open); }}>{statusLabel}</button></div>
           {statusOpen && portalRoot ? createPortal(<div ref={statusPopoverRef} id={statusPopoverId} className="inspector-popover status-visibility-popover" role="dialog" aria-label="Status and visibility" style={statusPopoverPosition ?? undefined}><div className="inspector-popover-heading"><strong>Status &amp; visibility</strong><button type="button" aria-label="Close status and visibility" onClick={() => { setStatusOpen(false); requestAnimationFrame(() => statusTriggerRef.current?.focus()); }}><StudioIcon name="close" size={16} /></button></div><div className="status-options" role="radiogroup" aria-label="Document status">{statusOptions.map((status) => <button className="status-option" type="button" role="radio" aria-checked={document.status === status} key={status} onClick={() => { if (siteContext) { onStatusChange?.(status); setStatusOpen(false); return; } if (document.status === "scheduled" && status !== "scheduled") onUnpublish(); if (status === "scheduled" && !document.publishAt) onChange("publishAt", new Date(Date.now() + 60 * 60 * 1000).toISOString()); if (status === "published") { const now = new Date().toISOString(); onChange("publishAt", undefined); onChange("publishedAt", now); } onChange("status", status); setStatusOpen(false); }}><span className="status-radio" aria-hidden="true" /><span><strong>{documentStatusLabel(status)}</strong><small>{siteContext ? siteDocumentStatusDescription(status) : documentStatusDescription(status, document.kind)}</small></span></button>)}</div>{<><div className="password-protection-option"><div className="password-protection-toggle"><input id="password-protection-toggle" type="checkbox" checked={Boolean(document.passwordProtection) || passwordEditorOpen} onChange={(event) => { setPasswordError(""); if (event.target.checked) setPasswordEditorOpen(true); else { passwordSaveGenerationRef.current += 1; onChange("passwordProtection", null); setPasswordEditorOpen(false); setPasswordDraft(""); } }} /><label htmlFor="password-protection-toggle"><strong>Password protected</strong><small>{siteContext ? "Requires a password in the local site preview." : "Only visible to people who know the password."}</small></label></div>{passwordEditorOpen ? <div className="password-protection-editor">{document.kind === "page" && !siteContext ? <small>Page publishing is not available yet, so this setting does not protect a page preview.</small> : null}<label htmlFor="document-password">Password</label><div className="password-protection-input" aria-busy={passwordSaving} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) void savePasswordProtection(); }}><input id="document-password" type={passwordVisible ? "text" : "password"} autoComplete="new-password" maxLength={256} placeholder={document.passwordProtection ? "Enter a new password to replace it" : "Use a secure password"} value={passwordDraft} onChange={(event) => setPasswordDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void savePasswordProtection(); } }} /><button type="button" title={passwordVisible ? "Hide password" : "Show password"} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(value => !value)}><StudioIcon name={passwordVisible ? "seen-off" : "seen"} size={18} /></button></div>{document.passwordProtection ? <button className="password-protection-cancel" type="button" onClick={() => { passwordSaveGenerationRef.current += 1; setPasswordEditorOpen(false); setPasswordDraft(""); setPasswordVisible(false); }}>Cancel</button> : null}{passwordError ? <p role="status">{passwordError}</p> : null}</div> : document.passwordProtection ? <div className="password-protection-saved"><small>Password is set.</small><button type="button" onClick={() => { setPasswordError(""); setPasswordEditorOpen(true); }}>Change password</button></div> : null}</div><DocumentStickyControl document={document} siteContext={siteContext} disabled={!writable || Boolean(siteContext && localPublication?.busy)} onChange={onChange} /></>}</div>, portalRoot) : null}
-          <div className="inspector-setting-row"><span>Publish</span><button ref={publishTriggerRef} className="inspector-setting-trigger" type="button" disabled={siteContext && localPublication?.busy} aria-expanded={publishOpen} aria-haspopup="dialog" aria-controls="publish-date-popover" onClick={openPublishDate}>{publishDate}<StudioIcon name="chevron-right" size={16} /></button></div>
+          <div className="inspector-setting-row"><span>Publish</span><button ref={publishTriggerRef} className="inspector-setting-trigger" type="button" disabled={siteContext && localPublication?.busy} aria-expanded={publishOpen} aria-haspopup="dialog" aria-controls="publish-date-popover" onClick={openPublishDate}>{publishDate}</button></div>
           {publishOpen && portalRoot ? createPortal(<div ref={publishPopoverRef} id="publish-date-popover" className="inspector-popover publish-date-popover" role="dialog" aria-label="Publish date" style={publishPopoverPosition ?? undefined}><div className="inspector-popover-heading"><strong>Publish</strong><StudioButton variant="text" style={calendarActionStyle} className="publish-now-button" type="button" onClick={publishImmediately}>Now</StudioButton><button type="button" aria-label="Close publish date" onClick={() => { setPublishOpen(false); requestAnimationFrame(() => publishTriggerRef.current?.focus()); }}><StudioIcon name="close" size={20} /></button></div><div className="publish-time-row"><strong>Time</strong><div className="publish-time-controls"><div className="publish-time-input"><input ref={publishHourInputRef} aria-label="Hour" inputMode="numeric" min="0" max="23" value={String(selectedDate.getUTCHours()).padStart(2, "0")} onChange={(event) => updateDateParts({ hours: clampNumber(event.target.value, 0, 23) })} /><span>:</span><input aria-label="Minute" inputMode="numeric" min="0" max="59" value={String(selectedDate.getUTCMinutes()).padStart(2, "0")} onChange={(event) => updateDateParts({ minutes: clampNumber(event.target.value, 0, 59) })} /></div><span className="publish-timezone" title="Times are recorded in Coordinated Universal Time">{formatPublicationTimezone()}</span></div></div><div className="publish-date-fields"><strong>Date</strong><div><input aria-label="Day" inputMode="numeric" min="1" max="31" value={String(selectedDate.getUTCDate()).padStart(2, "0")} onChange={(event) => updateDateParts({ day: clampNumber(event.target.value, 1, 31) })} /><select aria-label="Month" value={selectedDate.getUTCMonth()} onChange={(event) => updateDateParts({ month: Number(event.target.value) })}>{MONTH_NAMES.map((month, index) => <option value={index} key={month}>{month}</option>)}</select><input aria-label="Year" inputMode="numeric" value={selectedDate.getUTCFullYear()} onChange={(event) => updateDateParts({ year: clampNumber(event.target.value, 1, 9999) })} /></div></div><div className="publish-calendar"><div className="publish-calendar-heading"><StudioButton variant="text" style={calendarActionStyle} type="button" aria-label="Previous month" onClick={() => moveCalendarMonth(-1)}><StudioIcon name="arrow-left" size={20} /></StudioButton><strong>{formatCalendarMonth(calendarMonth)}</strong><StudioButton variant="text" style={calendarActionStyle} type="button" aria-label="Next month" onClick={() => moveCalendarMonth(1)}><StudioIcon name="arrow-right" size={20} /></StudioButton></div><div className="publish-calendar-weekdays">{WEEKDAY_NAMES.map((weekday) => <span key={weekday}>{weekday}</span>)}</div><div className="publish-calendar-grid">{calendarDays.map((day, index) => { if (!day) return <span aria-hidden="true" key={`empty-${index}`} />; const key = `${day.getUTCFullYear()}-${day.getUTCMonth()}-${day.getUTCDate()}`; const postCount = postsByCalendarDay.get(key) ?? 0; const selected = isSameCalendarDay(day, selectedDate); const today = isSameCalendarDay(day, new Date()); const dateLabel = day.toLocaleDateString("en-GB", { dateStyle: "full", timeZone: "UTC" }); return <button type="button" disabled={siteContext && !statusOptions.includes("scheduled") && day.getTime() > new Date().getTime()} className={`${selected ? "is-selected" : ""}${postCount ? " has-posts" : ""}${today ? " is-today" : ""}`} aria-current={today ? "date" : undefined} aria-label={`${dateLabel}${postCount ? `, ${postCount} ${postCount === 1 ? "post" : "posts"}` : ""}`} key={day.toISOString()} onClick={() => updatePublicationDate(makePublicationDate(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), selectedDate.getUTCHours(), selectedDate.getUTCMinutes()))}>{day.getUTCDate()}</button>; })}</div></div><p className="setting-note">Times are shown and saved as UTC+0.{siteContext ? " Future dates require Scheduled; backdating is supported." : ""}</p>{publicationDateError ? <p role="alert">{publicationDateError}</p> : null}</div>, portalRoot) : null}
-        </InspectorAccordionSection>
-        {document.kind === "page" ? <InspectorAccordionSection kind={document.kind} title="Address"><label><span>Slug</span><input value={document.slug} onChange={(event) => onChange("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label></InspectorAccordionSection> : null}
-        {document.kind === "post" ? <InspectorAccordionSection kind={document.kind} title="Address"><label><span>Slug</span><input value={document.slug} onChange={(event) => onChange("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label></InspectorAccordionSection> : null}
-        <InspectorAccordionSection kind={document.kind} title="Author"><select aria-label="Author" value={resolvedDocument.author ?? ""} onChange={(event) => { onFieldOverride?.("author", false); onChange("author", event.target.value); }}><option value="">No author</option>{resolvedDocument.author && resolvedDocument.author !== "Andrew Moss" ? <option value={resolvedDocument.author}>{resolvedDocument.author}</option> : null}<option value="Andrew Moss">Andrew Moss</option></select></InspectorAccordionSection>
-        {documentControls}
-        {canDelete ? <div className="document-bin-action"><button type="button" className="is-destructive" onClick={onDelete} disabled={!canDelete}>Move {document.kind} to Bin</button></div> : null}
-        {document.kind === "page" ? <InspectorAccordionSection kind={document.kind} title="Parent page"><label><span>Parent</span><select value={resolvedDocument.parentPageId ?? ""} onChange={(event) => { onFieldOverride?.("parentPageId", false); onChange("parentPageId", event.target.value || undefined); }}><option value="">None</option>{pages.filter((page) => page.id !== document.id).map((page) => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label></InspectorAccordionSection> : null}
+          <InspectorSettingRow label="Slug" value={document.slug || "/"} disabled={!writable}><label>Slug<input value={document.slug} onChange={event => onChange("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label></InspectorSettingRow>
+          <InspectorSettingRow label="Author" value={resolvedDocument.author || "No author"} disabled={!writable}><label>Author<select aria-label="Author" value={resolvedDocument.author ?? ""} onChange={event => { onFieldOverride?.("author", false); onChange("author", event.target.value); }}><option value="">No author</option>{resolvedDocument.author && resolvedDocument.author !== "Andrew Moss" ? <option value={resolvedDocument.author}>{resolvedDocument.author}</option> : null}<option value="Andrew Moss">Andrew Moss</option></select></label></InspectorSettingRow>
+          {documentControls}
+          {document.kind === "page" ? <InspectorSettingRow label="Parent" value={pages.find(page => page.id === resolvedDocument.parentPageId)?.title || "None"} disabled={!writable}><label>Parent<select value={resolvedDocument.parentPageId ?? ""} onChange={event => { onFieldOverride?.("parentPageId", false); onChange("parentPageId", event.target.value || undefined); }}><option value="">None</option>{pages.filter(page => page.id !== document.id).map(page => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label></InspectorSettingRow> : null}
+        </InspectorSettingsSection>
         {hasCategories ? <>
           <section className="post-categories-section inspector-accordion-section">
             <h2><button type="button" className="inspector-accordion-heading" aria-expanded={categoriesOpen} aria-controls={categoriesContentId} onClick={() => setCategoriesOpen(open => !open)}><span>Categories</span><StudioIcon name={categoriesOpen ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
@@ -331,6 +347,7 @@ export function DocumentInspector({ writable = true, siteContext = false, localP
           </section>
           <PostTagsEditor tags={resolvedDocument.tags} suggestions={tagSuggestions} onChange={tags => onChange("tags", tags)} />
         </> : null}
+        {canDelete ? <div className="document-bin-action"><button type="button" className="is-destructive" onClick={onDelete}>Move to bin</button></div> : null}
       </> : <>
         <InspectorAccordionSection kind={document.kind} title="Title and subtitle"><p className="setting-note">Control how these values appear through blocks in the assigned template.</p><FieldDisplaySetting label="Title display" field="title" document={document} resolvedDocument={resolvedDocument} hasTemplate={hasTemplate} usage={fieldUsage?.title} onChange={value => changeDisplay("title", value)} /><label><span>Subtitle</span><textarea rows={3} value={document.subtitle ?? ""} onChange={(event) => onChange("subtitle", event.target.value)} placeholder="A line beneath the title" /></label><FieldDisplaySetting label="Subtitle display" field="subtitle" document={document} resolvedDocument={resolvedDocument} hasTemplate={hasTemplate} usage={fieldUsage?.subtitle} onChange={value => changeDisplay("subtitle", value)} /></InspectorAccordionSection>
         <InspectorSection kind={document.kind} title="Content fields"><div className="inspector-value-row"><span>Featured image</span><strong>{document.coverImage === null ? "Not used" : document.coverImage?.alt || "Not set"}</strong></div><FieldDisplaySetting label="Featured image display" field="coverImage" document={document} resolvedDocument={resolvedDocument} hasTemplate={hasTemplate} usage={fieldUsage?.coverImage} onChange={value => changeDisplay("coverImage", value)} /><FieldUsageRow label="Author source" usage={fieldUsage?.author} source={valueSource("author")} onReset={hasTemplate && document.templateOverrides?.author === true && onFieldOverride ? () => onFieldOverride("author", true) : undefined} /><FieldDisplaySetting label="Author display" field="author" document={document} resolvedDocument={resolvedDocument} hasTemplate={hasTemplate} usage={fieldUsage?.author} onChange={value => changeDisplay("author", value)} /><div className="inspector-value-row"><span>Publication date</span><strong>{formatDocumentDate(resolvedDocument) ?? "Not set"}</strong></div><FieldDisplaySetting label="Date display" field="publicationDate" document={document} resolvedDocument={resolvedDocument} hasTemplate={hasTemplate} usage={fieldUsage?.publicationDate} onChange={value => changeDisplay("publicationDate", value)} /><div className="inspector-value-row"><span>Reading time</span><strong>{fieldUsage ? `${readingTimeMinutesForInspector(document)} ${readingTimeMinutesForInspector(document) === 1 ? "minute" : "minutes"}` : "Calculated"}</strong></div><FieldDisplaySetting label="Reading time display" field="readingTime" document={document} resolvedDocument={resolvedDocument} hasTemplate={hasTemplate} usage={fieldUsage?.readingTime} onChange={value => changeDisplay("readingTime", value)} /><p className="setting-note">Values remain saved when their display blocks are removed. Display choices affect this document only.</p></InspectorSection>
@@ -392,7 +409,7 @@ function PostTagsEditor({ tags, suggestions, onChange }: { tags: string[]; sugge
   return <section className="post-tags-section inspector-accordion-section">
     <h2><button type="button" className="inspector-accordion-heading" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen(value => !value)}><span>Tags</span><StudioIcon name={open ? "chevron-down" : "chevron-right"} size={16} /></button></h2>
     <div id={contentId} className="inspector-accordion-content" hidden={!open}>
-      <label className="post-tags-label" htmlFor={inputId}>ADD TAG</label>
+      <label className="post-tags-label" htmlFor={inputId}>Add tag</label>
       <div className="post-tags-input-area" role="presentation" onClick={() => inputRef.current?.focus()}>
         {tags.map((tag, index) => <span className="post-tag-chip" key={`${tag.toLocaleLowerCase("en-GB")}-${index}`}>
           <span>{tag}</span><button type="button" aria-label={`Remove ${tag} tag`} onClick={event => { event.stopPropagation(); removeTag(index); }}><StudioIcon name="close" size={16} /></button>
@@ -400,7 +417,7 @@ function PostTagsEditor({ tags, suggestions, onChange }: { tags: string[]; sugge
         <input ref={inputRef} id={inputId} aria-label="Add a tag" autoComplete="off" value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={handleKeyDown} placeholder={tags.length ? "" : "Type a tag and press Enter"} />
       </div>
       <p className="post-tags-help">Separate with commas or the Enter key.</p>
-      {suggestions.length ? <div className="post-tags-suggestions"><h3>MOST USED</h3><div>{suggestions.map(tag => <button type="button" key={tag} aria-label={`Add tag: ${tag}`} onClick={() => addTags(tag, false)}>{tag}</button>)}</div></div> : null}
+      {suggestions.length ? <div className="post-tags-suggestions"><h3>Most used</h3><div>{suggestions.map(tag => <button type="button" key={tag} aria-label={`Add tag: ${tag}`} onClick={() => addTags(tag, false)}>{tag}</button>)}</div></div> : null}
     </div>
   </section>;
 }
