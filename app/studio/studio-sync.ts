@@ -349,15 +349,23 @@ export function applyStudioTransaction<T>(currentValue: T, transaction: StudioSy
 }
 
 function validId(value: unknown) { return typeof value === "string" && value.length > 0 && value.length < 200; }
+function libraryOrderPath(path: unknown[]) { return path.length === 1 && path[0] === "libraryOrder" || path.length === 2 && path[0] === "templates" && path[1] === "libraryOrder"; }
+function validLibraryOrderId(value: unknown) {
+  return typeof value === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,159}\/[a-zA-Z0-9][a-zA-Z0-9_-]{0,159}$/.test(value)
+    && value.split("/").every(segment => !["__proto__", "prototype", "constructor"].includes(segment));
+}
 function validRevision(value: unknown) { return typeof value === "number" && Number.isSafeInteger(value) && value >= 0; }
 function validChange(value: unknown): value is StudioSyncChange {
-  if (!isRecord(value) || !Array.isArray(value.path) || value.path.some(token => !validId(token))) return false;
+  if (!isRecord(value) || !Array.isArray(value.path)) return false;
+  const path = value.path;
+  if (path.some((token, index) => !validId(token) && !(typeof token === "string" && token.startsWith("@") && libraryOrderPath(path.slice(0, index)) && validLibraryOrderId(token.slice(1))))) return false;
+  const validItemId = libraryOrderPath(value.path) ? validLibraryOrderId : validId;
   if (value.kind === "set") return typeof value.beforePresent === "boolean" && typeof value.afterPresent === "boolean";
   if (value.kind === "insert" || value.kind === "delete") {
-    if (typeof value.index !== "number" || !Number.isSafeInteger(value.index) || value.index < 0 || !isRecord(value.value) || !validId(value.value.id)) return false;
-    return value.kind === "delete" || ((value.previousId === null || validId(value.previousId)) && (value.nextId === null || validId(value.nextId)));
+    if (typeof value.index !== "number" || !Number.isSafeInteger(value.index) || value.index < 0 || !isRecord(value.value) || !validItemId(value.value.id)) return false;
+    return value.kind === "delete" || ((value.previousId === null || validItemId(value.previousId)) && (value.nextId === null || validItemId(value.nextId)));
   }
-  if (value.kind === "move") return Array.isArray(value.beforeOrder) && Array.isArray(value.afterOrder) && value.beforeOrder.every(validId) && value.afterOrder.every(validId) && sameUniqueIds(value.beforeOrder, value.afterOrder);
+  if (value.kind === "move") return Array.isArray(value.beforeOrder) && Array.isArray(value.afterOrder) && value.beforeOrder.every(validItemId) && value.afterOrder.every(validItemId) && sameUniqueIds(value.beforeOrder, value.afterOrder);
   return false;
 }
 function validTransaction(value: unknown): value is StudioSyncTransaction {

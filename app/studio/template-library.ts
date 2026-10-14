@@ -8,7 +8,9 @@ export function templateNameInitial(name: string) {
 }
 
 export function templateLibraryEntries(store: TemplateStore) {
-  return store.sets.flatMap(set => [...set.templates, ...set.parts].map(entry => ({ set, entry })));
+  const entries = store.sets.flatMap(set => [...set.templates, ...set.parts].map(entry => ({ set, entry })));
+  const positions = new Map((store.libraryOrder ?? []).map((item, index) => [item.id, index]));
+  return entries.sort((a, b) => (positions.get(`${a.set.id}/${a.entry.id}`) ?? Infinity) - (positions.get(`${b.set.id}/${b.entry.id}`) ?? Infinity));
 }
 
 /** Creation always uses the same unnamed library context, regardless of selection. */

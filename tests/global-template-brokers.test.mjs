@@ -142,3 +142,36 @@ test("external template changes invalidate full-design Undo instead of reverting
   assert.equal(f.source().templates.sets[0].templates[1].nodes.find(node => node.element === "cover-image").displayWidth, 320);
   assert.equal(f.writes.length, 2);
 });
+
+test("library ordering saves through the owner CAS, refreshes peers and retains Undo/Redo", async t => {
+  const { module: ordering } = await runnerImport("app/studio/library-reordering.ts", options);
+  const { module: library } = await runnerImport("app/studio/template-library.ts", options);
+  const f=fixture(t); f.open(true); const peer=f.open(false); const other=f.open(false);
+  await f.until(()=>peer.state?.session.writable && other.state?.session.writable);
+  const entryIds = store => library.templateLibraryEntries(store).map(({set,entry})=>`${set.id}/${entry.id}`);
+  const before=entryIds(peer.state.session.store);
+  assert.equal(peer.state.session.commit(store=>ordering.reorderLibraryTemplates(store,{id:before.at(-1),targetId:before[0],edge:"before",baseline:before})),true);
+  await f.until(()=>f.writes.length===1 && entryIds(other.state.session.store)[0]===before.at(-1));
+  assert.deepEqual(entryIds(f.source().templates),entryIds(peer.state.session.store));
+  assert.equal(peer.state.session.canUndo,true);
+  assert.equal(peer.state.session.undo(),true);
+  await f.until(()=>f.writes.length===2 && JSON.stringify(entryIds(other.state.session.store))===JSON.stringify(before));
+  assert.equal(peer.state.session.redo(),true);
+  await f.until(()=>f.writes.length===3 && entryIds(other.state.session.store)[0]===before.at(-1));
+  const reopened=f.open(false); await f.until(()=>reopened.state?.session.writable);
+  assert.deepEqual(entryIds(reopened.state.session.store),entryIds(f.source().templates));
+});
+
+test("maximum valid legacy owner and entry IDs reorder through the typed gateway broker", async t=>{
+ const {module:ordering}=await runnerImport("app/studio/library-reordering.ts",options);
+ const {module:library}=await runnerImport("app/studio/template-library.ts",options);
+ const f=fixture(t);const owner=f.open(true);const peer=f.open(false);await f.until(()=>owner.state?.session.writable&&peer.state?.session.writable);
+ const set=templates.createTemplateSet("Long IDs");set.id="s".repeat(160);set.templates[0].id="p".repeat(160);
+ assert.equal(owner.state.session.commit(store=>({...store,sets:[...store.sets,set]})),true);
+ await f.until(()=>f.writes.length===1&&peer.state.session.store.sets.length===2);
+ const entryIds=store=>library.templateLibraryEntries(store).map(({set,entry})=>`${set.id}/${entry.id}`);
+ const baseline=entryIds(peer.state.session.store);const longId=`${set.id}/${set.templates[0].id}`;assert.equal(longId.length,321);
+ assert.equal(peer.state.session.commit(store=>ordering.reorderLibraryTemplates(store,{id:longId,targetId:baseline[0],edge:"before",baseline})),true);
+ await f.until(()=>f.writes.length===2&&entryIds(owner.state.session.store)[0]===longId);
+ assert.equal(entryIds(f.source().templates)[0],longId);
+});

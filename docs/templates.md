@@ -156,7 +156,7 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.29.0** (`0.29.0` in JSON).
+The template-store and JSON package schema is **v0.30.0** (`0.30.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -236,7 +236,7 @@ justification. Table cells preserve per-cell header tags and scope. Workspace
 data is now version 25, with readers for versions 2–24; local publication
 snapshots are version 18 with readers for versions 1–17. Full backups use
 version 5 and read versions 1–4; they include both browser recovery templates and
-a validated shared-library snapshot when available. Template packages are v0.29.0, with readers for v0.1.0–v0.28.0.
+a validated shared-library snapshot when available. Template packages are v0.30.0, with readers for v0.1.0–v0.29.0.
 Group HTML elements, ARIA labels and block alignment, Columns alignment and
 Section visual styles round-trip through the editor, owned storage, portable
 packages and local publication snapshots. Resetting a field clears it rather
@@ -766,3 +766,26 @@ present in the backup. Browser restore restores local content and assignments
 against the current shared library. It does not replace global originals for
 all workspaces. A checked backup offers Export shared templates from backup;
 use the Templates import workflow to recover those designs deliberately.
+
+### Library entry ordering
+
+Posts, Pages, and Templates in Studio Navigation can be dragged before or after
+another entry in the same tab. Alt+Up and Alt+Down move the focused entry by one
+position. The insertion line marks the destination; cancelled, stale, foreign,
+and unavailable drags do not change saved data. Selection remains on its stable
+ID and normal Undo/Redo applies.
+
+Document ordering changes only occupied slots of its own kind in the existing
+workspace/site aggregate. It does not alter document fields, publication
+snapshots, or authored site navigation. TemplateStore v0.30.0 keeps a validated
+`libraryOrder` array of `{ id: "setId/entryId", setId, entryId }` records. Legacy
+readers materialise the existing list sequence; missing new entries append in
+their existing sequence. Removed/Bin references remain inert and bounded so
+restoration can recover their position. The order may mix templates and shared
+parts from different retained contexts without moving their designs. Full
+backups and shared-library imports retain the metadata; single-entry exports
+retain their existing dependency context.
+
+Ordering uses each domain's existing owner, saving gateway, revision checks,
+and tab synchronisation. Independent field edits can merge with a move;
+concurrent changes to the same list order require the existing conflict choice.

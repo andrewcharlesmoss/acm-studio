@@ -1,4 +1,6 @@
 "use client";
+import { useLibraryReordering } from "./use-library-reordering";
+import { reorderLibraryDocuments, reorderLibraryTemplates, type LibraryMove } from "./library-reordering";
 import { templateMediaTargetKind } from "./template-media-target";
 import { validateGlobalTemplateLibrary } from "./global-template-contract";
 import { isLocalFixtureSiteId, localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
@@ -50,7 +52,7 @@ function TemplateCreationActions({ writable, onCreate, onImport, importWritable 
     {onImport ? <button type="button" disabled={!importWritable} aria-label="Import Templates" data-studio-tooltip="Import Templates" onClick={onImport}><AcmIcon name="action.upload" scale="Regular-S" size={20} /></button> : null}
   </StudioTooltipGroup>;
 }
-export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange, editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, onEditSiteNavigation, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
+export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange, editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, onEditSiteNavigation, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, onReorderDocuments, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
   viewControls?: { viewport: import("./studio-view-menu").StudioViewport; onViewportChange: (viewport: import("./studio-view-menu").StudioViewport) => void };
   onCanvasVisibilityChange?: (visible: boolean) => void;
   onEditSiteNavigation?: () => void;
@@ -70,6 +72,7 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
   libraryKind?: StudioDocumentKind | "templates";
   onSelectLibraryKind?: (kind: StudioDocumentKind | "templates") => void;
   onSelectDocument?: (documentId: string) => void;
+  onReorderDocuments?: (kind: StudioDocumentKind, move: LibraryMove) => boolean;
   inspectorTab?: "template" | "block" | "styles";
   onInspectorTabChange?: (tab: "template" | "block" | "styles") => void;
   manageHistoryShortcuts?: boolean;
@@ -148,6 +151,10 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
   const templateEntryCount = templateEntries.length;
   const media = useTemplateMedia([...(set ? templateMediaIds(set) : []), ...workspace.workspace.documents.flatMap(document => [...contentMediaIds(document.blocks), ...(document.coverImage?.mediaId ? [document.coverImage.mediaId] : [])])]);
   const writable = templates.writable && !busy;
+  const entryIds = libraryKind === "templates" ? templateEntries.map(({ set, entry }) => `${set.id}/${entry.id}`) : workspace.workspace.documents.filter(item => item.kind === libraryKind).map(item => item.id);
+  const reordering = useLibraryReordering(entryIds, libraryKind === "templates" ? writable : (contentWritable ?? workspace.writable), move => libraryKind === "templates"
+    ? templates.commit(store => reorderLibraryTemplates(store, move))
+    : onReorderDocuments ? onReorderDocuments(libraryKind, move) : workspace.commit(current => reorderLibraryDocuments(current, libraryKind, move)), `${siteId ?? "drafts"}/${libraryKind}`);
   const exclusiveWritable = templates.exclusiveWritable && !busy;
   const templateContextMenuSet = templateContextMenu ? templates.store.sets.find(item => item.id === templateContextMenu.setId) : undefined;
   const templateContextMenuEntry = templateContextMenuSet && templateContextMenu ? [...templateContextMenuSet.templates, ...templateContextMenuSet.parts].find(item => item.id === templateContextMenu.targetId) : undefined;
@@ -407,14 +414,15 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
       {libraryKind === "templates" ? <TemplateCreationActions writable={writable} onCreate={addTarget} /> : null}
       <div className="document-list template-document-list">
         {libraryKind === "templates" ? <>
-        {templateEntries.map(({ set: item, entry }) => <button className={`document-item template-target-item${!showTemplateLibrary && item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
+        {templateEntries.map(({ set: item, entry }) => <button {...reordering.rowProps(`${item.id}/${entry.id}`)} className={`document-item template-target-item${!showTemplateLibrary && item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { reordering.rowProps(`${item.id}/${entry.id}`).onKeyDown(event); if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
           <span className="document-kind-mark" aria-hidden="true">{templateNameInitial(entry.name)}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" || entry.kind === "overlay" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />
         </button>)}
 
-        </> : workspace.workspace.documents.filter(document => document.kind === libraryKind).map(document => <button className={`document-item${document.id === workspace.workspace.activeDocumentId ? " is-active" : ""}`} type="button" key={document.id} onClick={() => onSelectDocument?.(document.id)}>
+        </> : workspace.workspace.documents.filter(document => document.kind === libraryKind).map(document => <button {...reordering.rowProps(document.id)} className={`document-item${document.id === workspace.workspace.activeDocumentId ? " is-active" : ""}`} type="button" key={document.id} onClick={() => onSelectDocument?.(document.id)}>
           <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span><span><strong>{document.title}</strong><small>/{document.slug}</small></span><span className={`document-status is-${document.status}`}>{document.status.charAt(0).toUpperCase() + document.status.slice(1)}</span>
         </button>)}
         {libraryKind !== "templates" && !workspace.workspace.documents.some(document => document.kind === libraryKind) ? <p className="document-list-empty">No {libraryKind === "page" ? "pages" : "posts"} yet.</p> : null}
+        <span className="visually-hidden" role="status">{reordering.message}</span>
       </div>
     </StudioNavigationFrame>
 

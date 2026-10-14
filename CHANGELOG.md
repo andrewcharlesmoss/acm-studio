@@ -4,6 +4,9 @@
 
 ### Added
 
+- Reorder Posts, Pages, and Templates by dragging their Navigation entries, or
+  using Alt+Up/Down, with saved order, Undo/Redo, and shared-tab conflict checks.
+
 - Fit resizable panes to their primary labels and controls by double-clicking
   the resize edge or pressing Enter while it is focused, within existing limits.
 

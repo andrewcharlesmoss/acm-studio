@@ -406,3 +406,22 @@ test("template Author and Category defaults converge on the same target after co
   assert.equal(defaults(reopened).author, "Template Example Author Two");
   assert.equal(defaults(reopened).category, "Template QA Category");
 });
+
+test("peer document category order persists, refreshes peers and survives Undo/Redo", async t => {
+  const f=await pair(t);
+  const reorder=f.owner.load("app/studio/library-reordering.ts").reorderLibraryDocuments;
+  const source=f.owner.state.workspace.workspace;
+  const first=source.documents.find(item=>item.kind==="post");
+  f.owner.state.workspace.commit(current=>({...current,documents:[...current.documents,{...structuredClone(first),id:"order-post-two",title:"Second"},{...structuredClone(first),id:"order-post-three",title:"Third"}]}));
+  await f.until(()=>f.peer.state.workspace.workspace.documents.some(item=>item.id==="order-post-three"));
+  const postIds=tab=>Array.from(tab.state.workspace.workspace.documents.filter(item=>item.kind==="post"),item=>item.id);
+  const baseline=postIds(f.peer);
+  const selected=f.peer.state.workspace.workspace.activeDocumentId;
+  f.peer.state.workspace.commit(current=>reorder(current,"post",{id:baseline.at(-1),targetId:baseline[0],edge:"before",baseline}));
+  await f.until(()=>postIds(f.owner)[0]===baseline.at(-1));
+  assert.equal(f.peer.state.workspace.workspace.activeDocumentId,selected);
+  f.peer.state.workspace.undo(); await f.until(()=>JSON.stringify(postIds(f.owner))===JSON.stringify(baseline));
+  f.peer.state.workspace.redo(); await f.until(()=>postIds(f.owner)[0]===baseline.at(-1));
+  const reopened=f.open(); await f.until(()=>reopened.state?.workspace.writable);
+  assert.deepEqual(postIds(reopened),postIds(f.owner));
+});
