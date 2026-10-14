@@ -347,7 +347,7 @@ test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped pa
   assert.match(advancedControl, /placeholder=\{!placeholders \? undefined : "custom-class"\}/);
   assert.doesNotMatch(advancedControl, /<textarea[^>]*placeholder=/);
   assert.match(advancedControl, /Enter a word or two, without spaces, to make a unique web address just for this block/);
-  assert.match(advancedControl, /Learn more about anchors/);
+  assert.doesNotMatch(advancedControl, /Learn more about anchors|wordpress\.org/);
   assert.match(advancedControl, /Separate multiple classes with spaces\./);
   assert.match(advancedControl, /Add your own CSS to customise the appearance of the \{blockName\} block/);
   assert.match(advancedControl, /e\.g\. <code>color: red;<\/code>/);
@@ -681,7 +681,8 @@ test("post excerpts open in a Gutenberg-style pane beside the inspector", async 
   assert.match(source, /statusOpen && portalRoot \? createPortal\(<div ref=\{statusPopoverRef\}[\s\S]*?portalRoot\) : null\}/);
   assert.match(source, /function usePortalRoot\(\)[\s\S]*?setPortalRoot\(globalThis\.document\?\.body \?\? null\)/);
   assert.match(source, /aria-label="Close excerpt"/);
-  assert.match(source, /Learn more about manual excerpts/);
+  assert.doesNotMatch(source, /Learn more about manual excerpts|wordpress\.org/);
+  assert.match(source, /Leave blank and Studio will generate a summary\./);
   assert.match(source, /function closeWithEscape\(event: globalThis\.KeyboardEvent\)[\s\S]*?setExcerptOpen\(false\)[\s\S]*?excerptTriggerRef\.current\?\.focus\(\)/);
   assert.match(source, /watchInspectorPopover\(excerptTriggerRef\.current, excerptPopoverRef\.current, 640, setExcerptPopoverPosition, \{ topOffset: -12 \}\)/);
   const positioning = await readFile(new URL("../app/studio/panes/inspector-popover-geometry.mjs", import.meta.url), "utf8");
@@ -714,6 +715,8 @@ test("Gutenberg controls use the single block inspector and nonessential ACM opt
   assert.match(canvas, /EmbedUrlField key=\{`\$\{block\.id\}-\$\{block\.url\}`\}/, "undo and redo remount the URL form from saved block state");
   assert.match(canvas, /event\.preventDefault\(\);\s*if \(!writable\) return;/, "URL submission enforces read-only mode in its handler");
   assert.match(canvas, /disabled=\{!writable\}/, "read-only canvases disable Embed URL submission");
+  assert.match(canvas, /className="embed-url-placeholder-help" id=\{helpId\}>Studio supports video links from YouTube, Vimeo and TikTok\.<\/p>/);
+  assert.doesNotMatch(canvas, /wordpress\.org\/documentation\/article\/embed-block/);
   assert.doesNotMatch(requiredSettings, /Studio spacing|Additional CSS declarations|Reading Time|<span>Presentation<\/span>|<span>Prefix<\/span>|document-subtitle/);
   const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
   assert.match(dividerInspector, /<AdvancedFieldsInspector[^>]*>[\s\S]*<span>HTML element<\/span>[\s\S]*<\/AdvancedFieldsInspector>/, "the Gutenberg hr/div selector belongs in Advanced");
@@ -722,6 +725,16 @@ test("Gutenberg controls use the single block inspector and nonessential ACM opt
   assert.deepEqual(capabilityProfileFor("divider").controls.find(control => control.id === "background")?.fields, ["backgroundColor", "backgroundGradient"]);
   assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "background")?.source, "gutenberg");
   assert.deepEqual(capabilityProfileFor("divider").sections.map(section => [section.id, section.label]), [["layout", "Styles"], ["background", "Background"], ["dimensions", "Dimensions"], ["advanced", "Advanced"]]);
+});
+
+test("Studio interface help and reference text has no external WordPress links", async () => {
+  const sources = await Promise.all([
+    readFile(new URL("../app/studio/blocks/inspectors/document-inspector.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/controls/advanced-fields-control.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/ui/blocks/block-specimen-catalogue.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.doesNotMatch(sources.join("\n"), /href="https?:\/\/(?:wordpress\.(?:org|com)|github\.com\/WordPress)/i);
 });
 
 test("Paragraph Typography follows Gutenberg options and hides ACM-only controls", async () => {

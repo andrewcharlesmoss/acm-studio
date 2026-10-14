@@ -3055,7 +3055,7 @@ function EmbedUrlField({ block, rootBlocks, selected, writable, mediaUrls, onTex
       <button type="submit" disabled={!writable}>Embed</button>
       {url ? <button className="embed-cancel-url" type="button" disabled={!writable} onClick={() => { setDraftUrl(block.url); setError(""); setEditingUrl(false); }}>Cancel</button> : null}
     </form>
-    <p className="embed-url-placeholder-help" id={helpId}><a href="https://wordpress.org/documentation/article/embed-block/" target="_blank" rel="noopener noreferrer">Learn more about embeds <StudioIcon name="external" size={18} /></a></p>
+    <p className="embed-url-placeholder-help" id={helpId}>Studio supports video links from YouTube, Vimeo and TikTok.</p>
     {error ? <p className="embed-url-placeholder-error" id={errorId} role="alert">{error}</p> : null}
   </section>;
 }
