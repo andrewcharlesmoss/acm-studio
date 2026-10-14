@@ -79,6 +79,10 @@
 
 ### Fixed
 
+- Automatically recover abandoned local-site and global-template writer locks
+  when their process is confirmed gone, retaining protection against competing
+  servers, uncertain ownership, and changed source files.
+
 - Keep the UI Library's selected control stable after clicking a jump link,
   and prevent hover and selection from shifting the menu entries.
 

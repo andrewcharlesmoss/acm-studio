@@ -394,6 +394,14 @@ Local document links use stable hash routes in the single generated file; physic
 per-slug output and hosted publication require separately scoped work. Do not add another authoritative
 browser store or enable unrestricted writes in the Mini Golf Codex bridge.
 
+The shared process guard automatically reclaims valid stale writer locks only
+when an OS process probe returns ESRCH. A root-scoped exclusive loopback bind
+serialises recovery and remains held for the writer lifetime; there is no
+alternative-port fallback. Live or reused PIDs, uncertain probes, unsafe guards,
+and binding failures remain blocked. Test, Test2, and global templates use this
+same guard; source/output recovery and browser draft reconciliation remain
+required. See `docs/test-site-integration.md` for the endpoint contract.
+
 The dev-only Test gateway requires exact local-origin checks, expiring session
 tokens, browser write ownership, server leases/process guard, document validation,
 CAS revisions and recoverable output transactions. Prompt sessions are ephemeral,

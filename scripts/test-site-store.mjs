@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { lstat, readFile, mkdir, realpath, rename, writeFile, unlink, readdir, link } from "node:fs/promises";
-import { lstatSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { closeSync, constants, fstatSync, lstatSync, openSync, readSync, unlinkSync, writeFileSync } from "node:fs";
+import { createServer } from "node:net";
 import path from "node:path";
 import { checkedSiteImages, checkedSavedSiteImage } from "./test-site-featured-images.mjs";
 
@@ -14,7 +15,51 @@ export function checkedTestOutput(output) {
 }
 
 
-export async function acquireTestFileGuard(root) {
+// The fixed root-derived endpoint is an OS-owned mutex, not a service. Never
+// choose a different port on conflict: all contenders must share this gate.
+function fileGuardPort(root) {
+  return 1024 + createHash("sha256").update(`acm-studio-writer-v1\0${root}`).digest().readUInt32BE(0) % 48128;
+}
+async function acquireFileGuardGate(root) {
+  const server = createServer(socket => socket.destroy());
+  await new Promise((resolve, reject) => {
+    server.once("error", error => reject(new TestSiteError(
+      "Local source ownership is unavailable. Its writer guard could not be acquired; reconnect when it is available.",
+      error.code === "EADDRINUSE" ? 423 : 503,
+    )));
+    server.listen({ host: "127.0.0.1", port: fileGuardPort(root), exclusive: true, reusePort: false }, resolve);
+  });
+  server.unref();
+  return () => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+}
+function readFileGuard(file) {
+  let descriptor;
+  try {
+    const before = lstatSync(file);
+    if (!before.isFile() || before.isSymbolicLink()) throw new Error("Unsafe guard");
+    descriptor = openSync(file, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    const entry = fstatSync(descriptor);
+    if (!entry.isFile() || entry.nlink !== 1 || entry.size < 1 || entry.size > 1024 || entry.dev !== before.dev || entry.ino !== before.ino) throw new Error("Unsafe guard");
+    const bytes = Buffer.alloc(1025);
+    const length = readSync(descriptor, bytes, 0, bytes.length, 0);
+    if (length < 1 || length > 1024) throw new Error("Unsafe guard");
+    const raw = bytes.subarray(0, length).toString("utf8");
+    const guard = JSON.parse(raw);
+    if (!Number.isInteger(guard?.pid) || guard.pid <= 0 || guard.pid > 2147483647 || typeof guard.identity !== "string" || !/^[a-f0-9]{48}$/.test(guard.identity)) throw new Error("Invalid guard");
+    const current = lstatSync(file);
+    if (!current.isFile() || current.isSymbolicLink() || current.dev !== entry.dev || current.ino !== entry.ino) throw new Error("Changed guard");
+    return { ...guard, raw, dev: entry.dev, ino: entry.ino };
+  } catch (error) {
+    if (error.code === "ENOENT") throw error;
+    throw new TestSiteError("The local source has an unreadable or unsafe writer lock. Its files were preserved; review the lock before reconnecting.", 423);
+  } finally { if (descriptor !== undefined) closeSync(descriptor); }
+}
+function unchangedFileGuard(file, expected) {
+  const current = readFileGuard(file);
+  if (current.dev !== expected.dev || current.ino !== expected.ino || current.raw !== expected.raw) throw new TestSiteError("The local source's writer lock changed during recovery. It was preserved; reconnect after reviewing the lock.", 423);
+}
+
+export async function acquireTestFileGuard(root, { probeProcess = pid => process.kill(pid, 0) } = {}) {
   if (await realpath(root) !== path.resolve(root) || !(await lstat(root)).isDirectory()) throw new TestSiteError(`Use the local site's canonical project directory.`, 503);
   const directory = path.join(root, ".studio");
   try { await mkdir(directory); } catch (error) { if (error.code !== "EEXIST") throw error; }
@@ -22,28 +67,49 @@ export async function acquireTestFileGuard(root) {
   if (!entry.isDirectory() || entry.isSymbolicLink()) throw new TestSiteError(`The local site contains an unsafe recovery path.`, 503);
   const file = path.join(directory, "writer.lock");
   const identity = randomBytes(24).toString("hex");
-  // Create the tiny guard and register its exit cleanup in the same JS turn.
-  try { writeFileSync(file, JSON.stringify({ pid: process.pid, identity }), { flag: "wx", mode: 0o600 }); }
-  catch (error) { if (error.code === "EEXIST") throw new TestSiteError(`Another Studio server holds the local site's file lock. Stop that server, then review the lock before reconnecting.`, 423); throw error; }
+  // Keep the kernel gate across recovery AND the full file-guard lifetime.
+  // SIGKILL releases it automatically, so competing restarts cannot unlink
+  // each other's replacement guards. Legacy servers still use exclusive create.
+  const releaseGate = await acquireFileGuardGate(root);
+  try {
+    let stale;
+    try { stale = readFileGuard(file); } catch (error) { if (error.code !== "ENOENT") throw error; }
+    if (stale) {
+      let stopped = false;
+      try { probeProcess(stale.pid); }
+      catch (error) {
+        if (error.code !== "ESRCH") throw new TestSiteError("Studio cannot confirm that the writer lock's process has stopped. The lock was preserved; reconnect after reviewing it.", 423);
+        stopped = true;
+      }
+      if (!stopped) throw new TestSiteError("Another Studio server holds the local source's writer lock. Reconnect after that server stops.", 423);
+      unchangedFileGuard(file, stale);
+      unlinkSync(file);
+    }
+    // Register exit cleanup in the same JS turn as exclusive file creation.
+    writeFileSync(file, JSON.stringify({ pid: process.pid, identity }), { flag: "wx", mode: 0o600 });
+  } catch (error) {
+    await releaseGate();
+    if (error.code === "EEXIST") throw new TestSiteError("Another Studio server acquired the local source's writer lock. Reconnect after that server stops.", 423);
+    throw error;
+  }
   const releaseAtExit = () => {
     // Miniflare can call process.exit from its signal handler before Vite's
     // asynchronous close completes. Exit handlers must finish synchronously.
     try {
-      const current = lstatSync(file);
-      if (!current.isFile() || current.isSymbolicLink()) return;
-      const guard = JSON.parse(readFileSync(file, "utf8"));
-      if (guard.pid === process.pid && guard.identity === identity) unlinkSync(file);
+      const guard = readFileGuard(file);
+      if (guard.pid === process.pid && guard.identity === identity) { unchangedFileGuard(file, guard); unlinkSync(file); }
     } catch { /* Retain unreadable or changed guards for explicit recovery. */ }
   };
   process.once("exit", releaseAtExit);
+  let released = false;
   return async () => {
+    if (released) return;
+    released = true;
     try {
-      const current = await lstat(file);
-      if (!current.isFile() || current.isSymbolicLink()) throw new TestSiteError(`The local site's process guard changed unexpectedly.`, 503);
-      const guard = JSON.parse(await readFile(file, "utf8"));
-      if (guard.identity === identity) await unlink(file);
+      const guard = readFileGuard(file);
+      if (guard.pid === process.pid && guard.identity === identity) { unchangedFileGuard(file, guard); unlinkSync(file); }
     } catch (error) { if (error.code !== "ENOENT") throw error; }
-    process.off("exit", releaseAtExit);
+    finally { process.off("exit", releaseAtExit); await releaseGate(); }
   };
 }
 

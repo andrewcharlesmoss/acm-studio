@@ -143,14 +143,31 @@ Sites project binding remains the separate publishing target.
 A browser session uses an expiring random token, exact local origin checks and
 Test-only operations. The Studio Web Lock permits one persistence coordinator;
 the server's renewable owner lease and process guard coordinate file writes.
-`.studio/writer.lock` contains a process identity; a second Studio process fails
-closed while it exists. Vite's awaited close hook drains each fixture's queued
+`.studio/writer.lock` contains a PID and random process identity. Studio
+automatically reclaims a valid guard only when the operating system reports
+that its PID doesn't exist (`ESRCH`). Live or reused PIDs, permission failures,
+unknown probe errors, malformed guards, and unsafe file paths remain protected.
+A second Studio process fails closed while ownership is live or uncertain.
+Vite's awaited close hook drains each fixture's queued
 saves and removes only its own lock before a clean shutdown or restart completes.
 An identity-checked synchronous exit fallback removes this process's own guards
 when the bundled Miniflare signal handler exits before asynchronous cleanup can
 finish. Source/output transaction recovery still applies to interrupted saves.
-Forced termination such as SIGKILL may leave a stale guard requiring the recovery
-procedure below.
+Forced termination such as SIGKILL may leave a stale file guard; the next
+connection recovers it automatically when its process is confirmed gone.
+
+Recovery and the full writer lifetime also hold an exclusive OS-owned TCP bind
+on `127.0.0.1`. This is a private mutex with no request protocol or served data;
+accepted connections close immediately. Its fixed port is `1024 + hash % 48128`,
+using the first unsigned big-endian SHA-256 word of `acm-studio-writer-v1`, a NUL
+byte, and the canonical root. All contenders use the same endpoint and never try
+an alternative on failure. This serialises simultaneous crash recoveries without
+another stale filesystem mutex. The OS releases the bind even after SIGKILL.
+A hash collision, an unrelated listener, or denied loopback binding blocks
+acquisition safely. The file guard remains compatible with older Studio servers,
+whose exclusive creation prevents displacement. Test, Test2, global templates,
+and the bootstrap renderer share this guard. Loopback ownership is independent
+of Project Ports' user-facing preview services.
 
 Each save includes the SHA-256 revision it was based on. The service validates the
 whole document, generates output, rejects source or output beyond the shared
@@ -224,10 +241,15 @@ An uncertain gateway response also requires fresh readback; an unresolved
 outcome requires review. Do not rely on browser memory surviving a closed tab; export
 unsaved content before leaving.
 
-For a stale process guard after a crash, stop the owning Studio server and check
-its recorded PID against the running process list. Remove only the affected fixture's
-`.studio/writer.lock` after establishing that its owning process is gone, then
-restart/reconnect. Never delete state, history or the source as a lock repair.
+After a crash, reconnect normally; no manual lock deletion is needed for a
+valid guard with a confirmed absent PID. Recovery rechecks the guard's inode
+and contents, exclusively creates a fresh identity, then runs the existing
+source/output transaction recovery. It never bypasses hash conflicts or
+replays an uncertain save. If the guard is invalid or the process probe is
+uncertain, stop the owning Studio server and review its recorded PID and file
+before explicit recovery. Remove only the affected `.studio/writer.lock` after
+establishing that its owning process is gone. Never delete state, history, or
+the source as a lock repair.
 Review externally changed files against source history before resolving a hash
 conflict; preserve copies and choose a reviewed source/output pair deliberately.
 
