@@ -383,15 +383,11 @@ never permits persistence before owned initialisation.
 
 ## Save Draft and local Publish
 
-Posts and Pages use the shared Publishing inspector section. Status and UTC
-publication time come from the retained publication snapshot, independently of
-unsaved authored changes; legacy collections use their pre-migration documents.
-The section exposes only Publish or Update through the same guarded local
-publication command as the header. Status and time are read-only here. Scheduling,
-privacy, password protection, sticky posts, and Return to Draft aren't offered
-by this local site workflow. Studio Drafts retains its existing controls.
+Posts and Pages use the shared Publishing inspector section, including the home
+page. Status, UTC dates, password protection and actions are shared with Studio
+Drafts, with descriptions for the local fixture's preview behaviour.
 
-Fixture source v6 reads v1–v5 and stores `publications` separately from authored
+Fixture source v7 reads v1–v6 and stores `publications` separately from authored
 `documents`. Each snapshot retains the document and its resolved template
 assignment. Save Draft and autosave preserve these snapshots. Publish (or the single blue Save action
 for a published document) replaces only the selected snapshot and flushes through
@@ -401,7 +397,10 @@ Current draft preview still renders authored edits. Global template design edits
 and site menu changes continue to update the shared presentation.
 
 The first owned content change seeds legacy publication snapshots before applying
-the edit, preserving the existing local preview. Binned documents are omitted
+the edit, preserving the existing local preview. Legacy v6 snapshots and older
+seeds acquire Published snapshot status on v7 upgrade because their prior output
+rendered every retained snapshot; authored statuses remain untouched. New v7
+publication eligibility applies after that explicit compatibility migration. Binned documents are omitted
 from rendering but their publication remains recoverable in the aggregate.
 Backups include snapshots. Editing Undo/Redo preserves the current publication
 boundary and cannot republish an older history entry. Permanent deletion removes
@@ -414,20 +413,36 @@ Publish is required to make it visible again.
 
 ### Editable publication status and dates
 
-Test and Test2 reuse the shared document Publishing controls for both posts and
-pages. Draft and Pending are saved editorial states and withdraw that document's
-local publication; Published captures the current draft through the existing
-owner, lease and revision-checked transaction. The required home page remains
-Published-only. Legacy publication snapshots remain readable without changing
-pre-edit output.
+Test and Test2 reuse the shared document Publishing controls for posts and pages,
+including the authored home page. Draft, Pending and Private withdraw that
+local publication; Private remains visible only in Studio. Published captures
+its current draft through the existing owner, lease and revision checks.
+Scheduled selection withdraws an earlier publication and saves a future UTC
+date in one transaction. Schedule captures the immutable local snapshot. The
+preview browser reveals that snapshot when its clock reaches the saved date,
+including without a reload; this is a local display timer, not a server job.
 
-Date edits, including Now, are undoable draft metadata. Publish or Update uses
-that selected UTC date, falling back to the previous publication date or the
-current time. Backdating is supported. Future dates, Scheduled, Private,
-password protection and Sticky are unavailable in this fixture integration.
-There is no automatic scheduler, access-protected publication or pinned archive.
-Ordinary Save Draft never replaces a publication snapshot. Explicit publication
-commands are preserved across content Undo/Redo, and save failures retain the
-draft with visible feedback. This remains local only; no hosted publication is
-implied. Production regression coverage is in
-`tests/site-publication-controls.test.mjs` and the existing local-site suites.
+Date edits and Now remain undoable draft metadata; Now returns Scheduled to
+Published. Backdating is supported. Publishing a future date requires Scheduled,
+and scheduling requires a future date. Save Draft does not replace a snapshot.
+Password protected uses the existing salted PBKDF2 verifier and saved hash.
+The generated page keeps the protected body in an inert template until a correct
+password unlocks its visible preview. The editorial data and static source remain
+local plaintext; this gate does not secure a hosted page. Password changes apply
+to the preview only after Publish, Schedule or Update captures them.
+Sticky remains unavailable because fixtures have no Writing archive.
+
+Source v7 permits an absent home publication while retaining the required,
+non-deletable authored home document. Legacy v6 readers keep their original
+required-home-publication validation. A withheld or future home shows
+“No published home page” on `/`; available explicit document links still work.
+Draft, Pending and Private snapshots are excluded from generated output and their
+menu links are hidden; Scheduled links appear when due. Invalid links return to
+the home or its unavailable message. Studio's Current draft preview remains an
+explicit authored preview, with no password gate or publication-time filtering.
+
+Explicit publication commands remain preserved across content Undo/Redo. Saving
+uses the same source validation, peer broker, ownership, gateway CAS and rollback.
+Failures retain the draft with visible feedback. Regression coverage is in
+`tests/site-publication-controls.test.mjs`, `tests/site-publication-runtime.test.mjs`
+and the existing local-site suites. This does not publish a hosted website.

@@ -105,6 +105,11 @@ export function attachNavigationRuntime(root: HTMLElement | Document) {
   // Generated fixture routing switches authored document sections with hidden.
   const visibilityObserver = typeof MutationObserver === "undefined" ? undefined : new MutationObserver(refreshLinkAnchors);
   visibilityObserver?.observe(root, { subtree: true, attributes: true, attributeFilter: ["hidden"] });
+  function onPublicationReveal() {
+    for (const navigation of root.querySelectorAll<HTMLElement>(".template-navigation")) observer?.observe(navigation);
+    refreshLinkAnchors();
+  }
+  root.addEventListener("acm-local-publication-revealed", onPublicationReveal);
   window.addEventListener("resize", refreshLinkAnchors);
   root.addEventListener("click", onClick);
   root.addEventListener("keydown", onKeyDown);
@@ -114,6 +119,7 @@ export function attachNavigationRuntime(root: HTMLElement | Document) {
   return () => {
     observer?.disconnect();
     visibilityObserver?.disconnect();
+    root.removeEventListener("acm-local-publication-revealed", onPublicationReveal);
     window.removeEventListener("resize", refreshLinkAnchors);
     root.removeEventListener("click", onClick);
     root.removeEventListener("keydown", onKeyDown);

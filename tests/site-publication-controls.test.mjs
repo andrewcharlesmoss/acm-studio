@@ -16,7 +16,7 @@ const { renderTestSite } = await load("app/studio/test-site/render.tsx");
 const now = "2026-10-13T12:00:00.000Z";
 const backdate = "2020-02-29T09:15:00.000Z";
 function fixture(siteId, kind) {
-  const doc = (id, kind) => ({ id, kind, title: id, slug: id === "home" ? "" : id, excerpt: "", status: "draft", updatedAt: now, tags: [], seoTitle: "", seoDescription: "", blocks: [{ id: `${id}-date`, type: "post-date", format: "iso", showIcon: false }] });
+  const doc = (id, kind) => ({ id, kind, title: id, slug: id === "home" ? "" : id, excerpt: "", status: id === "home" ? "published" : "draft", updatedAt: now, tags: [], seoTitle: "", seoDescription: "", blocks: [{ id: `${id}-date`, type: "post-date", format: "iso", showIcon: false }] });
   const source = testSiteCollection({ format: "acm-test-site", version: 3, siteId, documents: [doc("home", "page"), doc("selected", kind)], categories: [], bin: [], activeDocumentId: "home", homeDocumentId: "home", templates: emptyTemplateStore(), browserImportComplete: true });
   return { ...source, version: 6, globalTemplates: [], publications: source.documents.map(document => ({ document: structuredClone(document) })) };
 }
@@ -44,7 +44,7 @@ for (const siteId of ["test", "test2"]) for (const kind of ["post", "page"]) tes
     assert.match(await readFile(path.join(root, "dist/index.html"), "utf8"), /2020-02-29/);
     const reloaded = await store.connect();
     assert.equal(reloaded.document.documents[1].publishedAt, backdate);
-    for (const status of ["pending", "draft"]) {
+    for (const status of ["pending", "draft", "private"]) {
       published = await save(changeLocalSiteStatus(published, "selected", status, published.templates, now));
       assert.equal(published.documents[1].status, status);
       assert.equal(published.publications.some(item => item.document.id === "selected"), false);
@@ -54,10 +54,10 @@ for (const siteId of ["test", "test2"]) for (const kind of ["post", "page"]) tes
     }
   } finally { await store.close(); await rm(root, { recursive: true, force: true }); }
 });
-test("unsupported statuses, future dates and home withdrawal leave the source unchanged", () => {
+test("invalid scheduled dates and future publication dates leave source unchanged leave the source unchanged", () => {
   const source = fixture("test", "post"); const before = JSON.stringify(source);
-  for (const status of ["private", "scheduled"]) assert.throws(() => changeLocalSiteStatus(source, "selected", status, source.templates, now), /not supported/);
-  for (const status of ["draft", "pending"]) assert.throws(() => changeLocalSiteStatus(source, "home", status, source.templates, now), /home page/);
+  assert.throws(() => changeLocalSiteStatus(source, "selected", "scheduled", source.templates, now), /future/);
+
   for (const publishAt of ["invalid", "2027-01-01T00:00:00Z"]) {
     const invalid = structuredClone(source); invalid.documents[1].publishAt = publishAt;
     assert.throws(() => changeLocalSiteStatus(invalid, "selected", "published", invalid.templates, now), /past or current/);
@@ -111,11 +111,105 @@ test("site posts and pages render the shared status/date buttons with the existi
   for (const kind of ["post", "page"]) {
     const document = fixture("test", kind).documents[1]; document.status = "published"; document.publishedAt = backdate;
     const noop = () => {};
-    const html = renderToStaticMarkup(createElement(DocumentInspector, { siteContext: true, localPublication: { status: "published", publishedAt: backdate }, panel: "document", document, resolvedDocument: document, categories: [], tagSuggestions: [], pages: [], onCategorySelectionChange: noop, onAddCategory: noop, onChange: noop, onPublish: noop, onUnpublish: noop, onStatusChange: noop, onDuplicate: noop, onDelete: noop, canDelete: true, canDuplicate: true, allowedStatuses: ["draft", "pending", "published"] }));
+    const html = renderToStaticMarkup(createElement(DocumentInspector, { siteContext: true, localPublication: { status: "published", publishedAt: backdate }, panel: "document", document, resolvedDocument: document, categories: [], tagSuggestions: [], pages: [], onCategorySelectionChange: noop, onAddCategory: noop, onChange: noop, onPublish: noop, onUnpublish: noop, onStatusChange: noop, onDuplicate: noop, onDelete: noop, canDelete: true, canDuplicate: true, allowedStatuses: ["draft", "pending", "private", "scheduled", "published"] }));
     assert.match(html, /inspector-setting-trigger[^>]*aria-haspopup="dialog"[^>]*>Published/);
     assert.match(html, /inspector-setting-trigger[^>]*aria-haspopup="dialog"[^>]*>29 Feb 2020, 09:15/);
     assert.match(html, new RegExp(`Update published ${kind}`));
     assert.match(html, /Return to draft/);
     assert.doesNotMatch(html, /password-protection-toggle|sticky-post-toggle/);
   }
+});
+
+for (const siteId of ["test", "test2"]) for (const kind of ["post", "page"]) test(`${siteId} ${kind}: scheduled and password snapshots survive owned save, peer merge and reload`, async () => {
+  const { createPasswordProtection, verifyPassword } = await load("app/content/password-protection.ts");
+  const { createStudioTransaction, applyStudioTransaction } = await load("app/studio/studio-sync.ts");
+  const root = await realpath(await mkdtemp(path.join(os.tmpdir(), "studio-scheduled-")));
+  const source = fixture(siteId, kind);
+  source.documents[1].publishAt = "2027-01-01T00:00:00.000Z";
+  source.documents[1].passwordProtection = await createPasswordProtection("fixture-only-password");
+  const captured = changeLocalSiteStatus(source, "selected", "scheduled", source.templates, now);
+  const transaction = createStudioTransaction(source, captured, { clientId: "peer", transactionId: "schedule", brokerEpoch: "epoch", baseRevision: 0 });
+  const applied = applyStudioTransaction(source, transaction);
+  assert.equal(applied.conflicts.length, 0);
+  const store = createTestSiteStore({ root, siteId, validate: validTestSiteDocument, render: renderTestSite });
+  try {
+    await mkdir(path.join(root, "content")); await mkdir(path.join(root, "dist"));
+    await writeFile(path.join(root, "content/site.json"), JSON.stringify(source));
+    await writeFile(path.join(root, "dist/index.html"), renderTestSite(source, revisionOf(source)));
+    const session = await store.connect(); await store.handle(session.token, { siteId, action: "claim" });
+    await store.handle(session.token, { siteId, action: "save", baseRevision: session.revision, document: applied.snapshot });
+    const reloaded = await store.connect();
+    const snapshot = reloaded.document.publications.find(item => item.document.id === "selected").document;
+    assert.equal(snapshot.status, "scheduled");
+    assert.equal(snapshot.publishAt, "2027-01-01T00:00:00.000Z");
+    assert.equal(await verifyPassword("fixture-only-password", snapshot.passwordProtection), true);
+    assert.equal(await verifyPassword("incorrect", snapshot.passwordProtection), false);
+    const html = await readFile(path.join(root, "dist/index.html"), "utf8");
+    assert.match(html, /data-test-scheduled-at="2027-01-01T00:00:00.000Z"/);
+    assert.match(html, /data-test-locked="true"/);
+    assert.match(html, /<template data-test-publication-body="true">/);
+    assert.doesNotMatch(html, /fixture-only-password/);
+    const privateSource = changeLocalSiteStatus(reloaded.document, "selected", "private", source.templates, now);
+    const privateHtml = renderTestSite(privateSource, "revision");
+    assert.doesNotMatch(privateHtml, /data-test-document="selected"/);
+    const authored = renderTestSite(privateSource, "revision", "selected");
+    assert.match(authored, /data-test-document="selected"/);
+    assert.doesNotMatch(authored, /data-test-password-form/);
+  } finally { await store.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test("all home statuses retain the authored home and v7 permits an unavailable publication", () => {
+  const source = fixture("test", "page");
+  for (const status of ["draft", "pending", "private"]) {
+    const saved = changeLocalSiteStatus(source, "home", status, source.templates, now);
+    assert.equal(saved.version, 7);
+    assert.equal(validTestSiteDocument(saved), true);
+    assert.equal(saved.documents.find(document => document.id === "home").status, status);
+    assert.equal(saved.publications.some(item => item.document.id === "home"), false);
+    assert.equal(validTestSiteDocument({ ...saved, version: 6 }), false, "legacy v6 keeps its required home publication boundary");
+    const html = renderTestSite(saved, "revision");
+    assert.match(html, /No published home page/);
+  }
+  const scheduledDraft = changeLocalSiteStatus(source, "home", "scheduled", source.templates, now, false);
+  assert.equal(validTestSiteDocument(scheduledDraft), true);
+  assert.equal(scheduledDraft.documents[0].publishAt, "2026-10-13T13:00:00.000Z");
+  assert.equal(scheduledDraft.publications.some(item => item.document.id === "home"), false);
+  const scheduled = changeLocalSiteStatus(scheduledDraft, "home", "scheduled", source.templates, now);
+  assert.equal(validTestSiteDocument(scheduled), true);
+  assert.equal(scheduled.publications.find(item => item.document.id === "home").document.status, "scheduled");
+});
+
+test("legacy seeded snapshots preserve their pre-edit public output when upgraded to v7", async () => {
+  const { localSitePublicationSnapshots } = await load("app/studio/test-site/local-publication.ts");
+  const source = fixture("test", "post");
+  source.publications[1].document.status = "draft";
+  assert.match(renderTestSite(source, "revision"), /data-test-document="selected"/);
+  const snapshots = localSitePublicationSnapshots(source, source.templates);
+  assert.equal(snapshots[1].document.status, "published");
+  const upgraded = { ...source, version: 7, publications: snapshots };
+  assert.equal(upgraded.documents[1].status, "draft", "authoring state stays unchanged");
+  assert.match(renderTestSite(upgraded, "revision"), /data-test-document="selected"/);
+  const privateSource = changeLocalSiteStatus(source, "selected", "private", source.templates, now);
+  assert.doesNotMatch(renderTestSite(privateSource, "revision"), /data-test-document="selected"/);
+});
+
+test("v7 publication validation rejects withdrawn statuses and schedules without a date", () => {
+  const source = fixture("test", "post");
+  const upgraded = changeLocalSiteStatus(source, "selected", "published", source.templates, now);
+  for (const status of ["draft", "pending", "private", "scheduled"]) {
+    const invalid = structuredClone(upgraded);
+    invalid.publications[1].document.status = status;
+    assert.equal(validTestSiteDocument(invalid), false);
+  }
+});
+
+test("legacy Undo retention keeps v6 seeded captures in their valid reader envelope", () => {
+  const source = fixture("test", "post");
+  source.publications[1].document.status = "draft";
+  const edit = structuredClone(source); edit.documents[1].title = "Edited legacy title";
+  const retained = retainLocalPublications(edit, source);
+  assert.equal(retained.version, 6);
+  assert.equal(validTestSiteDocument(retained), true);
+  assert.deepEqual(retained.publications, source.publications);
+  assert.equal(retained.documents[1].title, "Edited legacy title");
 });

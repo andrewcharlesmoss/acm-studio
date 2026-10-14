@@ -107,7 +107,7 @@ for (const timezone of timezones) {
     assert.deepEqual(result, editCases.map(([, , expected]) => ({ changes: [["publishAt", expected]], label: "UTC+0" })));
   });
 
-  test(`site Publish date accepts backdates and now, rejects scheduling, and clears its error in ${timezone}`, () => {
+  test(`site Publish date accepts backdates and future schedule dates in ${timezone}`, () => {
     const result = inTimezone(timezone, `const RealDate = Date;
       const now = "2026-10-14T12:30:00.000Z";
       globalThis.Date = class extends RealDate {
@@ -115,6 +115,7 @@ for (const timezone of timezones) {
         static now() { return RealDate.parse(now); }
       };
       siteContext = true;
+      const statusOptions = ["draft", "pending", "private", "scheduled", "published"];
       const changes = [];
       const onChange = (field, value) => changes.push([field, value]);
       const inputs = ["2020-02-29T09:15:00.000Z", now, "2026-10-14T12:30:00.001Z", "2026-10-01T10:00:00.000Z"];
@@ -126,7 +127,7 @@ for (const timezone of timezones) {
     assert.deepEqual(result, [
       { changes: [["publishAt", "2020-02-29T09:15:00.000Z"]], error: null },
       { changes: [["publishAt", "2026-10-14T12:30:00.000Z"]], error: null },
-      { changes: [], error: "Choose a past or current date. Automatic scheduling is unavailable for this local site." },
+      { changes: [["publishAt", "2026-10-14T12:30:00.001Z"]], error: null },
       { changes: [["publishAt", "2026-10-01T10:00:00.000Z"]], error: null },
     ]);
   });

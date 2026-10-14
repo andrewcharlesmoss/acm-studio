@@ -4,6 +4,10 @@
 
 ### Added
 
+- Share Draft, Pending, Private, Scheduled, Published and password preview controls
+  across Test and Test2 posts and pages, including the home page; retain local
+  ownership and saving, with explicit unavailable-home previews and UTC timing.
+
 - Open a compact block chooser from canvas Add Block controls, with contextual
   search and an explicit Browse All action for the Block Library pane.
 

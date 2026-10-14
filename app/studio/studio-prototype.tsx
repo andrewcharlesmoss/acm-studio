@@ -119,7 +119,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const currentWorkspaceSession = selectedSite ? testContext.session : studioSession;
   const importAttempt = useRef(false);
   useEffect(() => {
-    if (previewWindow || !selectedSite || !testSite.writable || !testSite.draft || !studioSession.ready || !browserTemplateSession.ready || importAttempt.current || (testSite.draft.version === 3 || testSite.draft.version === 4 || (testSite.draft.version === 5 || testSite.draft.version === 6)) && testSite.draft.browserImportComplete) return;
+    if (previewWindow || !selectedSite || !testSite.writable || !testSite.draft || !studioSession.ready || !browserTemplateSession.ready || importAttempt.current || (testSite.draft.version === 3 || testSite.draft.version === 4 || (testSite.draft.version === 5 || testSite.draft.version === 6 || testSite.draft.version === 7)) && testSite.draft.browserImportComplete) return;
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled || importAttempt.current) return;
@@ -326,11 +326,11 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   }
   async function changeSitePublicationStatus(status: string) {
     if (!selectedSite || publishingLocalSite || !testSite.writable || previewWindow) return;
-    if (status !== "draft" && status !== "pending" && status !== "published") return;
+    if (status !== "draft" && status !== "pending" && status !== "private" && status !== "scheduled" && status !== "published") return;
     if (codeEditorDirtyRef.current) { setSiteFeedback("Apply or discard code edits before changing publication status."); return; }
     setPublishingLocalSite(true);
     try {
-      await testContext.changePublicationStatus(activeDocument.id, status);
+      await testContext.changePublicationStatus(activeDocument.id, status, status !== "scheduled");
       setSiteFeedback(null);
     } catch (error) { setSiteFeedback(error instanceof Error ? error.message : "The status could not be saved. Your draft was kept."); }
     finally { setPublishingLocalSite(false); }
@@ -544,7 +544,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             pages: workspace.documents.filter((item) => item.kind === "page"),
             calendarPosts: workspace.documents.filter((item) => item.kind === "post"),
             siteContext: Boolean(selectedSite),
-            allowedStatuses: selectedSite ? activeDocument.id === testContext.homeDocumentId ? ["published"] : ["draft", "pending", "published"] : undefined,
+            allowedStatuses: selectedSite ? ["draft", "pending", "private", "scheduled", "published"] : undefined,
             onStatusChange: selectedSite ? status => { void changeSitePublicationStatus(status); } : undefined,
             localPublication: selectedSite ? { ...testContext.publicationFor(activeDocument.id), busy: publishingLocalSite } : undefined,
             writable: selectedSite ? editorWritable : undefined,

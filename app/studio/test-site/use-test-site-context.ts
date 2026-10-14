@@ -3,10 +3,10 @@ import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, retainLegacyNa
 import { reconcileFootnoteBlocks } from "../../content/footnote-reconciliation";
 import { useState } from "react";
 import { type StudioWorkspace } from "../editor-model";
-import { emptyTemplateStore, type TemplateStore, resolveTemplate } from "../template-model";
+import { emptyTemplateStore, type TemplateStore } from "../template-model";
 import type { useStudioWorkspace } from "../use-studio-workspace";
 import type { useTemplates } from "../use-templates";
-import { changeLocalSiteStatus, type LocalSiteStatus } from "./local-publication";
+import { changeLocalSiteStatus, localSitePublicationSnapshots, type LocalSiteStatus } from "./local-publication";
 import { testSiteCollection, testSiteWorkspace } from "./contract";
 import type { useTestSite } from "./use-test-site";
 
@@ -34,13 +34,10 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
         return local ? { ...retained, identity: local.identity, navigation: retainLegacyNavigationPresentation(local.navigation, retained.navigation), socialLinks: retainLegacyNavigationPresentation(local.socialLinks, retained.socialLinks) } : retained;
       });
       for (const entry of next.templates.sets) if (!sets.some(set => set.id === entry.id)) sets.push(entry);
-      const publications = source.version === 6 ? source.publications : source.documents.map(document => {
-        const presentation = resolveTemplate(effective, document);
-        return { document: structuredClone(document), ...(presentation ? { assignment: { documentId: document.id, kind: document.kind, setId: presentation.set.id, templateId: presentation.templateId } } : {}) };
-      });
+      const publications = localSitePublicationSnapshots(source, effective);
       const retainedIds = new Set([...next.workspace.documents, ...next.workspace.bin.map(item => item.document)].map(document => document.id));
       return { ...source, publications: publications.filter(item => retainedIds.has(item.document.id)), documents: next.workspace.documents, categories: next.workspace.categories,
-        bin: next.workspace.bin, version: 6, globalTemplates: refs, templates: { ...source.templates, sets, assignments: next.templates.assignments, bin: next.templates.bin }, activeDocumentId: source.homeDocumentId };
+        bin: next.workspace.bin, version: 7, globalTemplates: refs, templates: { ...source.templates, sets, assignments: next.templates.assignments, bin: next.templates.bin }, activeDocumentId: source.homeDocumentId };
     });
   }
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
@@ -58,7 +55,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       return blocks ? { ...next, blocks, updatedAt: new Date().toISOString() } : document;
     }) }));
   }
-  async function changePublicationStatus(documentId: string, status: LocalSiteStatus) {
+  async function changePublicationStatus(documentId: string, status: LocalSiteStatus, captureScheduled = true) {
     if (!site.writable || !globals || !globalsInitialised) throw new Error("Local publishing is unavailable. Your draft was kept.");
     if (!site.updateDraft(current => {
       const source = testSiteCollection(current);
@@ -66,15 +63,15 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       if (!document) throw new Error("The document is unavailable. Your draft was kept.");
       const refs = source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, site.siteId);
       const effective = effectiveGlobalTemplates(source.templates, globals, refs);
-      const publications = source.version === 6 ? source.publications : source.documents.map(document => {
-        const presentation = resolveTemplate(effective, document);
-        return { document: structuredClone(document), ...(presentation ? { assignment: { documentId: document.id, kind: document.kind, setId: presentation.set.id, templateId: presentation.templateId } } : {}) };
-      });
-      return changeLocalSiteStatus({ ...source, version: 6, globalTemplates: refs, publications }, documentId, status, effective);
+      const publications = localSitePublicationSnapshots(source, effective);
+      return changeLocalSiteStatus({ ...source, version: 7, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
     }, false)) throw new Error("The publication change could not be saved. Your draft was kept.");
     await site.flush();
   }
-  const publishDocument = (documentId: string) => changePublicationStatus(documentId, "published");
+  const publishDocument = (documentId: string) => {
+    const document = workspace.documents.find(item => item.id === documentId);
+    return changePublicationStatus(documentId, document?.status === "scheduled" ? "scheduled" : document?.status === "private" ? "private" : "published");
+  };
   const session: ReturnType<typeof useStudioWorkspace> = {
     ...browser, workspace, ready: Boolean(collection), writable: site.writable && Boolean(globals) && globalsInitialised, exclusiveWritable: site.writable && Boolean(globals) && globalsInitialised && browser.exclusiveWritable,
     loadError: site.failure, saveLabel: site.label, commit, setActiveDocument: setSelectedId,
@@ -94,7 +91,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     undo: () => { site.undo(); return true; }, redo: () => { site.redo(); return true; }, canUndo: site.canUndo, canRedo: site.canRedo,
   };
   function publicationFor(documentId: string) {
-    const published = collection?.version === 6
+    const published = (collection?.version === 6 || collection?.version === 7)
       ? collection.publications.find(item => item.document.id === documentId)?.document
       : collection?.documents.find(item => item.id === documentId);
     return { status: published?.status === "published" ? "published" as const : "draft" as const,

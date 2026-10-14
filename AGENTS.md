@@ -366,7 +366,7 @@ relative `/studio` link on every host.
 
 Andrew has authorised the local Test integration inside `/studio?site=test` and
 changes to the sibling `test` project for this fixture. The canonical source is
-Test's `content/site.json` v6 (backwards-readable v1–v5), containing documents,
+Test's `content/site.json` v7 (backwards-readable v1–v6), containing documents,
 categories, Bin and templates; visual edits use one revision-checked gateway.
 Test drives the selected site's Posts, Pages and Templates lists and commands.
 Andrew authorised copying the existing browser test documents, templates and
@@ -416,7 +416,7 @@ the existing `coverImage` and `cover-image` storage names remain compatible.
 ### Second local fixture
 
 Andrew authorised Test2 (`test2`) on 9 October 2026. `/studio?site=test2` uses
-the same local integration with an independent v6 source in sibling
+the same local integration with an independent v7 source in sibling
 `test2/content/site.json`. Only fixed IDs `test` and `test2` are accepted.
 Each owns separate gateway sessions, leases, process guards, revisions, history,
 wake channels and synchronisation rooms. Every ordinary Studio shell retains
@@ -522,7 +522,7 @@ writer lock. Foreground refresh reconnects disconnected global peers. Exact own
 save acknowledgements retain local Undo; foreign or merged saved designs clear
 whole-design history so Undo cannot revert another tab's properties.
 
-Test and Test2 source v6 retains independent document publication snapshots and
+Test and Test2 source v7 retains independent document publication snapshots and
 template assignments. Save Draft and automatic saving change authored documents
 only. Publish/Save atomically replaces the selected publication through the
 existing owned, revision-checked source/output transaction. Static local output
@@ -533,10 +533,14 @@ navigation remain shared/live. Bin hides a publication while retaining its
 snapshot for recovery. This never deploys to a hosted site.
 
 
-Test and Test2 posts and pages share the document status and UTC date controls.
-Draft and Pending withdraw the selected local publication; Published captures
-its draft through the existing owner and revision-checked save. The required
-home page remains Published-only. Date edits, including Now and backdates, stay
-undoable in the draft until Publish or Update captures them. Scheduled, Private,
-password protection and Sticky are unavailable for these local fixtures. See
-`docs/test-site-integration.md` for the supported publication boundary.
+Test and Test2 posts and pages, including the authored home page, share all five
+document status and UTC date controls. Draft, Pending and Private withdraw the
+local publication. Published captures the draft through the owning revision-checked
+save. Scheduled captures a future snapshot for the local preview browser's display
+timer; this is not a server scheduler or hosted publication. Password protected
+reuses the shared salted PBKDF2 local preview gate; editorial and static source
+remain local plaintext, so do not describe it as hosted security. Sticky remains
+unavailable. Source v7 permits an absent home publication while retaining the
+required authored home document and v1–v6 readers; a withheld home shows a neutral
+unavailable message. Date edits, Now and backdates stay draft metadata until
+capture. See `docs/test-site-integration.md` for this deliberate local extension.
