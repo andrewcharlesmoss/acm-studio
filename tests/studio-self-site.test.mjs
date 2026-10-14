@@ -5,6 +5,7 @@ import { runInNewContext } from "node:vm";
 import * as jsxRuntime from "react/jsx-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
+import { dragControl } from "./drag-placement-harness.mjs";
 import { loadProductionModule } from "./production-module.mjs";
 
 const production = await loadProductionModule(new URL("../app/studio/project-local-links.tsx", import.meta.url));
@@ -93,14 +94,30 @@ test("self-site status uses the browser address without a discovered service", (
 });
 
 
-test("Sites starts expanded and native disclosure cancels active placement when collapsed", () => {
-  let cancellations = 0;
-  const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), listProps: {}, cancel: () => cancellations++, canReorder: true, message: "" }, status: "" }) });
-  const tree = list({selectedSite:"test",libraryKind:"page"});
-  const disclosure = nodes(tree).find(node => node.type === "details");
-  assert.equal(disclosure.props.open,true);
-  disclosure.props.onToggle({currentTarget:{open:true}}); assert.equal(cancellations,0);
-  disclosure.props.onToggle({currentTarget:{open:false}}); assert.equal(cancellations,1);
-  const html = renderToStaticMarkup(tree);assert.match(html,/<details open=""/);assert.match(html,/<summary><h2>Sites/);
-  assert.equal(nodes(tree).filter(node => node.type === production.ProjectLocalSiteNavigation).length,3);
+test("Sites collapse cancels the production library drag contract without committing a move", () => {
+  for (const gesture of ["native", "pointer"]) {
+    const harness = dragControl({mode:"library"});
+    harness.setIds(["acm-studio","test","test2"]);
+    let reordering = harness.render();
+    if (gesture === "native") {
+      reordering.rowProps("acm-studio").onDragStart(harness.event(30));
+      reordering.rowProps("test2").onDragOver(harness.event(130));
+    } else {
+      reordering.rowProps("acm-studio").onPointerDown(harness.pointer(30));
+      reordering.rowProps("acm-studio").onPointerMove(harness.pointer(130));
+    }
+    reordering = harness.render(); assert.ok(reordering.line);
+    const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering, status: "" }) });
+    const tree = list({selectedSite:"test",libraryKind:"page"});
+    const disclosure = nodes(tree).find(node => node.type === "details");
+    assert.equal(disclosure.props.open,true);
+    disclosure.props.onToggle({currentTarget:{open:true}}); assert.ok(harness.render().line);
+    disclosure.props.onToggle({currentTarget:{open:false}}); assert.equal(harness.render().line,null);
+    if (gesture === "native") harness.render().rowProps("test2").onDrop(harness.event(130));
+    else harness.render().rowProps("acm-studio").onPointerUp(harness.pointer(130));
+    assert.equal(harness.moves.length,0); assert.equal(harness.render().message,"");
+    if (gesture === "pointer") assert.equal(harness.stops,1);
+    const html = renderToStaticMarkup(tree); assert.match(html,/<details open=""/); assert.match(html,/<summary><h2>Sites/);
+    assert.equal(nodes(tree).filter(node => node.type === production.ProjectLocalSiteNavigation).length,3);
+  }
 });

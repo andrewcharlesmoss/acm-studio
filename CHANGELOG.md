@@ -102,6 +102,9 @@
 
 ### Fixed
 
+- Fix the script error when collapsing Sites by exposing shared drag cancellation
+  through the library adapter, with production-contract regression coverage.
+
 - Reserve shared space before the first and after the last draggable item, with
   the end placement line centred inside it throughout Studio authoring.
 

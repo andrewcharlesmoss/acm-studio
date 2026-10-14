@@ -36,5 +36,5 @@ export function useLibraryReordering(ids: string[], writable: boolean, onMove: (
       },
     };
   }
-  return { rowProps, canReorder, line: drag.line, listProps: drag.listProps, message: announcement.listKey === listKey ? announcement.message : "" };
+  return { rowProps, canReorder, cancel: drag.cancel, line: drag.line, listProps: drag.listProps, message: announcement.listKey === listKey ? announcement.message : "" };
 }
