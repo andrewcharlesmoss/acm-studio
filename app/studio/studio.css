@@ -2130,8 +2130,11 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 
 .studio-control-tooltip { background: var(--acm-color-text-primary, #1c1c1e); color: var(--acm-color-surface, #fff); border-radius: 4px; box-shadow: 0 2px 6px #0002; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); max-width: calc(100vw - 16px); padding: 6px 8px; pointer-events: auto; position: fixed; width: max-content; z-index: 2147483647; }
 
-.document-item[data-library-entry-id] { position: relative; }
-.document-item[data-library-entry-id][draggable="true"] { cursor: grab; }
+.document-item[data-library-entry-id] { cursor: pointer; grid-template-columns: 28px minmax(0, 1fr) auto 24px; position: relative; }
+.library-drag-handle { align-items: center; color: var(--muted); cursor: inherit; display: inline-flex; height: 32px; justify-content: center; opacity: .35; width: 24px; }
+.library-drag-handle[data-reorder-enabled="true"] { cursor: grab; opacity: 1; }
+.library-drag-handle[data-reorder-enabled="true"]:active { cursor: grabbing; }
+.library-drag-handle > svg { pointer-events: none; }
 .document-item[data-drop-edge]::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: var(--studio-selection-colour, #0088FF); pointer-events: none; }
 .document-item[data-drop-edge="before"]::after { top: -1px; }
 .document-item[data-drop-edge="after"]::after { bottom: -1px; }

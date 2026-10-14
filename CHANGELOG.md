@@ -38,6 +38,9 @@
 
 ### Changed
 
+- Show six-dot drag handles on Posts, Pages, and Templates library entries,
+  with a pointer cursor on rows and a grab cursor on enabled handles.
+
 - Capitalise “Centre” in the Studio dashboard’s Control Centre label.
 
 - Use a white surface for the shared canvas block chooser in every editor.

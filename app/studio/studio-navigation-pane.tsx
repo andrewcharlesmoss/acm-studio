@@ -6,6 +6,7 @@ import { StudioListContextMenu, type StudioListContextMenuTarget } from "./studi
 import type { StudioDocument, StudioDocumentKind, StudioWorkspace } from "./editor-model";
 import type { useTemplates } from "./use-templates";
 import { useLibraryReordering } from "./use-library-reordering";
+import { LibraryDragHandle } from "./library-drag-handle";
 import type { LibraryMove } from "./library-reordering";
 import { templateLibraryEntries } from "./template-library";
 import { templateNameInitial } from "./template-library";
@@ -64,6 +65,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
                     <span className="document-kind-mark" aria-hidden="true">{templateNameInitial(entry.name)}</span>
                     <span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" || entry.kind === "overlay" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span>
                     <i aria-hidden="true" />
+                    <LibraryDragHandle enabled={reordering.canReorder} />
                   </button>
                 ))}
                 <button className="button-secondary" type="button" onClick={onOpenTemplates}>Open Template Editor</button>
@@ -73,6 +75,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
                   <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span>
                   <span><strong>{document.title}</strong><small>/{document.slug}</small></span>
                   <span className={`document-status is-${document.status}`}>{document.status.charAt(0).toUpperCase() + document.status.slice(1)}</span>
+                  <LibraryDragHandle enabled={reordering.canReorder} />
                 </button>
               ))}
               {kind !== "templates" && !workspace.documents.some((document) => document.kind === kind) ? <p className="document-list-empty">No {kind === "page" ? "pages" : "posts"} yet.</p> : null}

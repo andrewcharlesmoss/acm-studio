@@ -5,6 +5,7 @@ const MIME = "application/x-acm-studio-library-entry";
 /** A drag belongs to one rendered list and one unchanged order snapshot. */
 export function useLibraryReordering(ids: string[], writable: boolean, onMove: (move: LibraryMove) => boolean, listKey = "library") {
   const owner = useId();
+  const canReorder = writable && ids.length > 1;
   const pointer = useRef<{ pointerId: number; x: number; y: number; id: string; active: boolean; target?: { id: string; edge: "before" | "after" } } | null>(null);
   const suppressClick = useRef(false);
   const drag = useRef<{ id: string; baseline: string[] } | null>(null);
@@ -17,11 +18,11 @@ export function useLibraryReordering(ids: string[], writable: boolean, onMove: (
   function move(value: LibraryMove) { const accepted = onMove(value); if (accepted) setAnnouncement({ listKey, message: `Moved to position ${value.edge === "before" ? ids.filter(id => id !== value.id).indexOf(value.targetId) + 1 : ids.filter(id => id !== value.id).indexOf(value.targetId) + 2} of ${ids.length}.` }); }
   function rowProps(id: string) {
     return {
-      draggable: writable && ids.length > 1,
+      draggable: canReorder,
       "data-library-entry-id": id,
       "data-library-reorder-owner": owner,
       "data-drop-edge": indicator?.id === id && writable && indicator.baseline === JSON.stringify(ids) ? indicator.edge : undefined,
-      "aria-description": writable && ids.length > 1 ? "Drag to reorder, or press Alt and the Up or Down arrow." : undefined,
+      "aria-description": canReorder ? "Drag to reorder, or press Alt and the Up or Down arrow." : undefined,
       onPointerDown(event: PointerEvent<HTMLElement>) {
         // Mouse pointer capture avoids relying on native HTML drag support.
         // Touch keeps its ordinary scrolling behaviour and keyboard remains available.
@@ -62,5 +63,5 @@ export function useLibraryReordering(ids: string[], writable: boolean, onMove: (
       onKeyDown(event: KeyboardEvent<HTMLElement>) { if (event.key === "Escape") { cancel(); return; } if (!writable || !event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !["ArrowUp", "ArrowDown"].includes(event.key)) return; event.preventDefault(); const direction = event.key === "ArrowUp" ? -1 : 1; const targetId = ids[ids.indexOf(id) + direction]; if (targetId) move({ id, targetId, edge: direction === -1 ? "before" : "after", baseline: [...ids] }); },
     };
   }
-  return { rowProps, message: announcement.listKey === listKey ? announcement.message : "" };
+  return { rowProps, canReorder, message: announcement.listKey === listKey ? announcement.message : "" };
 }

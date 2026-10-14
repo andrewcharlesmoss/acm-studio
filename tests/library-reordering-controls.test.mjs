@@ -45,3 +45,9 @@ test("pointer cancelled/stale/foreign targets reject, and touch retains ordinary
 test("announcement belongs only to its current category/context",()=>{
  const f=control();f.render().rowProps("a").onKeyDown({key:"ArrowDown",altKey:true,preventDefault(){}});assert.match(f.render().message,/position 2 of 3/);f.setListKey("pages");assert.equal(f.render().message,"");f.setListKey("posts");assert.equal(f.render().message,"");
 });
+
+test("drag handle availability uses the same permission and row count as dragging", () => {
+ const f=control();let ui=f.render();assert.equal(ui.canReorder,true);assert.equal(ui.rowProps("a").draggable,ui.canReorder);
+ f.setWritable(false);ui=f.render();assert.equal(ui.canReorder,false);assert.equal(ui.rowProps("a").draggable,ui.canReorder);
+ f.setWritable(true);f.setIds(["a"]);ui=f.render();assert.equal(ui.canReorder,false);assert.equal(ui.rowProps("a").draggable,ui.canReorder);assert.equal(ui.rowProps("a")["aria-description"],undefined);
+});

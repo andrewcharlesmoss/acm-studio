@@ -1,5 +1,6 @@
 "use client";
 import { useLibraryReordering } from "./use-library-reordering";
+import { LibraryDragHandle } from "./library-drag-handle";
 import { reorderLibraryDocuments, reorderLibraryTemplates, type LibraryMove } from "./library-reordering";
 import { templateMediaTargetKind } from "./template-media-target";
 import { validateGlobalTemplateLibrary } from "./global-template-contract";
@@ -416,10 +417,12 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
         {libraryKind === "templates" ? <>
         {templateEntries.map(({ set: item, entry }) => <button {...reordering.rowProps(`${item.id}/${entry.id}`)} className={`document-item template-target-item${!showTemplateLibrary && item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { reordering.rowProps(`${item.id}/${entry.id}`).onKeyDown(event); if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
           <span className="document-kind-mark" aria-hidden="true">{templateNameInitial(entry.name)}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" || entry.kind === "overlay" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />
+          <LibraryDragHandle enabled={reordering.canReorder} />
         </button>)}
 
         </> : workspace.workspace.documents.filter(document => document.kind === libraryKind).map(document => <button {...reordering.rowProps(document.id)} className={`document-item${document.id === workspace.workspace.activeDocumentId ? " is-active" : ""}`} type="button" key={document.id} onClick={() => onSelectDocument?.(document.id)}>
           <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span><span><strong>{document.title}</strong><small>/{document.slug}</small></span><span className={`document-status is-${document.status}`}>{document.status.charAt(0).toUpperCase() + document.status.slice(1)}</span>
+          <LibraryDragHandle enabled={reordering.canReorder} />
         </button>)}
         {libraryKind !== "templates" && !workspace.workspace.documents.some(document => document.kind === libraryKind) ? <p className="document-list-empty">No {libraryKind === "page" ? "pages" : "posts"} yet.</p> : null}
         <span className="visually-hidden" role="status">{reordering.message}</span>
