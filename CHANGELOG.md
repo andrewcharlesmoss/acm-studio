@@ -83,6 +83,9 @@
 
 ### Fixed
 
+- Use ticks alone for selected View menu options, preserving the separate
+  keyboard focus indicator.
+
 - Automatically recover abandoned local-site and global-template writer locks
   when their process is confirmed gone, retaining protection against competing
   servers, uncertain ownership, and changed source files.
