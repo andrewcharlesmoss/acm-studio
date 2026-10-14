@@ -75,6 +75,9 @@
 
 ### Fixed
 
+- Keep the UI Library's selected control stable after clicking a jump link,
+  and prevent hover and selection from shifting the menu entries.
+
 - Use the same compact shared sizing for header Save and Publish buttons.
 
 - Show featured images in local-site Existing Presentation across Edit, Preview

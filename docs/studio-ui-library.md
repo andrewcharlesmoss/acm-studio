@@ -62,9 +62,12 @@ Page-level kickers use uppercase styling across every library section. The
 shared library stylesheet covers the common page intro and the Ribbon and Pane
 intro variants; secondary specimen kickers retain their own wording and style.
 
-The Controls jump menu tracks the last specimen whose top has reached the
-viewport midpoint. A long card remains active while that midpoint passes
-through it; gaps retain the preceding specimen until the next card arrives.
+The Controls jump menu retains a clicked or hash-linked specimen throughout
+anchor scrolling, even when the destination cannot reach the viewport top.
+Manual page scrolling resumes tracking at each specimen's top scroll margin;
+gaps retain the preceding specimen. Scrolling the menu itself does not change
+the destination. Hover uses the shared neutral background, and selection does
+not change text weight or move the surrounding menu entries.
 
 Page introductions share heading typography and 32px desktop / 16px mobile
 gutters. Group headings, specimen cards and supporting disclosures align to
