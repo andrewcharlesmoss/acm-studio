@@ -61,14 +61,14 @@ test('unrestricted reduction retains every child in order and equalises survivin
   assert.equal(before.children.length, 2); assert.equal(validContentBlocks([next.block]), true);
 });
 
-test('destination restrictions refuse moved content while retaining existing disallowed children', () => {
+test('legacy destination restrictions retain metadata without refusing moved content', () => {
   const before = fixture(); before.children[0].allowedBlocks = ['heading'];
   const denied = proposeColumnCountChange(before, 1, i => `new-${i}`);
-  assert.equal(denied.block, before); assert.match(denied.reason, /does not allow/);
+  assert.notEqual(denied.block, before); assert.equal(denied.reason, undefined); assert.deepEqual(denied.block.children[0].allowedBlocks, ["heading"]);
   const retained = structuredClone(before); retained.children[1].children = [];
   assert.notEqual(proposeColumnCountChange(retained, 1, i => `new-${i}`).block, retained);
   const images = fixture(); images.children[0].allowedBlocks = ['paragraph']; images.children[1].children = [{ id:'image',type:'image',src:'https://example.test/photo.png',alt:'Example' }];
-  assert.equal(proposeColumnCountChange(images, 1, i => `new-${i}`).block, images);
+  assert.notEqual(proposeColumnCountChange(images, 1, i => `new-${i}`).block, images);
 });
 
 test('removal and movement locks refuse reduction without changing content or history', () => {
@@ -136,11 +136,11 @@ test('actual Columns inspector disables a refused reduction and exposes its reas
   const ast=await astOf('../app/studio/blocks/inspectors/block-inspector.tsx');const owner=nodes(ast,n=>ts.isFunctionDeclaration(n)&&n.name?.text==='ColumnsInspector')[0];
   const context={React,useId:()=> 'count-help',proposeColumnCountChange,InspectorAccordionSection:()=>null,AcmIcon:()=>null};
   const code=ts.transpileModule(`${owner.getText(ast)}\nColumnsInspector;`,{compilerOptions:{target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.React}}).outputText;
-  const Inspector=vm.runInNewContext(code,context);const blocked=fixture();blocked.children[0].allowedBlocks=['heading'];
+  const Inspector=vm.runInNewContext(code,context);const blocked=fixture();blocked.children[1].editorial={lock:{remove:true}};
   const tree=Inspector({block:blocked,onChange:()=>assert.fail('Wrong owner'),onCountChange:()=>assert.fail('Disabled reduction')});
   const found=[];function walk(n){if(!React.isValidElement(n))return;found.push(n);React.Children.forEach(n.props.children,walk);}walk(tree);
   const button=found.find(n=>n.type==='button'&&n.props['aria-label']==='Remove column');assert.equal(button.props.disabled,true);assert.equal(button.props['aria-describedby'],'count-help');
-  assert.match(found.find(n=>n.type==='p'&&n.props.id==='count-help').props.children,/does not allow/);
+  assert.match(found.find(n=>n.type==='p'&&n.props.id==='count-help').props.children,/locked block/);
   const available=Inspector({block:fixture(),onChange:()=>assert.fail('Wrong owner'),onCountChange:count=>assert.equal(count,1)});
   found.length=0;walk(available);const remove=found.find(n=>n.type==='button'&&n.props['aria-label']==='Remove column');assert.equal(remove.props.disabled,false);remove.props.onClick();
 });

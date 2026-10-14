@@ -102,7 +102,7 @@ test("nested blocks support lookup, update, removal and deep duplication", () =>
   assert.equal(findBlockById(removeNestedBlockById(updated, "table").blocks, "table"), null);
 });
 
-test("Group allowed block choices constrain nested insertion and paragraph splitting eligibility", async () => {
+test("legacy Group allowlists do not constrain nested insertion or paragraph splitting", async () => {
   const items = [
     { type: "paragraph", label: "Paragraph", description: "Text" },
     { type: "heading", label: "Heading", description: "Title" },
@@ -113,20 +113,20 @@ test("Group allowed block choices constrain nested insertion and paragraph split
     { type: "template-content", label: "Content", description: "Template content" },
   ];
   const group = { id: "group", type: "group", layout: "flow", allowedBlocks: ["paragraph", "image", "social-icons"], children: [] };
-  assert.deepEqual(blockInserterOptions(items, group, "").map(item => item.type), ["paragraph", "image", "social-icons"]);
+  assert.deepEqual(blockInserterOptions(items, group, "").map(item => item.type), ["paragraph", "heading", "image", "social-icons"]);
   assert.deepEqual(blockInserterOptions(items, group, "media").map(item => item.type), ["image"]);
   assert.deepEqual(blockInserterOptions(items, undefined, "").map(item => item.type), ["paragraph", "heading", "image", "social-icons", "social-linkedin", "social-tiktok"]);
   assert.deepEqual(blockInserterOptions(items, { id: "social", type: "social-icons", children: [] }, "", [items[1], items[4], items[5]]).map(item => item.type), ["social-linkedin", "social-tiktok"]);
 
-  assert.equal(groupAllowsChild(group, "heading"), false);
+  assert.equal(groupAllowsChild(group, "heading"), true);
   assert.equal(groupAllowsChild(group, "paragraph"), true);
   assert.equal(groupAllowsChild(group, "social-linkedin"), true);
-  assert.equal(groupAllowsChild({ ...group, allowedBlocks: ["paragraph"] }, "social-tiktok"), false);
+  assert.equal(groupAllowsChild({ ...group, allowedBlocks: ["paragraph"] }, "social-tiktok"), true);
   assert.equal(groupAllowsChild({ ...group, allowedBlocks: undefined }, "heading"), true);
   const paragraph = { id: "existing-paragraph", type: "paragraph" };
   const restrictiveGroup = { ...group, allowedBlocks: ["image"] , children: [paragraph] };
   assert.equal(parentOfNestedBlock([restrictiveGroup], paragraph.id)?.id, group.id);
-  assert.equal(groupAllowsChild(parentOfNestedBlock([restrictiveGroup], paragraph.id), "paragraph"), false);
+  assert.equal(groupAllowsChild(parentOfNestedBlock([restrictiveGroup], paragraph.id), "paragraph"), true);
   const commands = await readFile(new URL("../app/studio/use-studio-block-commands.ts", import.meta.url), "utf8");
   assert.equal((commands.match(/parentOfNestedBlock\(activeDocument\.blocks, blockId\)/g) ?? []).length, 4, "duplication, both paragraph split paths and List exit check their parent");
   const templateEditor = await readFile(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");

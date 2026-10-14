@@ -158,18 +158,18 @@ for (const lock of [{ move: true }, { remove: true, move: true }]) test(`root ex
   assert.equal(h.blocks(), h.original.blocks);
 });
 
-test("restricted parent refuses Paragraph placement without focus or history", () => {
+test("legacy parent restriction permits Paragraph placement and history", () => {
   const h = commandFixture(list([""]), { id: "group", type: "group", layout: "flow", allowedBlocks: ["list"] });
-  assert.equal(h.command.exitList("list", 0), null);
-  assert.equal(h.history().history.length, 0);
+  assert.ok(h.command.exitList("list", 0));
+  assert.equal(h.history().history.length, 1);
 });
 
-test("narrowed parent policy refuses newly promoted child Lists", () => {
+test("legacy parent policy permits newly promoted child Lists", () => {
   const source = list([{ text: "", children: [list(["Kept"], "child")] }]);
   const h = commandFixture(source, { id: "group", type: "group", layout: "flow", allowedBlocks: ["paragraph"] });
-  assert.equal(h.command.exitList(source.id, 0), null);
-  assert.equal(h.blocks(), h.original.blocks);
-  assert.equal(h.history().history.length, 0);
+  assert.ok(h.command.exitList(source.id, 0));
+  assert.notEqual(h.blocks(), h.original.blocks);
+  assert.equal(h.history().history.length, 1);
 });
 
 test("sole empty List conversion retains supported block alignment", () => {

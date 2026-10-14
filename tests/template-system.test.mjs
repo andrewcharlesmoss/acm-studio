@@ -1154,17 +1154,17 @@ test("template stale nested insertion refuses a deleted Buttons parent", () => {
   assert.equal(fixture.blocks.length, 0); assert.equal(fixture.changes, 1);
 });
 
-test("template implicit selected Column insertion uses the current allowed-block policy", () => {
+test("template implicit selected Column insertion ignores retained legacy allowlists", () => {
   const fixture = templateInsertionFixture({ blocks: [{ id: "columns", type: "columns", children: [{ id: "column", type: "column", children: [], allowedBlocks: ["paragraph", "buttons"] }] }] });
   fixture.canvas.onSelectBlock("column");
   const captured = fixture.render().props.canvas;
   captured.onUpdateBlock("column", block => ({ ...block, allowedBlocks: ["paragraph"] }));
   assert.equal(fixture.changes, 1);
-  assert.equal(captured.onInsertBlock("buttons"), null);
-  assert.equal(fixture.changes, 1); assert.equal(fixture.blocks[0].children[0].children.length, 0);
+  assert.ok(captured.onInsertBlock("buttons"));
+  assert.equal(fixture.changes, 2); assert.equal(fixture.blocks[0].children[0].children.length, 1);
   const paragraph = captured.onInsertBlock("paragraph");
   assert.ok(paragraph);
-  assert.equal(fixture.blocks[0].children[0].children[0].id, paragraph.id);
+  assert.equal(fixture.blocks[0].children[0].children[1].id, paragraph.id);
 });
 
 test("template rejected and read-only insertions return no phantom blocks", () => {

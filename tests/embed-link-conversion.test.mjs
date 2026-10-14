@@ -46,10 +46,10 @@ test("rich caption preserves typed objects, marks and note companions", () => {
   assert.ok(next); assert.deepEqual(JSON.parse(JSON.stringify(next.runs.slice(1).flatMap(run => run.text === "\n" ? [] : [run]))), captionRuns);
   assert.equal(validContentBlocks([next, notes]), true); assert.deepEqual(notes.notes, [{ id: "note", text: "Reference note" }]);
 });
-for (const type of ["group", "column"]) for (const allowed of [true, false]) test(`${type} parent ${allowed ? "allows" : "refuses"} Paragraph conversion`, () => {
+for (const type of ["group", "column"]) for (const allowed of [true, false]) test(`${type} parent retains ${allowed ? "Paragraph" : "Embed"} legacy metadata during Paragraph conversion`, () => {
   const block = fixture(); const parent = { id: "parent", type, ...(type === "group" ? { layout: "flow" } : {}), allowedBlocks: allowed ? ["paragraph"] : ["embed"], children: [block] };
   const roots = type === "column" ? [{ id: "columns", type: "columns", children: [parent] }] : [parent];
-  assert.equal(Boolean(embedLinkParagraph(block, roots)), allowed);
+  assert.equal(Boolean(embedLinkParagraph(block, roots)), true);
 });
 test("missing or changed root source refuses a stale proposal", () => {
   const block = fixture(); assert.equal(embedLinkParagraph(block, []), null);
@@ -99,7 +99,7 @@ test("conversion state and rich output use production Edit, Preview and HTML own
   assert.match(markup, /A useful caption/);
   const denied = { id: "group", type: "group", layout: "flow", allowedBlocks: ["embed"], children: [block] };
   const disabled = renderToStaticMarkup(createElement(BlockField, { ...props, block, rootBlocks: [denied] }));
-  assert.match(disabled, /<button type="button" disabled="">Convert to link<\/button>/);
+  assert.match(disabled, /<button type="button">Convert to link<\/button>/);
   const readonly = renderToStaticMarkup(createElement(BlockField, { ...props, block, writable: false }));
   assert.doesNotMatch(readonly, /Convert to link/);
 });

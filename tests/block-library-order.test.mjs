@@ -46,11 +46,11 @@ test("catalogue includes the four Group variations and keeps the template slot s
   assert.equal(model.templateContentBlock.type, "template-content");
 });
 
-test("description search and restricted parent filtering retain canonical tile order", () => {
+test("description search and structural parent filtering retain canonical tile order", () => {
   const text = options.blockInserterOptions(model.blockCatalogue, undefined, "code");
   assert.deepEqual(plain(text.map(entry => entry.type)), ["code"]);
   const group = { id: "group", type: "group", children: [], allowedBlocks: ["heading", "paragraph", "table"] };
-  assert.deepEqual(plain(options.blockInserterOptions(model.blockCatalogue, group, "").map(entry => entry.type)), ["paragraph", "heading", "table"]);
+  assert.deepEqual(plain(options.blockInserterOptions(model.blockCatalogue, group, "")), plain(options.blockInserterOptions(model.blockCatalogue, { ...group, allowedBlocks: undefined }, "")));
   const social = { id: "social", type: "social-icons", children: [] };
   assert.deepEqual(plain(options.blockInserterOptions(model.blockCatalogue, social, "", model.socialIconCatalogue).map(entry => entry.type)), ["social-linkedin", "social-tiktok"]);
 });

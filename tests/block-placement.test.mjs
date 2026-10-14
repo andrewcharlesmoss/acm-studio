@@ -41,7 +41,7 @@ test("invalid targets, descendants, restricted types and locks retain the source
   const locked = fixture(); locked[0].editorial = { lock: { move: true } };
   assert.equal(moveBlockToTarget(locked, "root", { parentId: "right", index: 0 }), locked);
   const restricted = fixture(); restricted[1].children[1].allowedBlocks = ["heading"];
-  assert.equal(moveBlockToTarget(restricted, "b", { parentId: "right", index: 0 }), restricted);
+  assert.equal(moveBlockToTarget(restricted, "b", { parentId: "right", index: 0 })[1].children[1].children[0].id, "b");
   assert.equal(insertBlockAtTarget(before, p("a"), { parentId: "right", index: 0 }), before);
   const social = [...before, { id: "social", type: "social-icons", children: [{ id: "icon", type: "social-linkedin", url: "https://www.linkedin.com/", label: "LinkedIn" }] }];
   for (const parentId of [null, "right"]) assert.equal(moveBlockToTarget(social, "icon", { parentId, index: 0 }), social);

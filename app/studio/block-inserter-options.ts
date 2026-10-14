@@ -1,5 +1,4 @@
-import { storedBlockType } from "./blocks/group-variations";
-import type { ContentBlock, GroupAllowedBlockType } from "../content/model";
+import type { ContentBlock } from "../content/model";
 import type { BlockLibraryItemType } from "./editor-model";
 import { childContentBlocks } from "../content/block-tree.ts";
 
@@ -28,12 +27,12 @@ export function groupAllowsChild(parent: ContentBlock, childType: string): boole
   if (parent.type === "social-icons") return childType === "social-linkedin" || childType === "social-tiktok";
   if (parent.type === "list") return childType === "list";
   if (parent.type === "quote") return ["paragraph", "heading", "list", "quote", "image"].includes(childType);
-  const storedType = childType === "template-content" || childType === "navigation" ? "group" : childType === "button" ? "buttons" : childType === "social-linkedin" || childType === "social-tiktok" ? "social-icons" : storedBlockType(childType);
-  return (parent.type !== "group" && parent.type !== "column") || parent.allowedBlocks === undefined
-    || parent.allowedBlocks.includes(storedType as GroupAllowedBlockType) || childType === "button" && parent.allowedBlocks.includes("button");
+  // Saved allowlists remain readable for recovery, but authoring shows every
+  // structurally supported block while Studio’s catalogue is being developed.
+  return true;
 }
 
-/** Retain existing children when a policy narrows, but enforce it on new children and transforms. */
+/** Preserve existing children while enforcing structural rules on new children and transforms. */
 export function permitsBlockTreeChanges(previous: ContentBlock[], next: ContentBlock[]): boolean {
   const previousParents = new Map<string, ContentBlock>();
   function index(blocks: ContentBlock[]) {

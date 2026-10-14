@@ -32,11 +32,11 @@ test("every variation transforms mutually without losing nested data or presenta
     }
   }
 });
-test("allowed-block restrictions treat every insertion alias as Group", () => {
+test("legacy allowlists do not hide any insertion alias", () => {
   const allowed = { ...createBlock("group"), allowedBlocks: ["group"] };
   const denied = { ...allowed, allowedBlocks: ["paragraph"] };
-  for (const variation of ["group", "row", "stack", "grid"]) { assert.equal(groupAllowsChild(allowed, variation), true); assert.equal(groupAllowsChild(denied, variation), false); }
-  assert.deepEqual(blockInserterOptions(blockCatalogue, allowed, "").map(item => item.type), ["group", "row", "stack", "grid"]);
+  for (const variation of ["group", "row", "stack", "grid"]) { assert.equal(groupAllowsChild(allowed, variation), true); assert.equal(groupAllowsChild(denied, variation), true); }
+  assert.deepEqual(blockInserterOptions(blockCatalogue, allowed, ""), blockInserterOptions(blockCatalogue, { ...allowed, allowedBlocks: undefined }, ""));
 });
 test("full-width toggle releases constraints and explicit auto-grid caps remain honoured", () => {
   assert.equal(layoutDataAttributes({ layout: "flow", inheritLayout: true })["data-layout-constrained"], "true");

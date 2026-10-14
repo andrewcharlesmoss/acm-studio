@@ -537,7 +537,7 @@ is a supplementary behavioural reference.
 
 Navigation appears under **Theme** in the template editor's Block Library and
 can be inserted at the root or inside an ordinary Group, Column or Section,
-subject to that container's allowed-block settings. It creates the existing
+subject to structural child rules. It creates the existing
 typed template element and uses the set's shared menu; it does not create a
 new page-body block type. The isolated UI Library example at
 `/studio/ui/blocks/navigation` uses the same canvas and inspector with temporary
@@ -801,3 +801,12 @@ helpers. Only one presentation owns each link anchor. The shared navigation runt
 hands the ID between desktop and overlay copies when the existing container
 breakpoint changes, including custom overlay submenus. Classes and appearance
 remain the same.
+
+### Container block availability
+
+Studio does not expose Manage allowed blocks during the foundation phase. The
+editor offers every structurally supported block in each container. Legacy
+`allowedBlocks` metadata remains validated and preserved in drafts, templates,
+HTML round trips, and backups for recovery, but does not filter insertion, paste,
+movement, or transforms. Structural child rules and template-specific restrictions
+remain enforced.

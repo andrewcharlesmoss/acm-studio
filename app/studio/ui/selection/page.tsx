@@ -69,7 +69,7 @@ const fixture: StudioDocument = {
         { text: "Second parent item", children: [{ id: "other-item-list", type: "list", style: "unordered", items: ["Different item owner"] }] },
       ] },
       { id: "list-following-paragraph", type: "paragraph", text: "Append this paragraph from the deepest final List item." },
-      { id: "restricted-group", type: "group", layout: "flow", allowedBlocks: ["paragraph"], children: [{ id: "restricted-text", type: "paragraph", text: "Only Paragraph is allowed here" }] },
+      { id: "restricted-group", type: "group", layout: "flow", allowedBlocks: ["paragraph"], children: [{ id: "restricted-text", type: "paragraph", text: "All supported blocks are available here" }] },
     ] },
   ],
 };

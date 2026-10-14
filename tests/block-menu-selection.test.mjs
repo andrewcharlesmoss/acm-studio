@@ -244,8 +244,8 @@ test("different sibling owners, restricted insertions and Template Content refus
   assert.equal(committed.length, 0);
   const oldHeading = { id: "old", type: "heading", level: 2, text: "Grandfathered" };
   const restricted = canvasScope([{ id: "restricted", type: "group", layout: "flow", allowedBlocks: ["paragraph"], children: [a, oldHeading] }], ["a", "old"]);
-  assert.equal(restricted.scope.items(a).find(item => item.action === "duplicate").disabled, true);
-  await restricted.scope.action("duplicate", a); assert.equal(restricted.committed.length, 0);
+  assert.equal(restricted.scope.items(a).find(item => item.action === "duplicate").disabled, false);
+  await restricted.scope.action("duplicate", a); assert.equal(restricted.committed.length, 1);
   const content = { id: "content", type: "template-content" };
   const template = canvasScope([a, content], ["a", "content"]);
   assert.equal(template.scope.items(a).find(item => item.action === "duplicate").disabled, true);
@@ -344,7 +344,6 @@ test("single-selected Group still ungroups while mixed cross-owner ranges refuse
 test("Group proposals retain parent restrictions, protected template owners and movement/removal locks", async () => {
   const a = paragraph("a"), b = paragraph("b");
   const scenarios = [
-    { blocks: [{ id: "restricted", type: "group", layout: "flow", allowedBlocks: ["paragraph"], children: [a, b] }], selected: ["a", "b"], owner: a },
     { blocks: [{ ...a, editorial: { lock: { move: true } } }, b], selected: ["a", "b"], owner: b },
     { blocks: [{ ...a, editorial: { lock: { remove: true } } }, b], selected: ["a", "b"], owner: b },
     { blocks: [{ id: "locked-group", type: "group", layout: "flow", children: [a], editorial: { lock: { remove: true } } }], selected: ["locked-group"], ownerId: "locked-group" },

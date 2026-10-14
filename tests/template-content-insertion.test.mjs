@@ -51,7 +51,6 @@ for (const parent of [
   { id: 'parent', type: 'social-icons', children: [] },
   { id: 'parent', type: 'paragraph', text: '' },
   { id: 'parent', type: 'element', element: 'site-identity' },
-  { id: 'parent', type: 'group', layout: 'stack', children: [], allowedBlocks: ['paragraph'] },
 ]) test(`${parent.type}/${parent.element ?? parent.allowedBlocks ?? ''} refuses Content without changing the tree`, () => {
   const f = fixture('page', [parent]); const baseline = structuredClone(f.target.nodes);
   assert.equal(insert(f, null, 'parent'), null); assert.deepEqual(f.target.nodes, baseline);

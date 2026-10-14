@@ -24,6 +24,8 @@
 
 ### Changed
 
+- Container authoring shows every structurally supported block. Manage allowed blocks is removed; saved legacy restrictions remain recoverable.
+
 - Separate each editor breadcrumb with a chevron and make ancestors clickable,
   revealing the selected library or returning safely to Sites.
 

@@ -5,8 +5,7 @@ import { changeGroupLayout, groupVariationFor } from "../group-variations";
 import { AdvancedFieldsControl, type AdvancedFields } from "../../controls/advanced-fields-control";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
-import { GROUP_ALLOWED_BLOCK_TYPES } from "../../../content/model";
-import type { ButtonInteractionState, ColumnBlock, ContentBlock, GroupAllowedBlockType, DocumentTitleLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../../../content/model";
+import type { ButtonInteractionState, ColumnBlock, ContentBlock, DocumentTitleLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../../../content/model";
 import type { LayoutMode } from "../../../content/model";
 import { LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS } from "../../../content/layout";
 import { blockCatalogue, FEATURED_IMAGE_LABEL } from "../../editor-model";
@@ -104,7 +103,6 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
       {profile.sharedStyleInspector ? <ParagraphInspector key={`${block.id}:${block.type}:${block.type === "button" ? buttonState : "default"}:block`} profileOverride={contentSlot ? profile : undefined} block={block} interactionState={block.type === "button" ? buttonState : "default"} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} backgroundImageOptions={block.type === "list" || block.type === "group" || block.type === "quote" || block.type === "heading" || block.type === "code" || block.type === "document-title" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} detailsOnly /> : undefined} backgroundImageControls={block.type === "list" || block.type === "group" || block.type === "quote" || (block.type === "heading" && Boolean(block.visualStyle?.backgroundImageMediaId)) || block.type === "code" || block.type === "document-title" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} embedded /> : undefined} groupLayoutControls={block.type === "group" ? <LayoutInspector block={block} onChange={onChange} heading="Layout" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : undefined} groupDimensionControls={block.type === "group" ? <GroupDimensionsInspector block={block} onChange={onChange} /> : block.type === "columns" ? <LayoutGapsInspector block={block} onChange={onChange} /> : undefined} onResetGroupDimensions={block.type === "group" || block.type === "columns" ? () => onChange({ ...block, paddingX: undefined, paddingY: undefined, gap: undefined, columnGap: undefined, rowGap: undefined }) : undefined} /> : null}
       {block.type === "group" && canSetSticky && !contentSlot ? <GroupPositionInspector block={block} onChange={onChange} /> : null}
       {advanced && block.type !== "embed" && block.type !== "spacer" && block.type !== "image" && block.type !== "divider" ? <AdvancedFieldsInspector semanticElement={!contentSlot} block={block} onChange={onChange} fields={advanced} /> : null}
-      {!contentSlot && (block.type === "group" || block.type === "column") ? <AllowedBlocksInspector block={block} onChange={onChange} /> : null}
     </>
   );
   const requiredSettings = (
@@ -151,25 +149,6 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
 
 function MetadataAlignment({ block, onChange }: { block: Extract<ContentBlock, { type: "reading-time" | "document-subtitle" }>; onChange: (block: ContentBlock) => void }) {
   return <label><span>Alignment</span><select value={block.align ?? "left"} onChange={event => onChange({ ...block, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></select></label>;
-}
-
-function AllowedBlocksInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "group" | "column" }>; onChange: (block: ContentBlock) => void }) {
-  const [manageOpen, setManageOpen] = useState(false);
-  const controlsId = useId();
-  const options = blockCatalogue.filter((item): item is typeof item & { type: GroupAllowedBlockType } => GROUP_ALLOWED_BLOCK_TYPES.includes(item.type as GroupAllowedBlockType) && item.type !== "button" && item.type !== "social-linkedin" && item.type !== "social-tiktok");
-  const allowed = new Set(block.allowedBlocks?.map(type => type === "button" ? "buttons" : type) ?? options.map(option => option.type));
-  function toggle(type: GroupAllowedBlockType, checked: boolean) {
-    const next = new Set(allowed);
-    if (checked) next.add(type); else next.delete(type);
-    const allowedBlocks = options.every(option => next.has(option.type)) ? undefined : options.filter(option => next.has(option.type)).map(option => option.type);
-    onChange({ ...block, allowedBlocks });
-  }
-  return <div className="group-allowed-blocks-section">
-    <h3>Allowed Blocks</h3>
-    <button className="group-allowed-blocks-trigger" type="button" aria-expanded={manageOpen} aria-controls={controlsId} onClick={() => setManageOpen(open => !open)}>Manage allowed blocks</button>
-    <p className="setting-note">Specify which blocks are allowed inside this container.</p>
-    {manageOpen ? <fieldset id={controlsId} className="group-allowed-blocks"><legend>Blocks allowed inside this {block.type === "column" ? "Column" : "Group"}</legend>{options.map(option => <label className="checkbox-setting" key={option.type}><input type="checkbox" checked={allowed.has(option.type)} onChange={event => toggle(option.type, event.target.checked)} /><span>{option.label}</span></label>)}</fieldset> : null}
-  </div>;
 }
 
 // Match the Gutenberg core blocks represented by Studio. Studio-only blocks

@@ -108,11 +108,11 @@ for (const parent of [
   assert.equal(children[0].text, 'First');
 });
 
-test('list-only parent permits promotion but rejects Paragraph extraction', () => {
+test('legacy list-only parent permits promotion and Paragraph extraction', () => {
   const parent = { id: 'group', type: 'group', layout: 'flow', allowedBlocks: ['list'] };
   const denied = fixture([{ ...parent, children: [list(['First', 'Tail'])] }]);
-  assert.equal(denied.command.exitList('root', 0, 'backward'), null);
-  assert.equal(denied.state().history.length, 0);
+  assert.ok(denied.command.exitList('root', 0, 'backward'));
+  assert.equal(denied.state().history.length, 1);
   const permitted = fixture([{ ...parent, children: [list([{ text: '', children: [list(['Child'], 'child')] }, 'Tail'])] }]);
   assert.ok(permitted.command.exitList('root', 0, 'backward'));
   assert.deepEqual(permitted.blocks()[0].children[0].items, ['Child', 'Tail']);

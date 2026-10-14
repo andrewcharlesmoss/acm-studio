@@ -133,7 +133,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   group: {
     context: "Enclosing layout and document content/wide widths affect children. Sticky positioning is available only for a root Group; Grid and Row controls depend on layout.",
-    notes: ["The Group/Row/Stack/Grid chooser is in the summary. None/Wide/Full alignment is a canvas action.", "Pane order is Typography, Background, Layout, Dimensions, Border, Elements, Position, Advanced, then Allowed Blocks.", "Legacy Columns layout and responsive stacking remain model-only. Template lock, flex-child sizing and manual grid placement remain unsupported."],
+    notes: ["The Group/Row/Stack/Grid chooser is in the summary. None/Wide/Full alignment is a canvas action.", "Pane order is Typography, Background, Layout, Dimensions, Border, Elements, Position, and Advanced.", "Legacy Columns layout and responsive stacking remain model-only. Template lock, flex-child sizing and manual grid placement remain unsupported."],
   },
   columns: {
     context: "Parent owns Column count, axis gaps, stacking and vertical alignment. Stack on mobile preserves an existing tablet breakpoint.",
@@ -141,7 +141,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   column: {
     context: "Width editing requires a Columns parent with at least two children and updates that parent through the shared command. The catalogue fixture uses the same command in temporary history. The maximum reserves at least 5% for each sibling. Vertical alignment can inherit from the parent.",
-    notes: ["Width uses a native percentage input, not Preset number. Block gap uses Spacing slider.", "Allowed Blocks follows Advanced; sibling width changes belong to the Columns parent."],
+    notes: ["Width uses a native percentage input, not Preset number. Block gap uses Spacing slider.", "Every structurally supported child block is available; sibling width changes belong to the Columns parent."],
   },
   component: {
     context: "Integration owns component identity and behaviour. The library shows an inactive specimen without invoking product integrations.",
