@@ -122,6 +122,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .button-secondary:hover { background: #dedcd4; }
 .studio-save-group { align-items: center; display: inline-flex; gap: 12px; }
 .studio-save-status { color: var(--muted); font-size: var(--studio-ui-size); white-space: nowrap; }
+.studio-header.is-tab-synced .studio-actions .studio-save-status { display: none; }
 .studio-actions .studio-header-action { box-sizing: border-box; min-height: 40px; min-width: 75px; padding: 9px 13px; }
 .studio-save-button:disabled { cursor: default; opacity: .72; }
 
