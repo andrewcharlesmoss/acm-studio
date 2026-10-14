@@ -20,6 +20,15 @@ test("site breadcrumbs separate all four levels and keep the document current", 
   assert.match(markup, /<strong aria-current="page">Test<\/strong>/);
 });
 
+test("breadcrumb links use Gutenberg link colour without button-like hover treatment", () => {
+  const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(styles, /\.studio-breadcrumb-list a\s*\{[^}]*color:\s*var\(--gutenberg-accent\)[^}]*text-decoration:\s*none/s);
+  assert.match(styles, /\.studio-breadcrumb-list a:hover\s*\{[^}]*color:\s*var\(--gutenberg-accent\)[^}]*text-decoration:\s*none/s);
+  assert.match(styles, /\.studio-breadcrumb-list a:focus-visible\s*\{[^}]*outline:/s);
+  const hover = styles.match(/\.studio-breadcrumb-list a:hover\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.doesNotMatch(hover, /background|border-radius|padding/);
+});
+
 test("ancestor links invoke production callback while modified and preview clicks stay native", () => {
   const calls = [];
   const link = nodes(StudioBreadcrumbs({ ...props, onNavigate: target => calls.push(target) })).find(node => node.type === "a" && node.props.children === "Pages");
