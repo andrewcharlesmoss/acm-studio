@@ -102,6 +102,9 @@
 
 ### Fixed
 
+- Make the Sites disclosure heading span its pane with a taller, square-edged
+  row, retaining inset site cards and a contained keyboard focus outline.
+
 - Fix the script error when collapsing Sites by exposing shared drag cancellation
   through the library adapter, with production-contract regression coverage.
 

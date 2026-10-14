@@ -465,7 +465,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-library-track, .studio-inspector-track { position: relative; z-index: 40; }
 .studio-library-track .pane-collapse, .studio-inspector-track .pane-collapse { z-index: 41; }
 .studio-library .library-tools { border-top: 1px solid #d8d6ce; padding: 8px 0; }
-.studio-local-sites { border-bottom: 1px solid #d8d6ce; padding: 12px 10px 8px; }
+.studio-local-sites { border-bottom: 1px solid #d8d6ce; padding: 0; }
 .studio-local-sites h2 { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 650; margin: 0 8px 6px; }
 .studio-local-site-actions { align-items: stretch; background: transparent; border-radius: 8px; display: flex; flex-direction: column; min-width: 0; }
 .studio-local-site-actions:hover, .studio-local-site-actions:focus-within { background: white; }
@@ -2184,9 +2184,11 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 /* The shared controller owns authoring-only end reservations on this boundary. */
 [data-drag-placement-owner] { position: relative; }
 
-.studio-local-sites summary { cursor: pointer; list-style: none; border-radius: 4px; }
+.studio-local-sites summary { cursor: pointer; list-style: none; border-radius: 0; }
 .studio-local-sites summary::-webkit-details-marker { display: none; }
 .studio-local-sites summary:hover { background: var(--acm-interaction-neutral-hover-background, #F0F0F0); }
-.studio-local-sites summary h2 { display: flex; align-items: center; justify-content: space-between; margin: 0; padding: 6px 8px; }
+.studio-local-sites summary h2 { display: flex; align-items: center; justify-content: space-between; margin: 0; padding: 16px 18px; min-height: 52px; box-sizing: border-box; }
 .studio-local-sites details:not([open]) summary svg { transform: rotate(-90deg); }
-.studio-local-sites summary:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
+.studio-local-sites summary:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: calc(-1 * var(--focus-ring-width)); }
+
+.studio-local-sites details > [data-drag-placement-owner] { padding-inline: 10px; }
