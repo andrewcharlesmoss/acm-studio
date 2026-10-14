@@ -4,6 +4,9 @@
 
 ### Added
 
+- Add a shared drag-to-position Controls specimen with vertical, horizontal,
+  and wrapped layouts, read-only mode, keyboard moves, and temporary Undo/Redo.
+
 - Add six-dot site handles for pointer and keyboard reordering in Studio Navigation,
   retaining each site’s environments and saving the order as an owned preference.
 

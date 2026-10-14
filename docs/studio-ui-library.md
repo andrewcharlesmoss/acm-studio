@@ -679,3 +679,15 @@ matching Posts and Pages, including browser-local Studio Drafts in Edit and
 Preview. The UI Library’s template and content-editor specimens
 consume that same route-scoped token in Edit and Preview. Pane surfaces remain independently controlled by
 `--studio-pane-surface`; authored template artwork retains its own background.
+
+## Drag-to-position specimen
+
+Controls → Foundation → Drag to position (`/studio/ui/controls#drag-placement`)
+uses the production sibling adapter, placement controller, geometry, and line
+renderer. Switch between vertical, horizontal, and wrapped layouts with unequal
+item sizes. Drag across both neighbouring edges and the empty gap; returning to
+the original position must show no line or create history. Escape cancels.
+Read-only disables moves; Undo/Redo and Reset example affect only this specimen.
+Alt + arrow keys move the focused handle along the selected layout's axis.
+Standard Undo/Redo shortcuts apply while the example has focus, preserving native
+form editing. All example data remains in memory. See `docs/drag-placement.md`.

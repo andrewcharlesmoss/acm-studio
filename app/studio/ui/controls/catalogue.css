@@ -98,3 +98,19 @@
 }
 
 .ui-text-action-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+
+.ui-drag-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.ui-drag-tools label, .ui-drag-tools button { display: flex; align-items: center; gap: 6px; }
+.ui-drag-scroll { max-width: 100%; overflow: auto; }
+.ui-drag-list { position: relative; list-style: none; margin: 0; padding: 8px; display: flex; gap: 24px; align-items: center; }
+.ui-drag-list.is-vertical { flex-direction: column; align-items: stretch; }
+.ui-drag-list.is-horizontal { width: max-content; min-width: 100%; }
+.ui-drag-list.is-wrapped { flex-wrap: wrap; max-width: 470px; }
+.ui-drag-list > li:not(.studio-gap-line) { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 4px; background: #fff; padding: 12px; }
+.ui-drag-list:not(.is-vertical) > li:not(.studio-gap-line) { width: 190px; flex: none; }
+.ui-drag-list > li > button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; cursor: grab; flex: none; }
+.ui-drag-list > li > button:active { cursor: grabbing; }
+.ui-drag-list > li > button:disabled { cursor: default; }
+.ui-drag-list .library-drag-handle { margin: 0; }
+.ui-drag-list > li p { margin: 4px 0 0; }
+.ui-drag-list > li[data-gap-row="second"] p { max-width: 240px; }

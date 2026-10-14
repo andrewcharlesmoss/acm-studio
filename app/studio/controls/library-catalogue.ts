@@ -19,6 +19,14 @@ const rangeDependency = {
 
 export const studioControlEntries: StudioControlEntry[] = [
   {
+    id: "drag-placement", title: "Drag to position", group: "Foundation",
+    purpose: "Try the shared placement behaviour with one centred line per valid insertion gap.",
+    owner: "ACM Studio shared drag placement", consumers: ["Sites and document lists", "Block canvas", "Navigation links", "Design pages and layers"],
+    dependencies: [{ kind: "inherits", label: "Shared placement controller, geometry, and indicator", detail: "Uses useGapReordering, useDragPlacement, drop-gap-geometry, and DragPlacementIndicator directly. No separate drag implementation." }],
+    states: "Vertical, horizontal, wrapped, unequal item sizes, genuine moves, adjacent no-ops, cancellation, read-only, keyboard moves, and Undo/Redo.",
+    compatibility: "Memory-only example. No documents, site order, or other persisted stores are read or changed. Domain consumers retain their own constraints and commits.",
+  },
+  {
     id: "revision-slider", title: "Revision slider", group: "Foundation",
     purpose: "Browse saved revisions on a compact timeline with an author and date tooltip.",
     owner: "ACM Studio controls", consumers: ["Page revisions", "Post revisions"],
