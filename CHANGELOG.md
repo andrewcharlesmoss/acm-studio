@@ -4,6 +4,9 @@
 
 ### Added
 
+- Make Sites in Studio Navigation collapsible to free space for content lists,
+  with native keyboard disclosure and drag cancellation on collapse.
+
 - Add a shared drag-to-position Controls specimen with vertical, horizontal,
   and wrapped layouts, read-only mode, keyboard moves, and temporary Undo/Redo.
 

@@ -287,3 +287,8 @@ not change site sources, document/template order or publication. Saves check the
 latest stored order; a competing preference change, denied writer or storage
 failure is reported visibly. An unsaved order applies to the current page. Other
 tabs read successful changes, and new site IDs append without losing known order.
+
+The Studio Navigation Sites section starts expanded and uses a native disclosure
+heading to collapse its site cards. Collapsing cancels active site placement and
+removes hidden controls from keyboard navigation. The disclosure is page-local,
+keeps its existing site components mounted, and does not change saved site order.

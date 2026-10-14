@@ -8,6 +8,7 @@ import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
 
 const production = await loadProductionModule(new URL("../app/studio/project-local-links.tsx", import.meta.url));
+const icons = await loadProductionModule(new URL("../app/studio/studio-icons.tsx", import.meta.url));
 const indicator = await loadProductionModule(new URL("../app/studio/drag-placement-indicator.tsx", import.meta.url));
 const registry = await loadProductionModule(new URL("../app/studio/project-registry.ts", import.meta.url));
 const fixtures = await loadProductionModule(new URL("../app/studio/test-site/sites.ts", import.meta.url));
@@ -28,7 +29,7 @@ function component(name, bindings) {
 
 test("Sites includes ACM Studio before Test and Test2 without changing fixture contexts", () => {
   const calls = [];
-  const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
+  const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
   const tree = list({ selectedSite: "test2", libraryKind: "page", onSelectSite: id => calls.push(id) });
   const cards = nodes(tree).filter(node => node.type === production.ProjectLocalSiteNavigation);
   assert.deepEqual(cards.map(node => node.props.id), ["acm-studio", "test", "test2"]);
@@ -89,4 +90,17 @@ test("self-site status uses the browser address without a discovered service", (
   assert.match(html, /Local server running — localhost:4321/);
   assert.match(html, /data-state="running"/);
   assert.doesNotMatch(html, /Project Ports unavailable/);
+});
+
+
+test("Sites starts expanded and native disclosure cancels active placement when collapsed", () => {
+  let cancellations = 0;
+  const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), listProps: {}, cancel: () => cancellations++, canReorder: true, message: "" }, status: "" }) });
+  const tree = list({selectedSite:"test",libraryKind:"page"});
+  const disclosure = nodes(tree).find(node => node.type === "details");
+  assert.equal(disclosure.props.open,true);
+  disclosure.props.onToggle({currentTarget:{open:true}}); assert.equal(cancellations,0);
+  disclosure.props.onToggle({currentTarget:{open:false}}); assert.equal(cancellations,1);
+  const html = renderToStaticMarkup(tree);assert.match(html,/<details open=""/);assert.match(html,/<summary><h2>Sites/);
+  assert.equal(nodes(tree).filter(node => node.type === production.ProjectLocalSiteNavigation).length,3);
 });

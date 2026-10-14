@@ -2183,3 +2183,10 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 
 /* The shared controller owns authoring-only end reservations on this boundary. */
 [data-drag-placement-owner] { position: relative; }
+
+.studio-local-sites summary { cursor: pointer; list-style: none; border-radius: 4px; }
+.studio-local-sites summary::-webkit-details-marker { display: none; }
+.studio-local-sites summary:hover { background: var(--acm-interaction-neutral-hover-background, #F0F0F0); }
+.studio-local-sites summary h2 { display: flex; align-items: center; justify-content: space-between; margin: 0; padding: 6px 8px; }
+.studio-local-sites details:not([open]) summary svg { transform: rotate(-90deg); }
+.studio-local-sites summary:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
