@@ -2144,7 +2144,7 @@ export function DesignEditor() {
   return <div className="design-shell" onPaste={handlePaste}>
       <header className="design-topbar">
         <div className="design-topbar-brand"><span className="design-topbar-mark" aria-hidden="true">A</span><a href="/studio" aria-label="ACM Studio home">ACM Studio</a><span className="design-topbar-divider" aria-hidden="true">|</span><strong>Designs</strong></div>
-        <span className="design-environment" aria-label="Environment: local">LOCAL</span>
+        <span className="design-environment" aria-label="Environment: local">Local</span>
       </header>
       <StudioRibbon
         className="design-ribbon-panel"

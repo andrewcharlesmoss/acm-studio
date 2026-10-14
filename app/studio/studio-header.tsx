@@ -34,7 +34,7 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
       <header className="studio-header">
         <a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a>
         <StudioBreadcrumbs libraryKind={libraryKind} studioSection={studioSection} hasContentDocuments={hasContentDocuments} activeDocument={activeDocument} siteId={siteContext?.siteId} previewWindow={previewWindow} onNavigate={onBreadcrumbNavigate} />
-        <div className="studio-state"><span className="prototype-pill">LOCAL</span>{!showSaveControl ? <span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span> : null}{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
+        <div className="studio-state"><span className="prototype-pill">Local</span>{!showSaveControl ? <span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span> : null}{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
           {studioSection === "templates" ? <StudioViewMenu viewport={templateViewport} onViewportChange={onTemplateViewportChange} showResponsiveStylesNotice={false} /> : null}
           {studioSection === "content" && hasContentDocuments && !previewWindow ? <StudioViewMenu viewMode={viewMode} onViewModeChange={onViewModeChange} viewport={viewViewport} onViewportChange={setViewViewport} showTemplate={showTemplate} hasTemplate={hasTemplate} onShowTemplateChange={setShowTemplate} onPreviewInNewTab={() => {

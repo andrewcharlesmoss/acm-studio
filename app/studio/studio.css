@@ -84,7 +84,6 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
   color: #1c1c1e;
   font-weight: 700;
   padding: 5px 9px;
-  text-transform: uppercase;
 }
 
 .studio-actions { display: flex; gap: 8px; justify-content: flex-end; }

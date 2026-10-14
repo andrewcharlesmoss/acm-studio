@@ -554,14 +554,17 @@ test("template footer selection removes duplicate top spacing", async () => {
   assert.match(styles, /\.template-editing \.template-node:has\(> \.template-node-selectable > \.template-footer\), \.template-editing \.template-footer \{ margin-top: 0; \}/);
 });
 
-test("Studio environment badges use the neutral LOCAL label", async () => {
-  const [dashboard, prototype, workspace, styles] = await Promise.all([
+test("Studio environment badges use the neutral Local label", async () => {
+  const [dashboard, prototype, workspace, styles, designLibrary] = await Promise.all([
     readFile(new URL("../app/studio/studio-dashboard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio-header.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/design-library.tsx", import.meta.url), "utf8"),
   ]);
-  for (const source of [dashboard, prototype]) assert.match(source, /className="prototype-pill">LOCAL<\/span>/);
+  for (const source of [dashboard, prototype]) assert.match(source, /className="prototype-pill">Local<\/span>/);
+  assert.match(designLibrary, /className="design-environment" aria-label="Environment: local">Local<\/span>/);
+  assert.doesNotMatch(styles, /\.prototype-pill \{[^}]*text-transform:\s*uppercase/);
   const coordinator = await readFile(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   assert.equal(jsxProp(coordinator, "StudioHeader", "studioSection"), "studioSection");
   assert.doesNotMatch(workspace, /className="prototype-pill"/);
@@ -1533,12 +1536,12 @@ test("design editor exposes the ACM Studio local identity bar", () => {
   assert.match(editor, /<span className="design-topbar-mark" aria-hidden="true">A<\/span>/);
   assert.match(editor, /<a href="\/studio" aria-label="ACM Studio home">ACM Studio<\/a>/);
   assert.match(editor, /<strong>Designs<\/strong>/);
-  assert.match(editor, /<span className="design-environment" aria-label="Environment: local">LOCAL<\/span>/);
+  assert.match(editor, /<span className="design-environment" aria-label="Environment: local">Local<\/span>/);
   assert.doesNotMatch(editor, /Return to Account|Sign Out/);
   assert.match(css, /\.design-shell \{[^}]*grid-template-rows: auto auto auto auto minmax\(0, 1fr\);/);
   assert.match(css, /\.design-topbar \{ align-items: center; background: #fff; border-bottom: 1px solid #d8d8d8; display: flex; grid-column: 1; grid-row: 1; height: 76px; justify-content: space-between; padding: 0 clamp\(22px, 5vw, 76px\); \}/);
   assert.match(css, /\.design-topbar-mark \{[^}]*height: 34px;[^}]*width: 34px; \}/);
-  assert.match(css, /\.design-environment \{ background: #f1f1f1; border: 1px solid #d0d0d0; border-radius: 999px; color: #666; font-size: \.875rem; font-weight: 800; letter-spacing: \.06em; padding: 5px 10px; text-transform: uppercase; \}/);
+  assert.match(css, /\.design-environment \{ background: #f1f1f1; border: 1px solid #d0d0d0; border-radius: 999px; color: #666; font-size: \.875rem; font-weight: 800; padding: 5px 10px; \}/);
 });
 
 test("design canvas offers an optional purple selection border", () => {
