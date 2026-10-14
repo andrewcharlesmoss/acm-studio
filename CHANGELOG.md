@@ -4,6 +4,9 @@
 
 ### Added
 
+- Add six-dot site handles for pointer and keyboard reordering in Studio Navigation,
+  retaining each site’s environments and saving the order as an owned preference.
+
 - Manage template dependencies across Studio Drafts, Test and Test2 with bulk
   replacement or detachment, per-owner save results, and a global template Bin
   supporting Undo and Restore for unused originals.

@@ -266,3 +266,17 @@ It owns one creation toolbar, tool menu, Studio Drafts/Sites area, shared tabs,
 scrolling list region and footer. Consumers supply counts and commands; Files
 and the other tool rows share one separator rule and the same catalogue icons.
 Template import and template creation remain in the template workspace.
+
+### Site ordering in Studio Navigation
+
+Each site has a six-dot handle beside its title. Drag the handle or focus it and
+press Alt+Up/Down to move the complete site card, including its environments.
+Edit and Visit actions retain ordinary pointer and keyboard behaviour. Cancelled
+or stale drags do not change the order.
+
+The order is a browser interface preference in `acm-studio-site-order-v1`, saved
+through the existing Studio preference repository and writer coordinator. It does
+not change site sources, document/template order or publication. Saves check the
+latest stored order; a competing preference change, denied writer or storage
+failure is reported visibly. An unsaved order applies to the current page. Other
+tabs read successful changes, and new site IDs append without losing known order.

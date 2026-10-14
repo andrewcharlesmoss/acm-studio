@@ -1,4 +1,7 @@
 "use client";
+import { LibraryDragHandle } from "./library-drag-handle";
+import { useSiteOrdering } from "./use-site-ordering";
+import type { useLibraryReordering } from "./use-library-reordering";
 import { studioContextPath, type StudioLibraryKind } from "./use-studio-screen-navigation";
 import { isLocalFixtureSiteId, localFixtureSites, localFixtureHref, type LocalFixtureSiteId } from "./test-site/sites";
 
@@ -117,14 +120,18 @@ export function ProjectLocalLink({ id, name, onEdit, active = false, showStatus 
   </div>;
 }
 
-export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = false, studioHref }: { id: string; name: string; onSelectTest?: () => void; active?: boolean; studioHref?: string }) {
+export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = false, studioHref, reordering }: { reordering?: ReturnType<typeof useLibraryReordering>; id: string; name: string; onSelectTest?: () => void; active?: boolean; studioHref?: string }) {
   const project = studioProjects.find(item => item.id === id);
   const localActions = <ProjectLocalLink id={id} name={name} onEdit={onSelectTest} active={active} showStatus studioHref={studioHref} />;
   const siteTitle = <><span className="studio-local-site-mark" aria-hidden="true">{name.slice(0, 1)}</span><span className="studio-local-site-copy"><strong>{name}</strong></span></>;
 
-  return <div className={`studio-local-site-actions${active ? " is-active" : ""}`}>
+  const dragProps = reordering?.rowProps(id);
+  return <div className={`studio-local-site-actions${active ? " is-active" : ""}`} data-library-entry-id={dragProps?.["data-library-entry-id"]} data-library-reorder-owner={dragProps?.["data-library-reorder-owner"]} data-drop-edge={dragProps?.["data-drop-edge"]} onDragOver={dragProps?.onDragOver} onDrop={dragProps?.onDrop}>
+    <div className="studio-local-site-heading">
       {isLocalFixtureSiteId(id) ? <a className="studio-local-site" href={studioHref ?? localFixtureHref(id)} aria-current={active ? "page" : undefined} aria-label={`Edit ${name} local site`} onClick={event => { if (onSelectTest) { event.preventDefault(); onSelectTest(); } }}>{siteTitle}</a>
         : <div className="studio-local-site is-uneditable">{siteTitle}</div>}
+      {reordering ? <button {...dragProps} className="studio-site-drag-button" type="button" aria-disabled={!reordering.canReorder} aria-label={`Reorder ${name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={reordering.canReorder} /></button> : null}
+    </div>
       <div className="studio-local-site-environments">
         {project ? <ProjectEnvironmentActions project={project} local={localActions} /> : localActions}
       </div>
@@ -148,5 +155,7 @@ export function ProjectLocalStatus({ id }: { id: string }) {
 
 export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite, libraryKind }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void; libraryKind?: StudioLibraryKind }) {
   const studio = studioProjects.find(project => project.id === "acm-studio");
-  return <section className="studio-local-sites" aria-label="Sites"><h2>Sites</h2>{studio ? <ProjectLocalSiteNavigation id={studio.id} name={studio.name} /> : null}{localFixtureSites.map(site => <ProjectLocalSiteNavigation key={site.id} id={site.id} name={site.name} active={selectedSite === site.id} studioHref={libraryKind ? studioContextPath(site.id, libraryKind) : undefined} onSelectTest={onSelectSite ? () => onSelectSite(site.id) : undefined} />)}</section>;
+  const sites = [...(studio ? [{ id: studio.id, name: studio.name }] : []), ...localFixtureSites];
+  const { order, reordering, status } = useSiteOrdering(sites.map(site => site.id));
+  return <section className="studio-local-sites" aria-label="Sites"><h2>Sites</h2>{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) && libraryKind ? studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}<span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</section>;
 }
