@@ -53,10 +53,10 @@ function TemplateCreationActions({ writable, onCreate, onImport, importWritable 
     {onImport ? <button type="button" disabled={!importWritable} aria-label="Import Templates" data-studio-tooltip="Import Templates" onClick={onImport}><AcmIcon name="action.upload" scale="Regular-S" size={20} /></button> : null}
   </StudioTooltipGroup>;
 }
-export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange, editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, onEditSiteNavigation, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, onReorderDocuments, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
+export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange, editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, navigationControls, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, onReorderDocuments, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
   viewControls?: { viewport: import("./studio-view-menu").StudioViewport; onViewportChange: (viewport: import("./studio-view-menu").StudioViewport) => void };
   onCanvasVisibilityChange?: (visible: boolean) => void;
-  onEditSiteNavigation?: () => void;
+  navigationControls?: ReactNode;
   siteNavigationEditor?: ReactNode;
   previewSite?: GlobalTemplatePreviewSite;
   onPreviewSiteChange?: (site: GlobalTemplatePreviewSite) => void;
@@ -69,7 +69,7 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
   workspace: TemplateWorkspaceSession;
   templates: TemplateStoreSession;
   selection?: { setId: string | null; targetId: string | null };
-  onSelectionChange?: (selection: { setId: string | null; targetId: string | null }) => void;
+  onSelectionChange?: (selection: { setId: string | null; targetId: string | null }) => void | boolean | Promise<void | boolean>;
   libraryKind?: StudioDocumentKind | "templates";
   onSelectLibraryKind?: (kind: StudioDocumentKind | "templates") => void;
   onSelectDocument?: (documentId: string) => void;
@@ -101,8 +101,8 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
   const setId = activeSelection.setId;
   const targetId = activeSelection.targetId;
   function changeSelection(next: { setId: string | null; targetId: string | null }) {
-    if (selection) onSelectionChange?.(next);
-    else setLocalSelection(next);
+    if (selection) return onSelectionChange?.(next);
+    setLocalSelection(next); return true;
   }
   const changeSelectionFromEffect = useEffectEvent(changeSelection);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -183,12 +183,13 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
   }, [templateEntries]);
   function closeDialog() { setDialog(null); }
   function askName(title: string, name: string, confirm: NameDialog["confirm"]) { setDialogOpener(document.activeElement as HTMLElement); setDialog({ title, name, confirm }); }
-  function openSet(item: TemplateSet, id = item.templates[0]?.id ?? item.parts[0]?.id) {
-    changeSelection({ setId: item.id, targetId: id ?? null }); setMediaTarget(null);
+  async function openSet(item: TemplateSet, id = item.templates[0]?.id ?? item.parts[0]?.id) {
+    if (await changeSelection({ setId: item.id, targetId: id ?? null }) === false) return;
+    setMediaTarget(null);
     writeStudioNavigation("templates", { setId: item.id, targetId: id ?? null, scope: editingScope });
   }
-  function library() {
-    changeSelection({ setId: null, targetId: null });
+  async function library() {
+    if (await changeSelection({ setId: null, targetId: null }) === false) return;
     setMediaTarget(null);
     writeStudioNavigation("templates", { setId: null, targetId: null, scope: "global" });
   }
@@ -396,7 +397,7 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
     setMediaTarget(null);
   }
   const scopeNotice = editingScope ? <div className="template-scope-notice" role="status"><span>Global template — layout and style changes apply to every site.</span><StudioTooltipGroup className="template-scope-actions" role="group" aria-label="Global template actions">
-    {siteId && onEditSiteNavigation ? <StudioButton id="studio-edit-site-navigation" type="button" variant="secondary" aria-label={`Edit ${localFixtureName(siteId)} Navigation`} data-studio-tooltip={`Edit ${localFixtureName(siteId)} Navigation`} onClick={onEditSiteNavigation}><AcmIcon name="navigation.menu" scale="Regular-S" size={20} /></StudioButton> : null}
+    {navigationControls}
     {globalLibrary ? <StudioButton type="button" variant="secondary" aria-label="Export Saved Global Library" data-studio-tooltip="Export Saved Global Library" onClick={() => exportStudioJson(globalLibrary, "acm-global-template-library.json")}><AcmIcon name="action.download" scale="Regular-S" size={20} /></StudioButton> : null}
   </StudioTooltipGroup></div> : null;
   const panel = <>

@@ -463,3 +463,9 @@
 
 .template-scope-actions { display: flex; gap: 8px; }
 .template-scope-actions .acm-button { align-items: center; display: flex; justify-content: center; min-height: 42px; min-width: 42px; padding: 8px; }
+
+.navigation-edit-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.navigation-edit-controls label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.navigation-edit-controls select { font: inherit; max-width: 100%; min-height: 36px; }
+.navigation-edit-controls .acm-button { display: flex; align-items: center; gap: 6px; }
+.template-scope-actions { flex-wrap: wrap; align-items: center; }

@@ -27,6 +27,7 @@ export function useTemplates(generation: number, writable: boolean) {
   const [syncConflict, setSyncConflict] = useState<StudioSyncConflict | null>(null);
   const [availability, setAvailability] = useState({ undo: false, redo: false });
   const sequence = useRef(0);
+  const saveCompletion = useRef<{ session: StudioSyncSession<TemplateStore> | null; sequence: number; snapshotKey: string; promise: Promise<void>; failed: boolean } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconcilePendingPeerSave = useCallback((snapshot: TemplateStore, acknowledgedTransaction?: StudioSyncTransaction) => {
     const authoritative = copyTemplateData(snapshot);
@@ -150,11 +151,18 @@ export function useTemplates(generation: number, writable: boolean) {
         save = syncRef.current?.submit(next);
       }
       if (!save) throw new Error("Studio synchronisation is unavailable.");
+      const previous = saveCompletion.current;
+      // A duplicate/no-op submit can resolve before an earlier queued write.
+      // Retain all acknowledgements in this connection's save chain.
+      const completion = previous?.session === session && !previous.failed ? Promise.all([previous.promise, save]).then(() => {}) : save;
+      const attempt = { session, sequence: saveSequence, snapshotKey: JSON.stringify(next), promise: completion, failed: false };
+      saveCompletion.current = attempt;
       current.current = next; setStore(next); setError(null); setSaveLabel("Saving…");
-      void save.then(() => {
+      void completion.then(() => {
         if (syncRef.current !== session || sequence.current !== saveSequence) return;
         timer.current = setTimeout(() => { if (sequence.current === saveSequence) setSaveLabel("Saved locally"); }, 500);
       }).catch((reason) => {
+        attempt.failed = true;
         if (syncRef.current !== session || sequence.current !== saveSequence) return;
         if (timer.current) { clearTimeout(timer.current); timer.current = null; }
         setError(reason instanceof Error ? reason.message : "Could not save templates locally.");
@@ -201,5 +209,17 @@ export function useTemplates(generation: number, writable: boolean) {
       setError(reason instanceof Error ? reason.message : "The choice could not be saved. Your template changes remain available for another attempt.");
     }
   }
-  return { store, ready: ready && loadedGeneration === generation, error, saveLabel, syncStatus, syncConflict, resolveSyncConflict, retryConnection: () => syncRef.current?.retryConnection(), commit, undo, redo, canUndo: editable && availability.undo, canRedo: editable && availability.redo, writable: editable && ready && loadedGeneration === generation, exclusiveWritable: primaryWritable };
+  async function flush() {
+    if (!ready || loadedGeneration !== generation || !writable || !editable || pendingConflictRef.current) throw new Error("Template saving is unavailable. Your menu was kept.");
+    const pending = saveCompletion.current;
+    if ((!pending || pending.failed || pending.session !== syncRef.current || pending.snapshotKey !== JSON.stringify(current.current)) && !install(copyTemplateData(current.current))) throw new Error("Template saving is unavailable. Your menu was kept.");
+    const attempt = saveCompletion.current!;
+    await attempt.promise;
+    if (syncRef.current !== attempt.session || sequence.current !== attempt.sequence || currentGeneration.current !== generation || pendingConflictRef.current) {
+      throw new Error("The saving connection or menu changed. Your draft was kept; try again after reconnecting.");
+    }
+  }
+  const session = { store, ready: ready && loadedGeneration === generation, error, saveLabel, syncStatus, syncConflict, resolveSyncConflict, retryConnection: () => syncRef.current?.retryConnection(), commit, undo, redo, canUndo: editable && availability.undo, canRedo: editable && availability.redo, writable: editable && ready && loadedGeneration === generation, exclusiveWritable: primaryWritable };
+  // Aggregate adapters provide their own save acknowledgement.
+  return { ...session, flush } as typeof session & { flush?: () => Promise<void> };
 }

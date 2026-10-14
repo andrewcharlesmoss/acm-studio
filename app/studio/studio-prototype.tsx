@@ -6,7 +6,7 @@ import { DocumentRevisionsControl } from "./document-revisions-control";
 import { revisionDocument, restoreDocumentRevision, type DocumentRevision } from "./document-revisions";
 import { browserWorkspaceRepository, withSavedDocumentRevisions } from "./workspace-repository";
 import { validateStudioWorkspace } from "./workspace-validation";
-import { SiteNavigationEditor } from "./site-navigation-editor";
+import { useNavigationEditing, useNavigationEditSelection } from "./use-navigation-editing";
 import { useGlobalTemplates } from "./use-global-templates";
 import type { GlobalTemplatePreviewSite } from "./global-template-preview";
 import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
@@ -68,7 +68,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const [selectedSite] = useState<LocalFixtureSiteId | null>(initialView.site ?? null);
   const [switchingSite, setSwitchingSite] = useState(false);
   const selectedSiteRef = useRef(selectedSite);
-  const [editingSiteNavigation, setEditingSiteNavigation] = useState(false);
+  const { editingSiteNavigation, setEditingSiteNavigation, navigationEditTarget, setNavigationEditTarget } = useNavigationEditSelection(selectedSite);
   const [siteFeedback, setSiteFeedback] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(previewWindow);
   const [viewMode, setViewMode] = useState<StudioViewMode>("editing");
@@ -90,8 +90,8 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   };
   const canOwnSite = studioSession.ready && studioSession.exclusiveWritable && !previewWindow;
   // The global writer must broker either fixture, even when it displays the other site.
-  const firstSite = useTestSite(selectedSite !== "test2", canOwnSite, "test", studioSection === "templates" && templatePreviewSite === "test");
-  const secondSite = useTestSite(selectedSite === "test2", canOwnSite, "test2", studioSection === "templates" && templatePreviewSite === "test2");
+  const firstSite = useTestSite(selectedSite !== "test2" || studioSection === "templates" && navigationEditTarget === "test", canOwnSite, "test", studioSection === "templates" && templatePreviewSite === "test");
+  const secondSite = useTestSite(selectedSite === "test2" || studioSection === "templates" && navigationEditTarget === "test2", canOwnSite, "test2", studioSection === "templates" && templatePreviewSite === "test2");
   const testSite = selectedSite === "test2" ? secondSite : firstSite;
   const siteName = localFixtureName(selectedSite ?? "test");
   const pauseFirstSite = firstSite.pauseEditing;
@@ -117,6 +117,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   }, [globalTemplates.library, templateTarget, selectedSite, previewWindow]);
   const testContext = useTestSiteContext(testSite, studioSession, previewDocumentId, globalTemplates.library, globalTemplates.initialised);
   const { workspace, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument: updateWorkspaceDocument, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot, templateAuthoringSnapshot, browserTemplateSession } = useDocumentTemplates(studioSession, openTemplateTarget, selectedSite ? testContext : undefined, globalTemplates);
+  const navigationEditing = useNavigationEditing({ target: navigationEditTarget, onTargetChange: setNavigationEditTarget, editing: editingSiteNavigation, onEditingChange: setEditingSiteNavigation,
+    browserTemplates: browserTemplateSession, globals: globalTemplates, fixture: navigationEditTarget === "test2" ? secondSite : firstSite,
+    browserSession: studioSession });
+  const { prepareLeave: prepareNavigationLeave, afterNavigation } = navigationEditing;
   const currentWorkspaceSession = selectedSite ? testContext.session : studioSession;
   const importAttempt = useRef(false);
   useEffect(() => {
@@ -179,6 +183,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   };
   const updateActiveField = <K extends keyof StudioDocument>(field: K, value: StudioDocument[K]) => updateActiveDocument(document => ({ ...document, [field]: value }));
   async function leaveTest(action: () => boolean | void) {
+    if (!await prepareNavigationLeave()) return false;
     if (selectedSite) {
       if (switchingSite || !confirmCodeEditorDiscard()) return false;
       setSwitchingSite(true);
@@ -192,6 +197,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     return action() !== false;
   }
   async function selectSite(siteId: LocalFixtureSiteId) {
+    if (!await prepareNavigationLeave()) return;
     if (switchingSite || !confirmCodeEditorDiscard()) return;
     if (selectedSite && selectedSite !== siteId) {
       setSwitchingSite(true); testSite.pauseEditing(true);
@@ -261,7 +267,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     setDocumentFieldSelection(null);
     setSelectedBlockId(null);
   }
-  const editingTemplates = editingSiteNavigation ? testContext.templates : globalTemplates.session;
+  const editingTemplates = editingSiteNavigation ? navigationEditing.templates : globalTemplates.session;
   useStudioHistoryShortcuts(studioSection === "templates" ? editingTemplates.undo : undoStudio, studioSection === "templates" ? editingTemplates.redo : redoStudio, (studioSection === "content" || studioSection === "templates") && !previewWindow);
 
   function switchStudioMode(mode: "content" | "templates" | "bin", contentTabOverride?: "document" | "studio" | "block" | "styles", libraryOverride?: StudioLibraryKind) {
@@ -283,6 +289,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     if (switchStudioMode(kind === "templates" ? "templates" : "content", undefined, kind)) setLibraryKind(kind);
   }
   async function navigateBreadcrumb(target: StudioBreadcrumbTarget) {
+    if (!await prepareNavigationLeave()) return;
     if (target === "sites") {
       if (switchingSite || !confirmCodeEditorDiscard()) return;
       setSwitchingSite(true);
@@ -395,7 +402,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   useStudioScreenNavigation({ setStudioSection, setLibraryKind, setPreviewing, setTemplateTarget, setShowInserter,
     setDocumentFieldSelection, setSelectedBlockId, previewWindow, workspaceReady: currentWorkspaceSession.ready, studioSection, activeDocument: workspaceDocument,
     saveDocument: saveCurrentDocument,
-    confirmCodeEditorDiscard });
+    confirmCodeEditorDiscard: () => navigationEditing.canLeaveViaHistory() && confirmCodeEditorDiscard() });
 
   if (previewWindow && selectedSite && testSite.draft && (!previewDocumentId || !workspace.documents.some(document => document.id === previewDocumentId))) {
     return <main className="studio-preview-unavailable" role="alert"><h1>Document unavailable</h1><p>This document could not be found in {siteName}. Return to {siteName} and open its preview again.</p></main>;
@@ -406,11 +413,11 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   }
 
   return (
-    <ResponsiveStyleProvider viewport={studioSection === "templates" ? templateViewport : viewViewport}><div className={`studio-shell studio-desktop-only${selectedSite ? " studio-test-context" : ""}${previewWindow ? " studio-preview-window" : ""}${websiteView ? ` studio-website-view${viewMode === "full" ? " studio-full-preview" : ""}` : ""}`} onBeforeInputCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
+    <ResponsiveStyleProvider viewport={studioSection === "templates" ? templateViewport : viewViewport}><div className={`studio-shell studio-desktop-only${selectedSite ? " studio-test-context" : ""}${previewWindow ? " studio-preview-window" : ""}${websiteView ? ` studio-website-view${viewMode === "full" ? " studio-full-preview" : ""}` : ""}`} onClickCapture={navigationEditing.guardNavigationLink} onBeforeInputCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       {selectedSite ? <style>{testSiteCss}</style> : null}
       <StudioHeader libraryKind={libraryKind} onBreadcrumbNavigate={target => { void navigateBreadcrumb(target); }} templateViewport={templateViewport} onTemplateViewportChange={templateCanvasVisible ? setTemplateViewport : undefined} viewMode={viewMode} onViewModeChange={selectedSite ? changeViewMode : undefined} siteContext={selectedSite ? { siteId: selectedSite, writable: testSite.writable, onSave: saveCurrentDocument, onPublish: () => { void publishLocalDocument(); }, publishing: publishingLocalSite } : undefined} studioSection={studioSection} hasContentDocuments={hasContentDocuments || Boolean(selectedSite)} activeDocument={activeDocument} saveLabel={selectedSite ? testSite.label : saveLabel} templateSession={editingTemplates}
         canRetryEditing={canRetryEditing} retryEditing={retryEditing} previewWindow={previewWindow} viewViewport={viewViewport} setViewViewport={changeViewport}
-        showTemplate={showTemplate} hasTemplate={hasTemplate} setShowTemplate={setShowTemplate} switchStudioMode={switchStudioMode} publishing={publishing} writable={writable && !selectedSite}
+        showTemplate={showTemplate} hasTemplate={hasTemplate} setShowTemplate={setShowTemplate} switchStudioMode={mode => { void afterNavigation(() => switchStudioMode(mode)); }} publishing={publishing} writable={writable && !selectedSite}
         onSaveDocument={saveCurrentDocument} onExportDocument={() => selectedSite ? testSite.exportDraft() : exportJson(activeDocument, `${activeDocument.slug}.json`)} />
       {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected" || testSite.syncConflict || testSite.syncResolutionError) ? <div className="studio-test-notices">
       {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected") ? <div className="design-notice" role="alert">{testSite.failure || siteFeedback || `${siteName} sync is paused while its saving tab is unavailable. Your draft remains in this tab.`} <button type="button" onClick={testSite.exportDraft}>Export Draft</button><button type="button" onClick={() => void testSite.reconnect()}>Reconnect</button></div> : null}
@@ -418,10 +425,11 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
       {testSite.syncResolutionError && !testSite.syncConflict ? <div className="design-notice" role="alert">{testSite.syncResolutionError}</div> : null}
       </div> : null}
       {syncConflict ? <div className="design-notice" role="alert"><span>{syncConflict.conflicts.length || 1} overlapping change{(syncConflict.conflicts.length || 1) === 1 ? " needs" : "s need"} review. {studioConflictDetails(syncConflict)} Your changes remain in this tab. Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</span> <button type="button" onClick={() => void resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void resolveSyncConflict("mine")}>Use My Change</button>{syncResolutionError ? <span> {syncResolutionError}</span> : null}</div> : null}
+      {navigationEditing.feedback ? <div className="design-notice" role="alert">{navigationEditing.feedback}</div> : null}
       <div className="studio-notice" role="note">{selectedSite ? <><strong>Local {siteName} website.</strong> Saved changes are stored on this workstation and update its local preview.{selectedSite === "test" ? " The live website is unchanged." : ""}</> : <><strong>Local-only Studio.</strong> Content and files remain in this browser; nothing is connected to hosted storage or published online.</>}</div>
 
       <main className={`studio-workspace${previewing ? " is-previewing" : ""}${studioSection === "files" || studioSection === "backup" || studioSection === "bin" ? " is-tool" : ""}${studioSection === "templates" ? " template-workspace" : ""}`} style={{ "--studio-library-width": `${libraryPaneCollapsed ? 0 : libraryPaneWidth}px`, "--studio-inspector-width": `${inspectorPaneCollapsed ? 0 : inspectorPaneWidth}px` } as CSSProperties}>
-      {studioSection === "templates" ? <TemplateWorkspacePanel viewControls={{ viewport: templateViewport, onViewportChange: setTemplateViewport }} onCanvasVisibilityChange={setTemplateCanvasVisible} onEditSiteNavigation={selectedSite && testContext.siteNavigation ? () => { setEditingSiteNavigation(true); } : undefined} siteNavigationEditor={editingSiteNavigation && selectedSite && testContext.siteNavigation ? <SiteNavigationEditor siteId={selectedSite} navigation={testContext.siteNavigation} templates={testContext.templates} documents={workspace.documents} onSave={() => testSite.flush()} onClose={() => { setEditingSiteNavigation(false); requestAnimationFrame(() => document.getElementById("studio-edit-site-navigation")?.focus()); }} /> : undefined} siteNavigation={selectedSite ? testContext.siteNavigation : undefined} onSelectSite={siteId => void selectSite(siteId)} siteId={selectedSite ?? undefined} editingScope="global" previewSite={templatePreviewSite} onPreviewSiteChange={setTemplatePreviewSite} previewSources={{ test: { document: firstSite.draft, error: firstSite.failure }, test2: { document: secondSite.draft, error: secondSite.failure } }} globalLibrary={globalTemplates.library} workspace={currentWorkspaceSession} templates={globalTemplates.session} selection={templateTarget} onSelectionChange={next => { setEditingSiteNavigation(false); setTemplateTarget({ ...next, scope: "global" }); }} libraryKind={libraryKind} onSelectLibraryKind={selectLibraryKind} onReorderDocuments={(kind, move) => writable && !codeEditorDirty && commit(current => reorderLibraryDocuments(current, kind, move))} onSelectDocument={(documentId) => { const document = workspace.documents.find(item => item.id === documentId); if (document) selectDocument(document); }} inspectorTab={templateInspectorTab} onInspectorTabChange={tab => { setInspectorTab(tab === "template" ? "document" : tab); }} libraryPaneWidth={libraryPaneWidth} onLibraryPaneWidthChange={setLibraryPaneWidth} libraryPaneCollapsed={libraryPaneCollapsed} onLibraryPaneCollapsedChange={setLibraryPaneCollapsed} inspectorPaneWidth={inspectorPaneWidth} onInspectorPaneWidthChange={setInspectorPaneWidth} inspectorPaneCollapsed={inspectorPaneCollapsed} onInspectorPaneCollapsedChange={setInspectorPaneCollapsed} manageHistoryShortcuts={false} contentWritable={writable} contentTemplateWritable={templateSession.writable} onNewDocument={addDocument} onNewFromTemplate={addDocumentFromTemplate} onOpenBin={() => openTool("bin")} onSelectWorkspace={() => void leaveTest(() => { setStudioSection(libraryKind === "templates" ? "templates" : "content"); })} onBackToContent={() => switchStudioMode("content")} onOpenFiles={() => openMediaLibrary()} onOpenBackup={() => openTool("backup")} onExportContent={() => selectedSite ? testSite.exportDraft() : exportJson(withSavedDocumentRevisions(workspace), "acm-studio-content.json")} /> : <>
+      {studioSection === "templates" ? <TemplateWorkspacePanel viewControls={{ viewport: templateViewport, onViewportChange: setTemplateViewport }} onCanvasVisibilityChange={setTemplateCanvasVisible} navigationControls={navigationEditing.controls} siteNavigationEditor={navigationEditing.editor} siteNavigation={selectedSite ? testContext.siteNavigation : undefined} onSelectSite={siteId => void selectSite(siteId)} siteId={selectedSite ?? undefined} editingScope="global" previewSite={templatePreviewSite} onPreviewSiteChange={setTemplatePreviewSite} previewSources={{ test: { document: firstSite.draft, error: firstSite.failure }, test2: { document: secondSite.draft, error: secondSite.failure } }} globalLibrary={globalTemplates.library} workspace={currentWorkspaceSession} templates={globalTemplates.session} selection={templateTarget} onSelectionChange={next => afterNavigation(() => setTemplateTarget({ ...next, scope: "global" }))} libraryKind={libraryKind} onSelectLibraryKind={kind => afterNavigation(() => selectLibraryKind(kind))} onReorderDocuments={(kind, move) => writable && !codeEditorDirty && commit(current => reorderLibraryDocuments(current, kind, move))} onSelectDocument={(documentId) => { const document = workspace.documents.find(item => item.id === documentId); if (document) afterNavigation(() => { selectDocument(document); }); }} inspectorTab={templateInspectorTab} onInspectorTabChange={tab => { setInspectorTab(tab === "template" ? "document" : tab); }} libraryPaneWidth={libraryPaneWidth} onLibraryPaneWidthChange={setLibraryPaneWidth} libraryPaneCollapsed={libraryPaneCollapsed} onLibraryPaneCollapsedChange={setLibraryPaneCollapsed} inspectorPaneWidth={inspectorPaneWidth} onInspectorPaneWidthChange={setInspectorPaneWidth} inspectorPaneCollapsed={inspectorPaneCollapsed} onInspectorPaneCollapsedChange={setInspectorPaneCollapsed} manageHistoryShortcuts={false} contentWritable={writable} contentTemplateWritable={templateSession.writable} onNewDocument={kind => afterNavigation(() => addDocument(kind))} onNewFromTemplate={() => afterNavigation(addDocumentFromTemplate)} onOpenBin={() => afterNavigation(() => openTool("bin"))} onSelectWorkspace={() => void leaveTest(() => { setStudioSection(libraryKind === "templates" ? "templates" : "content"); })} onBackToContent={() => afterNavigation(() => switchStudioMode("content"))} onOpenFiles={() => afterNavigation(() => openMediaLibrary())} onOpenBackup={() => afterNavigation(() => openTool("backup"))} onExportContent={() => selectedSite ? testSite.exportDraft() : exportJson(withSavedDocumentRevisions(workspace), "acm-studio-content.json")} /> : <>
         <StudioNavigationPane selectedSite={selectedSite} onSelectWorkspace={() => void leaveTest(() => { setStudioSection(libraryKind === "templates" ? "templates" : "content"); })} onSelectSite={siteId => void selectSite(siteId)} workspace={workspace} activeDocument={workspaceDocument} templateSession={templateSession} templateLibrarySession={globalTemplates.session} onReorderDocuments={(kind, move) => writable && !codeEditorDirty && commit(current => reorderLibraryDocuments(current, kind, move))} onReorderTemplates={move => globalTemplates.session.writable && globalTemplates.session.commit(store => reorderLibraryTemplates(store, move))} templateCount={globalTemplates.session.ready ? globalTemplates.session.store.sets.reduce((count, set) => count + set.templates.length + set.parts.length, 0) : null} templateTarget={templateTarget}
           libraryKind={libraryKind} libraryPaneWidth={libraryPaneWidth} libraryPaneCollapsed={libraryPaneCollapsed} setLibraryPaneWidth={setLibraryPaneWidth} setLibraryPaneCollapsed={setLibraryPaneCollapsed}
           studioSection={studioSection} writable={writable} exclusiveWritable={exclusiveWritable} codeEditorDirty={codeEditorDirty}

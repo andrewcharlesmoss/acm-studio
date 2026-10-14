@@ -728,17 +728,29 @@ remain frozen until their existing Update action.
 
 ### Editing a site’s navigation items
 
-In Templates, **Edit Test Navigation** or **Edit Test2 Navigation** opens the
-selected site’s menu editor. The site named on the button is the editing target;
-**Preview With** does not change it. Switch the selected site to edit the other
-menu. Use **Add navigation link**, select a row to edit its text or destination,
-and use its options menu for **Move Up**, **Move Down** and **Delete**.
+In Templates, **Edit navigation** is available in Studio Drafts, Test and Test2.
+**Navigation target** chooses Studio Drafts, Test or Test2 and initially matches
+the selected context. It is independent of **Preview With**: changing either
+choice does not change the other or switch the sidebar's site context. The menu
+editor names its editing target. Use **Add navigation link**, select a row to edit
+its text or destination, and use its options menu to move or delete it.
 
-These changes use that site’s existing local autosave, Save action, Undo/Redo
-history and conflict recovery. Only menu content changes. Colours, alignment
-and other presentation remain inherited from the global Navigation template;
-the site menu editor offers no presentation controls. Close returns to the
-global template view without discarding pending site changes.
+Test and Test2 use their existing local aggregate autosave, Save acknowledgement,
+Undo/Redo history and conflict recovery. Studio Drafts uses its existing browser
+template ownership and synchronisation session; navigation-only transactions
+retain recovery designs, stable aliases, assignments and Bin records. A missing
+retained Navigation record is materialised from its shared projection without
+clearing the existing menu. No global original is edited by a menu transaction.
+Only authored menu content changes. Colours, alignment and other presentation
+remain inherited from the global Navigation template, including at Tablet and
+Mobile preview widths.
+
+Changing the navigation target, closing the editor, or choosing another Studio
+screen settles inline fields and waits for the owning save acknowledgement.
+Invalid input, unresolved link popovers, conflicts and save failures keep the
+current editor and draft available. Browser Back and Forward remain paused until
+the navigation editor is closed. Escape dismisses open menus/popovers first,
+then closes navigation editing and returns focus to **Edit navigation**.
 
 ### Studio Drafts and the shared library
 

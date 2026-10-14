@@ -4,6 +4,9 @@
 
 ### Added
 
+- Edit navigation from any Templates context with a separate Studio Drafts, Test,
+  or Test2 target selector and saves through each target’s existing owner.
+
 - Add Responsive styles to the View menu for posts, pages, and templates, with
   independent Tablet and Mobile block styles, Desktop inheritance, and saved
   local preview and publication rendering.
