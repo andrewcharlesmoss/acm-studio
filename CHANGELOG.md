@@ -14,6 +14,9 @@
 
 ### Changed
 
+- Separate each editor breadcrumb with a chevron and make ancestors clickable,
+  revealing the selected library or returning safely to Sites.
+
 - Mark selected Posts, Pages and Templates rows with the shared selection-colour
   tint, border and side marker.
 

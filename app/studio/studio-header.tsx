@@ -1,4 +1,6 @@
 "use client";
+import type { MouseEvent } from "react";
+import { studioContextPath, type StudioLibraryKind } from "./use-studio-screen-navigation";
 import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
 import { StudioIcon } from "./studio-icons";
 import { StudioViewMenu, type StudioViewport, type StudioViewMode } from "./studio-view-menu";
@@ -6,10 +8,14 @@ import type { StudioDocument } from "./editor-model";
 import { StudioButton } from "./controls/button";
 import { studioSaveControlState } from "./studio-save-control";
 
+export type StudioBreadcrumbTarget = "sites" | "site" | "content" | StudioLibraryKind;
+
 export function StudioHeader({ studioSection, hasContentDocuments, activeDocument, saveLabel, templateSession,
   canRetryEditing, retryEditing, previewWindow, viewViewport, setViewViewport, showTemplate, hasTemplate,
-  setShowTemplate, switchStudioMode, publishing, writable, onSaveDocument, onExportDocument, siteContext, viewMode, onViewModeChange, templateViewport = "desktop", onTemplateViewportChange,
+  setShowTemplate, switchStudioMode, publishing, writable, onSaveDocument, onExportDocument, siteContext, viewMode, onViewModeChange, templateViewport = "desktop", onTemplateViewportChange, onBreadcrumbNavigate, libraryKind,
 }: {
+  libraryKind?: StudioLibraryKind;
+  onBreadcrumbNavigate?: (target: StudioBreadcrumbTarget) => void;
   templateViewport?: StudioViewport; onTemplateViewportChange?: (viewport: StudioViewport) => void;
   viewMode?: StudioViewMode; onViewModeChange?: (mode: StudioViewMode) => void;
   studioSection: string; hasContentDocuments: boolean; activeDocument: StudioDocument; saveLabel: string;
@@ -27,7 +33,7 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
   return (
       <header className="studio-header">
         <a className="studio-brand" href="/"><span>AM</span><strong>ACM Studio</strong></a>
-        <div className="studio-breadcrumbs">{siteContext && studioSection === "content" ? <><span>Sites</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{localFixtureName(siteContext.siteId)}</strong><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><strong>{activeDocument.title}</strong></> : studioSection === "templates" ? <><span>Templates</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Shared presentation</strong></> : studioSection !== "content" ? <><span>Studio</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"}</strong></> : hasContentDocuments ? <><span>{activeDocument.kind === "page" ? "Pages" : "Posts"}</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>{activeDocument.title}</strong></> : <><span>Content</span><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><strong>Empty workspace</strong></>}</div>
+        <StudioBreadcrumbs libraryKind={libraryKind} studioSection={studioSection} hasContentDocuments={hasContentDocuments} activeDocument={activeDocument} siteId={siteContext?.siteId} previewWindow={previewWindow} onNavigate={onBreadcrumbNavigate} />
         <div className="studio-state"><span className="prototype-pill">LOCAL</span>{!showSaveControl ? <span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span> : null}{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
           {studioSection === "templates" ? <StudioViewMenu viewport={templateViewport} onViewportChange={onTemplateViewportChange} showResponsiveStylesNotice={false} /> : null}
@@ -65,4 +71,44 @@ function StudioSaveControl({ draft, saveLabel, writable, unavailable, onSave }: 
       <StudioButton variant={draft ? "text" : "base"} className="studio-save-button" type="button" title={`${action} (⌘S / Ctrl+S)`} aria-keyshortcuts="Meta+s Control+s" disabled={!writable || unavailable || saving} onClick={onSave}>{saving ? "Saving…" : action}</StudioButton>
     </div>
   );
+}
+
+
+export function StudioBreadcrumbs({ studioSection, hasContentDocuments, activeDocument, siteId, previewWindow, onNavigate, libraryKind = activeDocument.kind }: {
+  studioSection: string; hasContentDocuments: boolean; activeDocument: Pick<StudioDocument, "kind" | "title">;
+  libraryKind?: StudioLibraryKind;
+  siteId?: LocalFixtureSiteId; previewWindow: boolean; onNavigate?: (target: StudioBreadcrumbTarget) => void;
+}) {
+  const contentKind = libraryKind === "templates" ? activeDocument.kind : libraryKind;
+  const collection = activeDocument.kind === "page" ? "Pages" : "Posts";
+  const items: { label: string; href?: string; target?: StudioBreadcrumbTarget }[] =
+    siteId && studioSection === "content" ? [
+      { label: "Sites", href: "/", target: "sites" },
+      { label: localFixtureName(siteId), href: studioContextPath(siteId, contentKind), target: "site" },
+      { label: collection, href: studioContextPath(siteId, activeDocument.kind), target: activeDocument.kind },
+      { label: activeDocument.title },
+    ] : studioSection === "templates" ? [
+      { label: "Templates", href: studioContextPath(siteId ?? null, "templates"), target: "templates" },
+      { label: "Shared presentation" },
+    ] : studioSection !== "content" ? [
+      { label: "Studio", href: studioContextPath(siteId ?? null, contentKind), target: "content" },
+      { label: studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup" },
+    ] : hasContentDocuments ? [
+      { label: collection, href: studioContextPath(null, activeDocument.kind), target: activeDocument.kind },
+      { label: activeDocument.title },
+    ] : [
+      { label: "Content", href: studioContextPath(null, contentKind), target: "content" },
+      { label: "Empty workspace" },
+    ];
+  function activate(event: MouseEvent<HTMLAnchorElement>, target: StudioBreadcrumbTarget) {
+    if (previewWindow || !onNavigate || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+    event.preventDefault();
+    onNavigate(target);
+  }
+  return <nav className="studio-breadcrumbs" aria-label="Breadcrumb"><ol className="studio-breadcrumb-list">
+    {items.map((item, index) => <li key={`${item.target ?? "current"}-${index}`}>
+      {index > 0 ? <StudioIcon name="chevron-right" size={14} aria-hidden="true" /> : null}
+      {item.href && item.target ? <a href={item.href} onClick={event => activate(event, item.target!)}>{item.label}</a> : <strong aria-current="page">{item.label}</strong>}
+    </li>)}
+  </ol></nav>;
 }

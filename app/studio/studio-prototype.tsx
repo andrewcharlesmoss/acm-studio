@@ -19,7 +19,7 @@ import { useStudioDocumentActions } from "./use-studio-document-actions";
 import { StudioDocumentDialogs } from "./studio-document-dialogs";
 import { StudioDesignMediaHandoff } from "./studio-design-media-handoff";
 import { StudioSitePreview } from "./studio-site-preview";
-import { StudioHeader } from "./studio-header";
+import { StudioHeader, type StudioBreadcrumbTarget } from "./studio-header";
 import { StudioNavigationPane } from "./studio-navigation-pane";
 import { StudioIcon } from "./studio-icons";
 import { viewportWidthFor, type StudioViewport, type StudioViewMode } from "./studio-view-menu";
@@ -280,6 +280,27 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   function selectLibraryKind(kind: StudioDocumentKind | "templates") {
     if (switchStudioMode(kind === "templates" ? "templates" : "content", undefined, kind)) setLibraryKind(kind);
   }
+  async function navigateBreadcrumb(target: StudioBreadcrumbTarget) {
+    if (target === "sites") {
+      if (switchingSite || !confirmCodeEditorDiscard()) return;
+      setSwitchingSite(true);
+      if (selectedSite) testSite.pauseEditing(true);
+      try {
+        if (selectedSite || currentWorkspaceSession.writable) await currentWorkspaceSession.flush();
+        if (selectedSite && testSite.failure) throw new Error(testSite.failure);
+        window.location.assign("/");
+      } catch {
+        if (selectedSite) testSite.pauseEditing(false);
+        setSwitchingSite(false);
+      }
+      return;
+    }
+    const kind = target === "site" || target === "content" ? libraryKind === "templates" ? activeDocument.kind : libraryKind : target;
+    if (!switchStudioMode(kind === "templates" ? "templates" : "content", undefined, kind)) return;
+    setLibraryKind(kind);
+    setLibraryPaneCollapsed(false);
+    setViewMode("editing");
+  }
   function selectDocument(document: StudioDocument) {
     if (!switchStudioMode("content", inspectorTab === "block" ? "document" : undefined, document.kind)) return false;
     documentCommands.selectDocument(document);
@@ -385,7 +406,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   return (
     <div className={`studio-shell studio-desktop-only${selectedSite ? " studio-test-context" : ""}${previewWindow ? " studio-preview-window" : ""}${websiteView ? ` studio-website-view${viewMode === "full" ? " studio-full-preview" : ""}` : ""}`} onBeforeInputCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       {selectedSite ? <style>{testSiteCss}</style> : null}
-      <StudioHeader templateViewport={templateViewport} onTemplateViewportChange={templateCanvasVisible ? setTemplateViewport : undefined} viewMode={viewMode} onViewModeChange={selectedSite ? changeViewMode : undefined} siteContext={selectedSite ? { siteId: selectedSite, writable: testSite.writable, onSave: saveCurrentDocument, onPublish: () => { void publishLocalDocument(); }, publishing: publishingLocalSite } : undefined} studioSection={studioSection} hasContentDocuments={hasContentDocuments || Boolean(selectedSite)} activeDocument={activeDocument} saveLabel={selectedSite ? testSite.label : saveLabel} templateSession={editingTemplates}
+      <StudioHeader libraryKind={libraryKind} onBreadcrumbNavigate={target => { void navigateBreadcrumb(target); }} templateViewport={templateViewport} onTemplateViewportChange={templateCanvasVisible ? setTemplateViewport : undefined} viewMode={viewMode} onViewModeChange={selectedSite ? changeViewMode : undefined} siteContext={selectedSite ? { siteId: selectedSite, writable: testSite.writable, onSave: saveCurrentDocument, onPublish: () => { void publishLocalDocument(); }, publishing: publishingLocalSite } : undefined} studioSection={studioSection} hasContentDocuments={hasContentDocuments || Boolean(selectedSite)} activeDocument={activeDocument} saveLabel={selectedSite ? testSite.label : saveLabel} templateSession={editingTemplates}
         canRetryEditing={canRetryEditing} retryEditing={retryEditing} previewWindow={previewWindow} viewViewport={viewViewport} setViewViewport={changeViewport}
         showTemplate={showTemplate} hasTemplate={hasTemplate} setShowTemplate={setShowTemplate} switchStudioMode={switchStudioMode} publishing={publishing} writable={writable && !selectedSite}
         onSaveDocument={saveCurrentDocument} onExportDocument={() => selectedSite ? testSite.exportDraft() : exportJson(activeDocument, `${activeDocument.slug}.json`)} />
