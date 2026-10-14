@@ -2138,7 +2138,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .document-item[data-drop-edge="after"]::after { bottom: -1px; }
 
 /* Canvas insertions use a compact chooser; Browse All explicitly opens the pane. */
-.studio-anchored-popover.canvas-block-chooser { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 4px 12px #00000026; color: var(--ink); font-family: var(--studio-ui-font); font-size: var(--studio-ui-size); overflow: auto; padding: 0; width: 350px; }
+.studio-anchored-popover.canvas-block-chooser { background: #fff; border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 4px 12px #00000026; color: var(--ink); font-family: var(--studio-ui-font); font-size: var(--studio-ui-size); overflow: auto; padding: 0; width: 350px; }
 .canvas-block-chooser-search { align-items: center; display: flex; gap: 8px; margin: 16px; }
 .canvas-block-chooser-search > svg { flex: 0 0 20px; }
 .canvas-block-chooser-search input { background: transparent; border: 1px solid var(--line); border-radius: 2px; color: inherit; flex: 1; font: inherit; min-width: 0; padding: 10px; width: auto; }

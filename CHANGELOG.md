@@ -34,6 +34,8 @@
 
 ### Changed
 
+- Use a white surface for the shared canvas block chooser in every editor.
+
 - Share compact property rows across Post, Page and Template settings, with
   Categories and Tags as their only collapsible groups and regular-case
   inspector labels. Setting values open editors beside the pane.
