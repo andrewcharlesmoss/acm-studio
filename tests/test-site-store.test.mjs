@@ -241,3 +241,16 @@ test("client stale or failed prompt preserves exportable draft and proposal", as
   assert.deepEqual(exported, { draft, baseRevision: "old", preservedProposal: proposal });
   assert.deepEqual(draft, { text: "Unsaved visual edit" });
 });
+
+test("dependency snapshots retain the fixture process guard and deny a competing server", async () => {
+  const f = await fixture(); const other = createTestSiteStore(f.options);
+  try {
+    const current = await f.store.readGuardedSnapshot();
+    assert.equal(current.document.text, "Original");
+    const source = await readFile(path.join(f.root, "content/site.json"), "utf8");
+    await assert.rejects(other.readGuardedSnapshot(), error => error.status === 423 || error.status === 503);
+    assert.equal(await readFile(path.join(f.root, "content/site.json"), "utf8"), source);
+    await f.store.close();
+    assert.equal((await other.readGuardedSnapshot()).document.text, "Original");
+  } finally { await other.close(); await f.close(); }
+});

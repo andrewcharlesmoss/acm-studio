@@ -55,21 +55,20 @@ export function createGlobalTemplateStore({ root, loadContracts, readSites }) {
   }
   return {
     load: (initialise = false, assertWriter) => serial(() => snapshot(initialise, assertWriter)),
-    save: (revision, templates, assertWriter) => serial(async () => {
+    save: (revision, templates, assertWriter, browserReferences) => serial(async () => {
       const current = await snapshot();
       if (!current.initialised) throw new TestSiteError("The owning Studio tab must initialise global templates before saving.", 423);
       guard ??= await acquireTestFileGuard(root);
       if (current.revision !== revision) throw new TestSiteError("Global templates have newer changes. Your draft was preserved. Reload before saving.", 409);
       const contracts = await loadContracts();
       let library;
-      try { library = contracts.validateGlobalTemplateLibrary({ ...current.library, templates }); }
+      try { library = contracts.validateGlobalTemplateLibrary({ ...current.library, version: 2, templates }); }
       catch { throw new TestSiteError("The global template change is invalid. Nothing was saved."); }
-      // Removal remains unavailable until live and recovery reference removal has a complete contract.
-      if (current.library.templates.sets.some(set => !library.templates.sets.some(next => next.id === set.id))) throw new TestSiteError("Global library removal is unavailable while site and recovery references are retained.");
-      for (const set of current.library.templates.sets) {
-        const next = library.templates.sets.find(item => item.id === set.id);
-        if ([...set.templates, ...set.parts].some(entry => ![...next.templates, ...next.parts].some(item => item.id === entry.id))) throw new TestSiteError("Global original removal is unavailable while site and recovery references are retained. Its source was kept.");
-      }
+      try {
+        const removed = current.library.templates.sets.some(set => !library.templates.sets.find(next => next.id === set.id) || [...set.templates, ...set.parts].some(entry => ![...library.templates.sets.find(next => next.id === set.id).templates, ...library.templates.sets.find(next => next.id === set.id).parts].some(item => item.id === entry.id)));
+        if (contracts.assertGlobalTemplateRemoval) contracts.assertGlobalTemplateRemoval(current.library, library.templates, removed ? await readSites() : {}, browserReferences);
+        else if (removed) throw new Error("Global removal requires current dependency validation.");
+      } catch (error) { throw new TestSiteError(error.message); }
       const raw = JSON.stringify(library, null, 2) + "\n";
       if (Buffer.byteLength(raw) > TEST_FILE_MAX_BYTES) throw new TestSiteError("The global template library is too large.", 413);
       const latest = await snapshot();

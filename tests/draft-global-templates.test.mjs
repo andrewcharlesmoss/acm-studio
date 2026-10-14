@@ -82,7 +82,7 @@ test('backup v5 carries both recovery designs and a validated shared library, wi
   assert.deepEqual(saved.globalTemplates, library);
   assert.deepEqual(saved.templates.sets, source.sets);
   assert.throws(()=>backup.validateStudioBackup({...value,version:4}),/backup v5/);
-  assert.throws(()=>backup.validateStudioBackup({...value,globalTemplates:{...library,version:2}}),/Unsupported global/);
+  assert.throws(()=>backup.validateStudioBackup({...value,globalTemplates:{...library,version:3}}),/Unsupported global/);
   const old = { ...value };
   delete old.globalTemplates;
   assert.doesNotThrow(()=>backup.validateStudioBackup({...old,version:4}));

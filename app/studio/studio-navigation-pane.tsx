@@ -53,7 +53,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
     libraryKind={libraryKind} onSelectLibraryKind={onSelectLibraryKind}
     counts={{ post: workspace.documents.filter(item => item.kind === "post").length,
       page: workspace.documents.filter(item => item.kind === "page").length, templates: templateCount }}
-    binCount={workspace.bin.length + templateSession.store.bin.length} studioSection={studioSection}
+    binCount={workspace.bin.length + templateSession.store.bin.length + templateLibrarySession.store.bin.length} studioSection={studioSection}
     writable={writable} templateWritable={templateSession.writable}
     onNewDocument={addDocument} onNewFromTemplate={addDocumentFromTemplate}
     onOpenFiles={openMediaLibrary} onOpenBackup={onOpenBackup} onOpenBin={onOpenBin}

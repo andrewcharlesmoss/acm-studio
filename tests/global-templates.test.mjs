@@ -165,6 +165,8 @@ test("global hook installs merged acknowledgements and restarts its broker after
   const request = async () => { if (deferRead) { deferRead = false; return new Promise(resolve => { deferredRead = resolve; }); } return ({ library: structuredClone(authoritative), revision: hash, initialised: true }); };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Error, Boolean, JSON, window: { addEventListener() {}, removeEventListener() {}, confirm: () => true }, setInterval: callback => { intervals.push(callback); return intervals.length; }, clearInterval() {}, require(name) {
     if (name === "react") return react;
+    if (name === "./browser-template-references") return { currentBrowserTemplateReferences: () => [] };
+    if (name === "./template-reference-gate") return { withTemplateReferenceWrite: fn => fn(), installGlobalReferenceLibrary() {}, protectGlobalReferenceRemoval() {} };
     if (name === "./template-model") return templates;
     if (name === "./global-template-contract") return model;
     if (name === "./write-ownership") return { studioWriteOwnership: { write: callback => callback() } };

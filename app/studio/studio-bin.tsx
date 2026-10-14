@@ -1,4 +1,5 @@
 "use client";
+import { GlobalTemplateBinPanel } from "./global-template-bin-panel";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 
 import { useRef, useState, type MouseEvent } from "react";
@@ -20,7 +21,7 @@ function formattedDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 }
 
-export function StudioBin({ workspace, templates, siteId, commitContent, templateRecoveryOnly = false }: { workspace: WorkspaceSession; templates: TemplateSession; siteId?: LocalFixtureSiteId; templateRecoveryOnly?: boolean; commitContent?: (update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) => boolean }) {
+export function StudioBin({ globals, workspace, templates, siteId, commitContent, templateRecoveryOnly = false }: { globals?: TemplateSession; workspace: WorkspaceSession; templates: TemplateSession; siteId?: LocalFixtureSiteId; templateRecoveryOnly?: boolean; commitContent?: (update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) => boolean }) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [permanentTarget, setPermanentTarget] = useState<BinTarget | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -133,12 +134,13 @@ export function StudioBin({ workspace, templates, siteId, commitContent, templat
   }
 
   return <section className="studio-bin" aria-labelledby="studio-bin-title">
-    <header><div><p className="studio-eyebrow">RECOVER DELETED WORK</p><h1 id="studio-bin-title">Bin</h1><p>Restore pages, posts and templates, or permanently delete them when you’re sure.</p></div><span>{entries.length} {entries.length === 1 ? "item" : "items"}</span></header>
+    <header><div><p className="studio-eyebrow">Recover deleted work</p><h1 id="studio-bin-title">Bin</h1><p>Restore pages, posts and templates, or permanently delete them when you’re sure.</p></div><span>{entries.length + (globals?.store.bin.length ?? 0)} {(entries.length + (globals?.store.bin.length ?? 0)) === 1 ? "item" : "items"}</span></header>
+    {globals ? <GlobalTemplateBinPanel session={globals} /> : null}
     {feedback ? <p className="studio-bin-feedback" role="status">{feedback}</p> : null}
     {entries.length ? <ul className="studio-bin-list">{entries.map(entry => <li className="studio-bin-item" key={`${entry.kind}/${entry.id}`}>
       <span className="document-kind-mark" aria-hidden="true">{entry.mark}</span><span className="studio-bin-copy"><strong>{entry.label}</strong><small>{entry.detail}</small></span>
       <div className="studio-bin-actions"><button type="button" disabled={!writable} onClick={() => entry.kind === "document" ? restoreDocument(workspace.workspace.bin.find(item => item.id === entry.id)!) : restoreTemplate(templates.store.bin.find(item => item.id === entry.id)!)}><StudioIcon name="undo" size={16} />Restore</button><button className="danger-button" type="button" disabled={!writable} onClick={event => askPermanentDelete(event, entry)}><StudioIcon name="trash" size={16} />Delete permanently</button></div>
-    </li>)}</ul> : <p className="studio-bin-empty">The Bin is empty.</p>}
+    </li>)}</ul> : <p className="studio-bin-empty">{globals?.store.bin.length ? "No items in this context’s Bin." : "The Bin is empty."}</p>}
     {permanentTarget ? <StudioDialog title="Delete permanently?" className="template-dialog" returnFocus={openerRef} onClose={closePermanentDialog}>
       <p>This will permanently delete “{permanentTarget.label}”. You won’t be able to restore it.</p>
       <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closePermanentDialog}>Cancel</StudioButton><button className="button-primary danger-button" type="button" disabled={!writable} onClick={() => permanentlyDelete(permanentTarget)}>Delete permanently</button></StudioDialogActions>

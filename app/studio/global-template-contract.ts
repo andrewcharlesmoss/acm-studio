@@ -3,7 +3,7 @@ import type { LocalFixtureSiteId } from "./test-site/sites";
 
 export type TemplatePropertyOverride = { path: string[]; value?: unknown; remove?: true; order?: string[]; added?: unknown[]; removed?: string[] };
 export type GlobalTemplateBinding = { setId: string; globalSetId: string; ids: Record<string, string>; overrides: TemplatePropertyOverride[] };
-export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
+export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" && key !== "prototype";
@@ -12,7 +12,7 @@ const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" &&
 export function globalTemplateChangeCanUndo(before: TemplateStore, after: TemplateStore): boolean {
   return after.sets.every(set => {
     const previous = before.sets.find(item => item.id === set.id);
-    return previous && [...set.templates, ...set.parts].every(entry => [...previous.templates, ...previous.parts].some(item => item.id === entry.id && item.kind === entry.kind));
+    return previous && [...set.templates, ...set.parts].every(entry => [...previous.templates, ...previous.parts].some(item => item.id === entry.id && item.kind === entry.kind) || before.bin.some(item => item.kind === "template" && item.setId === set.id && item.entry.id === entry.id && same(item.entry, entry)));
   });
 }
 function keyed(value: unknown[]): value is (Record<string, unknown> & { id: string })[] { return value.every(item => object(item) && typeof item.id === "string") && new Set(value.map(item => (item as { id: string }).id)).size === value.length; }
@@ -114,9 +114,14 @@ export function effectiveGlobalTemplates(store: TemplateStore, library: GlobalTe
   return validateTemplateStore({ ...store, sets });
 }
 export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLibrary {
-  if (!object(value) || value.format !== "acm-global-templates" || value.version !== 1 || !object(value.migrations)) throw new Error("Unsupported global template library.");
+  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
   const templates = validateTemplateStore(value.templates);
-  if (templates.assignments.length || templates.bin.length) throw new Error("Global templates cannot contain site assignments or site Bin records.");
+  if (templates.assignments.length || value.version === 1 && templates.bin.length || templates.bin.some(item => item.kind !== "template")) throw new Error("Global templates cannot contain site assignments; global Bin records require library v2.");
+  for (const item of templates.bin) {
+    if (item.kind !== "template") continue;
+    const set = templates.sets.find(set => set.id === item.setId);
+    if (!set || [...set.templates, ...set.parts].some(entry => entry.id === item.entry.id)) throw new Error("A global Bin entry conflicts with the active library. Its source was kept.");
+  }
   for (const siteId of ["test", "test2"] as const) {
     const migration = value.migrations[siteId];
     if (!object(migration) || !Array.isArray(migration.bindings) || !Array.isArray(migration.bases)) throw new Error("Unsupported template migration.");
@@ -167,7 +172,7 @@ export function createGlobalTemplateLibrary(sites: Record<LocalFixtureSiteId, { 
       migrations[siteId].bases.push({ ...remapTemplateIds(original, ids), id: local.id });
     }
   }
-  return validateGlobalTemplateLibrary({ format: "acm-global-templates", version: 1, templates, migrations });
+  return validateGlobalTemplateLibrary({ format: "acm-global-templates", version: 2, templates, migrations });
 }
 
 /** Scope navigation uses the same global-to-site aliases as materialisation. */

@@ -360,6 +360,7 @@ export function createTestSiteStore({ root, validate, render, documentsOf = valu
       if (input.action === "save") return save(token, input.baseRevision, input.document, input.featuredImages);
       throw new TestSiteError(`Unknown ${siteName} operation.`);
     }),
+    readGuardedSnapshot: () => serial(snapshot),
     assertWriter: token => serial(async () => { writable(token); return snapshot(); }),
     refreshPreview: () => serial(async () => {
       const current = await snapshot();

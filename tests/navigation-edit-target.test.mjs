@@ -58,7 +58,7 @@ test('production orchestration separates preview, target, owner history and save
  assert.match(source,/editingSiteNavigation \? navigationEditing.templates : globalTemplates.session/);
  assert.match(controller,/await browserTemplates.flush\(\)/); assert.match(controller,/await fixture.flush\(\)/);
  assert.match(controller,/retainDraftNavigation\(source, update\(copyTemplateData\(draftGlobalTemplates/);
- assert.match(source,/templatePreviewSite === "test2"/); assert.match(source,/navigationEditTarget === "test2"/);
+ assert.match(source,/"test2", studioSection === "templates"/); assert.match(source,/navigationEditTarget === "test2"/);
  const inspector=await readFile(new URL('../app/studio/page-link-inspector.tsx',import.meta.url),'utf8');
  assert.match(inspector,/if \(!props.contentOnly && editingViewport !== "desktop"\)/);
 });

@@ -1,3 +1,4 @@
+import { createTemplateDependencyGate } from "./template-dependency-gate.mjs";
 import { readFile, lstat, realpath } from "node:fs/promises";
 import { createGlobalTemplateStore } from "./global-template-store.mjs";
 import path from "node:path";
@@ -48,6 +49,7 @@ export function testSiteBridge() {
     const invalidateRenderer = file => { if (rendererDependencies.has(file)) loaded = undefined; };
     server.watcher.on("change", invalidateRenderer);
     let validation;
+    const dependencyGate = createTemplateDependencyGate();
     const globalTemplates = createGlobalTemplateStore({ root: server.config.root, loadContracts: load, readSites: async () => {
       const contracts = await load();
       const sites = {};
@@ -124,25 +126,42 @@ export function testSiteBridge() {
         const { store, propose } = fixture;
         validation = await load();
         const token = request.headers["x-studio-test-token"];
-        let result;
-        if (input.action === "global-read") {
-          if (input.initialise === true) await store.assertWriter(token);
-          const previous = await globalTemplates.load();
-          result = input.initialise === true ? await globalTemplates.load(true, () => store.assertWriter(token)) : previous;
-          if (!previous.initialised && result.initialised) {
+        const execute = async () => {
+          let result;
+          if (input.action === "global-read") {
+            if (input.initialise === true) await store.assertWriter(token);
+            const previous = await globalTemplates.load();
+            result = input.initialise === true ? await globalTemplates.load(true, () => store.assertWriter(token)) : previous;
+            if (!previous.initialised && result.initialised) {
+              const refreshed = await Promise.allSettled([...stores.values()].map(item => item.store.refreshPreview()));
+              result = { ...result, previewErrors: refreshed.map((item, index) => item.status === "rejected" ? [...stores.keys()][index] : null).filter(Boolean) };
+            }
+          }
+          else if (input.action === "global-save") {
+            await store.assertWriter(token);
+            const before = await globalTemplates.load();
+            const removed = before.library.templates.sets.some(set => [...set.templates, ...set.parts].some(entry => !input.templates?.sets?.find(next => next.id === set.id)?.[entry.kind === "page" || entry.kind === "post" ? "templates" : "parts"]?.some(item => item.id === entry.id)));
+            // Hold both process guards before validating removal. Another Studio
+            // process cannot save a fixture against a disappearing original.
+            if (removed) for (const fixture of stores.values()) await fixture.store.readGuardedSnapshot();
+            result = await globalTemplates.save(input.revision, input.templates, () => store.assertWriter(token), input.browserReferences);
             const refreshed = await Promise.allSettled([...stores.values()].map(item => item.store.refreshPreview()));
             result = { ...result, previewErrors: refreshed.map((item, index) => item.status === "rejected" ? [...stores.keys()][index] : null).filter(Boolean) };
           }
-        }
-        else if (input.action === "global-save") {
-          await store.assertWriter(token);
-          result = await globalTemplates.save(input.revision, input.templates, () => store.assertWriter(token));
-          const refreshed = await Promise.allSettled([...stores.values()].map(item => item.store.refreshPreview()));
-          result = { ...result, previewErrors: refreshed.map((item, index) => item.status === "rejected" ? [...stores.keys()][index] : null).filter(Boolean) };
-        }
-        else if (input.action === "connect") result = await store.connect();
-        else if (input.action === "prompt") result = await propose(token, input);
-        else result = await store.handle(token, input);
+          else if (input.action === "connect") result = await store.connect();
+          else if (input.action === "prompt") result = await propose(token, input);
+          else {
+            if (input.action === "save") {
+              if (!validation.validTestSiteDocument(input.document) || input.document.siteId !== input.siteId) throw new TestSiteError("Invalid site content.");
+              const global = await globalTemplates.load();
+              const snapshot = validation.fixtureTemplateDependencySnapshot(input.document, global.library);
+              validation.assertActiveGlobalReferences(global.library, validation.ownerTemplateReferences(snapshot), snapshot.bindings);
+            }
+            result = await store.handle(token, input);
+          }
+          return result;
+        };
+        const result = input.action === "save" || input.action === "global-save" || input.action === "global-read" && input.initialise === true ? await dependencyGate.run(execute) : await execute();
         response.end(JSON.stringify(result));
       } catch (error) {
         response.statusCode = error instanceof TestSiteError ? error.status : 503;

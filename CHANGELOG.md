@@ -4,6 +4,10 @@
 
 ### Added
 
+- Manage template dependencies across Studio Drafts, Test and Test2 with bulk
+  replacement or detachment, per-owner save results, and a global template Bin
+  supporting Undo and Restore for unused originals.
+
 - Edit navigation from any Templates context with a separate Studio Drafts, Test,
   or Test2 target selector and saves through each target’s existing owner.
 

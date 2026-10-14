@@ -681,7 +681,7 @@ map through stable aliases to the canonical original. Context and entry IDs rema
 internal compatibility identifiers; equal names never establish shared ownership.
 
 Global originals are saved through a local, exact-origin, ownership-protected CAS
-gateway to `work/global-template-library.json` (global contract v1). The file is
+gateway to `work/global-template-library.json` (global contract v2, reading v1). The file is
 server-readable and is the source for both generated local websites. A save
 refreshes both previews from fresh site sources without changing site revisions.
 Each HTML output records the global revision independently. Partial refresh
@@ -715,8 +715,10 @@ editing becomes available. There is no unlocked persistence fallback. Original
 editing uses the existing typed tab broker: compatible peer edits merge and
 an overlap requires an explicit choice. Failed or uncertain saves preserve the
 local draft and offer a complete library export before reload or conflict choice.
-Dedicated previews load originals read-only. Global removal remains unavailable
-while the site-reference and recovery contract is retained.
+Dedicated previews load originals read-only. Unused originals may move to the global
+Bin once current assignments, published selections, default choices and shared-part
+or navigation references are resolved. Retained designs and source history remain
+recoverable and do not alone prevent a move.
 
 **Export Saved Global Library** includes originals and migration bindings.
 Import restores originals after explicit confirmation; it does not enable site
@@ -764,7 +766,7 @@ writer, synchronisation and Undo history. New shared references append any
 missing reader-valid records without replacing existing artwork. Save as template
 in Studio Drafts creates a retained global original. Creating an original does
 not advertise Undo that would remove it; shared design edits retain Undo/Redo
-in Templates. Original removal remains protected. Published browser snapshots retain their immutable
+in Templates. Unused originals support Move to Bin, Undo and Restore. Published browser snapshots retain their immutable
 presentation until Update.
 
 Ambiguous or unmatched active assignments preserve the old presentation and
@@ -826,3 +828,37 @@ editor offers every structurally supported block in each container. Legacy
 HTML round trips, and backups for recovery, but does not filter insertion, paste,
 movement, or transforms. Structural child rules and template-specific restrictions
 remain enforced.
+
+### Manage dependencies and the global Bin
+
+Each template’s context menu offers **Manage dependencies**. Its grouped inventory
+shows Studio Drafts, Test and Test2 document assignments, published local layouts,
+documents in the Bin and default choices. Select individual uses, an owner or all
+assignments, then review a same-kind replacement or **Existing presentation**
+detachment. Detachment freezes inherited author, category, tags and parent values;
+content bodies and editorial statuses remain unchanged. Fixture publication layout
+changes update the local preview without recapturing draft content. Browser
+publications already carry independent immutable design snapshots.
+
+Each owner saves through its existing writer and revision checks. Studio Drafts
+prepares editorial metadata before saving assignments, keeping the old layout if
+assignment saving fails. Results distinguish completed saves and partial failures;
+later owners stop after a failure, and completed saves are not rolled back over
+newer edits. Refresh the selection before retrying stale dependency rows.
+
+Shared-part and site-navigation references appear as protected dependencies. Open
+the referencing template to resolve them. Raw recovery designs and source history
+remain available, including legacy aliases; names never establish ownership.
+
+Move to Bin is enabled only when no active dependencies remain. The gateway checks
+fresh fixture sources and the existing browser writer’s current reference inventory.
+A shared mutation queue orders local fixture assignment saves and global removal;
+browser reference writes use the existing ownership coordinator and a corresponding
+reference gate. Removed originals cannot be reintroduced by stale assignment saves.
+
+The Bin has a separate **Global templates** section in every site context. Command+Z
+(or Ctrl+Z) reverses a move and **Restore** brings back the same original IDs and
+design, including required shared parts. Redo remains available through ordinary
+shared history. Foreign saved changes clear that whole-design history to avoid
+reverting another tab. Global permanent deletion is unavailable. Bin records and
+backing contexts remain in library v2 exports and backups; v1 remains readable.

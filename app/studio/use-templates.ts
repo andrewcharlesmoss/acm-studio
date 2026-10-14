@@ -1,4 +1,5 @@
 "use client";
+import { assertBrowserGlobalReferences, withTemplateReferenceWrite } from "./template-reference-gate";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { copyTemplateData, emptyTemplateStore, type TemplateStore } from "./template-model";
 import { loadTemplates, saveTemplates } from "./template-store";
@@ -103,7 +104,7 @@ export function useTemplates(generation: number, writable: boolean) {
       },
       onStatus: updateSyncStatus,
       loadAuthoritative: () => loadTemplates(),
-      persistPrimary: (snapshot) => saveTemplates(snapshot),
+      persistPrimary: snapshot => studioWriteOwnership.write(() => withTemplateReferenceWrite(async () => { assertBrowserGlobalReferences(snapshot); saveTemplates(snapshot); })),
     });
     syncRef.current = session;
     updateSyncStatus(session.getStatus());
@@ -141,7 +142,7 @@ export function useTemplates(generation: number, writable: boolean) {
       let save: Promise<void> | undefined;
       if (primaryWritable) {
         if (syncRef.current?.isAvailable() && syncRef.current.isPrimary()) save = syncRef.current.commitPrimary(next);
-        else { saveTemplates(next); save = Promise.resolve(); }
+        else { assertBrowserGlobalReferences(next); saveTemplates(next); save = Promise.resolve(); }
       } else {
         const pending = pendingPeerSaveRef.current;
         pendingPeerSaveRef.current = {

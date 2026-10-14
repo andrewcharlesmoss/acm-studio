@@ -1,4 +1,6 @@
 "use client";
+import { currentBrowserTemplateReferences } from "./browser-template-references";
+import { installGlobalReferenceLibrary, protectGlobalReferenceRemoval, withTemplateReferenceWrite } from "./template-reference-gate";
 import { useEffect, useRef, useState } from "react";
 import { copyTemplateData, emptyTemplateStore, validateTemplateStore, type TemplateStore } from "./template-model";
 import { studioWriteOwnership } from "./write-ownership";
@@ -34,6 +36,7 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
   const revision = useRef("");
   const readGeneration = useRef(0);
   const pending = useRef(false);
+  const completion = useRef<Promise<void> | null>(null);
   const past = useRef<TemplateStore[]>([]);
   const future = useRef<TemplateStore[]>([]);
   const request = useRef(site.requestGlobalTemplates);
@@ -59,6 +62,7 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     // A peer learns the gateway hash on its next read, after its transaction was
     // acknowledged. That unchanged saved design must retain its local Undo.
     if (revision.current !== response.revision && !sameTemplateDesign(current.current, next.templates)) { setSourceEpoch(epoch => epoch + 1); past.current = []; future.current = []; setHistoryState({ undo: false, redo: false }); }
+    installGlobalReferenceLibrary(next);
     revision.current = response.revision; current.current = next.templates;
     setLibrary(next); setStore(next.templates); setInitialised(response.initialised === true); setError(response.previewErrors?.length ? "Global templates initialised, but a local preview refresh failed. Reload originals, then save to refresh both previews." : null); setLabel(response.previewErrors?.length ? "Global templates initialised — preview refresh incomplete" : response.initialised === true ? "Global templates saved locally" : "Read-only originals — the owning Studio tab needs to reconnect");
   }
@@ -85,15 +89,18 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     const primary = exclusive && site.canSaveGlobalTemplates;
     const session = createStudioSync<TemplateStore>({ scope: "global-template-library", storeKey: "templates", initialSnapshot: current.current, role: primary ? "primary" : "peer", validateSnapshot: validateTemplateStore,
       loadAuthoritative: () => current.current,
-      persistPrimary: async templates => {
+      persistPrimary: templates => studioWriteOwnership.write(() => withTemplateReferenceWrite(async () => {
         ++readGeneration.current;
-        const result = await studioWriteOwnership.write(() => request.current({ action: "global-save", revision: revision.current, templates }));
+        const browserReferences = currentBrowserTemplateReferences();
+        protectGlobalReferenceRemoval(templates);
+        const result = await request.current({ action: "global-save", revision: revision.current, templates, browserReferences });
         const saved = validateGlobalTemplateLibrary(result.library);
+        installGlobalReferenceLibrary(saved);
         ++readGeneration.current;
         revision.current = result.revision;
         if (!closed) { setLibrary(saved); setLabel(result.previewErrors?.length ? "Global templates saved — reconnect affected local previews" : "Global templates saved locally"); }
         if (result.previewErrors?.length) throw new Error("The global original was saved, but a local preview refresh failed. Reload global originals before retrying.");
-      },
+      })),
       onCommittedSnapshot: (snapshot, commit) => {
         acknowledged.current = snapshot;
         const sameDesign = sameTemplateDesign(snapshot, current.current);
@@ -117,12 +124,13 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
   const writable = !readOnly && enabled && initialised && Boolean(library) && (exclusive && site.canSaveGlobalTemplates || syncStatus === "synced") && !busy && !error && !syncConflict;
   function install(next: TemplateStore, recordHistory?: () => void) {
     if (!writable || pending.current) return false;
-    const checked = validateTemplateStore({ ...next, assignments: [], bin: [] });
+    const checked = validateTemplateStore({ ...next, assignments: [] });
     ++readGeneration.current; acknowledged.current = null; pending.current = true; setBusy(true); current.current = checked; setStore(checked); setLabel("Saving global templates…");
     recordHistory?.();
     const session = sync.current;
     const saving = exclusive ? session?.commitPrimary(checked) : session?.submit(checked);
     if (!saving) { pending.current = false; setBusy(false); setError("The global template broker is unavailable. Your draft was preserved."); return false; }
+    completion.current = saving;
     void saving.then(() => {
       if (!alive.current) return;
       pending.current = false; setBusy(false); setError(null); setLabel("Global templates saved locally");
@@ -146,6 +154,7 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     commit: update => { const before = current.current; try { const next = update(copyTemplateData(before)); return install(next, () => { past.current = globalTemplateChangeCanUndo(before, next) ? [...past.current, before] : []; future.current = []; setHistoryState({ undo: past.current.length > 0, redo: false }); }); } catch (reason) { setError(reason instanceof Error ? reason.message : "Invalid global template change."); return false; } },
     undo: () => { const next = past.current.at(-1); return Boolean(next && install(next, () => { past.current.pop(); future.current.push(store); setHistoryState({ undo: past.current.length > 0, redo: true }); })); },
     redo: () => { const next = future.current.at(-1); return Boolean(next && install(next, () => { future.current.pop(); past.current.push(store); setHistoryState({ undo: true, redo: future.current.length > 0 }); })); },
+    flush: async () => { const expected = current.current; if (completion.current) await completion.current; if (!sameTemplateDesign(current.current, expected)) throw new Error("Global templates changed while saving. Reload before continuing."); },
     canUndo: writable && historyState.undo, canRedo: writable && historyState.redo,
   };
   return { library, initialised, session };

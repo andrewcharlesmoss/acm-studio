@@ -469,3 +469,31 @@
 .navigation-edit-controls select { font: inherit; max-width: 100%; min-height: 36px; }
 .navigation-edit-controls .acm-button { display: flex; align-items: center; gap: 6px; }
 .template-scope-actions { flex-wrap: wrap; align-items: center; }
+
+.template-dependency-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  background: #fff;
+  font: var(--studio-ui-size)/1.5 var(--studio-ui-font);
+}
+.template-dependency-dialog label { display: flex; align-items: flex-start; gap: 8px; }
+.template-dependency-dialog input[type="checkbox"] { flex: none; margin-top: 3px; }
+.template-dependency-groups { display: grid; gap: 16px; margin: 16px 0; }
+.template-dependency-groups section { border-top: 1px solid var(--studio-border, #d1cfc7); padding-top: 12px; }
+.template-dependency-groups h3 { margin: 0 0 8px; font-size: var(--studio-ui-size); font-weight: 600; }
+.template-dependency-groups ul { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 10px; }
+.template-dependency-groups small { display: block; font-size: var(--studio-ui-size); color: var(--studio-text-muted); }
+.template-dependency-replacement { flex-direction: column; }
+.template-dependency-replacement select { width: 100%; min-height: 36px; }
+.template-dependency-dialog .studio-dialog-actions { flex-wrap: wrap; }
+.template-dependency-results { padding-left: 20px; }
+.template-dependency-dialog { border: 1px solid #ccc; border-radius: 10px; padding: 24px; }
+.template-dependency-dialog p { margin: 12px 0; }
+.template-dependency-groups { max-height: min(420px, 45dvh); overflow: auto; }
+.template-dependency-groups section { border-color: var(--studio-border, #d1cfc7); }
+.template-dependency-groups small { color: var(--studio-text-muted, #666); }
+@media (max-width: 600px) {
+  .template-dependency-dialog { padding: 16px; }
+  .template-dependency-dialog .studio-dialog-actions { justify-content: flex-start; }
+}

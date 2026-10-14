@@ -56,6 +56,8 @@ function fixture(t) {
           if (name === "next/navigation") return { usePathname: () => "/studio/designs" };
           if (name.endsWith("template-model")) return templates;
           if (name.endsWith("global-template-contract")) return contracts;
+          if (name.endsWith("template-reference-gate")) return { withTemplateReferenceWrite: fn => fn(), installGlobalReferenceLibrary() {}, protectGlobalReferenceRemoval() {} };
+          if (name.endsWith("browser-template-references")) return { currentBrowserTemplateReferences: () => [] };
           if (name.endsWith("write-ownership")) return { studioWriteOwnership: ownership };
           if (name.endsWith("use-test-site")) return { useTestSite: (enabled, borrowed, siteId) => ({ ...site, siteId, canSaveGlobalTemplates: enabled && borrowed && owner }) };
           if (name.endsWith("use-global-templates")) return load("app/studio/use-global-templates.ts");

@@ -1,3 +1,5 @@
+import { loadTemplates } from "./template-store";
+import { assertBrowserWorkspaceGlobalReferences } from "./template-reference-gate";
 import { savedDocumentRevisions } from "./document-revisions";
 import { studioWriteOwnership } from "./write-ownership";
 import { LOCAL_WORKSPACE_KEY } from "../content/local-publishing";
@@ -24,6 +26,7 @@ export const browserWorkspaceRepository: WorkspaceRepository = {
   },
   save(workspace) {
     studioWriteOwnership.assertWritable();
+    assertBrowserWorkspaceGlobalReferences(workspace, loadTemplates);
     const previous = browserWorkspaceRepository.load();
     const documentRevisions = savedDocumentRevisions(previous, workspace);
     const saved = validateWorkspacePublicationTemplates(validateStudioWorkspace({ ...workspace, version: 26, documentRevisions }));

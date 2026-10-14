@@ -518,7 +518,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v1), saved through the fixed-target, exact-origin,
+(global library contract v2, reading v1), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Template designs
 are global and cannot be customised per site. Identity, authored menu links,
@@ -528,7 +528,13 @@ not alter effective global designs and normal content saves preserve them.
 Global edits refresh both generated previews from fresh sources without changing
 site source revisions. Read-only bootstrap never permits persistence before owned
 initialisation. Legacy entry URLs map to originals. New originals are available
-to every site; removal remains protected. Library export/import and site backups
+to every site. Manage dependencies bulk replaces or detaches assignments across
+Studio Drafts, Test and Test2 through their existing owners. Active, published,
+binned, default and structural references protect removal; raw recovery designs
+and source history remain recoverable without blocking unused originals. Unused
+originals move to the global Bin with Undo and Restore; permanent removal is not
+offered. Global/fixture mutations and browser reference writes are ordered under
+the existing owner and revision checks to reject stale reintroduction. Library export/import and site backups
 preserve originals and recovery records. See `docs/templates.md` and
 `docs/test-site-integration.md`. No hosted publication is implied.
 

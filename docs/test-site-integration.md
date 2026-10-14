@@ -484,3 +484,20 @@ styles independently of local publication capture. Generated output includes
 the canonical responsive CSS and uses browser width; editor previews use canvas
 width. See [Responsive block styles](responsive-styles.md) for ranges, scope,
 compatibility gates, and acceptance checks.
+
+### Bulk template dependency changes
+
+Manage dependencies groups Test and Test2 separately from Studio Drafts. Each
+selected fixture saves one validated aggregate through its existing synchronisation
+broker, server lease and CAS gateway. Same-kind replacement or detachment updates
+selected draft, publication, Bin and default assignments. It preserves document
+bodies, statuses and unselected records; detachment freezes inherited editorial
+metadata. Publication layout changes affect local preview without copying current
+draft content into the saved publication. Results report each owner separately.
+
+Global removal reads both fresh fixture sources and requires the browser owner’s
+reference inventory. The bridge serialises fixture saves and global moves and
+rejects assignments to removed global originals. Global library v2 retains a
+separate template Bin with exact-ID Restore and Undo, reading older v1 libraries.
+Recovery designs and source history remain retained. None of these operations
+publishes a hosted website.

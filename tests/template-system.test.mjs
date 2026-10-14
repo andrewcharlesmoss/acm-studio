@@ -1275,6 +1275,7 @@ test("an in-flight template edit survives becoming the persistence owner", async
   const transactions = environment().load("studio/studio-sync.ts");
   const ownership = {
     canWrite: () => primary,
+    write: async fn => { if (!primary) throw new Error("read-only"); return fn(); },
     assertWritable() { if (!primary) throw new Error("read-only"); },
   };
   const sync = {
@@ -1328,7 +1329,7 @@ test("an in-flight template edit survives becoming the persistence owner", async
 
 for (const choice of ["mine", "theirs"]) test(`template conflict resolution settles ${choice} in the canvas, store and status`, async () => {
   const h = hooks(); let syncOptions; let activeConflict = null;
-  const ownership = { canWrite: () => true, assertWritable() {} };
+  const ownership = { canWrite: () => true, assertWritable() {}, write: fn => fn() };
   const sync = { createStudioSync(options) {
     syncOptions = options;
     return {

@@ -28,7 +28,7 @@ import { contentMediaIds, useTemplateMedia } from "./use-template-media";
 import type { MediaAsset } from "./media-store";
 import { studioWriteOwnership } from "./write-ownership";
 import { studioConflictDetails } from "./studio-sync-description";
-import { StudioListContextMenu, type StudioListContextMenuTarget } from "./studio-list-context-menu";
+import { StudioListContextMenu, type StudioListContextMenuAction, type StudioListContextMenuTarget } from "./studio-list-context-menu";
 import type { StudioDocumentKind } from "./editor-model";
 import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
 import { StudioButton } from "./controls/button";
@@ -53,7 +53,8 @@ function TemplateCreationActions({ writable, onCreate, onImport, importWritable 
     {onImport ? <button type="button" disabled={!importWritable} aria-label="Import Templates" data-studio-tooltip="Import Templates" onClick={onImport}><AcmIcon name="action.upload" scale="Regular-S" size={20} /></button> : null}
   </StudioTooltipGroup>;
 }
-export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange, editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, navigationControls, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, onReorderDocuments, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
+export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanvasVisibilityChange, editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, navigationControls, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, onReorderDocuments, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
+  dependencyActions?: { manage: (target: { setId: string; entryId: string }) => void; move: (target: { setId: string; entryId: string }) => Promise<void>; reason: (target: { setId: string; entryId: string }) => string | undefined };
   viewControls?: { viewport: import("./studio-view-menu").StudioViewport; onViewportChange: (viewport: import("./studio-view-menu").StudioViewport) => void };
   onCanvasVisibilityChange?: (visible: boolean) => void;
   navigationControls?: ReactNode;
@@ -162,7 +163,8 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
   const templateContextMenuUnavailableReason = "This template is no longer available.";
   const templateContextMenuMutationReason = !writable ? "Editing is unavailable in this tab." : !templateContextMenuEntry ? templateContextMenuUnavailableReason : undefined;
   const templateContextMenuDeleteReason = templateContextMenu && templateContextMenuEntry ? templateDeleteBlockReason(templateContextMenu.setId, templateContextMenu.targetId) : templateContextMenuUnavailableReason;
-  const templateContextMenuActions = templateContextMenu ? [{ label: "Rename", icon: "pencil" as const, onClick: () => renameTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId), disabled: Boolean(templateContextMenuMutationReason), disabledReason: templateContextMenuMutationReason }, { label: "Duplicate", icon: "copy" as const, onClick: () => duplicateTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId), disabled: Boolean(templateContextMenuMutationReason), disabledReason: templateContextMenuMutationReason }, { label: "Export", icon: "download" as const, onClick: () => { if (templateContextMenuSet && templateContextMenuEntry) void exportEntry(templateContextMenuSet, templateContextMenuEntry); }, disabled: busy || !templateContextMenuEntry }] : [];
+  const templateContextMenuActions: StudioListContextMenuAction[] = templateContextMenu ? [{ label: "Rename", icon: "pencil" as const, onClick: () => renameTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId), disabled: Boolean(templateContextMenuMutationReason), disabledReason: templateContextMenuMutationReason }, { label: "Duplicate", icon: "copy" as const, onClick: () => duplicateTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId), disabled: Boolean(templateContextMenuMutationReason), disabledReason: templateContextMenuMutationReason }, { label: "Export", icon: "download" as const, onClick: () => { if (templateContextMenuSet && templateContextMenuEntry) void exportEntry(templateContextMenuSet, templateContextMenuEntry); }, disabled: busy || !templateContextMenuEntry }] : [];
+  if (templateContextMenu && dependencyActions) templateContextMenuActions.unshift({ label: "Manage dependencies", icon: "link", onClick: () => dependencyActions.manage({ setId: templateContextMenu.setId, entryId: templateContextMenu.targetId }), disabled: !templateContextMenuEntry });
   useStudioHistoryShortcuts(templates.undo, templates.redo, manageHistoryShortcuts && writable && !dialog);
   useEffect(() => {
     const syncTargetFromLocation = () => {
@@ -283,7 +285,7 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
     if (changeSet(next)) openSet(targetSet, copy.id);
   }
   function templateDeleteBlockReason(setId: string, targetId: string) {
-    if (editingScope === "global") return "Global originals remain protected while site references and recovery copies exist.";
+    if (editingScope === "global") return dependencyActions?.reason({ setId, entryId: targetId }) ?? (dependencyActions ? undefined : "Loading template dependencies…");
     if (siteNavigation?.setId === setId && siteNavigation.partId === targetId) return "This shared part supplies the site navigation. Remove its blocks to hide the menu.";
     const targetSet = templates.store.sets.find(item => item.id === setId);
     const targetEntry = targetSet ? [...targetSet.templates, ...targetSet.parts].find(item => item.id === targetId) : undefined;
@@ -328,6 +330,7 @@ export function TemplateWorkspacePanel({ viewControls, onCanvasVisibilityChange,
     return count;
   }
   function deleteTemplateEntry(setId: string, targetId: string) {
+    if (editingScope === "global" && dependencyActions) { void dependencyActions.move({ setId, entryId: targetId }); return; }
     const targetSet = templates.store.sets.find(item => item.id === setId);
     const targetEntry = targetSet ? [...targetSet.templates, ...targetSet.parts].find(item => item.id === targetId) : undefined;
     if (!targetSet || !targetEntry) return;
