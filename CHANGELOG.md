@@ -34,6 +34,8 @@
 
 ### Changed
 
+- Capitalise “Centre” in the Studio dashboard’s Control Centre label.
+
 - Use a white surface for the shared canvas block chooser in every editor.
 
 - Share compact property rows across Post, Page and Template settings, with
