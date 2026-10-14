@@ -80,13 +80,13 @@ test("rich Button labels survive versioned workspace, publication, template and 
   set.parts[0].nodes = [button];
   assert.deepEqual(plain(templates.templateNodesFromBlocks(templates.templateEditorBlocks([button]))), [button]);
   const templateStore = { ...templates.emptyTemplateStore(), sets: [set] };
-  assert.equal(templateStore.version, "0.30.0");
+  assert.equal(templateStore.version, "0.31.0");
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0" }).sets[0].parts[0].nodes), [button]);
   const pageTemplate = set.templates.find(template => template.kind === "page");
   pageTemplate.nodes = [{ id: "authored-title", type: "heading", level: 2, text: "Title" }, { id: "authored-subtitle", type: "paragraph", text: "Subtitle" }, { id: "content-slot", type: "element", element: "content" }];
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0", defaultTemplateIds: { page: pageTemplate.id } }).sets[0].templates.find(template => template.id === pageTemplate.id).nodes), pageTemplate.nodes, "the most recent legacy reader must preserve authored default Title/Subtitle copy");
   assert.deepEqual(plain(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.24.0", set, media: [] }).set.parts[0].nodes), [button]);
-  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.31.0", set, media: [] }));
+  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.32.0", set, media: [] }));
   const saved = backup.validateStudioBackup({ format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T00:00:00Z", workspace, publications: JSON.stringify(publicationStore), templates: templateStore, media: { folders: [], assets: [] } });
   assert.deepEqual(plain(saved.workspace.documents.find(document => document.id === post.id).blocks), [button]);
 });
@@ -136,7 +136,7 @@ test("Footnote objects survive owned repository saves, publications, templates, 
     repository.save(workspace);
     assert.deepEqual(plain(repository.load().documents.find(item => item.id === document.id).blocks), blocks);
     templateRepository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.30.0");
+    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.31.0");
     assert.deepEqual(plain(templateRepository.loadTemplates(env.storage).sets[0].parts[0].nodes), blocks);
     golf.miniGolfDraftRepository.save(golfWorkspace);
     assert.deepEqual(plain(golf.miniGolfDraftRepository.load().documents[0].blocks), blocks);
@@ -200,7 +200,7 @@ test("Template layout controls retain semantics, alignment and Section styles th
   const { release } = await env.own();
   try {
     repository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.30.0");
+    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.31.0");
     assert.deepEqual(plain(repository.loadTemplates(env.storage).sets[0].parts[0].nodes), nodes);
   } finally { release(); }
   const document = env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0];
@@ -254,9 +254,9 @@ test("Template v0.25 readers retain existing inline capabilities while writers e
   set.parts[0].nodes = [{ id: "legacy-inline", type: "paragraph", text: "\uFFFC\uFFFCFrench", runs }];
   const legacy = { ...model.emptyTemplateStore(), version: "0.25.0", sets: [set] };
   assert.deepEqual(plain(model.validateTemplateStore(legacy).sets[0].parts[0].nodes[0].runs), plain(runs));
-  assert.equal(model.validateTemplateStore(legacy).version, "0.30.0");
-  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.30.0");
-  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.30.0");
+  assert.equal(model.validateTemplateStore(legacy).version, "0.31.0");
+  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.31.0");
+  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.31.0");
   assert.throws(() => model.validateTemplateStore({ ...legacy, version: "0.24.0" }), /Inline objects/);
 });
 

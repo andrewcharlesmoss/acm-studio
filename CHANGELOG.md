@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add shared HTML anchor, CSS classes, and Additional CSS controls to Buttons,
+  LinkedIn, TikTok, Reading Time, Navigation, and Page link, retaining safe
+  presentation in Edit, Preview, and local output.
+
 - Include ACM Studio in Sites, with homepage Visit actions and unavailable Edit
   actions until its homepage is connected to the editor.
 

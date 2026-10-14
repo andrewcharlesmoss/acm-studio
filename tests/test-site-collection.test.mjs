@@ -99,9 +99,9 @@ test("renderer safely routes all documents and retains the home on an invalid do
   const pages = site.documents.map(page => ({ dataset: { testDocument: page.id, testHome: String(page.id === site.homeDocumentId), testTitle: page.title }, hidden: page.id !== site.homeDocumentId }));
   const links = pages.map(page => ({ dataset: { testLink: page.dataset.testDocument }, setAttribute() {}, removeAttribute() {} }));
   const listeners = new Map();
-  const document = { addEventListener: (name, callback) => listeners.set(name, callback), removeEventListener: (name, callback) => { if (listeners.get(name) === callback) listeners.delete(name); }, title: "Test", querySelectorAll: selector => selector === "[data-test-document]" ? pages : links };
+  const document = { addEventListener: (name, callback) => listeners.set(name, callback), removeEventListener: (name, callback) => { if (listeners.get(name) === callback) listeners.delete(name); }, title: "Test", querySelectorAll: selector => selector === "[data-test-document]" ? pages : selector === "[data-test-link]" ? links : [] };
   const location = { hash: "#document=post-one" }; let onHashChange;
-  vm.runInNewContext(html.match(/<script>([\s\S]*)<\/script>/)[1], { document, location, addEventListener: (_name, callback) => { onHashChange = callback; } });
+  vm.runInNewContext(html.match(/<script>([\s\S]*)<\/script>/)[1], { document, location, HTMLElement: class {}, window: { addEventListener() {}, removeEventListener() {} }, addEventListener: (_name, callback) => { onHashChange = callback; } });
   for (const name of ["click", "keydown", "toggle", "pointerover", "pointerout"]) assert.ok(listeners.has(name), name);
   assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "post-one");
   location.hash = "#footnote-one"; onHashChange(); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "post-one");

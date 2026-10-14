@@ -175,3 +175,19 @@ test("maximum valid legacy owner and entry IDs reorder through the typed gateway
  await f.until(()=>f.writes.length===2&&entryIds(owner.state.session.store)[0]===longId);
  assert.equal(entryIds(f.source().templates)[0],longId);
 });
+
+test("Navigation and Page link Advanced fields save through the existing owner broker and fresh peer readback", async t => {
+  const f = fixture(t); f.open(true); const peer = f.open(false); const other = f.open(false);
+  await f.until(() => peer.state?.session.writable && other.state?.session.writable);
+  const visualStyle = { anchor: "saved-page-link", className: "saved-link", additionalCss: "color: #123456;" };
+  assert.equal(peer.state.session.commit(store => {
+    store.sets[0].navigation = [{ id: "advanced-link", label: "Example", url: "/", visualStyle }];
+    store.sets[0].parts[0].nodes = [{ id: "advanced-navigation", type: "element", element: "navigation", visualStyle: { ...visualStyle, anchor: "saved-navigation" } }];
+    return store;
+  }), true);
+  await f.until(() => f.writes.length === 1 && other.state.session.store.sets[0].navigation[0]?.visualStyle?.anchor === visualStyle.anchor);
+  assert.deepEqual(f.source().templates.sets[0].navigation[0].visualStyle, visualStyle);
+  const reopened = f.open(false); await f.until(() => reopened.state?.session.writable);
+  assert.deepEqual(reopened.state.session.store.sets[0].navigation[0].visualStyle, visualStyle);
+  assert.equal(reopened.state.session.store.sets[0].parts[0].nodes[0].visualStyle.anchor, "saved-navigation");
+});

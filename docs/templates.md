@@ -156,7 +156,7 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.30.0** (`0.30.0` in JSON).
+The template-store and JSON package schema is **v0.31.0** (`0.31.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -236,7 +236,7 @@ justification. Table cells preserve per-cell header tags and scope. Workspace
 data is now version 25, with readers for versions 2–24; local publication
 snapshots are version 18 with readers for versions 1–17. Full backups use
 version 5 and read versions 1–4; they include both browser recovery templates and
-a validated shared-library snapshot when available. Template packages are v0.30.0, with readers for v0.1.0–v0.29.0.
+a validated shared-library snapshot when available. Template packages are v0.31.0, with readers for v0.1.0–v0.30.0.
 Group HTML elements, ARIA labels and block alignment, Columns alignment and
 Section visual styles round-trip through the editor, owned storage, portable
 packages and local publication snapshots. Resetting a field clears it rather
@@ -789,3 +789,15 @@ retain their existing dependency context.
 Ordering uses each domain's existing owner, saving gateway, revision checks,
 and tab synchronisation. Independent field edits can merge with a move;
 concurrent changes to the same list order require the existing conflict choice.
+
+### Common Advanced fields
+
+Buttons, LinkedIn, TikTok, Reading Time, Navigation and Page link expose HTML
+anchor, Additional CSS class(es), and Additional CSS through the shared controls.
+Navigation retains Accessible label as its fourth field. Page link anchors and
+bounded CSS declarations require template v0.31.0; older packages remain readable.
+Edit, Preview and local output use the same safe anchor, class and declaration
+helpers. Only one presentation owns each link anchor. The shared navigation runtime
+hands the ID between desktop and overlay copies when the existing container
+breakpoint changes, including custom overlay submenus. Classes and appearance
+remain the same.

@@ -132,7 +132,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
   const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, authoring, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onRestoreCoverImage, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
-  function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false, spacerOrientation: SpacerOrientation = "vertical"): ReactNode {
+  function render(node: TemplateNode, ancestors: Set<string>, depth: number, shared = false, spacerOrientation: SpacerOrientation = "vertical", suppressLinkAnchors = false): ReactNode {
     if (node.editorial?.hidden) return null;
     if (++rendered > 10000 || depth > 16) return <p role="alert">Template expansion limit reached.</p>;
     let result: ReactNode;
@@ -140,23 +140,23 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       const part = set.parts.find(p => p.id === node.partId);
       if (!part || ancestors.has(part.id)) return <p role="alert">This shared part is unavailable.</p>;
       result = <TemplatePartRegion part={part} onEditPart={onEditPart}>
-        {part.nodes.map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, new Set([...ancestors, part.id]), depth + 1, true, "vertical")}</div>)}
+        {part.nodes.map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, new Set([...ancestors, part.id]), depth + 1, true, "vertical", suppressLinkAnchors)}</div>)}
       </TemplatePartRegion>;
     } else if (node.type === "group" || node.type === "section") {
       const Group = node.type === "section" ? "section" : node.tagName ?? "div";
       const backgroundImageUrl = node.visualStyle?.backgroundImageMediaId ? mediaUrls[node.visualStyle.backgroundImageMediaId] : undefined;
       const style = node.visualStyle;
       const childSpacerOrientation = node.layout === "row" ? "horizontal" : "vertical";
-      result = <Group id={paragraphStyleAnchor(style)} aria-label={node.type === "group" ? node.ariaLabel || undefined : undefined} data-block-align={node.type === "group" ? node.blockAlign : undefined} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.filter(child => !child.editorial?.hidden).map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation)}</div>)}</Group>;
+      result = <Group id={paragraphStyleAnchor(style)} aria-label={node.type === "group" ? node.ariaLabel || undefined : undefined} data-block-align={node.type === "group" ? node.blockAlign : undefined} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.filter(child => !child.editorial?.hidden).map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation, suppressLinkAnchors)}</div>)}</Group>;
     } else if (node.type === "columns") {
       const className = paragraphStyleClassName(node.style);
       result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} data-block-align={node.blockAlign} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle({ ...node, children: node.children.filter(column => !column.editorial?.hidden) }), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.filter(column => !column.editorial?.hidden).map(column => {
         const columnClassName = paragraphStyleClassName(column.style);
-        return <div id={paragraphStyleAnchor(column.style)} className={`template-column${columnClassName ? ` ${columnClassName}` : ""}`} key={column.id} style={{ ...layoutStyleProperties(column), ...(column.verticalAlign ? { alignSelf: column.verticalAlign === "centre" ? "center" : column.verticalAlign === "bottom" ? "end" : column.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(column.style) }}>{column.children.filter(child => !child.editorial?.hidden).map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, "vertical")}</div>)}</div>;
+        return <div id={paragraphStyleAnchor(column.style)} className={`template-column${columnClassName ? ` ${columnClassName}` : ""}`} key={column.id} style={{ ...layoutStyleProperties(column), ...(column.verticalAlign ? { alignSelf: column.verticalAlign === "centre" ? "center" : column.verticalAlign === "bottom" ? "end" : column.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(column.style) }}>{column.children.filter(child => !child.editorial?.hidden).map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, "vertical", suppressLinkAnchors)}</div>)}</div>;
       })}</div>;
     } else if (node.type === "column") {
       const className = paragraphStyleClassName(node.style);
-      result = <div id={paragraphStyleAnchor(node.style)} className={`template-column${className ? ` ${className}` : ""}`} style={{ ...layoutStyleProperties(node), ...(node.verticalAlign ? { alignSelf: node.verticalAlign === "centre" ? "center" : node.verticalAlign === "bottom" ? "end" : node.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(node.style) }}>{node.children.filter(child => !child.editorial?.hidden).map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, "vertical")}</div>)}</div>;
+      result = <div id={paragraphStyleAnchor(node.style)} className={`template-column${className ? ` ${className}` : ""}`} style={{ ...layoutStyleProperties(node), ...(node.verticalAlign ? { alignSelf: node.verticalAlign === "centre" ? "center" : node.verticalAlign === "bottom" ? "end" : node.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(node.style) }}>{node.children.filter(child => !child.editorial?.hidden).map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, "vertical", suppressLinkAnchors)}</div>)}</div>;
     } else if (node.type === "element") {
       const align = node.align === "centre" ? "center" : node.align;
       const fieldVisualStyle = (node.element === "document-title" || node.element === "cover-image") ? node.visualStyle
@@ -223,8 +223,8 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         case "navigation": {
           const part = node.overlayPartId ? set.parts.find(part => part.id === node.overlayPartId && part.kind === "overlay") : undefined;
           const overlayContent = part && !ancestors.has(part.id)
-            ? part.nodes.map(child => <div key={child.id} className="navigation-overlay-layout">{render(child, new Set([...ancestors, part.id]), depth + 1, true)}</div>) : undefined;
-          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={node} links={set.navigation} documentHref={context.documentHref} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} />;
+            ? part.nodes.map(child => <div key={child.id} className="navigation-overlay-layout">{render(child, new Set([...ancestors, part.id]), depth + 1, true, "vertical", true)}</div>) : undefined;
+          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={node} links={set.navigation} suppressLinkAnchors={suppressLinkAnchors} documentHref={context.documentHref} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} />;
           break;
         }
         case "copyright": element = <p className="template-copyright">{resolveTemplateCopyright(set.identity.copyright, set.identity.name)}</p>; break;

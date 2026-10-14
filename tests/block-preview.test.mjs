@@ -28,12 +28,12 @@ test("Button width and Advanced CSS are exposed through shared profile sections"
   assert.equal(width.section, "dimensions");
   assert.ok(profile.defaults.dimensions.includes("width"));
   assert.ok(advanced.fields.includes("visualStyle.additionalCss"));
-  const cssCapableCoreBlocks = ["heading", "quote", "list", "table", "code", "image", "embed", "button", "divider", "spacer", "group", "columns", "column", "footnotes", "social-icons", "document-title", "cover-image", "post-date", "post-author"];
+  const cssCapableCoreBlocks = ["heading", "quote", "list", "table", "code", "image", "embed", "button", "buttons", "reading-time", "divider", "spacer", "group", "columns", "column", "footnotes", "social-icons", "document-title", "cover-image", "post-date", "post-author"];
   for (const type of cssCapableCoreBlocks) {
     assert.ok(capabilityProfileFor(type).controls.find(control => control.id === "advanced")?.fields.some(field => field.endsWith("additionalCss")), `${type} exposes its mapped Additional CSS field`);
   }
   for (const type of ["social-linkedin", "social-tiktok"]) {
-    assert.equal(capabilityProfileFor(type).controls.find(control => control.id === "advanced")?.fields.some(field => field.endsWith("additionalCss")), false, `${type} does not claim the Gutenberg Additional CSS field`);
+    assert.equal(capabilityProfileFor(type).controls.find(control => control.id === "advanced")?.fields.some(field => field.endsWith("additionalCss")), true, `${type} exposes the shared Additional CSS field`);
   }
 });
 
