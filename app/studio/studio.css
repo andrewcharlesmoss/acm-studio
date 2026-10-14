@@ -476,6 +476,7 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .studio-local-site-environments .dashboard-local-environment[data-active="true"] > strong { color: var(--ink); margin-inline: auto; width: fit-content; }
 .studio-local-site { align-items: center; background: transparent; border: 0; border-radius: 8px; color: var(--ink); cursor: pointer; display: flex; flex: 1; gap: 9px; min-height: 48px; min-width: 0; padding: 7px 8px; text-align: left; text-decoration: none; }
 .studio-local-site-environments { padding: 0 8px 8px; }
+.studio-local-site.is-uneditable { cursor: default; }
 .studio-local-site-environments .dashboard-project-environments { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
 .studio-local-site-environments .dashboard-card-link { color: var(--ink); font-size: var(--studio-ui-size); }
 .studio-local-site-environments .dashboard-card-link:is(:disabled, .is-unavailable) { color: var(--muted); }

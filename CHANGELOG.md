@@ -4,6 +4,9 @@
 
 ### Added
 
+- Include ACM Studio in Sites, with homepage Visit actions and unavailable Edit
+  actions until its homepage is connected to the editor.
+
 - Reorder Posts, Pages, and Templates by dragging their Navigation entries, or
   using Alt+Up/Down, with saved order, Undo/Redo, and shared-tab conflict checks.
 

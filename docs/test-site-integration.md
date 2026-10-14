@@ -2,6 +2,13 @@
 
 ## Scope and ownership
 
+Sites also lists ACM Studio above Test and Test2, using the shared environment
+actions. Its Local Visit opens the current Studio origin's homepage in a new
+tab, independently of Project Ports discovery; Production Visit uses its
+registered hosted address. ACM Studio's homepage remains application code, so
+its title does not select a content context and its Edit actions are unavailable.
+Studio Drafts remains the separate browser workspace above Sites.
+
 Test opens inside the existing `/studio` editor. Select Test above
 Posts / Pages / Templates or open `/studio?site=test`. All three tabs, their
 counts, editing commands, categories, parent-page choices and template editor
