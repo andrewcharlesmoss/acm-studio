@@ -2,7 +2,7 @@
 
 Studio follows the shared Workspace Style Guide's one centred line per logical
 insertion gap rule. The guide is unversioned; this implementation applies its
-baseline at governance commit `dd61013` (14 October 2026). The canonical source
+baseline at governance commit `7500251` (14 October 2026). The canonical source
 is `workspace-governance/STYLE_GUIDE.md`, under Interface clarity and Verification.
 
 ## Owned insertion gaps
