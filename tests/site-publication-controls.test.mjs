@@ -106,16 +106,15 @@ test("the owning context captures the calendar date, awaits saving, and exposes 
 });
 
 
-test("site posts and pages render the shared status/date buttons with the existing publication date", async () => {
+test("site posts and pages keep status/date controls without duplicate publishing actions", async () => {
   const { DocumentInspector } = await load("app/studio/blocks/inspectors/document-inspector.tsx");
   for (const kind of ["post", "page"]) {
     const document = fixture("test", kind).documents[1]; document.status = "published"; document.publishedAt = backdate;
     const noop = () => {};
-    const html = renderToStaticMarkup(createElement(DocumentInspector, { siteContext: true, localPublication: { status: "published", publishedAt: backdate }, panel: "document", document, resolvedDocument: document, categories: [], tagSuggestions: [], pages: [], onCategorySelectionChange: noop, onAddCategory: noop, onChange: noop, onPublish: noop, onUnpublish: noop, onStatusChange: noop, onDuplicate: noop, onDelete: noop, canDelete: true, canDuplicate: true, allowedStatuses: ["draft", "pending", "private", "scheduled", "published"] }));
+    const html = renderToStaticMarkup(createElement(DocumentInspector, { siteContext: true, localPublication: { status: "published", publishedAt: backdate }, panel: "document", document, resolvedDocument: document, categories: [], tagSuggestions: [], pages: [], onCategorySelectionChange: noop, onAddCategory: noop, onChange: noop, onUnpublish: noop, onStatusChange: noop, onDuplicate: noop, onDelete: noop, canDelete: true, canDuplicate: true, allowedStatuses: ["draft", "pending", "private", "scheduled", "published"] }));
     assert.match(html, /inspector-setting-trigger[^>]*aria-haspopup="dialog"[^>]*>Published/);
     assert.match(html, /inspector-setting-trigger[^>]*aria-haspopup="dialog"[^>]*>29 Feb 2020, 09:15/);
-    assert.match(html, new RegExp(`Update published ${kind}`));
-    assert.match(html, /Return to draft/);
+    assert.doesNotMatch(html, /Update published|Return to draft|Dates save with the draft/);
     assert.doesNotMatch(html, /password-protection-toggle|sticky-post-toggle/);
   }
 });

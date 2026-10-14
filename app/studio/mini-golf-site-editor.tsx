@@ -185,7 +185,6 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
             onColumnWidthChange: blockCommands.updateColumnWidth,
             onColumnCountChange: blockCommands.updateColumnCount,
             onOpenFiles: () => { if (confirmCodeEditorDiscard()) setView("files"); },
-            onPublish: () => undefined,
             onUnpublish: () => undefined,
             onDuplicate: () => undefined,
             onDelete: () => undefined,

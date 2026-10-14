@@ -1723,10 +1723,6 @@ body:has(.studio-shell, .design-shell, .design-library-shell) {
 .password-protection-saved button, .password-protection-cancel { background: transparent; border: 0; color: var(--accent-strong, #1e1e1e); cursor: pointer; font-size: var(--studio-ui-size); justify-self: start; padding: 2px 0; text-decoration: underline; text-underline-offset: 2px; }
 .setting-reset-button { background: white; border: 1px solid #d1cfc7; border-radius: 6px; color: var(--ink); cursor: pointer; font-size: var(--studio-ui-size); padding: 8px 10px; }
 .setting-reset-button:disabled { cursor: default; opacity: .45; }
-.publishing-actions { display: grid; gap: 6px; }
-.publishing-actions button { background: white; border: 1px solid #d1cfc7; border-radius: 7px; cursor: pointer; font-size: var(--studio-ui-size); padding: 9px; }
-.publishing-actions .publish-action { background: var(--studio-shared-button-background); border-color: var(--studio-shared-button-border); color: var(--studio-shared-button-foreground); font-weight: 650; }
-.publishing-actions .publish-action:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 
 .local-writing-group { background: #f1f0eb; border: 1px solid #d8d6ce; border-radius: 12px; margin-bottom: 16px; overflow: hidden; padding: 0 16px 4px; }
 .local-writing-label { align-items: center; border-bottom: 1px solid #d8d6ce; color: #4f5050; display: flex; justify-content: space-between; padding: 12px 0; }

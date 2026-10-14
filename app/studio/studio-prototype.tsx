@@ -561,7 +561,6 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             onOpenBackgroundMedia: openBackgroundMediaLibrary,
             onOpenCoverMediaLibrary: openCoverMediaLibrary,
             onRemoveCoverImage: media.removeCoverImage,
-            onPublish: () => { if (selectedSite) void publishLocalDocument(); else publishing.publish(); },
             onUnpublish: () => { if (selectedSite) void changeSitePublicationStatus("draft"); else publishing.unpublish(); },
             onDuplicate: duplicateDocument,
             onDelete: () => requestDeleteDocument(),
