@@ -1,6 +1,6 @@
 "use client";
 import { useId, useRef, useState, type DragEvent, type KeyboardEvent, type PointerEvent, type MouseEvent } from "react";
-import type { LibraryMove } from "./library-reordering";
+import { movedLibraryIds, type LibraryMove } from "./library-reordering";
 const MIME = "application/x-acm-studio-library-entry";
 /** A drag belongs to one rendered list and one unchanged order snapshot. */
 export function useLibraryReordering(ids: string[], writable: boolean, onMove: (move: LibraryMove) => boolean, listKey = "library") {
@@ -9,19 +9,24 @@ export function useLibraryReordering(ids: string[], writable: boolean, onMove: (
   const pointer = useRef<{ pointerId: number; x: number; y: number; id: string; active: boolean; target?: { id: string; edge: "before" | "after" } } | null>(null);
   const suppressClick = useRef(false);
   const drag = useRef<{ id: string; baseline: string[] } | null>(null);
-  const [indicator, setIndicator] = useState<{ id: string; edge: "before" | "after"; baseline: string } | null>(null);
+  const [indicator, setIndicator] = useState<{ id: string; sourceId: string; edge: "before" | "after"; baseline: string } | null>(null);
   const [announcement, setAnnouncement] = useState({ listKey, message: "" });
   if (announcement.listKey !== listKey) setAnnouncement({ listKey, message: "" });
   function cancel() { if (pointer.current?.active) suppressClick.current = true; pointer.current = null; drag.current = null; setIndicator(null); }
   function valid() { return writable && drag.current && JSON.stringify(drag.current.baseline) === JSON.stringify(ids); }
   function edge(event: DragEvent<HTMLElement>) { const rect = event.currentTarget.getBoundingClientRect(); return event.clientY < rect.top + rect.height / 2 ? "before" as const : "after" as const; }
-  function move(value: LibraryMove) { const accepted = onMove(value); if (accepted) setAnnouncement({ listKey, message: `Moved to position ${value.edge === "before" ? ids.filter(id => id !== value.id).indexOf(value.targetId) + 1 : ids.filter(id => id !== value.id).indexOf(value.targetId) + 2} of ${ids.length}.` }); }
+  function placement(targetId: string, targetEdge: "before" | "after") {
+    if (!valid() || !drag.current) return null;
+    const candidate = { ...drag.current, targetId, edge: targetEdge };
+    return movedLibraryIds(ids, candidate) ? candidate : null;
+  }
+  function move(value: LibraryMove) { if (!movedLibraryIds(ids, value)) return; const accepted = onMove(value); if (accepted) setAnnouncement({ listKey, message: `Moved to position ${value.edge === "before" ? ids.filter(id => id !== value.id).indexOf(value.targetId) + 1 : ids.filter(id => id !== value.id).indexOf(value.targetId) + 2} of ${ids.length}.` }); }
   function rowProps(id: string) {
     return {
       draggable: canReorder,
       "data-library-entry-id": id,
       "data-library-reorder-owner": owner,
-      "data-drop-edge": indicator?.id === id && writable && indicator.baseline === JSON.stringify(ids) ? indicator.edge : undefined,
+      "data-drop-edge": indicator?.id === id && writable && indicator.baseline === JSON.stringify(ids) && movedLibraryIds(ids, { id: indicator.sourceId, targetId: id, edge: indicator.edge, baseline: ids }) ? indicator.edge : undefined,
       "aria-description": canReorder ? "Drag to reorder, or press Alt and the Up or Down arrow." : undefined,
       onPointerDown(event: PointerEvent<HTMLElement>) {
         // Mouse pointer capture avoids relying on native HTML drag support.
@@ -43,8 +48,9 @@ export function useLibraryReordering(ids: string[], writable: boolean, onMove: (
         const targetId = target?.dataset.libraryEntryId;
         if (!target || target.dataset.libraryReorderOwner !== owner || !targetId || targetId === current.id || !ids.includes(targetId)) { current.target = undefined; setIndicator(null); return; }
         const rect = target.getBoundingClientRect();
-        current.target = { id: targetId, edge: event.clientY < rect.top + rect.height / 2 ? "before" : "after" };
-        setIndicator({ ...current.target, baseline: JSON.stringify(ids) });
+        const candidate = placement(targetId, event.clientY < rect.top + rect.height / 2 ? "before" : "after");
+        current.target = candidate ? { id: candidate.targetId, edge: candidate.edge } : undefined;
+        setIndicator(candidate ? { id: candidate.targetId, sourceId: candidate.id, edge: candidate.edge, baseline: JSON.stringify(ids) } : null);
       },
       onPointerUp(event: PointerEvent<HTMLElement>) {
         const current = pointer.current;
@@ -57,7 +63,13 @@ export function useLibraryReordering(ids: string[], writable: boolean, onMove: (
       onLostPointerCapture: cancel,
       onClickCapture(event: MouseEvent<HTMLElement>) { if (suppressClick.current) { suppressClick.current = false; event.preventDefault(); event.stopPropagation(); } },
       onDragStart(event: DragEvent<HTMLElement>) { if (pointer.current) { event.preventDefault(); return; } if (!writable) { event.preventDefault(); return; } drag.current = { id, baseline: [...ids] }; event.dataTransfer.setData(MIME, owner); event.dataTransfer.effectAllowed = "move"; },
-      onDragOver(event: DragEvent<HTMLElement>) { if (!valid() || drag.current?.id === id) return; event.preventDefault(); event.dataTransfer.dropEffect = "move"; setIndicator({ id, edge: edge(event), baseline: JSON.stringify(ids) }); },
+      onDragOver(event: DragEvent<HTMLElement>) {
+        const candidate = placement(id, edge(event));
+        if (!candidate) { setIndicator(null); return; }
+        event.preventDefault(); event.dataTransfer.dropEffect = "move";
+        setIndicator({ id, sourceId: candidate.id, edge: candidate.edge, baseline: JSON.stringify(ids) });
+      },
+      onDragLeave(event: DragEvent<HTMLElement>) { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIndicator(null); },
       onDrop(event: DragEvent<HTMLElement>) { event.preventDefault(); if (valid() && event.dataTransfer.getData(MIME) === owner) move({ ...drag.current!, targetId: id, edge: edge(event) }); cancel(); },
       onDragEnd: cancel,
       onKeyDown(event: KeyboardEvent<HTMLElement>) { if (event.key === "Escape") { cancel(); return; } if (!writable || !event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !["ArrowUp", "ArrowDown"].includes(event.key)) return; event.preventDefault(); const direction = event.key === "ArrowUp" ? -1 : 1; const targetId = ids[ids.indexOf(id) + direction]; if (targetId) move({ id, targetId, edge: direction === -1 ? "before" : "after", baseline: [...ids] }); },

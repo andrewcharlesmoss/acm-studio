@@ -96,6 +96,9 @@
 
 ### Fixed
 
+- Show placement lines only for genuine order changes across site, post, page,
+  and template dragging; clear no-op targets and prevent empty move submissions.
+
 - Apply Focus Outline Off to decorative borders, shadows, composite controls,
   sliders, and Design handles across Studio, including portalled menus and
   popups; retain selection marks and add a stylesheet regression check.
