@@ -1275,12 +1275,12 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .inspector-sections > .inspector-accordion-section, .inspector-accordion-section { padding: 0; gap: 0; }
 .inspector-accordion-section > h2 { margin: 0; }
 .inspector-sections .advanced-fields-section > h2 { letter-spacing: normal; text-transform: none; }
-.inspector-accordion-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: flex-start; letter-spacing: inherit; padding: var(--inspector-accordion-padding, 18px); text-align: left; text-transform: inherit; width: 100%; }
+.inspector-accordion-heading { align-items: center; background: transparent; border: 0; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: flex-start; letter-spacing: inherit; padding: var(--inspector-accordion-heading-padding, var(--inspector-accordion-padding, 18px)); min-height: var(--inspector-accordion-heading-min-height, 0); box-sizing: border-box; text-align: left; text-transform: inherit; width: 100%; }
 .inspector-accordion-heading:hover { background: var(--acm-interaction-disclosure-hover-background, #f0f0f0); }
 .inspector-accordion-detail { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 500; letter-spacing: normal; margin-left: 6px; text-transform: none; }
 .inspector-accordion-heading svg { margin-left: auto; }
-.inspector-accordion-heading:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
-.inspector-accordion-content { display: grid; gap: 12px; padding: 0 var(--inspector-accordion-padding, 18px) var(--inspector-accordion-padding, 18px); }
+.inspector-accordion-heading:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--inspector-accordion-focus-offset, var(--focus-ring-offset)); }
+.inspector-accordion-content { display: grid; gap: 12px; padding: var(--inspector-accordion-content-padding, 0 var(--inspector-accordion-padding, 18px) var(--inspector-accordion-padding, 18px)); }
 .inspector-accordion-content > fieldset { display: grid; gap: 12px; min-width: 0; width: 100%; margin: 0; padding: 0; border: 0; }
 .inspector-accordion-content[hidden] { display: none; }
 .inspector-sections label { display: grid; gap: 5px; }
@@ -2184,11 +2184,6 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 /* The shared controller owns authoring-only end reservations on this boundary. */
 [data-drag-placement-owner] { position: relative; }
 
-.studio-local-sites summary { cursor: pointer; list-style: none; border-radius: 0; }
-.studio-local-sites summary::-webkit-details-marker { display: none; }
-.studio-local-sites summary:hover { background: var(--acm-interaction-neutral-hover-background, #F0F0F0); }
-.studio-local-sites summary h2 { display: flex; align-items: center; justify-content: space-between; margin: 0; padding: 16px 18px; min-height: 52px; box-sizing: border-box; }
-.studio-local-sites details:not([open]) summary svg { transform: rotate(-90deg); }
-.studio-local-sites summary:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: calc(-1 * var(--focus-ring-width)); }
-
-.studio-local-sites details > [data-drag-placement-owner] { padding-inline: 10px; }
+/* Sites inherits accordion interaction and layout; these tokens tune its pane density. */
+.studio-local-sites { --inspector-accordion-heading-padding: 16px 18px; --inspector-accordion-heading-min-height: 52px; --inspector-accordion-content-padding: 0; --inspector-accordion-focus-offset: calc(-1 * var(--focus-ring-width)); }
+.studio-local-sites [data-drag-placement-owner] { padding-inline: 10px; }

@@ -144,6 +144,11 @@ the Gutenberg reference. Escape closes the topmost dropdown and returns focus to
 its trigger; clicking outside or clicking the trigger again also dismisses it.
 Dialogs, inspector menus and larger editing popovers retain visible close controls.
 
+Pane accordion sections inherit `InspectorAccordionSection`, the production
+control shown in the Studio UI Library. Consumers supply content, density tokens,
+and optional open-state callbacks; keep disclosure state, chevrons, hover, focus,
+and mounted-content behaviour in that shared component.
+
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and
 UI Library specimens, including control menus, colour and gradient editors,

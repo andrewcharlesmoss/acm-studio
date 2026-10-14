@@ -54,6 +54,9 @@
 
 ### Changed
 
+- Make Sites inherit the shared UI Library accordion, including disclosure,
+  chevrons, hover, and focus, while retaining its pane density and drag cancellation.
+
 - Show six-dot drag handles on Posts, Pages, and Templates library entries,
   with a pointer cursor on rows and a grab cursor on enabled handles.
 

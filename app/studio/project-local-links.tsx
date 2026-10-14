@@ -1,4 +1,5 @@
 "use client";
+import { InspectorAccordionSection } from "./inspector-accordion";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { LibraryDragHandle } from "./library-drag-handle";
 import { useSiteOrdering } from "./use-site-ordering";
@@ -158,5 +159,5 @@ export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite, library
   const studio = studioProjects.find(project => project.id === "acm-studio");
   const sites = [...(studio ? [{ id: studio.id, name: studio.name }] : []), ...localFixtureSites];
   const { order, reordering, status } = useSiteOrdering(sites.map(site => site.id));
-  return <section className="studio-local-sites" aria-label="Sites"><details open onToggle={event => { if (!event.currentTarget.open) reordering.cancel(); }}><summary><h2>Sites<StudioIcon name="chevron-down" size={16} /></h2></summary><div {...reordering.listProps}><DragPlacementIndicator line={reordering.line} />{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) && libraryKind ? studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</details></section>;
+  return <InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" onOpenChange={open => { if (!open) reordering.cancel(); }}><div {...reordering.listProps}><DragPlacementIndicator line={reordering.line} />{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) && libraryKind ? studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</InspectorAccordionSection>;
 }

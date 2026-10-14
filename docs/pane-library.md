@@ -288,8 +288,12 @@ latest stored order; a competing preference change, denied writer or storage
 failure is reported visibly. An unsaved order applies to the current page. Other
 tabs read successful changes, and new site IDs append without losing known order.
 
-The Studio Navigation Sites section starts expanded and uses a native disclosure
-heading to collapse its site cards. The heading fills the pane content width,
-uses a square-edged row at least 52px tall, and retains inset site cards. Collapsing cancels active site placement and
-removes hidden controls from keyboard navigation. The disclosure is page-local,
-keeps its existing site components mounted, and does not change saved site order.
+The Studio Navigation Sites section inherits `InspectorAccordionSection`, the
+same production control demonstrated in the UI Library. It starts expanded;
+shared state, accessible heading, chevron, hover, focus, and mounted-content
+behaviour remain in that component. Sites supplies density tokens for a
+full-width, square-edged heading at least 52px tall and inset site cards. Its
+open-state callback cancels active site placement when collapsed. Hidden controls
+leave keyboard navigation. Disclosure state is page-local and saved order is
+unchanged. Use this foundation for pane accordions; do not fork their interaction
+or header styling. Existing inspectors retain their default fieldset and density.
