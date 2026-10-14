@@ -96,6 +96,9 @@
 
 ### Fixed
 
+- Keep one centred drag indicator for each library gap, including site cards,
+  when crossing between either neighbouring row or the empty gap.
+
 - Show placement lines only for genuine order changes across site, post, page,
   and template dragging; clear no-op targets and prevent empty move submissions.
 

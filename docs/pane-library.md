@@ -274,6 +274,11 @@ press Alt+Up/Down to move the complete site card, including its environments.
 Edit and Visit actions retain ordinary pointer and keyboard behaviour. Cancelled
 or stale drags do not change the order.
 
+Studio library lists and site cards use one marker per effective insertion gap.
+Either neighbouring row edge resolves to the following full row, with the line
+centred between their measured borders. Pointer movement through the empty gap
+retains that same marker; handles do not supply the card geometry.
+
 The order is a browser interface preference in `acm-studio-site-order-v1`, saved
 through the existing Studio preference repository and writer coordinator. It does
 not change site sources, document/template order or publication. Saves check the

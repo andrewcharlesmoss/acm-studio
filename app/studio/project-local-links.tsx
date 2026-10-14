@@ -126,11 +126,11 @@ export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = fa
   const siteTitle = <><span className="studio-local-site-mark" aria-hidden="true">{name.slice(0, 1)}</span><span className="studio-local-site-copy"><strong>{name}</strong></span></>;
 
   const dragProps = reordering?.rowProps(id);
-  return <div className={`studio-local-site-actions${active ? " is-active" : ""}`} data-library-entry-id={dragProps?.["data-library-entry-id"]} data-library-reorder-owner={dragProps?.["data-library-reorder-owner"]} data-drop-edge={dragProps?.["data-drop-edge"]} onDragOver={dragProps?.onDragOver} onDragLeave={dragProps?.onDragLeave} onDrop={dragProps?.onDrop}>
+  return <div className={`studio-local-site-actions${active ? " is-active" : ""}`} data-library-entry-id={dragProps?.["data-library-entry-id"]} data-library-reorder-owner={dragProps?.["data-library-reorder-owner"]} data-library-drop-row={true} style={dragProps?.style} data-drop-edge={dragProps?.["data-drop-edge"]} onDragOver={dragProps?.onDragOver} onDragLeave={dragProps?.onDragLeave} onDrop={dragProps?.onDrop}>
     <div className="studio-local-site-heading">
       {isLocalFixtureSiteId(id) ? <a className="studio-local-site" href={studioHref ?? localFixtureHref(id)} aria-current={active ? "page" : undefined} aria-label={`Edit ${name} local site`} onClick={event => { if (onSelectTest) { event.preventDefault(); onSelectTest(); } }}>{siteTitle}</a>
         : <div className="studio-local-site is-uneditable">{siteTitle}</div>}
-      {reordering ? <button {...dragProps} className="studio-site-drag-button" type="button" aria-disabled={!reordering.canReorder} aria-label={`Reorder ${name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={reordering.canReorder} /></button> : null}
+      {reordering ? <button {...dragProps} data-library-drop-row={undefined} data-drop-edge={undefined} style={undefined} className="studio-site-drag-button" type="button" aria-disabled={!reordering.canReorder} aria-label={`Reorder ${name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={reordering.canReorder} /></button> : null}
     </div>
       <div className="studio-local-site-environments">
         {project ? <ProjectEnvironmentActions project={project} local={localActions} /> : localActions}

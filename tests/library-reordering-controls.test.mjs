@@ -56,7 +56,7 @@ test("drag handle availability uses the same permission and row count as draggin
 
 test("native placement line appears only for an effective position change", () => {
  for (const [source,target,y,expected] of [["a","b",10,undefined],["b","a",30,undefined],["a","a",30,undefined],["a","b",30,"after"],["b","a",10,"before"]]) {
-  const f=control();let ui=f.render();const drag=event(y);ui.rowProps(source).onDragStart(drag);ui.rowProps(target).onDragOver(drag);ui=f.render();assert.equal(ui.rowProps(target)["data-drop-edge"],expected,`${source}/${target}/${y}`);ui.rowProps(target).onDrop(drag);assert.equal(f.moves.length,expected?1:0);if(!expected)assert.equal(f.render().message,"");
+  const f=control();let ui=f.render();const drag=event(y);ui.rowProps(source).onDragStart(drag);ui.rowProps(target).onDragOver(drag);ui=f.render();assert.equal(ui.rowProps(target === "b" && expected === "after" ? "c" : target)["data-drop-edge"],target === "b" && expected === "after" ? "before" : expected,`${source}/${target}/${y}`);ui.rowProps(target).onDrop(drag);assert.equal(f.moves.length,expected?1:0);if(!expected)assert.equal(f.render().message,"");
  }
 });
 test("pointer placement clears a previous line when the destination becomes a no-op", () => {
@@ -79,4 +79,24 @@ test("native departure clears placement while movement inside the same target re
  const f=control();let ui=f.render();const drag=event(30);ui.rowProps("a").onDragStart(drag);ui.rowProps("c").onDragOver(drag);ui=f.render();
  ui.rowProps("c").onDragLeave({relatedTarget:{},currentTarget:{contains:()=>true}});assert.equal(f.render().rowProps("c")["data-drop-edge"],"after");
  ui=f.render();ui.rowProps("c").onDragLeave({relatedTarget:null,currentTarget:{contains:()=>false}});assert.equal(f.render().rowProps("c")["data-drop-edge"],undefined);
+});
+
+ test("both edges of one gap share one centred marker", () => {
+  const f=control();let ui=f.render();ui.rowProps("a").onDragStart(event());
+  const rows=[{dataset:{libraryEntryId:"b",libraryReorderOwner:"list-one"},getBoundingClientRect:()=>({top:50,bottom:90,height:40}),offsetHeight:40,clientTop:0},{dataset:{libraryEntryId:"c",libraryReorderOwner:"list-one"},getBoundingClientRect:()=>({top:100,bottom:160,height:60}),offsetHeight:60,clientTop:1}];
+  const over=(id,y)=>{const e=event(y);e.currentTarget={...rows[id==="b"?0:1],ownerDocument:{querySelectorAll:()=>rows}};return e;};
+  ui.rowProps("b").onDragOver(over("b",85));ui=f.render();
+  assert.equal(ui.rowProps("b")["data-drop-edge"],undefined);assert.equal(ui.rowProps("c")["data-drop-edge"],"before");assert.equal(ui.rowProps("c").style["--library-drop-top"],"-7px");
+  ui.rowProps("c").onDragOver(over("c",105));ui=f.render();assert.equal(ui.rowProps("c").style["--library-drop-top"],"-7px");assert.equal(ui.rowProps("b")["data-drop-edge"],undefined);
+ });
+
+test("pointer handle, either row edge and empty gap retain the same measured line",()=>{
+ const f=control();let ui=f.render();ui.rowProps("a").onPointerDown(pointerEvent("a",0));
+ const rows=["b","c"].map((id,index)=>({dataset:{libraryEntryId:id,libraryReorderOwner:"list-one"},offsetHeight:40,clientTop:0,getBoundingClientRect:()=>({top:50+index*50,bottom:90+index*50,height:40,left:0,right:100})}));
+ const doc={querySelectorAll:()=>rows};rows.forEach(row=>row.ownerDocument=doc);
+ for(const [index,y] of [[0,85],[1,105],[-1,95]]){
+  const e=pointerEvent("a",y);e.clientX=20;e.currentTarget.ownerDocument={...doc,elementFromPoint:()=>index<0?{closest:()=>null}:{closest:selector=>{assert.equal(selector,"[data-library-drop-row]");return rows[index];}}};
+  ui.rowProps("a").onPointerMove(e);ui=f.render();assert.equal(ui.rowProps("c")["data-drop-edge"],"before");assert.equal(ui.rowProps("c").style["--library-drop-top"],"-6px");assert.equal(ui.rowProps("b")["data-drop-edge"],undefined);
+ }
+ ui.rowProps("a").onPointerUp(pointerEvent());assert.equal(f.moves.length,1);
 });
