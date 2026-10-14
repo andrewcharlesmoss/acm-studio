@@ -19,7 +19,7 @@ import { addDocumentFootnote, addDocumentFootnotes } from "./footnote-command";
 import { tableRowSections } from "../content/table-row-sections";
 import { editBlockSiblings, moveBlockAmongSiblings } from "./block-sibling-operations";
 import { useDragPlacement } from "./use-drag-placement";
-import { resolveBlockDrag, type BlockDragSource, type BlockDragTarget } from "./block-drag-placement";
+import { resolveBlockDrag, blockPlacementSpaces, type BlockDragSource, type BlockDragTarget } from "./block-drag-placement";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { fieldSelectOptions } from "../content/field-options";
 import { richTextPointAtOffset } from "./rich-text-dom";
@@ -758,6 +758,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   const rootDragTypes = blockInserterOptions(filteredBlocks ?? [], undefined, "", socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation) }).map(item => item.type);
   const blockDrag = useDragPlacement<BlockDragSource, BlockDragTarget>({
     version: JSON.stringify([activeDocument.id, activeDocument.blocks]), writable: writable && !previewing && !codeEditor,
+    reserveSpace: !previewing && !codeEditor,
+    spaces: canvas => blockPlacementSpaces(canvas, activeDocument.blocks),
     canStart: canStartCanvasPlacement,
     effect: source => source.libraryType ? "copy" : "move",
     resolve: (source, canvas, x, y) => resolveBlockDrag({ blocks: activeDocument.blocks, source, rootTypes: rootDragTypes }, canvas, x, y),

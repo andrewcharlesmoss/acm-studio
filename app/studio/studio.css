@@ -2180,3 +2180,6 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-column-content:has(> .nested-add-block):not(:has(> [data-studio-nested-block-id])) { min-height: 24px; }
 
 .document-list, .studio-local-sites { position: relative; }
+
+/* The shared controller owns authoring-only end reservations on this boundary. */
+[data-drag-placement-owner] { position: relative; }

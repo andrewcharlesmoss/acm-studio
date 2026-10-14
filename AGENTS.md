@@ -180,7 +180,10 @@ controller, geometry, renderer, or edge-scrolling lifecycle. Preserve
 effective-change, source freshness, ownership, container, and lock checks in both feedback and commit. Content, template, and Mini Golf
 canvases share block placement; Navigation and Design share sibling gap
 reordering. Template wrappers and toolbars are not additional siblings.
-Captured mouse drags retain cancellable edge scrolling. See
+The shared controller reserves outer insertion spaces through
+`drag-placement-space.ts`; never place end indicators on item borders or add
+consumer-specific padding rules. Preview and saved content retain their original
+dimensions. Captured mouse drags retain cancellable edge scrolling. See
 `docs/drag-placement.md` for the inventory, exclusions, and verification recipe.
 
 Edit and Preview must share block presentation rules, including typography,

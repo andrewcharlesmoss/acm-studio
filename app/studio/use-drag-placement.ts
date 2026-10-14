@@ -1,11 +1,15 @@
 "use client";
 import { useId, useRef, useState, useEffect, useLayoutEffect, useCallback, type DragEvent, type PointerEvent, type MouseEvent } from "react";
 import { startDragAutoScroll } from "./drag-auto-scroll";
-import type { DropLine } from "./drop-gap-geometry";
+import { maintainPlacementSpace, type PlacementSpace } from "./drag-placement-space";
+import type { DropAxis, DropLine } from "./drop-gap-geometry";
 const MIME = "application/x-acm-studio-placement";
 export type DragPlacement<T> = { target: T; line: DropLine };
 export type DragPlacementPolicy<S, T> = {
   version: string; writable: boolean;
+  axis?: DropAxis;
+  reserveSpace?: boolean;
+  spaces?: (root: HTMLElement) => PlacementSpace[];
   canStart: (source: S) => boolean;
   effect?: (source: S) => "copy" | "move";
   resolve: (source: S, container: HTMLElement, x: number, y: number) => DragPlacement<T> | null;
@@ -17,6 +21,11 @@ export type DragPlacementPolicy<S, T> = {
 /** One input, freshness, cancellation, and feedback lifecycle for Studio placement. */
 export function useDragPlacement<S, T>(policy: DragPlacementPolicy<S, T>) {
   const owner = useId();
+  const root = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (!root.current || policy.reserveSpace === false) return;
+    return maintainPlacementSpace([{ element: root.current, axis: policy.axis ?? "y" }, ...(policy.spaces?.(root.current) ?? [])]);
+  });
   const latest = useRef(policy);
   useLayoutEffect(() => { latest.current = policy; });
   const session = useRef<{ source: S; version: string } | null>(null);
@@ -112,6 +121,7 @@ export function useDragPlacement<S, T>(policy: DragPlacementPolicy<S, T>) {
       onClickCapture(event: MouseEvent<HTMLElement>) { if (suppressClick.current) { suppressClick.current = false; event.preventDefault(); event.stopPropagation(); } },
     }),
     listProps: {
+      ref: (element: HTMLElement | null) => { root.current = element; },
       "data-drag-placement-owner": owner,
       onDragOver(event: DragEvent<HTMLElement>) { if (!event.dataTransfer.types.includes(MIME)) { setIndicator(null); return; } const next = preview(event.currentTarget, event.clientX, event.clientY); if (next) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = session.current ? latest.current.effect?.(session.current.source) ?? "move" : "none"; } },
       onDrop(event: DragEvent<HTMLElement>) { if (!session.current) return; if (event.dataTransfer.getData(MIME) !== owner) { cancel(); return; } event.preventDefault(); event.stopPropagation(); commit(event.currentTarget, event.clientX, event.clientY); cancel(); },

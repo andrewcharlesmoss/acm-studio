@@ -1,3 +1,4 @@
+import { OUTER_INSERTION_GAP } from "./drag-placement-space";
 /** Viewport rectangles, shared by insertion feedback and destination hit testing. */
 export type DropBounds = { left: number; right: number; top: number; bottom: number; width: number; height: number };
 export type DropAxis = "x" | "y";
@@ -32,12 +33,12 @@ export function insertionGapLine(rows: DropBounds[], index: number, owner: DropB
   const followingRow = groups.find(group => index >= group.start && index <= group.end);
   const horizontal = axis === "x" && (!before || !after || previousRow === followingRow);
   if (horizontal) {
-    const centre = before && after ? (before.right + after.left) / 2 : after?.left ?? before?.right ?? (owner.left + owner.right) / 2;
+    const centre = before && after ? (before.right + after.left) / 2 : after ? after.left - OUTER_INSERTION_GAP * scale / 2 : before ? before.right + OUTER_INSERTION_GAP * scale / 2 : (owner.left + owner.right) / 2;
     const top = followingRow?.top ?? previousRow?.top ?? owner.top;
     const bottom = followingRow?.bottom ?? previousRow?.bottom ?? owner.bottom;
     return { left: (centre - owner.left) / scale - thickness / 2, top: (top - owner.top) / scale, width: thickness, height: (bottom - top) / scale };
   }
-  const centre = before && after ? ((previousRow?.bottom ?? before.bottom) + (followingRow?.top ?? after.top)) / 2 : after?.top ?? before?.bottom ?? (owner.top + owner.bottom) / 2;
+  const centre = before && after ? ((previousRow?.bottom ?? before.bottom) + (followingRow?.top ?? after.top)) / 2 : after ? after.top - OUTER_INSERTION_GAP * scale / 2 : before ? before.bottom + OUTER_INSERTION_GAP * scale / 2 : (owner.top + owner.bottom) / 2;
   const neighbours = [previousRow ?? before, followingRow ?? after].filter((row): row is NonNullable<typeof row> => Boolean(row));
   const left = neighbours.length ? Math.min(...neighbours.map(row => row.left)) : owner.left;
   const right = neighbours.length ? Math.max(...neighbours.map(row => row.right)) : owner.right;

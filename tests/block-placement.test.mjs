@@ -80,14 +80,14 @@ test("positioned library insertion uses the shared command once and preserves wr
 
 test("column geometry measures direct children and compensates transformed canvas zoom", () => {
   const box = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height });
-  let children = [box(120, 140, 160, 40), box(120, 220, 160, 40)];
-  const column = { dataset: { studioColumnDropId: "left" }, getBoundingClientRect: () => box(120, 120, 160, 200), querySelectorAll: selector => { assert.equal(selector, ":scope > [data-studio-nested-block-id]"); return children.map(bounds => ({ getBoundingClientRect: () => bounds })); } };
+  let children = [box(120, 168, 160, 40), box(120, 248, 160, 40)];
+  const column = { dataset: { studioColumnDropId: "left" }, getBoundingClientRect: () => box(120, 120, 160, 236), querySelectorAll: selector => { assert.equal(selector, ":scope > [data-studio-nested-block-id]"); return children.map(bounds => ({ getBoundingClientRect: () => bounds })); } };
   const canvas = { offsetWidth: 300, contains: candidate => candidate === column, getBoundingClientRect: () => box(100, 100, 600, 500) };
   const element = { closest: selector => { assert.equal(selector, "[data-studio-column-drop-id]"); return column; } };
-  const first = columnDropPosition(canvas, element, 140, 130);
-  assert.deepEqual(first.target, { parentId: "left", index: 0 }); assert.equal(first.left, 10); assert.equal(first.width, 80); assert.equal(first.top, 19);
+  const first = columnDropPosition(canvas, element, 140, 150);
+  assert.deepEqual(first.target, { parentId: "left", index: 0 }); assert.equal(first.left, 10); assert.equal(first.width, 80); assert.equal(first.top, 21);
   assert.equal(columnDropPosition(canvas, element, 140, 210).target.index, 1);
-  assert.equal(columnDropPosition(canvas, element, 140, 300).target.index, 2);
+  assert.equal(columnDropPosition(canvas, element, 140, 340).target.index, 2);
   assert.equal(columnDropPosition(canvas, element, 10, 130), null);
   children = [];
   assert.equal(columnDropPosition(canvas, element, 140, 130).target.index, 0);

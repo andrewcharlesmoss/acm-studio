@@ -1,5 +1,15 @@
 import { insertionGapIndex, insertionGapLine, dropLineInContainer, dropContainerScale, type DropLine } from "./drop-gap-geometry";
 
+export function blockSiblingOwner(canvas: HTMLElement, sourceId: string, siblingIds?: string[]) {
+  const source = Array.from(canvas.querySelectorAll<HTMLElement>("[data-studio-nested-block-id]")).find(child => child.dataset.studioNestedBlockId === sourceId);
+  let owner = source?.parentElement;
+  while (owner && siblingIds && !siblingIds.every(id => Array.from(owner!.querySelectorAll<HTMLElement>("[data-studio-nested-block-id]")).some(child => child.dataset.studioNestedBlockId === id))) owner = owner.parentElement;
+  return owner;
+}
+export function blockSiblingAxis(owner: HTMLElement): "x" | "y" {
+  const style = owner.ownerDocument.defaultView!.getComputedStyle(owner);
+  return style.display.includes("flex") && !style.flexDirection.startsWith("column") || style.display.includes("grid") && style.gridTemplateColumns.split(" ").length > 1 ? "x" : "y";
+}
 function inside(element: HTMLElement, x: number, y: number) {
   const box = element.getBoundingClientRect();
   return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
@@ -18,18 +28,13 @@ export function rootBlockDropPosition(canvas: HTMLElement, x: number, y: number)
 }
 /** Nested moves use their actual sibling container, including horizontal rows. */
 export function nestedBlockDropPosition(canvas: HTMLElement, sourceId: string, x: number, y: number, siblingIds?: string[]): { targetId: string; after: boolean; line: DropLine } | null {
-  const source = Array.from(canvas.querySelectorAll<HTMLElement>("[data-studio-nested-block-id]")).find(child => child.dataset.studioNestedBlockId === sourceId);
-  let owner = source?.parentElement;
-  // Template projections may wrap each frame. Find the nearest common owner of
-  // the model's actual siblings rather than treating a wrapper as a whole list.
-  while (owner && siblingIds && !siblingIds.every(id => Array.from(owner!.querySelectorAll<HTMLElement>("[data-studio-nested-block-id]")).some(child => child.dataset.studioNestedBlockId === id))) owner = owner.parentElement;
+  const owner = blockSiblingOwner(canvas, sourceId, siblingIds);
 
   if (!owner || !inside(owner, x, y)) return null;
   const frames = Array.from(owner.querySelectorAll<HTMLElement>("[data-studio-nested-block-id]"));
   const children = siblingIds ? siblingIds.map(id => frames.find(child => child.dataset.studioNestedBlockId === id)!).filter(Boolean) : Array.from(owner.querySelectorAll<HTMLElement>(":scope > [data-studio-nested-block-id]"));
   if (!children.length) return null;
-  const style = owner.ownerDocument.defaultView!.getComputedStyle(owner);
-  const axis = style.display.includes("flex") && !style.flexDirection.startsWith("column") || style.display.includes("grid") && style.gridTemplateColumns.split(" ").length > 1 ? "x" : "y";
+  const axis = blockSiblingAxis(owner);
   const index = insertionGapIndex(children.map(child => child.getBoundingClientRect()), x, y, axis);
   return { targetId: children[Math.min(index, children.length - 1)].dataset.studioNestedBlockId!, after: index === children.length, line: lineInCanvas(canvas, owner, children, index, axis) };
 }

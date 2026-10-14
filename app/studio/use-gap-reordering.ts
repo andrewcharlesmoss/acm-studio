@@ -4,7 +4,7 @@ import { insertionGapIndex, insertionGapLine, dropLineInContainer, dropContainer
 import { useDragPlacement } from "./use-drag-placement";
 /** Domain adapter: owned sibling rows inherit the canonical placement controller. */
 export function useGapReordering({ ids, version, writable, axis = "y", accepts, onMove }: { ids: string[]; version: string; writable: boolean; axis?: DropAxis; accepts: (move: LibraryMove) => boolean; onMove: (move: LibraryMove) => boolean }) {
-  const drag = useDragPlacement<string, LibraryMove>({ version: JSON.stringify([version, axis, ids]), writable,
+  const drag = useDragPlacement<string, LibraryMove>({ version: JSON.stringify([version, axis, ids]), writable, axis,
     canStart: id => ids.length > 1 && ids.includes(id),
     resolve(id, container, x, y) {
       const bounds = container.getBoundingClientRect();

@@ -99,6 +99,9 @@
 
 ### Fixed
 
+- Reserve shared space before the first and after the last draggable item, with
+  the end placement line centred inside it throughout Studio authoring.
+
 - Use one measured, centred insertion line for blocks, nested containers,
   Navigation links, Design pages, and layers, with shared pointer/native
   placement rules, no-op protection, and cancellable edge scrolling. All ordered

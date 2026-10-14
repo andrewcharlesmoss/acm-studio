@@ -28,6 +28,13 @@ and the `drag-auto-scroll.ts` lifecycle. `use-gap-reordering.ts` adapts sibling
 ordering; `use-library-reordering.ts` adds keyboard moves and announcements.
 Block adapters describe legal destinations and commits, including reparenting.
 New consumers must reuse these owners rather than fork their interaction code.
+`drag-placement-space.ts` reserves 24 CSS pixels before the first and after the
+last item on the active axis. The controller applies and restores this authoring
+space while preserving authored padding. Viewport and owner/parent width changes
+refresh responsive padding without accumulating reservations; nested block adapters identify owners
+without duplicating reservation logic. Outer lines are centred 12 CSS pixels
+beyond the first/last item boundary. Sites reserves its inner list rather than
+its heading. Preview and saved content do not receive these reservations.
 `DragPlacementIndicator` is the only line renderer and `.studio-gap-line` is its
 shared appearance. Native insertion uses copy feedback; reordering uses move.
 

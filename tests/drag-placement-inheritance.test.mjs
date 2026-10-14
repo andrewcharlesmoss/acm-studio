@@ -7,6 +7,8 @@ import { loadProductionModule } from "./production-module.mjs";
 const read=path=>readFileSync(new URL(`../app/studio/${path}`,import.meta.url),"utf8");
 test("Studio insertion-gap consumers inherit one controller, geometry and renderer",()=>{
  for(const path of ["studio-canvas.tsx","use-gap-reordering.ts"])assert.match(read(path),/from "\.\/use-drag-placement"/);
+ assert.match(read("use-drag-placement.ts"), /from "\.\/drag-placement-space"/);
+ assert.match(read("drop-gap-geometry.ts"), /from "\.\/drag-placement-space"/);
  assert.match(read("use-library-reordering.ts"),/from "\.\/use-gap-reordering"/);
  for(const path of ["use-gap-reordering.ts","column-drop-position.ts","block-drop-position.ts"])assert.match(read(path),/from "\.\/drop-gap-geometry"/);
  for(const path of ["studio-canvas.tsx","studio-navigation-pane.tsx","template-workspace.tsx","project-local-links.tsx","template-navigation-editor.tsx","design-editor.tsx"]){assert.match(read(path),/from "\.\/drag-placement-indicator"/);assert.doesNotMatch(read(path),/className="studio-gap-line"/);}

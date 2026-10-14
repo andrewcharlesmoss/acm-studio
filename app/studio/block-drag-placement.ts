@@ -1,11 +1,11 @@
 import type { ContentBlock } from "../content/model";
-import { findContentBlock } from "../content/block-tree";
+import { childContentBlocks, findContentBlock } from "../content/block-tree";
 import { preservesBlockLocks } from "../content/block-editorial";
 import type { BlockLibraryItemType } from "./editor-model";
 import { groupAllowsChild, permitsBlockTreeChanges } from "./block-inserter-options";
 import { moveBlockToTarget } from "./block-placement";
 import { editBlockSiblings, reorderBlockAmongSiblings } from "./block-sibling-operations";
-import { rootBlockDropPosition, nestedBlockDropPosition } from "./block-drop-position";
+import { rootBlockDropPosition, nestedBlockDropPosition, blockSiblingOwner, blockSiblingAxis } from "./block-drop-position";
 import { columnDropPosition } from "./column-drop-position";
 import type { DragPlacement } from "./use-drag-placement";
 export type BlockDragSource = { id?: string; libraryType?: BlockLibraryItemType };
@@ -41,4 +41,20 @@ export function resolveBlockDrag({ blocks, source, rootTypes }: { blocks: Conten
   if (next === blocks) return null;
   const from = blocks.findIndex(block => block.id === source.id);
   return { target: { kind: "move", id: source.id, blocks: next, ...(from >= 0 ? { root: { from, index: position.index } } : {}) }, line: position.line };
+}
+
+/** Domain discovery only; the controller owns reservation and restoration. */
+export function blockPlacementSpaces(canvas: HTMLElement, blocks: ContentBlock[]) {
+  const spaces: { element: HTMLElement; axis: "x" | "y" }[] = [];
+  function visit(block: ContentBlock) {
+    const children = childContentBlocks(block);
+    const groups = block.type === "list" ? block.items.flatMap(item => typeof item === "string" || !item.children?.length ? [] : [item.children]) : children.length ? [children] : [];
+    for (const siblings of groups) {
+      const owner = blockSiblingOwner(canvas, siblings[0].id, siblings.map(child => child.id));
+      if (owner && owner !== canvas) spaces.push({ element: owner, axis: blockSiblingAxis(owner) });
+    }
+    children.forEach(visit);
+  }
+  blocks.forEach(visit);
+  return spaces;
 }
