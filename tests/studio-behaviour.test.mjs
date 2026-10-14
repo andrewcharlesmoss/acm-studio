@@ -506,7 +506,7 @@ test("the block appender exposes Gutenberg's slash prompt and add control", asyn
 test("the cover image exposes a between-block inserter", async () => {
   const source = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(source, /aria-label="Add block below featured image"/);
-  assert.match(source, /toggleInserter\(-1\)/);
+  assert.match(source, /openCanvasInserter\(event.currentTarget, -1\)/);
 });
 
 test("dynamic cover blocks keep selection borders tight to the image", async () => {
@@ -2185,12 +2185,12 @@ test("Add block cancels an exit in progress and restores the entry animation", (
 });
 
 
-test("between-block add controls toggle the shared block library", () => {
+test("canvas add controls open the anchored chooser while toolbar Add retains the pane", () => {
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
-  assert.match(canvas, /function toggleInserter\(afterIndex: number \| null, query\?: string\) \{\s*if \(showInserter && !inserterClosing\) \{\s*dismissInserter\(\);/);
-  assert.match(canvas, /className="between-blocks cover-inserter"[^>]*onClick=\{\(\) => toggleInserter\(-1\)\}/);
-  assert.match(canvas, /className="between-blocks"[^>]*onClick=\{\(\) => toggleInserter\(index - 1\)\}/);
-  assert.match(canvas, /className="canvas-appender-button"[^>]*onClick=\{\(\) => \{ if \(!writableRef.current\) return; setAppenderValue\(""\); setAppenderActive\(false\); toggleInserter\(activeDocument\.blocks\.length - 1\); \}\}/);
+  assert.match(canvas, /className="between-blocks cover-inserter"[^>]*onClick=\{event => openCanvasInserter\(event.currentTarget, -1\)\}/);
+  assert.match(canvas, /className="between-blocks"[^>]*onClick=\{event => openCanvasInserter\(event.currentTarget, index - 1\)\}/);
+  assert.match(canvas, /className="canvas-appender-button"[^>]*onClick=\{event => openCanvasInserter\(event.currentTarget, activeDocument.blocks.length - 1\)\}/);
+  assert.match(canvas, /showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)/);
 });
 
 

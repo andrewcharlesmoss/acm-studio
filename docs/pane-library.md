@@ -29,6 +29,19 @@ product APIs, or read/write browser persistence. No real documents, designs or
 media are involved. Product data, commands, persistence and pane-specific
 interaction remain owned by their existing features.
 
+## Canvas block chooser
+
+The canvas end, between-block, featured-image boundary, and general nested
+appenders open a compact anchored chooser with Search, six contextual quick
+choices, and Browse All. Searching uses the complete canonical contextual
+catalogue. Only Browse All opens the Block Library pane from this popup;
+the Ribbon Add Block and slash insertion retain their existing pane behaviour.
+The chooser preserves unfinished appender text and the captured insertion
+boundary, refuses changed documents or sibling ordering, and closes after
+insertion. Close, Escape, outside clicks, and native Tab navigation use the
+shared anchored-popover contract. Specialised Add Button, Add Paragraph, and
+social-icon controls retain their contextual commands.
+
 ## Internal component contract — v1.3.0
 
 Double-click a resizable pane’s edge, or press Enter while its separator is

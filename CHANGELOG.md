@@ -4,6 +4,9 @@
 
 ### Added
 
+- Open a compact block chooser from canvas Add Block controls, with contextual
+  search and an explicit Browse All action for the Block Library pane.
+
 - Add shared HTML anchor, CSS classes, and Additional CSS controls to Buttons,
   LinkedIn, TikTok, Reading Time, Navigation, and Page link, retaining safe
   presentation in Edit, Preview, and local output.

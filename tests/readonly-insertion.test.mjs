@@ -47,9 +47,9 @@ for (const type of ["group", "section", "column"]) {
 test("shared appender guards activation and retains the intended parent", () => {
   for (const writable of [true, false]) {
     const calls = [];
-    invoke(callbacks.get("NestedBlockAppender:onClick"), { writable, parentId: "column-two", onOpen: id => calls.push(id) });
+    invoke(callbacks.get("NestedBlockAppender:onClick"), { writable, parentId: "column-two", onOpen: id => calls.push(id) }, [{currentTarget:{}}]);
     assert.deepEqual(calls, writable ? ["column-two"] : []);
-    invoke(callbacks.get("NestedBlockAppender:onClick"), { writable, parentId: "column-two", onOpen: undefined });
+    invoke(callbacks.get("NestedBlockAppender:onClick"), { writable, parentId: "column-two", onOpen: undefined }, [{currentTarget:{}}]);
   }
 });
 
@@ -143,5 +143,5 @@ test("inactive end-appender click retains typed text when editing becomes unavai
     ts.forEachChild(node, visit);
   }
   visit(syntax);
-  invoke(handler, { writableRef: { current: false } });
+  invoke(handler, { openCanvasInserter: (...args) => invoke(functions.get("openCanvasInserter"), { writableRef: { current: false } }, args), activeDocument: { blocks: [] } }, [{currentTarget:{}}]);
 });

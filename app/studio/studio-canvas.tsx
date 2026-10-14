@@ -1,4 +1,6 @@
 "use client";
+import { CanvasBlockChooser } from "./canvas-block-chooser";
+import { captureCanvasInsertionTarget, canvasInsertionTargetCurrent, canvasBlockChoices, type CanvasInsertionTarget } from "./canvas-insertion-target";
 import { useBlockInsertionGaps } from "./use-block-insertion-gaps";
 import { FeaturedImage } from "../components/blocks/featured-image";
 import { GroupEmptyAppender } from "./blocks/group-empty-appender";
@@ -434,6 +436,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   const listViewToggleRef = useRef<HTMLButtonElement>(null);
   const [inserterClosing, setInserterClosing] = useState(false);
   const [inserterParentId, setInserterParentId] = useState<string | null>(null);
+  const [canvasInserter, setCanvasInserter] = useState<{ target: CanvasInsertionTarget; anchor: HTMLElement; query: string } | null>(null);
   const appenderInputRef = useRef<HTMLInputElement>(null);
   const [linkEditor, setLinkEditor] = useState<LinkEditorState | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -946,6 +949,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
 
   function openInserter(afterIndex: number | null, query?: string, parentId: string | null = null) {
     if (!writableRef.current) return;
+    setCanvasInserter(null);
     setInserterClosing(false);
     setHoveredBlockId(null);
     setListViewOpen(false);
@@ -953,12 +957,51 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     onOpenInserter(afterIndex, query, parentId ?? undefined);
   }
 
-  function toggleInserter(afterIndex: number | null, query?: string) {
-    if (showInserter && !inserterClosing) {
-      dismissInserter();
-      return;
-    }
-    openInserter(afterIndex, query);
+  function closeCanvasInserter(restoreFocus = false) {
+    const anchor = canvasInserter?.anchor;
+    setCanvasInserter(null);
+    if (restoreFocus) requestAnimationFrame(() => { if (anchor?.isConnected) anchor.focus(); });
+  }
+
+  function openCanvasInserter(anchor: HTMLElement, afterIndex: number | null, parentId: string | null = null) {
+    if (!writableRef.current) return;
+    if (canvasInserter?.anchor === anchor) { closeCanvasInserter(true); return; }
+    const target = captureCanvasInsertionTarget(activeDocument, afterIndex, parentId);
+    if (!target) return;
+    finishInserterClose();
+    setHoveredBlockId(null);
+    setListViewOpen(false);
+    setCanvasInserter({ target, anchor, query: "" });
+  }
+
+  const canvasInserterCurrent = Boolean(canvasInserter && writable && !previewing && !codeEditor && canvasInserter.anchor.isConnected && canvasInsertionTargetCurrent(activeDocument, canvasInserter.target));
+  const canvasChoices = canvasInserterCurrent && canvasInserter ? canvasBlockChoices(activeDocument, canvasInserter.target, canvasInserter.query, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation), allowTemplatePageLink: Boolean(onInsertTemplatePageLink) }) : [];
+
+  useLayoutEffect(() => {
+    if (!canvasInserter || canvasInserterCurrent) return;
+    queueMicrotask(() => setCanvasInserter(current => current === canvasInserter ? null : current));
+  }, [canvasInserter, canvasInserterCurrent]);
+
+  function insertFromCanvasChooser(type: BlockLibraryItemType) {
+    if (!writableRef.current || !canvasInserterCurrent || !canvasInserter || !canvasChoices.some(item => item.type === type)) return;
+    const { target } = canvasInserter;
+    // Existing nested append commands materialise legacy Quote paragraphs and
+    // contextual children; numeric root/Column commands retain exact boundaries.
+    const parent = target.parentId ? findBlockById(activeDocument.blocks, target.parentId) : null;
+    const inserted = parent && parent.type !== "column" && type !== "template-content" && type !== "navigation" && type !== "page-link"
+      ? onInsertBlock(type, parent.id)
+      : insertLibraryBlockAt(type, target.index, target.parentId ?? undefined);
+    if (!inserted) return;
+    setPendingGroupLayoutBlockId(type === "group" && inserted.type === "group" ? inserted.id : null);
+    closeCanvasInserter();
+    focusInsertedBlock(inserted.id, false);
+  }
+
+  function browseAllCanvasBlocks() {
+    if (!writableRef.current || !canvasInserterCurrent || !canvasInserter) return;
+    const { target, query } = canvasInserter;
+    closeCanvasInserter();
+    openInserter(target.parentId ? null : target.index - 1, query, target.parentId);
   }
 
   function closeListView() {
@@ -1868,7 +1911,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                 const id = focusedTextBlockId(block.id);
                 setTableCellSelections(current => ({ ...current, [id]: { rowIndex, columnIndex } }));
                 setTableTextTargets(current => ({ ...current, [id]: { kind: "cell", rowIndex, columnIndex } }));
-              }} onTextSelection={(selection, rowIndex, columnIndex) => recordTextSelection(block.id, selection, rowIndex, columnIndex)} onLinkActivate={(selection, rowIndex, columnIndex) => activateTextLink(block.id, selection, rowIndex, columnIndex)} onListItemSelection={(list, itemIndex, selection) => { const targetId = setTextSelection(block.id, selection, itemIndex, list.id); const next = { listId: list.id, itemIndex }; setActiveListItems(current => ({ ...current, [block.id]: next, [targetId]: next })); onSelectBlock(targetId); onSelectListItem?.({ blockId: targetId, listId: list.id, itemIndex }); }} onListItemLinkActivate={(list, itemIndex, selection) => { const target = findBlockById(activeDocument.blocks, nestedRichTextTargets[block.id] ?? block.id); if (target?.type === "list") openLinkEditor(target, selection, "preview", itemIndex, list.id); }} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onExitList={onExitList} onOpenNestedInserter={(parentId) => openInserter(null, undefined, parentId)} writable={writable} onInsertNestedBlock={(type, parentId) => { if (writable) onInsertBlock(type, parentId); }} onChange={(next, requireSourceMatch) => onUpdateBlock(block.id, current => !requireSourceMatch || JSON.stringify(current) === JSON.stringify(block) ? next : current)} />;
+              }} onTextSelection={(selection, rowIndex, columnIndex) => recordTextSelection(block.id, selection, rowIndex, columnIndex)} onLinkActivate={(selection, rowIndex, columnIndex) => activateTextLink(block.id, selection, rowIndex, columnIndex)} onListItemSelection={(list, itemIndex, selection) => { const targetId = setTextSelection(block.id, selection, itemIndex, list.id); const next = { listId: list.id, itemIndex }; setActiveListItems(current => ({ ...current, [block.id]: next, [targetId]: next })); onSelectBlock(targetId); onSelectListItem?.({ blockId: targetId, listId: list.id, itemIndex }); }} onListItemLinkActivate={(list, itemIndex, selection) => { const target = findBlockById(activeDocument.blocks, nestedRichTextTargets[block.id] ?? block.id); if (target?.type === "list") openLinkEditor(target, selection, "preview", itemIndex, list.id); }} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onExitList={onExitList} onOpenNestedInserter={(parentId, anchor) => { if (anchor) openCanvasInserter(anchor, null, parentId); }} writable={writable} onInsertNestedBlock={(type, parentId) => { if (writable) onInsertBlock(type, parentId); }} onChange={(next, requireSourceMatch) => onUpdateBlock(block.id, current => !requireSourceMatch || JSON.stringify(current) === JSON.stringify(block) ? next : current)} />;
   }
   function selectDocumentField(field: "title" | "subtitle") {
     onFocusDocumentField(field);
@@ -2378,12 +2421,12 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
               if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) { onSetDragOverIndex(null); setColumnDrop(null); }
             }}>
               {columnDrop ? <div className="column-drop-indicator" aria-hidden="true" style={{ left: columnDrop.left, top: columnDrop.top, width: columnDrop.width, height: columnDrop.height }} /> : null}
-              {writable && allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" disabled={!writable} onClick={() => toggleInserter(-1)} aria-label="Add block below featured image" title="Add block below featured image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
+              {writable && allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="cover-inserter-position"><button className="between-blocks cover-inserter" type="button" disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, -1)} aria-haspopup="dialog" aria-label="Add block below featured image" title="Add block below featured image"><span aria-hidden="true"><StudioIcon name="add" /></span></button></div> : null}
               {activeDocument.blocks.map((block, index) => (
                 <div className="block-position" key={block.id} data-block-align={contentBlockAlignment(block)}
                 >
                   {dragOverIndex === index ? <div className="drop-indicator" aria-hidden="true" /> : null}
-                  {writable && index > 0 ? <button className="between-blocks" type="button" disabled={!writable} onClick={() => toggleInserter(index - 1)} aria-label={`Add block before ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
+                  {writable && index > 0 ? <button className="between-blocks" type="button" disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, index - 1)} aria-haspopup="dialog" aria-label={`Add block before ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)}`}><span aria-hidden="true"><StudioIcon name="add" /></span></button> : null}
                   <article
                     className={`canvas-block is-${block.type}${contentBlockAlignment(block) ? ` has-block-align-${contentBlockAlignment(block)}` : ""}${selectedBlockId === block.id ? " is-selected" : ""}`}
                     style={block.type === "group" && block.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : undefined}
@@ -2471,7 +2514,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                     setAppenderActive(false);
                   }}
                 />
-                {appenderActive ? <button className="canvas-appender-button" type="button" disabled={!writable} onClick={() => { if (!writableRef.current) return; setAppenderValue(""); setAppenderActive(false); toggleInserter(activeDocument.blocks.length - 1); }} aria-label="Add block" title="Add block"><StudioIcon name="add" /></button> : null}
+                <button className="canvas-appender-button" type="button" disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, activeDocument.blocks.length - 1)} aria-haspopup="dialog" aria-expanded={canvasInserterCurrent && canvasInserter?.anchor.classList.contains("canvas-appender-button")} aria-label="Add block" title="Add block"><StudioIcon name="add" /></button>
               </div>
             </div>
             {presentation?.renderFooter?.({ document: activeDocument, mode: "edit", writable, selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
@@ -2479,6 +2522,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
           </div>
         )}
       </div>
+      {canvasInserterCurrent && canvasInserter ? <CanvasBlockChooser anchor={canvasInserter.anchor} query={canvasInserter.query} choices={canvasChoices} onQueryChange={query => setCanvasInserter(current => current ? { ...current, query } : null)} onInsert={insertFromCanvasChooser} onBrowseAll={browseAllCanvasBlocks} onClose={closeCanvasInserter} /> : null}
       {imageVisible && imageTarget ? imagePickerOpen ? <InlineImagePicker loadImages={loadInlineImages} replacing={Boolean(imageTarget.image)} returnFocus={imageTarget.editor} onChoose={value => changeInlineImage(value, true)} onClose={() => closeInlineImage(true)} /> : imageTarget.image ? <InlineImagePopover key={`${imageTarget.documentId}:${imageTarget.blockId}:${imageTarget.selection.start}`} value={imageTarget.image} anchor={() => {
         const point = richTextPointAtOffset(imageTarget.editor, imageTarget.selection.start);
         const node = point.node.nodeType === Node.ELEMENT_NODE ? point.node.childNodes[point.offset] : point.node.parentElement;
@@ -2749,8 +2793,8 @@ function BlockInserter({ writable, closing, onCloseAnimationEnd, inserterQuery, 
   );
 }
 
-function NestedBlockAppender({ parentId, writable, onOpen }: { parentId: string; writable: boolean; onOpen?: (parentId: string) => void }) {
-  return <button type="button" className="nested-add-block" aria-label="Add block" title="Add block" disabled={!writable || !onOpen} onClick={() => { if (writable) onOpen?.(parentId); }}><StudioIcon name="add" size={16} /><span className="nested-add-label">Add block</span></button>;
+function NestedBlockAppender({ parentId, writable, onOpen }: { parentId: string; writable: boolean; onOpen?: (parentId: string, anchor?: HTMLElement) => void }) {
+  return <button type="button" className="nested-add-block" aria-haspopup="dialog" aria-label="Add block" title="Add block" disabled={!writable || !onOpen} onClick={event => { if (writable) onOpen?.(parentId, event.currentTarget); }}><StudioIcon name="add" size={16} /><span className="nested-add-label">Add block</span></button>;
 }
 
 function ColumnsLayoutChooser({ block, onSelect }: { block: Extract<ContentBlock, { type: "columns" }>; onSelect: (widths: readonly number[]) => void }) {
@@ -2776,7 +2820,7 @@ function indentFromPreviousParagraph(blocks: ContentBlock[], index: number): str
   return previousBlock?.type === "paragraph" ? previousBlock.style?.textIndent : undefined;
 }
 
-type BlockFieldProps = { leadingContent?: ReactNode; htmlEditorBlockId?: string; renderBlockControls?: (block: ContentBlock) => ReactNode; block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; templatePlaceholder?: boolean; selectedBlockId?: string | null; hoveredBlockId?: string | null; previousParagraphIndent?: string; spacerOrientation?: SpacerOrientation; writable?: boolean; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; pendingColumnsLayoutBlockId?: string | null; onColumnsLayoutSelected?: () => void; pendingGroupLayoutBlockId?: string | null; onGroupLayoutSelected?: (blockId: string) => void; mediaUrl?: string; mediaUrls?: Record<string, string>; coverImageUrl?: string; onOpenCoverMediaLibrary?: () => void; onRemoveCoverImage?: () => void; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null, rowIndex?: number, columnIndex?: number) => void; onLinkActivate: (selection: TextSelection, rowIndex?: number, columnIndex?: number) => void; onListItemSelection?: (list: EditableListBlock, index: number, selection: TextSelection | null) => void; onListItemLinkActivate?: (list: EditableListBlock, index: number, selection: TextSelection) => void; onSplitParagraph?: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null; onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null; onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null; onExitList?: (blockId: string, itemIndex: number, operation?: "return" | "backward" | "forward", listId?: string) => BlockCommandFocusTarget; onOpenNestedInserter?: (parentId: string) => void; onInsertNestedBlock?: (type: InsertableBlockType, parentId: string) => void; onChange: (block: ContentBlock, requireSourceMatch?: boolean) => void };
+type BlockFieldProps = { leadingContent?: ReactNode; htmlEditorBlockId?: string; renderBlockControls?: (block: ContentBlock) => ReactNode; block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; templatePlaceholder?: boolean; selectedBlockId?: string | null; hoveredBlockId?: string | null; previousParagraphIndent?: string; spacerOrientation?: SpacerOrientation; writable?: boolean; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; pendingColumnsLayoutBlockId?: string | null; onColumnsLayoutSelected?: () => void; pendingGroupLayoutBlockId?: string | null; onGroupLayoutSelected?: (blockId: string) => void; mediaUrl?: string; mediaUrls?: Record<string, string>; coverImageUrl?: string; onOpenCoverMediaLibrary?: () => void; onRemoveCoverImage?: () => void; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null, rowIndex?: number, columnIndex?: number) => void; onLinkActivate: (selection: TextSelection, rowIndex?: number, columnIndex?: number) => void; onListItemSelection?: (list: EditableListBlock, index: number, selection: TextSelection | null) => void; onListItemLinkActivate?: (list: EditableListBlock, index: number, selection: TextSelection) => void; onSplitParagraph?: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null; onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null; onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null; onExitList?: (blockId: string, itemIndex: number, operation?: "return" | "backward" | "forward", listId?: string) => BlockCommandFocusTarget; onOpenNestedInserter?: (parentId: string, anchor?: HTMLElement) => void; onInsertNestedBlock?: (type: InsertableBlockType, parentId: string) => void; onChange: (block: ContentBlock, requireSourceMatch?: boolean) => void };
 
 function SocialIconsEditorBlock({ htmlEditorBlockId, renderBlockControls, block, selectedBlockId, hoveredBlockId, writable, onInsert, onChange }: { htmlEditorBlockId?: string; renderBlockControls?: (block: ContentBlock) => ReactNode; block: Extract<ContentBlock, { type: "social-icons" }>; selectedBlockId?: string | null; hoveredBlockId?: string | null; writable: boolean; onInsert?: (type: InsertableBlockType) => void; onChange: (block: Extract<ContentBlock, { type: "social-icons" }>) => void }) {
   const [open, setOpen] = useState(false);

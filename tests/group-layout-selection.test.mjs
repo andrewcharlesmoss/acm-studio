@@ -77,7 +77,7 @@ test("empty Group plus opens the child inserter for its own parent", () => {
   assert.equal(button.props["aria-label"], "Add block");
   assert.match(button.props.className, /group-empty-add/);
   assert.equal(React.Children.toArray(button.props.children).length, 1);
-  button.props.onClick();
+  button.props.onClick({ currentTarget: { id: "group-opener" } });
   assert.equal(target, "chosen-group");
 });
 

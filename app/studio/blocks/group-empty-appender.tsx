@@ -11,7 +11,7 @@ export function GroupEmptyAppender({ block, selected, writable, onOpen }: {
   block: GroupBlock;
   selected: boolean;
   writable: boolean;
-  onOpen?: (parentId: string) => void;
+  onOpen?: (parentId: string, anchor?: HTMLElement) => void;
 }) {
   const appenderRef = useRef<HTMLDivElement>(null);
   const [trackCount, setTrackCount] = useState(1);
@@ -39,7 +39,7 @@ export function GroupEmptyAppender({ block, selected, writable, onOpen }: {
   return <>
     {block.layout === "grid" && <div className="group-empty-grid-guides" aria-hidden="true">{Array.from({ length: trackCount }, (_, index) => <span key={index} />)}</div>}
     <div ref={appenderRef} className="group-empty-appender" data-selected={selected}>
-      <button type="button" className="nested-add-block group-empty-add" aria-label="Add block" title="Add block" disabled={!writable || !onOpen} onClick={() => { if (writable) onOpen?.(block.id); }}>
+      <button type="button" className="nested-add-block group-empty-add" aria-haspopup="dialog" aria-label="Add block" title="Add block" disabled={!writable || !onOpen} onClick={event => { if (writable) onOpen?.(block.id, event.currentTarget); }}>
         <StudioIcon name="add" size={24} />
       </button>
     </div>
