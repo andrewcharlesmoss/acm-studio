@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Use the same compact shared sizing for header Save and Publish buttons.
+
 - Show featured images in local-site Existing Presentation across Edit, Preview
   and publication output, and preview the selected image in the document pane.
   Apply featured-image selections directly using their existing alternative text.

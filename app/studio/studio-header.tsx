@@ -45,11 +45,11 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Content</button>
           ) : studioSection !== "content" ? (
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Back to Content</button>
-          ) : siteContext ? (<><button className="button-secondary" type="button" onClick={onExportDocument}>Export</button><StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave && !previewWindow && !siteContext.publishing} unavailable={saveUnavailable} onSave={siteContext.onSave} />{activeDocument.status !== "published" ? <button className="button-primary" type="button" onClick={siteContext.onPublish} disabled={!canSave || previewWindow || saveUnavailable || siteContext.publishing}>{siteContext.publishing ? "Publishing…" : "Publish"}</button> : null}</>) : hasContentDocuments ? activeDocument.kind === "post" ? (
+          ) : siteContext ? (<><button className="button-secondary" type="button" onClick={onExportDocument}>Export</button><StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave && !previewWindow && !siteContext.publishing} unavailable={saveUnavailable} onSave={siteContext.onSave} />{activeDocument.status !== "published" ? <StudioButton className="studio-header-action" type="button" onClick={siteContext.onPublish} disabled={!canSave || previewWindow || saveUnavailable || siteContext.publishing}>{siteContext.publishing ? "Publishing…" : "Publish"}</StudioButton> : null}</>) : hasContentDocuments ? activeDocument.kind === "post" ? (
             <>
               {activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}
               <StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave} unavailable={saveUnavailable} onSave={onSaveDocument} />
-              {activeDocument.status !== "published" ? <button className="button-primary" type="button" onClick={publishing.publish} disabled={!writable}>Publish</button> : null}
+              {activeDocument.status !== "published" ? <StudioButton className="studio-header-action" type="button" onClick={publishing.publish} disabled={!writable}>Publish</StudioButton> : null}
             </>
           ) : (
             <>
@@ -68,7 +68,7 @@ function StudioSaveControl({ draft, saveLabel, writable, unavailable, onSave }: 
   return (
     <div className="studio-save-group">
       <span className="studio-save-status" aria-live="polite">{saveLabel}</span>
-      <StudioButton variant={draft ? "text" : "base"} className="studio-save-button" type="button" title={`${action} (⌘S / Ctrl+S)`} aria-keyshortcuts="Meta+s Control+s" disabled={!writable || unavailable || saving} onClick={onSave}>{saving ? "Saving…" : action}</StudioButton>
+      <StudioButton variant={draft ? "text" : "base"} className="studio-save-button studio-header-action" type="button" title={`${action} (⌘S / Ctrl+S)`} aria-keyshortcuts="Meta+s Control+s" disabled={!writable || unavailable || saving} onClick={onSave}>{saving ? "Saving…" : action}</StudioButton>
     </div>
   );
 }
