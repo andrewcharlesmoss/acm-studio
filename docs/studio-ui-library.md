@@ -941,3 +941,22 @@ navigation, above 16px entries. Group headings use primary text colour. The
 Controls and Blocks navigation title uses 20px text to retain its parent hierarchy.
 These rules live in `catalogue-navigation.css`; compact production inspector
 headings retain their component typography.
+
+### Object manipulation playground
+
+Workspace → Object manipulation playground
+(`/studio/ui/workspace#object-manipulation-playground`) combines movement, resizing,
+and rotation for temporary shapes and images. It shares the object canvas adapter
+with the focused Resize handles example, and inherits `RotationHandle`, its badge,
+cursor, and rotation geometry from Designs. Production move and keyboard geometry
+live in `design-transform.ts`; Designs retains snapping and bounds in its adapter,
+while this example allows free movement in its expanding scrollable canvas.
+
+Drag the object to move it, or use arrow keys (Shift for 10px). Resize with the
+shared handles; proportions are retained unless Shift is held, and Alt selects
+centre resizing. Drag the rotation handle or use Left/Right for 5° (Shift for 15°).
+All completed gestures share one temporary Undo/Redo history; Escape cancels the
+current gesture. Read-only disables editing, and Reset restores the fixture,
+controls, and history. Changing Shape/Image starts a fresh example for that type.
+The catalogue previews this same implementation. Focused Resize handles and
+Rotation handle entries remain in Controls.

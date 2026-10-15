@@ -13,6 +13,8 @@ import { PaneSpecimen } from "../panes/pane-specimen";
 import { paneExamples, defaultRegions, skeletonDefinition } from "../panes/catalogue-model";
 import { componentDescriptions } from "../ribbon/catalogue-model";
 import { ApplicationSectionNavigation } from "./application-section-navigation";
+import { ObjectManipulationSpecimen } from "./controls/resize-handles-specimen";
+import { objectManipulationPlayground } from "./workspace/object-manipulation-playground";
 import { BlockEditorPlayground, blockEditorPlayground } from "./workspace/block-editor-playground";
 import { ControlSpecimen } from "./controls/control-specimen";
 import { watchAnchoredMenu } from "../overlays/anchored-menu-position.mjs";
@@ -44,6 +46,7 @@ const controlById = Object.fromEntries(studioControlEntries.map((entry) => [entr
 const entries: Entry[] = [
   { id: "workspace:composition", name: "Workspace composition", section: "Workspace", purpose: "Application navigation, Ribbon and panes composed as one editing workspace.", owner: "ACM Studio UI Library", consumers: "Studio applications", dependencies: "ApplicationSectionNavigation, @acm/ribbon and shared Pane components.", href: "/studio/ui/workspace", preview: { kind: "workspace" } },
   { id: "workspace:block-editor-playground", name: blockEditorPlayground.title, section: "Workspace", purpose: blockEditorPlayground.purpose, owner: blockEditorPlayground.owner, consumers: blockEditorPlayground.consumers, dependencies: blockEditorPlayground.dependencies, href: blockEditorPlayground.href, preview: { kind: "playground" } },
+  { id: "workspace:object-manipulation-playground", name: objectManipulationPlayground.title, section: "Workspace", purpose: objectManipulationPlayground.purpose, owner: objectManipulationPlayground.owner, consumers: objectManipulationPlayground.consumers, dependencies: objectManipulationPlayground.dependencies, href: objectManipulationPlayground.href, preview: { kind: "playground", key: "object-manipulation" } },
   { id: "navigation:application", name: "Application section navigation", section: "Navigation", purpose: "Shared pattern for moving between top-level application sections.", owner: "ACM Studio UI Library", consumers: "Studio application header", dependencies: "ApplicationSectionNavigation; consumers provide routes and section content.", href: "/studio/ui/navigation", preview: { kind: "navigation" } },
   ...Object.entries(componentDescriptions).map(([name, purpose]) => ({ id: `ribbon:${name}`, name, section: "Ribbon" as const, purpose, owner: "@acm/ribbon", consumers: "Studio Ribbon and Design", dependencies: "Ribbon package components and semantic action definitions.", href: "/studio/ui/ribbon", preview: { kind: "ribbon" as const, key: name } })),
   ...paneExamples.map((entry) => ({ id: `pane:${entry.id}`, name: entry.label, section: "Panes" as const, purpose: entry.description, owner: "ACM Studio Pane components", consumers: entry.sourceComponent, dependencies: `Shared Pane layout, dimensions and interaction contract. ${entry.tabs.length ? `Tabs: ${entry.tabs.join(", ")}.` : ""}`, href: "/studio/ui/panes", preview: { kind: "pane" as const, key: entry.id } })),
@@ -76,7 +79,7 @@ function PreviewContent({ entry }: { entry: Entry }) {
     const definition = controlById[entry.preview.key ?? ""];
     return definition ? <SpecimenPreview><ControlSpecimen entry={definition} /></SpecimenPreview> : null;
   }
-  if (entry.preview.kind === "playground") return <SpecimenPreview><BlockEditorPlayground /></SpecimenPreview>;
+  if (entry.preview.kind === "playground") return <SpecimenPreview>{entry.preview.key === "object-manipulation" ? <ObjectManipulationSpecimen /> : <BlockEditorPlayground />}</SpecimenPreview>;
   if (entry.preview.kind === "block") return <div className="ui-global-preview-block"><BlockLibraryIconSample type={entry.preview.key as BlockIconType} size={48} scale="Regular-L" /><span>{entry.name}</span></div>;
   if (entry.preview.kind === "pane") {
     const definition = paneExamples.find((item) => item.id === entry.preview.key) ?? skeletonDefinition;

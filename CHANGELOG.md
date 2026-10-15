@@ -39,6 +39,9 @@
 
 ### Added
 
+- Add a Workspace Object manipulation playground combining shared move, resize,
+  and rotation controls with temporary shape/image history.
+
 - Add a Block editor playground in the Library’s Workspace section using the
   production Template editor, with temporary Header, Navigation, and empty
   templates for trying blocks and checking appender positioning.

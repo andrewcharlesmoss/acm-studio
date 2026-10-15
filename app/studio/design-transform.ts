@@ -63,3 +63,14 @@ export function resizeFromKey(object: DesignObject, handle: ResizeHandle, key: s
   const dy = key === "ArrowUp" ? -amount : key === "ArrowDown" ? amount : 0;
   return resizeRotatedObject(object, handle, dx, dy, shouldKeepResizeRatio(object, shiftKey), false);
 }
+
+/** Geometry only; hosts supply snapping, bounds, ownership, and transactions. */
+export function moveDesignObject<T extends { x: number; y: number }>(object: T, dx: number, dy: number, minimum = -Infinity): T {
+  return { ...object, x: Math.max(minimum, object.x + dx), y: Math.max(minimum, object.y + dy) };
+}
+
+export function moveDesignObjectFromKey<T extends { x: number; y: number }>(object: T, key: string, shift: boolean): T | null {
+  if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key)) return null;
+  const amount = shift ? 10 : 1;
+  return moveDesignObject(object, key === "ArrowLeft" ? -amount : key === "ArrowRight" ? amount : 0, key === "ArrowUp" ? -amount : key === "ArrowDown" ? amount : 0);
+}

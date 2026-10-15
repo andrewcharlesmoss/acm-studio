@@ -22,7 +22,7 @@ export const blockEditorPlayground = {
 
 export function BlockEditorPlaygroundExample() {
   const [revision, setRevision] = useState(0);
-  return <section id={blockEditorPlayground.id} className="ui-control-entry ui-block-editor-example" aria-labelledby="block-editor-playground-title">
+  return <section id={blockEditorPlayground.id} className="ui-control-entry ui-workspace-example" aria-labelledby="block-editor-playground-title">
     <header className="ui-control-entry-header">
       <div><p className="rl-eyebrow">Workspace example</p><h2 id="block-editor-playground-title">{blockEditorPlayground.title}</h2><p>{blockEditorPlayground.purpose}</p></div>
       <button className="ui-control-reset" type="button" onClick={() => setRevision(value => value + 1)}><StudioIcon name="rotate" size={18} />Reset example</button>

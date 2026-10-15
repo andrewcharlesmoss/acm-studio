@@ -22,7 +22,7 @@ import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef,
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
 import type { BackgroundRemovalMode } from "./background-removal-models";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "./resize-drag";
-import { resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio, resizeCursor, resizeFromKey } from "./design-transform";
+import { moveDesignObject, moveDesignObjectFromKey, resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio, resizeCursor, resizeFromKey } from "./design-transform";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DesignObjectArtwork, DesignPageArtwork, DesignPageBackground } from "./design-artwork";
 import { arrowPoints } from "./design-geometry";
@@ -975,7 +975,7 @@ export function DesignEditor() {
       else if (primary && !event.altKey && event.key.toLowerCase() === "d") { event.preventDefault(); duplicateSelected(); }
       else if (primary && !event.altKey && event.key.toLowerCase() === "c") { event.preventDefault(); copySelected(); }
       else if (primary && !event.altKey && event.key.toLowerCase() === "v") { event.preventDefault(); pasteSelected(); }
-      else if (selectedId && designEditable && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) { event.preventDefault(); const amount = event.shiftKey ? 10 : 1; updateSelected((object) => ({ ...object, x: object.x + (event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0), y: object.y + (event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0) })); }
+      else if (selectedId && designEditable && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) { event.preventDefault(); updateSelected((object) => moveDesignObjectFromKey(object, event.key, event.shiftKey) ?? object); }
       else if (event.key === "Delete" || event.key === "Backspace") { if (selectedId && designEditable) { updatePage((page) => ({ ...page, objects: page.objects.filter((object) => object.id !== selectedId) })); selectObjects([]); } }
       else if (event.key === "Escape") {
         const interaction = interactionRef.current;
@@ -1238,7 +1238,7 @@ export function DesignEditor() {
     const point = getPoint(event);
     if (interaction.mode === "rotate" || interaction.mode === "move") setRotationCursor(point);
     const dx = point.x - interaction.startX; const dy = point.y - interaction.startY;
-    let nextObject: DesignObject = { ...interaction.original, x: Math.max(0, interaction.original.x + dx), y: Math.max(0, interaction.original.y + dy) };
+    let nextObject: DesignObject = moveDesignObject(interaction.original, dx, dy, 0);
     if (interaction.mode === "draw") {
       nextObject = drawObject(interaction.original, { x: interaction.startX, y: interaction.startY }, point, activePage);
     } else if (interaction.mode === "resize") {
@@ -1260,7 +1260,7 @@ export function DesignEditor() {
     const snap = interaction.mode === "move" && interaction.ids?.length === 1 && interaction.originals?.[0] ? snapMove(interaction.originals[0], dx, dy) : { dx, dy, guides: [] as Guide[] };
     if (interaction.mode === "move") setGuides(snap.guides);
     const movedObjects = interaction.mode === "move" && interaction.ids && interaction.originals
-      ? new Map(interaction.originals.map((original) => [original.id, { ...original, x: Math.max(0, original.x + snap.dx), y: Math.max(0, original.y + snap.dy) }]))
+      ? new Map(interaction.originals.map((original) => [original.id, moveDesignObject(original, snap.dx, snap.dy, 0)]))
       : null;
     setDesign({ ...design, pages: design.pages.map((page) => page.id === activePage.id ? { ...page, objects: page.objects.map((item) => movedObjects?.get(item.id) ?? (item.id === interaction.id ? nextObject : item)) } : page) });
   }

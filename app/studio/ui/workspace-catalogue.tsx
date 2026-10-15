@@ -8,6 +8,7 @@ import type { PaneTabIndicatorVariant } from "../panes/pane-components";
 import { RibbonPreview } from "../ribbon/ribbon-preview";
 import { skeletonExample } from "../ribbon/catalogue-model";
 import { initialDemo } from "../ribbon/demo-state";
+import { ObjectManipulationPlayground } from "./workspace/object-manipulation-playground";
 import { BlockEditorPlaygroundExample } from "./workspace/block-editor-playground";
 import { ApplicationSectionNavigation } from "./application-section-navigation";
 
@@ -29,7 +30,7 @@ export function WorkspaceCatalogue() {
         <h1 id="ui-workspace-title">Workspace</h1>
         <p>Explore shared workspace compositions and try blocks in the production editor playground.</p>
       </div>
-      <nav className="ui-workspace-tools" aria-label="Workspace examples"><a href="#workspace-composition">Workspace composition</a><a href="#block-editor-playground">Block editor playground</a></nav>
+      <nav className="ui-workspace-tools" aria-label="Workspace examples"><a href="#workspace-composition">Workspace composition</a><a href="#block-editor-playground">Block editor playground</a><a href="#object-manipulation-playground">Object manipulation playground</a></nav>
       <div id="workspace-composition" className="ui-workspace-tools">
         <p>Both panes start open. Drag an edge button to resize, or click it to collapse.</p>
         <div className="ui-workspace-actions">
@@ -52,5 +53,6 @@ export function WorkspaceCatalogue() {
       </div>
       <p className="ui-workspace-caption">The workspace preview scrolls horizontally when its full structure does not fit. Changes stay in this example only. <a href="/studio/ui/selection">Try Multiple Block Selection</a>.</p>
       <BlockEditorPlaygroundExample />
+      <ObjectManipulationPlayground />
     </section>;
 }
