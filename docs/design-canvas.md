@@ -77,10 +77,18 @@ creation, duplication, deletion, pointer and keyboard page reordering, page
 resizing, object selection and marquee multi-selection, movement, eight-way
 resize handles, rotation handles, arrow endpoint editing, crop controls,
 layers, grouping, alignment, snapping guides, basic properties, undo/redo and
-PNG, JPEG or WebP export. Image layers keep their proportions by default;
-hold Shift while resizing another layer to keep its proportions, or Option/Alt
-to resize around its centre. Resizing is constrained to the page with a
-minimum layer size.
+PNG, JPEG or WebP export. Visual objects keep their proportions by default;
+hold Shift to stretch, or Option/Alt to resize around the centre. Text containers
+reflow independently, and arrows use endpoint controls. Objects may extend
+beyond the page edge; rendered exports clip them to the page.
+
+During a page-handle drag, the canvas retains the page’s starting layout footprint
+and anchors the opposite edge or corner. Resizing therefore keeps the active
+handle aligned with the pointer along the permitted axis, without flex centring
+moving its origin. This applies to single-page and all-pages views at any zoom.
+After release, the normal canvas layout centres the resized page; Escape restores
+the original dimensions. Shift permits independent width and height changes.
+
 Exports can use 100% or 200% scale, selectable quality for lossy formats, and
 the current, selected or all pages can be downloaded as a ZIP with deterministic
 names. Export waits for document fonts and is rendered at the selected document

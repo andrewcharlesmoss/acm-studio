@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Keep page resize handles aligned with the pointer during a drag in single-page
+  and all-pages canvas views, with the opposite edge anchored.
+
 - Keep the active canvas resize cursor in place for the full drag.
 
 - Use grab and grabbing cursors for shared slider thumbs, including Design zoom.
