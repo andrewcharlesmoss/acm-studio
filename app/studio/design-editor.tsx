@@ -1,4 +1,5 @@
 "use client";
+import { StudioAppHeader } from "./studio-app-header";
 import { NumberInput, SelectControl, TextArea, TextInput } from "./controls/native-fields";
 import { isNativeEditingTarget, primaryShortcutModifier, workspaceHistoryShortcut, workspaceZoomShortcut } from "./workspace-shortcuts.mjs";
 import { ZoomRangeControl } from "./controls/zoom-range-control";
@@ -1801,10 +1802,9 @@ export function DesignEditor() {
   if (!loaded || !design || !activePage) return <div className="design-loading">Loading the design canvas…</div>;
 
   return <div className="design-shell" onPaste={handlePaste}>
-      <header className="design-topbar">
-        <div className="design-topbar-brand"><span className="design-topbar-mark" aria-hidden="true">A</span><a href="/studio" aria-label="ACM Studio home">ACM Studio</a><span className="design-topbar-divider" aria-hidden="true">|</span><strong>Designs</strong></div>
+      <StudioAppHeader section="Designs" className="design-topbar" homeHref="/studio">
         <span className="design-environment" aria-label="Environment: local">Local</span>
-      </header>
+      </StudioAppHeader>
       <StudioRibbon
         className="design-ribbon-panel"
         tabs={studioRibbonTabs}

@@ -178,7 +178,6 @@
 }
 /* Three authoring panes need more room than a tablet or a zoomed desktop. */
 @media (max-width: 1100px) {
-  .template-shell .studio-header { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px; }
   .template-shell .studio-breadcrumbs { display: flex; flex-wrap: wrap; overflow-wrap: anywhere; }
   .template-shell .studio-breadcrumbs strong { white-space: normal; }
   .template-shell .studio-state { display: flex; justify-content: flex-start; flex-wrap: wrap; }
@@ -201,7 +200,6 @@
    unfinished mobile arrangement until that mode is deliberately designed. */
 .studio-desktop-only { min-width: 1130px; }
 @media (max-width: 1100px) {
-  .studio-desktop-only .studio-header { gap: 20px; grid-template-columns: 235px minmax(160px, 1fr) auto auto; min-height: 66px; padding: 0 18px; }
   .studio-desktop-only .studio-breadcrumbs { display: flex; flex-wrap: nowrap; font-size: var(--studio-ui-size); overflow: hidden; }
   .studio-desktop-only .studio-breadcrumbs strong { white-space: nowrap; }
   .studio-desktop-only .studio-state { display: flex; justify-content: flex-start; flex-wrap: nowrap; }
@@ -214,7 +212,6 @@
   .studio-desktop-only .editor-canvas-scroll { padding: 30px clamp(18px, 4vw, 48px) 80px; }
 }
 @media (max-width: 680px) {
-  .studio-desktop-only .studio-header { gap: 20px; grid-template-columns: 235px minmax(160px, 1fr) auto auto; padding: 0 18px; }
   .studio-desktop-only .studio-notice { padding-left: 18px; padding-right: 18px; }
   .studio-desktop-only .editor-document-bar { gap: 12px; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-rows: none; height: 64px; min-height: 64px; padding: 0 16px; }
   .studio-desktop-only .editor-mode-control { grid-column: auto; grid-row: auto; }

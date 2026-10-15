@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioAppHeader } from "../studio-app-header";
 import type { ReactNode } from "react";
 import type { IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
@@ -50,11 +51,10 @@ export function StudioUiLibrary({ section, activeSection = section, onSectionCha
   }
 
   return <main className="rl-shell ui-library">
-    <header className="ui-library-header">
-      <a href="/studio"><AcmIcon name="navigation.back" size={20} />ACM Studio</a>
-      <strong>Studio UI Library</strong>
+    <StudioAppHeader section="Studio UI Library">
+      <a className="studio-app-back" href="/studio" aria-label="Back to Studio"><AcmIcon name="navigation.back" size={20} />Back to Studio</a>
       <StudioFocusOutlineSetting />
-    </header>
+    </StudioAppHeader>
     <div className="ui-library-sections" role="tablist" aria-label="Studio UI Library Sections">
       {sections.map((item) => <button key={item.id} ref={node => { tabRefs.current[item.id] = node; }} type="button" role="tab" id={`studio-ui-tab-${item.id}`} aria-controls="studio-ui-section-panel" aria-selected={activeSection === item.id} tabIndex={activeSection === item.id ? 0 : -1}
         onClick={() => onSectionChange?.(item.id)}

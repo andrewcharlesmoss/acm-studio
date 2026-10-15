@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioAppHeader } from "./studio-app-header";
 import { useEffect, useState } from "react";
 import { loadDesigns } from "./design-store";
 import type { DesignProject } from "./design-model";
@@ -32,10 +33,9 @@ export function DesignLibrary() {
   }, []);
 
   return <div className="design-library-shell">
-    <header className="design-topbar">
-      <div className="design-topbar-brand"><span className="design-topbar-mark" aria-hidden="true">A</span><a href="/studio" aria-label="ACM Studio home">ACM Studio</a><span className="design-topbar-divider" aria-hidden="true">|</span><strong>File</strong></div>
+    <StudioAppHeader section="File" className="design-topbar" homeHref="/studio">
       <span className="design-environment" aria-label="Environment: local">Local</span>
-    </header>
+    </StudioAppHeader>
     <main className="design-library-main" aria-labelledby="design-library-title">
       <div className="design-library-heading"><div><p className="design-library-eyebrow">ACM Studio</p><h1 id="design-library-title">All designs</h1><p>Open a saved design or return to the canvas to create something new.</p></div><a className="design-library-back" href="/studio/designs"><StudioIcon name="arrow-left" size={18} />Back to canvas</a></div>
       {error ? <p className="design-library-error" role="alert">{error}</p> : null}

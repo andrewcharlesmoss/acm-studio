@@ -1059,3 +1059,12 @@ serialises toggles. Storage events refresh other screens; pending local choices
 are reconciled after saving. A denied or unavailable save retains the page’s
 choice and reports the limitation outside the collapsed section. Both direct
 and externally received collapse cancel Sites dragging.
+
+## Shared application header
+
+`StudioAppHeader` owns application chrome across the dashboard, Studio editors,
+Designs, and UI Library. Its identity is the AM mark, ACM Studio home link,
+vertical divider, and section name. Site and section names share typography and
+colour; feature owners retain contextual breadcrumbs, status, and actions.
+Content-only previews intentionally omit application chrome. The header wraps
+at narrow widths; desktop editing workspaces retain their minimum width.

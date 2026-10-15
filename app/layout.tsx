@@ -17,6 +17,7 @@ import "./studio/content-slot-layout.css";
 import "./content/group-layout.css";
 import "./content/buttons.css";
 import "./content/featured-image.css";
+import "./studio/studio-app-header.css";
 
 export const metadata: Metadata = {
   title: {

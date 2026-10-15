@@ -1,3 +1,4 @@
+import { StudioAppHeader } from "./studio-app-header";
 import { studioProjects, type StudioProject } from "./project-registry";
 import { ProjectLocalLink, ProjectLocalLinksProvider, ProjectLocalStatus } from "./project-local-links";
 import { AcmIcon } from "@acm/icons/react";
@@ -19,12 +20,10 @@ function ProjectCard({ project }: { project: StudioProject }) {
 export function StudioDashboard() {
   return (
     <div className="studio-shell dashboard-shell">
-      <header className="studio-header">
-        <a className="studio-brand" href="/" aria-label="ACM Studio home"><span>AM</span><strong>ACM Studio</strong></a>
-        <div className="studio-breadcrumbs" aria-label="Breadcrumb"><strong>Control Centre</strong></div>
+      <StudioAppHeader section="Control Centre">
         <div className="studio-state"><span className="prototype-pill">Local</span><span>Browser storage only</span></div>
         <div className="studio-actions"><a className="button-secondary" href="https://andrewmoss.me/">View Andrew Moss <StudioIcon name="external" size={16} /></a><a className="button-primary" href="/studio">Open Studio</a></div>
-      </header>
+      </StudioAppHeader>
 
       <div className="studio-notice" role="note"><strong>Local-only Studio.</strong> This control centre is a foundation for managing your sites. Connections and shared publishing are not active yet.</div>
 

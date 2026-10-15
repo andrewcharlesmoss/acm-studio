@@ -84,7 +84,7 @@ export function useNavigationEditing({ target, onTargetChange, editing, onEditin
     onSave={async () => { if (target === "drafts") { if (!browserTemplates.flush) throw new Error("Studio Drafts saving is unavailable."); await browserTemplates.flush(); } else await fixture.flush(); }} onClose={closeNavigation} /> : undefined;
   function guardNavigationLink(event: MouseEvent) {
     if (!editing || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const link = (event.target as Element).closest<HTMLAnchorElement>("a.studio-brand, a.library-tool-button, .library-footer a");
+    const link = (event.target as Element).closest<HTMLAnchorElement>("a.studio-app-brand, a.library-tool-button, .library-footer a");
     if (!link || link.target === "_blank") return;
     event.preventDefault(); event.stopPropagation();
     void afterNavigation(() => window.location.assign(link.href));
