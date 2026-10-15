@@ -18,6 +18,9 @@
 
 ### Added
 
+- Share circular canvas handle presentation, sizing, focus, and input forwarding
+  across Design object resizing, page resizing, and arrow endpoints.
+
 - Add a searchable Studio UI Library catalogue with cross-section filters,
   ownership and dependency details, and keyboard-accessible previews from shared
   component and specimen definitions. Make it the Library landing view.

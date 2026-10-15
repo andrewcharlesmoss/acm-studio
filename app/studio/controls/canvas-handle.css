@@ -1,0 +1,5 @@
+.studio-canvas-handle { fill: #fff !important; stroke: #aeb3bf; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.studio-canvas-handle:not([aria-disabled="true"]):hover,
+.studio-canvas-handle:not([aria-disabled="true"]):active { fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; }
+.studio-canvas-handle:focus { outline: none; }
+.studio-canvas-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: none; stroke: #6b7075; stroke-width: 2; filter: none; }

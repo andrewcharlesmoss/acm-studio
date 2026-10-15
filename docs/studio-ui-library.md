@@ -848,3 +848,14 @@ unscaled specimen. Longer examples scroll inside the preview without dismissing
 it; all content still comes from the shared production specimens.
 Shared symbols and production specimens supply the
 visuals; preview-only state remains temporary and isolated.
+
+### Circular canvas handles
+
+Design object resizing, page resizing, and arrow endpoints inherit `CanvasHandle`
+from `app/studio/controls/canvas-handle.tsx` and its stylesheet. The component owns
+the circular SVG target, screen-scaled radius, neutral appearance, hover, pressed
+and focus states, accessible button semantics, and disabled input forwarding.
+Owners supply coordinates, cursor, accessible name, zoom compensation, and pointer
+and keyboard commands; permissions, resize calculations, history, and persistence
+stay with Design. Rotation keeps its specialised shared `RotationHandle`, and
+arrow bends retain their distinct diamond target.
