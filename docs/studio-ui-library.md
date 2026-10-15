@@ -899,6 +899,9 @@ All shape/image/page fixtures, coordinate conversion, pointer capture, temporary
 history, and preview controls are memory-only adapters. Drag corner or side
 handles, hold Shift to stretch or Alt to resize from the centre, then try zoom,
 rotation, read-only mode, Escape cancellation, Reset example, and Undo/Redo.
+The object canvas grows to include rotated, enlarged artwork and handle clearance
+inside a scrollable viewport. Growth at the top or left compensates its scroll
+position so the active handle does not move simply because the canvas expands.
 The shared catalogue preview uses this same specimen definition.
 
 ### Zoom slider specimen

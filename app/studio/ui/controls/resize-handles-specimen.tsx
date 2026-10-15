@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { resizeSpecimenLayout } from "./resize-specimen-layout";
 import { PageResizeSpecimen } from "./page-resize-specimen";
 import { CanvasHandle } from "../../controls/canvas-handle";
 import { HistoryActions } from "../../controls/history-actions";
@@ -36,19 +37,31 @@ function ObjectResizeHandlesSpecimen({ type }: { type: "rectangle" | "image" }) 
   const [zoom, setZoom] = useState(100);
   const [readOnly, setReadOnly] = useState(false);
   const [viewportScale, setViewportScale] = useState(1);
+  const [viewportWidth, setViewportWidth] = useState(420);
   const svg = useRef<SVGSVGElement>(null);
   const world = useRef<SVGGElement>(null);
+  const viewport = useRef<HTMLDivElement>(null);
+  const previousLayout = useRef({ left: 0, top: 0 });
   const gesture = useRef<Gesture | null>(null);
   const object = draft ?? history.values[history.index];
   const scale = zoom / 100;
-  useEffect(() => {
-    const element = svg.current;
+  const layout = resizeSpecimenLayout(object, zoom, viewportScale, viewportWidth);
+  useLayoutEffect(() => {
+    const element = viewport.current;
     if (!element) return;
-    const measure = () => setViewportScale(element.getBoundingClientRect().width / 420 || 1);
+    const measure = () => { setViewportWidth(element.clientWidth); setViewportScale(Math.min(1, element.clientWidth / 420) || 1); };
     measure();
     const observer = new ResizeObserver(measure); observer.observe(element);
     return () => observer.disconnect();
   }, []);
+  useLayoutEffect(() => {
+    const element = viewport.current;
+    if (!element) return;
+    // Expanding to the left/top must not shift the grabbed handle on screen.
+    element.scrollLeft += (previousLayout.current.left - layout.left) * viewportScale;
+    element.scrollTop += (previousLayout.current.top - layout.top) * viewportScale;
+    previousLayout.current = { left: layout.left, top: layout.top };
+  }, [layout.left, layout.top, viewportScale]);
   function commit(next: DesignObject) {
     setHistory(current => {
       const previous = current.values[current.index];
@@ -69,7 +82,7 @@ function ObjectResizeHandlesSpecimen({ type }: { type: "rectangle" | "image" }) 
     if (svg.current?.hasPointerCapture(active.pointerId)) svg.current.releasePointerCapture(active.pointerId);
     if (!cancel && !readOnly) commit(active.latest);
     setDraft(null); setActiveHandle(null);
-    if (restoreFocus && !readOnly) queueMicrotask(() => svg.current?.querySelector<SVGCircleElement>(`[aria-label="Resize example from ${positions.find(([handle]) => handle === active.handle)?.[1]}"]`)?.focus());
+    if (restoreFocus && !readOnly) queueMicrotask(() => svg.current?.querySelector<SVGCircleElement>(`[aria-label="Resize example from ${positions.find(([handle]) => handle === active.handle)?.[1]}"]`)?.focus({ preventScroll: true }));
   }
   function begin(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle) {
     if (readOnly || gesture.current || event.button !== 0) return;
@@ -103,7 +116,9 @@ function ObjectResizeHandlesSpecimen({ type }: { type: "rectangle" | "image" }) 
       <ToggleSetting label="Read-only example" checked={readOnly} onChange={value => { finish(true, undefined, false); setReadOnly(value); }} />
       <HistoryActions presentation="labelled" canUndo={history.index > 0} canRedo={history.index < history.values.length - 1} disabled={readOnly || draft !== null} onUndo={() => restore(-1)} onRedo={() => restore(1)} />
     </div>
-    <svg ref={svg} className="ui-resize-stage" viewBox="0 0 420 420" tabIndex={-1} role="group" aria-label="Temporary resize canvas" onPointerMove={move} onPointerUp={event => finish(false, event.pointerId)} onPointerCancel={event => finish(true, event.pointerId)} onLostPointerCapture={event => finish(true, event.pointerId)}>
+    {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- The scroll region needs keyboard access. */}
+    <div ref={viewport} className="ui-resize-viewport" role="region" aria-label="Scrollable resize example canvas" tabIndex={0} style={{ height: 420 * viewportScale }}>
+    <svg ref={svg} className="ui-resize-stage" viewBox={`${layout.left} ${layout.top} ${layout.width} ${layout.height}`} style={{ width: layout.width * viewportScale, height: layout.height * viewportScale }} tabIndex={-1} role="group" aria-label="Temporary resize canvas" onPointerMove={move} onPointerUp={event => finish(false, event.pointerId)} onPointerCancel={event => finish(true, event.pointerId)} onLostPointerCapture={event => finish(true, event.pointerId)}>
       <g ref={world} transform={`translate(210 210) scale(${scale})`}>
         <g transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`}>
           <DesignObjectArtwork object={object} assets={assets} />
@@ -115,7 +130,8 @@ function ObjectResizeHandlesSpecimen({ type }: { type: "rectangle" | "image" }) 
         </g>
       </g>
     </svg>
+    </div>
     <p role="status">Size: {object.width.toFixed(2)} × {object.height.toFixed(2)} · Ratio: {(object.width / object.height).toFixed(3)} · History position {history.index} of {history.values.length - 1}.</p>
-    <p>Drag any handle to resize proportionally. Hold Shift to stretch; Alt resizes from the centre. Arrow keys resize by 1; Shift+Arrow resizes freely by 10. Escape cancels a drag. Undo/Redo and their standard shortcuts apply within this example.</p>
+    <p>Drag any handle to resize proportionally. Scroll the canvas to reach enlarged objects and handles. Hold Shift to stretch; Alt resizes from the centre. Arrow keys resize by 1; Shift+Arrow resizes freely by 10. Escape cancels a drag. Undo/Redo and their standard shortcuts apply within this example.</p>
   </div>;
 }

@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Keep enlarged shapes, images, and their handles accessible in the Resize handles
+  example with a canvas that expands and scrolls at the selected zoom.
+
 - Keep the current size when Shift is pressed or released during page, shape,
   or image resizing; continue proportionally from the stretched dimensions.
 

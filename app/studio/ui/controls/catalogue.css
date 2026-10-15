@@ -124,7 +124,8 @@
 .ui-history-example-tools, .ui-history-example-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
 .ui-history-example-variant { margin-block:16px; }
 
-.ui-resize-stage { display:block; width:100%; max-width:420px; height:auto; overflow:hidden; touch-action:none; }
+.ui-resize-viewport { width:100%; min-width:0; overflow:auto; overscroll-behavior:contain; }
+.ui-resize-stage { display:block; max-width:none; overflow:visible; touch-action:none; }
 
 .ui-zoom-specimen { display:grid; gap:12px; }
 .ui-zoom-example-row { align-items:start; display:grid; gap:12px; grid-template-columns:auto minmax(0, 1fr) auto; max-width:440px; padding-top:24px; }
