@@ -7,7 +7,6 @@ import { dragControl } from "./drag-placement-harness.mjs";
 import { runnerImport } from "vite";
 const load = async path => (await runnerImport(path, { environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } })).module;
 const geometry = await load("app/studio/drop-gap-geometry.ts");
-const ordering = await load("app/studio/library-reordering.ts");
 const blocks = await load("app/studio/block-drop-position.ts");
 const { reorderNavigationItem } = await load("app/studio/navigation-items.ts");
 const { reorderDesignLayers } = await import("../app/studio/design-layer-operations.mjs");
@@ -29,8 +28,8 @@ test("gap geometry honours borders, non-uniform sizes, horizontal wrapping and z
 });
 test("root and nested block gaps resolve identically from each side, at transformed scale",()=>{
  const frames=[box(100,100,200,40),box(100,180,200,80),box(100,300,200,40)].map((bounds,index)=>({dataset:{studioNestedBlockId:["a","b","c"][index]},getBoundingClientRect:()=>bounds}));
- const owner={getBoundingClientRect:()=>box(100,90,200,260),querySelectorAll:()=>frames,ownerDocument:{defaultView:{getComputedStyle:()=>({display:"block"})}}};frames.forEach(frame=>frame.parentElement=owner);
- const canvas={offsetWidth:150,getBoundingClientRect:()=>box(80,80,300,300),querySelectorAll:()=>frames};
+ const owner={getBoundingClientRect:()=>box(100,90,200,260),querySelectorAll:()=>frames,ownerDocument:{defaultView:{getComputedStyle:()=>({display:"block",getPropertyValue:()=>"24px"})}}};frames.forEach(frame=>frame.parentElement=owner);
+ const canvas={ownerDocument:owner.ownerDocument,offsetWidth:150,getBoundingClientRect:()=>box(80,80,300,300),querySelectorAll:()=>frames};
  for(const y of [255,280,305]){const root=blocks.rootBlockDropPosition(canvas,150,y);assert.equal(root.index,2);assert.equal(root.line.top,99);const nested=blocks.nestedBlockDropPosition(canvas,"a",150,y);assert.equal(nested.targetId,"c");assert.equal(nested.after,false);assert.equal(nested.line.top,99);}
 });
 test("Navigation accepts explicit sibling boundaries and rejects adjacent no-ops or reparenting",()=>{
@@ -71,7 +70,7 @@ test("captured pointer uses the same gap, preserves clicks and cancels stale/rea
 test("nested template wrappers resolve only model siblings, excluding repeated toolbar anchors",()=>{
  const children=[box(10,20,30,30),box(70,20,50,60),box(140,20,40,30)].map((bounds,i)=>({dataset:{studioNestedBlockId:["a","b","c"][i]},getBoundingClientRect:()=>bounds}));
  const duplicate={dataset:{studioNestedBlockId:"c"},getBoundingClientRect:()=>box(0,0,10,10)};
- const owner={getBoundingClientRect:()=>box(0,0,200,100),querySelectorAll:()=>[...children,duplicate],ownerDocument:{defaultView:{getComputedStyle:()=>({display:"flex",flexDirection:"row"})}}};
+ const owner={getBoundingClientRect:()=>box(0,0,200,100),querySelectorAll:()=>[...children,duplicate],ownerDocument:{defaultView:{getComputedStyle:()=>({display:"flex",flexDirection:"row",getPropertyValue:()=>"24px"})}}};
  const wrapper={parentElement:owner,querySelectorAll:()=>[children[0]]};children[0].parentElement=wrapper;
  const canvas={offsetWidth:200,getBoundingClientRect:()=>box(0,0,200,100),querySelectorAll:()=>[...children,duplicate]};
  const result=blocks.nestedBlockDropPosition(canvas,"a",130,30,["a","b","c"]);assert.equal(result.targetId,"c");assert.equal(result.line.left,129);

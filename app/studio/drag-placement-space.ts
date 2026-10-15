@@ -1,23 +1,47 @@
 import type { DropAxis } from "./drop-gap-geometry";
+import { dropContainerScale } from "./drop-container-scale";
 
-/** CSS pixels reserved at either end of every authoring insertion sequence. */
+/** Fallback for a sequence without measurable or declared sibling spacing. */
 export const OUTER_INSERTION_GAP = 24;
-export type PlacementSpace = { element: HTMLElement; axis: DropAxis };
+export type PlacementSpace = { element: HTMLElement; axis: DropAxis; rows?: HTMLElement[] };
+
+export type PlacementEdgeGaps = { before: number; after: number };
+
+/** Read the same reserved CSS extents used by end-slot feedback. */
+export function placementEdgeGaps(element: HTMLElement, axis: DropAxis = "y"): PlacementEdgeGaps {
+  const style = element.ownerDocument.defaultView?.getComputedStyle(element);
+  const names = axis === "x" ? ["padding-left", "padding-right"] : ["padding-top", "padding-bottom"];
+  return { before: Number.parseFloat(style?.getPropertyValue(names[0]) ?? "") || 0, after: Number.parseFloat(style?.getPropertyValue(names[1]) ?? "") || 0 };
+}
+function siblingGaps(element: HTMLElement, axis: DropAxis, style?: CSSStyleDeclaration, logicalRows: HTMLElement[] = []): PlacementEdgeGaps {
+  const rows = logicalRows.map(child => child.getBoundingClientRect()).filter(box => box.width > 0 && box.height > 0);
+  const scale = rows.length ? dropContainerScale(element) : 1;
+  const gaps = rows.slice(1).flatMap((row, index) => {
+    const previous = rows[index];
+    if (axis === "x" && (row.top >= previous.bottom || row.bottom <= previous.top)) return [];
+    const gap = axis === "x" ? row.left - previous.right : row.top - previous.bottom;
+    return gap >= 0 ? [gap / scale] : [];
+  });
+  const declared = Number.parseFloat(style?.getPropertyValue(axis === "x" ? "column-gap" : "row-gap") ?? "");
+  const fallback = Number.isFinite(declared) ? declared : OUTER_INSERTION_GAP;
+  return { before: Math.max(2, gaps[0] ?? fallback), after: Math.max(2, gaps.at(-1) ?? fallback) };
+}
 
 /** Preserve authored padding; remove only declarations still owned by this reservation. */
 export function reservePlacementSpace(spaces: PlacementSpace[]): () => void {
   const restores: (() => void)[] = [];
   const seen = new Set<HTMLElement>();
-  for (const { element, axis } of spaces) {
+  for (const { element, axis, rows } of spaces) {
     if (seen.has(element)) continue;
     seen.add(element);
     const computed = element.ownerDocument.defaultView?.getComputedStyle(element);
     if (!computed) continue;
     const properties = axis === "x" ? ["padding-left", "padding-right"] : ["padding-top", "padding-bottom"];
-    for (const property of properties) {
+    const gaps = siblingGaps(element, axis, computed, rows);
+    for (const [index, property] of properties.entries()) {
       const original = element.style.getPropertyValue(property);
       const priority = element.style.getPropertyPriority(property);
-      const applied = `${(Number.parseFloat(computed.getPropertyValue(property)) || 0) + OUTER_INSERTION_GAP}px`;
+      const applied = `${Math.max(Number.parseFloat(computed.getPropertyValue(property)) || 0, index === 0 ? gaps.before : gaps.after)}px`;
       element.style.setProperty(property, applied, "important");
       restores.push(() => {
         // React may already have applied a newer authored declaration before cleanup.

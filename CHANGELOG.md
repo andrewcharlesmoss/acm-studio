@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- Centre end-slot drag indicators in their actual reserved gaps across shared
+  placement consumers, preserving compact sibling spacing and authored padding.
+- Reduce shared Posts, Pages, and Templates row padding while retaining readable
+  labels, icons, and a 44px minimum target height.
+
 - Preserve the Sites section’s expanded or collapsed state when switching
   between Posts, Pages, and Templates, refreshing, and switching sites.
 

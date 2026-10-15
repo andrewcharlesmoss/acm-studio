@@ -1,3 +1,4 @@
+import { placementEdgeGaps } from "./drag-placement-space";
 import { insertionGapIndex, insertionGapLine, dropLineInContainer, dropContainerScale, type DropLine } from "./drop-gap-geometry";
 
 export function blockSiblingOwner(canvas: HTMLElement, sourceId: string, siblingIds?: string[]) {
@@ -17,7 +18,7 @@ function inside(element: HTMLElement, x: number, y: number) {
 function lineInCanvas(canvas: HTMLElement, owner: HTMLElement, children: HTMLElement[], index: number, axis: "x" | "y"): DropLine {
   const box = canvas.getBoundingClientRect();
   const scale = dropContainerScale(canvas);
-  const line = insertionGapLine(children.map(child => child.getBoundingClientRect()), index, owner.getBoundingClientRect(), scale, axis);
+  const line = insertionGapLine(children.map(child => child.getBoundingClientRect()), index, owner.getBoundingClientRect(), scale, axis, 2, placementEdgeGaps(owner, axis));
   return dropLineInContainer(line, owner.getBoundingClientRect(), box, scale, { scrollLeft: canvas.scrollLeft, scrollTop: canvas.scrollTop, borderLeft: canvas.clientLeft, borderTop: canvas.clientTop });
 }
 export function rootBlockDropPosition(canvas: HTMLElement, x: number, y: number): { index: number; line: DropLine } | null {

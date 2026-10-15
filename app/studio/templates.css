@@ -28,7 +28,7 @@
 
 .template-workspace .studio-library { padding: 0; overflow-y: auto; gap: 0; }
 /* The shared drag controller already reserves the first insertion gap. */
-.template-workspace .studio-library .template-document-list { flex: 0 0 auto; overflow: visible; padding: 0 10px 10px; }
+.template-workspace .studio-library .template-document-list { flex: 0 0 auto; overflow: visible; }
 .template-target-item { border-radius: 6px; width: 100%; }
 .template-empty-state { align-content: center; display: grid; min-height: 100%; place-items: center; text-align: center; }
 .template-inspector .inspector-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }

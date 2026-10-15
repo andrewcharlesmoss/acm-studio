@@ -757,6 +757,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   const blockDrag = useDragPlacement<BlockDragSource, BlockDragTarget>({
     version: JSON.stringify([activeDocument.id, activeDocument.blocks]), writable: writable && !previewing && !codeEditor,
     reserveSpace: !previewing && !codeEditor,
+    rows: canvas => Array.from(canvas.querySelectorAll<HTMLElement>(":scope > .block-position > .canvas-block")),
     spaces: canvas => blockPlacementSpaces(canvas, activeDocument.blocks),
     canStart: canStartCanvasPlacement,
     effect: source => source.libraryType ? "copy" : "move",

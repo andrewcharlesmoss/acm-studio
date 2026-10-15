@@ -45,13 +45,17 @@ export function resolveBlockDrag({ blocks, source, rootTypes }: { blocks: Conten
 
 /** Domain discovery only; the controller owns reservation and restoration. */
 export function blockPlacementSpaces(canvas: HTMLElement, blocks: ContentBlock[]) {
-  const spaces: { element: HTMLElement; axis: "x" | "y" }[] = [];
+  const spaces: { element: HTMLElement; axis: "x" | "y"; rows: HTMLElement[] }[] = [];
   function visit(block: ContentBlock) {
     const children = childContentBlocks(block);
     const groups = block.type === "list" ? block.items.flatMap(item => typeof item === "string" || !item.children?.length ? [] : [item.children]) : children.length ? [children] : [];
     for (const siblings of groups) {
       const owner = blockSiblingOwner(canvas, siblings[0].id, siblings.map(child => child.id));
-      if (owner && owner !== canvas) spaces.push({ element: owner, axis: blockSiblingAxis(owner) });
+      if (owner && owner !== canvas) {
+        const frames = Array.from(owner.querySelectorAll<HTMLElement>("[data-studio-nested-block-id]"));
+        const rows = siblings.map(sibling => frames.find(frame => frame.dataset.studioNestedBlockId === sibling.id)!).filter(Boolean);
+        spaces.push({ element: owner, axis: blockSiblingAxis(owner), rows });
+      }
     }
     children.forEach(visit);
   }

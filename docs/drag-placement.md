@@ -28,13 +28,19 @@ and the `drag-auto-scroll.ts` lifecycle. `use-gap-reordering.ts` adapts sibling
 ordering; `use-library-reordering.ts` adds keyboard moves and announcements.
 Block adapters describe legal destinations and commits, including reparenting.
 New consumers must reuse these owners rather than fork their interaction code.
-`drag-placement-space.ts` reserves 24 CSS pixels before the first and after the
-last item on the active axis. The controller applies and restores this authoring
-space while preserving authored padding. Viewport and owner/parent width changes
-refresh responsive padding without accumulating reservations; nested block adapters identify owners
-without duplicating reservation logic. Outer lines are centred 12 CSS pixels
-beyond the first/last item boundary. Sites reserves its inner list rather than
-its heading. Preview and saved content do not receive these reservations.
+`drag-placement-space.ts` measures the same logical sibling rows supplied by
+its adapters, excluding wrappers, nested owners, toolbars and appenders. UI
+reordering sequences retain their compact authored gaps; end slots follow the
+same sibling spacing. Content block sequences also retain their authored spacing. A single-item sequence uses its declared axis gap, or a 24px fallback
+when neither rows nor a gap can be measured. Every reserved slot has at least
+2px for the indicator. Existing padding is retained with a maximum, rather than
+adding a second reservation. All three DOM adapters read the resulting before/
+after padding and centre the end indicator in that actual space. They do not
+use the full owner height, which can contain unrelated scrollable blank space.
+Viewport and owner/parent width changes refresh responsive geometry without
+accumulating reservations. Sites reserves its inner list, not its heading.
+Preview and publication receive no reservations; unmount or disabling the
+authoring reservation restores the original styles.
 `DragPlacementIndicator` is the only line renderer and `.studio-gap-line` is its
 shared appearance. Native insertion uses copy feedback; reordering uses move.
 
