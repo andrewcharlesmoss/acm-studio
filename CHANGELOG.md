@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Keep the current size when Shift is pressed or released during page, shape,
+  or image resizing; continue proportionally from the stretched dimensions.
+
 - Use the shared white surface colour for the Design zoom slider container.
 
 - Keep page resize handles aligned with the pointer during a drag in single-page

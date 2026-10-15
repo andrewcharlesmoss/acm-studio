@@ -877,6 +877,11 @@ images, all shapes, highlights, redactions, and numbered markers. Pointer and
 keyboard resizing preserve the starting proportions unless Shift is held.
 Pointer movement reads the current modifier state, including page resizing,
 so pressing or releasing Shift during a drag changes the constraint immediately.
+The shared `resize-drag.ts` controller starts each constraint segment from the
+latest dimensions and pointer position. Releasing Shift retains the stretched
+size and uses its new aspect ratio for subsequent movement; it does not snap
+back to the proportions at pointer-down. Cancellation retains the original
+transaction, and one completed drag still creates one history entry.
 Text boxes retain free resizing for reflow; arrows retain endpoint editing.
 Direct inspector dimension fields remain explicit independent measurements.
 

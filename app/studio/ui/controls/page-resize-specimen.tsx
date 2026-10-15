@@ -6,11 +6,12 @@ import { PageResizeHandles } from "../../controls/page-resize-handles";
 import { ToggleSetting } from "../../controls/toggle-setting";
 import { DesignPageFrame } from "../../design-page-frame";
 import { resizeCursor, type ResizeHandle } from "../../design-transform";
+import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../../resize-drag";
 import { resizePage, resizePageFromKey } from "../../page-resize";
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
 
 type PageSize = { width: number; height: number };
-type Gesture = { original: PageSize; latest: PageSize; handle: ResizeHandle; pointerId: number; startX: number; startY: number; scaleX: number; scaleY: number; label: string | null };
+type Gesture = { resize: ResizeDrag<PageSize>; original: PageSize; latest: PageSize; handle: ResizeHandle; pointerId: number; startX: number; startY: number; scaleX: number; scaleY: number; label: string | null };
 const initialPage: PageSize = { width: 320, height: 180 };
 
 /** Fixtures and history stay in memory; page geometry, handles, and layout are production components. */
@@ -48,14 +49,14 @@ export function PageResizeSpecimen() {
     event.preventDefault(); event.stopPropagation();
     const rect = svg.current?.getBoundingClientRect();
     if (!rect?.width || !rect.height) return;
-    const next: Gesture = { original: page, latest: page, handle, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, scaleX: rect.width / page.width, scaleY: rect.height / page.height, label: event.currentTarget.getAttribute("aria-label") };
+    const next: Gesture = { resize: beginResizeDrag(page, { x: 0, y: 0 }, !event.shiftKey), original: page, latest: page, handle, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, scaleX: rect.width / page.width, scaleY: rect.height / page.height, label: event.currentTarget.getAttribute("aria-label") };
     gesture.current = next; setActive(next); setDraft(page);
     svg.current?.setPointerCapture(event.pointerId); svg.current?.focus();
   }
   function move(event: PointerEvent<SVGSVGElement>) {
     const current = gesture.current;
     if (!current || current.pointerId !== event.pointerId || readOnly) return;
-    current.latest = resizePage(current.original, current.handle, (event.clientX - current.startX) / current.scaleX, (event.clientY - current.startY) / current.scaleY, !event.shiftKey);
+    current.latest = updateResizeDrag(current.resize, { x: (event.clientX - current.startX) / current.scaleX, y: (event.clientY - current.startY) / current.scaleY }, !event.shiftKey, (basis, dx, dy, keepRatio) => resizePage(basis, current.handle, dx, dy, keepRatio));
     setDraft(current.latest);
   }
   function restore(offset: number) {

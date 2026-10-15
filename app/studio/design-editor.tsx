@@ -21,6 +21,7 @@ import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
 import type { BackgroundRemovalMode } from "./background-removal-models";
+import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "./resize-drag";
 import { resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio, resizeCursor, resizeFromKey } from "./design-transform";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DesignObjectArtwork, DesignPageArtwork, DesignPageBackground } from "./design-artwork";
@@ -60,8 +61,8 @@ type ActiveHandle =
   | { objectId: string; kind: "endpoint"; endpoint: "start" | "end" }
   | { objectId: string; kind: "bend"; bendIndex: number }
   | { objectId: null; kind: "page-resize"; handle: ResizeHandle };
-type Interaction = { mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; centred?: boolean; endpoint?: "start" | "end"; bendIndex?: number; startAngle?: number; drawTool?: DrawTool; shapeKind?: DesignShapeKind };
-type PageResizeInteraction = { handle: ResizeHandle; startClientX: number; startClientY: number; scaleX: number; scaleY: number; originalWidth: number; originalHeight: number; base: DesignProject };
+type Interaction = { resize?: ResizeDrag<DesignObject>; mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; centred?: boolean; endpoint?: "start" | "end"; bendIndex?: number; startAngle?: number; drawTool?: DrawTool; shapeKind?: DesignShapeKind };
+type PageResizeInteraction = { resize: ResizeDrag<{ width: number; height: number }>; handle: ResizeHandle; startClientX: number; startClientY: number; scaleX: number; scaleY: number; originalWidth: number; originalHeight: number; base: DesignProject };
 type Guide = { axis: "x" | "y"; position: number; style: "solid" | "dotted" };
 type SnapTarget = { position: number; style: Guide["style"] };
 type LayerMoveDirection = "front" | "back" | "forward" | "backward";
@@ -1127,7 +1128,7 @@ export function DesignEditor() {
     event.currentTarget.focus();
     if (!designEditable || object.locked || !design) return;
     const point = getPoint(event);
-    interactionRef.current = { mode: "resize", id: object.id, handle, centred: event.altKey, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
+    interactionRef.current = { resize: beginResizeDrag(cloneDesign(object), point, shouldKeepResizeRatio(object, event.shiftKey)), mode: "resize", id: object.id, handle, centred: event.altKey, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
     setActiveHandle({ objectId: object.id, kind: "resize", handle });
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
   }
@@ -1145,7 +1146,7 @@ export function DesignEditor() {
     if (!designEditable || !design || !activePage) return;
     const rect = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
     if (!rect || !rect.width || !rect.height) return;
-    pageResizeRef.current = { handle, startClientX: event.clientX, startClientY: event.clientY, scaleX: rect.width / activePage.width, scaleY: rect.height / activePage.height, originalWidth: activePage.width, originalHeight: activePage.height, base: cloneDesign(design) };
+    pageResizeRef.current = { resize: beginResizeDrag({ width: activePage.width, height: activePage.height }, { x: 0, y: 0 }, !event.shiftKey), handle, startClientX: event.clientX, startClientY: event.clientY, scaleX: rect.width / activePage.width, scaleY: rect.height / activePage.height, originalWidth: activePage.width, originalHeight: activePage.height, base: cloneDesign(design) };
     setActiveHandle({ objectId: null, kind: "page-resize", handle });
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
   }
@@ -1228,7 +1229,8 @@ export function DesignEditor() {
     if (pageResize && design && activePage) {
       const dx = (event.clientX - pageResize.startClientX) / pageResize.scaleX;
       const dy = (event.clientY - pageResize.startClientY) / pageResize.scaleY;
-      const resized = resizePage({ ...activePage, width: pageResize.originalWidth, height: pageResize.originalHeight }, pageResize.handle, dx, dy, !event.shiftKey);
+      const size = updateResizeDrag(pageResize.resize, { x: dx, y: dy }, !event.shiftKey, (basis, deltaX, deltaY, keepRatio) => resizePage(basis, pageResize.handle, deltaX, deltaY, keepRatio));
+      const resized = { ...activePage, ...size };
       setDesign({ ...design, pages: design.pages.map((page) => page.id === activePage.id ? resized : page) });
       return;
     }
@@ -1240,7 +1242,8 @@ export function DesignEditor() {
     if (interaction.mode === "draw") {
       nextObject = drawObject(interaction.original, { x: interaction.startX, y: interaction.startY }, point, activePage);
     } else if (interaction.mode === "resize") {
-      nextObject = resizeObject(interaction.original, interaction.handle ?? "se", dx, dy, activePage, shouldKeepResizeRatio(interaction.original, event.shiftKey), Boolean(interaction.centred));
+      if (!interaction.resize) return;
+      nextObject = updateResizeDrag(interaction.resize, point, shouldKeepResizeRatio(interaction.original, event.shiftKey), (basis, deltaX, deltaY, keepRatio) => resizeObject(basis, interaction.handle ?? "se", deltaX, deltaY, activePage, keepRatio, Boolean(interaction.centred)));
     } else if (interaction.mode === "rotate") {
       nextObject = { ...interaction.original, rotation: rotationFromPointer(interaction.original, interaction.startAngle, point) };
     } else if (interaction.mode === "arrow-endpoint" && interaction.original.type === "arrow") {

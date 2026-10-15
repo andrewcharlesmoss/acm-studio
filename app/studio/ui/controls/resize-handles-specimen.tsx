@@ -7,6 +7,7 @@ import { HistoryActions } from "../../controls/history-actions";
 import { ToggleSetting } from "../../controls/toggle-setting";
 import { DesignObjectArtwork } from "../../design-artwork";
 import type { DesignAsset, DesignObject } from "../../design-model";
+import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../../resize-drag";
 import { resizeRotatedObject, resizeFromKey, resizeCursor, shouldKeepResizeRatio, type ResizeHandle } from "../../design-transform";
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
 
@@ -17,7 +18,7 @@ function initialObject(type: "rectangle" | "image", rotation = 0): DesignObject 
   const base = { id: "resize-example", x: -80, y: -45, width: 160, height: 90, rotation, opacity: 1 };
   return type === "image" ? { ...base, type, assetId: "resize-example" } : { ...base, type, shape: "hexagon", fill: "#e0e7ff", stroke: "#3858e9", strokeWidth: 1 };
 }
-type Gesture = { original: DesignObject; latest: DesignObject; start: { x: number; y: number }; handle: ResizeHandle; pointerId: number; centred: boolean };
+type Gesture = { resize: ResizeDrag<DesignObject>; original: DesignObject; latest: DesignObject; start: { x: number; y: number }; handle: ResizeHandle; pointerId: number; centred: boolean };
 
 /** Sample state only; handles, artwork, geometry, cursors, and keyboard policy are production components. */
 export function ResizeHandlesSpecimen() {
@@ -74,14 +75,14 @@ function ObjectResizeHandlesSpecimen({ type }: { type: "rectangle" | "image" }) 
     if (readOnly || gesture.current || event.button !== 0) return;
     event.preventDefault(); event.stopPropagation();
     const start = point(event); if (!start) return;
-    gesture.current = { original: object, latest: object, start, handle, pointerId: event.pointerId, centred: event.altKey };
+    gesture.current = { resize: beginResizeDrag(object, start, shouldKeepResizeRatio(object, event.shiftKey)), original: object, latest: object, start, handle, pointerId: event.pointerId, centred: event.altKey };
     svg.current?.setPointerCapture(event.pointerId); svg.current?.focus(); setActiveHandle(handle); setDraft(object);
   }
   function move(event: PointerEvent<SVGSVGElement>) {
     const active = gesture.current;
     if (!active || active.pointerId !== event.pointerId || readOnly) return;
     const p = point(event); if (!p) return;
-    active.latest = resizeRotatedObject(active.original, active.handle, p.x - active.start.x, p.y - active.start.y, shouldKeepResizeRatio(active.original, event.shiftKey), active.centred);
+    active.latest = updateResizeDrag(active.resize, p, shouldKeepResizeRatio(active.original, event.shiftKey), (basis, dx, dy, keepRatio) => resizeRotatedObject(basis, active.handle, dx, dy, keepRatio, active.centred));
     setDraft(active.latest);
   }
   function restore(offset: number) {
