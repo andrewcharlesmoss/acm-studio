@@ -213,7 +213,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Group related inspector settings under a collapsible heading.",
     owner: "ACM Studio inspector", consumers: ["Block, template and document inspector sections", "Studio Navigation Sites"],
     states: "Expanded by default, collapsed and keyboard activation. Disabled settings do not disable the section toggle.",
-    compatibility: "The specimen and Sites inherit the production accordion. Optional density tokens and open-state callbacks retain shared disclosure behaviour. Collapsing keeps children mounted and preserves their local state; it does not clear saved settings.",
+    compatibility: "The specimen and Sites inherit the production accordion. Heading dimensions and content insets come from shared styles; optional open-state callbacks retain shared disclosure behaviour. Collapsing keeps children mounted and preserves their local state; it does not clear saved settings.",
   },
 ];
 

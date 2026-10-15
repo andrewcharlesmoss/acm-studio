@@ -145,9 +145,11 @@ its trigger; clicking outside or clicking the trigger again also dismisses it.
 Dialogs, inspector menus and larger editing popovers retain visible close controls.
 
 Pane accordion sections inherit `InspectorAccordionSection`, the production
-control shown in the Studio UI Library. Consumers supply content, density tokens,
+control shown in the Studio UI Library. Consumers supply content
 and optional open-state callbacks; keep disclosure state, chevrons, hover, focus,
-and mounted-content behaviour in that shared component.
+and mounted-content behaviour in that shared component. Accordion dimensions and
+spacing belong to its shared styles; use `pane-inset` and the shared `--pane-space`
+rhythm for standalone controls rather than product-specific margins.
 
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and

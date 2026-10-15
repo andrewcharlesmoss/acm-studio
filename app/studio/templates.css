@@ -39,8 +39,7 @@
 .template-assignment label { display: grid; gap: 6px; }
 .template-assignment select { width: 100%; padding: 8px; }
 .template-inspector fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
-.template-inspector > .inspector-scroll > .inspector-accordion-section { border-bottom: 1px solid #dddbd4; padding: 0; --inspector-accordion-padding: 16px; }
-.template-inspector .inspector-accordion-content { gap: 10px; }
+.template-inspector > .inspector-scroll > .inspector-accordion-section { border-bottom: 1px solid #dddbd4; padding: 0; }
 .template-inspector .inspector-accordion-content > p { color: var(--muted); line-height: 1.4; margin: 0; }
 .template-inspector label { display: grid; gap: 5px; margin: 4px 0; font-size: var(--studio-ui-size); }
 .template-inspector input:not([type="checkbox"]), .template-inspector select, .template-inspector textarea { width: 100%; min-width: 0; min-height: 36px; padding: 7px 9px; font: inherit; }
@@ -59,7 +58,6 @@
 .template-inspector .inspector-scroll .template-palette-colour-setting .template-palette-colour-reset { align-items: center; background: transparent; border: 0; border-inline-start: 1px solid #d1cfc7; border-radius: 0 3px 3px 0; color: var(--accent); display: flex; min-height: 42px; padding: 8px 10px; }
 .template-inspector .inspector-scroll .template-palette-colour-setting button:hover:not(:disabled) { background: var(--acm-interaction-neutral-hover-background, #f0f0f0); }
 .template-inspector h2, .template-inspector h3 { font-size: var(--studio-ui-size); }
-.template-inspector .inspector-accordion-heading { min-height: 40px; padding: var(--inspector-accordion-padding, 16px); border: 0; border-radius: 0; text-align: left; text-transform: none; letter-spacing: normal; }
 
 .template-inspector h4 { font-size: var(--studio-ui-size); margin: 6px 0 0; }
 .template-link-item { padding-bottom: 12px; border-bottom: 1px solid #ddd; }
@@ -363,8 +361,7 @@
 .template-editing .canvas-block:has(.navigation-edit-item.is-selected) { border-color: transparent; outline: 0; }
 .template-editing .canvas-block:has(.navigation-edit-item.is-selected) > .canvas-block-toolbar,
 .template-editing .studio-nested-block:has(.navigation-edit-item.is-selected) > .canvas-block-toolbar { visibility: hidden; }
-.template-inspector .navigation-inspector [role="tabpanel"] > .inspector-accordion-section { padding: 0; --inspector-accordion-padding: 16px; border-bottom: 1px solid #ddd; }
-.template-inspector .navigation-inspector .inspector-accordion-heading { padding: var(--inspector-accordion-padding, 16px); margin-bottom: 0; text-transform: none; font-weight: 600; }
+.template-inspector .navigation-inspector [role="tabpanel"] > .inspector-accordion-section { padding: 0; border-bottom: 1px solid #ddd; }
 .template-inspector .navigation-inspector .navigation-colour-controls { width: 100%; }
 .template-inspector .navigation-inspector .navigation-style-settings > .inspector-sections > section:not(.inspector-accordion-section) { padding: 16px; }
 .template-editing .template-node-selectable[data-studio-selected="true"]:has(.navigation-edit-item.is-selected) { outline: 0; }
@@ -388,16 +385,12 @@
 .navigation-colour-controls:empty { border: 0; }
 .navigation-colour-controls .inspector-colour-row > span:nth-child(2) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .navigation-inspector .inspector-accordion-section > h2 { letter-spacing: normal; text-transform: none; }
-.navigation-inspector .inspector-accordion-heading[aria-expanded="false"] { margin-bottom: 0; }
-.navigation-inspector .inspector-accordion-heading[aria-expanded="true"] > svg { transform: rotate(180deg); }
 
 .navigation-inspector .navigation-inspector-tabs button { padding: 10px 0 14px; min-height: 48px; }
 .navigation-inspector .navigation-block-summary h3 { margin: 0 0 12px; }
 .navigation-inspector [role="tabpanel"] > .inspector-tools-section,
 .navigation-inspector .navigation-style-settings > .inspector-sections > section:not(.inspector-accordion-section) { padding: 16px; border-bottom: 1px solid #ddd; }
-.navigation-inspector .inspector-accordion-section { --inspector-accordion-padding: 16px; border-bottom: 1px solid #ddd; }
-.navigation-inspector .inspector-accordion-heading { font-weight: 600; margin-bottom: 0; }
-.navigation-inspector .inspector-accordion-heading[aria-expanded="false"] { margin-bottom: 0; }
+.navigation-inspector .inspector-accordion-section { border-bottom: 1px solid #ddd; }
 
 .navigation-inspector.inspector-sections .inspector-tools-heading h2 { font-size: var(--studio-ui-size); }
 .navigation-inspector.inspector-sections .navigation-colour-controls button.inspector-colour-row { border: 0; border-radius: 0; }
@@ -405,7 +398,6 @@
 /* The catalogue's More Actions mark is horizontal; reuse it vertically here. */
 .navigation-inspector :is(.navigation-menu-heading .navigation-item-options, .inspector-tools-trigger) svg { transform: rotate(90deg); }
 
-.template-inspector .navigation-inspector .inspector-accordion-heading { min-height: 24px; letter-spacing: normal; }
 .navigation-inspector .inspector-tools-heading { min-height: 24px; }
 
 /* Page link uses the same canonical Navigation controls in the editor and Library. */

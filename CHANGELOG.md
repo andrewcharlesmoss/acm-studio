@@ -54,6 +54,9 @@
 
 ### Changed
 
+- Unify accordion heading dimensions and content spacing across Studio; standalone
+  pane controls use shared pane spacing, including Studio Drafts.
+
 - Make Sites inherit the shared UI Library accordion, including disclosure,
   chevrons, hover, and focus, while retaining its pane density and drag cancellation.
 

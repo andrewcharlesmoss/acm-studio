@@ -291,9 +291,12 @@ tabs read successful changes, and new site IDs append without losing known order
 The Studio Navigation Sites section inherits `InspectorAccordionSection`, the
 same production control demonstrated in the UI Library. It starts expanded;
 shared state, accessible heading, chevron, hover, focus, and mounted-content
-behaviour remain in that component. Sites supplies density tokens for a
-full-width, square-edged heading at least 52px tall and inset site cards. Its
+behaviour remain in that component. Shared accordion styles own full-width
+headings, a 52px minimum height, 16px vertical and 18px horizontal heading padding,
+and 18px content insets. Sites has no dimension or spacing overrides. Its
 open-state callback cancels active site placement when collapsed. Hidden controls
 leave keyboard navigation. Disclosure state is page-local and saved order is
 unchanged. Use this foundation for pane accordions; do not fork their interaction
-or header styling. Existing inspectors retain their default fieldset and density.
+or header styling. All consumers retain the shared mounted fieldset. Standalone
+pane controls such as Studio Drafts use `pane-inset`, which takes its margin from
+the shared 12px `--pane-space` rhythm rather than product-specific spacing.
