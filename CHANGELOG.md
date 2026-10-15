@@ -82,6 +82,8 @@
 
 ### Changed
 
+- Use the shared white surface for the Design Ribbon and UI Library Ribbon examples.
+
 - Reuse shared number-and-unit fields, link fields and preview actions,
   Undo/Redo controls, and Bin rows across Studio, retaining each feature's
   validation, history, saving and recovery rules.

@@ -31,7 +31,7 @@
 .design-topbar-divider { display: none; }
 .design-topbar-mark { align-items: center; background: #3f3f3f; border-radius: 10px; color: #fff; display: inline-flex; font-size: 19px; font-weight: 750; height: 34px; justify-content: center; width: 34px; }
 .design-environment { background: #f1f1f1; border: 1px solid #d0d0d0; border-radius: 999px; color: #666; font-size: .875rem; font-weight: 800; padding: 5px 10px; }
-.design-ribbon-panel { --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: #f7f7f7; --acm-ribbon-text: #3f3f3f; background: #f7f7f7; border: 1px solid #d8d8d8; border-radius: 14px; margin: 16px; overflow: visible; }
+.design-ribbon-panel { --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: var(--acm-color-surface, #fff); --acm-ribbon-text: #3f3f3f; background: var(--acm-ribbon-surface); border: 1px solid #d8d8d8; border-radius: 14px; margin: 16px; overflow: visible; }
 .design-ribbon-panel .acm-ribbon-tabs > button, .design-ribbon-panel .acm-ribbon-group-label, .design-ribbon-panel .acm-ribbon-brand a, .design-ribbon-panel .acm-ribbon-brand input { font-weight: 400; }
 .design-ribbon-panel .acm-ribbon-tabs { border-top: 0; border-bottom: 1px solid #d8d8d8; }
 .design-ribbon-panel .acm-ribbon-content { border-top: 0; }

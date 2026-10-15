@@ -1438,7 +1438,7 @@ test("design tool selection uses a neutral active colour", () => {
 test("design surfaces use the current neutral theme", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(css, /\.design-shell \{ --accent: #1e1e1e; --accent-soft: #e7e7e5; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa;/);
-  assert.match(css, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: #f7f7f7; --acm-ribbon-text: #3f3f3f; background: #f7f7f7; border: 1px solid #d8d8d8;/);
+  assert.match(css, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: var\(--acm-color-surface, #fff\); --acm-ribbon-text: #3f3f3f; background: var\(--acm-ribbon-surface\); border: 1px solid #d8d8d8;/);
   assert.match(css, /\.design-pages\.pane \{ background: var\(--studio-pane-surface, #fff\); border-right: 0;/);
   assert.match(css, /\.design-inspector\.pane \{ background: var\(--studio-pane-surface, #fff\); border-left: 0;/);
   assert.match(css, /\.design-workspace \.pane-track \{ --pane-border: #d8d8d8;/);
@@ -1490,7 +1490,7 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(ribbonCss, /\.acm-ribbon-content \{ box-sizing: border-box; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\); overflow: auto; \}/);
   assert.match(ribbonCss, /\.acm-ribbon-content > \.acm-ribbon-panel \{ align-items: stretch; box-sizing: border-box; display: flex; gap: 2px; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\);/);
   assert.match(editor, /<StudioRibbon\s+className="design-ribbon-panel"/);
-  assert.match(designCss, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: #f7f7f7; --acm-ribbon-text: #3f3f3f; background: #f7f7f7; border: 1px solid #d8d8d8; border-radius: 14px; margin: 16px; overflow: visible; \}/);
+  assert.match(designCss, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: var\(--acm-color-surface, #fff\); --acm-ribbon-text: #3f3f3f; background: var\(--acm-ribbon-surface\); border: 1px solid #d8d8d8; border-radius: 14px; margin: 16px; overflow: visible; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs > button, \.design-ribbon-panel \.acm-ribbon-group-label, \.design-ribbon-panel \.acm-ribbon-brand a, \.design-ribbon-panel \.acm-ribbon-brand input \{ font-weight: 400; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs \{ border-top: 0; border-bottom: 1px solid #d8d8d8; \}/);
   assert.match(ribbonCss, /\.acm-ribbon-tabs > button::after \{[^}]*height: 3px;[^}]*left: var\(--acm-ribbon-tab-inline-padding\)/);

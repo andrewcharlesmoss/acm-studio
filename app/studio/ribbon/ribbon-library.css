@@ -55,7 +55,7 @@
 .rl-preview { position:relative; min-width:0; }
 .rl-preview-viewport>div { position:relative; }
 .rl-inspection-box { position:absolute; z-index:5; box-sizing:border-box; border:2px solid #555; pointer-events:none; }
-.rl-preview .acm-ribbon { --acm-ribbon-panel-height:114px; --acm-ribbon-border:#D8D8D8; --acm-ribbon-surface:#F7F7F7; --acm-ribbon-hover:#E7E7E7; --acm-ribbon-text:#3F3F3F; --acm-ribbon-muted:#626262; --acm-ribbon-accent:#646B74; border:0; }
+.rl-preview .acm-ribbon { --acm-ribbon-panel-height:114px; --acm-ribbon-border:#D8D8D8; --acm-ribbon-surface:var(--acm-color-surface, #fff); --acm-ribbon-hover:#E7E7E7; --acm-ribbon-text:#3F3F3F; --acm-ribbon-muted:#626262; --acm-ribbon-accent:#646B74; border:0; }
 .rl-preview .acm-ribbon-content>.acm-ribbon-panel { overflow:visible; min-width:max-content; }
 .rl-preview .acm-ribbon-content>.acm-ribbon-panel[hidden] { display:none; }
 .rl-preview .acm-ribbon-controls { display:flex; align-items:center; gap:7px; }
