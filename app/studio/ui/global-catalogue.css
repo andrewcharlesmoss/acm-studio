@@ -10,7 +10,7 @@
 .ui-global-filters { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem 1rem; margin:0 2rem 1rem; padding:.75rem 1rem; border:1px solid var(--rl-line); border-radius:7px; }
 .ui-global-filters legend { padding:0 .3rem; font-weight:600; }
 .ui-global-filters button { border:1px solid var(--rl-line); border-radius:5px; padding:.3rem .55rem; background:#fff; font:inherit; cursor:pointer; }
-.ui-global-count { margin:0 2rem .5rem; color:var(--rl-muted); font-size:.875rem; }
+.ui-global-catalogue .ui-global-count { margin:0 2rem .5rem; color:var(--rl-muted); font-size:.875rem; }
 .ui-global-table-scroll { margin:0 2rem; overflow-x:auto; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }
 .ui-global-table-scroll table { width:100%; min-width:1050px; border-collapse:separate; border-spacing:0; text-align:left; }
 .ui-global-table-scroll th,.ui-global-table-scroll td { padding:.7rem .75rem; border-bottom:1px solid var(--rl-line); vertical-align:top; }
@@ -66,7 +66,7 @@
 @media(max-width:720px) {
   .ui-global-catalogue-tools { padding-inline:1rem; }
   .ui-global-filters { margin-inline:1rem; }
-  .ui-global-count { margin-inline:1rem; }
+  .ui-global-catalogue .ui-global-count { margin-inline:1rem; }
   .ui-global-table-scroll { margin-inline:1rem; }
   .ui-global-preview { left:16px !important; width:calc(100vw - 32px); }
 }
