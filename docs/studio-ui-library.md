@@ -843,5 +843,8 @@ control dismiss the preview. Preview placement inherits the shared anchored
 overlay watcher, measuring the mounted specimen and keeping it beside its
 trigger. Lower rows shift the popup upwards only enough to fit its actual
 height within the viewport; content resizing updates placement too.
+Scaled control previews measure their visual height instead of clipping the
+unscaled specimen. Longer examples scroll inside the preview without dismissing
+it; all content still comes from the shared production specimens.
 Shared symbols and production specimens supply the
 visuals; preview-only state remains temporary and isolated.

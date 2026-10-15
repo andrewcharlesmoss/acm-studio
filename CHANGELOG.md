@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Keep complete control specimens available in catalogue previews, including the
+  rotation handle, with scaled content sizing and scrolling for longer examples.
 - Position Studio UI Library preview popovers beside the hovered Preview
   control using their measured height, so lower rows remain beside their
   previews with viewport clamping.

@@ -38,12 +38,13 @@
 .ui-global-preview h2 { margin:.2rem 2rem .75rem 0; font-size:1.15rem; }
 .ui-global-preview > p:not(.rl-eyebrow) { color:var(--rl-muted); font-size:.875rem; }
 .ui-global-preview-close { position:absolute; top:.45rem; right:.45rem; display:grid; width:36px; height:36px; place-items:center; border:0; border-radius:5px; background:transparent; cursor:pointer; }
-.ui-global-preview-body { max-height:340px; overflow:hidden; border:1px solid var(--rl-line); border-radius:7px; padding:.75rem; background:#fafaf9; }
+.ui-global-preview-body { max-height:340px; overflow:auto; border:1px solid var(--rl-line); border-radius:7px; padding:.75rem; background:#fafaf9; }
 .ui-global-preview-body :is(button,input,a,select) { pointer-events:none !important; }
 .ui-global-preview-icon,.ui-global-preview-block,.ui-global-preview-style { display:flex; min-height:120px; align-items:center; justify-content:center; gap:1rem; }
 .ui-global-preview-icon { flex-direction:column; }
 .ui-global-preview-style span { width:46px; height:46px; border:1px solid var(--rl-line); border-radius:7px; }
-.ui-global-preview-control { width:145%; max-height:300px; overflow:hidden; transform:scale(.68); transform-origin:top left; }
+.ui-global-preview-control-frame { position:relative; width:100%; overflow:hidden; }
+.ui-global-preview-control { position:absolute; top:0; left:0; width:calc(100% / .68); display:flow-root; transform:scale(.68); transform-origin:top left; }
 .ui-global-preview-control .ui-control-entry { padding:0; }
 .ui-global-preview-control .ui-control-entry-header { display:none; }
 .ui-global-preview-control .ui-control-detail-card { margin:0; }

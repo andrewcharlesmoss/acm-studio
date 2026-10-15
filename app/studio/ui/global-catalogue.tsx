@@ -52,11 +52,27 @@ const entries: Entry[] = [
   ...["Colour", "Typography", "Buttons", "Interactions", "Layout"].map((name) => ({ id: `style:${name.toLowerCase()}`, name: `${name} styles`, section: "Styles" as const, purpose: `Shared ${name.toLowerCase()} tokens and rendered examples from the executable universal style preset.`, owner: "@acm/styles", consumers: "Studio interface and registered ACM consumers", dependencies: "Canonical preset schema and semantic CSS variables.", href: "/studio/ui/styles", preview: { kind: "style" as const, key: name } })),
 ];
 
+function ControlPreview({ entry }: { entry: StudioControlEntry }) {
+  const content = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+  useLayoutEffect(() => {
+    const element = content.current;
+    if (!element) return;
+    // Transforms scale the drawing, but leave its layout height unchanged.
+    const measure = () => setHeight(element.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [entry]);
+  return <div className="ui-global-preview-control-frame" style={{ height }} inert><div ref={content} className="ui-global-preview-control"><ControlSpecimen entry={entry} /></div></div>;
+}
+
 function PreviewContent({ entry }: { entry: Entry }) {
   if (entry.preview.kind === "icon") return <div className="ui-global-preview-icon"><AcmIcon name={entry.preview.key as IconName} size={48} /><span>{entry.preview.key}</span></div>;
   if (entry.preview.kind === "control") {
     const definition = controlById[entry.preview.key ?? ""];
-    return definition ? <div className="ui-global-preview-control" inert><ControlSpecimen entry={definition} /></div> : null;
+    return definition ? <ControlPreview entry={definition} /> : null;
   }
   if (entry.preview.kind === "block") return <div className="ui-global-preview-block"><BlockLibraryIconSample type={entry.preview.key as BlockIconType} size={48} scale="Regular-L" /><span>{entry.name}</span></div>;
   if (entry.preview.kind === "pane") {
@@ -142,7 +158,10 @@ export function GlobalCatalogue() {
         if (active) returnFocus.current?.focus();
       }
     };
-    const clear = () => { cancelPendingPreview(); setActive(null); setPinned(false); };
+    const clear = (event: Event) => {
+      if (event.type === "scroll" && event.target instanceof Node && previewRef.current?.contains(event.target)) return;
+      cancelPendingPreview(); setActive(null); setPinned(false);
+    };
     window.addEventListener("keydown", dismiss);
     window.addEventListener("scroll", clear, true);
     window.addEventListener("resize", clear);
@@ -200,7 +219,10 @@ export function GlobalCatalogue() {
       </tr>)}</Fragment>)}
     </tbody></table>{filtered.length === 0 && <p className="ui-global-empty">No entries match. Try another search or section filter.</p>}</div>
     {active && activeEntry && <aside ref={previewRef} id="ui-global-preview" className="ui-global-preview" role="dialog" aria-labelledby="ui-global-preview-title" style={previewPosition} onPointerEnter={() => { if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current); }} onPointerLeave={() => { if (!pinned) dismissPreview(); }}>
-      <button className="ui-global-preview-close" type="button" aria-label="Close preview" onClick={() => dismissPreview(true)}><AcmIcon name="action.close" size={18} /></button><p className="rl-eyebrow">{activeEntry.section} preview</p><h2 id="ui-global-preview-title">{activeEntry.name}</h2><div className="ui-global-preview-body"><PreviewContent entry={activeEntry} /></div><p>{activeEntry.purpose}</p><a href={activeEntry.href}>Open full example</a>
+      <button className="ui-global-preview-close" type="button" aria-label="Close preview" onClick={() => dismissPreview(true)}><AcmIcon name="action.close" size={18} /></button><p className="rl-eyebrow">{activeEntry.section} preview</p><h2 id="ui-global-preview-title">{activeEntry.name}</h2>
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Focus lets keyboard users scroll the inert specimen's viewport. */}
+      <div className="ui-global-preview-body" role="region" aria-label={`${activeEntry.name} specimen preview`} tabIndex={0}><PreviewContent entry={activeEntry} /></div>
+      <p>{activeEntry.purpose}</p><a href={activeEntry.href}>Open full example</a>
     </aside>}
   </section>;
 }
