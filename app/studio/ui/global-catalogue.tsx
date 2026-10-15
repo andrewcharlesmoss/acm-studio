@@ -169,8 +169,8 @@ export function GlobalCatalogue() {
     </div>
     <fieldset className="ui-global-filters"><legend>Sections</legend><button type="button" onClick={() => setSelectedSections(new Set(sections))}>All</button>{sections.map(section => <label key={section}><input type="checkbox" checked={selectedSections.has(section)} onChange={() => toggleSection(section)} />{section}</label>)}</fieldset>
     <p className="ui-global-count" role="status">{filtered.length} {filtered.length === 1 ? "entry" : "entries"}</p>
-    <div className="ui-global-table-scroll"><table><thead><tr><th>Name</th><th>Section</th><th>Purpose</th><th>Owner</th><th>Used by</th><th>Dependencies</th></tr></thead><tbody>
-      {groupedEntries.map(([group, items]) => <Fragment key={group}>{grouped && <tr className="ui-global-group-row"><th colSpan={6}>{group}</th></tr>}{items.map(entry => <tr key={entry.id}>
+    <div className="ui-global-table-scroll"><table><thead><tr><th><span className="ui-global-name-header">Name</span></th><th>Section</th><th>Purpose</th><th>Owner</th><th>Used by</th><th>Dependencies</th></tr></thead><tbody>
+      {groupedEntries.map(([group, items]) => <Fragment key={group}>{grouped && <tr className="ui-global-group-row"><th colSpan={6}><span className="ui-global-group-label">{group}</span></th></tr>}{items.map(entry => <tr key={entry.id}>
         <th scope="row"><div className="ui-global-entry-name"><a href={entry.href}>{entry.name}</a><button className="ui-global-preview-trigger" type="button" title={`Preview ${entry.name}`} aria-label={`Preview ${entry.name}`} aria-expanded={active?.id === entry.id} aria-controls={active?.id === entry.id ? "ui-global-preview" : undefined}
           onPointerEnter={event => {
             if (pinned || event.pointerType !== "mouse") return;

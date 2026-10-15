@@ -833,9 +833,10 @@ The `/studio/ui` landing view is the searchable catalogue across Workspace,
 Navigation, Ribbon, Panes, Panels, Blocks, Controls, Icons and Styles. Entries
 are built from their existing section definitions and link to their full example.
 Search matches names, sections, purpose, owner, consumers and dependencies;
-section filters may be combined. Each name has an adjacent Preview eye icon.
-Hover the Preview control for 350 ms to preview
-an entry; moving across rows or focusing links does not open previews. Activate
+section filters may be combined. The Name column and grouped section labels stay
+pinned during horizontal table scrolling, keeping entry names and their adjacent
+Preview eye icons visible. Hover the Preview control for 350 ms to preview an
+entry; moving across rows or focusing links does not open previews. Activate
 Preview with pointer, touch, or keyboard for pinned inspection. A pinned preview
 stays unchanged when hovering other entries. Escape and the visible close
 control dismiss the preview. Shared symbols and production specimens supply the

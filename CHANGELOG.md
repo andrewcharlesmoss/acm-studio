@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+
+- Keep the Studio UI Library catalogue’s Name column pinned during horizontal
+  scrolling so entry names and Preview icons remain visible.
+
 ### Added
 
 - Add a searchable Studio UI Library catalogue with cross-section filters,
