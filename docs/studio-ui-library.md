@@ -1025,3 +1025,12 @@ fields remain narrow security-specific exceptions. Other native input types
 (such as colour, file, date, range, checkbox and radio) retain their existing
 specialised controls; this ordinary-field audit does not claim complete adoption
 for those families. It does not scan sibling products or generated output.
+
+
+The shared Select dropdown owns its single-select indicator: the original
+`@acm/icons` navigation.disclosure artwork is centred vertically, inset 12px
+from the inline end, with 36px reserved end padding. Disabled and invalid states
+retain the same geometry; right-to-left selects mirror the placement. Forced
+colours restores the native indicator. Multiple/size listboxes retain native
+presentation. `NumberUnitField` deliberately supplies `showIndicator={false}`
+for its existing compact, arrow-free unit selector.

@@ -19,7 +19,7 @@ export function NumberUnitField({ id, className = "", leadingControl, inputProps
   return <div id={id} className={`studio-number-unit-field ${className}`} {...controlLibraryAttributes("number-unit-field")}>
     {leadingControl}
     <NumberInput {...inputProps} />
-    <SelectControl {...unitProps}>
+    <SelectControl {...unitProps} showIndicator={false}>
       {units.map(unit => <option key={unit} value={unit}>{unit}</option>)}
     </SelectControl>
   </div>;

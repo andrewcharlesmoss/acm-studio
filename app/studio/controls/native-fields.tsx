@@ -21,6 +21,6 @@ export const NumberInput = forwardRef<HTMLInputElement, InputProps>(function Num
 export const TextArea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function TextArea({ className, ...props }, ref) {
   return <textarea {...props} ref={ref} className={fieldClass(className)} {...controlLibraryAttributes("text-area")} />;
 });
-export const SelectControl = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function SelectControl({ className, ...props }, ref) {
-  return <select {...props} ref={ref} className={fieldClass(className)} {...controlLibraryAttributes("select-dropdown")} />;
+export const SelectControl = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement> & { showIndicator?: boolean }>(function SelectControl({ className, showIndicator = true, ...props }, ref) {
+  return <select {...props} data-select-indicator={showIndicator ? "inset" : "none"} ref={ref} className={fieldClass(className)} {...controlLibraryAttributes("select-dropdown")} />;
 });

@@ -3,3 +3,17 @@
 .studio-native-field:disabled { cursor:default; opacity:.55; }
 .studio-native-field[aria-invalid="true"] { border-color:var(--studio-field-error, #b32d2e); }
 .studio-native-field:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--studio-selection-colour, #0088ff); outline-offset:2px; }
+
+/* Canonical indicator geometry must survive consumers’ background/padding shorthands. */
+select.studio-native-field[data-select-indicator="inset"]:not([multiple]):not([size]) {
+  appearance:none !important;
+  background-image:url("@acm/icons/svg/navigation.disclosure/Regular-S.svg?inline") !important;
+  background-repeat:no-repeat !important;
+  background-position:right 12px center !important;
+  background-size:16px 16px !important;
+  padding-inline-end:36px !important;
+}
+select.studio-native-field:dir(rtl)[data-select-indicator="inset"]:not([multiple]):not([size]) { background-position:left 12px center !important; }
+@media (forced-colors:active) {
+  select.studio-native-field[data-select-indicator="inset"]:not([multiple]):not([size]) { appearance:auto !important; background-image:none !important; }
+}
