@@ -20,6 +20,8 @@ export type PaneProps = {
   trackClassName?: string;
   className?: string;
   bodyClassName?: string;
+  /** Flush regions contain their own shared sections; other regions use pane spacing. */
+  flushRegions?: readonly ("header" | "toolbar" | "body" | "footer")[];
   style?: CSSProperties;
   header?: ReactNode;
   tabs?: ReactNode;
@@ -50,7 +52,7 @@ export function PaneCollapseButton({ side, collapsed, label, controls, icon, onC
     onPointerCancel={onPointerCancel} onLostPointerCapture={onLostPointerCapture} onKeyDown={onKeyDown}>{icon}</button>;
 }
 
-export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWidth = 480, collapsed, onCollapsedChange, collapseIcon, collapsible = true, inert, trackClassName, className, bodyClassName, style, header, tabs, toolbar, footer, children }: PaneProps) {
+export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWidth = 480, collapsed, onCollapsedChange, collapseIcon, collapsible = true, inert, trackClassName, className, bodyClassName, flushRegions = [], style, header, tabs, toolbar, footer, children }: PaneProps) {
   const id = useId();
   const container = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -119,12 +121,12 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
       data-inspector-popover-owner={side === "right" ? "" : undefined}
       data-pane-region={side} onFocusCapture={() => { focusWasInside.current = true; }}
       onBlurCapture={(event) => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) focusWasInside.current = false; }}>
-      {header != null && <header className="pane-header" data-pane-region={`${side}.header`}>{header}</header>}
+      {header != null && <header className="pane-header" data-pane-spacing={flushRegions.includes("header") ? "flush" : "inset"} data-pane-region={`${side}.header`}>{header}</header>}
       {tabs != null && <div className="pane-tabs-region" data-pane-region={`${side}.tabs`}>{tabs}</div>}
-      {toolbar != null && <div className="pane-toolbar" data-pane-region={`${side}.toolbar`}>{toolbar}</div>}
-      <div ref={body} className={`pane-body${bodyClassName ? ` ${bodyClassName}` : ""}`} data-pane-region={`${side}.body`}
+      {toolbar != null && <div className="pane-toolbar" data-pane-spacing={flushRegions.includes("toolbar") ? "flush" : "inset"} data-pane-region={`${side}.toolbar`}>{toolbar}</div>}
+      <div ref={body} className={`pane-body${bodyClassName ? ` ${bodyClassName}` : ""}`} data-pane-spacing={flushRegions.includes("body") ? "flush" : "inset"} data-pane-region={`${side}.body`}
         onScroll={(event) => { if (!collapsed) scrollPosition.current = event.currentTarget.scrollTop; }}>{children}</div>
-      {footer != null && <footer className="pane-footer" data-pane-region={`${side}.footer`}>{footer}</footer>}
+      {footer != null && <footer className="pane-footer" data-pane-spacing={flushRegions.includes("footer") ? "flush" : "inset"} data-pane-region={`${side}.footer`}>{footer}</footer>}
     </aside>
     {/* A focusable separator is the ARIA window-splitter pattern; static separators are non-interactive. */}
     {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}

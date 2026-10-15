@@ -54,6 +54,10 @@
 
 ### Changed
 
+- Centralise pane region spacing across Navigation, Block Library, document and
+  template inspectors, Design pages/layers and properties, and navigation details.
+  Shared inset/flush regions replace local padding and preserve clean pane edges.
+
 - Unify accordion heading dimensions and content spacing across Studio; standalone
   pane controls use shared pane spacing, including Studio Drafts.
 

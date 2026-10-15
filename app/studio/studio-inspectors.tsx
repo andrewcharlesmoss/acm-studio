@@ -78,7 +78,7 @@ export function StudioInspector({ siteContext = false, localPublication, writabl
   const selectedDocumentFieldBlockType = selectedDocumentField === "title" ? "document-title" : "document-subtitle";
   const selectedDocumentFieldInfo = selectedDocumentField ? blockCatalogue.find(item => item.type === selectedDocumentFieldBlockType) : null;
   return (
-    <Pane trackClassName="studio-inspector-track" className="studio-inspector" bodyClassName="inspector-scroll" label="Editor Inspector" side="right" width={paneWidth} onWidthChange={onPaneWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed} onCollapsedChange={setCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
+    <Pane trackClassName="studio-inspector-track" className="studio-inspector" flushRegions={["body"]} bodyClassName="inspector-scroll" label="Editor Inspector" side="right" width={paneWidth} onWidthChange={onPaneWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed} onCollapsedChange={setCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
       tabs={<PaneTabs id={tabPrefix} label="Editor settings" className="inspector-tabs" tabs={[
         { id: "document", label: activeDocument.kind === "page" ? "Page" : "Post" },
         { id: "studio", label: "Studio" },

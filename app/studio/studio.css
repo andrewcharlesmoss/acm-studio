@@ -454,13 +454,13 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-preview-unavailable { align-content: center; box-sizing: border-box; color: var(--ink); display: grid; gap: 10px; height: 100dvh; justify-items: center; margin: 0 auto; max-width: 560px; padding: 32px; text-align: center; }
 .studio-preview-unavailable h1, .studio-preview-unavailable p { margin: 0; }
 
-.studio-library.pane { background: var(--studio-pane-surface, #fff); border-right: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: 0; }
-.studio-library > .pane-header { border: 0; display: block; flex: none; min-height: 0; padding: 0; }
+.studio-library.pane { background: var(--studio-pane-surface, #fff); min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.studio-library > .pane-header { border: 0; display: block; flex: none; min-height: 0; }
 .studio-library > .pane-body { flex: 1 0 120px; min-height: 120px; }
-.studio-library-body { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.studio-library-body { display: flex; flex-direction: column; overflow: hidden; }
 .studio-library-body > [role="tabpanel"] { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 .studio-library > .pane-tabs-region { border-bottom: 0; flex: none; }
-.studio-library > .pane-footer { border-top: 0; display: block; padding: 0; }
+.studio-library > .pane-footer { border-top: 0; display: block; }
 .studio-library-track { grid-column: 1; min-width: 0; }
 .studio-library-track, .studio-inspector-track { position: relative; z-index: 40; }
 .studio-library-track .pane-collapse, .studio-inspector-track .pane-collapse { z-index: 41; }
@@ -1230,9 +1230,8 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .canvas-appender-button { align-items: center; background: var(--studio-shared-button-background); border: 0; border-radius: 4px; color: var(--studio-shared-button-foreground); cursor: pointer; display: inline-flex; flex: 0 0 auto; font-size: 20px; height: 32px; justify-content: center; line-height: 1; padding: 0; width: 32px; }
 .canvas-appender-button:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 
-.studio-inspector.pane { background: var(--studio-pane-surface, #fff); border-left: 0; min-width: 0; padding: 0; }
+.studio-inspector.pane { background: var(--studio-pane-surface, #fff); min-width: 0; }
 .studio-inspector-track { grid-column: 3; min-width: 0; }
-.pane-body.inspector-scroll { padding: 0; }
 .inspector-tabs { --pane-tab-label-inset: 6px; border-bottom: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); min-height: 50px; padding: 0 12px; }
 .inspector-tabs button { background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: var(--studio-ui-size); font-weight: 620; }
 .inspector-tabs button[aria-selected="true"] { color: var(--ink); }
@@ -1584,12 +1583,10 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .inserter-backdrop { display: flex; flex: 0 0 320px; min-height: 0; min-width: 0; position: relative; width: 320px; z-index: 20; }
 .block-inserter-track { flex: 0 0 320px; height: 100%; width: 320px; }
 .inserter-dismiss { display: none; }
-.block-inserter.pane { animation: studio-inserter-enter 180ms ease-out; background: var(--studio-pane-surface, #fff); border-right: 0; min-height: 0; min-width: 0; padding: 0; position: relative; width: 100%; z-index: 1; }
-.block-inserter > .pane-header { align-items: flex-start; display: flex; justify-content: space-between; padding: 16px 16px 0; }
+.block-inserter.pane { animation: studio-inserter-enter 180ms ease-out; background: var(--studio-pane-surface, #fff); min-height: 0; min-width: 0; position: relative; width: 100%; z-index: 1; }
+.block-inserter > .pane-header { align-items: flex-start; display: flex; justify-content: space-between; }
 .block-inserter-heading { align-items: flex-start; display: flex; justify-content: space-between; width: 100%; }
-.block-inserter > .pane-toolbar { padding: 0 16px; }
 .block-inserter > .pane-toolbar input { background: white; border: 1px solid #d0cec6; border-radius: 8px; font-size: 13px; margin: 18px 0 22px; padding: 10px 12px; width: 100%; }
-.block-inserter > .pane-body.inserter-results { padding: 0 16px 16px; }
 @container (max-width: 680px) {
   .inserter-backdrop { inset: 0; position: absolute; width: auto; }
   .inserter-dismiss { background: rgba(27, 28, 29, .42); border: 0; display: block; inset: 0; padding: 0; position: absolute; }

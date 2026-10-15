@@ -113,7 +113,7 @@ adaptations belong at Studio's consumer boundary.
 
 The Pane section of the Studio UI Library documents the shared internal Pane
 components used by Studio Navigation, Block Library, Editor Inspector, Design
-Pages/Layers and Design Properties. Its component contract is v1.3.0; see
+Pages/Layers and Design Properties. Its component contract is v1.4.0; see
 `docs/pane-library.md`. Catalogue fixtures and demo state remain separate from
 product stores and write ownership. Product data, commands and pane-specific
 behaviour remain owned by their existing features. Pane specimens permit
@@ -149,7 +149,10 @@ control shown in the Studio UI Library. Consumers supply content
 and optional open-state callbacks; keep disclosure state, chevrons, hover, focus,
 and mounted-content behaviour in that shared component. Accordion dimensions and
 spacing belong to its shared styles; use `pane-inset` and the shared `--pane-space`
-rhythm for standalone controls rather than product-specific margins.
+rhythm for standalone controls rather than product-specific margins. Pane regions
+use the shared inset layout or declare `flushRegions` when they contain full-width
+sections. Keep pane edges free of padding and margin; do not override region
+padding in consumer CSS. Feature content retains its own internal spacing.
 
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and

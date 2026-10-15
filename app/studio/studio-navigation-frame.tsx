@@ -33,7 +33,7 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
 }) {
   const tabsId = useId();
   return <ProjectLocalLinksProvider><Pane trackClassName="studio-library-track" className="studio-library"
-    bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={width}
+    flushRegions={["header", "body", "footer"]} bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={width}
     onWidthChange={onWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed}
     onCollapsedChange={onCollapsedChange} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
     header={<><StudioTooltipGroup className="library-create">

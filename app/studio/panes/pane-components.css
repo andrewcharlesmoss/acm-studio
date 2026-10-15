@@ -36,7 +36,7 @@
   min-height: 0;
   min-width: 0;
 }
-.pane { background: var(--pane-surface); display: flex; flex-direction: column; height: 100%; width: var(--pane-width); min-height: 0; }
+.pane { box-sizing: border-box; margin: 0; padding: 0; min-width: 0; background: var(--pane-surface); display: flex; flex-direction: column; height: 100%; width: var(--pane-width); min-height: 0; }
 .pane-track[data-side="left"] .pane { border-right: 1px solid var(--pane-border); }
 .pane-track[data-side="right"] .pane { border-left: 1px solid var(--pane-border); }
 .pane-header, .pane-toolbar, .pane-footer { flex: none; padding: var(--pane-space); }
@@ -85,3 +85,6 @@
 
 /* Standalone controls between full-width pane sections share the pane rhythm. */
 .pane-inset { margin: var(--pane-space, 12px); }
+
+/* Region spacing is declared through Pane, never consumer edge padding. */
+.pane > [data-pane-spacing="flush"] { padding: 0; }

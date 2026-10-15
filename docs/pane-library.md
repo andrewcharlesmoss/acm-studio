@@ -58,7 +58,7 @@ fields commit on blur before the editor unmounts. Portalled fields retain the
 owning pane's disabled state, and existing content/template handlers own all
 mutations and saves.
 
-## Internal component contract — v1.3.0
+## Internal component contract — v1.4.0
 
 Double-click a resizable pane’s edge, or press Enter while its separator is
 focused, to fit primary labels and controls within the existing width limits.
@@ -78,7 +78,12 @@ This is an internal Studio module, not a published package.
   Optional `collapsible` and `inert` flags support panes whose visibility is
   controlled by their owning overlay. Styling hooks (`trackClassName`,
   `className`, `bodyClassName` and `style`) let product panes retain their
-  established layout while using the shared structure.
+  content and appearance while using the shared structure.
+  `flushRegions` optionally names header, toolbar, body, or footer regions that
+  contain full-width sections. Other regions inherit 12px `--pane-space` insets.
+  Pane edges have zero margin and padding; consumers must not add edge spacing
+  or override region padding in local CSS. Content fields and lists retain their
+  own spacing inside these boundaries. Tabs remain full width.
   Optional controlled `onWidthChange`, `minWidth` and `maxWidth` enable edge
   resizing along the full height of the inner edge. The focusable separator exposes
   the current width and limits. It and the collapse button accept Left/Right arrows, with Shift
