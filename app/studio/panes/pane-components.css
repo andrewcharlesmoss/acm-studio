@@ -83,9 +83,5 @@
   .pane-resize-edge[data-side="right"] { left: -12px; }
 }
 
-/* Keep content clear of the centred circle without moving the pane divider. */
-.pane-track[data-side="left"] > .pane { box-sizing: border-box; padding-right: 4px; }
-.pane-track[data-side="right"] > .pane { box-sizing: border-box; padding-left: 4px; }
-
 /* Standalone controls between full-width pane sections share the pane rhythm. */
 .pane-inset { margin: var(--pane-space, 12px); }
