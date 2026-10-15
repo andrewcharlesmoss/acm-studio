@@ -149,7 +149,11 @@ test("List Item reset remains item-scoped and uses the same registered controls"
   for (const id of ["toggle", "style-variation", "background-selection", "box-length"]) assert.ok(studioControlEntryById[id]);
 });
 
-function nodes(element) { return element && typeof element === "object" ? [element, ...[element.props?.children].flat(Infinity).flatMap(nodes)] : []; }
+function nodes(element) {
+  if (!element || typeof element !== "object") return [];
+  const rendered = typeof element.type === "function" && element.type.name === "NumberUnitField" ? element.type(element.props) : element;
+  return [element, ...[rendered.props?.children].flat(Infinity).flatMap(nodes)];
+}
 
 test("shared toggles retain native keyboard/disabled semantics and style choices change the requested variation", () => {
   const changed = [];

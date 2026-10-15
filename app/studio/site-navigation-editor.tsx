@@ -1,4 +1,5 @@
 "use client";
+import { HistoryActions } from "./controls/history-actions";
 
 import { useEffect, useLayoutEffect, useCallback, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { flushSync } from "react-dom";
@@ -101,7 +102,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   return <section className="site-navigation-workspace" aria-label={`${name} navigation editor`}>
     <header><div><h1>{name} navigation</h1><p>Menu items belong to {name}. Colours and alignment come from the global Navigation template.</p>{targetControls}</div><button type="button" disabled={saving} aria-label="Close navigation editor" title="Back to Templates" onClick={onClose}><StudioIcon name="close" size={20} /></button></header>
     {!set ? <p role="status">{templates.error ?? `Loading ${name} navigation…`}</p> : null}
-    <div className="site-navigation-actions"><button type="button" disabled={!templates.canUndo || saving} onClick={() => { ownedChanges.current = true; templates.undo(); }}><StudioIcon name="undo" />Undo</button><button type="button" disabled={!templates.canRedo || saving} onClick={() => { ownedChanges.current = true; templates.redo(); }}><StudioIcon name="redo" />Redo</button><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>
+    <div className="site-navigation-actions"><HistoryActions presentation="labelled" canUndo={templates.canUndo} canRedo={templates.canRedo} disabled={saving} onUndo={() => { ownedChanges.current = true; templates.undo(); }} onRedo={() => { ownedChanges.current = true; templates.redo(); }} /><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>
     {templates.syncConflict ? <div role="alert"><p>Another tab changed this menu. Choose which links to keep before leaving.</p><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div> : null}
     {error || templates.error ? <p role="alert">{error ?? templates.error} <button type="button" onClick={templates.retryConnection}>Reconnect</button></p> : null}
     <div className="site-navigation-pane-frame" onChangeCapture={() => { ownedChanges.current = true; setSavedMenu(null); rejectedField.current = false; }}>

@@ -54,6 +54,10 @@
 
 ### Changed
 
+- Reuse shared number-and-unit fields, link fields and preview actions,
+  Undo/Redo controls, and Bin rows across Studio, retaining each feature's
+  validation, history, saving and recovery rules.
+
 - Share dynamic document-field presentation across editing, block previews, and
   templates, retaining each host's visibility and editing rules.
 - Reuse Design artwork across canvas, thumbnails, library, and raster exports;

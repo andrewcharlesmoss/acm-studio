@@ -1,4 +1,5 @@
 "use client";
+import { HistoryActions } from "../../controls/history-actions";
 
 import { ToggleSetting } from "../../controls/toggle-setting";
 import { RangeControl } from "../../controls/range-control";
@@ -431,8 +432,7 @@ export function StyleGuideSandbox() {
       <div className="sg-toolbar">
         <div className="sg-toolbar-controls">
           <div className="sg-history" role="group" aria-label="Style preview history">
-            <button type="button" aria-label="Undo style change" title="Undo (⌘Z / Ctrl+Z)" disabled={busy || !history.past.length} onClick={undo}><AcmIcon name="action.undo" size={20} /></button>
-            <button type="button" aria-label="Redo style change" title="Redo (⌘⇧Z / Ctrl+Y)" disabled={busy || !history.future.length} onClick={redo}><AcmIcon name="action.redo" size={20} /></button>
+      <HistoryActions onUndo={undo} onRedo={redo} canUndo={Boolean(history.past.length)} canRedo={Boolean(history.future.length)} disabled={busy} undoLabel="Undo style change" redoLabel="Redo style change" />
           </div>
           <div className="sg-viewports" role="group" aria-label="Preview size">
             {viewportRoles.map(item => <button type="button" key={item.id} aria-pressed={viewport === item.id} onClick={() => setViewport(item.id)}>{item.label}</button>)}

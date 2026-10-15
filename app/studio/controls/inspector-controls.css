@@ -55,10 +55,6 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .box-length-setting.is-radius .box-length-row { grid-template-columns: 24px minmax(72px, 104px) minmax(0, 1fr); gap: 8px; }
 .box-length-setting.is-radius .box-length-row > .studio-range-wrapper > .studio-range-control { min-width: 0; width: 100%; }
 .inspector-sections .box-length-setting.is-radius .box-length-inline-value { box-sizing: border-box; gap: 0; min-width: 0; width: 100%; }
-.inspector-sections .box-length-setting.is-radius .box-length-inline-value input[type="number"] { appearance: textfield; box-sizing: border-box; flex: 1 1 0; height: 38px; min-width: 0; padding: 0 10px; width: 0; }
-.box-length-setting.is-radius .box-length-inline-value input[type="number"]::-webkit-inner-spin-button,
-.box-length-setting.is-radius .box-length-inline-value input[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
-.inspector-sections .box-length-setting.is-radius .box-length-inline-value select { flex: 0 0 32px; height: 38px; padding: 0 4px; }
 
 .box-length-corner { color: #1e1e1e; display: grid; height: 24px; place-items: center; width: 24px; }
 .box-length-corner > svg { grid-area: 1 / 1; }
@@ -72,10 +68,6 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .box-length-indicator > svg { grid-area: 1 / 1; color: var(--ink); }
 .box-length-indicator.is-single > svg:first-child { color: #ccc; }
 .box-length-setting.is-spacing .box-length-inline-value { box-sizing: border-box; max-width: 100%; min-width: 0; width: calc(5ch + 54px); }
-.inspector-sections .box-length-setting.is-spacing .box-length-inline-value input[type="number"] { flex: 1 1 0; min-width: 0; width: 0; padding: 0 10px; }
-.box-length-setting.is-spacing .box-length-inline-value input[type="number"] { appearance: textfield; }
-.box-length-setting.is-spacing input[type="number"]::-webkit-inner-spin-button,
-.box-length-setting.is-spacing input[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
 .box-length-custom-trigger:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .box-length-heading button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
 .box-length-custom-trigger[aria-pressed="true"] { background: #f0f0f0; }
 .box-length-setting.is-spacing:has(input:disabled) .box-length-indicator { opacity: .5; }

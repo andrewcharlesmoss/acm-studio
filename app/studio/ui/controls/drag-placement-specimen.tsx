@@ -1,4 +1,5 @@
 "use client";
+import { HistoryActions } from "../../controls/history-actions";
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
 
 import { useState, type KeyboardEvent } from "react";
@@ -6,7 +7,6 @@ import { useGapReordering } from "../../use-gap-reordering";
 import { movedLibraryIds, type LibraryMove } from "../../library-reordering";
 import { DragPlacementIndicator } from "../../drag-placement-indicator";
 import { LibraryDragHandle } from "../../library-drag-handle";
-import { StudioIcon } from "../../studio-icons";
 
 const items = [
   { id: "first", label: "First item", detail: "A compact item." },
@@ -49,8 +49,7 @@ export function DragPlacementSpecimen() {
     <div className="ui-drag-tools">
       <label>Layout <select value={layout} onChange={event => setLayout(event.target.value)}><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option><option value="wrapped">Wrapped</option></select></label>
       <label><input type="checkbox" checked={readOnly} onChange={event => setReadOnly(event.target.checked)} />Read-only example</label>
-      <button type="button" disabled={readOnly || history.cursor === 0} onClick={() => restore(-1)}><StudioIcon name="undo" size={18} />Undo</button>
-      <button type="button" disabled={readOnly || history.cursor === history.orders.length - 1} onClick={() => restore(1)}><StudioIcon name="redo" size={18} />Redo</button>
+      <HistoryActions presentation="labelled" onUndo={() => restore(-1)} onRedo={() => restore(1)} canUndo={history.cursor > 0} canRedo={history.cursor < history.orders.length - 1} disabled={readOnly} />
     </div>
     <p>Drag a six-dot handle across both edges or the space between items. One centred line marks a genuine move. Returning to the original position shows no line. Escape cancels.</p>
     <div className="ui-drag-scroll">

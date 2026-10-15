@@ -1,4 +1,5 @@
 "use client";
+import { HistoryActions } from "../../controls/history-actions";
 
 import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "../../list-item-background";
 
@@ -460,8 +461,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
       <section className="ui-block-specimen" aria-labelledby="ui-block-specimen-title" data-studio-document-id={`${data.document.id}:${resetRevision}`} data-studio-rich-text-history ref={specimenRef}>
         <header className="ui-block-specimen-header"><div><p className="rl-eyebrow">Temporary state only</p><h2 id="ui-block-specimen-title">Editable specimen</h2></div><div className="ui-block-actions">
           {mode === "edit" && activeBlock?.type === "table" ? <TableCaptionControl block={activeBlock} onChange={next => updateBlock(next)} /> : null}
-          <button type="button" aria-label="Undo specimen change" title="Undo (⌘Z / Ctrl+Z)" disabled={!historyAvailability.canUndo} onClick={undo}><StudioIcon name="undo" size={18} /></button>
-          <button type="button" aria-label="Redo specimen change" title="Redo (⌘⇧Z / Ctrl+Y)" disabled={!historyAvailability.canRedo} onClick={redo}><StudioIcon name="redo" size={18} /></button>
+      <HistoryActions onUndo={undo} onRedo={redo} canUndo={historyAvailability.canUndo} canRedo={historyAvailability.canRedo} undoLabel="Undo specimen change" redoLabel="Redo specimen change" />
           <div role="group" aria-label="Specimen view"><button type="button" aria-pressed={mode === "edit"} onClick={() => setMode("edit")}>Edit</button><button type="button" aria-pressed={mode === "preview"} onClick={() => setMode("preview")}>Preview</button></div>
           {type === "buttons" || type === "button" ? <label><input type="checkbox" checked={useTemplateStyles} onChange={event => setUseTemplateStyles(event.target.checked)} />Use Template Styles</label> : null}
           <button type="button" onClick={resetExample}><StudioIcon name="rotate" size={18} />Reset Example</button>

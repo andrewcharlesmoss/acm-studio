@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { useTemplates } from "./use-templates";
 import { restoreGlobalTemplate } from "./global-template-bin";
-import { StudioIcon } from "./studio-icons";
+import { BinFeedback, BinItem, BinList, BinRestoreButton } from "./bin-presentation";
 import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";
 
 /** Global originals have their own recoverable Bin, independent of site recovery copies. */
@@ -20,8 +20,8 @@ export function GlobalTemplateBinPanel({ session }: { session: ReturnType<typeof
   }
   return <section aria-labelledby="global-template-bin-title"><h2 id="global-template-bin-title">Global templates</h2>
     <p>Shared across Studio Drafts, Test and Test2. Restore keeps the original identity and design.</p>
-    {feedback ? <p role="status">{feedback}</p> : null}
+    <BinFeedback>{feedback}</BinFeedback>
     {session.error ? <p role="alert">{session.error}</p> : null}
-    {session.store.bin.length ? <ul className="studio-bin-list">{session.store.bin.map(item => item.kind === "template" ? <li className="studio-bin-item" key={item.id}><span className="document-kind-mark" aria-hidden="true">T</span><span className="studio-bin-copy"><strong>{item.entry.name}</strong><small>{item.entry.kind === "page" || item.entry.kind === "post" ? `${item.entry.kind} template` : `Shared ${item.entry.kind}`}</small></span><div className="studio-bin-actions"><button type="button" disabled={busy || !session.writable} onClick={() => void restore(item.id)}><StudioIcon name="undo" size={16} />Restore</button></div></li> : null)}</ul> : <p className="studio-bin-empty">No global templates in the Bin.</p>}
+    <BinList hasItems={Boolean(session.store.bin.length)} emptyMessage="No global templates in the Bin.">{session.store.bin.map(item => item.kind === "template" ? <BinItem key={item.id} mark="T" label={item.entry.name} detail={item.entry.kind === "page" || item.entry.kind === "post" ? `${item.entry.kind} template` : `Shared ${item.entry.kind}`}><BinRestoreButton disabled={busy || !session.writable} onClick={() => void restore(item.id)} /></BinItem> : null)}</BinList>
   </section>;
 }

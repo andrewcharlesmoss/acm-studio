@@ -23,7 +23,11 @@ function load(file, react, cache = new Map()) {
   vm.runInNewContext(compiled, { exports, require: dependency });
   return exports;
 }
-function nodes(element) { return element && typeof element === "object" ? [element, ...[element.props?.children].flat(Infinity).flatMap(nodes)] : []; }
+function nodes(element) {
+  if (!element || typeof element !== "object") return [];
+  const rendered = typeof element.type === "function" && element.type.name === "NumberUnitField" ? element.type(element.props) : element;
+  return [element, ...[rendered.props?.children].flat(Infinity).flatMap(nodes)];
+}
 function fixture(value = "300px", { corners = false, negative = false } = {}) {
   let states = [], cursor = 0; const changes = [];
   const react = { ...require("react"), useId: () => "spacing-unit-test", useState(initial) { const index = cursor++; if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial; return [states[index], next => { states[index] = next; }]; } };

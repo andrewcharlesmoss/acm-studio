@@ -85,6 +85,14 @@ The Studio UI Library defines the shared Ribbon and Pane tab indicator rule.
 follow the same geometry. Product consumers may theme indicator colours but
 should not replace this behaviour.
 
+Shared Studio measurement fields use `NumberUnitField`; link editors reuse
+`controls/link-controls.tsx` through the existing rich-text or destination owner.
+Undo/Redo buttons use `HistoryActionButton` or `HistoryActions`, including Ribbon
+examples. Context and global-template Bins use `bin-presentation.tsx`. These
+components own presentation only: keep validation, captured selections, history,
+write ownership and recovery policies with their features. Do not recreate their
+inner spacing, action icons or feedback locally. See `docs/studio-ui-library.md`.
+
 Studio interface text uses Gutenberg's 13px system UI baseline through
 `--studio-ui-font` and `--studio-ui-size`. Do not introduce interface text
 smaller than that token: use hierarchy, weight, colour and spacing instead.

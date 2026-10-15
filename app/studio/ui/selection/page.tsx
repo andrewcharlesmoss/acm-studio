@@ -1,4 +1,5 @@
 "use client";
+import { HistoryActions } from "../../controls/history-actions";
 
 import { useEffect, useState } from "react";
 import type { InsertableBlockType, StudioDocument } from "../../editor-model";
@@ -120,8 +121,7 @@ export default function SelectionSpecimenPage() {
     <p>Shift-click to select a range. Command-click or Control-click adds or removes a block. Drag across blocks to include all blocks between them. Use Delete or Backspace, or Delete Selected Blocks. Undo restores the whole selection.</p>
     <div className="selection-library-actions">
       <button type="button" onClick={() => { setDocument(structuredClone(fixture)); setSelected(null); setPast([]); setFuture([]); setFeedback(null); }}>Reset Example</button>
-      <button type="button" disabled={!past.length || !writable} onClick={undo}>Undo</button>
-      <button type="button" disabled={!future.length || !writable} onClick={redo}>Redo</button>
+      <HistoryActions presentation="labelled" onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} disabled={!writable} />
       <label><input type="checkbox" checked={writable} onChange={event => setWritable(event.target.checked)} />Enable editing</label>
       <label><input type="checkbox" checked={useMiniGolfPresentation} onChange={event => setUseMiniGolfPresentation(event.target.checked)} />Use Mini Golf presentation</label>
       <a href="/studio/ui/selection/template">Template column drops</a>

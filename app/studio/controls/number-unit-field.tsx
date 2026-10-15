@@ -4,6 +4,7 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react
 import "./number-unit-field.css";
 
 type Props = {
+  id?: string;
   className?: string;
   leadingControl?: ReactNode;
   inputProps: Omit<InputHTMLAttributes<HTMLInputElement>, "type">;
@@ -12,8 +13,8 @@ type Props = {
 };
 
 /** Shared presentation; each setting owns its value, units and validation policy. */
-export function NumberUnitField({ className = "", leadingControl, inputProps, unitProps, units }: Props) {
-  return <div className={`studio-number-unit-field ${className}`}>
+export function NumberUnitField({ id, className = "", leadingControl, inputProps, unitProps, units }: Props) {
+  return <div id={id} className={`studio-number-unit-field ${className}`}>
     {leadingControl}
     <input {...inputProps} type="number" />
     <select {...unitProps}>

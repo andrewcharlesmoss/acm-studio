@@ -1,0 +1,2 @@
+.studio-history-action--compact, .studio-history-action--labelled { align-items: center; display: inline-flex; gap: 6px; justify-content: center; }
+.studio-history-action > svg { flex: 0 0 auto; }

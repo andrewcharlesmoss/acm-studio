@@ -765,3 +765,36 @@ example share it. The Studio history adapter retains its explicit rich-text and
 table ownership exceptions. Callers own listener scope, permissions, history,
 zoom limits, and reset policy: templates and website preview reset to 100%;
 Design and its Ribbon example retain their existing Fit action.
+
+
+## Shared measurement, link, history and Bin presentation
+
+`controls/number-unit-field.tsx` owns the numeric input and unit-select layout
+for custom font sizes, paragraph lengths, box spacing, border widths and radius
+corners. Callers supply labels, bounds, supported units and native event props.
+Draft parsing, blank versus zero, mixed values, unit changes, slider ranges and
+commit timing remain with each setting. Compose surrounding sliders, colour
+triggers and reset actions without overriding the field's internal spacing.
+
+`controls/link-controls.tsx` supplies URL/text fields, internal-link suggestions
+and Edit/Remove/Copy actions with URL-bound copy feedback. Both the rich-text
+editor and `LinkDestinationPopover` inherit these pieces. Owners retain safe-URL
+validation, suggestion filtering, optional fields, captured text ranges and
+transaction freshness. Rich-text suggestions preserve selection on mousedown;
+Navigation retains its plain-text label contract. Button, Social links and
+Navigation consumers continue through `LinkDestinationPopover`.
+
+`controls/history-actions.tsx` owns Undo/Redo names, catalogue icons, shortcut
+hints and compact, labelled or Ribbon presentation. Its Ribbon variant uses
+`@acm/ribbon`'s existing button. The shared canvas, Design, navigation editor,
+Styles, block/selection/drag specimens and Ribbon examples inherit it. Each
+owner supplies commands, availability and read-only or busy state; the component
+does not add history or keyboard listeners. Reset example and Bin Restore are
+separate commands and do not use Undo/Redo presentation.
+
+`bin-presentation.tsx` supplies Bin lists, item rows, Restore buttons, empty
+states and recovery feedback for context Bins and the global-template Bin.
+Recovery transactions, dependency checks, save acknowledgements and permanent
+deletion remain with the owning feature. Global templates retain their existing
+Restore-only actions. Context permanent deletion retains its separate explicit
+confirmation and focus-return target.

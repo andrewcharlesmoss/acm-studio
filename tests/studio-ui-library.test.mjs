@@ -268,7 +268,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(metadata, /"preset-number"/);
   assert.match(globals, /--studio-number-field-width: 80px/);
   assert.match(studioStyles, /\.inspector-sections input\[type="number"\] \{ width: var\(--studio-number-field-width\); \}/);
-  assert.match(studioStyles, /\.paragraph-length-controls \{[^}]*grid-template-columns: minmax\(60px, 1fr\) var\(--studio-number-field-width\)/);
+  assert.match(studioStyles, /\.paragraph-length-controls \{[^}]*grid-template-columns: minmax\(60px, 1fr\) minmax\(88px, 120px\) auto/);
   assert.match(studioStyles, /\.box-length-custom \{[^}]*grid-template-columns: var\(--studio-number-field-width\) 70px/);
   assert.match(read("app/studio/controls/number-unit-field.css"), /flex: 1 1 0; font: inherit;/);
   assert.match(studioStyles, /\.paragraph-custom-font-size \{[^}]*grid-template-columns: calc\(var\(--studio-number-field-width\) \+ 44px\)/);

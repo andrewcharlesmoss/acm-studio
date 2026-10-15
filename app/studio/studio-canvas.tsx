@@ -1,4 +1,6 @@
 "use client";
+import { LinkPreviewActions, LinkSuggestions, LinkTextField, LinkUrlField } from "./controls/link-controls";
+import { HistoryActions } from "./controls/history-actions";
 import { CanvasBlockChooser } from "./canvas-block-chooser";
 import { captureCanvasInsertionTarget, canvasInsertionTargetCurrent, canvasBlockChoices, type CanvasInsertionTarget } from "./canvas-insertion-target";
 import { useBlockInsertionGaps } from "./use-block-insertion-gaps";
@@ -1933,12 +1935,12 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                       {linkEditor.mode === "preview" ? <LinkPreviewPopover editor={linkEditor} onEdit={() => setLinkEditor({ ...linkEditor, mode: "edit" })} onRemove={removeLink} onClose={() => closeLink(true)} /> : <form className="link-editor-popover" onSubmit={applyLink}>
                         <PopoverHeading closeLabel="Close link editor" onClose={() => closeLink(true)}>{linkEditor.existingUrl ? "Edit link" : "Add hyperlink"}</PopoverHeading>
                         <div className="link-editor-fields">
-                          <label><span>Link</span><input type="text" value={linkEditor.url} onChange={(event) => { setLinkEditor({ ...linkEditor, url: event.target.value }); setLinkError(null); }} placeholder="Search or type URL" autoComplete="url" /></label>
-                          <label><span>Text</span><input type="text" value={linkEditor.text} onChange={(event) => setLinkEditor({ ...linkEditor, text: event.target.value })} /></label>
+                          <LinkUrlField inputProps={{ value: linkEditor.url, onChange: event => { setLinkEditor({ ...linkEditor, url: event.target.value }); setLinkError(null); } }} />
+                          <LinkTextField inputProps={{ value: linkEditor.text, onChange: event => setLinkEditor({ ...linkEditor, text: event.target.value }) }} />
                         </div>
                         <details className="link-editor-advanced" open={linkEditor.advancedOpen} onToggle={(event) => setLinkEditor({ ...linkEditor, advancedOpen: event.currentTarget.open })}><summary>Advanced</summary><label className="link-editor-checkbox"><input type="checkbox" checked={linkEditor.opensInNewTab} onChange={(event) => setLinkEditor({ ...linkEditor, opensInNewTab: event.target.checked })} /><span>Open in new tab</span></label></details>
                         {linkError ? <p className="link-editor-error" role="alert">{linkError}</p> : null}
-                        {linkSuggestions.length ? <div className="link-editor-suggestions" role="group" aria-label="Internal links">{linkSuggestions.map((target) => <button type="button" key={target.id} onMouseDown={preserveTextSelection} onClick={() => { setLinkEditor({ ...linkEditor, url: target.href }); setLinkError(null); }}><span className="link-target-mark" aria-hidden="true">{target.kind === "page" ? "P" : "A"}</span><span><strong>{target.title}</strong><small>{target.href}</small></span><em>{target.kind}</em></button>)}</div> : null}
+                        <LinkSuggestions items={linkSuggestions} onMouseDown={preserveTextSelection} onChoose={target => { setLinkEditor({ ...linkEditor, url: target.href }); setLinkError(null); }} />
                         <div className="link-editor-actions">{linkEditor.existingUrl ? <button className="link-editor-remove" type="button" onMouseDown={preserveTextSelection} onClick={removeLink}>Remove link</button> : <span /> }<span><StudioButton variant="secondary" type="button" onMouseDown={preserveTextSelection} onClick={() => closeLink(true)}>Cancel</StudioButton><StudioButton type="submit" disabled={!writable}>Apply</StudioButton></span></div>
                       </form>}</StudioAnchoredPopover> : null}
                       {htmlEditor?.blockId === block.id ? <form className="html-editor-popover" aria-label="Edit block as HTML" onSubmit={(event) => { event.preventDefault(); applyHtmlEditor(block); }}>
@@ -1955,8 +1957,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
       <div className="editor-document-bar">
         <div className="editor-history-actions" role="group" aria-label="Editor tools">
           <button className="editor-add-block" type="button" disabled={!writable || previewing || Boolean(codeEditor)} onClick={() => showInserter && !inserterClosing ? dismissInserter() : openInserter(null)} aria-label="Add block" title="Add block" aria-pressed={showInserter && !inserterClosing && !previewing && !codeEditor}><StudioIcon name="add" size={20} /></button>
-          <button type="button" disabled={!writable || !canUndo} onClick={onUndo} aria-label="Undo" title="Undo"><StudioIcon name="undo" size={20} /></button>
-          <button type="button" disabled={!writable || !canRedo} onClick={onRedo} aria-label="Redo" title="Redo"><StudioIcon name="redo" size={20} /></button>
+          <HistoryActions onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} disabled={!writable} />
           <button ref={listViewToggleRef} type="button" className={`editor-list-toggle${listViewOpen ? " is-active" : ""}`} disabled={previewing || Boolean(codeEditor)} aria-pressed={listViewOpen && !showInserter} aria-label="List View" title="List View" onClick={() => { setHoveredBlockId(null); onSetShowInserter(false); setListViewOpen((current) => !current); }}><StudioIcon name="list" size={20} /></button>
         </div>
         <div className="editor-mode-control" role="group" aria-label={`${targetLabel ?? (activeDocument.kind === "post" ? "Post" : "Page")} view`}>
@@ -2546,22 +2547,10 @@ function DocumentHeading({ document, selectedDocumentField, previewing, onChange
 }
 
 function LinkPreviewPopover({ editor, onEdit, onRemove, onClose }: { editor: LinkEditorState; onEdit: () => void; onRemove: () => void; onClose: () => void }) {
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(editor.url);
-      setCopyState("copied");
-    } catch {
-      setCopyState("failed");
-    }
-  }
-
   return (
     <div className="link-preview-popover">
       <div className="link-preview-target"><span className="link-preview-mark" aria-hidden="true"><StudioIcon name="globe" size={17} /></span><span><strong>{editor.text || editor.url}</strong><small>{editor.url}</small></span></div>
-      <div className="link-preview-actions"><button type="button" onClick={onEdit} aria-label="Edit link" title="Edit link"><StudioIcon name="pencil" size={18} /></button><button type="button" onClick={onRemove} aria-label="Remove link" title="Remove link"><StudioIcon name="link-off" size={18} /></button><button type="button" onClick={() => void copyLink()} aria-label={copyState === "copied" ? "Link copied" : "Copy link"} title={copyState === "copied" ? "Link copied" : "Copy link"}><StudioIcon name="copy" size={18} /></button><button type="button" onClick={onClose} aria-label="Close link options" title="Close"><StudioIcon name="close" size={18} /></button></div>
-      {copyState !== "idle" ? <span className="visually-hidden" role="status">{copyState === "copied" ? "Link copied to clipboard." : "Unable to copy link."}</span> : null}
+      <LinkPreviewActions url={editor.url} onEdit={onEdit} onRemove={onRemove} onClose={onClose} />
     </div>
   );
 }

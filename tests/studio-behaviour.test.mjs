@@ -1876,11 +1876,15 @@ test("shared editor toolbar owns history controls and docks a dismissible List V
   const read = (name) => readFileSync(new URL(`../app/studio/${name}`, import.meta.url), "utf8");
   const canvas = read("studio-canvas.tsx");
   const toolbar = canvas.slice(canvas.indexOf('className="editor-history-actions"'), canvas.indexOf('className="editor-mode-control"'));
-  assert.ok(toolbar.indexOf('aria-label="Add block"') < toolbar.indexOf('aria-label="Undo"'));
-  assert.ok(toolbar.indexOf('aria-label="Undo"') < toolbar.indexOf('aria-label="Redo"'));
-  assert.ok(toolbar.indexOf('aria-label="Redo"') < toolbar.indexOf('aria-label="List View"'));
-  assert.match(toolbar, /disabled=\{!writable \|\| !canUndo\}/);
-  assert.match(toolbar, /disabled=\{!writable \|\| !canRedo\}/);
+  assert.ok(toolbar.indexOf('aria-label="Add block"') < toolbar.indexOf('<HistoryActions'));
+  assert.ok(toolbar.indexOf('<HistoryActions') < toolbar.indexOf('aria-label="List View"'));
+  for (const [prop, value] of [["onUndo", "onUndo"], ["onRedo", "onRedo"], ["canUndo", "canUndo"], ["canRedo", "canRedo"], ["disabled", "!writable"]]) {
+    assert.equal(jsxProp(toolbar, "HistoryActions", prop), value);
+  }
+  const history = read("controls/history-actions.tsx");
+  assert.ok(history.indexOf('action="undo"') < history.indexOf('action="redo"'));
+  assert.match(history, /disabled=\{disabled \|\| !canUndo\}/);
+  assert.match(history, /disabled=\{disabled \|\| !canRedo\}/);
   for (const name of ["studio-prototype.tsx", "mini-golf-site-editor.tsx"]) {
     const source = read(name);
     assert.doesNotMatch(source, /aria-label="(?:Undo|Redo)"/);

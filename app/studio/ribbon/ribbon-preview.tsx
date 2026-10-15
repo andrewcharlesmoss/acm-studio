@@ -1,4 +1,5 @@
 "use client";
+import { HistoryActionButton } from "../controls/history-actions";
 import { isNativeEditingTarget, workspaceHistoryShortcut, workspaceZoomShortcut } from "../workspace-shortcuts.mjs";
 
 import { useEffect, useId, useRef, type Dispatch, type SetStateAction, type KeyboardEvent, type MouseEvent } from "react";
@@ -34,6 +35,7 @@ function Control({ control, state, setState, rememberTrigger }: ControlProps) {
       {control.kind === "range" ? <output>{value}</output> : null}
     </RibbonField>;
   }
+  if (control.id === "studio.undo" || control.id === "studio.redo") return <HistoryActionButton action={control.id === "studio.undo" ? "undo" : "redo"} presentation="ribbon" ribbonSize={control.size} data-region={control.id} disabled={Boolean(reason)} title={reason} aria-label={presentation.label} onClick={() => run()} />;
   const content = <>{icon}{!control.iconOnly && <span>{presentation.label}</span>}</>;
   const common = {
     "data-region": control.id, size: control.size, disabled: Boolean(reason),

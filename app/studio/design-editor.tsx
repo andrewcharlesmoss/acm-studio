@@ -1,5 +1,6 @@
 "use client";
 import { isNativeEditingTarget, primaryShortcutModifier, workspaceHistoryShortcut, workspaceZoomShortcut } from "./workspace-shortcuts.mjs";
+import { HistoryActions } from "./controls/history-actions";
 import { StudioDialog } from "./overlays/dialog";
 import { StudioAnchoredMenu } from "./overlays/anchored-menu";
 import { useBlobUrls } from "./controls/use-blob-urls";
@@ -1870,8 +1871,7 @@ export function DesignEditor() {
         </StudioRibbonPanel>
         <StudioRibbonPanel tab="home">
           <StudioRibbonGroup label="History">
-            <StudioRibbonButton size="large" onClick={undo} disabled={!history.length || !writable}><StudioIcon name="undo" size={24} /><span>Undo</span></StudioRibbonButton>
-            <StudioRibbonButton size="large" onClick={redo} disabled={!future.length || !writable}><StudioIcon name="redo" size={24} /><span>Redo</span></StudioRibbonButton>
+            <HistoryActions presentation="ribbon" onUndo={undo} onRedo={redo} canUndo={Boolean(history.length)} canRedo={Boolean(future.length)} disabled={!writable} />
           </StudioRibbonGroup>
           <StudioRibbonGroup label="Pages">
             <StudioRibbonButton size="large" onClick={() => setPagesCollapsed((value) => !value)} aria-expanded={!pagesCollapsed} aria-controls="design-pages-panel"><StudioIcon name="archive" size={24} /><span>{pagesCollapsed ? "Show pages" : "Hide pages"}</span></StudioRibbonButton>

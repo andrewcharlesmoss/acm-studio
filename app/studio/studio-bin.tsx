@@ -1,4 +1,5 @@
 "use client";
+import { BinFeedback, BinItem, BinList, BinRestoreButton } from "./bin-presentation";
 import { GlobalTemplateBinPanel } from "./global-template-bin-panel";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 
@@ -136,11 +137,10 @@ export function StudioBin({ globals, workspace, templates, siteId, commitContent
   return <section className="studio-bin" aria-labelledby="studio-bin-title">
     <header><div><p className="studio-eyebrow">Recover deleted work</p><h1 id="studio-bin-title">Bin</h1><p>Restore pages, posts and templates, or permanently delete them when you’re sure.</p></div><span>{entries.length + (globals?.store.bin.length ?? 0)} {(entries.length + (globals?.store.bin.length ?? 0)) === 1 ? "item" : "items"}</span></header>
     {globals ? <GlobalTemplateBinPanel session={globals} /> : null}
-    {feedback ? <p className="studio-bin-feedback" role="status">{feedback}</p> : null}
-    {entries.length ? <ul className="studio-bin-list">{entries.map(entry => <li className="studio-bin-item" key={`${entry.kind}/${entry.id}`}>
-      <span className="document-kind-mark" aria-hidden="true">{entry.mark}</span><span className="studio-bin-copy"><strong>{entry.label}</strong><small>{entry.detail}</small></span>
-      <div className="studio-bin-actions"><button type="button" disabled={!writable} onClick={() => entry.kind === "document" ? restoreDocument(workspace.workspace.bin.find(item => item.id === entry.id)!) : restoreTemplate(templates.store.bin.find(item => item.id === entry.id)!)}><StudioIcon name="undo" size={16} />Restore</button><button className="danger-button" type="button" disabled={!writable} onClick={event => askPermanentDelete(event, entry)}><StudioIcon name="trash" size={16} />Delete permanently</button></div>
-    </li>)}</ul> : <p className="studio-bin-empty">{globals?.store.bin.length ? "No items in this context’s Bin." : "The Bin is empty."}</p>}
+    <BinFeedback>{feedback}</BinFeedback>
+    <BinList hasItems={Boolean(entries.length)} emptyMessage={globals?.store.bin.length ? "No items in this context’s Bin." : "The Bin is empty."}>{entries.map(entry => <BinItem key={`${entry.kind}/${entry.id}`} mark={entry.mark} label={entry.label} detail={entry.detail}>
+      <BinRestoreButton disabled={!writable} onClick={() => entry.kind === "document" ? restoreDocument(workspace.workspace.bin.find(item => item.id === entry.id)!) : restoreTemplate(templates.store.bin.find(item => item.id === entry.id)!)} /><button className="danger-button" type="button" disabled={!writable} onClick={event => askPermanentDelete(event, entry)}><StudioIcon name="trash" size={16} />Delete permanently</button>
+    </BinItem>)}</BinList>
     {permanentTarget ? <StudioDialog title="Delete permanently?" className="template-dialog" returnFocus={openerRef} onClose={closePermanentDialog}>
       <p>This will permanently delete “{permanentTarget.label}”. You won’t be able to restore it.</p>
       <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closePermanentDialog}>Cancel</StudioButton><button className="button-primary danger-button" type="button" disabled={!writable} onClick={() => permanentlyDelete(permanentTarget)}>Delete permanently</button></StudioDialogActions>
