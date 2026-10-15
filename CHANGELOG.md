@@ -26,6 +26,9 @@
 
 ### Added
 
+- Add a Zoom slider specimen using the shared Design zoom control, with the
+  100% midpoint, 10–500% limits, percentage feedback, and grab cursor.
+
 - Add a Resize handles specimen using shared Design controls and geometry, with
   shapes, images, Shift stretching, zoom, rotation, cancellation, and Undo/Redo.
 

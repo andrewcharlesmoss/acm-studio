@@ -125,3 +125,12 @@
 .ui-history-example-variant { margin-block:16px; }
 
 .ui-resize-stage { display:block; width:100%; max-width:420px; height:auto; overflow:hidden; touch-action:none; }
+
+.ui-zoom-specimen { display:grid; gap:12px; }
+.ui-zoom-example-row { align-items:start; display:grid; gap:12px; grid-template-columns:auto minmax(0, 1fr) auto; max-width:440px; padding-top:24px; }
+.ui-zoom-example-row > label, .ui-zoom-example-row > output { line-height:40px; }
+.ui-zoom-example-row > output { font-variant-numeric:tabular-nums; min-width:4ch; text-align:right; }
+.ui-zoom-example-track { min-width:0; }
+.ui-zoom-example-scale { display:grid; grid-template-columns:repeat(3, 1fr); }
+.ui-zoom-example-scale > :nth-child(2) { text-align:center; }
+.ui-zoom-example-scale > :last-child { text-align:right; }

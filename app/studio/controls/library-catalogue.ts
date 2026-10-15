@@ -34,6 +34,14 @@ export const studioControlEntries: StudioControlEntry[] = [
     compatibility: "Memory-only fixture. Popovers, dialogs, image choices, and Blob URL ownership use their production implementations. Feature permissions, mutations, and provider confirmations remain with callers.",
   },
   {
+    id: "zoom-slider", title: "Zoom slider", group: "Foundation",
+    purpose: "Test the 100% midpoint, 10–500% range, percentage feedback, and grab cursor using the Design zoom control.",
+    owner: "ACM Studio zoom controls", consumers: ["Design canvas", "Controls Library specimen"],
+    dependencies: [{ kind: "inherits", label: "ZoomRangeControl and RangeControl", entryId: "slider-foundation", detail: "Shares the production scale, percentage keyboard steps, accessibility, above-track label, and grab/grabbing cursor." }],
+    states: "100% midpoint, minimum and maximum, pointer and keyboard input, hover, dragging, focus, and Reset.",
+    compatibility: "Memory-only value. Design owns its viewport, Fit command, shortcuts, and canvas presentation.",
+  },
+  {
     id: "resize-handles", title: "Resize handles", group: "Foundation",
     purpose: "Try proportional resizing and Shift to stretch using Design’s shared handles and geometry.",
     owner: "ACM Studio canvas controls", consumers: ["Design canvas", "Controls Library specimen"],

@@ -890,3 +890,12 @@ history, and preview controls are memory-only adapters. Drag corner or side
 handles, hold Shift to stretch or Alt to resize from the centre, then try zoom,
 rotation, read-only mode, Escape cancellation, Reset example, and Undo/Redo.
 The shared catalogue preview uses this same specimen definition.
+
+### Zoom slider specimen
+
+Controls → Zoom slider (`/studio/ui/controls#zoom-slider`) inherits
+`ZoomRangeControl`, its shared `RangeControl`, and `zoom-range-scale.ts`.
+Only the temporary percentage and surrounding scale legend belong to the demo.
+The default and Reset example value is 100%, at the track midpoint; the limits
+remain 10% and 500%. Pointer cursors, percentage labels, focus, and keyboard input
+come from the shared control. The catalogue preview uses this same definition.

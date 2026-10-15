@@ -50,3 +50,14 @@ test("the production adapter maps input and accessibility to zoom rather than tr
   assert.match(html, /data-tooltip-placement="above"/);
   assert.match(html, /value="500"/);
 });
+
+test("the Library zoom specimen starts at the production midpoint with percentage semantics", async () => {
+  const { ZoomSliderSpecimen } = await loadProductionModule(new URL("../app/studio/ui/controls/zoom-slider-specimen.tsx", import.meta.url));
+  const html = renderToStaticMarkup(createElement(ZoomSliderSpecimen));
+  assert.match(html, /aria-label="Zoom slider example"/);
+  assert.match(html, /aria-valuemin="10" aria-valuemax="500" aria-valuenow="100" aria-valuetext="100%"/);
+  assert.match(html, /value="500"/);
+  assert.match(html, /data-tooltip-placement="above"/);
+  assert.match(html, /<span>10%<\/span><span>100%<\/span><span>500%<\/span>/);
+  assert.match(html, /<output[^>]*>100%<\/output>/);
+});
