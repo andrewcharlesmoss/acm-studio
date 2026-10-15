@@ -8,6 +8,8 @@ import { loadProductionModule } from "./production-module.mjs";
 const { contentMediaIds } = await loadProductionModule(new URL("../app/content/media-references.ts", import.meta.url));
 const { setListItemBackgroundImage } = await loadProductionModule(new URL("../app/studio/list-item-background.ts", import.meta.url));
 const source = await readFile(process.env.STUDIO_MEDIA_HOOK_SOURCE || new URL("../app/studio/use-studio-media.ts", import.meta.url), "utf8");
+const blobSource = await readFile(new URL("../app/studio/controls/use-blob-urls.ts", import.meta.url), "utf8");
+const blobCompiled = ts.transpileModule(blobSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 
 function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage } = {}) {
@@ -26,6 +28,7 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage } = {}
   vm.runInNewContext(compiled, { exports, URL, Blob, crypto, queueMicrotask, Promise,
     require(name) {
       if (name === "react") return react;
+      if (name.endsWith("use-blob-urls")) { const module = { exports: {} }; vm.runInNewContext(blobCompiled, { module, exports: module.exports, require: () => react, URL, queueMicrotask }); return module.exports; }
       if (name.endsWith("media-sync")) return { useMediaSession: () => ({ revision: 0 }) };
       if (name.endsWith("media-store")) return { getMediaAsset: async () => undefined };
       if (name.endsWith("media-references")) return { contentMediaIds };

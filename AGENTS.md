@@ -154,6 +154,15 @@ use the shared inset layout or declare `flushRegions` when they contain full-wid
 sections. Keep pane edges free of padding and margin; do not override region
 padding in consumer CSS. Feature content retains its own internal spacing.
 
+Studio popovers and menus inherit `StudioAnchoredPopover` and
+`StudioAnchoredMenu`; point context menus and submenus use the same placement and
+dismissal foundation. Native modal flows inherit `StudioDialog`. Keep pending
+request dismissal restrictions, editing commits, permissions, and range ownership
+in their feature adapters. Specialised colour/gradient editors retain their
+shared controls and overlay dismissal contract. Image resource maps use
+`useBlobUrls`, and simple image choosers use `ImageChoiceGrid`; never allocate
+persistent preview URLs during render. See `docs/studio-ui-library.md`.
+
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and
 UI Library specimens, including control menus, colour and gradient editors,

@@ -397,10 +397,10 @@ test("the block inspector has one settings panel while document tabs and popover
   assert.match(source, /<div className="inspector-sections">\{blockSettings\}\{requiredSettings\}<\/div>/);
   assert.doesNotMatch(blockInspector, /<PaneTabs|<PaneTabPanel|hasStudioOptions|studioSettings|defaultTab/);
   assert.match(source, /const tabs = \["document", "studio", "block", "styles"\] as const/);
-  assert.match(source, /function usePortalRoot\(\)/);
-  assert.match(source, /excerptOpen && portalRoot \? createPortal/);
-  assert.match(source, /statusOpen && portalRoot \? createPortal/);
-  assert.match(source, /publishOpen && portalRoot \? createPortal/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/anchored-popover.tsx", import.meta.url), "utf8"), /createPortal\([\s\S]*?document.body/);
+  assert.match(source, /excerptOpen \? <StudioAnchoredPopover id=\{excerptPopoverId\}/);
+  assert.match(source, /statusOpen \? <StudioAnchoredPopover id=\{statusPopoverId\}/);
+  assert.match(source, /publishOpen \? <StudioAnchoredPopover/);
 });
 
 test("table editing exposes row and column actions from the toolbar menu", async () => {
@@ -636,10 +636,10 @@ test("double-clicking a local image opens an accessible media preview", async ()
     readFile(new URL("../app/studio/media.css", import.meta.url), "utf8"),
   ]);
   assert.match(manager, /onDoubleClick=\{\(event\) => openImagePreview\(asset, event\.currentTarget\)\}/);
-  assert.match(manager, /<dialog ref=\{previewDialogRef\} className="media-preview-dialog" aria-labelledby="media-preview-title"/);
-  assert.match(manager, /aria-label="Close image preview"/);
-  assert.match(manager, /dialog\.showModal\(\)/);
-  assert.match(manager, /previewTriggerRef\.current\?\.focus\(\)/);
+  assert.match(manager, /<StudioDialog title=\{previewAsset.name\} closeLabel="Close image preview"/);
+  assert.match(manager, /closeLabel="Close image preview"/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/dialog.tsx", import.meta.url), "utf8"), /dialog\.showModal\(\)/);
+  assert.match(manager, /returnFocus=\{previewTriggerRef\}/);
   assert.match(styles, /\.media-preview-dialog::backdrop \{ background: rgba\(25, 26, 28, \.72\); \}/);
 });
 
@@ -669,10 +669,10 @@ test("the document inspector exposes Gutenberg-style status and publish date con
   assert.match(source, /documentStatusDescription/);
   assert.match(source, /onChange\("publishAt"/);
   assert.match(source, /aria-haspopup="dialog" aria-controls="publish-date-popover"/);
-  assert.match(source, /publishOpen && portalRoot \? createPortal\(<div ref=\{publishPopoverRef\} id="publish-date-popover"[\s\S]*?portalRoot\) : null\}/);
+  assert.match(source, /publishOpen \? <StudioAnchoredPopover id="publish-date-popover"[\s\S]*?<\/StudioAnchoredPopover>/);
   assert.match(source, /className="post-excerpt-control"[\s\S]*?post-content-summary[\s\S]*?className="document-properties"[\s\S]*?label="Slug"[\s\S]*?label="Author"/);
   assert.match(source, /<div className="post-summary-block">[\s\S]*?document\.kind === "post" \? <>[\s\S]*?className="post-excerpt-control"[\s\S]*?className="post-content-summary"/);
-  assert.match(source, /watchInspectorPopover\(publishTriggerRef\.current, publishPopoverRef\.current, 320, setPublishPopoverPosition, \{ topOffset: -12 \}\)/);
+  assert.match(source, /anchor=\{\(\) => publishTriggerRef.current\} inspectorPlacement topOffset=\{-12\}/);
   assert.match(source, /globalThis\.document\.addEventListener\("pointerdown", closePublishPopover\)/);
   assert.match(source, /event\.target\.closest\("button, input, select, textarea, a\[href\], \[tabindex\]:not\(\[tabindex='-1'\]\)"\)/);
   assert.match(source, /event\.key !== "Escape"/);
@@ -685,15 +685,15 @@ test("post excerpts open in a Gutenberg-style pane beside the inspector", async 
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
   assert.match(source, /document\.excerpt\.trim\(\) \? "Edit excerpt" : "Add an excerpt…"/);
-  assert.match(source, /excerptOpen && portalRoot \? createPortal\(<section ref=\{excerptPopoverRef\} id=\{excerptPopoverId\}[^\n]*role="dialog" aria-label="Excerpt"/);
-  assert.match(source, /className="inspector-popover post-excerpt-popover"[\s\S]*?portalRoot\) : null\}/);
-  assert.match(source, /statusOpen && portalRoot \? createPortal\(<div ref=\{statusPopoverRef\}[\s\S]*?portalRoot\) : null\}/);
-  assert.match(source, /function usePortalRoot\(\)[\s\S]*?setPortalRoot\(globalThis\.document\?\.body \?\? null\)/);
-  assert.match(source, /aria-label="Close excerpt"/);
+  assert.match(source, /excerptOpen \? <StudioAnchoredPopover id=\{excerptPopoverId\}/);
+  assert.match(source, /className="inspector-popover post-excerpt-popover"[\s\S]*?<\/StudioAnchoredPopover>/);
+  assert.match(source, /statusOpen \? <StudioAnchoredPopover id=\{statusPopoverId\}/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/anchored-popover.tsx", import.meta.url), "utf8"), /createPortal\([\s\S]*?document.body/);
+  assert.match(source, /closeLabel="Close excerpt"/);
   assert.doesNotMatch(source, /Learn more about manual excerpts|wordpress\.org/);
   assert.match(source, /Leave blank and Studio will generate a summary\./);
-  assert.match(source, /function closeWithEscape\(event: globalThis\.KeyboardEvent\)[\s\S]*?setExcerptOpen\(false\)[\s\S]*?excerptTriggerRef\.current\?\.focus\(\)/);
-  assert.match(source, /watchInspectorPopover\(excerptTriggerRef\.current, excerptPopoverRef\.current, 640, setExcerptPopoverPosition, \{ topOffset: -12 \}\)/);
+  assert.match(source, /onClose=\{restore => \{ setExcerptOpen\(false\); if \(restore\) requestAnimationFrame/);
+  assert.match(source, /preferredWidth=\{640\} topOffset=\{-12\} focusOnMount/);
   const positioning = await readFile(new URL("../app/studio/panes/inspector-popover-geometry.mjs", import.meta.url), "utf8");
   assert.match(positioning, /Math\.min\(ownerLeft, boundaryLeft\) - width - 12/, "the shared owner positions the excerpt to the pane's left");
   assert.match(styles, /\.post-excerpt-popover \{[^}]*position: fixed[^}]*z-index: 80/);
@@ -964,16 +964,16 @@ test("content and template list rows expose keyboard and pointer context menus",
     assert.match(source, /event\.key === "F10" && event\.shiftKey/);
     assert.match(source, /aria-haspopup="menu"/);
   }
-  assert.match(menu, /role="menu"/);
+  assert.match(menu, /<StudioAnchoredMenu/);
   assert.match(menu, /<StudioMenuItem/);
   assert.match(sharedMenu, /role="menuitem"/);
-  assert.match(menu, /navigateStudioMenu\(event, \(\) => \{ onClose\(\); requestAnimationFrame/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/anchored-menu.tsx", import.meta.url), "utf8"), /navigateStudioMenu\(event, onClose\)/);
   assert.match(sharedMenu, /event\.key === "Escape"/);
   assert.match(menu, /returnFocusRef/);
   assert.match(menu, /disabledReason/);
   assert.match(menu, /actions = \[\]/);
-  assert.match(menu, /getBoundingClientRect\(\)/);
-  assert.match(menu, /viewportHeight - menuHeight - 8/);
+  assert.match(menu, /point=\{\{ x: target.x, y: target.y \}\}/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/anchored-menu-position.mjs", import.meta.url), "utf8"), /viewportHeight - height - 8/);
   assert.match(menu, /is-destructive/);
   assert.match(styles, /\.studio-list-context-menu \{/);
   assert.doesNotMatch(templateWorkspace, /function renderTemplateSetCard|template-set-context-trigger/);
@@ -2232,9 +2232,9 @@ test("media folders use a folder silhouette, hoverable colour choices and aligne
   const manager = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
   assert.match(manager, /StudioIcon name="folder" size=\{64\}/);
   assert.doesNotMatch(manager, /StudioIcon name="archive"/);
-  assert.match(manager, /onMouseEnter=\{\(event\) => openColourMenu\(event.currentTarget\)/);
+  assert.match(manager, /onMouseEnter=\{\(\) => openColourMenu\(\)/);
   assert.match(manager, /event.key === "ArrowRight"/);
-  assert.match(manager, /\}, \[folderMenuId\]\)/);
+  assert.match(manager, /useEffect\(\(\) => \(\) => cancelColourMenuClose\(\), \[folderMenuId\]\)/);
   const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
   assert.match(css, /\.media-entries.is-list \.folder-glyph \{[^}]*height: 44px;[^}]*margin: 0; width: 46px/);
   assert.match(css, /\.media-entries.is-list \.media-thumbnail \{ height: 44px; width: 46px/);
@@ -2258,21 +2258,21 @@ test("folder palette offers exactly the requested colours and can clear a saved 
 test("folder colours open in a labelled side submenu with return navigation", () => {
   const manager = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
   assert.match(manager, /className="folder-colour-icon" aria-hidden="true"/);
-  assert.match(manager, /className="folder-colour-menu"[^>]*role="menu" aria-label="Folder colour"/);
+  assert.match(manager, /placement="submenu"[\s\S]*?className="folder-colour-menu"/);
   assert.match(manager, /aria-controls="folder-colour-menu" aria-expanded=\{folderMenu.colours\}/);
-  assert.match(manager, /rect.right \+ 4/);
-  assert.match(manager, /event.key === "Escape" \|\| event.key === "ArrowLeft"/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/anchored-menu-position.mjs", import.meta.url), "utf8"), /anchorBounds.right \+ 4/);
+  assert.match(manager, /event.key === "ArrowLeft"/);
   assert.match(manager, /colourMenuTriggerRef.current\?\.focus\(\)/);
-  assert.match(manager, /item.closest\("\[role=menu\]"\) === event.currentTarget/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/menu.tsx", import.meta.url), "utf8"), /item.closest\('[role="menu"]'\) === menu/);
 });
 
 
 test("folder context menu omits Close while retaining dismissal and read-only focus", () => {
   const manager = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(manager, />Close<\/button>/);
-  assert.match(manager, /if \(event.key === "Escape"\)/);
-  assert.match(manager, /document.addEventListener\("pointerdown", outside\)/);
-  assert.match(manager, /\?\? folderMenuRef.current\)\?\.focus\(\)/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/use-overlay-dismiss.ts", import.meta.url), "utf8"), /event.key !== "Escape"/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/use-overlay-dismiss.ts", import.meta.url), "utf8"), /document.addEventListener\("pointerdown", pointerdown\)/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/anchored-menu.tsx", import.meta.url), "utf8"), /focusStudioMenu\(menu\)/);
 });
 
 

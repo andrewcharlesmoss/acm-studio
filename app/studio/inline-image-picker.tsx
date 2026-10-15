@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { useBlobUrls } from "./controls/use-blob-urls";
+import { ImageChoiceGrid } from "./controls/image-choice-grid";
 import type { InlineImage } from "../content/model";
 import { safeImageSource } from "../content/rich-text";
 import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
@@ -8,6 +10,7 @@ import { StudioButton } from "./controls/button";
 
 export type InlineImageChoice = { id: string; name: string; altText?: string; blob: Blob };
 export type InlineImageLibrary = () => Promise<InlineImageChoice[]>;
+const emptyChoices: InlineImageChoice[] = [];
 
 /** Measure before proposing an object; a failed load never changes source text. */
 export function measureInlineImage(src: string): Promise<number> {
@@ -35,17 +38,17 @@ export function InlineImagePicker({ loadImages, replacing, returnFocus, onChoose
   onChoose: (image: InlineImage) => boolean;
   onClose: () => void;
 }) {
-  const [choices, setChoices] = useState<(InlineImageChoice & { url: string })[] | null>(loadImages ? null : []);
+  const [choices, setChoices] = useState<InlineImageChoice[] | null>(loadImages ? null : []);
   const [error, setError] = useState<string | null>(null);
   const [url, setUrl] = useState("");
   const [alt, setAlt] = useState("");
   const [busy, setBusy] = useState(false);
+  const imageUrls = useBlobUrls(choices ?? emptyChoices);
   const generation = useRef(0);
   const pending = useRef(false);
   useEffect(() => {
     const epoch = ++generation.current;
     pending.current = false;
-    const urls: string[] = [];
     void Promise.resolve().then(() => {
       if (generation.current !== epoch) return;
       setBusy(false);
@@ -54,19 +57,14 @@ export function InlineImagePicker({ loadImages, replacing, returnFocus, onChoose
       return loadImages?.();
     }).then(records => {
       if (generation.current !== epoch) return;
-      const loaded = (records ?? []).map(record => {
-        const objectUrl = URL.createObjectURL(record.blob);
-        urls.push(objectUrl);
-        return { ...record, url: objectUrl };
-      });
-      setChoices(loaded);
+      setChoices(records ?? []);
     }).catch(() => {
       if (generation.current === epoch) setError("Local images could not be loaded. Close and reopen the picker to try again.");
     });
     // This is a request generation counter, not a mounted DOM ref.
     // Invalidate the latest decode as well as this provider session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    return () => { generation.current++; urls.forEach(value => URL.revokeObjectURL(value)); };
+    return () => { generation.current++; };
   }, [loadImages]);
 
   async function choose(src: string, descriptor: Omit<InlineImage, "width">) {
@@ -89,11 +87,7 @@ export function InlineImagePicker({ loadImages, replacing, returnFocus, onChoose
   return <StudioDialog title={replacing ? "Replace image" : "Insert inline image"} returnFocus={returnFocus} onClose={() => { generation.current++; onClose(); }} className="inline-image-picker">
     {loadImages ? <section aria-label="Local images">
       <h3>Local images</h3>
-      {choices === null ? <p role="status">Loading local images…</p> : choices.length === 0 ? <p>No local images are available.</p> : <div className="inline-image-choices">{choices.map(choice => <button key={choice.id} type="button" disabled={busy} onClick={() => void choose(choice.url, { type: "image", mediaId: choice.id, alt: choice.altText ?? "" })}>
-        {/* Native images display caller-owned, transient Blob URLs. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={choice.url} alt="" /><span>{choice.name}</span>
-      </button>)}</div>}
+      <ImageChoiceGrid choices={choices ?? emptyChoices} urls={imageUrls} loading={choices === null} disabled={busy} empty="No local images are available." className="inline-image-choices" onChoose={(choice, src) => void choose(src, { type: "image", mediaId: choice.id, alt: choice.altText ?? "" })} />
     </section> : null}
     <form onSubmit={event => {
       event.preventDefault();

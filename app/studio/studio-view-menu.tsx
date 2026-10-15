@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { StudioAnchoredMenu } from "./overlays/anchored-menu";
 import { StudioFocusOutlineSetting } from "./focus-outline-preferences";
 import { useResponsiveStyleScope } from "./responsive-style-context";
 import { StudioIcon } from "./studio-icons";
@@ -38,36 +39,6 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
     if (restoreFocus) requestAnimationFrame(() => triggerRef.current?.isConnected && triggerRef.current.focus());
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    (activeViewportRef.current ?? closeRef.current)?.focus();
-    function onPointerDown(event: PointerEvent) {
-      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) closeMenu(false);
-    }
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeMenu();
-        return;
-      }
-      if (event.target instanceof HTMLSelectElement) return;
-      if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
-        const items = [...(rootRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]:not(:disabled)') ?? [])];
-        const current = items.indexOf(document.activeElement as HTMLElement);
-        if (!items.length) return;
-        event.preventDefault();
-        const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (current + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
-        items[next]?.focus();
-      }
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open, closeMenu]);
-
   function chooseViewport(next: StudioViewport) {
     onViewportChange?.(next);
     closeMenu();
@@ -84,7 +55,7 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
     <button ref={triggerRef} className="studio-view-trigger" type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)} onKeyDown={handleTriggerKeyDown}>
       <span>View</span><StudioIcon name="chevron-down" size={16} aria-hidden="true" />
     </button>
-    {open ? <div className="studio-view-popover" role="menu" aria-label="View options">
+    {open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} align="end" initialFocus={() => activeViewportRef.current ?? closeRef.current} onClose={closeMenu} className="studio-view-popover" aria-label="View options">
       <div className="studio-view-popover-heading"><strong>View</strong><button ref={closeRef} type="button" aria-label="Close View menu" onClick={() => closeMenu()}><StudioIcon name="close" size={18} /></button></div>
       {onViewModeChange ? <div className="studio-view-group" aria-label="Workspace view">
         {([ ["editing", "Editing View"], ["website", "Website View"], ["full", "Full Preview"] ] as const).map(([id, label]) => <button className="studio-view-option" type="button" role="menuitemradio" aria-checked={viewMode === id} key={id} onClick={() => { onViewModeChange(id); closeMenu(); }}>
@@ -112,7 +83,7 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
           <span><strong>Preview in new tab</strong></span><StudioIcon name="external" size={18} aria-hidden="true" />
         </button>
       </div> : null}
-    </div> : null}
+    </StudioAnchoredMenu> : null}
   </div>;
 }
 

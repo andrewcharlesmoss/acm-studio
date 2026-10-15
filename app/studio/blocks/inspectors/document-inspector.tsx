@@ -4,9 +4,9 @@ import { StudioButton } from "../../controls/button";
 import { FeaturedImageControl } from "../../controls/featured-image-control";
 import { InspectorSettingRow, InspectorSettingsSection } from "../../controls/inspector-setting-row";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
-import { watchInspectorPopover } from "../../panes/inspector-popover-position";
-import { createPortal } from "react-dom";
+import { useId, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { PopoverHeading as StudioPopoverHeading } from "../../overlays/popover-heading";
+import { StudioAnchoredPopover } from "../../overlays/anchored-popover";
 import type { DocumentDisplayField } from "../../../content/model";
 import { formatDocumentDate } from "../../../content/document-metadata";
 import { contentWordCount, readingTimeMinutes } from "../../../content/reading-time";
@@ -17,15 +17,7 @@ import { documentDisplaySource, type FieldUsage } from "../../document-fields";
 import { createPasswordProtection } from "../../../content/password-protection";
 import { MONTH_NAMES, WEEKDAY_NAMES, formatCalendarMonth, formatPublicationTimezone, formatPublishDate, getCalendarDays, isSameCalendarDay, makePublicationDate, parsePublicationDate, startOfMonth } from "../../publication-date";
 
-function usePortalRoot() {
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    // Resolve the body after hydration so server and first client renders match.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalRoot(globalThis.document?.body ?? null);
-  }, []);
-  return portalRoot;
-}
+
 
 export type LocalDocumentPublication = { status: "draft" | "published"; publishedAt?: string; busy?: boolean };
 
@@ -70,9 +62,7 @@ export function DocumentStickyControl({ document, siteContext = false, disabled 
 }
 
 export function DocumentInspector({ writable = true, siteContext = false, localPublication, panel, documentControls, document, resolvedDocument, categories, tagSuggestions, onCategorySelectionChange, onAddCategory, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate, pages, calendarPosts = [], onOpenCoverMediaLibrary, onRemoveCoverImage, coverImageUrl, onChange, onUnpublish, onStatusChange, onDuplicate, onDelete, canDelete, canDuplicate, allowedStatuses = ["draft", "pending", "private", "scheduled", "published"], allowedPageTemplates = ["default", "wide", "landing"] }: DocumentInspectorProps) {
-  const portalRoot = usePortalRoot();
   const [statusOpen, setStatusOpen] = useState(false);
-  const [statusPopoverPosition, setStatusPopoverPosition] = useState<{ left: number; top: number } | null>(null);
   const [passwordEditorOpen, setPasswordEditorOpen] = useState(false);
   const [passwordDraft, setPasswordDraft] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -81,16 +71,11 @@ export function DocumentInspector({ writable = true, siteContext = false, localP
   const passwordSavingRef = useRef(false);
   const passwordSaveGenerationRef = useRef(0);
   const [publishOpen, setPublishOpen] = useState(false);
-  const [publishPopoverPosition, setPublishPopoverPosition] = useState<{ left: number; top: number } | null>(null);
   const [excerptOpen, setExcerptOpen] = useState(false);
-  const [excerptPopoverPosition, setExcerptPopoverPosition] = useState<{ left: number; top: number } | null>(null);
   const statusTriggerRef = useRef<HTMLButtonElement>(null);
-  const statusPopoverRef = useRef<HTMLDivElement>(null);
   const publishTriggerRef = useRef<HTMLButtonElement>(null);
-  const publishPopoverRef = useRef<HTMLDivElement>(null);
   const publishHourInputRef = useRef<HTMLInputElement>(null);
   const excerptTriggerRef = useRef<HTMLButtonElement>(null);
-  const excerptPopoverRef = useRef<HTMLDivElement>(null);
   const excerptInputRef = useRef<HTMLTextAreaElement>(null);
   const statusLabel = documentStatusLabel(document.status);
   const dateValue = document.publishAt ?? (siteContext ? document.publishedAt : undefined);
@@ -183,42 +168,6 @@ export function DocumentInspector({ writable = true, siteContext = false, localP
     postsByCalendarDay.set(key, (postsByCalendarDay.get(key) ?? 0) + 1);
   }
 
-  useLayoutEffect(() => {
-    if (!statusOpen) return;
-
-    const stopPositioning = watchInspectorPopover(statusTriggerRef.current, statusPopoverRef.current, 360, setStatusPopoverPosition, { topOffset: 0 });
-    return () => {
-      stopPositioning();
-    };
-  }, [statusOpen]);
-
-  useEffect(() => {
-    if (!statusOpen) return;
-    function closeWithEscape(event: globalThis.KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setStatusOpen(false);
-      requestAnimationFrame(() => statusTriggerRef.current?.focus());
-    }
-    function closeOnOutsidePointer(event: globalThis.PointerEvent) {
-      if (statusPopoverRef.current?.contains(event.target as Node) || statusTriggerRef.current?.contains(event.target as Node)) return;
-      setStatusOpen(false);
-    }
-    function closeOnOutsideFocus(event: globalThis.FocusEvent) {
-      if (!statusPopoverRef.current?.contains(event.target as Node) && !statusTriggerRef.current?.contains(event.target as Node)) setStatusOpen(false);
-    }
-    const focusFrame = requestAnimationFrame(() => statusPopoverRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());
-    globalThis.document.addEventListener("focusin", closeOnOutsideFocus);
-    globalThis.document.addEventListener("keydown", closeWithEscape);
-    globalThis.document.addEventListener("pointerdown", closeOnOutsidePointer);
-    return () => {
-      cancelAnimationFrame(focusFrame);
-      globalThis.document.removeEventListener("focusin", closeOnOutsideFocus);
-      globalThis.document.removeEventListener("keydown", closeWithEscape);
-      globalThis.document.removeEventListener("pointerdown", closeOnOutsidePointer);
-    };
-  }, [statusOpen]);
-
   async function savePasswordProtection(value = passwordDraft) {
     if (!value || passwordSavingRef.current) return;
     passwordSavingRef.current = true;
@@ -240,66 +189,6 @@ export function DocumentInspector({ writable = true, siteContext = false, localP
     }
   }
 
-  useLayoutEffect(() => {
-    if (!publishOpen) return;
-
-    function closePublishPopover(event: globalThis.PointerEvent) {
-      if (publishPopoverRef.current?.contains(event.target as Node) || publishTriggerRef.current?.contains(event.target as Node)) return;
-      setPublishOpen(false);
-      if (!(event.target instanceof Element) || !event.target.closest("button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])")) requestAnimationFrame(() => publishTriggerRef.current?.focus());
-    }
-    function closeWithEscape(event: globalThis.KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setPublishOpen(false);
-      requestAnimationFrame(() => publishTriggerRef.current?.focus());
-    }
-    const stopPositioning = watchInspectorPopover(publishTriggerRef.current, publishPopoverRef.current, 320, setPublishPopoverPosition, { topOffset: -12 });
-    function closeOnOutsideFocus(event: globalThis.FocusEvent) {
-      if (!publishPopoverRef.current?.contains(event.target as Node) && !publishTriggerRef.current?.contains(event.target as Node)) setPublishOpen(false);
-    }
-    globalThis.document.addEventListener("focusin", closeOnOutsideFocus);
-    globalThis.document.addEventListener("pointerdown", closePublishPopover);
-    globalThis.document.addEventListener("keydown", closeWithEscape);
-    requestAnimationFrame(() => publishHourInputRef.current?.focus());
-    return () => {
-      stopPositioning();
-      globalThis.document.removeEventListener("focusin", closeOnOutsideFocus);
-      globalThis.document.removeEventListener("pointerdown", closePublishPopover);
-      globalThis.document.removeEventListener("keydown", closeWithEscape);
-    };
-  }, [publishOpen]);
-
-  useLayoutEffect(() => {
-    if (!excerptOpen) return;
-
-    function closeExcerptPopover(event: globalThis.PointerEvent) {
-      if (excerptPopoverRef.current?.contains(event.target as Node) || excerptTriggerRef.current?.contains(event.target as Node)) return;
-      setExcerptOpen(false);
-      if (!(event.target instanceof Element) || !event.target.closest("button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])")) requestAnimationFrame(() => excerptTriggerRef.current?.focus());
-    }
-    function closeWithEscape(event: globalThis.KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setExcerptOpen(false);
-      requestAnimationFrame(() => excerptTriggerRef.current?.focus());
-    }
-    const stopPositioning = watchInspectorPopover(excerptTriggerRef.current, excerptPopoverRef.current, 640, setExcerptPopoverPosition, { topOffset: -12 });
-    function closeOnOutsideFocus(event: globalThis.FocusEvent) {
-      if (!excerptPopoverRef.current?.contains(event.target as Node) && !excerptTriggerRef.current?.contains(event.target as Node)) setExcerptOpen(false);
-    }
-    globalThis.document.addEventListener("focusin", closeOnOutsideFocus);
-    globalThis.document.addEventListener("pointerdown", closeExcerptPopover);
-    globalThis.document.addEventListener("keydown", closeWithEscape);
-    requestAnimationFrame(() => excerptInputRef.current?.focus());
-    return () => {
-      stopPositioning();
-      globalThis.document.removeEventListener("focusin", closeOnOutsideFocus);
-      globalThis.document.removeEventListener("pointerdown", closeExcerptPopover);
-      globalThis.document.removeEventListener("keydown", closeWithEscape);
-    };
-  }, [excerptOpen]);
-
   const isDocumentPanel = panel === "document";
   const hasCategories = document.kind === "post";
   const postWordCount = contentWordCount(document.blocks);
@@ -317,16 +206,16 @@ export function DocumentInspector({ writable = true, siteContext = false, localP
           {document.kind === "post" ? <>
           <div className="post-excerpt-control">
             <button ref={excerptTriggerRef} className="post-excerpt-trigger" type="button" aria-expanded={excerptOpen} aria-haspopup="dialog" aria-controls={excerptPopoverId} onClick={() => { setStatusOpen(false); setPublishOpen(false); setExcerptOpen(open => !open); }}>{document.excerpt.trim() ? "Edit excerpt" : "Add an excerpt…"}</button>
-            {excerptOpen && portalRoot ? createPortal(<section ref={excerptPopoverRef} id={excerptPopoverId} className="inspector-popover post-excerpt-popover" role="dialog" aria-label="Excerpt" style={excerptPopoverPosition ?? undefined}><div className="inspector-popover-heading"><h2>Excerpt</h2><button type="button" aria-label="Close excerpt" onClick={() => { setExcerptOpen(false); requestAnimationFrame(() => excerptTriggerRef.current?.focus()); }}><StudioIcon name="close" size={20} /></button></div><textarea ref={excerptInputRef} aria-label="Excerpt" rows={6} value={document.excerpt} onChange={(event) => onChange("excerpt", event.target.value)} /><p className="setting-note">Leave blank and Studio will generate a summary.</p></section>, portalRoot) : null}
+            {excerptOpen ? <StudioAnchoredPopover id={excerptPopoverId} anchor={() => excerptTriggerRef.current} inspectorPlacement preferredWidth={640} topOffset={-12} focusOnMount initialFocus={() => excerptInputRef.current} label="Excerpt" className="inspector-popover post-excerpt-popover" onClose={restore => { setExcerptOpen(false); if (restore) requestAnimationFrame(() => excerptTriggerRef.current?.focus()); }}><StudioPopoverHeading className="inspector-popover-heading" title="Excerpt" closeLabel="Close excerpt" onClose={() => { setExcerptOpen(false); requestAnimationFrame(() => excerptTriggerRef.current?.focus()); }} /><textarea ref={excerptInputRef} aria-label="Excerpt" rows={6} value={document.excerpt} onChange={(event) => onChange("excerpt", event.target.value)} /><p className="setting-note">Leave blank and Studio will generate a summary.</p></StudioAnchoredPopover> : null}
           </div>
           </> : null}
           <div className="post-content-summary" aria-label="Document content summary"><span>{postWordCount} {postWordCount === 1 ? "word" : "words"}, {postReadingTime} {postReadingTime === 1 ? "minute" : "minutes"} reading time</span><span>Last edited {lastEdited}</span></div>
         </div>
         <InspectorSettingsSection className="document-properties">
           <div className="inspector-setting-row"><span>Status</span><button ref={statusTriggerRef} className="inspector-setting-trigger" type="button" disabled={siteContext && localPublication?.busy} aria-expanded={statusOpen} aria-haspopup="dialog" aria-controls={statusPopoverId} onClick={() => { setExcerptOpen(false); setStatusOpen((open) => !open); }}>{statusLabel}</button></div>
-          {statusOpen && portalRoot ? createPortal(<div ref={statusPopoverRef} id={statusPopoverId} className="inspector-popover status-visibility-popover" role="dialog" aria-label="Status and visibility" style={statusPopoverPosition ?? undefined}><div className="inspector-popover-heading"><strong>Status &amp; visibility</strong><button type="button" aria-label="Close status and visibility" onClick={() => { setStatusOpen(false); requestAnimationFrame(() => statusTriggerRef.current?.focus()); }}><StudioIcon name="close" size={16} /></button></div><div className="status-options" role="radiogroup" aria-label="Document status">{statusOptions.map((status) => <button className="status-option" type="button" role="radio" aria-checked={document.status === status} key={status} onClick={() => { if (siteContext) { onStatusChange?.(status); setStatusOpen(false); return; } if (document.status === "scheduled" && status !== "scheduled") onUnpublish(); if (status === "scheduled" && !document.publishAt) onChange("publishAt", new Date(Date.now() + 60 * 60 * 1000).toISOString()); if (status === "published") { const now = new Date().toISOString(); onChange("publishAt", undefined); onChange("publishedAt", now); } onChange("status", status); setStatusOpen(false); }}><span className="status-radio" aria-hidden="true" /><span><strong>{documentStatusLabel(status)}</strong><small>{siteContext ? siteDocumentStatusDescription(status) : documentStatusDescription(status, document.kind)}</small></span></button>)}</div>{<><div className="password-protection-option"><div className="password-protection-toggle"><input id="password-protection-toggle" type="checkbox" checked={Boolean(document.passwordProtection) || passwordEditorOpen} onChange={(event) => { setPasswordError(""); if (event.target.checked) setPasswordEditorOpen(true); else { passwordSaveGenerationRef.current += 1; onChange("passwordProtection", null); setPasswordEditorOpen(false); setPasswordDraft(""); } }} /><label htmlFor="password-protection-toggle"><strong>Password protected</strong><small>{siteContext ? "Requires a password in the local site preview." : "Only visible to people who know the password."}</small></label></div>{passwordEditorOpen ? <div className="password-protection-editor">{document.kind === "page" && !siteContext ? <small>Page publishing is not available yet, so this setting does not protect a page preview.</small> : null}<label htmlFor="document-password">Password</label><div className="password-protection-input" aria-busy={passwordSaving} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) void savePasswordProtection(); }}><input id="document-password" type={passwordVisible ? "text" : "password"} autoComplete="new-password" maxLength={256} placeholder={document.passwordProtection ? "Enter a new password to replace it" : "Use a secure password"} value={passwordDraft} onChange={(event) => setPasswordDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void savePasswordProtection(); } }} /><button type="button" title={passwordVisible ? "Hide password" : "Show password"} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(value => !value)}><StudioIcon name={passwordVisible ? "seen-off" : "seen"} size={18} /></button></div>{document.passwordProtection ? <button className="password-protection-cancel" type="button" onClick={() => { passwordSaveGenerationRef.current += 1; setPasswordEditorOpen(false); setPasswordDraft(""); setPasswordVisible(false); }}>Cancel</button> : null}{passwordError ? <p role="status">{passwordError}</p> : null}</div> : document.passwordProtection ? <div className="password-protection-saved"><small>Password is set.</small><button type="button" onClick={() => { setPasswordError(""); setPasswordEditorOpen(true); }}>Change password</button></div> : null}</div><DocumentStickyControl document={document} siteContext={siteContext} disabled={!writable || Boolean(siteContext && localPublication?.busy)} onChange={onChange} /></>}</div>, portalRoot) : null}
+          {statusOpen ? <StudioAnchoredPopover id={statusPopoverId} anchor={() => statusTriggerRef.current} inspectorPlacement preferredWidth={360} focusOnMount initialFocus={popup => popup.querySelector('[aria-checked="true"]')} label="Status and visibility" className="inspector-popover status-visibility-popover" onClose={restore => { setStatusOpen(false); if (restore) requestAnimationFrame(() => statusTriggerRef.current?.focus()); }}><StudioPopoverHeading className="inspector-popover-heading" title="Status & visibility" closeLabel="Close status and visibility" onClose={() => { setStatusOpen(false); requestAnimationFrame(() => statusTriggerRef.current?.focus()); }} /><div className="status-options" role="radiogroup" aria-label="Document status">{statusOptions.map((status) => <button className="status-option" type="button" role="radio" aria-checked={document.status === status} key={status} onClick={() => { if (siteContext) { onStatusChange?.(status); setStatusOpen(false); return; } if (document.status === "scheduled" && status !== "scheduled") onUnpublish(); if (status === "scheduled" && !document.publishAt) onChange("publishAt", new Date(Date.now() + 60 * 60 * 1000).toISOString()); if (status === "published") { const now = new Date().toISOString(); onChange("publishAt", undefined); onChange("publishedAt", now); } onChange("status", status); setStatusOpen(false); }}><span className="status-radio" aria-hidden="true" /><span><strong>{documentStatusLabel(status)}</strong><small>{siteContext ? siteDocumentStatusDescription(status) : documentStatusDescription(status, document.kind)}</small></span></button>)}</div>{<><div className="password-protection-option"><div className="password-protection-toggle"><input id="password-protection-toggle" type="checkbox" checked={Boolean(document.passwordProtection) || passwordEditorOpen} onChange={(event) => { setPasswordError(""); if (event.target.checked) setPasswordEditorOpen(true); else { passwordSaveGenerationRef.current += 1; onChange("passwordProtection", null); setPasswordEditorOpen(false); setPasswordDraft(""); } }} /><label htmlFor="password-protection-toggle"><strong>Password protected</strong><small>{siteContext ? "Requires a password in the local site preview." : "Only visible to people who know the password."}</small></label></div>{passwordEditorOpen ? <div className="password-protection-editor">{document.kind === "page" && !siteContext ? <small>Page publishing is not available yet, so this setting does not protect a page preview.</small> : null}<label htmlFor="document-password">Password</label><div className="password-protection-input" aria-busy={passwordSaving} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) void savePasswordProtection(); }}><input id="document-password" type={passwordVisible ? "text" : "password"} autoComplete="new-password" maxLength={256} placeholder={document.passwordProtection ? "Enter a new password to replace it" : "Use a secure password"} value={passwordDraft} onChange={(event) => setPasswordDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void savePasswordProtection(); } }} /><button type="button" title={passwordVisible ? "Hide password" : "Show password"} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(value => !value)}><StudioIcon name={passwordVisible ? "seen-off" : "seen"} size={18} /></button></div>{document.passwordProtection ? <button className="password-protection-cancel" type="button" onClick={() => { passwordSaveGenerationRef.current += 1; setPasswordEditorOpen(false); setPasswordDraft(""); setPasswordVisible(false); }}>Cancel</button> : null}{passwordError ? <p role="status">{passwordError}</p> : null}</div> : document.passwordProtection ? <div className="password-protection-saved"><small>Password is set.</small><button type="button" onClick={() => { setPasswordError(""); setPasswordEditorOpen(true); }}>Change password</button></div> : null}</div><DocumentStickyControl document={document} siteContext={siteContext} disabled={!writable || Boolean(siteContext && localPublication?.busy)} onChange={onChange} /></>}</StudioAnchoredPopover> : null}
           <div className="inspector-setting-row"><span>Publish</span><button ref={publishTriggerRef} className="inspector-setting-trigger" type="button" disabled={siteContext && localPublication?.busy} aria-expanded={publishOpen} aria-haspopup="dialog" aria-controls="publish-date-popover" onClick={openPublishDate}>{publishDate}</button></div>
-          {publishOpen && portalRoot ? createPortal(<div ref={publishPopoverRef} id="publish-date-popover" className="inspector-popover publish-date-popover" role="dialog" aria-label="Publish date" style={publishPopoverPosition ?? undefined}><div className="inspector-popover-heading"><strong>Publish</strong><StudioButton variant="text" style={calendarActionStyle} className="publish-now-button" type="button" onClick={publishImmediately}>Now</StudioButton><button type="button" aria-label="Close publish date" onClick={() => { setPublishOpen(false); requestAnimationFrame(() => publishTriggerRef.current?.focus()); }}><StudioIcon name="close" size={20} /></button></div><div className="publish-time-row"><strong>Time</strong><div className="publish-time-controls"><div className="publish-time-input"><input ref={publishHourInputRef} aria-label="Hour" inputMode="numeric" min="0" max="23" value={String(selectedDate.getUTCHours()).padStart(2, "0")} onChange={(event) => updateDateParts({ hours: clampNumber(event.target.value, 0, 23) })} /><span>:</span><input aria-label="Minute" inputMode="numeric" min="0" max="59" value={String(selectedDate.getUTCMinutes()).padStart(2, "0")} onChange={(event) => updateDateParts({ minutes: clampNumber(event.target.value, 0, 59) })} /></div><span className="publish-timezone" title="Times are recorded in Coordinated Universal Time">{formatPublicationTimezone()}</span></div></div><div className="publish-date-fields"><strong>Date</strong><div><input aria-label="Day" inputMode="numeric" min="1" max="31" value={String(selectedDate.getUTCDate()).padStart(2, "0")} onChange={(event) => updateDateParts({ day: clampNumber(event.target.value, 1, 31) })} /><select aria-label="Month" value={selectedDate.getUTCMonth()} onChange={(event) => updateDateParts({ month: Number(event.target.value) })}>{MONTH_NAMES.map((month, index) => <option value={index} key={month}>{month}</option>)}</select><input aria-label="Year" inputMode="numeric" value={selectedDate.getUTCFullYear()} onChange={(event) => updateDateParts({ year: clampNumber(event.target.value, 1, 9999) })} /></div></div><div className="publish-calendar"><div className="publish-calendar-heading"><StudioButton variant="text" style={calendarActionStyle} type="button" aria-label="Previous month" onClick={() => moveCalendarMonth(-1)}><StudioIcon name="arrow-left" size={20} /></StudioButton><strong>{formatCalendarMonth(calendarMonth)}</strong><StudioButton variant="text" style={calendarActionStyle} type="button" aria-label="Next month" onClick={() => moveCalendarMonth(1)}><StudioIcon name="arrow-right" size={20} /></StudioButton></div><div className="publish-calendar-weekdays">{WEEKDAY_NAMES.map((weekday) => <span key={weekday}>{weekday}</span>)}</div><div className="publish-calendar-grid">{calendarDays.map((day, index) => { if (!day) return <span aria-hidden="true" key={`empty-${index}`} />; const key = `${day.getUTCFullYear()}-${day.getUTCMonth()}-${day.getUTCDate()}`; const postCount = postsByCalendarDay.get(key) ?? 0; const selected = isSameCalendarDay(day, selectedDate); const today = isSameCalendarDay(day, new Date()); const dateLabel = day.toLocaleDateString("en-GB", { dateStyle: "full", timeZone: "UTC" }); return <button type="button" disabled={siteContext && !statusOptions.includes("scheduled") && day.getTime() > new Date().getTime()} className={`${selected ? "is-selected" : ""}${postCount ? " has-posts" : ""}${today ? " is-today" : ""}`} aria-current={today ? "date" : undefined} aria-label={`${dateLabel}${postCount ? `, ${postCount} ${postCount === 1 ? "post" : "posts"}` : ""}`} key={day.toISOString()} onClick={() => updatePublicationDate(makePublicationDate(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), selectedDate.getUTCHours(), selectedDate.getUTCMinutes()))}>{day.getUTCDate()}</button>; })}</div></div><p className="setting-note">Times are shown and saved as UTC+0.{siteContext ? " Future dates require Scheduled; backdating is supported." : ""}</p>{publicationDateError ? <p role="alert">{publicationDateError}</p> : null}</div>, portalRoot) : null}
+          {publishOpen ? <StudioAnchoredPopover id="publish-date-popover" anchor={() => publishTriggerRef.current} inspectorPlacement topOffset={-12} focusOnMount initialFocus={() => publishHourInputRef.current} label="Publish date" className="inspector-popover publish-date-popover" onClose={restore => { setPublishOpen(false); if (restore) requestAnimationFrame(() => publishTriggerRef.current?.focus()); }}><StudioPopoverHeading className="inspector-popover-heading" title="Publish" closeLabel="Close publish date" actions={<StudioButton variant="text" style={calendarActionStyle} className="publish-now-button" type="button" onClick={publishImmediately}>Now</StudioButton>} onClose={() => { setPublishOpen(false); requestAnimationFrame(() => publishTriggerRef.current?.focus()); }} /><div className="publish-time-row"><strong>Time</strong><div className="publish-time-controls"><div className="publish-time-input"><input ref={publishHourInputRef} aria-label="Hour" inputMode="numeric" min="0" max="23" value={String(selectedDate.getUTCHours()).padStart(2, "0")} onChange={(event) => updateDateParts({ hours: clampNumber(event.target.value, 0, 23) })} /><span>:</span><input aria-label="Minute" inputMode="numeric" min="0" max="59" value={String(selectedDate.getUTCMinutes()).padStart(2, "0")} onChange={(event) => updateDateParts({ minutes: clampNumber(event.target.value, 0, 59) })} /></div><span className="publish-timezone" title="Times are recorded in Coordinated Universal Time">{formatPublicationTimezone()}</span></div></div><div className="publish-date-fields"><strong>Date</strong><div><input aria-label="Day" inputMode="numeric" min="1" max="31" value={String(selectedDate.getUTCDate()).padStart(2, "0")} onChange={(event) => updateDateParts({ day: clampNumber(event.target.value, 1, 31) })} /><select aria-label="Month" value={selectedDate.getUTCMonth()} onChange={(event) => updateDateParts({ month: Number(event.target.value) })}>{MONTH_NAMES.map((month, index) => <option value={index} key={month}>{month}</option>)}</select><input aria-label="Year" inputMode="numeric" value={selectedDate.getUTCFullYear()} onChange={(event) => updateDateParts({ year: clampNumber(event.target.value, 1, 9999) })} /></div></div><div className="publish-calendar"><div className="publish-calendar-heading"><StudioButton variant="text" style={calendarActionStyle} type="button" aria-label="Previous month" onClick={() => moveCalendarMonth(-1)}><StudioIcon name="arrow-left" size={20} /></StudioButton><strong>{formatCalendarMonth(calendarMonth)}</strong><StudioButton variant="text" style={calendarActionStyle} type="button" aria-label="Next month" onClick={() => moveCalendarMonth(1)}><StudioIcon name="arrow-right" size={20} /></StudioButton></div><div className="publish-calendar-weekdays">{WEEKDAY_NAMES.map((weekday) => <span key={weekday}>{weekday}</span>)}</div><div className="publish-calendar-grid">{calendarDays.map((day, index) => { if (!day) return <span aria-hidden="true" key={`empty-${index}`} />; const key = `${day.getUTCFullYear()}-${day.getUTCMonth()}-${day.getUTCDate()}`; const postCount = postsByCalendarDay.get(key) ?? 0; const selected = isSameCalendarDay(day, selectedDate); const today = isSameCalendarDay(day, new Date()); const dateLabel = day.toLocaleDateString("en-GB", { dateStyle: "full", timeZone: "UTC" }); return <button type="button" disabled={siteContext && !statusOptions.includes("scheduled") && day.getTime() > new Date().getTime()} className={`${selected ? "is-selected" : ""}${postCount ? " has-posts" : ""}${today ? " is-today" : ""}`} aria-current={today ? "date" : undefined} aria-label={`${dateLabel}${postCount ? `, ${postCount} ${postCount === 1 ? "post" : "posts"}` : ""}`} key={day.toISOString()} onClick={() => updatePublicationDate(makePublicationDate(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), selectedDate.getUTCHours(), selectedDate.getUTCMinutes()))}>{day.getUTCDate()}</button>; })}</div></div><p className="setting-note">Times are shown and saved as UTC+0.{siteContext ? " Future dates require Scheduled; backdating is supported." : ""}</p>{publicationDateError ? <p role="alert">{publicationDateError}</p> : null}</StudioAnchoredPopover> : null}
           <InspectorSettingRow label="Slug" value={document.slug || "/"} disabled={!writable}><label>Slug<input value={document.slug} onChange={event => onChange("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label></InspectorSettingRow>
           <InspectorSettingRow label="Author" value={resolvedDocument.author || "No author"} disabled={!writable}><label>Author<select aria-label="Author" value={resolvedDocument.author ?? ""} onChange={event => { onFieldOverride?.("author", false); onChange("author", event.target.value); }}><option value="">No author</option>{resolvedDocument.author && resolvedDocument.author !== "Andrew Moss" ? <option value={resolvedDocument.author}>{resolvedDocument.author}</option> : null}<option value="Andrew Moss">Andrew Moss</option></select></label></InspectorSettingRow>
           {documentControls}

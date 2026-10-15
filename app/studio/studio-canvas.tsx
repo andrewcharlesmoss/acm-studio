@@ -422,7 +422,6 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   const richTextMenuTriggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const richTextMenuItemRef = useRef<HTMLButtonElement>(null);
   const blockAlignmentTriggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const blockAlignmentMenuItemRef = useRef<HTMLButtonElement>(null);
   const tableAlignmentTriggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const restoreRichTextMenuFocusBlockIdRef = useRef<string | null>(null);
   const codeEditorToggleRef = useRef<HTMLButtonElement>(null);
@@ -731,9 +730,6 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     });
   }, [writable]);
 
-  useLayoutEffect(() => {
-    if (blockAlignmentMenuBlockId) blockAlignmentMenuItemRef.current?.focus();
-  }, [blockAlignmentMenuBlockId]);
 
 
   function insertLibraryBlockAt(type: BlockLibraryItemType, index: number, parentId?: string) {
@@ -1837,24 +1833,18 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                           <StudioHoverIcon name={blockAlignmentIcon(contentBlockAlignment(block))} />
                           <StudioHoverIcon name="navigation.disclosure" size={16} />
                         </button>
-                        {blockAlignmentMenuBlockId === block.id ? <div className="block-alignment-menu" role="menu" tabIndex={-1} aria-label="Align block" onKeyDown={event => {
-                          if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setBlockAlignmentMenuBlockId(null); requestAnimationFrame(() => blockAlignmentTriggerRefs.current[block.id]?.focus()); return; }
-                          navigateStudioMenu(event, () => {
-                            setBlockAlignmentMenuBlockId(null);
-                            blockAlignmentTriggerRefs.current[block.id]?.focus();
-                          });
-                        }}>
-                          {([undefined, ...blockAlignmentOptions(block.type)] as const).map((alignment, optionIndex) => {
+                        {blockAlignmentMenuBlockId === block.id ? <StudioAnchoredMenu presentation="custom" anchor={() => blockAlignmentTriggerRefs.current[block.id]} className="block-alignment-menu" aria-label="Align block" onClose={restore => { setBlockAlignmentMenuBlockId(null); if (restore !== false) blockAlignmentTriggerRefs.current[block.id]?.focus(); }}>
+                          {([undefined, ...blockAlignmentOptions(block.type)] as const).map((alignment) => {
                             const active = contentBlockAlignment(block) === alignment;
                             const label = blockAlignmentLabel(alignment);
                             const icon = blockAlignmentIcon(alignment);
-                            return <button ref={optionIndex === 0 ? blockAlignmentMenuItemRef : undefined} className={active ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={active} key={alignment ?? "none"} onMouseDown={preserveTextSelection} onClick={() => {
+                            return <button className={active ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={active} key={alignment ?? "none"} onMouseDown={preserveTextSelection} onClick={() => {
                               onUpdateBlock(block.id, current => isBlockAlignedBlock(current) ? { ...current, blockAlign: alignment, ...(current.type === "image" ? { wide: false } : {}) } : current);
                               setBlockAlignmentMenuBlockId(null);
                               requestAnimationFrame(() => blockAlignmentTriggerRefs.current[block.id]?.focus());
                             }}><StudioHoverIcon name={icon} /><span>{label}</span></button>;
                           })}
-                        </div> : null}
+                        </StudioAnchoredMenu> : null}
                       </div> : null}
                       </> : null}
                       {block.type === "list" && listRoot ? <ListToolbarControls root={listRoot} list={block} selection={itemSelection} contextBlocks={activeDocument.blocks} writable={writable} onChange={changeList} /> : null}
@@ -1878,7 +1868,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                         onUpdateBlock(next.id, () => next);
                       }} /> : null}
                       {isEditableTextBlock(block) || block.type === "button" || (block.type === "list" && Boolean(itemSelection)) || block.type === "image" || (block.type === "table" && block.rows.length > 0) || (block.type === "embed" && Boolean(safeTextLink(block.url))) ? <div className="canvas-format-actions" aria-label="Text formatting">
-                        {isEditableTextBlock(block) ? <div className="alignment-control"><button className={`alignment-button${alignmentMenuBlockId === block.id ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => setAlignmentMenuBlockId((current) => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={alignmentMenuBlockId === block.id} aria-label="Text alignment" title="Text alignment"><AlignmentIcon align={block.align ?? "left"} /><StudioHoverIcon name="navigation.disclosure" size={16} /></button>{alignmentMenuBlockId === block.id ? <div className="alignment-menu" role="menu" aria-label="Text alignment">{(["left", "centre", "right"] as TextAlignment[]).map((align) => <button className={block.align === align || (!block.align && align === "left") ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={block.align === align || (!block.align && align === "left")} key={align} onMouseDown={preserveTextSelection} onClick={() => setTextAlignment(block, align)}><AlignmentIcon align={align} /><span>Align text {align}</span></button>)}</div> : null}</div> : null}
+                        {isEditableTextBlock(block) ? <TextAlignmentControl block={block} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setTextAlignment(block, align)} /> : null}
                         <button className={textMarkState(block, "bold") === true ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-pressed={textMarkState(block, "bold")} disabled={!writable} aria-label="Bold selected text" title="Bold"><StudioHoverIcon name="text.bold" /></button>
                         <button className={textMarkState(block, "italic") === true ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "italic")} aria-pressed={textMarkState(block, "italic")} disabled={!writable} aria-label="Italicise selected text" title="Italic"><StudioHoverIcon name="text.italic" /></button>
                         {block.type === "button" ? <ButtonLinkControl key={`${activeDocument.id}:${block.id}`} value={block} selected={selectedBlockId === block.id && !previewing} writable={writable} anchor={() => textEditor(block.id) ?? null} suggestions={linkTargets} onCaptureSelection={() => { buttonLinkSelectionsRef.current[block.id] = currentTextSelection(block.id); }} onReturnFocus={() => {
@@ -2577,25 +2567,17 @@ function LinkPreviewPopover({ editor, onEdit, onRemove, onClose }: { editor: Lin
   );
 }
 
+function TextAlignmentControl({ block, open, onOpenChange, onChoose }: { block: EditableTextBlock; open: boolean; onOpenChange: (open: boolean) => void; onChoose: (alignment: TextAlignment) => void }) {
+  const trigger = useRef<HTMLButtonElement>(null);
+  return <div className="alignment-control"><button ref={trigger} className={`alignment-button${open ? " is-active" : ""}`} type="button" onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label="Text alignment" title="Text alignment"><AlignmentIcon align={block.align ?? "left"} /><StudioHoverIcon name="navigation.disclosure" size={16} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => trigger.current} className="alignment-menu" aria-label="Text alignment" onClose={restore => { onOpenChange(false); if (restore !== false) trigger.current?.focus(); }}>{(["left", "centre", "right"] as TextAlignment[]).map(align => <button className={(block.align ?? "left") === align ? "is-active" : ""} type="button" role="menuitemradio" aria-checked={(block.align ?? "left") === align} key={align} onMouseDown={preserveTextSelection} onClick={() => { onChoose(align); requestAnimationFrame(() => trigger.current?.focus()); }}><AlignmentIcon align={align} /><span>Align text {align}</span></button>)}</StudioAnchoredMenu> : null}</div>;
+}
+
 function BlockTransformControl({ block, parent, writable, open, onOpenChange, onTransform }: { block: ContentBlock; parent?: ContentBlock | null; writable: boolean; open: boolean; onOpenChange: (open: boolean) => void; onTransform: (transform: BlockTransform) => void }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const transforms = availableBlockTransforms(block, parent);
 
-  useLayoutEffect(() => {
-    if (!open) return;
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      event.preventDefault();
-      event.stopPropagation();
-      onOpenChange(false);
-      requestAnimationFrame(() => triggerRef.current?.focus());
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [open, onOpenChange]);
-
   if (!transforms.length) return block.type === "group" && block.data?.templateElement === "navigation" ? <div className="table-block-type" aria-hidden="true"><StudioHoverIcon name="navigation.menu" /></div> : block.type === "table" ? <div className="table-block-type" aria-hidden="true"><HoverBlockTypeIcon type="table" /></div> : null;
-  return <div className="transform-control"><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <div className="transform-menu" role="menu" aria-label="Transform block"><strong>Transform to</strong>{transforms.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onTransform(transform)}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</div> : null}</div>;
+  return <div className="transform-control"><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} className="transform-menu" aria-label="Transform block" onClose={restore => { onOpenChange(false); if (restore !== false) triggerRef.current?.focus(); }}><strong>Transform to</strong>{transforms.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</StudioAnchoredMenu> : null}</div>;
 }
 
 function TransformIcon({ transform }: { transform: BlockTransform }) {
@@ -2687,7 +2669,6 @@ function SocialIconsEditorBlock({ htmlEditorBlockId, renderBlockControls, block,
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
   const choices = socialIconCatalogue.filter(item => `${item.label} ${item.description}`.toLowerCase().includes(query.trim().toLowerCase()));
 
   useLayoutEffect(() => {
@@ -2698,30 +2679,6 @@ function SocialIconsEditorBlock({ htmlEditorBlockId, renderBlockControls, block,
     setQuery("");
   }, [writable, onInsert]);
 
-  useLayoutEffect(() => {
-    if (!open) return;
-    searchRef.current?.focus();
-    const onPointerDown = (event: PointerEvent) => {
-      if (popoverRef.current?.contains(event.target as Node) || triggerRef.current?.contains(event.target as Node)) return;
-      setOpen(false);
-      setQuery("");
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      event.stopPropagation();
-      setOpen(false);
-      setQuery("");
-      requestAnimationFrame(() => triggerRef.current?.focus());
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
   function insert(type: InsertableBlockType) {
     onInsert?.(type);
     setOpen(false);
@@ -2729,7 +2686,7 @@ function SocialIconsEditorBlock({ htmlEditorBlockId, renderBlockControls, block,
     requestAnimationFrame(() => triggerRef.current?.focus());
   }
 
-  return <nav className={socialIconsBlockClassName(block, true)} style={socialIconsColourStyle(block)} aria-label="Social links"><ul style={socialIconsGapStyle(block)}>{block.children.map(child => <li id={paragraphStyleAnchor(child.visualStyle)} className={`studio-nested-block${paragraphStyleClassName(child.visualStyle) ? ` ${paragraphStyleClassName(child.visualStyle)}` : ""}`} style={paragraphStyleToCss(child.visualStyle) as React.CSSProperties} data-block-align={"blockAlign" in child ? child.blockAlign : undefined} data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} tabIndex={0 /* eslint-disable-line jsx-a11y/no-noninteractive-tabindex -- Block frames expose keyboard selection while preserving nested controls. */} aria-label={`${blockLabel(child.type)} icon block`} key={child.id}>{renderBlockControls?.(child)}{htmlEditorBlockId === child.id ? null : child.editorial?.hidden ? <HiddenBlockPlaceholder label={blockOutlineLabel(child)} writable={writable} onShow={() => onChange({ ...block, children: block.children.map(candidate => candidate.id === child.id ? { ...candidate, editorial: { ...candidate.editorial, hidden: false } } : candidate) })} /> : <SocialIconView block={child} showLabel={block.showLabels} editing />}</li>)}<li className="social-icons-appender"><button ref={triggerRef} className="social-icons-add" type="button" disabled={!writable || !onInsert} onClick={() => { setOpen(value => !value); setQuery(""); }} aria-haspopup="dialog" aria-expanded={open} aria-controls={`social-icon-picker-${block.id}`} aria-label="Add social icon" title="Add social icon"><StudioIcon name="add" size={18} /></button>{open ? <div ref={popoverRef} id={`social-icon-picker-${block.id}`} className="social-icon-picker" role="dialog" aria-label="Choose a social icon"><div className="social-icon-picker-header"><input ref={searchRef} type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search" aria-label="Search social icons" /><button type="button" aria-label="Close social icon picker" title="Close" onClick={() => { setOpen(false); setQuery(""); requestAnimationFrame(() => triggerRef.current?.focus()); }}><StudioIcon name="close" size={18} /></button></div><div className="social-icon-picker-options">{choices.map(item => <button type="button" key={item.type} disabled={!writable || !onInsert} onClick={() => insert(item.type as InsertableBlockType)}><BlockTypeIcon type={item.type} /><strong>{item.label}</strong></button>)}{choices.length === 0 ? <p>No social icons found.</p> : null}</div></div> : null}</li></ul></nav>;
+  return <nav className={socialIconsBlockClassName(block, true)} style={socialIconsColourStyle(block)} aria-label="Social links"><ul style={socialIconsGapStyle(block)}>{block.children.map(child => <li id={paragraphStyleAnchor(child.visualStyle)} className={`studio-nested-block${paragraphStyleClassName(child.visualStyle) ? ` ${paragraphStyleClassName(child.visualStyle)}` : ""}`} style={paragraphStyleToCss(child.visualStyle) as React.CSSProperties} data-block-align={"blockAlign" in child ? child.blockAlign : undefined} data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} tabIndex={0 /* eslint-disable-line jsx-a11y/no-noninteractive-tabindex -- Block frames expose keyboard selection while preserving nested controls. */} aria-label={`${blockLabel(child.type)} icon block`} key={child.id}>{renderBlockControls?.(child)}{htmlEditorBlockId === child.id ? null : child.editorial?.hidden ? <HiddenBlockPlaceholder label={blockOutlineLabel(child)} writable={writable} onShow={() => onChange({ ...block, children: block.children.map(candidate => candidate.id === child.id ? { ...candidate, editorial: { ...candidate.editorial, hidden: false } } : candidate) })} /> : <SocialIconView block={child} showLabel={block.showLabels} editing />}</li>)}<li className="social-icons-appender"><button ref={triggerRef} className="social-icons-add" type="button" disabled={!writable || !onInsert} onClick={() => { setOpen(value => !value); setQuery(""); }} aria-haspopup="dialog" aria-expanded={open} aria-controls={`social-icon-picker-${block.id}`} aria-label="Add social icon" title="Add social icon"><StudioIcon name="add" size={18} /></button>{open ? <StudioAnchoredPopover id={`social-icon-picker-${block.id}`} anchor={() => triggerRef.current} className="social-icon-picker" label="Choose a social icon" focusOnMount initialFocus={() => searchRef.current} onClose={restore => { setOpen(false); setQuery(""); if (restore) triggerRef.current?.focus(); }}><div className="social-icon-picker-header"><input ref={searchRef} type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search" aria-label="Search social icons" /><button type="button" aria-label="Close social icon picker" title="Close" onClick={() => { setOpen(false); setQuery(""); requestAnimationFrame(() => triggerRef.current?.focus()); }}><StudioIcon name="close" size={18} /></button></div><div className="social-icon-picker-options">{choices.map(item => <button type="button" key={item.type} disabled={!writable || !onInsert} onClick={() => insert(item.type as InsertableBlockType)}><BlockTypeIcon type={item.type} /><strong>{item.label}</strong></button>)}{choices.length === 0 ? <p>No social icons found.</p> : null}</div></StudioAnchoredPopover> : null}</li></ul></nav>;
 }
 
 export function BlockField(props: BlockFieldProps) {

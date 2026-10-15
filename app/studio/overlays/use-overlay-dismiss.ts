@@ -6,6 +6,7 @@ type DismissOptions = {
   open: boolean;
   onEscape: () => void;
   onOutside: (target: Node) => void;
+  onFocusOutside?: (target: Node) => void;
 };
 
 // Each document has its own overlay stack, including portalled nested editors.
@@ -31,10 +32,20 @@ export function useOverlayDismiss(options: DismissOptions) {
     const pointerdown = (event: PointerEvent) => {
       if (isTopmost() && event.target instanceof Node) latest.current.onOutside(event.target);
     };
+    const focusin = (event: FocusEvent) => {
+      const target = event.target;
+      // A child portal registers its overlay during this same layout commit.
+      // Recheck after registration before treating its initial focus as outside.
+      if (target instanceof Node) queueMicrotask(() => {
+        if (stack.includes(token) && isTopmost() && document.activeElement === target) latest.current.onFocusOutside?.(target);
+      });
+    };
+    document.addEventListener("focusin", focusin);
     document.addEventListener("keydown", keydown);
     document.addEventListener("pointerdown", pointerdown);
     return () => {
       stack.splice(stack.indexOf(token), 1);
+      document.removeEventListener("focusin", focusin);
       document.removeEventListener("keydown", keydown);
       document.removeEventListener("pointerdown", pointerdown);
     };

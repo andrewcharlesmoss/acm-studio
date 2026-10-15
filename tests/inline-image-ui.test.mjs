@@ -115,7 +115,7 @@ test('actual image measurement caps natural width and rejects load failures',asy
 });
 test('actual picker cancels late decoding and resets a changed media-provider session',async()=>{
  let hook=0,effect,chooseComplete,accepted=0,closed=0;const states=[],refs=[];let widthPromise;
- const bindings={React,safeImageSource:rich.safeImageSource,StudioDialog:()=>{},StudioDialogActions:()=>{},StudioButton:()=>{},URL:{createObjectURL:()=> 'blob:fixture',revokeObjectURL(){}},useEffect:fn=>{effect=fn;},useRef:value=>refs[hook++]??(refs[hook-1]={current:value}),useState:value=>{const i=hook++;if(!(i in states))states[i]=value;return [states[i],next=>states[i]=next];},measureInlineImage:()=>widthPromise};
+ const bindings={React,safeImageSource:rich.safeImageSource,StudioDialog:()=>{},StudioDialogActions:()=>{},StudioButton:()=>{},URL:{createObjectURL:()=> 'blob:fixture',revokeObjectURL(){}},useEffect:fn=>{effect=fn;},useRef:value=>refs[hook++]??(refs[hook-1]={current:value}),useState:value=>{const i=hook++;if(!(i in states))states[i]=value;return [states[i],next=>states[i]=next];},useBlobUrls:()=>({}),ImageChoiceGrid:()=>null,emptyChoices:[],measureInlineImage:()=>widthPromise};
  const picker=await uiFunction('../app/studio/inline-image-picker.tsx','InlineImagePicker',bindings);
  const provider=async()=>[];
  function render(loadImages=provider){hook=0;return picker({loadImages,replacing:false,returnFocus:{},onChoose:()=>{accepted++;return true;},onClose:()=>{closed++;}});}

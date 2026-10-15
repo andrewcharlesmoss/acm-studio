@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { StudioDialog } from "./overlays/dialog";
 import type { MiniGolfSite } from "./site-registry";
 import { StudioIcon } from "./studio-icons";
 
@@ -25,7 +26,6 @@ export function SiteSettings({ site }: { site: MiniGolfSite }) {
   const [confirmed, setConfirmed] = useState(false);
   const [visible, setVisible] = useState(false);
   const session = useRef("");
-  const dialog = useRef<HTMLDialogElement>(null);
 
   async function request(input: object, signal?: AbortSignal) {
     const response = await fetch("/__studio/site-settings", { method: "POST", headers: { "Content-Type": "application/json", "X-Studio-Client": "codex-history", "X-Studio-Settings-Token": session.current }, body: JSON.stringify(input), cache: "no-store", signal });
@@ -45,11 +45,6 @@ export function SiteSettings({ site }: { site: MiniGolfSite }) {
       if (session.current) void fetch("/__studio/site-settings", { method: "POST", headers: { "Content-Type": "application/json", "X-Studio-Client": "codex-history", "X-Studio-Settings-Token": session.current }, body: JSON.stringify({ action: "cancel" }), keepalive: true }).catch(() => {});
     };
   }, [site.hostingProjectId]);
-
-  useEffect(() => {
-    if (change) dialog.current?.showModal();
-    else dialog.current?.close();
-  }, [change]);
 
   async function refresh() {
     setBusy(true); setError(""); setMessage("");
@@ -107,8 +102,7 @@ export function SiteSettings({ site }: { site: MiniGolfSite }) {
       </section>
     </> : null}
     <section className="site-settings-native"><h2>More in Sites</h2><p>Analytics, database tools, detailed sharing and site deletion remain in Sites. Studio never deploys from this screen.</p><a href="https://chatgpt.com/sites" target="_blank" rel="noopener noreferrer">Open Sites</a></section>
-    <dialog ref={dialog} className="site-settings-dialog" aria-labelledby="settings-dialog-title" onCancel={(event) => { event.preventDefault(); cancel(); }}>
-      <h2 id="settings-dialog-title">{review ? "Review hosted change" : "Edit site setting"}</h2><p>{review?.title ?? settings?.title ?? site.name}</p>
+    {change ? <StudioDialog title={review ? "Review hosted change" : "Edit site setting"} closeDisabled={busy} className="site-settings-dialog" onClose={cancel}><p>{review?.title ?? settings?.title ?? site.name}</p>
       {error ? <p role="alert">{error}</p> : null}
       {review ? <><p>{review.summary}</p><p>No deployment will be started. Avoid changing the same setting elsewhere while saving.</p><label className="settings-check"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={busy} />I understand this changes the hosted site.</label><div className="settings-form-actions"><button disabled={busy} onClick={cancel}>Cancel</button><button disabled={busy || !confirmed} onClick={() => void save()}>{busy ? "Saving…" : "Save to Sites"}</button></div></> : change ? <form onSubmit={(event) => { event.preventDefault(); void prepare(); }}>
         {variable ? <label>Key<input required maxLength={128} pattern="[A-Za-z_][A-Za-z0-9_]*" value={change.key ?? ""} onChange={(event) => setChange({ ...change, key: event.target.value })} disabled={busy} /></label> : null}
@@ -116,6 +110,6 @@ export function SiteSettings({ site }: { site: MiniGolfSite }) {
         {variable ? <label className="settings-check"><input type="checkbox" checked={change.secret} disabled={busy || settings?.variables.some((item) => item.key === change.key && item.secret)} onChange={(event) => setChange({ ...change, secret: event.target.checked })} />Store as a secret</label> : null}
         <div className="settings-form-actions"><button type="button" disabled={busy} onClick={cancel}>Cancel</button><button disabled={busy}>{busy ? "Checking…" : "Review Change"}</button></div>
       </form> : null}
-    </dialog>
+    </StudioDialog> : null}
   </section>;
 }

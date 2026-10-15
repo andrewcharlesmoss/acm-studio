@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useId, useRef, useState, type ReactNode } from "react";
+import { PopoverHeading as StudioPopoverHeading } from "../overlays/popover-heading";
+import { StudioAnchoredPopover } from "../overlays/anchored-popover";
 import { useInspectorContentDisabled } from "../inspector-accordion";
-import { watchInspectorPopover, type InspectorPopoverPosition } from "../panes/inspector-popover-position";
-import { StudioIcon } from "../studio-icons";
 
 /** Document and template settings share one row and workspace-facing editor. */
 export function InspectorSettingRow({ label, value, children, disabled = false, hideLabel = false, className = "" }: {
@@ -13,7 +12,6 @@ export function InspectorSettingRow({ label, value, children, disabled = false, 
   const inheritedDisabled = useInspectorContentDisabled();
   const unavailable = disabled || inheritedDisabled;
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<InspectorPopoverPosition | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const popup = useRef<HTMLDivElement>(null);
   const id = useId();
@@ -25,38 +23,13 @@ export function InspectorSettingRow({ label, value, children, disabled = false, 
     if (returnFocus) requestAnimationFrame(() => trigger.current?.focus());
   }, []);
 
-  useLayoutEffect(() => {
-    if (!open) return;
-    return watchInspectorPopover(trigger.current, popup.current, 320, setPosition);
-  }, [open]);
-  useEffect(() => {
-    if (!open) return;
-    const frame = requestAnimationFrame(() => popup.current?.querySelector<HTMLElement>("input:not(:disabled), select:not(:disabled), textarea:not(:disabled)")?.focus());
-    function outside(event: PointerEvent) {
-      if (event.target instanceof Node && !popup.current?.contains(event.target) && !trigger.current?.contains(event.target)) close(false);
-    }
-    function focusOutside(event: FocusEvent) {
-      if (event.target instanceof Node && !popup.current?.contains(event.target) && !trigger.current?.contains(event.target)) close(false);
-    }
-    function escape(event: KeyboardEvent) {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      close();
-    }
-    document.addEventListener("pointerdown", outside);
-    document.addEventListener("focusin", focusOutside);
-    document.addEventListener("keydown", escape);
-    return () => { cancelAnimationFrame(frame); document.removeEventListener("pointerdown", outside); document.removeEventListener("focusin", focusOutside); document.removeEventListener("keydown", escape); };
-  }, [open, close]);
-
   return <div className={`inspector-setting-row ${className}`}>
     <span id={`${id}-label`} className={hideLabel ? "visually-hidden" : undefined}>{label}</span>
-    <button ref={trigger} type="button" className="inspector-setting-trigger" disabled={unavailable} aria-labelledby={`${id}-label ${id}-value`} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => { if (open) close(); else { setPosition(null); setOpen(true); } }}><span id={`${id}-value`}>{value}</span></button>
-    {open ? createPortal(<div ref={popup} id={id} className="inspector-popover inspector-setting-popover" role="dialog" aria-label={label} style={{ ...position, visibility: position ? "visible" : "hidden" }}>
-      <div className="inspector-popover-heading"><strong>{label}</strong><button type="button" aria-label={`Close ${label.toLowerCase()}`} onClick={() => close()}><StudioIcon name="close" size={20} /></button></div>
+    <button ref={trigger} type="button" className="inspector-setting-trigger" disabled={unavailable} aria-labelledby={`${id}-label ${id}-value`} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => { if (open) close(); else setOpen(true); }}><span id={`${id}-value`}>{value}</span></button>
+    {open ? <StudioAnchoredPopover id={id} contentRef={popup} anchor={() => trigger.current} inspectorPlacement focusOnMount commitOnClose label={label} onClose={close} className="inspector-popover inspector-setting-popover">
+      <StudioPopoverHeading className="inspector-popover-heading" title={label} closeLabel={`Close ${label.toLowerCase()}`} onClose={() => close()} />
       <fieldset disabled={unavailable}>{children}</fieldset>
-    </div>, document.body) : null}
+    </StudioAnchoredPopover> : null}
   </div>;
 }
 

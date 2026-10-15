@@ -5,6 +5,7 @@ import type { ContentBlock } from "../content/model";
 import type { StudioCoverImage, StudioDocument } from "./editor-model";
 import { useMediaSession } from "./media-sync";
 import { getMediaAsset, type MediaAsset } from "./media-store";
+import { useBlobUrls } from "./controls/use-blob-urls";
 import { contentMediaIds } from "../content/media-references";
 
 import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "./list-item-background";
@@ -39,14 +40,14 @@ export function useStudioMedia({
   const [targetCover, setTargetCover] = useState(false);
   const [targetBackground, setTargetBackground] = useState(false);
   const [backgroundOwner, setBackgroundOwner] = useState<{ documentId: string; item?: ListItemBackgroundTarget } | null>(null);
-  const [blockUrls, setBlockUrls] = useState<Record<string, string>>({});
+  const [blockAssets, setBlockAssets] = useState<MediaAsset[]>([]);
+  const blockUrls = useBlobUrls(blockAssets);
   const [stagedSourceUrls, setStagedSourceUrls] = useState<Record<string, string>>({});
   const stagedSourceUrlsRef = useRef<Record<string, string>>({});
   const insertionContextRef = useRef({ documentId: activeDocument.id, targetCover, targetBlockId, prepareFeaturedImage, writable });
   const mountedRef = useRef(true);
   useLayoutEffect(() => { insertionContextRef.current = { documentId: activeDocument.id, targetCover, targetBlockId, prepareFeaturedImage, writable }; });
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
-  const blockUrlsRef = useRef<Record<string, string>>({});
   const referencedMediaKey = useMemo(() => documents
     .flatMap((document) => [
       document.coverImage?.mediaId,
@@ -62,26 +63,12 @@ export function useStudioMedia({
     const mediaIds = referencedMediaKey ? referencedMediaKey.split("|") : [];
     void Promise.all(mediaIds.map(async (id) => ({ id, asset: await getMediaAsset(id) }))).then((records) => {
       if (cancelled) return;
-      const urls: Record<string, string> = {};
-      for (const record of records) {
-        if (record.asset) urls[record.id] = URL.createObjectURL(record.asset.blob);
-      }
-      queueMicrotask(() => {
-        if (cancelled) {
-          Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
-          return;
-        }
-        Object.values(blockUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
-        blockUrlsRef.current = urls;
-        setBlockUrls(urls);
-      });
+      setBlockAssets(records.flatMap(record => record.asset ? [record.asset] : []));
     }).catch(() => undefined);
     return () => { cancelled = true; };
   }, [referencedMediaKey, mediaRevision]);
 
   useEffect(() => () => {
-    Object.values(blockUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
-    blockUrlsRef.current = {};
     Object.values(stagedSourceUrlsRef.current).forEach(url => URL.revokeObjectURL(url));
     stagedSourceUrlsRef.current = {};
   }, []);

@@ -29,7 +29,7 @@ The library has nine sections:
   isolated editing specimens. A grouped index covers all 28 typed block types,
   plus the template Content slot. Each entry has a detail route at
   `/studio/ui/blocks/{type}`; Paragraph keeps `/studio/ui/blocks/paragraph`.
-- **Controls** — 19 working control specimens, including the shared Slider foundation,
+- **Controls** — working control specimens, including the shared Slider foundation,
   with their supported states, ownership and consumers on the grouped
   `/studio/ui/controls` page.
   Group and control links jump to in-page specimen anchors. Recognised legacy
@@ -691,3 +691,41 @@ Read-only disables moves; Undo/Redo and Reset example affect only this specimen.
 Alt + arrow keys move the focused handle along the selected layout's axis.
 Standard Undo/Redo shortcuts apply while the example has focus, preserving native
 form editing. All example data remains in memory. See `docs/drag-placement.md`.
+
+
+## Shared overlays and image resources
+
+`/studio/ui/controls#overlay-composition` demonstrates nested production popovers,
+native modal image selection, focus return, and temporary image choices. Its
+fixture data never enters product stores. Reset example remounts the fixture and
+releases its Blob URLs.
+
+`StudioAnchoredPopover` owns portal positioning, inspector widths and offsets,
+topmost dismissal, optional initial focus, and outside-focus handling. Settings
+rows opt into blur-before-close to retain their existing template field commits.
+`PopoverHeading` supplies the existing shared close heading, with optional
+caller actions and presentation classes. Specialised colour and gradient editors
+retain their geometry and use the same overlay dismissal foundation.
+
+`StudioAnchoredMenu` owns anchored, point-positioned context, and side-submenu
+placement. View, Files, Design, document/template lists, block transforms, and
+alignment menus inherit its keyboard and dismissal contract. Native form fields
+retain their own navigation. Callers retain action permissions, captured ranges,
+menu data, and explicit focus-return targets. Register overlays before moving
+focus; outside-focus checks re-evaluate the topmost owner after child portals
+register, so a child cannot dismiss its parent during initial focus.
+
+`StudioDialog` supplies native modality, close control, Escape, and focus return
+for Design, Files preview, and Site Settings as well as existing consumers.
+Site Settings retains its confirmation flow and disables dismissal during a
+pending request. This adoption does not connect to a provider or authorise a
+hosted change.
+
+`useBlobUrls` allocates resources after mounting and revokes them when their
+records change, the consumer disables them, or the component unmounts. The
+Design chooser, Files thumbnails, inline image picker, document images, and
+template images share it. `ImageChoiceGrid` supplies chooser presentation for
+Design and inline images. File management keeps its richer cards and actions.
+Providers, decode validation, alternative text, insertion freshness, staged
+fixture-image URLs, and persistence remain feature-owned. Download URLs have a
+separate lifetime and are outside this resource hook.

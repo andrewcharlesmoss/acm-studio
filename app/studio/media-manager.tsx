@@ -1,6 +1,8 @@
 "use client";
 
 import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
+import { useBlobUrls } from "./controls/use-blob-urls";
+import { StudioAnchoredMenu } from "./overlays/anchored-menu";
 import { StudioButton } from "./controls/button";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from "react";
@@ -63,7 +65,6 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [folderMenu, setFolderMenu] = useState<{ id: string; kind: "folder" | "file"; x: number; y: number; colours: boolean } | null>(null);
-  const [colourMenuPosition, setColourMenuPosition] = useState({ left: 0, top: 0 });
   const colourMenuCloseTimerRef = useRef<number | null>(null);
   const colourSubmenuRef = useRef<HTMLDivElement>(null);
   const colourMenuTriggerRef = useRef<HTMLButtonElement>(null);
@@ -90,13 +91,13 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
   const insertionContext = `${targetOwnerId}/${targetKind}/${targetLabel}`;
   useLayoutEffect(() => { insertionGuard.current = { allowed: canInsert, context: insertionContext, onInsertImage }; }, [canInsert, insertionContext, onInsertImage]);
   const [status, setStatus] = useState("Loading local files…");
-  const [objectUrls, setObjectUrls] = useState<Record<string, string>>({});
+  const imageAssets = useMemo(() => assets.filter(asset => asset.type.startsWith("image/")), [assets]);
+  const objectUrls = useBlobUrls(imageAssets);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [inlineRename, setInlineRename] = useState<{ id: string; kind: "folder" | "file"; name: string; before: string } | null>(null);
   const inlineRenameRef = useRef<HTMLInputElement>(null);
   const inlineRenameFinishedRef = useRef(false);
   const folderNameInputRef = useRef<HTMLInputElement>(null);
-  const previewDialogRef = useRef<HTMLDialogElement>(null);
   const previewTriggerRef = useRef<HTMLButtonElement>(null);
   const insertAltTriggerRef = useRef<HTMLButtonElement>(null);
   const [insertAltAsset, setInsertAltAsset] = useState<MediaAsset | null>(null);
@@ -107,7 +108,6 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
   const imageAttempt = useRef<AbortController | null>(null);
   function dismissImageInsert() { imageAttempt.current?.abort(); setInsertAltAsset(null); }
   const folderNameFocusTargetIdRef = useRef<string | null>(null);
-  const objectUrlsRef = useRef<Record<string, string>>({});
 
   async function refreshLibrary(message = "Files stored locally in this browser") {
     const epoch = epochRef.current;
@@ -115,13 +115,6 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     try {
       const library = await listMediaLibrary();
       if (!mountedRef.current || epoch !== epochRef.current || sequence !== refreshSequence.current) return;
-      const nextUrls: Record<string, string> = {};
-      for (const asset of library.assets) {
-        if (asset.type.startsWith("image/")) nextUrls[asset.id] = URL.createObjectURL(asset.blob);
-      }
-      Object.values(objectUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
-      objectUrlsRef.current = nextUrls;
-      setObjectUrls(nextUrls);
       canonicalRef.current = library;
       setAssets(library.assets.map(asset => ({ ...asset, ...assetDrafts.current.get(asset.id)?.update })));
       setLibraryReady(true);
@@ -145,8 +138,6 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     return () => {
       mountedRef.current = false;
       epochRef.current += 1;
-      Object.values(objectUrlsRef.current).forEach(url => URL.revokeObjectURL(url));
-      objectUrlsRef.current = {};
     };
     // The refresh reads refs rather than render state.
   }, []);
@@ -316,13 +307,6 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     inlineRenameRef.current?.select();
   }, [inlineRenameId, inlineRenameKind, canMutate]);
 
-  useEffect(() => {
-    const dialog = previewDialogRef.current;
-    if (!previewAssetId || !dialog) return;
-    dialog.showModal();
-    return () => { if (dialog.open) dialog.close(); };
-  }, [previewAssetId]);
-
   const breadcrumbs = useMemo(() => {
     const path: MediaFolder[] = [];
     let folder = currentFolderId ? folderMap.get(currentFolderId) : undefined;
@@ -460,27 +444,18 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     folderMenuTriggerRef.current = trigger;
     setSelectedFolderId(folder.id);
     setSelectedAssetId(null);
-    setFolderMenu({ id: folder.id, kind: "folder", x: Math.max(8, Math.min(x, window.innerWidth - 232)), y: Math.max(8, Math.min(y, window.innerHeight - 340)), colours: false });
+    setFolderMenu({ id: folder.id, kind: "folder", x: x, y: y, colours: false });
   }
 
   function showFileMenu(asset: MediaAsset, trigger: HTMLElement, x: number, y: number) {
     folderMenuTriggerRef.current = trigger;
     setSelectedAssetId(asset.id);
     setSelectedFolderId(null);
-    setFolderMenu({ id: asset.id, kind: "file", x: Math.max(8, Math.min(x, window.innerWidth - 232)), y: Math.max(8, Math.min(y, window.innerHeight - 100)), colours: false });
+    setFolderMenu({ id: asset.id, kind: "file", x: x, y: y, colours: false });
   }
 
   const folderMenuId = folderMenu?.id;
-  useEffect(() => {
-    if (!folderMenuId) return;
-    (folderMenuRef.current?.querySelector<HTMLElement>("button:not(:disabled)") ?? folderMenuRef.current)?.focus();
-    const outside = (event: PointerEvent) => {
-      if (event.target instanceof Element && event.target.closest(".media-folder-menu-toggle, .media-file-menu-toggle")) return;
-      if (event.target instanceof Node && !folderMenuRef.current?.contains(event.target)) setFolderMenu(null);
-    };
-    document.addEventListener("pointerdown", outside);
-    return () => { document.removeEventListener("pointerdown", outside); cancelColourMenuClose(); };
-  }, [folderMenuId]);
+  useEffect(() => () => cancelColourMenuClose(), [folderMenuId]);
 
   function cancelColourMenuClose() {
     if (colourMenuCloseTimerRef.current !== null) {
@@ -499,12 +474,9 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     }, 150);
   }
 
-  function openColourMenu(trigger: HTMLButtonElement) {
+  function openColourMenu() {
     cancelColourMenuClose();
     if (!canMutate || !folderMenu) return;
-    const rect = trigger.getBoundingClientRect();
-    const left = rect.right + 4 + 180 <= window.innerWidth - 8 ? rect.right + 4 : Math.max(8, rect.left - 184);
-    setColourMenuPosition({ left, top: Math.max(8, Math.min(rect.top, window.innerHeight - 278)) });
     setFolderMenu({ ...folderMenu, colours: true });
   }
 
@@ -754,18 +726,9 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
         </aside>
       </div>
 
-      {folderMenu ? <div ref={folderMenuRef} className="media-folder-menu" tabIndex={-1} onClick={(event) => {
+      {folderMenu ? <StudioAnchoredMenu menuRef={folderMenuRef} presentation="custom" anchor={() => folderMenuTriggerRef.current} point={{ x: folderMenu.x, y: folderMenu.y }} className="media-folder-menu" aria-label={folderMenu.kind === "file" ? "File actions" : "Folder actions"} onClose={closeFolderMenu} onOutside={target => { if (target instanceof Element && target.closest(".media-folder-menu-toggle, .media-file-menu-toggle")) return; closeFolderMenu(false); }} onClick={event => {
         const colour = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button[data-folder-colour]")?.dataset.folderColour : undefined;
         if (colour !== undefined) void changeFolderColour(folderMenu.id, colour);
-      }} onBlur={(event) => { if (event.relatedTarget instanceof Element && event.relatedTarget.closest(".media-folder-menu-toggle, .media-file-menu-toggle")) return; if (event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) setFolderMenu(null); }} role="menu" aria-label={folderMenu.kind === "file" ? "File actions" : "Folder actions"} style={{ left: folderMenu.x, top: folderMenu.y, maxHeight: `calc(100dvh - ${folderMenu.y + 8}px)` }} onKeyDown={(event) => {
-        if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); if (folderMenu.colours) closeColourMenu(); else closeFolderMenu(); }
-        if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
-          event.preventDefault();
-          const items = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")].filter((item) => item.closest("[role=menu]") === event.currentTarget);
-          const index = items.indexOf(document.activeElement as HTMLButtonElement);
-          const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
-          items[next]?.focus();
-        }
       }}>
         <button type="button" role="menuitem" disabled={!canMutate} onClick={() => {
           if (!canMutate) return;
@@ -781,26 +744,16 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
         }}><StudioIcon name="arrow-up" size={16} />Move to parent folder</button> : null}
         {folderMenu.kind === "file" && selectedAsset?.type.startsWith("image/") ? <button type="button" role="menuitem" onClick={() => { const id = folderMenu.id; closeFolderMenu(false); window.location.href = `/studio/designs?mediaId=${encodeURIComponent(id)}`; }}><StudioIcon name="image" size={16} />Open in design</button> : null}
         <button type="button" role="menuitem" disabled={!canMutate} onClick={() => { closeFolderMenu(); if (folderMenu.kind === "file") void removeAsset(); else void removeFolder(); }}><StudioIcon name="trash" size={16} />Delete</button>
-        {folderMenu.kind === "folder" ? <button ref={colourMenuTriggerRef} className="folder-colour-trigger" type="button" role="menuitem" disabled={!canMutate} aria-haspopup="menu" aria-controls="folder-colour-menu" aria-expanded={folderMenu.colours} onMouseEnter={(event) => openColourMenu(event.currentTarget)} onMouseLeave={scheduleColourMenuClose} onFocus={(event) => { if (!(event.relatedTarget instanceof Element && event.relatedTarget.closest(".folder-colour-menu"))) openColourMenu(event.currentTarget); }} onClick={(event) => folderMenu.colours ? setFolderMenu({ ...folderMenu, colours: false }) : openColourMenu(event.currentTarget)} onKeyDown={(event) => { if (event.key === "ArrowRight") { event.preventDefault(); openColourMenu(event.currentTarget); requestAnimationFrame(() => folderMenuRef.current?.querySelector<HTMLButtonElement>("[data-folder-colour]")?.focus()); } }}><span className="folder-colour-icon" aria-hidden="true" />Change colour<StudioIcon name="chevron-right" size={16} /></button> : null}
-        {folderMenu.kind === "folder" && folderMenu.colours ? <div ref={colourSubmenuRef} id="folder-colour-menu" className="folder-colour-menu" onMouseEnter={cancelColourMenuClose} onMouseLeave={scheduleColourMenuClose} role="menu" aria-label="Folder colour" tabIndex={-1} style={{ ...colourMenuPosition, maxHeight: `calc(100dvh - ${colourMenuPosition.top + 8}px)` }} onKeyDown={(event) => {
-          if (event.key === "Escape" || event.key === "ArrowLeft") { event.preventDefault(); event.stopPropagation(); closeColourMenu(); }
-          if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
-            event.preventDefault(); event.stopPropagation();
-            const items = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")];
-            const index = items.indexOf(document.activeElement as HTMLButtonElement);
-            const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
-            items[next]?.focus();
-          }
-        }}>
+        {folderMenu.kind === "folder" ? <button ref={colourMenuTriggerRef} className="folder-colour-trigger" type="button" role="menuitem" disabled={!canMutate} aria-haspopup="menu" aria-controls="folder-colour-menu" aria-expanded={folderMenu.colours} onMouseEnter={() => openColourMenu()} onMouseLeave={scheduleColourMenuClose} onFocus={(event) => { if (!(event.relatedTarget instanceof Element && event.relatedTarget.closest(".folder-colour-menu"))) openColourMenu(); }} onClick={() => folderMenu.colours ? setFolderMenu({ ...folderMenu, colours: false }) : openColourMenu()} onKeyDown={(event) => { if (event.key === "ArrowRight") { event.preventDefault(); openColourMenu(); requestAnimationFrame(() => colourSubmenuRef.current?.querySelector<HTMLButtonElement>("[data-folder-colour]")?.focus()); } }}><span className="folder-colour-icon" aria-hidden="true" />Change colour<StudioIcon name="chevron-right" size={16} /></button> : null}
+        {folderMenu.kind === "folder" && folderMenu.colours ? <StudioAnchoredMenu menuRef={colourSubmenuRef} presentation="custom" anchor={() => colourMenuTriggerRef.current} placement="submenu" focusOnMount={false} id="folder-colour-menu" className="folder-colour-menu" onMouseEnter={cancelColourMenuClose} onMouseLeave={scheduleColourMenuClose} aria-label="Folder colour" onClose={() => closeColourMenu()} onOutside={target => { if (folderMenuRef.current?.contains(target)) { setFolderMenu(current => current ? { ...current, colours: false } : null); } else closeFolderMenu(false); }} onKeyDown={event => { if (event.key === "ArrowLeft") { event.preventDefault(); event.stopPropagation(); closeColourMenu(); } }}>
           {[ ["No Colour", ""], ["Red", "#ff3b30"], ["Orange", "#ff9500"], ["Yellow", "#ffcc00"], ["Green", "#34c759"], ["Blue", "#007aff"], ["Purple", "#af52de"], ["Grey", "#8e8e93"] ].map(([name, colour]) => <button key={colour} type="button" role="menuitemradio" aria-checked={(selectedFolder?.colour ?? "") === colour} disabled={!canMutate} data-folder-colour={colour}><span className="folder-colour-swatch" style={{ backgroundColor: colour || "transparent" }} />{name}</button>)}
-        </div> : null}
-      </div> : null}
+        </StudioAnchoredMenu> : null}
+      </StudioAnchoredMenu> : null}
 
-      {previewAsset && objectUrls[previewAsset.id] ? <dialog ref={previewDialogRef} className="media-preview-dialog" aria-labelledby="media-preview-title" onClose={() => { setPreviewAssetId(null); previewTriggerRef.current?.focus(); }}>
-          <header><h2 id="media-preview-title">{previewAsset.name}</h2><button type="button" onClick={() => previewDialogRef.current?.close()} aria-label="Close image preview" title="Close preview"><StudioIcon name="close" /></button></header>
+      {previewAsset && objectUrls[previewAsset.id] ? <StudioDialog title={previewAsset.name} closeLabel="Close image preview" returnFocus={previewTriggerRef} className="media-preview-dialog" onClose={() => setPreviewAssetId(null)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={objectUrls[previewAsset.id]} alt={previewAsset.altText || previewAsset.name} />
-      </dialog> : null}
+      </StudioDialog> : null}
 
       {insertAltAsset ? <StudioDialog title="Describe this image" className="media-alt-dialog" returnFocus={insertAltTriggerRef} selectInitialText onClose={dismissImageInsert}>
         <form onSubmit={(event) => { event.preventDefault(); void confirmImageInsert(); }}>

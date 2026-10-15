@@ -240,17 +240,8 @@
 .design-workspace.inspector-collapsed .design-pane-collapse-right { right: 0; }
 .design-workspace.inspector-collapsed .design-zoom-dock { right: 0; }
 .design-loading { align-items: center; background: #fafafa; color: var(--muted); display: flex; height: 100dvh; justify-content: center; }
-.design-media-dialog { align-items: center; background: #17191c66; display: flex; inset: 0; justify-content: center; padding: 20px; position: fixed; z-index: 20; }
 .design-media-panel { background: #f7f7f7; border: 1px solid #d0d0d0; border-radius: 10px; box-shadow: 0 18px 50px #17191c33; max-height: min(680px, 90dvh); max-width: 680px; overflow: auto; padding: 18px; width: 100%; }
-.design-media-panel header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 15px; }
-.design-media-panel h2 { font-size: 18px; margin: 0; }
-.design-media-panel header button { background: transparent; border: 0; cursor: pointer; font-size: 24px; }
-.design-media-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
-.design-media-list button { background: #fff; border: 1px solid #d2d0c8; border-radius: 6px; color: var(--ink); cursor: pointer; display: grid; gap: 6px; overflow: hidden; padding: 6px; text-align: left; }
-.design-media-list button:hover, .design-media-list button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { border-color: var(--accent); }
-.design-media-list img { aspect-ratio: 4 / 3; background: #f1f1f1; object-fit: contain; width: 100%; }
-.design-media-list span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.design-conflict-panel { background: #fff; border: 1px solid #c8c6be; border-radius: 10px; box-shadow: 0 18px 50px #17191c33; display: grid; gap: 12px; left: 50%; max-width: 520px; padding: 20px; position: fixed; top: 50%; transform: translate(-50%, -50%); width: calc(100% - 40px); z-index: 30; }
+.design-conflict-panel { background: #fff; border: 1px solid #c8c6be; border-radius: 10px; box-shadow: 0 18px 50px #17191c33; display: grid; gap: 12px; max-width: 520px; padding: 20px; width: calc(100% - 40px); }
 .design-conflict-panel::before { background: #17191c66; content: ""; inset: 0; position: fixed; z-index: -1; }
 .design-conflict-panel-heading { align-items: start; display: flex; gap: 20px; justify-content: space-between; }
 .design-conflict-panel-heading h2 { font-size: 18px; margin: 0; }

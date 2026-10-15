@@ -56,7 +56,7 @@ test("property buttons expose the label and saved value, and respect inherited r
   assert.doesNotMatch(html, /role="dialog"/);
 });
 
-for (const dismissal of ["close button", "Escape", "focus outside"]) test(`setting ${dismissal} commits template text before closing`, () => {
+for (const dismissal of ["close button", "Escape", "focus outside"]) test(`setting ${dismissal} handoff commits template text before closing`, () => {
   const events = [];
   const editor = TemplateTextSetting({ label: "Author", value: "Before", onCommit: value => events.push(value) });
   const input = editor.props.children.props.children[1];
@@ -80,11 +80,13 @@ for (const dismissal of ["close button", "Escape", "focus outside"]) test(`setti
     if (name.endsWith("inspector-accordion")) return { useInspectorContentDisabled: () => false };
     if (name.endsWith("inspector-popover-position")) return { watchInspectorPopover: noop };
     if (name.endsWith("studio-icons")) return { StudioIcon: () => null };
+    if (name.endsWith("anchored-popover")) return { StudioAnchoredPopover: () => null };
+    if (name.endsWith("popover-heading")) return { PopoverHeading: () => null };
     throw new Error(`Unexpected test dependency: ${name}`);
   }, document: { activeElement: active, body: {}, addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: noop }, HTMLElement: ActiveField, Node: ActiveField, requestAnimationFrame: fn => { fn(); return 1; }, cancelAnimationFrame: noop });
   const row = fixtureModule.exports.InspectorSettingRow({ label: "Author", value: "Before", children: editor.props.children });
-  if (dismissal === "close button") row.props.children[2].props.children[0].props.children[1].props.onClick();
-  else if (dismissal === "Escape") listeners.get("keydown")({ key: "Escape", defaultPrevented: false, preventDefault: noop, stopImmediatePropagation: noop });
-  else listeners.get("focusin")({ target: new ActiveField() });
+  if (dismissal === "close button") row.props.children[2].props.children[0].props.onClose();
+  else if (dismissal === "Escape") row.props.children[2].props.onClose(true);
+  else row.props.children[2].props.onClose(false);
   assert.deepEqual(events, dismissal === "focus outside" ? ["After", "closed"] : ["After", "closed", "focus"]);
 });

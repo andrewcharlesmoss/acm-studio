@@ -1,4 +1,8 @@
 "use client";
+import { StudioDialog } from "./overlays/dialog";
+import { StudioAnchoredMenu } from "./overlays/anchored-menu";
+import { useBlobUrls } from "./controls/use-blob-urls";
+import { ImageChoiceGrid } from "./controls/image-choice-grid";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 
 import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
@@ -19,7 +23,7 @@ import { loadDesigns, saveDesign } from "./design-store";
 import { requestDesignBroker } from "./design-broker-host";
 import { createDesignSync, type DesignSyncConflict, type DesignSyncSession, type DesignSyncStatus } from "./design-sync";
 import type { DesignChange, DesignMergeConflict } from "./design-merge";
-import { StudioMenuItem, focusStudioMenu, navigateStudioMenu } from "./overlays/menu";
+import { StudioMenuItem } from "./overlays/menu";
 import { StudioIcon } from "./studio-icons";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import type { StudioIconName } from "./studio-icons";
@@ -659,6 +663,7 @@ type DesignContextMenuProps = {
   canLock: boolean;
   selectionLocked: boolean;
   alignOpen: boolean;
+  anchor: () => HTMLElement | null;
   onClose: () => void;
   onCopy: () => void;
   onPaste: () => void;
@@ -670,29 +675,28 @@ type DesignContextMenuProps = {
 
 type DesignContextMenuState = { x: number; y: number; alignOpen: boolean };
 
-function DesignContextMenu({ x, y, selectedCount, canCopy, canPaste, canAlign, canLock, selectionLocked, alignOpen, onClose, onCopy, onPaste, onAlignToggle, onAlign, onLock, onLink }: DesignContextMenuProps) {
+function DesignContextMenu({ x, y, anchor, selectedCount, canCopy, canPaste, canAlign, canLock, selectionLocked, alignOpen, onClose, onCopy, onPaste, onAlignToggle, onAlign, onLock, onLink }: DesignContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const alignTriggerRef = useRef<HTMLButtonElement>(null);
   const alignMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { focusStudioMenu(menuRef.current); }, []);
   function openAlignMenu() {
     if (!alignOpen) onAlignToggle();
     requestAnimationFrame(() => alignMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus());
   }
   function closeAlignMenu() { onAlignToggle(); alignTriggerRef.current?.focus(); }
   const itemLabel = selectedCount > 1 ? "selected layers" : "selected layer";
-  return <div ref={menuRef} className="design-context-menu" role="menu" tabIndex={-1} aria-label="Canvas actions" style={{ left: x, top: y }} onPointerDown={(event) => event.stopPropagation()} onKeyDown={event => navigateStudioMenu(event, onClose)}>
+  return <StudioAnchoredMenu menuRef={menuRef} presentation="custom" anchor={anchor} point={{ x, y }} className="design-context-menu" aria-label="Canvas actions" onClose={onClose}>
     <StudioMenuItem onClick={() => { onCopy(); onClose(); }} disabled={!canCopy}><StudioIcon name="copy" size={20} /><span>Copy</span><kbd>⌘C / Ctrl+C</kbd></StudioMenuItem>
     <StudioMenuItem onClick={() => { onPaste(); onClose(); }} disabled={!canPaste}><StudioIcon name="copy" size={20} /><span>Paste</span><kbd>⌘V / Ctrl+V</kbd></StudioMenuItem>
     <div className="design-context-menu-separator" role="separator" />
     <StudioMenuItem ref={alignTriggerRef} aria-haspopup="menu" aria-expanded={alignOpen} onClick={() => alignOpen ? closeAlignMenu() : openAlignMenu()} onKeyDown={event => { if (event.key === "ArrowRight" && canAlign) { event.preventDefault(); event.stopPropagation(); openAlignMenu(); } }} disabled={!canAlign}><StudioIcon name="align-left" size={20} /><span>Align to page</span><StudioIcon name="chevron-right" size={18} /></StudioMenuItem>
-    {alignOpen && canAlign ? <div ref={alignMenuRef} className="design-context-submenu" role="menu" tabIndex={-1} aria-label={`Align ${itemLabel} to page`} onKeyDown={event => { if (event.key === "ArrowLeft" || event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeAlignMenu(); } else navigateStudioMenu(event, onClose); }}>
+    {alignOpen && canAlign ? <StudioAnchoredMenu menuRef={alignMenuRef} presentation="custom" anchor={() => alignTriggerRef.current} placement="submenu" className="design-context-submenu" aria-label={`Align ${itemLabel} to page`} onClose={closeAlignMenu} onOutside={target => { if (menuRef.current?.contains(target)) closeAlignMenu(); else onClose(); }} onKeyDown={event => { if (event.key === "ArrowLeft") { event.preventDefault(); event.stopPropagation(); closeAlignMenu(); } }}>
       {(["top", "middle", "bottom", "left", "centre", "right"] as const).map((axis) => <StudioMenuItem key={axis} onClick={() => { onAlign(axis); onClose(); }}>{axis === "centre" ? "Centre" : axis[0].toUpperCase() + axis.slice(1)}</StudioMenuItem>)}
-    </div> : null}
+    </StudioAnchoredMenu> : null}
     <div className="design-context-menu-separator" role="separator" />
     <StudioMenuItem onClick={() => { onLock(); onClose(); }} disabled={!canLock}><StudioIcon name={selectionLocked ? "lock-open" : "lock"} size={20} /><span>{selectionLocked ? "Unlock" : "Lock"}</span></StudioMenuItem>
     <StudioMenuItem onClick={() => { onLink(); onClose(); }} disabled={!canCopy}><StudioIcon name="link" size={20} /><span>Link</span></StudioMenuItem>
-  </div>;
+  </StudioAnchoredMenu>;
 }
 
 export function DesignEditor() {
@@ -719,6 +723,7 @@ export function DesignEditor() {
   const [pageName, setPageName] = useState("");
   const [showMedia, setShowMedia] = useState(false);
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
+  const mediaUrls = useBlobUrls(mediaAssets, showMedia);
   const [error, setError] = useState("");
   const [exportFormat, setExportFormat] = useState<"png" | "jpeg" | "webp">("png");
   const [mediaHandoff, setMediaHandoff] = useState<string | null>(null);
@@ -759,7 +764,6 @@ export function DesignEditor() {
   const pageResizeRef = useRef<PageResizeInteraction | null>(null);
   const contextMenuReturnRef = useRef<HTMLElement | null>(null);
   const conflictReviewButtonRef = useRef<HTMLButtonElement>(null);
-  const conflictCloseButtonRef = useRef<HTMLButtonElement>(null);
 
   const closeContextMenu = useCallback(() => {
     const returnTarget = contextMenuReturnRef.current;
@@ -832,32 +836,6 @@ export function DesignEditor() {
   }), []);
 
   useEffect(() => { designsRef.current = designs; }, [designs]);
-
-  useEffect(() => {
-    if (!contextMenu) return;
-    const closeOnOutsidePointer = (event: globalThis.PointerEvent) => {
-      const target = event.target;
-      if (target instanceof Element && target.closest(".design-context-menu")) return;
-      closeContextMenu();
-    };
-    document.addEventListener("pointerdown", closeOnOutsidePointer);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePointer);
-    };
-  }, [closeContextMenu, contextMenu]);
-
-  useEffect(() => {
-    if (!syncConflict || !conflictPanelOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setConflictPanelOpen(false);
-      window.setTimeout(() => conflictReviewButtonRef.current?.focus(), 0);
-    };
-    document.addEventListener("keydown", closeOnEscape);
-    window.setTimeout(() => conflictCloseButtonRef.current?.focus(), 0);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [conflictPanelOpen, syncConflict]);
 
   function rememberStyle(object: DesignObject) {
     if (object.type === "arrow") recentStylesRef.current.arrow = { stroke: object.stroke, strokeOpacity: object.strokeOpacity ?? 1, strokeWidth: object.strokeWidth, arrowhead: object.arrowhead, startArrowhead: object.startArrowhead ?? false, arrowheadScale: object.arrowheadScale ?? 1, lineStyle: object.lineStyle ?? "solid" };
@@ -1055,20 +1033,6 @@ export function DesignEditor() {
   }, [designEditable, primaryWritable]);
 
   useEffect(() => {
-    if (!showMedia) return;
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setShowMedia(false);
-      requestAnimationFrame(() => (previous?.isConnected ? previous : mediaTriggerRef.current)?.focus());
-    };
-    document.addEventListener("keydown", handleEscape);
-    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".design-media-panel button")?.focus());
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [showMedia]);
-
-  useEffect(() => {
     const timer = window.setTimeout(() => { if (activePage) setPageName(activePage.name); }, 0);
     return () => window.clearTimeout(timer);
   }, [activePage]);
@@ -1181,6 +1145,7 @@ export function DesignEditor() {
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
+      if (event.defaultPrevented || document.querySelector("dialog[open]")) return;
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
       const commandOrControl = event.metaKey || event.ctrlKey;
       const zoomReset = event.key === "0" || event.code === "Digit0" || event.code === "Numpad0";
@@ -2105,13 +2070,13 @@ export function DesignEditor() {
     {syncStatus === "disconnected" || syncStatus === "connecting" ? <div className="design-notice" role="status">{syncStatus === "connecting" ? "Connecting to safe local saving…" : "Local saving is unavailable — your design is preserved and editing is paused."}<button type="button" onClick={() => { syncRef.current?.retryConnection(); if (studioWriteOwnership.getState() === "waiting") setOwnershipAttempt(value => value + 1); else if (studioWriteOwnership.canWrite()) setBootstrapAttempt(value => value + 1); }}>Try Editing Here</button><button type="button" onClick={exportDesignJson}>Export Editable Backup</button></div> : null}
     {syncConflict && !conflictPanelOpen ? <div className="design-notice" role="status">Conflicting changes need review. <button ref={conflictReviewButtonRef} type="button" onClick={() => setConflictPanelOpen(true)}>Review conflicts</button></div> : null}
     {error ? <div className="design-error" role="alert">{error}</div> : null}
-    {syncConflict && conflictPanelOpen ? <section className="design-conflict-panel" role="dialog" aria-modal="true" aria-labelledby="design-conflict-title">
-      <div className="design-conflict-panel-heading"><div><p className="design-conflict-eyebrow">ACM Studio</p><h2 id="design-conflict-title">Resolve conflicting changes</h2></div><button ref={conflictCloseButtonRef} type="button" aria-label="Close conflict review" onClick={() => { setConflictPanelOpen(false); window.setTimeout(() => conflictReviewButtonRef.current?.focus(), 0); }}><StudioIcon name="close" size={20} /></button></div>
+    {syncConflict && conflictPanelOpen ? <StudioDialog title="Resolve conflicting changes" closeLabel="Close conflict review" returnFocus={conflictReviewButtonRef} className="design-conflict-panel" onClose={() => setConflictPanelOpen(false)}>
+
       <p>{syncConflict.reason}</p>
       <p>{syncConflict.result.conflicts.length || 1} change{syncConflict.result.conflicts.length === 1 ? "" : "s"} needs your decision. Your document remains protected until you choose a version.</p>
       {syncConflict.result.conflicts.length ? <ul className="design-conflict-list" aria-label="Conflicting values">{syncConflict.result.conflicts.map((conflict, index) => { const details = conflictDetails(conflict); return <li key={`${details.target}-${index}`}><strong>{details.target}</strong><span><b>Other:</b> {details.other}</span><span><b>Yours:</b> {details.yours}</span></li>; })}</ul> : null}
       <div className="design-conflict-actions"><button type="button" className="button-secondary" disabled={syncStatus !== "conflict"} onClick={() => void resolveDesignConflict("theirs")}>Use Other Change</button><button type="button" className="button-primary" disabled={syncStatus !== "conflict"} onClick={() => void resolveDesignConflict("mine")}>Use My Change</button></div>
-    </section> : null}
+    </StudioDialog> : null}
     <div className={`design-workspace${pagesCollapsed ? " pages-collapsed" : ""}${inspectorCollapsed ? " inspector-collapsed" : ""}`}
       style={{ "--design-pages-width": `${pagesCollapsed ? 0 : pagesPaneWidth}px`, "--design-inspector-width": `${inspectorCollapsed ? 0 : inspectorPaneWidth}px` } as CSSProperties}>
     <Pane trackClassName="design-pages-track" className="design-pages" flushRegions={["body"]} bodyClassName="design-pages-body" label="Design pages and layers" side="left" width={pagesPaneWidth} onWidthChange={setPagesPaneWidth} minWidth={224} maxWidth={480} collapsed={pagesCollapsed} onCollapsedChange={setPagesCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
@@ -2138,7 +2103,7 @@ export function DesignEditor() {
             </article>;
           })}</div> : <div className="design-canvas-frame" style={{ width: `${activePage.width * zoom / 100}px` }}><PageSvg activeHandle={activeHandle} showHoverHandles={tool === "select"} purpleSelectionBorder={purpleSelectionBorder} editingTextId={editingTextId} editingTextValue={editingTextValue} onEditingTextChange={setEditingTextValue} onEditingTextCommit={commitTextEditing} onEditingTextCancel={cancelTextEditing} onTextDoubleClick={beginTextEditing} rotatingObjectId={interactionRef.current?.mode === "rotate" || interactionRef.current?.mode === "move" ? interactionRef.current.id : undefined} isRotating={isRotating} rotationCursor={rotationCursor} showPageResizeHandles={tool === "select" && selectedIds.length === 0} tool={tool} zoom={zoom} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onPageResizePointerDown={onPageResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onArrowBendPointerDown={onArrowBendPointerDown} onArrowBendKeyDown={onArrowBendKeyDown} onResizeKeyDown={onResizeKeyDown} onPageResizeKeyDown={onPageResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></div>}
         </div><div className={`design-zoom-dock${pagesCollapsed ? " is-pages-collapsed" : ""}`}><div className="design-zoom-slider" aria-label="Canvas zoom control"><label htmlFor="design-canvas-zoom">Zoom</label><input id="design-canvas-zoom" className="studio-range-control" type="range" min="10" max="500" step="1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} aria-label="Canvas zoom" /><output htmlFor="design-canvas-zoom">{zoom}%</output></div></div></div>
-      {contextMenu ? <DesignContextMenu
+      {contextMenu ? <DesignContextMenu anchor={() => contextMenuReturnRef.current ?? document.querySelector<HTMLElement>(".design-workspace")}
         x={contextMenu.x}
         y={contextMenu.y}
         selectedCount={selectedIds.length}
@@ -2180,8 +2145,6 @@ export function DesignEditor() {
             </div></div>
           </div> : null}{selectedObject.type === "text" || selectedObject.type === "step" ? <><label>Text<textarea value={selectedObject.text} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, text: event.target.value }))} /></label><ColourControl label="Text colour" value={selectedObject.colour} opacity={selectedObject.colourOpacity ?? 1} disabled={!writable} onChange={(value) => updateSelected((object) => ({ ...object, colour: value }))} onOpacityChange={(value) => updateSelected((object) => ({ ...object, colourOpacity: value }))} /><label>Font size<input type="number" min="8" max="240" value={selectedObject.fontSize} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, fontSize: Math.max(8, Number(event.target.value) || 8) }))} /></label><label>Font<select value={selectedObject.fontFamily} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, fontFamily: event.target.value }))}>{fontOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label>Weight<select value={selectedObject.fontWeight} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, fontWeight: Number(event.target.value) }))}><option value="400">Regular</option><option value="600">Semibold</option><option value="700">Bold</option></select></label><label>Alignment<select value={selectedObject.align} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...object, align: event.target.value as "left" | "center" | "right" }))}><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select></label>{selectedObject.type === "text" ? <label className="design-text-wrap-setting"><span>Word wrap</span><input type="checkbox" checked={selectedObject.wordWrap !== false} disabled={!writable} onChange={(event) => updateSelected((object) => object.type === "text" ? { ...object, wordWrap: event.target.checked } : object)} /></label> : null}{selectedObject.type === "step" ? <ColourControl label="Step fill" value={selectedObject.fill ?? "#cc1818"} opacity={selectedObject.fillOpacity ?? 1} disabled={!writable} onChange={(value) => updateSelected((object) => ({ ...object, fill: value }))} onOpacityChange={(value) => updateSelected((object) => ({ ...object, fillOpacity: value }))} /> : null}</> : null}{selectedObject.type === "arrow" ? <><ColourControl label="Line colour" value={selectedObject.stroke} opacity={selectedObject.strokeOpacity ?? 1} disabled={!writable} onChange={(value) => updateSelected((object) => ({ ...(object as DesignArrowObject), stroke: value }))} onOpacityChange={(value) => updateSelected((object) => ({ ...(object as DesignArrowObject), strokeOpacity: value }))} /><label>Line width<input type="number" min="1" max="80" value={selectedObject.strokeWidth} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignArrowObject), strokeWidth: Math.max(1, Number(event.target.value) || 1) }))} /></label><label>Start arrowhead<select value={selectedObject.startArrowhead ? "yes" : "no"} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignArrowObject), startArrowhead: event.target.value === "yes" }))}><option value="yes">Shown</option><option value="no">Hidden</option></select></label><label>End arrowhead<select value={selectedObject.arrowhead ? "yes" : "no"} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignArrowObject), arrowhead: event.target.value === "yes" }))}><option value="yes">Shown</option><option value="no">Hidden</option></select></label><label>Arrowhead size ({Math.round((selectedObject.arrowheadScale ?? 1) * 100)}%)<input aria-label="Arrowhead size" className="studio-range-control" type="range" min={DESIGN_ARROWHEAD_SCALE_MIN * 100} max={DESIGN_ARROWHEAD_SCALE_MAX * 100} step="1" value={Math.round((selectedObject.arrowheadScale ?? 1) * 100)} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignArrowObject), arrowheadScale: Math.max(DESIGN_ARROWHEAD_SCALE_MIN, Math.min(DESIGN_ARROWHEAD_SCALE_MAX, Number(event.target.value) / 100)) }))} /></label><label>Line style<select value={selectedObject.lineStyle ?? "solid"} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignArrowObject), lineStyle: event.target.value as "solid" | "dotted" }))}><option value="solid">Solid</option><option value="dotted">Dotted</option></select></label></> : null}{["rectangle", "ellipse", "highlight"].includes(selectedObject.type) ? <><ColourControl label="Fill" value={(selectedObject as DesignShapeObject).fill === "transparent" ? "#ffffff" : (selectedObject as DesignShapeObject).fill} opacity={(selectedObject as DesignShapeObject).fill === "transparent" ? 0 : (selectedObject as DesignShapeObject).fillOpacity ?? 1} disabled={!writable} onChange={(value) => updateSelected((object) => ({ ...(object as DesignShapeObject), fill: value, fillOpacity: (object as DesignShapeObject).fill === "transparent" ? 1 : (object as DesignShapeObject).fillOpacity }))} onOpacityChange={(value) => updateSelected((object) => ({ ...(object as DesignShapeObject), fillOpacity: value }))} /><ColourControl label="Outline" value={(selectedObject as DesignShapeObject).stroke === "none" ? "#ffffff" : (selectedObject as DesignShapeObject).stroke} opacity={(selectedObject as DesignShapeObject).stroke === "none" ? 0 : (selectedObject as DesignShapeObject).strokeOpacity ?? 1} disabled={!writable} onChange={(value) => updateSelected((object) => ({ ...(object as DesignShapeObject), stroke: value, strokeOpacity: (object as DesignShapeObject).stroke === "none" ? 1 : (object as DesignShapeObject).strokeOpacity }))} onOpacityChange={(value) => updateSelected((object) => ({ ...(object as DesignShapeObject), strokeOpacity: value }))} /><label>Outline width<input type="number" min="0" max="80" value={(selectedObject as DesignShapeObject).strokeWidth} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignShapeObject), strokeWidth: Math.max(0, Number(event.target.value) || 0) }))} /></label>{selectedObject.type === "rectangle" ? <label>Corner radius<input type="number" min="0" max="200" value={(selectedObject as DesignShapeObject).radius ?? 0} disabled={!writable} onChange={(event) => updateSelected((object) => ({ ...(object as DesignShapeObject), radius: Math.max(0, Number(event.target.value) || 0) }))} /></label> : null}</> : null}{selectedIds.length > 1 ? <div className="design-object-actions"><button type="button" onClick={groupSelected} disabled={!writable}>Group</button><button type="button" onClick={ungroupSelected} disabled={!writable}>Ungroup</button><button type="button" onClick={() => alignSelected("left")} disabled={!writable}>Align left</button><button type="button" onClick={() => alignSelected("right")} disabled={!writable}>Align right</button><button type="button" onClick={() => alignSelected("top")} disabled={!writable}>Align top</button><button type="button" onClick={() => alignSelected("bottom")} disabled={!writable}>Align bottom</button><button type="button" onClick={() => alignSelected("centre")} disabled={!writable}>Centre</button><button type="button" onClick={() => alignSelected("middle")} disabled={!writable}>Middle</button></div> : null}<div className="design-object-actions">{selectedObject.type === "image" && activePage.objects.length === 1 ? <button type="button" onClick={fitPageToSelectedImage} disabled={!writable}>Fit page to image</button> : null}<button type="button" onClick={copySelected} disabled={!writable}>Copy</button><button type="button" onClick={pasteSelected} disabled={!writable}>Paste</button><button type="button" onClick={duplicateSelected} disabled={!writable}>Duplicate</button><button type="button" onClick={() => moveSelectedLayer("backward")} disabled={!writable || selectedObject.locked}>Send backward</button><button type="button" onClick={() => moveSelectedLayer("forward")} disabled={!writable || selectedObject.locked}>Bring forward</button><button type="button" onClick={() => moveSelectedLayer("back")} disabled={!writable || selectedObject.locked}>Send to back</button><button type="button" onClick={() => moveSelectedLayer("front")} disabled={!writable || selectedObject.locked}>Bring to front</button><button type="button" onClick={() => updateSelected((object) => ({ ...object, locked: !object.locked }))} disabled={!writable}>{selectedObject.locked ? "Unlock" : "Lock"}</button><button type="button" onClick={() => { updatePage((page) => ({ ...page, objects: page.objects.filter((object) => object.id !== selectedObject.id) })); selectObjects([]); }} disabled={!writable}>Delete</button></div></div> : <div className="design-inspector-empty"><p>Select an object to edit its position, size and style.</p><p>Redaction is opaque in rendered exports. Keep editable backups private because the original image remains in the design source.</p></div>}</Pane>
     </div>
-    {/* Managed local files use blob URLs directly in this media chooser. */}
-    {/* eslint-disable-next-line @next/next/no-img-element */}
-    {showMedia ? <div className="design-media-dialog" role="dialog" aria-modal="true" aria-labelledby="design-media-title"><div className="design-media-panel"><header><h2 id="design-media-title">Choose from Studio files</h2><button type="button" onClick={() => setShowMedia(false)} aria-label="Close">×</button></header>{mediaAssets.length ? <div className="design-media-list">{mediaAssets.map((asset) => <button type="button" key={asset.id} onClick={() => void addMediaAsset(asset)}><img src={URL.createObjectURL(asset.blob)} alt="" /><span>{asset.name}</span></button>)}</div> : <p>No image files are available in Studio yet.</p>}</div></div> : null}
+    {showMedia ? <StudioDialog title="Choose from Studio files" returnFocus={mediaTriggerRef} className="design-media-panel" onClose={() => setShowMedia(false)}><ImageChoiceGrid choices={mediaAssets} urls={mediaUrls} className="design-media-list" empty="No image files are available in Studio yet." onChoose={asset => void addMediaAsset(asset)} /></StudioDialog> : null}
   </div>;
 }

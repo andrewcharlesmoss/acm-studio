@@ -19,6 +19,13 @@ const rangeDependency = {
 
 export const studioControlEntries: StudioControlEntry[] = [
   {
+    id: "overlay-composition", title: "Overlays and image choices", group: "Foundation",
+    purpose: "Open nested popups and a modal image chooser using the shared production components.",
+    owner: "ACM Studio overlays and image resources", consumers: ["Document and template settings", "View and context menus", "Files previews", "Design image chooser", "Inline images"],
+    states: "Parent and child focus, topmost Escape, native modal focus containment, image loading, temporary selection, and URL cleanup.",
+    compatibility: "Memory-only fixture. Popovers, dialogs, image choices, and Blob URL ownership use their production implementations. Feature permissions, mutations, and provider confirmations remain with callers.",
+  },
+  {
     id: "drag-placement", title: "Drag to position", group: "Foundation",
     purpose: "Try the shared placement behaviour with one centred line per valid insertion gap.",
     owner: "ACM Studio shared drag placement", consumers: ["Sites and document lists", "Block canvas", "Navigation links", "Design pages and layers"],

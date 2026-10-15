@@ -20,7 +20,7 @@ export function anchoredMenuPosition({ anchor, width, height, viewportWidth, vie
 }
 
 /** Resize/scroll tracking is shared by canvas and Library consumers. */
-export function watchAnchoredMenu(anchor, popup, align, onPosition, anchorRect) {
+export function watchAnchoredMenu(anchor, popup, align, onPosition, anchorRect, options = {}) {
   let frame = null;
   let stopped = false;
   function schedule() {
@@ -38,12 +38,23 @@ export function watchAnchoredMenu(anchor, popup, align, onPosition, anchorRect) 
     // Measure scrollHeight without temporarily expanding the menu. Expansion
     // clamps scrollTop and can move the keyboard-focused last item out of view.
     const bounds = popup.getBoundingClientRect();
+    const anchorBounds = anchorRect?.() ?? anchor.getBoundingClientRect();
     const position = anchoredMenuPosition({
-      anchor: anchorRect?.() ?? anchor.getBoundingClientRect(), width: bounds.width,
+      anchor: anchorBounds, width: bounds.width,
       height: Math.max(bounds.height, popup.scrollHeight),
       viewportWidth, viewportHeight, viewportLeft: viewport?.offsetLeft ?? 0,
       viewportTop: viewport?.offsetTop ?? 0, align,
     });
+    if (options.point || options.placement === "submenu") {
+      const left = viewport?.offsetLeft ?? 0, top = viewport?.offsetTop ?? 0;
+      const width = Math.min(bounds.width, maxWidth);
+      const height = Math.min(Math.max(bounds.height, popup.scrollHeight), viewportHeight - 16);
+      const x = options.point?.x ?? (anchorBounds.right + width + 12 <= left + viewportWidth ? anchorBounds.right + 4 : anchorBounds.left - width - 4);
+      const y = options.point?.y ?? anchorBounds.top;
+      position.left = Math.max(left + 8, Math.min(x, left + viewportWidth - width - 8));
+      position.top = Math.max(top + 8, Math.min(y, top + viewportHeight - height - 8));
+      position.maxHeight = Math.max(1, viewportHeight - 16);
+    }
     popup.style.maxHeight = `${position.maxHeight}px`;
     onPosition(position);
   }

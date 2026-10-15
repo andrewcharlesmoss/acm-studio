@@ -54,6 +54,12 @@
 
 ### Changed
 
+- Reuse shared popover, context-menu, submenu, and native dialog behaviour across
+  document/template settings, View, canvas controls, Files, Design, and Site Settings.
+- Share image choice presentation and Blob URL cleanup across Design, inline
+  images, Files, and document/template media; demonstrate nested overlays and
+  temporary image choices in the UI Library.
+
 - Centralise pane region spacing across Navigation, Block Library, document and
   template inspectors, Design pages/layers and properties, and navigation details.
   Shared inset/flush regions replace local padding and preserve clean pane edges.
