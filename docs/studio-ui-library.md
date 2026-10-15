@@ -918,8 +918,9 @@ Typing, Enter, slash insertion, the plus chooser, selection, focus, viewport wid
 canvas zoom, read-only mode, and Undo/Redo remain production behaviours. Only the
 fixture set and its history belong to the specimen; nothing is read from or saved
 to product templates or document stores. Reset example restores all three fixtures.
-The editor retains its desktop layout in a contained horizontal scroll region at
-narrow widths. The searchable catalogue previews the same specimen definition.
+The editor uses a 960px-tall workspace so more inspector options remain visible.
+It retains its desktop layout in a contained horizontal scroll region at narrow
+widths. The searchable catalogue previews the same specimen definition.
 
 The former `/studio/ui/controls#block-appender` and
 `/studio/ui/controls/block-appender` links redirect to this Workspace example.
