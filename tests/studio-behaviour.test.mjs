@@ -1671,6 +1671,7 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
   const handle = readFileSync(new URL("../app/studio/controls/rotation-handle.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   const rotationCss = readFileSync(new URL("../app/studio/controls/rotation-handle.css", import.meta.url), "utf8");
+  const studioCss = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const geometry = readFileSync(new URL("../app/studio/controls/rotation-geometry.ts", import.meta.url), "utf8");
   assert.match(editor, /const \[isRotating, setIsRotating\] = useState\(false\)/);
   assert.match(editor, /rotating=\{isRotating\} cursor=\{rotationCursor\} showHandle=\{!objectActiveHandle \|\| objectActiveHandle\.kind === "rotate"\}/);
@@ -1682,6 +1683,7 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
   assert.doesNotMatch(editor, /setDraggingObjectId/);
   assert.match(editor, /rotationCursor=\{isActive \? rotationCursor : null\}/);
   assert.match(rotationCss, /cursor: var\(--rotation-cursor\)/);
+  assert.match(studioCss, /:where\(:not\(:disabled\):not\(\[aria-disabled="true"\]\):not\(\.studio-rotation-handle\)\) \{ cursor: pointer; \}/);
   assert.match(rotationCss, /stroke-width: 2\.5/);
   assert.match(css, /\.design-page-svg\.is-rotating, \.design-page-svg\.is-rotating \* \{ cursor: var\(--rotation-cursor\) !important; \}/);
   assert.match(handle, /rotationCursorCss\(object.rotation\)/);
