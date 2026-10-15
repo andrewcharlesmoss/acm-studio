@@ -11,13 +11,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import * as universalStyles from "@acm/styles";
 import { loadProductionModule } from "./production-module.mjs";
 
+// Compile the real TSX package before passing it into the synchronous VM loader.
+const ribbon = await loadProductionModule(new URL(import.meta.resolve("@acm/ribbon")));
 const { StudioCanvas: CanonicalStudioCanvas } = await loadProductionModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url));
 const { mergeListItemBoundary } = await loadProductionModule(new URL("../app/studio/list-boundary.ts", import.meta.url));
 
 const require = createRequire(import.meta.url);
 const plain = value => JSON.parse(JSON.stringify(value));
 function environment(overrides = {}) {
-  overrides = { "@acm/styles": universalStyles, ...overrides };
+  overrides = { "@acm/styles": universalStyles, "@acm/ribbon": ribbon, ...overrides };
   const cache = new Map(); const records = new Map();
   const library = { assets: [], folders: [] };
   let failKey = null; let failures = 0;
