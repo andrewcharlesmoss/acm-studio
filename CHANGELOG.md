@@ -4,8 +4,8 @@
 
 ### Fixed
 
-- Move Studio UI Library preview popovers slightly further right so they clear
-  the row’s Preview control when space allows.
+- Anchor Studio UI Library preview popovers to the right edge of the sticky Name
+  column, with a small gap and viewport clamping.
 - Keep the Studio UI Library catalogue’s Name column pinned during horizontal
   scrolling so entry names and Preview icons remain visible.
 - Keep grouped catalogue headings in the pinned Name column, aligned with entry
