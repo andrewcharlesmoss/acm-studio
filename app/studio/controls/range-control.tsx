@@ -6,10 +6,11 @@ const thumbSize = 12;
 
 type RangeControlProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
   tooltipText?: string;
+  tooltipPlacement?: "above" | "below";
 };
 
 /** Native range semantics with a thumb-positioned value label, shared by inspector controls. */
-export function RangeControl({ tooltipText, className = "studio-range-control", disabled, min = 0, max = 100, value, onFocus, onBlur, onPointerMove, onPointerLeave, onPointerDown, onPointerUp, onPointerCancel, onLostPointerCapture, ...props }: RangeControlProps) {
+export function RangeControl({ tooltipText, tooltipPlacement = "below", className = "studio-range-control", disabled, min = 0, max = 100, value, onFocus, onBlur, onPointerMove, onPointerLeave, onPointerDown, onPointerUp, onPointerCancel, onLostPointerCapture, ...props }: RangeControlProps) {
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -19,7 +20,7 @@ export function RangeControl({ tooltipText, className = "studio-range-control", 
   const position = `calc(${fraction * 100}% + ${thumbSize / 2 - fraction * thumbSize}px)`;
   const text = tooltipText ?? String(value ?? "");
   const visible = !disabled && Number.isFinite(amount) && text !== "" && (focused || hovered || dragging);
-  return <span className="studio-range-wrapper" style={{ "--range-label-position": position, "--range-thumb-size": `${thumbSize}px` } as CSSProperties}>
+  return <span className="studio-range-wrapper" data-tooltip-placement={tooltipPlacement} style={{ "--range-label-position": position, "--range-thumb-size": `${thumbSize}px` } as CSSProperties}>
     <input {...props} className={className} type="range" disabled={disabled} min={min} max={max} value={value}
       onFocus={event => { setFocused(true); onFocus?.(event); }}
       onBlur={event => { setFocused(false); setDragging(false); onBlur?.(event); }}

@@ -859,3 +859,13 @@ Owners supply coordinates, cursor, accessible name, zoom compensation, and point
 and keyboard commands; permissions, resize calculations, history, and persistence
 stay with Design. Rotation keeps its specialised shared `RotationHandle`, and
 arrow bends retain their distinct diamond target.
+
+### Zoom range scale
+
+Design uses `ZoomRangeControl` over the shared `RangeControl`. Its 10–500% range
+places 100% at the track midpoint: each half is linear on its own percentage
+interval. Tooltip and accessible values report zoom percentages, while arrow keys
+change one percentage point, Page Up/Down change 49 points (the existing native
+range increment), and Home/End reach 10%/500%. `RangeControl` owns value-label
+appearance and supports `tooltipPlacement="above"` for controls docked at the
+bottom of a workspace; other consumers keep the default below placement.

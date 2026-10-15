@@ -1499,7 +1499,7 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-content \{ border-top: 0; \}/);
   assert.match(editor, /className=\{`design-zoom-dock\$\{pagesCollapsed \? " is-pages-collapsed" : ""\}`\}/);
   assert.match(editor, /className="design-zoom-slider" aria-label="Canvas zoom control"/);
-  assert.match(editor, /id="design-canvas-zoom" className="studio-range-control" min="10" max="500" step="1" value=\{zoom\}/);
+  assert.match(editor, /<ZoomRangeControl id="design-canvas-zoom" value=\{zoom\} onChange=\{setZoom\}/);
   assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: #f7f7f7; border-top: 1px solid #d8d8d8; bottom: 0;[^}]*left: var\(--design-pages-width\);[^}]*position: absolute; right: var\(--design-inspector-width\);[^}]*z-index: 30;/);
   assert.match(designCss, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
