@@ -6,6 +6,8 @@
 
 - Keep the Studio UI Library catalogue’s Name column pinned during horizontal
   scrolling so entry names and Preview icons remain visible.
+- Keep grouped catalogue headings in the pinned Name column, aligned with entry
+  names across horizontal scroll positions.
 
 ### Added
 
