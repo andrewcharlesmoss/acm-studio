@@ -1571,9 +1571,9 @@ test("design canvas offers an optional purple selection border", () => {
 
 test("design image resizing keeps proportions by default and uses Shift for freeform sizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /import \{ resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio \} from "\.\/design-transform"/);
+  assert.match(editor, /import \{ resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio, resizeCursor, resizeFromKey \} from "\.\/design-transform"/);
   assert.match(editor, /shouldKeepResizeRatio\(interaction\.original, event\.shiftKey\)/);
-  assert.match(editor, /resizeObject\(item, handle, dx, dy, page, shouldKeepResizeRatio\(item, event\.shiftKey\), false\)/);
+  assert.match(editor, /resizeFromKey\(item, handle, event\.key, event\.shiftKey\)/);
 });
 
 test("design page resizing keeps proportions by default and uses Shift for freeform sizing", () => {
@@ -1695,9 +1695,10 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
 
 test("design resize cursors follow the selected object's rotation", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /function resizeCursor\(handle: ResizeHandle, rotation: number\)/);
-  assert.match(editor, /style=\{\{ cursor: resizeCursor\(handle, object\.rotation\) \}\}/);
-  assert.match(editor, /const axis = \(\(handleAngles\[handle\] \+ rotation\) % 180 \+ 180\) % 180/);
+  const transform = readFileSync(new URL("../app/studio/design-transform.ts", import.meta.url), "utf8");
+  assert.match(transform, /function resizeCursor\(handle: ResizeHandle, rotation: number\)/);
+  assert.match(editor, /cursor=\{resizeCursor\(handle, object\.rotation\)\}/);
+  assert.match(transform, /const axis = \(\(handleAngles\[handle\] \+ rotation\) % 180 \+ 180\) % 180/);
 });
 
 test("design objects use a four-way cursor while moving", () => {

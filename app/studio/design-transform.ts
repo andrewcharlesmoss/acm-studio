@@ -48,3 +48,18 @@ export function resizeRotatedObject(object: DesignObject, handle: ResizeHandle, 
     y: object.y + object.height / 2 + centreShiftX * sin + centreShiftY * cos - height / 2,
   };
 }
+
+export function resizeCursor(handle: ResizeHandle, rotation: number) {
+  const handleAngles: Record<ResizeHandle, number> = { n: 0, ne: 45, e: 90, se: 135, s: 180, sw: 225, w: 270, nw: 315 };
+  const axis = ((handleAngles[handle] + rotation) % 180 + 180) % 180;
+  const direction = Math.round(axis / 45) % 4;
+  return ["ns-resize", "nesw-resize", "ew-resize", "nwse-resize"][direction];
+}
+
+export function resizeFromKey(object: DesignObject, handle: ResizeHandle, key: string, shiftKey: boolean) {
+  if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) return null;
+  const amount = shiftKey ? 10 : 1;
+  const dx = key === "ArrowLeft" ? -amount : key === "ArrowRight" ? amount : 0;
+  const dy = key === "ArrowUp" ? -amount : key === "ArrowDown" ? amount : 0;
+  return resizeRotatedObject(object, handle, dx, dy, shouldKeepResizeRatio(object, shiftKey), false);
+}

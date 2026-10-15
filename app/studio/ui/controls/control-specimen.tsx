@@ -1,6 +1,7 @@
 "use client";
 import { HistoryActionsSpecimen } from "./history-actions-specimen";
 
+import { ResizeHandlesSpecimen } from "./resize-handles-specimen";
 import { RotationHandleSpecimen } from "./rotation-handle-specimen";
 import { DragPlacementSpecimen } from "./drag-placement-specimen";
 import { StudioButton } from "../../controls/button";
@@ -140,6 +141,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
         {entry.id === "text-action" ? <div className="ui-control-live"><div className="ui-text-action-buttons"><StudioButton variant="text" type="button" disabled={textActionValue === undefined} onClick={() => setTextActionValue(undefined)}>Clear</StudioButton><StudioButton variant="text" type="button" onClick={() => setTextActionValue("Example value")}>Reset</StudioButton><StudioButton variant="text" type="button" disabled>Clear Disabled</StudioButton></div><p role="status">{textActionValue ?? "Value cleared"}</p></div> : null}
         {entry.id === "drag-placement" ? <DragPlacementSpecimen /> : null}
         {entry.id === "history-actions" ? <HistoryActionsSpecimen /> : null}
+        {entry.id === "resize-handles" ? <ResizeHandlesSpecimen /> : null}
         {entry.id === "rotation-handle" ? <RotationHandleSpecimen /> : null}
         {entry.id === "overlay-composition" ? <OverlaySpecimen /> : null}
         {entry.id === "anchored-menu" ? <ToolbarMenuSpecimen /> : null}

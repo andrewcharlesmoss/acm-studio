@@ -34,6 +34,14 @@ export const studioControlEntries: StudioControlEntry[] = [
     compatibility: "Memory-only fixture. Popovers, dialogs, image choices, and Blob URL ownership use their production implementations. Feature permissions, mutations, and provider confirmations remain with callers.",
   },
   {
+    id: "resize-handles", title: "Resize handles", group: "Foundation",
+    purpose: "Try proportional resizing and Shift to stretch using Design’s shared handles and geometry.",
+    owner: "ACM Studio canvas controls", consumers: ["Design canvas", "Controls Library specimen"],
+    dependencies: [{ kind: "inherits", label: "CanvasHandle and Design resize geometry", detail: "Uses production artwork, handle appearance, zoom sizing, cursors, resizeRotatedObject, shouldKeepResizeRatio, and resizeFromKey." }],
+    states: "Shape and image, corner and side handles, Shift to stretch, Alt centre resize, rotation, zoom, read-only, cancellation, Reset, and Undo/Redo.",
+    compatibility: "Memory-only example. Product selection, permissions, history, and persistence remain with Design.",
+  },
+  {
     id: "rotation-handle", title: "Rotation handle", group: "Foundation",
     purpose: "Rotate an example object with the same circular handle and angle calculations as Design.",
     owner: "ACM Studio rotation controls", consumers: ["Design canvas", "Controls Library specimen"],

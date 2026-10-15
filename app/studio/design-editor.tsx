@@ -18,7 +18,7 @@ import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
 import type { BackgroundRemovalMode } from "./background-removal-models";
-import { resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio } from "./design-transform";
+import { resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio, resizeCursor, resizeFromKey } from "./design-transform";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DesignObjectArtwork, DesignPageArtwork, DesignPageBackground } from "./design-artwork";
 import { arrowPoints } from "./design-geometry";
@@ -159,12 +159,6 @@ function isDesignStorageQuotaError(error: unknown) {
   return error instanceof Error && error.name === "QuotaExceededError";
 }
 
-function resizeCursor(handle: ResizeHandle, rotation: number) {
-  const handleAngles: Record<ResizeHandle, number> = { n: 0, ne: 45, e: 90, se: 135, s: 180, sw: 225, w: 270, nw: 315 };
-  const axis = ((handleAngles[handle] + rotation) % 180 + 180) % 180;
-  const direction = Math.round(axis / 45) % 4;
-  return ["ns-resize", "nesw-resize", "ew-resize", "nwse-resize"][direction];
-}
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -1123,10 +1117,7 @@ export function DesignEditor() {
   function onResizeKeyDown(event: ReactKeyboardEvent<SVGElement>, object: DesignObject, handle: ResizeHandle) {
     if (!designEditable || object.locked || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
-    const amount = event.shiftKey ? 10 : 1;
-    const dx = event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0;
-    const dy = event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0;
-    updatePage((page) => ({ ...page, objects: page.objects.map((item) => item.id === object.id ? resizeObject(item, handle, dx, dy, page, shouldKeepResizeRatio(item, event.shiftKey), false) : item) }));
+    updatePage((page) => ({ ...page, objects: page.objects.map((item) => item.id === object.id ? resizeFromKey(item, handle, event.key, event.shiftKey) ?? item : item) }));
   }
 
   function onRotateKeyDown(event: ReactKeyboardEvent<SVGCircleElement>, object: DesignObject) {

@@ -24,6 +24,9 @@
 
 ### Added
 
+- Add a Resize handles specimen using shared Design controls and geometry, with
+  shapes, images, Shift stretching, zoom, rotation, cancellation, and Undo/Redo.
+
 - Share circular canvas handle presentation, sizing, focus, and input forwarding
   across Design object resizing, page resizing, and arrow endpoints.
 

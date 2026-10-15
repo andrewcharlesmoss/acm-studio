@@ -879,3 +879,14 @@ Pointer movement reads the current modifier state, including page resizing,
 so pressing or releasing Shift during a drag changes the constraint immediately.
 Text boxes retain free resizing for reflow; arrows retain endpoint editing.
 Direct inspector dimension fields remain explicit independent measurements.
+
+### Resize handles specimen
+
+Controls → Resize handles (`/studio/ui/controls#resize-handles`) reuses
+`CanvasHandle`, `DesignObjectArtwork`, and the production resize geometry,
+proportion policy, cursors, and keyboard calculations in `design-transform.ts`.
+Its shape/image fixtures, coordinate conversion, pointer capture, temporary
+history, and preview controls are memory-only adapters. Drag corner or side
+handles, hold Shift to stretch or Alt to resize from the centre, then try zoom,
+rotation, read-only mode, Escape cancellation, Reset example, and Undo/Redo.
+The shared catalogue preview uses this same specimen definition.

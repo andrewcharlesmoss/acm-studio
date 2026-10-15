@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatRotationAngle, resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio } from "../app/studio/design-transform.ts";
+import { formatRotationAngle, resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio, resizeFromKey, resizeCursor } from "../app/studio/design-transform.ts";
 
 test("rotation readout uses Canva-style signed angles", () => {
   assert.equal(formatRotationAngle(0), "0°");
@@ -95,4 +95,23 @@ test("text reflow and arrow endpoint editing are explicit exceptions to visual p
     assert.equal(shouldKeepResizeRatio({ ...base, type }, false), false);
     assert.equal(shouldKeepResizeRatio({ ...base, type }, true), false);
   }
+});
+
+test("Design and specimen keyboard resizing use the same geometry, steps, and Shift policy", () => {
+  for (const type of ["image", "rectangle", "text"]) {
+    const object = { ...base, type };
+    for (const shift of [false, true]) {
+      const amount = shift ? 10 : 1;
+      assert.deepEqual(resizeFromKey(object, "e", "ArrowRight", shift), resizeRotatedObject(object, "e", amount, 0, shouldKeepResizeRatio(object, shift), false));
+      assert.deepEqual(resizeFromKey(object, "s", "ArrowDown", shift), resizeRotatedObject(object, "s", 0, amount, shouldKeepResizeRatio(object, shift), false));
+    }
+    assert.equal(resizeFromKey(object, "e", "Tab", false), null);
+  }
+});
+test("shared resize cursors follow rotated handle axes", () => {
+  assert.equal(resizeCursor("e", 0), "ew-resize");
+  assert.equal(resizeCursor("e", 90), "ns-resize");
+  assert.equal(resizeCursor("se", 0), "nwse-resize");
+  assert.equal(resizeCursor("se", 45), "ns-resize");
+  assert.equal(resizeCursor("w", -90), "ns-resize");
 });
