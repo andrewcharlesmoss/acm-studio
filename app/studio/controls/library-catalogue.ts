@@ -19,6 +19,22 @@ const rangeDependency = {
 
 export const studioControlEntries: StudioControlEntry[] = [
   {
+    id: "checkbox", title: "Checkbox", group: "Foundation",
+    purpose: "Choose independent options with a labelled native checkbox, including indeterminate selection.",
+    owner: "ACM Studio shared choice controls", consumers: ["Save as template reusable defaults", "Keyboard collection Dark Specimens", "Controls Library specimen"],
+    dependencies: [{ kind: "inherits", label: "CheckboxControl", detail: "Owns native checkbox presentation, mixed state, disabled state, shared control accent, and focus styling." }],
+    states: "Unchecked, checked, indeterminate, disabled unchecked/checked/indeterminate, label click, Tab, Space, and Reset.",
+    compatibility: "Owners supply values and actions. Uses native input semantics; mixed state is a DOM property. This is distinct from Toggle’s switch presentation.",
+  },
+  {
+    id: "radio-group", title: "Radio group", group: "Foundation",
+    purpose: "Select one option from a labelled set of native radio buttons with shared grouping and keyboard navigation.",
+    owner: "ACM Studio shared choice controls", consumers: ["Keyboard collection Artwork selector", "Controls Library specimen"],
+    dependencies: [{ kind: "inherits", label: "RadioGroup", detail: "Owns labelled fieldset, unique group name, native radios, disabled states, shared control accent, and focus styling." }],
+    states: "Selected, unselected, initially empty, individually disabled, whole group disabled, independent groups, Tab, Space, arrow keys, and Reset.",
+    compatibility: "Each mounted group has an independent native name. Feature adapters retain values and callbacks; browser radio keyboard behaviour is preserved.",
+  },
+  {
     id: "history-actions", title: "History actions", group: "Foundation",
     purpose: "Try compact, labelled and Ribbon Undo/Redo controls against one temporary history.",
     owner: "ACM Studio history controls", consumers: ["Studio editor", "Design", "Navigation", "Styles", "UI Library specimens"],

@@ -1,5 +1,6 @@
 "use client";
 import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
+import { CheckboxControl } from "./controls/checkbox-control";
 import { StudioButton } from "./controls/button";
 import type { useStudioDocumentActions } from "./use-studio-document-actions";
 import type { StudioWorkspace } from "./editor-model";
@@ -28,7 +29,7 @@ export function StudioDocumentDialogs({ actions, workspace, templates, writable,
         <label><span>Template name</span><input required value={saveTemplateDialog.name} onChange={event => actions.setSaveTemplateDialog({ ...saveTemplateDialog, name: event.target.value })} /></label>
         <fieldset><legend>Reusable defaults</legend>{(["Author", "Category", "Tags", "Parent page"] as const).map((label, index) => {
           const key = (["includeAuthor", "includeCategory", "includeTags", "includeParentPage"] as const)[index];
-          return <label className="checkbox-setting" key={key}><input type="checkbox" checked={saveTemplateDialog[key]} onChange={event => actions.setSaveTemplateDialog({ ...saveTemplateDialog, [key]: event.target.checked })} /><span>{label}</span></label>;
+          return <CheckboxControl className="checkbox-setting" key={key} label={label} checked={saveTemplateDialog[key]} onChange={checked => actions.setSaveTemplateDialog({ ...saveTemplateDialog, [key]: checked })} />;
         })}</fieldset>
         <p className="setting-note">The review is deliberately conservative: dynamic structure and layout are captured, while ordinary document text, media and publication state stay with the source document.</p>
         {actionError ? <p role="alert">{actionError}</p> : null}

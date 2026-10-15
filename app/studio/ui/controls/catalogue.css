@@ -140,3 +140,7 @@
 .ui-page-resize-svg { display:block; height:100%; overflow:visible; touch-action:none; width:100%; }
 
 .ui-object-move-target:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--rl-accent); outline-offset:3px; }
+
+.ui-choice-specimen { display:grid; gap:.75rem; min-width:0; }
+.ui-choice-fieldset { display:grid; gap:.25rem; margin:0; padding:0; border:0; min-width:0; }
+.ui-choice-fieldset > legend { margin-bottom:.35rem; font-weight:600; }

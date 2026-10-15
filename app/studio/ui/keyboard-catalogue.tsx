@@ -1,5 +1,8 @@
 "use client";
 
+import { CheckboxControl } from "../controls/checkbox-control";
+import { RadioGroup } from "../controls/radio-group";
+
 import { useId, useReducer, useState } from "react";
 import { iconMetadata } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
@@ -108,8 +111,8 @@ export function KeyboardCatalogue() {
         if (group !== "all" && !keyboardKeys.some((key) => key.group === group && (value === "all" || key.platforms.includes(value)))) setGroup("all");
         dispatch({ type: "set-platform", value });
       }}><option value="all">Mac and Windows</option><option value="mac">Mac</option><option value="windows">Windows</option></select></label>
-      <fieldset><legend>Artwork</legend><label><input type="radio" name="key-artwork" value="keycap" checked={mode === "keycap"} onChange={() => dispatch({ type: "set-mode", value: "keycap" })} />Keycaps</label><label><input type="radio" name="key-artwork" value="symbol" checked={mode === "symbol"} onChange={() => dispatch({ type: "set-mode", value: "symbol" })} />Symbols</label></fieldset>
-      <label className="kb-dark-toggle"><input type="checkbox" checked={dark} onChange={(event) => updateAppearance({ dark: event.target.checked })} />Dark Specimens</label>
+      <RadioGroup label="Artwork" value={mode} options={[{ value: "keycap", label: "Keycaps" }, { value: "symbol", label: "Symbols" }]} onChange={value => dispatch({ type: "set-mode", value: value as typeof mode })} />
+      <CheckboxControl className="kb-dark-toggle" label="Dark Specimens" checked={dark} onChange={dark => updateAppearance({ dark })} />
       <label>Section<select value={group} onChange={(event) => setGroup(event.target.value as KeyboardKeyGroup | "all")}><option value="all">All sections</option>{groups.map((item) => <option value={item} key={item}>{item}</option>)}</select></label>
       <label className="kb-search">Find a key<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or legend" /></label>
       <span className="kb-count">{visibleKeys.length} of {keys.length} keys</span>

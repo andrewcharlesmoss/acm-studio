@@ -39,6 +39,10 @@
 
 ### Added
 
+- Add shared Checkbox and Radio group Library entries with mixed, disabled,
+  independent selection, and native keyboard examples, also used by existing
+  template defaults and keyboard collection controls.
+
 - Add a Workspace Object manipulation playground combining shared move, resize,
   and rotation controls with temporary shape/image history.
 

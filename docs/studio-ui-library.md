@@ -960,3 +960,28 @@ current gesture. Read-only disables editing, and Reset restores the fixture,
 controls, and history. Changing Shape/Image starts a fresh example for that type.
 The catalogue previews this same implementation. Focused Resize handles and
 Rotation handle entries remain in Controls.
+
+### Checkbox and Radio group foundations
+
+Controls → Checkbox (`/studio/ui/controls#checkbox`) and Radio group
+(`/studio/ui/controls#radio-group`) demonstrate `CheckboxControl` and `RadioGroup`
+from `app/studio/controls/`. Both inherit `choice-controls.css` for native input
+size, label spacing, shared Control accent, disabled presentation, and the Studio
+focus preference. Toggle retains its distinct switch presentation.
+
+Checkbox includes checked, unchecked, and indeterminate states, plus disabled
+examples of each. The Select all example derives its mixed state from its child
+choices. The component sets the native `indeterminate` property; the feature owns
+all selection state. Save as template reusable defaults and the keyboard
+collection’s Dark Specimens use the same component.
+
+Radio group uses a labelled native fieldset and an independent generated input
+name for each mounted group. The specimen includes selected/unselected options,
+an initially empty group, individually disabled choices, and a disabled group.
+The keyboard collection’s Artwork selector uses the same component. Native Tab,
+Space, and arrow-key behaviour is retained; no replacement keyboard controller is
+introduced. Browser differences for entering an initially empty group remain native.
+
+Examples are memory-only and Reset restores their initial selections. Catalogue
+search and previews derive from these same entries and specimens. Other existing
+native checkbox consumers remain adoptable incrementally when touched.
