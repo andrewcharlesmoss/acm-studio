@@ -127,6 +127,9 @@
 
 ### Fixed
 
+- Centre the Design rotation icon inside its handle, preventing a stray icon
+  at the selected object’s corner.
+
 - Make the Sites disclosure heading span its pane with a taller, square-edged
   row, retaining inset site cards and a contained keyboard focus outline.
 
