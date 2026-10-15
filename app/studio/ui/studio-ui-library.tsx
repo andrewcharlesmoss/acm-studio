@@ -14,11 +14,13 @@ import "./blocks/catalogue.css";
 import "./controls/catalogue.css";
 import "./panels/panel-catalogue.css";
 import "./keyboard-catalogue.css";
+import "./global-catalogue.css";
 import "./studio-ui-library.css";
 
-export type StudioUiSection = "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "blocks" | "controls" | "icons" | "styles";
+export type StudioUiSection = "catalogue" | "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "blocks" | "controls" | "icons" | "styles";
 
 const sections: { id: StudioUiSection; label: string; icon: IconName }[] = [
+  { id: "catalogue", label: "Catalogue", icon: "action.search" },
   { id: "workspace", label: "Workspace", icon: "layout.columns" },
   { id: "navigation", label: "Navigation", icon: "navigation.menu" },
   { id: "ribbon", label: "Ribbon", icon: "layout.columns" },

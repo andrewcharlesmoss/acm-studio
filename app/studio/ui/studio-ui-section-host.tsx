@@ -4,6 +4,7 @@ import { Component, lazy, Suspense, useState, type ComponentType, type ReactNode
 import { StudioUiLibrary, type StudioUiSection } from "./studio-ui-library";
 
 const sectionLoaders: Record<StudioUiSection, () => Promise<{ default: ComponentType }>> = {
+  catalogue: () => import("./global-catalogue").then(module => ({ default: module.GlobalCatalogue })),
   workspace: () => import("./workspace-catalogue").then(module => ({ default: module.WorkspaceCatalogue })),
   navigation: () => import("./navigation/navigation-catalogue").then(module => ({ default: module.NavigationCatalogue })),
   ribbon: () => import("../ribbon/ribbon-catalogue").then(module => ({ default: module.RibbonCatalogue })),

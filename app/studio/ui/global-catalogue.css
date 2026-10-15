@@ -1,0 +1,65 @@
+.ui-global-catalogue { min-width:0; padding-bottom:3rem; }
+.ui-global-catalogue-tools { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; padding:0 2rem 1rem; }
+.ui-global-search { display:flex; align-items:center; gap:.65rem; flex:1 1 360px; min-width:0; max-width:760px; min-height:44px; border:1px solid var(--rl-line); border-radius:7px; padding:0 .75rem; background:#fff; }
+.ui-global-search input { flex:1; min-width:0; border:0; background:transparent; color:var(--rl-ink); font:inherit; }
+.ui-global-search input::-webkit-search-cancel-button { display:none; }
+.ui-global-search button { width:32px; height:32px; border:0; border-radius:5px; background:transparent; color:var(--rl-muted); font:inherit; font-size:1.3rem; cursor:pointer; }
+.ui-global-search button:disabled { visibility:hidden; }
+.ui-global-group-toggle,.ui-global-filters label { display:inline-flex; align-items:center; gap:.4rem; }
+.ui-global-group-toggle { white-space:nowrap; }
+.ui-global-filters { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem 1rem; margin:0 2rem 1rem; padding:.75rem 1rem; border:1px solid var(--rl-line); border-radius:7px; }
+.ui-global-filters legend { padding:0 .3rem; font-weight:600; }
+.ui-global-filters button { border:1px solid var(--rl-line); border-radius:5px; padding:.3rem .55rem; background:#fff; font:inherit; cursor:pointer; }
+.ui-global-count { margin:0 2rem .5rem; color:var(--rl-muted); font-size:.875rem; }
+.ui-global-table-scroll { margin:0 2rem; overflow-x:auto; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }
+.ui-global-table-scroll table { width:100%; min-width:1050px; border-collapse:collapse; text-align:left; }
+.ui-global-table-scroll th,.ui-global-table-scroll td { padding:.7rem .75rem; border-bottom:1px solid var(--rl-line); vertical-align:top; }
+.ui-global-table-scroll thead th { position:sticky; top:0; z-index:1; background:#f7f7f5; font-weight:600; }
+.ui-global-table-scroll tbody th[scope="row"] { min-width:140px; }
+.ui-global-table-scroll tbody th[scope="row"] a { color:var(--rl-ink); text-decoration:underline; text-decoration-color:transparent; text-underline-offset:3px; }
+.ui-global-table-scroll tbody tr:hover { background:#fafafa; }
+.ui-global-table-scroll tbody th[scope="row"] a:hover,.ui-global-table-scroll tbody th[scope="row"] a:focus-visible { text-decoration-color:currentColor; }
+.ui-global-table-scroll tbody td:nth-child(1) { min-width:115px; }
+.ui-global-table-scroll tbody td:nth-child(3) { min-width:250px; max-width:400px; }
+.ui-global-table-scroll tbody td:nth-child(4),.ui-global-table-scroll tbody td:nth-child(5),.ui-global-table-scroll tbody td:nth-child(6) { min-width:170px; }
+.ui-global-table-scroll tbody td:last-child { min-width:85px; }
+.ui-global-table-scroll td:last-child button { border:1px solid var(--rl-line); border-radius:5px; padding:.3rem .55rem; background:#fff; font:inherit; cursor:pointer; }
+.ui-global-group-row th { position:sticky; left:0; background:#f2f2f0; font-size:.9rem; }
+.ui-global-empty { padding:2rem; color:var(--rl-muted); }
+.ui-global-preview { position:fixed; z-index:10000; width:min(430px,calc(100vw - 32px)); max-height:min(80vh,680px); overflow:auto; border:1px solid var(--rl-line); border-radius:10px; padding:1rem; background:#fff; color:var(--rl-ink); box-shadow:0 8px 32px #0003; }
+.ui-global-preview > .rl-eyebrow { margin:.1rem 2rem .25rem 0; color:var(--rl-muted); font-size:.75rem; text-transform:none; }
+.ui-library-content .ui-global-catalogue .ui-page-intro > .rl-eyebrow { text-transform:none; }
+.ui-global-preview h2 { margin:.2rem 2rem .75rem 0; font-size:1.15rem; }
+.ui-global-preview > p:not(.rl-eyebrow) { color:var(--rl-muted); font-size:.875rem; }
+.ui-global-preview-close { position:absolute; top:.45rem; right:.45rem; display:grid; width:36px; height:36px; place-items:center; border:0; border-radius:5px; background:transparent; cursor:pointer; }
+.ui-global-preview-body { max-height:340px; overflow:hidden; border:1px solid var(--rl-line); border-radius:7px; padding:.75rem; background:#fafaf9; }
+.ui-global-preview-body :is(button,input,a,select) { pointer-events:none !important; }
+.ui-global-preview-icon,.ui-global-preview-block,.ui-global-preview-style { display:flex; min-height:120px; align-items:center; justify-content:center; gap:1rem; }
+.ui-global-preview-icon { flex-direction:column; }
+.ui-global-preview-style span { width:46px; height:46px; border:1px solid var(--rl-line); border-radius:7px; }
+.ui-global-preview-control { width:145%; max-height:300px; overflow:hidden; transform:scale(.68); transform-origin:top left; }
+.ui-global-preview-control .ui-control-entry { padding:0; }
+.ui-global-preview-control .ui-control-entry-header { display:none; }
+.ui-global-preview-control .ui-control-detail-card { margin:0; }
+.ui-global-preview-pane { width:650px; height:340px; transform:scale(.58); transform-origin:top left; }
+.ui-global-preview-ribbon { display:flex; min-height:130px; align-items:center; justify-content:center; }
+.ui-global-preview-ribbon .acm-ribbon { width:100%; }
+.ui-global-preview-ribbon .acm-ribbon-field { max-width:100%; }
+.ui-global-preview-panel { max-width:360px; margin:auto; }
+.ui-global-preview-navigation { min-height:100px; }
+.ui-global-preview-workspace { width:760px; height:340px; overflow:hidden; transform:scale(.48); transform-origin:top left; }
+.ui-global-preview-workspace > div:nth-child(2) { padding:1rem; }
+.ui-global-preview-workspace > .pl-specimen { height:240px; }
+.ui-global-preview-palette span { display:grid; width:68px; height:68px; align-items:end; border:1px solid var(--rl-line); border-radius:7px; overflow:hidden; }
+.ui-global-preview-palette small { padding:.2rem; background:#fffD; font-size:.65rem; }
+.ui-global-preview-typography { flex-direction:column; align-items:flex-start; }
+.ui-global-preview-buttons { flex-wrap:wrap; }
+.ui-global-preview-interactions span { width:44px; height:44px; border:1px solid var(--rl-line); border-radius:7px; }
+.ui-global-preview-layout > div { width:min(100%,340px); border:var(--acm-layout-border-width, 1px) solid var(--rl-line); background:var(--rl-surface); }
+@media(max-width:720px) {
+  .ui-global-catalogue-tools { padding-inline:1rem; }
+  .ui-global-filters { margin-inline:1rem; }
+  .ui-global-count { margin-inline:1rem; }
+  .ui-global-table-scroll { margin-inline:1rem; }
+  .ui-global-preview { left:16px !important; width:calc(100vw - 32px); }
+}

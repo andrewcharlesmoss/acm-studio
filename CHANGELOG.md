@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add a searchable Studio UI Library catalogue with cross-section filters,
+  ownership and dependency details, and keyboard-accessible previews from shared
+  component and specimen definitions. Make it the Library landing view.
+
 - Add a History actions example showing shared compact, labelled and Ribbon
   controls with temporary Undo/Redo, read-only mode and keyboard shortcuts.
 

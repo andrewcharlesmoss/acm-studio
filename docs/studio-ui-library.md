@@ -826,3 +826,14 @@ compact, labelled and Ribbon presentations against one temporary history. Make
 change, Undo/Redo, read-only mode and standard history shortcuts affect only the
 example; Reset example clears its state. Shared controls own presentation and
 availability handling; production features retain commands and persistence.
+
+### Whole-library catalogue
+
+The `/studio/ui` landing view is the searchable catalogue across Workspace,
+Navigation, Ribbon, Panes, Panels, Blocks, Controls, Icons and Styles. Entries
+are built from their existing section definitions and link to their full example.
+Search matches names, sections, purpose, owner, consumers and dependencies;
+section filters may be combined. Hover or focus a row to preview it, or use its
+Preview button for touch and pinned inspection. Escape and the visible close
+control dismiss the preview. Shared symbols and production specimens supply the
+visuals; preview-only state remains temporary and isolated.
