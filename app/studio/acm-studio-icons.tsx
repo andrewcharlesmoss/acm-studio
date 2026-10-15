@@ -4,6 +4,7 @@
  */
 
 import type { SVGProps } from "react";
+import { AcmIcon } from "@acm/icons/react";
 
 export type AcmStudioIconName =
   | "add" | "align-centre" | "align-left" | "align-right" | "archive"
@@ -69,7 +70,7 @@ export function AcmStudioIcon({ name, size = 24, ...props }: AcmStudioIconProps)
     case "pencil": return <svg {...line}><path d="m5 16-.8 4 4-.8L19 8.4 15.6 5zM14.5 6.1l3.4 3.4M5 20h14" /></svg>;
     case "quote": return <svg {...line}><path d="M10 6H6a2 2 0 0 0-2 2v4h6v6H4m16-12h-4a2 2 0 0 0-2 2v4h6v6h-6" /></svg>;
     case "redo": return <svg {...line}><path d="M19 10h-9a5 5 0 0 0 0 10h2m7-10-4-4m4 4-4 4" /></svg>;
-    case "rotate": return <svg {...line} strokeWidth="1.5"><path d="M9.5 20C3.5 17.5 3.5 7 9.5 4M5.5 4h4v5M14.5 4C20.5 6.5 20.5 17 14.5 20M18.5 20h-4v-5" /></svg>;
+    case "rotate": return <svg {...line}><AcmIcon name="arrange.rotate-free" scale="Regular-M" size={24} /></svg>;
     case "seen": return <svg {...line}><path d="M2.8 12s3.1-5.1 9.2-5.1 9.2 5.1 9.2 5.1-3.1 5.1-9.2 5.1S2.8 12 2.8 12Z" /><circle cx="12" cy="12" r="2.5" /></svg>;
     case "visibility": return <svg {...shared} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7"><path d="M3 12s3.3-5 9-5 9 5 9 5-3.3 5-9 5-9-5-9-5Z" /><circle cx="12" cy="12" r="2.5" /></svg>;
     case "seen-off":

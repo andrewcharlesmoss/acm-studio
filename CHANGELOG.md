@@ -127,8 +127,8 @@
 
 ### Fixed
 
-- Restore the original two-arrow Design rotation icon and centre it inside its
-  handle, preventing a stray icon at the selected object’s corner.
+- Restore the two-arrow Design rotation icon with rounder shared catalogue
+  artwork, centred inside its handle without a stray icon at the object’s corner.
 
 - Make the Sites disclosure heading span its pane with a taller, square-edged
   row, retaining inset site cards and a contained keyboard focus outline.

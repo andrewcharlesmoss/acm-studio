@@ -29,6 +29,7 @@ const studioIconConsumers: Partial<Record<IconName, Array<{ label: string; href:
   "layout.header": [{ label: "Create a shared Header in Templates", href: "/studio?mode=templates&scope=global" }],
   "layout.footer": [{ label: "Create a shared Footer in Templates", href: "/studio?mode=templates&scope=global" }],
   "text.caption": [{ label: "Table caption visibility control", href: "/studio/ui/blocks/table" }],
+  "arrange.rotate-free": [{ label: "Design canvas rotation handle", href: "/studio/designs" }],
   "view.styles": [{ label: "Table inspector Styles tab", href: "/studio/ui/blocks/table" }],
   "action.settings": [{ label: "Table inspector Settings tab", href: "/studio/ui/blocks/table" }],
   "action.adjust": [{ label: "Custom font size inspector control", href: "/studio/ui/blocks/paragraph" }, { label: "Box dimensions controls", href: "/studio/ui/controls#box-length" }],

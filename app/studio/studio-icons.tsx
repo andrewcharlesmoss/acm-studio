@@ -14,7 +14,7 @@ export type StudioIconName = Extract<AcmStudioIconName,
   | "heading" | "image" | "info" | "link" | "link-off" | "list" | "lock"
   | "lock-open" | "more-vertical" | "paragraph" | "pencil" | "quote" | "redo"
   | "rotate" | "seen" | "seen-off" | "separator" | "sliders" | "spacer" | "clock" | "calendar" | "heading-marker" | "trash" | "undo" | "video"
-  | "visibility" | "visibility-off" | "zoom-in" | "zoom-out"> | "save";
+  | "visibility" | "visibility-off" | "zoom-in" | "zoom-out"> | "save" | "rotate-free";
 
 type StudioIconProps = Omit<SVGProps<SVGSVGElement>, "children" | "scale"> & { name: StudioIconName; size?: number };
 
@@ -81,8 +81,8 @@ export function StudioIcon({ name, size = 24, ...props }: StudioIconProps) {
   if (sharedSymbol) {
     return <AcmIcon name={sharedSymbol} scale="Regular-M" size={size} {...props} />;
   }
-  if (name === "save") {
-    return <AcmIcon name="media.save" scale="Regular-M" size={size} {...props} />;
+  if (name === "save" || name === "rotate-free") {
+    return <AcmIcon name={name === "save" ? "media.save" : "arrange.rotate-free"} scale="Regular-M" size={size} {...props} />;
   }
   return <AcmStudioIcon name={name} size={size} {...props} />;
 }
