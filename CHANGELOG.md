@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Use grab and grabbing cursors for shared slider thumbs, including Design zoom.
+
 - Preserve shapes, images, highlights, redactions, and numbered markers’ aspect
   ratios during handle resizing; hold Shift to stretch, including during a drag.
 

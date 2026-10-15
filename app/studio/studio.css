@@ -1314,11 +1314,18 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-range-control[type="range"] { accent-color: var(--studio-range-accent, var(--gutenberg-accent)); appearance: auto; -webkit-appearance: auto; background: transparent; border: 0; cursor: pointer; min-height: 20px; min-width: 0; padding: 0; }
 @media (hover: hover) and (pointer: fine) { .studio-range-control[type="range"]:not(:disabled):hover { accent-color: var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 88%, black)); } }
 .studio-range-control[type="range"]:not(:disabled):active { accent-color: var(--studio-range-pressed-accent, color-mix(in srgb, var(--studio-range-hover-accent, color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 88%, black)) 88%, black)); }
-.studio-range-wrapper > .studio-range-control[type="range"] { accent-color: var(--studio-range-accent, var(--gutenberg-accent)); appearance: none; -webkit-appearance: none; background: transparent; border: 0; cursor: pointer; height: 40px; min-width: 0; padding: 0; }
+.studio-range-wrapper > .studio-range-control[type="range"] { accent-color: var(--studio-range-accent, var(--gutenberg-accent)); appearance: none; -webkit-appearance: none; background: transparent; border: 0; cursor: grab; height: 40px; min-width: 0; padding: 0; }
 .studio-range-wrapper > .studio-range-control::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--studio-range-accent, var(--gutenberg-accent)) var(--range-label-position, 0%), #ddd var(--range-label-position, 0%)); border-radius: 2px; height: 4px; }
 .studio-range-wrapper > .studio-range-control::-moz-range-track { background: linear-gradient(to right, var(--studio-range-accent, var(--gutenberg-accent)) var(--range-label-position, 0%), #ddd var(--range-label-position, 0%)); border-radius: 2px; height: 4px; }
 .studio-range-wrapper > .studio-range-control::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; background: var(--studio-range-accent, var(--gutenberg-accent)); border: 0; border-radius: 50%; height: var(--range-thumb-size); margin-top: -4px; width: var(--range-thumb-size); }
 .studio-range-wrapper > .studio-range-control::-moz-range-thumb { background: var(--studio-range-accent, var(--gutenberg-accent)); border: 0; border-radius: 50%; height: var(--range-thumb-size); width: var(--range-thumb-size); }
+/* Thumb dragging shares the same cursor treatment across standard sliders. */
+.studio-range-wrapper > .studio-range-control:not(:disabled)::-webkit-slider-thumb { cursor: grab; }
+.studio-range-wrapper > .studio-range-control:not(:disabled)::-moz-range-thumb { cursor: grab; }
+.studio-range-wrapper > .studio-range-control:not(:disabled):active { cursor: grabbing; }
+.studio-range-wrapper > .studio-range-control:not(:disabled):active::-webkit-slider-thumb { cursor: grabbing; }
+.studio-range-wrapper > .studio-range-control:not(:disabled):active::-moz-range-thumb { cursor: grabbing; }
+.studio-range-wrapper > .studio-range-control[type="range"]:disabled { cursor: not-allowed; }
 .studio-range-wrapper > .studio-range-control:not(:disabled):is(:hover, :focus-visible, :active)::-webkit-slider-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 40%, transparent); }
 .studio-range-wrapper > .studio-range-control:not(:disabled):is(:hover, :focus-visible, :active)::-moz-range-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--studio-range-accent, var(--gutenberg-accent)) 40%, transparent); }
 @media (hover: hover) and (pointer: fine) {
