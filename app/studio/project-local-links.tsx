@@ -155,9 +155,18 @@ export function ProjectLocalStatus({ id }: { id: string }) {
   return <small className="dashboard-local-status" role="status" title={description} aria-label={description}><span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" />{status}</small>;
 }
 
+// Navigation panes can remount between content and template workspaces.
+// Keep this transient preference in their common screen owner, not a product store.
+const SitesDisclosureContext = createContext<{ open: boolean; setOpen: (open: boolean) => void } | null>(null);
+export function SitesDisclosureProvider({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(true);
+  return <SitesDisclosureContext.Provider value={{ open, setOpen }}>{children}</SitesDisclosureContext.Provider>;
+}
+
 export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite, libraryKind }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void; libraryKind?: StudioLibraryKind }) {
+  const disclosure = useContext(SitesDisclosureContext);
   const studio = studioProjects.find(project => project.id === "acm-studio");
   const sites = [...(studio ? [{ id: studio.id, name: studio.name }] : []), ...localFixtureSites];
   const { order, reordering, status } = useSiteOrdering(sites.map(site => site.id));
-  return <InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" onOpenChange={open => { if (!open) reordering.cancel(); }}><div {...reordering.listProps}><DragPlacementIndicator line={reordering.line} />{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) && libraryKind ? studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</InspectorAccordionSection>;
+  return <InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" defaultOpen={disclosure?.open ?? true} onOpenChange={open => { disclosure?.setOpen(open); if (!open) reordering.cancel(); }}><div {...reordering.listProps}><DragPlacementIndicator line={reordering.line} />{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) && libraryKind ? studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</InspectorAccordionSection>;
 }
