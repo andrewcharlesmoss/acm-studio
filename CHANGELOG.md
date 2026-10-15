@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Preserve shapes, images, highlights, redactions, and numbered markers’ aspect
+  ratios during handle resizing; hold Shift to stretch, including during a drag.
+
 - Centre Design zoom at 100% while retaining 10–500%, with the shared slider
   value label above the track so it stays visible at the bottom of the workspace.
 

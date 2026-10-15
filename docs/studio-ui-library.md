@@ -869,3 +869,13 @@ change one percentage point, Page Up/Down change 49 points (the existing native
 range increment), and Home/End reach 10%/500%. `RangeControl` owns value-label
 appearance and supports `tooltipPlacement="above"` for controls docked at the
 bottom of a workspace; other consumers keep the default below placement.
+
+### Visual object resizing
+
+Design handle resizing uses `shouldKeepResizeRatio` in `design-transform.ts` for
+images, all shapes, highlights, redactions, and numbered markers. Pointer and
+keyboard resizing preserve the starting proportions unless Shift is held.
+Pointer movement reads the current modifier state, including page resizing,
+so pressing or releasing Shift during a drag changes the constraint immediately.
+Text boxes retain free resizing for reflow; arrows retain endpoint editing.
+Direct inspector dimension fields remain explicit independent measurements.

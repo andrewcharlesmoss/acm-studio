@@ -1571,15 +1571,15 @@ test("design canvas offers an optional purple selection border", () => {
 
 test("design image resizing keeps proportions by default and uses Shift for freeform sizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /function shouldKeepResizeRatio\(object: DesignObject, shiftKey: boolean\)/);
-  assert.match(editor, /keepRatio: shouldKeepResizeRatio\(object, event\.shiftKey\)/);
+  assert.match(editor, /import \{ resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio \} from "\.\/design-transform"/);
+  assert.match(editor, /shouldKeepResizeRatio\(interaction\.original, event\.shiftKey\)/);
   assert.match(editor, /resizeObject\(item, handle, dx, dy, page, shouldKeepResizeRatio\(item, event\.shiftKey\), false\)/);
 });
 
 test("design page resizing keeps proportions by default and uses Shift for freeform sizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /resizePage\(page, handle, dx, dy, !event\.shiftKey\)/);
-  assert.match(editor, /keepRatio: !event\.shiftKey/);
+  assert.match(editor, /pageResize\.handle, dx, dy, !event\.shiftKey/);
 });
 
 test("design page presets include a 1080 by 1920 portrait format", () => {

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatRotationAngle, resizeRotatedObject, rotationCursorCss } from "../app/studio/design-transform.ts";
+import { formatRotationAngle, resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio } from "../app/studio/design-transform.ts";
 
 test("rotation readout uses Canva-style signed angles", () => {
   assert.equal(formatRotationAngle(0), "0°");
@@ -76,5 +76,23 @@ test("cursor faces inward and turns with the object while retaining its hotspot"
     assert.ok(decodeURIComponent(cursor).includes(`rotate(${expected} 16 16)`));
     assert.ok(decodeURIComponent(cursor).includes("scale(.86)"));
     assert.ok(cursor.endsWith('16 16, crosshair'));
+  }
+});
+
+for (const type of ["image", "rectangle", "ellipse", "highlight", "redaction", "step"]) {
+  test(`${type} keeps its ratio by default and stretches with Shift across corner and side handles`, () => {
+    const object = { ...base, type };
+    for (const handle of ["se", "e", "s"]) {
+      const locked = resizeRotatedObject(object, handle, 40, 10, shouldKeepResizeRatio(object, false), false);
+      close(locked.width / locked.height, object.width / object.height);
+      const stretched = resizeRotatedObject(object, handle, 40, 10, shouldKeepResizeRatio(object, true), false);
+      assert.notEqual(stretched.width / stretched.height, object.width / object.height);
+    }
+  });
+}
+test("text reflow and arrow endpoint editing are explicit exceptions to visual proportion locking", () => {
+  for (const type of ["text", "arrow"]) {
+    assert.equal(shouldKeepResizeRatio({ ...base, type }, false), false);
+    assert.equal(shouldKeepResizeRatio({ ...base, type }, true), false);
   }
 });

@@ -4,6 +4,11 @@ export type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 
 export { formatRotationAngle, rotationCursorCss } from "./controls/rotation-geometry.ts";
 
+/** Visual objects scale proportionally; text boxes reflow and arrows edit endpoints. */
+export function shouldKeepResizeRatio(object: DesignObject, shiftKey: boolean) {
+  return !shiftKey && object.type !== "text" && object.type !== "arrow";
+}
+
 // Pointer deltas arrive in page coordinates; dimensions belong to the rotated
 // object's local axes. Move its centre so the opposite corner stays anchored.
 // Allow page-edge overflow, as rotation already does: page-axis clamping would
