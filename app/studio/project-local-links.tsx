@@ -1,4 +1,5 @@
 "use client";
+import { createSitesDisclosureRepository, sitesDisclosureKey } from "./sites-disclosure-repository.mjs";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { LibraryDragHandle } from "./library-drag-handle";
@@ -7,7 +8,7 @@ import type { useLibraryReordering } from "./use-library-reordering";
 import { studioContextPath, type StudioLibraryKind } from "./use-studio-screen-navigation";
 import { isLocalFixtureSiteId, localFixtureSites, localFixtureHref, type LocalFixtureSiteId } from "./test-site/sites";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { studioProjects } from "./project-registry";
 import { ProjectEnvironmentActions } from "./project-environment-links";
 import { StudioIcon } from "./studio-icons";
@@ -155,12 +156,48 @@ export function ProjectLocalStatus({ id }: { id: string }) {
   return <small className="dashboard-local-status" role="status" title={description} aria-label={description}><span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" />{status}</small>;
 }
 
-// Navigation panes can remount between content and template workspaces.
-// Keep this transient preference in their common screen owner, not a product store.
-const SitesDisclosureContext = createContext<{ open: boolean; setOpen: (open: boolean) => void } | null>(null);
+// One browser preference follows the shared Sites pane across local site contexts.
+const SitesDisclosureContext = createContext<{ open: boolean; setOpen: (open: boolean) => void; status: string } | null>(null);
 export function SitesDisclosureProvider({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(true);
-  return <SitesDisclosureContext.Provider value={{ open, setOpen }}>{children}</SitesDisclosureContext.Provider>;
+  const [open, updateOpen] = useState(true);
+  const [status, setStatus] = useState("");
+  const repository = useRef<ReturnType<typeof createSitesDisclosureRepository> | null>(null);
+  const generation = useRef(0);
+  const pending = useRef(false);
+  useEffect(() => {
+    let active = true;
+    const counter = generation;
+    try {
+      const current = createSitesDisclosureRepository({ storage: window.localStorage });
+      repository.current = current;
+      const initial = current.read();
+      queueMicrotask(() => { if (active) updateOpen(initial === "expanded"); });
+    } catch { queueMicrotask(() => { if (active) setStatus("Sites state applies to this page; saving is unavailable."); }); }
+    const refresh = (event: StorageEvent) => {
+      if ((event.key !== sitesDisclosureKey && event.key !== null) || pending.current) return;
+      try { if (repository.current) { updateOpen(repository.current.read() === "expanded"); setStatus(""); } }
+      catch { setStatus("Sites state could not be refreshed."); }
+    };
+    window.addEventListener("storage", refresh);
+    return () => { active = false; counter.current++; repository.current = null; window.removeEventListener("storage", refresh); };
+  }, []);
+  function setOpen(next: boolean) {
+    updateOpen(next); setStatus("");
+    const attempt = ++generation.current;
+    const current = repository.current;
+    if (!current) { setStatus("Sites state applies to this page; saving is unavailable."); return; }
+    pending.current = true;
+    void current.save(next ? "expanded" : "collapsed").then(result => {
+      if (attempt !== generation.current) return;
+      pending.current = false;
+      if (result.saved) {
+        try { updateOpen(current.read() === "expanded"); }
+        catch { setStatus("Sites state could not be refreshed."); }
+      }
+      if (!result.saved) setStatus(result.reason === "blocked" ? "Sites state applies to this page; another Studio tab prevents saving." : "Sites state applies to this page; saving is unavailable.");
+    });
+  }
+  return <SitesDisclosureContext.Provider value={{ open, setOpen, status }}>{children}</SitesDisclosureContext.Provider>;
 }
 
 export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite, libraryKind }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void; libraryKind?: StudioLibraryKind }) {
@@ -168,5 +205,7 @@ export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite, library
   const studio = studioProjects.find(project => project.id === "acm-studio");
   const sites = [...(studio ? [{ id: studio.id, name: studio.name }] : []), ...localFixtureSites];
   const { order, reordering, status } = useSiteOrdering(sites.map(site => site.id));
-  return <InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" defaultOpen={disclosure?.open ?? true} onOpenChange={open => { disclosure?.setOpen(open); if (!open) reordering.cancel(); }}><div {...reordering.listProps}><DragPlacementIndicator line={reordering.line} />{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) && libraryKind ? studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</InspectorAccordionSection>;
+  const cancelReordering = reordering.cancel;
+  useEffect(() => { if (disclosure?.open === false) cancelReordering(); }, [disclosure?.open, cancelReordering]);
+  return <><InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" open={disclosure?.open} onOpenChange={open => { disclosure?.setOpen(open); if (!open) reordering.cancel(); }}><div {...reordering.listProps}><DragPlacementIndicator line={reordering.line} />{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) && libraryKind ? studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</InspectorAccordionSection>{disclosure?.status ? <p className="studio-site-order-status" role="status">{disclosure.status}</p> : null}</>;
 }

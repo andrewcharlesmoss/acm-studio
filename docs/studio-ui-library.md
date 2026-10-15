@@ -1048,3 +1048,14 @@ and Tab/Shift+Tab containment all come from the shared runtime. Fixture links
 prevent navigation, report the chosen label, and still close through production
 link handling. Reset remounts only this temporary example. The catalogue entry
 links to the example and renders the same component in its inert preview.
+
+
+The Studio Navigation pane remembers Sites expansion through the browser-wide
+`acm-studio-sites-disclosure-v1` preference (`expanded` or `collapsed`, default
+expanded). It follows refreshes and site/context switches without changing site
+content. The shared preference repository saves under `studioWriteOwnership`
+or its bounded Web Lock claim, reads the current value before writing, and
+serialises toggles. Storage events refresh other screens; pending local choices
+are reconciled after saving. A denied or unavailable save retains the page’s
+choice and reports the limitation outside the collapsed section. Both direct
+and externally received collapse cancel Sites dragging.

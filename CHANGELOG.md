@@ -5,7 +5,7 @@
 ### Fixed
 
 - Preserve the Sites section’s expanded or collapsed state when switching
-  between Posts, Pages, and Templates within the Studio screen.
+  between Posts, Pages, and Templates, refreshing, and switching sites.
 
 - Keep enlarged shapes, images, and their handles accessible in the Resize handles
   example with a canvas that expands and scrolls at the selected zoom.

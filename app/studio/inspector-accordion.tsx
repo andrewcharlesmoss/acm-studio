@@ -11,12 +11,13 @@ export function InspectorContentDisabledProvider({ disabled, children }: { disab
   return <InspectorContentDisabledContext.Provider value={disabled}>{children}</InspectorContentDisabledContext.Provider>;
 }
 
-export function InspectorAccordionSection({ kind, title, detail, className, contentDisabled = false, defaultOpen = true, onOpenChange, label, children }: { kind?: "page" | "post"; title: ReactNode; detail?: string; className?: string; contentDisabled?: boolean; defaultOpen?: boolean; onOpenChange?: (open: boolean) => void; label?: string; children: ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen);
+export function InspectorAccordionSection({ kind, title, detail, className, contentDisabled = false, defaultOpen = true, open: controlledOpen, onOpenChange, label, children }: { kind?: "page" | "post"; title: ReactNode; detail?: string; className?: string; contentDisabled?: boolean; defaultOpen?: boolean; open?: boolean; onOpenChange?: (open: boolean) => void; label?: string; children: ReactNode }) {
+  const [localOpen, setOpen] = useState(defaultOpen);
+  const open = controlledOpen ?? localOpen;
   // Track queued toggles without invoking callbacks inside a replayable state updater.
   const pendingOpen = useRef(defaultOpen);
   function toggleOpen() {
-    const next = !pendingOpen.current;
+    const next = !(controlledOpen ?? pendingOpen.current);
     pendingOpen.current = next;
     setOpen(next);
     onOpenChange?.(next);
