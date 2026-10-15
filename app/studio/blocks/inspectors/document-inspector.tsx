@@ -319,7 +319,7 @@ function documentStatusDescription(status: StudioDocumentStatus, kind: StudioDoc
   if (status === "pending") return "Waiting for review before publishing.";
   if (status === "private") return "Only visible in Studio for now.";
   if (status === "scheduled") return kind === "page" ? "Page publishing is not available yet." : "Publish automatically on a chosen date.";
-  return "Visible in the local Writing archive.";
+  return kind === "page" ? "Marked as published in Studio Drafts; website publishing is not connected." : "Visible in the local Writing archive.";
 }
 
 function clampNumber(value: string, minimum: number, maximum: number) {

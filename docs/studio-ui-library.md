@@ -1068,3 +1068,10 @@ vertical divider, and section name. Site and section names share typography and
 colour; feature owners retain contextual breadcrumbs, status, and actions.
 Content-only previews intentionally omit application chrome. The header wraps
 at narrow widths; desktop editing workspaces retain their minimum width.
+
+The shared document header uses Save Draft plus a primary publication action for
+unpublished Pages and Posts, and a primary Save for published documents. Test
+and Test2 capture publications through their existing site adapter. Studio
+Drafts Pages currently record published status through workspace saving only;
+they do not enter the Writing archive or publish a website. This limitation is
+reported in page feedback and status descriptions.

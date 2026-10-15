@@ -36,6 +36,19 @@ export function useStudioPublishing({
 
   function publish() {
     if (!publishingWritable) { setPublishFeedback("Publishing is paused while another Studio tab owns local storage."); return false; }
+    if (activeDocument.kind === "page") {
+      if (!activeDocument.title.trim()) { setPublishFeedback("Add a page title before publishing."); return false; }
+      if (activeDocument.status === "scheduled" || activeDocument.status === "private") {
+        // Browser pages retain these editorial states; only site fixtures have a publication renderer.
+        updateActiveDocument(document => ({ ...document, updatedAt: new Date().toISOString() }));
+        setPublishFeedback("Page status saved in Studio Drafts. Browser page publishing is not connected to a website.");
+        return true;
+      }
+      const timestamp = new Date().toISOString();
+      updateActiveDocument(document => ({ ...document, status: "published", publishedAt: document.publishedAt ?? timestamp, updatedAt: timestamp }));
+      setPublishFeedback("Page marked as published in Studio Drafts. This saves its local status; it does not publish a website.");
+      return true;
+    }
     const normalisedPublishAt = parsePublicationDate(activeDocument.publishAt)?.toISOString() ?? activeDocument.publishAt;
     const normalisedPublishedAt = parsePublicationDate(activeDocument.publishedAt)?.toISOString() ?? activeDocument.publishedAt;
     const documentToPublish = { ...activeDocument, publishAt: normalisedPublishAt, publishedAt: normalisedPublishedAt };

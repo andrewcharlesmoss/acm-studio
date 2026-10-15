@@ -344,6 +344,15 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     } catch (error) { setSiteFeedback(error instanceof Error ? error.message : "The status could not be saved. Your draft was kept."); }
     finally { setPublishingLocalSite(false); }
   }
+  function publishCurrentDocument() {
+    if (codeEditorDirtyRef.current) {
+      const message = "Apply or discard code edits before publishing.";
+      if (selectedSite) setSiteFeedback(message); else publishing.setPublishFeedback(message);
+      return;
+    }
+    if (selectedSite) void publishLocalDocument();
+    else publishing.publish();
+  }
   function saveCurrentDocument() {
     if (activeDocument.status === "published") {
       if (codeEditorDirtyRef.current) {
@@ -418,7 +427,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
       {selectedSite ? <style>{testSiteCss}</style> : null}
       <StudioHeader libraryKind={libraryKind} onBreadcrumbNavigate={target => { void navigateBreadcrumb(target); }} templateViewport={templateViewport} onTemplateViewportChange={templateCanvasVisible ? setTemplateViewport : undefined} viewMode={viewMode} onViewModeChange={selectedSite ? changeViewMode : undefined} siteContext={selectedSite ? { siteId: selectedSite, writable: testSite.writable, onSave: saveCurrentDocument, onPublish: () => { void publishLocalDocument(); }, publishing: publishingLocalSite } : undefined} studioSection={studioSection} hasContentDocuments={hasContentDocuments || Boolean(selectedSite)} activeDocument={activeDocument} saveLabel={selectedSite ? testSite.label : saveLabel} templateSession={editingTemplates}
         canRetryEditing={canRetryEditing} retryEditing={retryEditing} previewWindow={previewWindow} viewViewport={viewViewport} setViewViewport={changeViewport}
-        showTemplate={showTemplate} hasTemplate={hasTemplate} setShowTemplate={setShowTemplate} switchStudioMode={mode => { void afterNavigation(() => switchStudioMode(mode)); }} publishing={publishing} writable={writable && !selectedSite}
+        showTemplate={showTemplate} hasTemplate={hasTemplate} setShowTemplate={setShowTemplate} switchStudioMode={mode => { void afterNavigation(() => switchStudioMode(mode)); }} publishing={{ publish: publishCurrentDocument }} writable={writable && !selectedSite}
         onSaveDocument={saveCurrentDocument} onExportDocument={() => selectedSite ? testSite.exportDraft() : exportJson(activeDocument, `${activeDocument.slug}.json`)} />
       {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected" || testSite.syncConflict || testSite.syncResolutionError) ? <div className="studio-test-notices">
       {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected") ? <div className="design-notice" role="alert">{testSite.failure || siteFeedback || `${siteName} sync is paused while its saving tab is unavailable. Your draft remains in this tab.`} <button type="button" onClick={testSite.exportDraft}>Export Draft</button><button type="button" onClick={() => void testSite.reconnect()}>Reconnect</button></div> : null}
