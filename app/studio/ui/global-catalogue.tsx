@@ -148,7 +148,7 @@ export function GlobalCatalogue() {
     const rect = target.getBoundingClientRect();
     const columnRight = target.closest("th")?.getBoundingClientRect().right ?? rect.right;
     const previewHeight = Math.min(window.innerHeight * 0.8, 680);
-    setActive({ id: entry.id, top: Math.min(Math.max(16, rect.top), Math.max(16, window.innerHeight - previewHeight - 16)), left: Math.min(Math.max(16, columnRight + 8), Math.max(16, window.innerWidth - 470)) });
+    setActive({ id: entry.id, top: Math.min(Math.max(16, rect.top), Math.max(16, window.innerHeight - previewHeight - 16)), left: Math.min(Math.max(16, columnRight), Math.max(16, window.innerWidth - 470)) });
     setPinned(pin);
     returnFocus.current = target;
   }
