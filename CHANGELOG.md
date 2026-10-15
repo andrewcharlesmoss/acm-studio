@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Use the shared white surface colour for the Design zoom slider container.
+
 - Keep page resize handles aligned with the pointer during a drag in single-page
   and all-pages canvas views, with the opposite edge anchored.
 
@@ -30,6 +32,9 @@
   names across horizontal scroll positions.
 
 ### Added
+
+- Add page resizing to the Resize handles Library example with shared Design
+  page handles, sizing, anchored layout, keyboard input, and temporary history.
 
 - Add a Zoom slider specimen using the shared Design zoom control, with the
   100% midpoint, 10–500% limits, percentage feedback, and grab cursor.

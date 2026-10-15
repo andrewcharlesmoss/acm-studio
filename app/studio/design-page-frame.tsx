@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import "./design-page-frame.css";
 import type { ResizeHandle } from "./design-transform";
 
 type PageSize = { width: number; height: number };

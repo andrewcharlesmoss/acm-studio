@@ -1578,7 +1578,7 @@ test("design image resizing keeps proportions by default and uses Shift for free
 
 test("design page resizing keeps proportions by default and uses Shift for freeform sizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /resizePage\(page, handle, dx, dy, !event\.shiftKey\)/);
+  assert.match(editor, /resizePageFromKey\(page, handle, event\.key, event\.shiftKey\)/);
   assert.match(editor, /pageResize\.handle, dx, dy, !event\.shiftKey/);
 });
 
@@ -1628,8 +1628,9 @@ test("background removal keeps the inspector guidance compact", () => {
 });
 
 test("design objects expose corner and side-centre handles for direct resizing", () => {
-  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /function resizePage\(page: DesignPage, handle: ResizeHandle, dx: number, dy: number, keepRatio: boolean\)/);
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8")
+    + readFileSync(new URL("../app/studio/controls/page-resize-handles.tsx", import.meta.url), "utf8")
+    + readFileSync(new URL("../app/studio/page-resize.ts", import.meta.url), "utf8");
   assert.match(editor, /const pageResizeRef = useRef<PageResizeInteraction \| null>\(null\)/);
   assert.match(editor, /showPageResizeHandles={tool === "select" && selectedIds.length === 0}/);
   assert.match(editor, /\{ handle: "n", label: "Resize selected object from top middle" \}/);

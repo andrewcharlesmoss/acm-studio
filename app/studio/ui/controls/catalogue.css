@@ -134,3 +134,6 @@
 .ui-zoom-example-scale { display:grid; grid-template-columns:repeat(3, 1fr); }
 .ui-zoom-example-scale > :nth-child(2) { text-align:center; }
 .ui-zoom-example-scale > :last-child { text-align:right; }
+
+.ui-page-resize-stage { align-items:safe center; background:var(--acm-color-workspace-background, #f8fafc); box-sizing:border-box; display:flex; height:420px; justify-content:safe center; margin-top:16px; min-width:0; overflow:auto; padding:32px; }
+.ui-page-resize-svg { display:block; height:100%; overflow:visible; touch-action:none; width:100%; }

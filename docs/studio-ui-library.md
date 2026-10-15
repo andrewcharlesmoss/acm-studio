@@ -885,7 +885,12 @@ Direct inspector dimension fields remain explicit independent measurements.
 Controls → Resize handles (`/studio/ui/controls#resize-handles`) reuses
 `CanvasHandle`, `DesignObjectArtwork`, and the production resize geometry,
 proportion policy, cursors, and keyboard calculations in `design-transform.ts`.
-Its shape/image fixtures, coordinate conversion, pointer capture, temporary
+The Page target also shares `PageResizeHandles`, `DesignPageFrame`, its anchored
+layout styles, and `page-resize.ts` with Designs. Its opposite edge or corner
+stays fixed during a drag and the page recentres on release. Page sizing uses
+the same 120–4096 pixel limits, proportional default, Shift stretching, and
+keyboard steps as Designs. Rotation and Alt centre resizing apply to objects.
+All shape/image/page fixtures, coordinate conversion, pointer capture, temporary
 history, and preview controls are memory-only adapters. Drag corner or side
 handles, hold Shift to stretch or Alt to resize from the centre, then try zoom,
 rotation, read-only mode, Escape cancellation, Reset example, and Undo/Redo.

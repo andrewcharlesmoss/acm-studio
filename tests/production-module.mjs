@@ -29,7 +29,9 @@ async function compileModule(url) {
       ? specifier.endsWith(".mjs")
         ? new URL(specifier, url).href
         : await compileProductionModule(new URL(/\.tsx?$/.test(specifier) ? specifier : `${specifier}.ts`, url))
-      : import.meta.resolve(specifier);
+      : /\.tsx$/.test(import.meta.resolve(specifier))
+        ? await compileProductionModule(new URL(import.meta.resolve(specifier)))
+        : import.meta.resolve(specifier);
     outputText = outputText.replace(match[0], `from "${resolved}"`);
   }
   return `data:text/javascript;base64,${Buffer.from(`${outputText}\n//# sourceURL=${url.pathname}`).toString("base64")}`;

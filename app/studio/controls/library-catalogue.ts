@@ -43,10 +43,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "resize-handles", title: "Resize handles", group: "Foundation",
-    purpose: "Try proportional resizing and Shift to stretch using Design’s shared handles and geometry.",
+    purpose: "Try shape, image, and page resizing with Design’s shared handles, geometry, and anchored page layout.",
     owner: "ACM Studio canvas controls", consumers: ["Design canvas", "Controls Library specimen"],
-    dependencies: [{ kind: "inherits", label: "CanvasHandle and Design resize geometry", detail: "Uses production artwork, handle appearance, zoom sizing, cursors, resizeRotatedObject, shouldKeepResizeRatio, and resizeFromKey." }],
-    states: "Shape and image, corner and side handles, Shift to stretch, Alt centre resize, rotation, zoom, read-only, cancellation, Reset, and Undo/Redo.",
+    dependencies: [{ kind: "inherits", label: "CanvasHandle and Design resize geometry", detail: "Uses production artwork, CanvasHandle, PageResizeHandles, DesignPageFrame, object and page resize geometry, zoom sizing, cursors, and keyboard calculations." }],
+    states: "Shape, image, and page; corner and side handles; anchored page dragging; Shift to stretch; Alt centre resize and rotation for objects; zoom, read-only, cancellation, Reset, and Undo/Redo.",
     compatibility: "Memory-only example. Product selection, permissions, history, and persistence remain with Design.",
   },
   {

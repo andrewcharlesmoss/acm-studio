@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { PageResizeSpecimen } from "./page-resize-specimen";
 import { CanvasHandle } from "../../controls/canvas-handle";
 import { HistoryActions } from "../../controls/history-actions";
 import { ToggleSetting } from "../../controls/toggle-setting";
@@ -20,7 +21,15 @@ type Gesture = { original: DesignObject; latest: DesignObject; start: { x: numbe
 
 /** Sample state only; handles, artwork, geometry, cursors, and keyboard policy are production components. */
 export function ResizeHandlesSpecimen() {
-  const [history, setHistory] = useState({ values: [initialObject("rectangle")], index: 0 });
+  const [target, setTarget] = useState<"rectangle" | "image" | "page">("rectangle");
+  return <div role="group" aria-label="Resize handles example">
+    <div className="ui-rotation-tools"><label>Target <select aria-label="Resize example target" value={target} onChange={event => setTarget(event.target.value as typeof target)}><option value="rectangle">Shape</option><option value="image">Image</option><option value="page">Page</option></select></label></div>
+    {target === "page" ? <PageResizeSpecimen /> : <ObjectResizeHandlesSpecimen key={target} type={target} />}
+  </div>;
+}
+
+function ObjectResizeHandlesSpecimen({ type }: { type: "rectangle" | "image" }) {
+  const [history, setHistory] = useState({ values: [initialObject(type)], index: 0 });
   const [draft, setDraft] = useState<DesignObject | null>(null);
   const [activeHandle, setActiveHandle] = useState<ResizeHandle | null>(null);
   const [zoom, setZoom] = useState(100);
@@ -86,9 +95,8 @@ export function ResizeHandlesSpecimen() {
     if (action) { event.preventDefault(); event.stopPropagation(); restore(action === "undo" ? -1 : 1); }
   }
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Scoped history and Escape delegate from specimen controls.
-  return <div role="group" aria-label="Resize handles example" onKeyDown={shortcut}>
+  return <div role="group" aria-label="Object resize example" onKeyDown={shortcut}>
     <div className="ui-rotation-tools">
-      <label>Object <select aria-label="Resize example object" value={object.type} disabled={draft !== null} onChange={event => setHistory({ values: [initialObject(event.target.value as "rectangle" | "image", object.rotation)], index: 0 })}><option value="rectangle">Shape</option><option value="image">Image</option></select></label>
       <label>Zoom <select aria-label="Resize example zoom" value={zoom} disabled={draft !== null} onChange={event => setZoom(Number(event.target.value))}><option value={50}>50%</option><option value={100}>100%</option><option value={200}>200%</option></select></label>
       <label>Rotation <select aria-label="Resize example rotation" value={object.rotation} disabled={draft !== null || readOnly} onChange={event => commit({ ...object, rotation: Number(event.target.value) })}><option value={0}>0°</option><option value={45}>45°</option><option value={90}>90°</option></select></label>
       <ToggleSetting label="Read-only example" checked={readOnly} onChange={value => { finish(true, undefined, false); setReadOnly(value); }} />

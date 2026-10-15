@@ -3,6 +3,8 @@ import { isNativeEditingTarget, primaryShortcutModifier, workspaceHistoryShortcu
 import { ZoomRangeControl } from "./controls/zoom-range-control";
 import { CanvasHandle } from "./controls/canvas-handle";
 import { DesignPageFrame } from "./design-page-frame";
+import { PageResizeHandles } from "./controls/page-resize-handles";
+import { resizePage, resizePageFromKey } from "./page-resize";
 import { RotationHandle } from "./controls/rotation-handle";
 import { rotationFromKey, rotationFromPointer, rotationPointerAngle } from "./controls/rotation-geometry";
 import { HistoryActions } from "./controls/history-actions";
@@ -290,22 +292,6 @@ function resizeObject(object: DesignObject, handle: ResizeHandle, dx: number, dy
   return resizeRotatedObject(object, handle, dx, dy, keepRatio, centred);
 }
 
-function resizePage(page: DesignPage, handle: ResizeHandle, dx: number, dy: number, keepRatio: boolean) {
-  const minimum = 120;
-  const widthDelta = handle.includes("e") ? dx : handle.includes("w") ? -dx : 0;
-  const heightDelta = handle.includes("s") ? dy : handle.includes("n") ? -dy : 0;
-  let width = Math.max(minimum, Math.min(DESIGN_MAX_DIMENSION, page.width + widthDelta));
-  let height = Math.max(minimum, Math.min(DESIGN_MAX_DIMENSION, page.height + heightDelta));
-  if (keepRatio) {
-    const ratio = page.width / page.height;
-    if (Math.abs(dx) >= Math.abs(dy)) height = width / ratio;
-    else width = height * ratio;
-    const scale = Math.min(1, DESIGN_MAX_DIMENSION / width, DESIGN_MAX_DIMENSION / height);
-    width *= scale;
-    height *= scale;
-  }
-  return { ...page, width: Math.round(Math.max(minimum, Math.min(DESIGN_MAX_DIMENSION, width))), height: Math.round(Math.max(minimum, Math.min(DESIGN_MAX_DIMENSION, height))) };
-}
 
 function arrowLocalPagePoint(object: DesignArrowObject, local: { x: number; y: number }) {
   const centre = { x: object.x + object.width / 2, y: object.y + object.height / 2 };
@@ -395,16 +381,6 @@ export function PageSvg({ page, assets, selectedIds = [], selectionBox, guides =
     { handle: "sw", label: "Resize selected object from bottom left" },
     { handle: "w", label: "Resize selected object from left middle" },
   ];
-  const pageResizeHandles: Array<{ handle: ResizeHandle; label: string }> = [
-    { handle: "nw", label: "Resize page from top left" },
-    { handle: "n", label: "Resize page from top middle" },
-    { handle: "ne", label: "Resize page from top right" },
-    { handle: "e", label: "Resize page from right middle" },
-    { handle: "se", label: "Resize page from bottom right" },
-    { handle: "s", label: "Resize page from bottom middle" },
-    { handle: "sw", label: "Resize page from bottom left" },
-    { handle: "w", label: "Resize page from left middle" },
-  ];
   const activeRotation = page.objects.find((object) => object.id === rotatingObjectId)?.rotation ?? 0;
   const activeResizeHandle = activeHandle?.kind === "resize" || activeHandle?.kind === "page-resize" ? activeHandle : null;
   const activeResizeRotation = activeResizeHandle?.kind === "resize" ? page.objects.find((object) => object.id === activeResizeHandle.objectId)?.rotation ?? 0 : 0;
@@ -442,7 +418,7 @@ export function PageSvg({ page, assets, selectedIds = [], selectionBox, guides =
       {guides.map((guide) => guide.axis === "x" ? <line key={`guide-x-${guide.position}`} className={`design-guide design-guide-${guide.style}`} x1={guide.position} x2={guide.position} y1="0" y2={page.height} /> : <line key={`guide-y-${guide.position}`} className={`design-guide design-guide-${guide.style}`} x1="0" x2={page.width} y1={guide.position} y2={guide.position} />)}
     </g>
     {purpleSelectionBorder && showPageResizeHandles ? <rect className="design-selection-border" x="0" y="0" width={page.width} height={page.height} /> : null}
-    {showPageResizeHandles ? pageResizeHandles.map(({ handle, label }) => activeHandle?.kind === "page-resize" && activeHandle.handle !== handle ? null : <CanvasHandle key={`page-${handle}`} aria-label={label} cursor={resizeCursor(handle, 0)} cx={handle.includes("e") ? page.width : handle.includes("w") ? 0 : page.width / 2} cy={handle.includes("s") ? page.height : handle.includes("n") ? 0 : page.height / 2} controlScale={controlScale} onPointerDown={(event) => onPageResizePointerDown?.(event, handle)} onKeyDown={(event) => onPageResizeKeyDown?.(event, handle)} />) : null}
+    {showPageResizeHandles ? <PageResizeHandles page={page} controlScale={controlScale} activeHandle={activeHandle?.kind === "page-resize" ? activeHandle.handle : null} onPointerDown={onPageResizePointerDown} onKeyDown={onPageResizeKeyDown} /> : null}
     {selectionBox ? <rect className="design-marquee" x={selectionBox.x} y={selectionBox.y} width={selectionBox.width} height={selectionBox.height} /> : null}
   </svg>;
 }
@@ -1159,10 +1135,7 @@ export function DesignEditor() {
   function onPageResizeKeyDown(event: ReactKeyboardEvent<SVGCircleElement>, handle: ResizeHandle) {
     if (!designEditable || !activePage || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
-    const amount = event.shiftKey ? 10 : 1;
-    const dx = event.key === "ArrowLeft" ? -amount : event.key === "ArrowRight" ? amount : 0;
-    const dy = event.key === "ArrowUp" ? -amount : event.key === "ArrowDown" ? amount : 0;
-    updatePage((page) => resizePage(page, handle, dx, dy, !event.shiftKey));
+    updatePage((page) => resizePageFromKey(page, handle, event.key, event.shiftKey) ?? page);
   }
 
   function onPageResizePointerDown(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle) {
