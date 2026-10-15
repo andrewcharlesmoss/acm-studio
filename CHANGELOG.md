@@ -4,6 +4,9 @@
 
 ### Added
 
+- Add a History actions example showing shared compact, labelled and Ribbon
+  controls with temporary Undo/Redo, read-only mode and keyboard shortcuts.
+
 - Add a temporary Rotation handle example to the UI Library using Design’s
   shared handle, artwork and rotation calculations, with zoom, keyboard steps,
   read-only mode, cancellation and Undo/Redo.

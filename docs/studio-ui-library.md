@@ -818,3 +818,11 @@ capture discard the current drag. One completed changed drag creates one example
 history entry; unchanged drops create none. The specimen keeps keyboard focus on
 its persistent SVG stage during a drag and returns it to the handle afterwards.
 It never reads or changes a saved design, media library or product history.
+
+### History actions specimen
+
+Controls → History actions uses the production `HistoryActions` component in
+compact, labelled and Ribbon presentations against one temporary history. Make
+change, Undo/Redo, read-only mode and standard history shortcuts affect only the
+example; Reset example clears its state. Shared controls own presentation and
+availability handling; production features retain commands and persistence.

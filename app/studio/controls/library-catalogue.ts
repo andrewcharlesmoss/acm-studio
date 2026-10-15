@@ -19,6 +19,14 @@ const rangeDependency = {
 
 export const studioControlEntries: StudioControlEntry[] = [
   {
+    id: "history-actions", title: "History actions", group: "Foundation",
+    purpose: "Try compact, labelled and Ribbon Undo/Redo controls against one temporary history.",
+    owner: "ACM Studio history controls", consumers: ["Studio editor", "Design", "Navigation", "Styles", "UI Library specimens"],
+    dependencies: [{ kind: "inherits", label: "HistoryActions and HistoryActionButton", detail: "Uses production icons, labels, shortcut hints and availability handling; Ribbon presentation composes RibbonButton." }],
+    states: "Empty history, changes, Undo, Redo, branching after Undo, read-only, keyboard shortcuts and Reset.",
+    compatibility: "Memory-only adapter. Each production feature retains its own commands, history, permissions and persistence.",
+  },
+  {
     id: "overlay-composition", title: "Overlays and image choices", group: "Foundation",
     purpose: "Open nested popups and a modal image chooser using the shared production components.",
     owner: "ACM Studio overlays and image resources", consumers: ["Document and template settings", "View and context menus", "Files previews", "Design image chooser", "Inline images"],

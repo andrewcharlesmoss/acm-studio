@@ -120,3 +120,6 @@
 .ui-rotation-stage { display:block; width:100%; max-width:320px; height:auto; overflow:visible; touch-action:none; }
 .ui-rotation-object { fill:var(--accent-soft, #e7f3ff); stroke:var(--accent, #3858e9); stroke-width:1; }
 .ui-rotation-history { display:flex; gap:6px; }
+
+.ui-history-example-tools, .ui-history-example-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.ui-history-example-variant { margin-block:16px; }
