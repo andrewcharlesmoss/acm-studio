@@ -1437,7 +1437,7 @@ test("design tool selection uses a neutral active colour", () => {
 
 test("design surfaces use the current neutral theme", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
-  assert.match(css, /\.design-shell \{ --accent: #1e1e1e; --accent-soft: #e7e7e5; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa;/);
+  assert.match(css, /\.design-shell \{ --accent: #1e1e1e; --accent-soft: #e7e7e5; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: var\(--studio-workspace-background, #f8fafc\);/);
   assert.match(css, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: var\(--acm-color-surface, #fff\); --acm-ribbon-text: #3f3f3f; background: var\(--acm-ribbon-surface\); border: 1px solid #d8d8d8;/);
   assert.match(css, /\.design-pages\.pane \{ background: var\(--studio-pane-surface, #fff\); border-right: 0;/);
   assert.match(css, /\.design-inspector\.pane \{ background: var\(--studio-pane-surface, #fff\); border-left: 0;/);

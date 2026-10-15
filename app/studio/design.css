@@ -1,5 +1,5 @@
-.design-shell { --accent: #1e1e1e; --accent-soft: #e7e7e5; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa; color: var(--ink); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr); height: 100dvh; min-height: 620px; }
-.design-library-shell { --accent: #1e1e1e; --accent-soft: #e7e7e5; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: #fafafa; color: var(--ink); min-height: 100dvh; }
+.design-shell { --accent: #1e1e1e; --accent-soft: #e7e7e5; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: var(--studio-workspace-background, #f8fafc); color: var(--ink); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr); height: 100dvh; min-height: 620px; }
+.design-library-shell { --accent: #1e1e1e; --accent-soft: #e7e7e5; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: var(--studio-workspace-background, #f8fafc); color: var(--ink); min-height: 100dvh; }
 .design-library-main { margin: 0 auto; max-width: 1180px; padding: clamp(34px, 6vw, 72px) clamp(22px, 5vw, 76px) 72px; }
 .design-library-heading { align-items: flex-start; display: flex; gap: 24px; justify-content: space-between; margin-bottom: 34px; }
 .design-library-eyebrow { color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: .08em; margin: 0 0 8px; text-transform: uppercase; }
@@ -214,7 +214,7 @@
 .design-workspace.inspector-collapsed .design-inspector { border-left: 0; display: none; }
 .design-workspace.inspector-collapsed .design-pane-collapse-right { right: 0; }
 .design-workspace.inspector-collapsed .design-zoom-dock { right: 0; }
-.design-loading { align-items: center; background: #fafafa; color: var(--muted); display: flex; height: 100dvh; justify-content: center; }
+.design-loading { align-items: center; background: var(--studio-workspace-background, #f8fafc); color: var(--muted); display: flex; height: 100dvh; justify-content: center; }
 .design-media-panel { background: #f7f7f7; border: 1px solid #d0d0d0; border-radius: 10px; box-shadow: 0 18px 50px #17191c33; max-height: min(680px, 90dvh); max-width: 680px; overflow: auto; padding: 18px; width: 100%; }
 .design-conflict-panel { background: #fff; border: 1px solid #c8c6be; border-radius: 10px; box-shadow: 0 18px 50px #17191c33; display: grid; gap: 12px; max-width: 520px; padding: 20px; width: calc(100% - 40px); }
 .design-conflict-panel::before { background: #17191c66; content: ""; inset: 0; position: fixed; z-index: -1; }
