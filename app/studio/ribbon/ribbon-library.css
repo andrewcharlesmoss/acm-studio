@@ -1,6 +1,6 @@
 .rl-shell { --rl-ink:#1C1C1E; --rl-muted:#62666B; --rl-line:#DADDE1; --rl-paper:#FFFFFF; --rl-soft:#F4F4F2; --rl-accent:#1E1E1E; --rl-selection:#E7E7E5; color:var(--rl-ink); background:var(--rl-soft); min-height:100vh; font-family:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif; font-size:1rem; line-height:1.5; }
 .rl-shell * { box-sizing:border-box; }
-.rl-shell button:not(.acm-ribbon-button),.rl-shell input,.rl-shell select { font:inherit; }
+:where(.rl-shell button:not(.acm-ribbon-button), .rl-shell input, .rl-shell select) { font:inherit; }
 .rl-shell button { cursor:pointer; }
 .rl-shell button:disabled { cursor:default; }
 .rl-shell :focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--focus-ring-colour); outline-offset:3px; }

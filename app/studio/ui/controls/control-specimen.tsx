@@ -1,4 +1,5 @@
 "use client";
+import { BlockAppenderSpecimen } from "./block-appender-specimen";
 import { HistoryActionsSpecimen } from "./history-actions-specimen";
 
 import { ZoomSliderSpecimen } from "./zoom-slider-specimen";
@@ -138,12 +139,13 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
     </header>
     <div className="ui-control-detail-card" aria-labelledby={`control-specimen-${entry.id}`}>
       <div className="ui-control-detail-header"><h4 id={`control-specimen-${entry.id}`}>Live specimen</h4></div>
-      <div data-inspector-popover-owner="" key={resetRevision} className={`ui-control-detail-example inspector-sections${entry.id === "border-settings" || entry.id === "image-dimensions" ? " is-wide" : ""}`}>
+      <div data-inspector-popover-owner="" key={resetRevision} className={`ui-control-detail-example${entry.id === "block-appender" ? "" : " inspector-sections"}${entry.id === "border-settings" || entry.id === "image-dimensions" || entry.id === "block-appender" ? " is-wide" : ""}`}>
         {entry.id === "text-action" ? <div className="ui-control-live"><div className="ui-text-action-buttons"><StudioButton variant="text" type="button" disabled={textActionValue === undefined} onClick={() => setTextActionValue(undefined)}>Clear</StudioButton><StudioButton variant="text" type="button" onClick={() => setTextActionValue("Example value")}>Reset</StudioButton><StudioButton variant="text" type="button" disabled>Clear Disabled</StudioButton></div><p role="status">{textActionValue ?? "Value cleared"}</p></div> : null}
         {entry.id === "drag-placement" ? <DragPlacementSpecimen /> : null}
         {entry.id === "history-actions" ? <HistoryActionsSpecimen /> : null}
         {entry.id === "zoom-slider" ? <ZoomSliderSpecimen /> : null}
         {entry.id === "resize-handles" ? <ResizeHandlesSpecimen /> : null}
+        {entry.id === "block-appender" ? <BlockAppenderSpecimen /> : null}
         {entry.id === "rotation-handle" ? <RotationHandleSpecimen /> : null}
         {entry.id === "overlay-composition" ? <OverlaySpecimen /> : null}
         {entry.id === "anchored-menu" ? <ToolbarMenuSpecimen /> : null}

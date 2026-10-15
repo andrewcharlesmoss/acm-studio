@@ -33,6 +33,9 @@
 
 ### Added
 
+- Add a Block appender Library example using the production Template editor,
+  with temporary Header, Navigation, and empty templates for positioning checks.
+
 - Add page resizing to the Resize handles Library example with shared Design
   page handles, sizing, anchored layout, keyboard input, and temporary history.
 
