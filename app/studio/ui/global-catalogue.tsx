@@ -100,8 +100,17 @@ export function GlobalCatalogue() {
   const [grouped, setGrouped] = useState(true);
   const [active, setActive] = useState<{ id: string; top: number; left: number } | null>(null);
   const [pinned, setPinned] = useState(false);
+  const openTimer = useRef<number | null>(null);
   const leaveTimer = useRef<number | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
+  function cancelPendingPreview() {
+    if (openTimer.current !== null) window.clearTimeout(openTimer.current);
+    openTimer.current = null;
+  }
+  useEffect(() => () => {
+    if (openTimer.current !== null) window.clearTimeout(openTimer.current);
+    if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current);
+  }, []);
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     return entries.filter((entry) => selectedSections.has(entry.section) && (!term || [entry.name, entry.section, entry.purpose, entry.owner, entry.consumers, entry.dependencies].join(" ").toLowerCase().includes(term)));
@@ -110,22 +119,23 @@ export function GlobalCatalogue() {
   const activeEntry = active && entries.find((entry) => entry.id === active.id);
 
   useEffect(() => {
-    if (!active) return;
     const dismiss = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        cancelPendingPreview();
         setActive(null);
         setPinned(false);
-        returnFocus.current?.focus();
+        if (active) returnFocus.current?.focus();
       }
     };
-    const clear = () => { setActive(null); setPinned(false); };
+    const clear = () => { cancelPendingPreview(); setActive(null); setPinned(false); };
     window.addEventListener("keydown", dismiss);
     window.addEventListener("scroll", clear, true);
     window.addEventListener("resize", clear);
     return () => { window.removeEventListener("keydown", dismiss); window.removeEventListener("scroll", clear, true); window.removeEventListener("resize", clear); };
-  }, [active, pinned]);
+  }, [active]);
 
   function toggleSection(section: Section) {
+    dismissPreview();
     setSelectedSections(current => {
       const next = new Set(current);
       if (next.has(section)) next.delete(section); else next.add(section);
@@ -133,14 +143,16 @@ export function GlobalCatalogue() {
     });
   }
   function show(entry: Entry, target: HTMLElement, pin = false) {
+    cancelPendingPreview();
     if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current);
     const rect = target.getBoundingClientRect();
     const previewHeight = Math.min(window.innerHeight * 0.8, 680);
     setActive({ id: entry.id, top: Math.min(Math.max(16, rect.top), Math.max(16, window.innerHeight - previewHeight - 16)), left: Math.min(Math.max(16, rect.left + 24), Math.max(16, window.innerWidth - 470)) });
     setPinned(pin);
-    if (pin) returnFocus.current = target;
+    returnFocus.current = target;
   }
   function dismissPreview(restoreFocus = false) {
+    cancelPendingPreview();
     if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current);
     leaveTimer.current = null;
     setPinned(false);
@@ -158,16 +170,20 @@ export function GlobalCatalogue() {
     <fieldset className="ui-global-filters"><legend>Sections</legend><button type="button" onClick={() => setSelectedSections(new Set(sections))}>All</button>{sections.map(section => <label key={section}><input type="checkbox" checked={selectedSections.has(section)} onChange={() => toggleSection(section)} />{section}</label>)}</fieldset>
     <p className="ui-global-count" role="status">{filtered.length} {filtered.length === 1 ? "entry" : "entries"}</p>
     <div className="ui-global-table-scroll"><table><thead><tr><th>Name</th><th>Section</th><th>Purpose</th><th>Owner</th><th>Used by</th><th>Dependencies</th><th>Preview</th></tr></thead><tbody>
-      {groupedEntries.map(([group, items]) => <Fragment key={group}>{grouped && <tr className="ui-global-group-row"><th colSpan={7}>{group}</th></tr>}{items.map(entry => <tr key={entry.id}
-        onPointerEnter={event => show(entry, event.currentTarget)}
-        onPointerLeave={() => {
-          if (!pinned) leaveTimer.current = window.setTimeout(() => setActive(current => current?.id === entry.id ? null : current), 180);
-        }}
-        onFocus={event => {
-          if (event.target instanceof HTMLElement) returnFocus.current = event.target;
-          show(entry, event.currentTarget);
-        }}>
-        <th scope="row"><a href={entry.href} aria-describedby={active?.id === entry.id ? "ui-global-preview-title" : undefined}>{entry.name}</a></th><td>{entry.section}</td><td>{entry.purpose}</td><td>{entry.owner}</td><td>{entry.consumers}</td><td>{entry.dependencies}</td><td><button type="button" aria-expanded={active?.id === entry.id && pinned} aria-controls="ui-global-preview" onClick={event => { if (pinned && active?.id === entry.id) dismissPreview(); else show(entry, event.currentTarget, true); }}>Preview</button></td>
+      {groupedEntries.map(([group, items]) => <Fragment key={group}>{grouped && <tr className="ui-global-group-row"><th colSpan={7}>{group}</th></tr>}{items.map(entry => <tr key={entry.id}>
+        <th scope="row"><a href={entry.href}>{entry.name}</a></th><td>{entry.section}</td><td>{entry.purpose}</td><td>{entry.owner}</td><td>{entry.consumers}</td><td>{entry.dependencies}</td><td><button type="button" aria-label={`Preview ${entry.name}`} aria-expanded={active?.id === entry.id} aria-controls={active?.id === entry.id ? "ui-global-preview" : undefined}
+          onPointerEnter={event => {
+            if (pinned || event.pointerType !== "mouse") return;
+            cancelPendingPreview();
+            if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current);
+            const target = event.currentTarget;
+            openTimer.current = window.setTimeout(() => { if (target.isConnected) show(entry, target); }, 350);
+          }}
+          onPointerLeave={() => {
+            cancelPendingPreview();
+            if (!pinned) leaveTimer.current = window.setTimeout(() => setActive(current => current?.id === entry.id ? null : current), 180);
+          }}
+          onClick={event => { if (pinned && active?.id === entry.id) dismissPreview(); else show(entry, event.currentTarget, true); }}>Preview</button></td>
       </tr>)}</Fragment>)}
     </tbody></table>{filtered.length === 0 && <p className="ui-global-empty">No entries match. Try another search or section filter.</p>}</div>
     {active && activeEntry && <aside id="ui-global-preview" className="ui-global-preview" role="dialog" aria-labelledby="ui-global-preview-title" style={{ top: active.top, left: active.left }} onPointerEnter={() => { if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current); }} onPointerLeave={() => { if (!pinned) dismissPreview(); }}>

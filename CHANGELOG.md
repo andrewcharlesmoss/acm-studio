@@ -138,6 +138,9 @@
 
 ### Fixed
 
+- Keep catalogue rows clear while reading: previews open from a deliberate hover
+  over Preview or explicit activation, and clicked previews stay pinned.
+
 - Restore the two-arrow Design rotation icon with rounder shared catalogue
   artwork, centred inside its handle without a stray icon at the object’s corner.
 
