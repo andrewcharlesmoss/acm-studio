@@ -169,9 +169,9 @@ export function GlobalCatalogue() {
     </div>
     <fieldset className="ui-global-filters"><legend>Sections</legend><button type="button" onClick={() => setSelectedSections(new Set(sections))}>All</button>{sections.map(section => <label key={section}><input type="checkbox" checked={selectedSections.has(section)} onChange={() => toggleSection(section)} />{section}</label>)}</fieldset>
     <p className="ui-global-count" role="status">{filtered.length} {filtered.length === 1 ? "entry" : "entries"}</p>
-    <div className="ui-global-table-scroll"><table><thead><tr><th>Name</th><th>Section</th><th>Purpose</th><th>Owner</th><th>Used by</th><th>Dependencies</th><th>Preview</th></tr></thead><tbody>
-      {groupedEntries.map(([group, items]) => <Fragment key={group}>{grouped && <tr className="ui-global-group-row"><th colSpan={7}>{group}</th></tr>}{items.map(entry => <tr key={entry.id}>
-        <th scope="row"><a href={entry.href}>{entry.name}</a></th><td>{entry.section}</td><td>{entry.purpose}</td><td>{entry.owner}</td><td>{entry.consumers}</td><td>{entry.dependencies}</td><td><button type="button" aria-label={`Preview ${entry.name}`} aria-expanded={active?.id === entry.id} aria-controls={active?.id === entry.id ? "ui-global-preview" : undefined}
+    <div className="ui-global-table-scroll"><table><thead><tr><th>Name</th><th>Section</th><th>Purpose</th><th>Owner</th><th>Used by</th><th>Dependencies</th></tr></thead><tbody>
+      {groupedEntries.map(([group, items]) => <Fragment key={group}>{grouped && <tr className="ui-global-group-row"><th colSpan={6}>{group}</th></tr>}{items.map(entry => <tr key={entry.id}>
+        <th scope="row"><div className="ui-global-entry-name"><a href={entry.href}>{entry.name}</a><button className="ui-global-preview-trigger" type="button" title={`Preview ${entry.name}`} aria-label={`Preview ${entry.name}`} aria-expanded={active?.id === entry.id} aria-controls={active?.id === entry.id ? "ui-global-preview" : undefined}
           onPointerEnter={event => {
             if (pinned || event.pointerType !== "mouse") return;
             cancelPendingPreview();
@@ -183,7 +183,7 @@ export function GlobalCatalogue() {
             cancelPendingPreview();
             if (!pinned) leaveTimer.current = window.setTimeout(() => setActive(current => current?.id === entry.id ? null : current), 180);
           }}
-          onClick={event => { if (pinned && active?.id === entry.id) dismissPreview(); else show(entry, event.currentTarget, true); }}>Preview</button></td>
+          onClick={event => { if (pinned && active?.id === entry.id) dismissPreview(); else show(entry, event.currentTarget, true); }}><AcmIcon name="view.show" size={20} /></button></div></th><td>{entry.section}</td><td>{entry.purpose}</td><td>{entry.owner}</td><td>{entry.consumers}</td><td>{entry.dependencies}</td>
       </tr>)}</Fragment>)}
     </tbody></table>{filtered.length === 0 && <p className="ui-global-empty">No entries match. Try another search or section filter.</p>}</div>
     {active && activeEntry && <aside id="ui-global-preview" className="ui-global-preview" role="dialog" aria-labelledby="ui-global-preview-title" style={{ top: active.top, left: active.left }} onPointerEnter={() => { if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current); }} onPointerLeave={() => { if (!pinned) dismissPreview(); }}>

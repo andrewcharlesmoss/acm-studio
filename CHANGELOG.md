@@ -138,6 +138,9 @@
 
 ### Fixed
 
+- Place the catalogue Preview eye icon beside each name so it stays accessible
+  without scrolling to the end of the table.
+
 - Keep catalogue rows clear while reading: previews open from a deliberate hover
   over Preview or explicit activation, and clicked previews stay pinned.
 

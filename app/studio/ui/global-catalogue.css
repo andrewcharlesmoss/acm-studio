@@ -22,8 +22,10 @@
 .ui-global-table-scroll tbody td:nth-child(1) { min-width:115px; }
 .ui-global-table-scroll tbody td:nth-child(3) { min-width:250px; max-width:400px; }
 .ui-global-table-scroll tbody td:nth-child(4),.ui-global-table-scroll tbody td:nth-child(5),.ui-global-table-scroll tbody td:nth-child(6) { min-width:170px; }
-.ui-global-table-scroll tbody td:last-child { min-width:85px; }
-.ui-global-table-scroll td:last-child button { border:1px solid var(--rl-line); border-radius:5px; padding:.3rem .55rem; background:#fff; font:inherit; cursor:pointer; }
+.ui-global-entry-name { display:flex; align-items:flex-start; gap:.5rem; }
+.ui-global-entry-name > a { flex:1; }
+.ui-global-preview-trigger { display:grid; flex:0 0 36px; width:36px; height:36px; place-items:center; border:0; border-radius:5px; background:transparent; color:inherit; cursor:pointer; }
+.ui-global-preview-trigger:hover { background:var(--acm-interaction-neutral-hover-background, #f0f0f0); }
 .ui-global-group-row th { position:sticky; left:0; background:#f2f2f0; font-size:.9rem; }
 .ui-global-empty { padding:2rem; color:var(--rl-muted); }
 .ui-global-preview { position:fixed; z-index:10000; width:min(430px,calc(100vw - 32px)); max-height:min(80vh,680px); overflow:auto; border:1px solid var(--rl-line); border-radius:10px; padding:1rem; background:#fff; color:var(--rl-ink); box-shadow:0 8px 32px #0003; }
