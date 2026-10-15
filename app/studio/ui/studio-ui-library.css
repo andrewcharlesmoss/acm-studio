@@ -93,3 +93,14 @@
 }
 
 .ui-library :is(.block-editor, .editor-canvas-scroll) { background: var(--studio-workspace-background, #f8fafc); }
+
+.ui-block-editor-specimen { min-width:0; }
+.ui-block-editor-viewport { border:1px solid var(--rl-line); overflow:auto; max-width:100%; }
+.ui-block-editor-workspace { display:grid; grid-template-columns:minmax(0,1fr) auto; height:640px; min-width:760px; }
+
+.ui-block-editor-example { margin:2rem; }
+.ui-block-editor-example .ui-control-entry-header h2 { margin:0 0 .35rem; font-size:1.2rem; }
+.ui-block-editor-example .ui-control-detail-header h3 { margin:0; font-size:.9rem; }
+@media (max-width:720px) {
+  .ui-block-editor-example { margin-inline:1rem; }
+}

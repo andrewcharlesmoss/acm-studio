@@ -19,14 +19,6 @@ const rangeDependency = {
 
 export const studioControlEntries: StudioControlEntry[] = [
   {
-    id: "block-appender", title: "Block appender", group: "Foundation",
-    purpose: "Compare the production block appender’s positioning in Header, Navigation, and empty templates.",
-    owner: "ACM Studio editor", consumers: ["Content editor", "Template editor", "Site editors", "Controls Library specimen"],
-    dependencies: [{ kind: "inherits", label: "TemplateEditor, StudioEditor, and StudioCanvas", detail: "Uses the actual appender, template presentation, insertion chooser, slash input, focus, and history controls without local spacing overrides." }],
-    states: "Header, Navigation, empty template, desktop/tablet/mobile canvas widths, zoom, typing, slash insertion, plus chooser, keyboard, read-only, Undo/Redo, and Reset.",
-    compatibility: "Uses isolated in-memory templates and history. Product templates, content, saving, and write ownership are untouched.",
-  },
-  {
     id: "history-actions", title: "History actions", group: "Foundation",
     purpose: "Try compact, labelled and Ribbon Undo/Redo controls against one temporary history.",
     owner: "ACM Studio history controls", consumers: ["Studio editor", "Design", "Navigation", "Styles", "UI Library specimens"],

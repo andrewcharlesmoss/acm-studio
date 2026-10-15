@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { iconNames, iconMetadata, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { PanelCard } from "@acm/panel";
@@ -13,12 +13,13 @@ import { PaneSpecimen } from "../panes/pane-specimen";
 import { paneExamples, defaultRegions, skeletonDefinition } from "../panes/catalogue-model";
 import { componentDescriptions } from "../ribbon/catalogue-model";
 import { ApplicationSectionNavigation } from "./application-section-navigation";
+import { BlockEditorPlayground, blockEditorPlayground } from "./workspace/block-editor-playground";
 import { ControlSpecimen } from "./controls/control-specimen";
 import { watchAnchoredMenu } from "../overlays/anchored-menu-position.mjs";
 
 const sections = ["Workspace", "Navigation", "Ribbon", "Panes", "Panels", "Blocks", "Controls", "Icons", "Styles"] as const;
 type Section = typeof sections[number];
-type Preview = { kind: "icon" | "control" | "block" | "pane" | "ribbon" | "panel" | "navigation" | "workspace" | "style"; key?: string };
+type Preview = { kind: "icon" | "control" | "block" | "pane" | "ribbon" | "panel" | "navigation" | "workspace" | "playground" | "style"; key?: string };
 type Entry = { id: string; name: string; section: Section; purpose: string; owner: string; consumers: string; dependencies: string; href: string; preview: Preview };
 
 const controlEntries: Entry[] = studioControlEntries.map((entry) => ({
@@ -42,6 +43,7 @@ const iconEntries: Entry[] = iconNames.map((name) => {
 const controlById = Object.fromEntries(studioControlEntries.map((entry) => [entry.id, entry])) as Record<string, StudioControlEntry>;
 const entries: Entry[] = [
   { id: "workspace:composition", name: "Workspace composition", section: "Workspace", purpose: "Application navigation, Ribbon and panes composed as one editing workspace.", owner: "ACM Studio UI Library", consumers: "Studio applications", dependencies: "ApplicationSectionNavigation, @acm/ribbon and shared Pane components.", href: "/studio/ui/workspace", preview: { kind: "workspace" } },
+  { id: "workspace:block-editor-playground", name: blockEditorPlayground.title, section: "Workspace", purpose: blockEditorPlayground.purpose, owner: blockEditorPlayground.owner, consumers: blockEditorPlayground.consumers, dependencies: blockEditorPlayground.dependencies, href: blockEditorPlayground.href, preview: { kind: "playground" } },
   { id: "navigation:application", name: "Application section navigation", section: "Navigation", purpose: "Shared pattern for moving between top-level application sections.", owner: "ACM Studio UI Library", consumers: "Studio application header", dependencies: "ApplicationSectionNavigation; consumers provide routes and section content.", href: "/studio/ui/navigation", preview: { kind: "navigation" } },
   ...Object.entries(componentDescriptions).map(([name, purpose]) => ({ id: `ribbon:${name}`, name, section: "Ribbon" as const, purpose, owner: "@acm/ribbon", consumers: "Studio Ribbon and Design", dependencies: "Ribbon package components and semantic action definitions.", href: "/studio/ui/ribbon", preview: { kind: "ribbon" as const, key: name } })),
   ...paneExamples.map((entry) => ({ id: `pane:${entry.id}`, name: entry.label, section: "Panes" as const, purpose: entry.description, owner: "ACM Studio Pane components", consumers: entry.sourceComponent, dependencies: `Shared Pane layout, dimensions and interaction contract. ${entry.tabs.length ? `Tabs: ${entry.tabs.join(", ")}.` : ""}`, href: "/studio/ui/panes", preview: { kind: "pane" as const, key: entry.id } })),
@@ -52,7 +54,7 @@ const entries: Entry[] = [
   ...["Colour", "Typography", "Buttons", "Interactions", "Layout"].map((name) => ({ id: `style:${name.toLowerCase()}`, name: `${name} styles`, section: "Styles" as const, purpose: `Shared ${name.toLowerCase()} tokens and rendered examples from the executable universal style preset.`, owner: "@acm/styles", consumers: "Studio interface and registered ACM consumers", dependencies: "Canonical preset schema and semantic CSS variables.", href: "/studio/ui/styles", preview: { kind: "style" as const, key: name } })),
 ];
 
-function ControlPreview({ entry }: { entry: StudioControlEntry }) {
+function SpecimenPreview({ children }: { children: ReactNode }) {
   const content = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
   useLayoutEffect(() => {
@@ -64,16 +66,17 @@ function ControlPreview({ entry }: { entry: StudioControlEntry }) {
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [entry]);
-  return <div className="ui-global-preview-control-frame" style={{ height }} inert><div ref={content} className="ui-global-preview-control"><ControlSpecimen entry={entry} /></div></div>;
+  }, [children]);
+  return <div className="ui-global-preview-control-frame" style={{ height }} inert><div ref={content} className="ui-global-preview-control">{children}</div></div>;
 }
 
 function PreviewContent({ entry }: { entry: Entry }) {
   if (entry.preview.kind === "icon") return <div className="ui-global-preview-icon"><AcmIcon name={entry.preview.key as IconName} size={48} /><span>{entry.preview.key}</span></div>;
   if (entry.preview.kind === "control") {
     const definition = controlById[entry.preview.key ?? ""];
-    return definition ? <ControlPreview entry={definition} /> : null;
+    return definition ? <SpecimenPreview><ControlSpecimen entry={definition} /></SpecimenPreview> : null;
   }
+  if (entry.preview.kind === "playground") return <SpecimenPreview><BlockEditorPlayground /></SpecimenPreview>;
   if (entry.preview.kind === "block") return <div className="ui-global-preview-block"><BlockLibraryIconSample type={entry.preview.key as BlockIconType} size={48} scale="Regular-L" /><span>{entry.name}</span></div>;
   if (entry.preview.kind === "pane") {
     const definition = paneExamples.find((item) => item.id === entry.preview.key) ?? skeletonDefinition;

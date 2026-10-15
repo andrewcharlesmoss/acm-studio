@@ -905,12 +905,13 @@ The default and Reset example value is 100%, at the track midpoint; the limits
 remain 10% and 500%. Pointer cursors, percentage labels, focus, and keyboard input
 come from the shared control. The catalogue preview uses this same definition.
 
-### Block appender specimen
+### Block editor playground
 
-Controls → Block appender (`/studio/ui/controls#block-appender`) uses the production
+Workspace → Block editor playground (`/studio/ui/workspace#block-editor-playground`) uses the production
 `TemplateEditor` → `StudioEditor` → `StudioCanvas` composition. Header, Navigation,
 and empty-template fixtures let users compare the actual root appender’s position,
-including the shared gap below the last block. The example does not recreate the
+including the shared gap below the last block, and try blocks with their production
+inspector controls. The example does not recreate the
 appender or override its spacing, sizing, typography, input, or insertion behaviour.
 
 Typing, Enter, slash insertion, the plus chooser, selection, focus, viewport width,
@@ -919,3 +920,7 @@ fixture set and its history belong to the specimen; nothing is read from or save
 to product templates or document stores. Reset example restores all three fixtures.
 The editor retains its desktop layout in a contained horizontal scroll region at
 narrow widths. The searchable catalogue previews the same specimen definition.
+
+The former `/studio/ui/controls#block-appender` and
+`/studio/ui/controls/block-appender` links redirect to this Workspace example.
+The Controls catalogue no longer lists the composed editor as a foundation control.

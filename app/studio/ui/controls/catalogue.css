@@ -137,7 +137,3 @@
 
 .ui-page-resize-stage { align-items:safe center; background:var(--acm-color-workspace-background, #f8fafc); box-sizing:border-box; display:flex; height:420px; justify-content:safe center; margin-top:16px; min-width:0; overflow:auto; padding:32px; }
 .ui-page-resize-svg { display:block; height:100%; overflow:visible; touch-action:none; width:100%; }
-
-.ui-appender-specimen { min-width:0; }
-.ui-appender-viewport { border:1px solid var(--rl-line); overflow:auto; max-width:100%; }
-.ui-appender-workspace { display:grid; grid-template-columns:minmax(0,1fr) auto; height:640px; min-width:760px; }

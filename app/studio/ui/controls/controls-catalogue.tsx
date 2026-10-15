@@ -1,10 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
 import { controlGroupId, studioControlEntries, studioControlGroups } from "../../controls/library-catalogue";
 import { ControlSpecimen } from "./control-specimen";
 import { ControlsNavigation } from "./controls-navigation";
 
 export function ControlsCatalogue() {
+  useEffect(() => {
+    const followLegacyLink = () => { if (window.location.hash === "#block-appender") window.location.replace("/studio/ui/workspace#block-editor-playground"); };
+    followLegacyLink();
+    window.addEventListener("hashchange", followLegacyLink);
+    return () => window.removeEventListener("hashchange", followLegacyLink);
+  }, []);
   return <div className="ui-controls-layout">
     <ControlsNavigation />
     <section className="ui-controls-main ui-page-intro ui-controls-page" aria-labelledby="ui-controls-title">

@@ -33,8 +33,9 @@
 
 ### Added
 
-- Add a Block appender Library example using the production Template editor,
-  with temporary Header, Navigation, and empty templates for positioning checks.
+- Add a Block editor playground in the Library’s Workspace section using the
+  production Template editor, with temporary Header, Navigation, and empty
+  templates for trying blocks and checking appender positioning.
 
 - Add page resizing to the Resize handles Library example with shared Design
   page handles, sizing, anchored layout, keyboard input, and temporary history.

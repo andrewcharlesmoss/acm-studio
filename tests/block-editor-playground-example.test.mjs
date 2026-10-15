@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { loadProductionModule } from "./production-module.mjs";
-const { createBlockAppenderExample } = await loadProductionModule(new URL("../app/studio/ui/controls/block-appender-example.ts", import.meta.url));
+const { createBlockEditorPlaygroundExample } = await loadProductionModule(new URL("../app/studio/ui/workspace/block-editor-playground-example.ts", import.meta.url));
 const { templateEditorBlocks, validateTemplateSet } = await loadProductionModule(new URL("../app/studio/template-model.ts", import.meta.url));
 
-test("appender fixtures exercise the production Header, Navigation, and empty template projections", () => {
-  const { set, targets } = createBlockAppenderExample();
+test("playground fixtures exercise the production Header, Navigation, and empty template projections", () => {
+  const { set, targets } = createBlockEditorPlaygroundExample();
   validateTemplateSet(set);
   const parts = Object.fromEntries(Object.entries(targets).map(([name, id]) => [name, set.parts.find(part => part.id === id)]));
   const header = templateEditorBlocks(parts.header.nodes);
@@ -21,8 +21,8 @@ test("appender fixtures exercise the production Header, Navigation, and empty te
 });
 
 test("new and reset fixtures own independent content, navigation, and identity", () => {
-  const first = createBlockAppenderExample();
-  const second = createBlockAppenderExample();
+  const first = createBlockEditorPlaygroundExample();
+  const second = createBlockEditorPlaygroundExample();
   first.set.parts.find(part => part.id === first.targets.header).nodes.push({ id: "example-added", type: "paragraph", text: "Temporary addition" });
   first.set.navigation[0].label = "Changed";
   first.set.identity.name = "Temporary identity";
