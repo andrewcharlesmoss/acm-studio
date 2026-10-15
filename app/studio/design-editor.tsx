@@ -14,6 +14,7 @@ import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
 import type { BackgroundRemovalMode } from "./background-removal-models";
+import { AcmStudioIcon } from "./acm-studio-icons";
 import { formatRotationAngle, resizeRotatedObject, rotationCursorCss } from "./design-transform";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DesignObjectArtwork, DesignPageArtwork, DesignPageBackground } from "./design-artwork";
@@ -455,8 +456,8 @@ export function PageSvg({ page, assets, selectedIds = [], selectionBox, guides =
           return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} style={{ cursor: resizeCursor(handle, object.rotation) }} cx={cx} cy={cy} r={resizeHandleRadius} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
         })}
         {!isRotating && (!objectActiveHandle || objectActiveHandle.kind === "rotate") ? <><circle role="button" tabIndex={0} aria-label={`Rotate selected object (${rotationLabel(object.rotation)})`} className="design-rotate-handle" style={{ "--rotation-cursor": rotationCursorCss(object.rotation) } as CSSProperties} cx={object.width / 2} cy={object.height + 34 * controlScale} r={18 * controlScale} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
-          {/* Position the catalogue SVG through its parent; its adapter owns the SVG attributes. */}
-          <g className="design-rotate-icon" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 34 * controlScale}) translate(${object.width / 2 - 14 * controlScale} ${object.height + 20 * controlScale})`} pointerEvents="none"><StudioIcon name="rotate" size={28 * controlScale} /></g></> : null}
+          {/* Keep the original two-arrow rotation mark centred and upright inside its handle. */}
+          <g className="design-rotate-icon" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 34 * controlScale}) translate(${object.width / 2 - 14 * controlScale} ${object.height + 20 * controlScale})`} pointerEvents="none"><AcmStudioIcon name="rotate" size={28 * controlScale} /></g></> : null}
         {isRotating ? (() => { const badgeCenter = rotationBadgePoint(object, rotationCursor, controlScale); return <g className="design-rotation-badge" transform={`rotate(${-object.rotation} ${badgeCenter.x} ${badgeCenter.y})`} pointerEvents="none"><rect x={badgeCenter.x - 25 * controlScale} y={badgeCenter.y - 15 * controlScale} width={50 * controlScale} height={30 * controlScale} rx={7 * controlScale} /><text x={badgeCenter.x} y={badgeCenter.y + 5 * controlScale} style={{ fontSize: `${13 * controlScale}px` }} textAnchor="middle">{rotationLabel(object.rotation)}</text></g>; })() : null}
       </>;
       })() : null}

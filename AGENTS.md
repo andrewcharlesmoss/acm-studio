@@ -36,6 +36,9 @@ Studio interaction controls use original ACM artwork from the sibling
 `@acm/icons` catalogue. Use its React adapter and optical scales, and keep
 new shared symbols product-neutral. Preserve the `StudioIcon` and table-icon
 wrappers as compatibility APIs. Do not trace or copy third-party paths.
+The Design rotation handle deliberately retains the original Studio two-arrow
+`AcmStudioIcon` rotation mark, as Andrew requested on 15 October 2026. Keep this
+narrow compatibility exception separate from the generic catalogue rotation icon.
 Andrew explicitly authorised the Copilot keyboard mark
 as a sourced brand exception on 26 September 2026. Its MIT-licensed Lobe Icons
 SVG, provenance and licence are owned by `acm-icons/sources/copilot/`; preserve
