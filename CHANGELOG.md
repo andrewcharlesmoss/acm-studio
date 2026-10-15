@@ -39,6 +39,9 @@
 
 ### Added
 
+- Add a Mobile navigation Library example using production menu rendering,
+  opening, closing, submenu, and keyboard behaviour in an isolated page frame.
+
 - Add shared Text input, Text area, Select dropdown, Search field, Number field,
   Number with units, Button, Tooltip, and Field label, help and error specimens
   with temporary states and keyboard interaction. Connect ordinary Studio fields

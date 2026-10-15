@@ -13,6 +13,7 @@ import { studioControlEntries, type StudioControlEntry } from "../controls/libra
 import { PaneSpecimen } from "../panes/pane-specimen";
 import { paneExamples, defaultRegions, skeletonDefinition } from "../panes/catalogue-model";
 import { componentDescriptions } from "../ribbon/catalogue-model";
+import { MobileNavigationExample } from "./navigation/mobile-navigation-example";
 import { ApplicationSectionNavigation } from "./application-section-navigation";
 import { ObjectManipulationSpecimen } from "./controls/resize-handles-specimen";
 import { objectManipulationPlayground } from "./workspace/object-manipulation-playground";
@@ -48,6 +49,7 @@ const entries: Entry[] = [
   { id: "workspace:composition", name: "Workspace composition", section: "Workspace", purpose: "Application navigation, Ribbon and panes composed as one editing workspace.", owner: "ACM Studio UI Library", consumers: "Studio applications", dependencies: "ApplicationSectionNavigation, @acm/ribbon and shared Pane components.", href: "/studio/ui/workspace", preview: { kind: "workspace" } },
   { id: "workspace:block-editor-playground", name: blockEditorPlayground.title, section: "Workspace", purpose: blockEditorPlayground.purpose, owner: blockEditorPlayground.owner, consumers: blockEditorPlayground.consumers, dependencies: blockEditorPlayground.dependencies, href: blockEditorPlayground.href, preview: { kind: "playground" } },
   { id: "workspace:object-manipulation-playground", name: objectManipulationPlayground.title, section: "Workspace", purpose: objectManipulationPlayground.purpose, owner: objectManipulationPlayground.owner, consumers: objectManipulationPlayground.consumers, dependencies: objectManipulationPlayground.dependencies, href: objectManipulationPlayground.href, preview: { kind: "playground", key: "object-manipulation" } },
+  { id: "navigation:mobile", name: "Mobile navigation", section: "Navigation", purpose: "Try mobile menu opening, closing, submenus, focus containment, and keyboard navigation.", owner: "ACM Studio template navigation", consumers: "Template previews and generated local sites", dependencies: "TemplateNavigationView; attachNavigationRuntime; shared template navigation styles.", href: "/studio/ui/navigation#mobile-navigation-example", preview: { kind: "navigation", key: "mobile" } },
   { id: "navigation:application", name: "Application section navigation", section: "Navigation", purpose: "Shared pattern for moving between top-level application sections.", owner: "ACM Studio UI Library", consumers: "Studio application header", dependencies: "ApplicationSectionNavigation; consumers provide routes and section content.", href: "/studio/ui/navigation", preview: { kind: "navigation" } },
   ...Object.entries(componentDescriptions).map(([name, purpose]) => ({ id: `ribbon:${name}`, name, section: "Ribbon" as const, purpose, owner: "@acm/ribbon", consumers: "Studio Ribbon and Design", dependencies: "Ribbon package components and semantic action definitions.", href: "/studio/ui/ribbon", preview: { kind: "ribbon" as const, key: name } })),
   ...paneExamples.map((entry) => ({ id: `pane:${entry.id}`, name: entry.label, section: "Panes" as const, purpose: entry.description, owner: "ACM Studio Pane components", consumers: entry.sourceComponent, dependencies: `Shared Pane layout, dimensions and interaction contract. ${entry.tabs.length ? `Tabs: ${entry.tabs.join(", ")}.` : ""}`, href: "/studio/ui/panes", preview: { kind: "pane" as const, key: entry.id } })),
@@ -88,6 +90,7 @@ function PreviewContent({ entry }: { entry: Entry }) {
   }
   if (entry.preview.kind === "ribbon") return <RibbonComponentPreview name={entry.preview.key as keyof typeof componentDescriptions} />;
   if (entry.preview.kind === "panel") return <div className="ui-global-preview-panel" inert><PanelCard eyebrow="Shared component" title="Panel card" description="A composed detail surface."><p>Content slot</p></PanelCard></div>;
+  if (entry.preview.kind === "navigation" && entry.preview.key === "mobile") return <div inert><MobileNavigationExample /></div>;
   if (entry.preview.kind === "navigation") return <div className="ui-global-preview-navigation" inert><ApplicationSectionNavigation initialActiveId="accounts" preventNavigation /></div>;
   if (entry.preview.kind === "workspace") return <div className="ui-global-preview-workspace" inert><ApplicationSectionNavigation initialActiveId="accounts" preventNavigation /><div><RibbonButton size="large"><AcmIcon name="action.adjust" size={24} /><span>Example</span></RibbonButton></div><PaneSpecimen definition={skeletonDefinition} regions={defaultRegions} layout="left" content="normal" studio={false} /></div>;
   return <StylePreview kind={entry.preview.key ?? "Colour"} />;

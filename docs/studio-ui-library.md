@@ -1034,3 +1034,17 @@ retain the same geometry; right-to-left selects mirror the placement. Forced
 colours restores the native indicator. Multiple/size listboxes retain native
 presentation. `NumberUnitField` deliberately supplies `showIndicator={false}`
 for its existing compact, arrow-free unit selector.
+
+
+### Mobile navigation example
+
+Navigation → Mobile navigation (`/studio/ui/navigation#mobile-navigation-example`)
+uses the production `TemplateNavigationView`, `attachNavigationRuntime`, and
+`templates.css` inside a narrow temporary page. Its actual Mobile mode and 600px
+container breakpoint expose the production overlay without changing saved
+templates. The page frame contains the overlay as editor previews do.
+Opening with Enter/Space, Close, Escape, nested submenu dismissal, focus return,
+and Tab/Shift+Tab containment all come from the shared runtime. Fixture links
+prevent navigation, report the chosen label, and still close through production
+link handling. Reset remounts only this temporary example. The catalogue entry
+links to the example and renders the same component in its inert preview.

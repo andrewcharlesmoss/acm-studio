@@ -104,3 +104,7 @@
 @media (max-width:720px) {
   .ui-workspace-example { margin-inline:1rem; }
 }
+
+.ui-mobile-navigation-example { display:grid; gap:1rem; justify-items:start; min-width:0; }
+.ui-mobile-navigation-frame { box-sizing:border-box; width:min(100%,375px); min-height:420px; border:1px solid var(--rl-line); }
+.ui-mobile-navigation-example > p { margin:0; max-width:48rem; }
