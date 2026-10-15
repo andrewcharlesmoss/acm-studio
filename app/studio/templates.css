@@ -3,6 +3,7 @@
 .template-library h1 { font-size: 1.5rem; }
 .template-library-actions, .template-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .template-library-actions { margin: 16px 0; }
+.studio-library .template-create { padding-bottom:0; }
 .template-library-actions > .template-create { max-width: 100%; padding: 0; width: 340px; }
 .template-toolbar { padding: 10px 14px; border-bottom: 1px solid #ddd; background: #fff; font: var(--studio-ui-size)/1.5 var(--studio-ui-font); }
 .template-toolbar label { display: flex; gap: 6px; align-items: center; }
@@ -26,7 +27,8 @@
 .template-entry-open:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-interaction-list-item-hover-background, #f0f0f0); }
 
 .template-workspace .studio-library { padding: 0; overflow-y: auto; gap: 0; }
-.template-workspace .studio-library .template-document-list { flex: 0 0 auto; overflow: visible; padding: 10px; }
+/* The shared drag controller already reserves the first insertion gap. */
+.template-workspace .studio-library .template-document-list { flex: 0 0 auto; overflow: visible; padding: 0 10px 10px; }
 .template-target-item { border-radius: 6px; width: 100%; }
 .template-empty-state { align-content: center; display: grid; min-height: 100%; place-items: center; text-align: center; }
 .template-inspector .inspector-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
