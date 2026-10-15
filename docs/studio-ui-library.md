@@ -798,3 +798,23 @@ Recovery transactions, dependency checks, save acknowledgements and permanent
 deletion remain with the owning feature. Global templates retain their existing
 Restore-only actions. Context permanent deletion retains its separate explicit
 confirmation and focus-return target.
+
+
+## Rotation handle specimen
+
+Controls → Foundation → Rotation handle (`/studio/ui/controls#rotation-handle`)
+uses `controls/rotation-handle.tsx` and its shared CSS directly, as does Design's
+PageSvg. The component owns its circular target, shared `arrange.rotate-free`
+artwork, upright glyph, zoom-compensated dimensions, focus/disabled states,
+rotation cursor and drag-time angle badge. `rotation-geometry.ts` owns pointer
+angles, normalisation, badge position and keyboard increments. Design retains
+its coordinate conversion, permission checks, pointer lifecycle, history and
+saving adapters; `design-transform.ts` retains compatible formatter/cursor exports.
+
+The specimen is temporary: drag to rotate, use Left/Right for 5° or Shift for
+15°, change zoom between 50%, 100% and 200%, and try read-only, Reset example,
+Undo/Redo and standard history shortcuts. Escape, pointer cancellation and lost
+capture discard the current drag. One completed changed drag creates one example
+history entry; unchanged drops create none. The specimen keeps keyboard focus on
+its persistent SVG stage during a drag and returns it to the handle afterwards.
+It never reads or changes a saved design, media library or product history.

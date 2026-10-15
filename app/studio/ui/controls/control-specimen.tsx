@@ -1,5 +1,6 @@
 "use client";
 
+import { RotationHandleSpecimen } from "./rotation-handle-specimen";
 import { DragPlacementSpecimen } from "./drag-placement-specimen";
 import { StudioButton } from "../../controls/button";
 import { useRef, useState } from "react";
@@ -137,6 +138,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
       <div data-inspector-popover-owner="" key={resetRevision} className={`ui-control-detail-example inspector-sections${entry.id === "border-settings" || entry.id === "image-dimensions" ? " is-wide" : ""}`}>
         {entry.id === "text-action" ? <div className="ui-control-live"><div className="ui-text-action-buttons"><StudioButton variant="text" type="button" disabled={textActionValue === undefined} onClick={() => setTextActionValue(undefined)}>Clear</StudioButton><StudioButton variant="text" type="button" onClick={() => setTextActionValue("Example value")}>Reset</StudioButton><StudioButton variant="text" type="button" disabled>Clear Disabled</StudioButton></div><p role="status">{textActionValue ?? "Value cleared"}</p></div> : null}
         {entry.id === "drag-placement" ? <DragPlacementSpecimen /> : null}
+        {entry.id === "rotation-handle" ? <RotationHandleSpecimen /> : null}
         {entry.id === "overlay-composition" ? <OverlaySpecimen /> : null}
         {entry.id === "anchored-menu" ? <ToolbarMenuSpecimen /> : null}
         {entry.id === "link-destination" ? <LinkDestinationSpecimen /> : null}

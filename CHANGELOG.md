@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add a temporary Rotation handle example to the UI Library using Design’s
+  shared handle, artwork and rotation calculations, with zoom, keyboard steps,
+  read-only mode, cancellation and Undo/Redo.
+
 - Make Sites in Studio Navigation collapsible to free space for content lists,
   with native keyboard disclosure and drag cancellation on collapse.
 

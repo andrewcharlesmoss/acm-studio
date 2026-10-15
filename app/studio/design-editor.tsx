@@ -1,5 +1,7 @@
 "use client";
 import { isNativeEditingTarget, primaryShortcutModifier, workspaceHistoryShortcut, workspaceZoomShortcut } from "./workspace-shortcuts.mjs";
+import { RotationHandle } from "./controls/rotation-handle";
+import { rotationFromKey, rotationFromPointer, rotationPointerAngle } from "./controls/rotation-geometry";
 import { HistoryActions } from "./controls/history-actions";
 import { StudioDialog } from "./overlays/dialog";
 import { StudioAnchoredMenu } from "./overlays/anchored-menu";
@@ -14,7 +16,7 @@ import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
 import type { BackgroundRemovalMode } from "./background-removal-models";
-import { formatRotationAngle, resizeRotatedObject, rotationCursorCss } from "./design-transform";
+import { resizeRotatedObject, rotationCursorCss } from "./design-transform";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DesignObjectArtwork, DesignPageArtwork, DesignPageBackground } from "./design-artwork";
 import { arrowPoints } from "./design-geometry";
@@ -144,10 +146,6 @@ function ColourControl({ label, value, opacity = 1, disabled = false, onChange, 
   return <div className="design-colour-control"><ColourPicker label={label} value={value} disabled={disabled} allowClear={false} onChange={colour => { if (colour !== undefined) onChange(colour); }} /><label>{opacityLabel} opacity ({visibleOpacity}%)<RangeControl aria-label={`${opacityLabel} opacity`} min="0" max="100" step="1" value={visibleOpacity} tooltipText={`${visibleOpacity}%`} disabled={disabled} onChange={event => onOpacityChange(Number(event.target.value) / 100)} /></label></div>;
 }
 
-function rotationLabel(rotation: number) {
-  return formatRotationAngle(rotation);
-}
-
 function designSaveErrorMessage(error: unknown, fallback = "The design could not be saved.") {
   if (isDesignStorageQuotaError(error)) {
     return "This design is too large for browser storage. Export an editable backup, then remove unused or very large images before saving again.";
@@ -157,19 +155,6 @@ function designSaveErrorMessage(error: unknown, fallback = "The design could not
 
 function isDesignStorageQuotaError(error: unknown) {
   return error instanceof Error && error.name === "QuotaExceededError";
-}
-
-function rotationBadgePoint(object: DesignObject, cursor: { x: number; y: number } | null, controlScale: number) {
-  const fallback = { x: object.x + object.width / 2, y: object.y + object.height + 90 * controlScale };
-  const pagePoint = cursor ? { x: cursor.x + 44 * controlScale, y: cursor.y - 44 * controlScale } : fallback;
-  const centre = { x: object.x + object.width / 2, y: object.y + object.height / 2 };
-  const radians = -object.rotation * Math.PI / 180;
-  const dx = pagePoint.x - centre.x;
-  const dy = pagePoint.y - centre.y;
-  return {
-    x: object.width / 2 + dx * Math.cos(radians) - dy * Math.sin(radians),
-    y: object.height / 2 + dx * Math.sin(radians) + dy * Math.cos(radians),
-  };
 }
 
 function resizeCursor(handle: ResizeHandle, rotation: number) {
@@ -454,10 +439,7 @@ export function PageSvg({ page, assets, selectedIds = [], selectionBox, guides =
           if (objectActiveHandle && (objectActiveHandle.kind !== "resize" || objectActiveHandle.handle !== handle)) return null;
           return <circle key={handle} role="button" tabIndex={0} aria-label={label} className={className} style={{ cursor: resizeCursor(handle, object.rotation) }} cx={cx} cy={cy} r={resizeHandleRadius} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
         })}
-        {!isRotating && (!objectActiveHandle || objectActiveHandle.kind === "rotate") ? <><circle role="button" tabIndex={0} aria-label={`Rotate selected object (${rotationLabel(object.rotation)})`} className="design-rotate-handle" style={{ "--rotation-cursor": rotationCursorCss(object.rotation) } as CSSProperties} cx={object.width / 2} cy={object.height + 34 * controlScale} r={18 * controlScale} onPointerDown={(event) => onRotatePointerDown(event, object)} onKeyDown={(event) => onRotateKeyDown?.(event, object)} />
-          {/* Keep the shared two-arrow rotation mark centred and upright inside its handle. */}
-          <g className="design-rotate-icon" transform={`rotate(${-object.rotation} ${object.width / 2} ${object.height + 34 * controlScale}) translate(${object.width / 2 - 14 * controlScale} ${object.height + 20 * controlScale})`} pointerEvents="none"><StudioIcon name="rotate-free" size={28 * controlScale} /></g></> : null}
-        {isRotating ? (() => { const badgeCenter = rotationBadgePoint(object, rotationCursor, controlScale); return <g className="design-rotation-badge" transform={`rotate(${-object.rotation} ${badgeCenter.x} ${badgeCenter.y})`} pointerEvents="none"><rect x={badgeCenter.x - 25 * controlScale} y={badgeCenter.y - 15 * controlScale} width={50 * controlScale} height={30 * controlScale} rx={7 * controlScale} /><text x={badgeCenter.x} y={badgeCenter.y + 5 * controlScale} style={{ fontSize: `${13 * controlScale}px` }} textAnchor="middle">{rotationLabel(object.rotation)}</text></g>; })() : null}
+        <RotationHandle object={object} controlScale={controlScale} rotating={isRotating} cursor={rotationCursor} showHandle={!objectActiveHandle || objectActiveHandle.kind === "rotate"} onPointerDown={event => onRotatePointerDown(event, object)} onKeyDown={event => onRotateKeyDown?.(event, object)} />
       </>;
       })() : null}
       {(selectedIds.includes(object.id) || (showHoverHandles && hoveredObjectId === object.id && !object.locked)) && object.type === "arrow" && showObjectHandles ? (() => { const { start, end, bends } = arrowPoints(object); const showEndpoint = !objectActiveHandle || objectActiveHandle.kind === "endpoint"; const showBend = !objectActiveHandle || objectActiveHandle.kind === "bend"; return <>{showEndpoint && (objectActiveHandle?.kind !== "endpoint" || objectActiveHandle.endpoint === "start") ? <circle role="button" tabIndex={0} aria-label="Resize arrow from start point" className="design-endpoint-handle" cx={start.x} cy={start.y} r={resizeHandleRadius} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /> : null}{showEndpoint && (objectActiveHandle?.kind !== "endpoint" || objectActiveHandle.endpoint === "end") ? <circle role="button" tabIndex={0} aria-label="Resize arrow from end point" className="design-endpoint-handle" cx={end.x} cy={end.y} r={resizeHandleRadius} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /> : null}{showBend ? bends.map((bend, index) => { if (objectActiveHandle?.kind === "bend" && objectActiveHandle.bendIndex !== index) return null; return <rect key={`bend-${index}`} role="button" tabIndex={0} aria-label={`Adjust arrow bend ${index + 1}`} className="design-arrow-bend-handle" x={bend.x - arrowBendHandleSize / 2} y={bend.y - arrowBendHandleSize / 2} width={arrowBendHandleSize} height={arrowBendHandleSize} transform={`rotate(45 ${bend.x} ${bend.y})`} onPointerDown={(event) => onArrowBendPointerDown(event, object, index)} onKeyDown={(event) => onArrowBendKeyDown?.(event, object, index)} />; }) : null}</>; })() : null}
@@ -1154,8 +1136,9 @@ export function DesignEditor() {
   function onRotateKeyDown(event: ReactKeyboardEvent<SVGCircleElement>, object: DesignObject) {
     if (!designEditable || object.locked || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
-    const amount = event.shiftKey ? 15 : 5;
-    updatePage((page) => ({ ...page, objects: page.objects.map((item) => item.id === object.id ? { ...item, rotation: (item.rotation + (event.key === "ArrowLeft" ? -amount : amount) + 360) % 360 } : item) }));
+    const rotation = rotationFromKey(object.rotation, event.key, event.shiftKey);
+    if (rotation === null) return;
+    updatePage((page) => ({ ...page, objects: page.objects.map((item) => item.id === object.id ? { ...item, rotation: rotationFromKey(item.rotation, event.key, event.shiftKey) ?? item.rotation } : item) }));
   }
 
   function onArrowEndpointKeyDown(event: ReactKeyboardEvent<SVGCircleElement>, object: DesignArrowObject, endpoint: "start" | "end") {
@@ -1208,8 +1191,8 @@ export function DesignEditor() {
     event.stopPropagation();
     event.currentTarget.focus();
     if (!designEditable || object.locked || !design) return;
-    const point = getPoint(event); const centreX = object.x + object.width / 2; const centreY = object.y + object.height / 2;
-    interactionRef.current = { mode: "rotate", id: object.id, startX: point.x, startY: point.y, startAngle: Math.atan2(point.y - centreY, point.x - centreX), original: cloneDesign(object), base: cloneDesign(design) };
+    const point = getPoint(event);
+    interactionRef.current = { mode: "rotate", id: object.id, startX: point.x, startY: point.y, startAngle: rotationPointerAngle(object, point), original: cloneDesign(object), base: cloneDesign(design) };
     setActiveHandle({ objectId: object.id, kind: "rotate" });
     setIsRotating(true);
     setRotationCursor(point);
@@ -1295,9 +1278,7 @@ export function DesignEditor() {
     } else if (interaction.mode === "resize") {
       nextObject = resizeObject(interaction.original, interaction.handle ?? "se", dx, dy, activePage, Boolean(interaction.keepRatio), Boolean(interaction.centred));
     } else if (interaction.mode === "rotate") {
-      const original = interaction.original; const centreX = original.x + original.width / 2; const centreY = original.y + original.height / 2;
-      const angle = Math.atan2(point.y - centreY, point.x - centreX);
-      nextObject = { ...original, rotation: (original.rotation + (angle - (interaction.startAngle ?? angle)) * 180 / Math.PI + 360) % 360 };
+      nextObject = { ...interaction.original, rotation: rotationFromPointer(interaction.original, interaction.startAngle, point) };
     } else if (interaction.mode === "arrow-endpoint" && interaction.original.type === "arrow") {
       const endpointSnap = snapArrowEndpoint(interaction.original, interaction.endpoint ?? "end", point);
       setGuides(endpointSnap.guides);

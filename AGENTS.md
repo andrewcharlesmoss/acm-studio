@@ -39,7 +39,9 @@ wrappers as compatibility APIs. Do not trace or copy third-party paths.
 The Design rotation handle uses the shared `arrange.rotate-free` two-arrow
 mark, with compact round proportions as Andrew requested on 15 October 2026.
 The legacy Studio rotation mark delegates to that catalogue artwork. Keep the
-generic `arrange.rotate` angled-object symbol distinct.
+generic `arrange.rotate` angled-object symbol distinct. Design and the Controls
+Library rotation specimen inherit `RotationHandle`, its shared CSS and
+`rotation-geometry.ts`; owners retain transaction and persistence adapters.
 Andrew explicitly authorised the Copilot keyboard mark
 as a sourced brand exception on 26 September 2026. Its MIT-licensed Lobe Icons
 SVG, provenance and licence are owned by `acm-icons/sources/copilot/`; preserve

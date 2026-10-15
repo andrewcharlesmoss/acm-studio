@@ -1,0 +1,11 @@
+.studio-rotation-handle { fill: #fff !important; stroke: #aeb3bf; stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: var(--rotation-cursor); filter: drop-shadow(0 1px 2px #17191c40); touch-action: none; }
+.studio-rotation-handle:hover:not([aria-disabled="true"]), .studio-rotation-handle:active:not([aria-disabled="true"]) { fill: #6b7075 !important; stroke: #6b7075; }
+.studio-rotation-handle:active:not([aria-disabled="true"]) { stroke-width: 2; }
+.studio-rotation-handle:hover:not([aria-disabled="true"]) + .studio-rotation-icon { color: #fff; }
+.studio-rotation-handle:focus { outline: none !important; }
+.studio-rotation-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { stroke: #6b7075; stroke-width: 2.5; filter: drop-shadow(0 0 2px #fff); }
+.studio-rotation-handle[aria-disabled="true"] { cursor: default; opacity: .5; }
+.studio-rotation-icon { color: #17191c; }
+.studio-rotation-badge rect { fill: #17191c; }
+.studio-rotation-badge text { fill: #fff; font-family: var(--studio-ui-font, system-ui, sans-serif); font-weight: 650; }
+@media (forced-colors: active) { .studio-rotation-handle:focus-visible { stroke: Highlight; stroke-width: 2.5; } }

@@ -1372,14 +1372,16 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /const resizeHandleRadius = 8 \* controlScale/);
   assert.equal((editor.match(/r=\{resizeHandleRadius\}/g) ?? []).length, 4);
   assert.doesNotMatch(css, /design-selection-box/);
-  assert.match(css, /\.design-rotate-handle:hover \{ fill: #6b7075 !important; stroke: #6b7075; \}/);
-  assert.match(css, /\.design-rotate-handle:hover \+ \.design-rotate-icon \{ color: #fff; \}/);
-  assert.match(css, /\.design-resize-handle, \.design-endpoint-handle, \.design-arrow-bend-handle, \.design-rotate-handle \{ fill: #fff !important/);
+  const rotationCss = readFileSync(new URL("../app/studio/controls/rotation-handle.css", import.meta.url), "utf8");
+  assert.match(rotationCss, /\.studio-rotation-handle:hover:not\(\[aria-disabled="true"\]\)/);
+  assert.match(rotationCss, /\+ \.studio-rotation-icon \{ color: #fff; \}/);
+  assert.match(rotationCss, /\.studio-rotation-handle \{ fill: #fff !important/);
+  assert.match(css, /\.design-resize-handle, \.design-endpoint-handle, \.design-arrow-bend-handle \{ fill: #fff !important/);
   assert.match(css, /\.design-resize-handle \{ stroke: #aeb3bf/);
   assert.match(css, /\.design-endpoint-handle \{ stroke: #aeb3bf; stroke-width: 1\.5; cursor: crosshair; \}/);
   assert.match(css, /\.design-resize-handle:hover, \.design-endpoint-handle:hover \{ fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; \}/);
   assert.match(css, /\.design-arrow-bend-handle:hover, \.design-arrow-bend-handle:active \{ fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; \}/);
-  assert.match(css, /\.design-resize-handle:active, \.design-endpoint-handle:active, \.design-rotate-handle:active \{ fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; \}/);
+  assert.match(css, /\.design-resize-handle:active, \.design-endpoint-handle:active \{ fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; \}/);
   assert.match(css, /\.design-resize-handle:focus, \.design-endpoint-handle:focus \{ outline: none; \}/);
   assert.match(css, /\.design-resize-handle:focus-visible, \.design-endpoint-handle:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; filter: none; \}/);
   assert.match(css, /\.design-arrow-bend-handle:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; \}/);
@@ -1658,36 +1660,40 @@ test("design snapping uses Canva-style solid page guides and dotted object guide
 
 test("design rotation handle uses one dedicated SVG glyph", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const handle = readFileSync(new URL("../app/studio/controls/rotation-handle.tsx", import.meta.url), "utf8");
   const icons = readFileSync(new URL("../app/studio/studio-icons.tsx", import.meta.url), "utf8");
-  assert.match(editor, /<StudioIcon name="rotate" size=\{28 \* controlScale\}/);
+  assert.match(editor, /<RotationHandle object=\{object\}/);
+  assert.match(handle, /<StudioIcon name="rotate-free" size=\{28 \* controlScale\}/);
   assert.doesNotMatch(editor, /design-rotate-connector/);
-  assert.doesNotMatch(editor, /<StudioIcon name="undo" size=\{13\}.*<StudioIcon name="redo" size=\{13\}/);
-  assert.match(icons, /rotate: "arrange\.rotate"/);
-  assert.doesNotMatch(icons, /case "rotate": return <svg/);
+  assert.doesNotMatch(handle, /<StudioIcon name="undo"/);
+  assert.match(icons, /"arrange\.rotate-free"/);
 });
 
 test("design rotation control hides during drag and keeps the rotation cursor", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const handle = readFileSync(new URL("../app/studio/controls/rotation-handle.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
-  const cursor = readFileSync(new URL("../app/studio/design-transform.ts", import.meta.url), "utf8");
+  const rotationCss = readFileSync(new URL("../app/studio/controls/rotation-handle.css", import.meta.url), "utf8");
+  const geometry = readFileSync(new URL("../app/studio/controls/rotation-geometry.ts", import.meta.url), "utf8");
   assert.match(editor, /const \[isRotating, setIsRotating\] = useState\(false\)/);
-  assert.match(editor, /!isRotating && \(!objectActiveHandle \|\| objectActiveHandle\.kind === "rotate"\) \? <><circle role="button"/);
+  assert.match(editor, /rotating=\{isRotating\} cursor=\{rotationCursor\} showHandle=\{!objectActiveHandle \|\| objectActiveHandle\.kind === "rotate"\}/);
+  assert.match(handle, /if \(rotating\)/);
   assert.match(editor, /setIsRotating\(true\)/);
   assert.match(editor, /setIsRotating\(false\)/);
-  assert.match(editor, /function rotationBadgePoint\(/);
+  assert.match(geometry, /function rotationBadgePoint\(/);
   assert.match(editor, /if \(interaction\.mode === "rotate" \|\| interaction\.mode === "move"\) setRotationCursor\(point\)/);
   assert.doesNotMatch(editor, /setDraggingObjectId/);
   assert.match(editor, /rotationCursor=\{isActive \? rotationCursor : null\}/);
-  assert.match(css, /\.design-rotate-handle \{[^}]*cursor: var\(--rotation-cursor\)/);
-  assert.match(css, /\.design-rotate-handle:focus-visible \{ outline: none !important; stroke: #6b7075/);
+  assert.match(rotationCss, /cursor: var\(--rotation-cursor\)/);
+  assert.match(rotationCss, /stroke-width: 2\.5/);
   assert.match(css, /\.design-page-svg\.is-rotating, \.design-page-svg\.is-rotating \* \{ cursor: var\(--rotation-cursor\) !important; \}/);
-  assert.match(editor, /rotationCursorCss\(object.rotation\)/);
+  assert.match(handle, /rotationCursorCss\(object.rotation\)/);
   assert.match(editor, /rotationCursorCss\(activeRotation\)/);
-  assert.match(cursor, /viewBox="0 0 32 32"/);
-  assert.match(cursor, /C10\.5 10\.5 21\.5 10\.5 25\.5 18\.5/);
-  assert.match(cursor, /stroke="#17191c"/);
-  assert.match(editor, /rx=\{7 \* controlScale\}/);
-  assert.match(editor, /cursor\.x \+ 44 \* controlScale/);
+  assert.match(geometry, /viewBox="0 0 32 32"/);
+  assert.match(geometry, /C10\.5 10\.5 21\.5 10\.5 25\.5 18\.5/);
+  assert.match(geometry, /stroke="#17191c"/);
+  assert.match(handle, /rx=\{7 \* controlScale\}/);
+  assert.match(geometry, /cursor\.x \+ 44 \* controlScale/);
 });
 
 test("design resize cursors follow the selected object's rotation", () => {

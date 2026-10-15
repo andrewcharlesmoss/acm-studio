@@ -26,6 +26,14 @@ export const studioControlEntries: StudioControlEntry[] = [
     compatibility: "Memory-only fixture. Popovers, dialogs, image choices, and Blob URL ownership use their production implementations. Feature permissions, mutations, and provider confirmations remain with callers.",
   },
   {
+    id: "rotation-handle", title: "Rotation handle", group: "Foundation",
+    purpose: "Rotate an example object with the same circular handle and angle calculations as Design.",
+    owner: "ACM Studio rotation controls", consumers: ["Design canvas", "Controls Library specimen"],
+    dependencies: [{ kind: "inherits", label: "RotationHandle and rotation geometry", detail: "Shares the catalogue icon, handle dimensions, upright presentation, cursor, angle badge, pointer-angle calculation and keyboard increments with Design." }],
+    states: "Pointer rotation, keyboard 5-degree and Shift 15-degree steps, zoom, read-only, cancellation, Reset, and Undo/Redo.",
+    compatibility: "Memory-only example. Design retains its permissions, coordinate conversion, transactions and saving; the specimen changes no product stores or artwork.",
+  },
+  {
     id: "drag-placement", title: "Drag to position", group: "Foundation",
     purpose: "Try the shared placement behaviour with one centred line per valid insertion gap.",
     owner: "ACM Studio shared drag placement", consumers: ["Sites and document lists", "Block canvas", "Navigation links", "Design pages and layers"],
