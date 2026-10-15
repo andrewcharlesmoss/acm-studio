@@ -2,6 +2,7 @@
 import { CanvasBlockChooser } from "./canvas-block-chooser";
 import { captureCanvasInsertionTarget, canvasInsertionTargetCurrent, canvasBlockChoices, type CanvasInsertionTarget } from "./canvas-insertion-target";
 import { useBlockInsertionGaps } from "./use-block-insertion-gaps";
+import { DocumentAuthorContent, DocumentFieldLink, DocumentSubtitleContent, DocumentTitleContent, PublicationDateContent, ReadingTimeContent } from "../components/blocks/document-field-content";
 import { FeaturedImage } from "../components/blocks/featured-image";
 import { GroupEmptyAppender } from "./blocks/group-empty-appender";
 import { GroupLayoutToolbar } from "./blocks/group-layout-toolbar";
@@ -54,15 +55,13 @@ import { EmbedContent } from "../components/embed-content";
 import { TableCaptionControl, TableCaptionProvider } from "./table-caption-control";
 import { tablePresentation } from "../content/table-presentation";
 import { changedTableStructures, staleTableTextSelection } from "./table-structure-selection";
-import { useCallback, useContext, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
+import { Fragment, useCallback, useContext, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
 import { ListInspectorCanvasContext } from "./list-inspector-navigation";
 import { blockSelectionRange, normaliseBlockSelection, orderedBlockEntries } from "./block-selection.mjs";
 import { blockSelectionPointerTarget, markBlockSelectionHosts } from "./block-selection-dom";
 import type { IconName } from "@acm/icons";
 import { BlockRenderer, renderText } from "../components/content";
-import { ArticleMetaIcon } from "../components/article-meta-icon";
-import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
-import { readingTimeDisplay } from "../content/reading-time";
+import { documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { imageDisplayStyle, imageWrapperStyle } from "../content/image-style";
 import { resolveImageSource } from "../content/image-source";
 import { dividerRuleStyle } from "../content/divider-style";
@@ -2251,7 +2250,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
             {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="document-cover-shell document-dynamic-cover">
               <FeaturedImage source={safeCoverImageUrl} alt={activeDocument.coverImage?.alt} />
             </div> : null}
-            {presentation?.renderBlock ? activeDocument.blocks.filter(block => !block.editorial?.hidden).map((block) => presentation.renderBlock?.({ document: activeDocument, block, mediaUrls: mediaBlockUrls, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockRenderer key={block.id} blocks={[block]} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation.hideDividers ?? true} document={activeDocument} documentHref={linkTargets.find(target => target.id === activeDocument.id)?.href} buttonPreview={buttonPreview} />) : <BlockRenderer blocks={activeDocument.blocks} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation?.hideDividers ?? true} document={activeDocument} documentHref={linkTargets.find(target => target.id === activeDocument.id)?.href} buttonPreview={buttonPreview} />}
+            {presentation?.renderBlock ? activeDocument.blocks.filter(block => !block.editorial?.hidden).map((block) => <Fragment key={block.id}>{presentation.renderBlock?.({ document: activeDocument, block, mediaUrls: mediaBlockUrls, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <BlockRenderer blocks={[block]} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation.hideDividers ?? true} document={activeDocument} documentHref={linkTargets.find(target => target.id === activeDocument.id)?.href} buttonPreview={buttonPreview} />}</Fragment>) : <BlockRenderer blocks={activeDocument.blocks} mediaUrls={mediaBlockUrls} variant="studio" hideDividers={presentation?.hideDividers ?? true} document={activeDocument} documentHref={linkTargets.find(target => target.id === activeDocument.id)?.href} buttonPreview={buttonPreview} />}
             {presentation?.renderFooter?.({ document: activeDocument, mode: "preview", selectedBlockId, onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
             </>, "preview")}
           </article>
@@ -2531,13 +2530,13 @@ function DocumentHeading({ document, selectedDocumentField, previewing, onChange
   return (
     <header className="document-heading">
       {showTitle ? <div className={`document-title-field${selectedDocumentField === "title" ? " is-document-field-selected" : ""}`} data-document-field="title">
-        {previewing ? <h1 className="preview-title" ref={titleRef}>{document.title || `Untitled ${document.kind}`}</h1> : <>
+        {previewing ? <DocumentTitleContent level={1} className="preview-title" ref={titleRef}>{document.title || `Untitled ${document.kind}`}</DocumentTitleContent> : <>
           <label className="canvas-title-label" htmlFor="document-title">{document.kind} title</label>
           <AutoResizeTextarea id="document-title" className="canvas-title" value={document.title} onFocus={() => onFocus("title")} onChange={(event) => onChange("title", event.target.value)} placeholder={`Add ${document.kind} title`} />
         </>}
       </div> : null}
       {showSubtitle && (previewing && !document.subtitle?.trim() ? null : <div className={`document-subtitle-field${selectedDocumentField === "subtitle" ? " is-document-field-selected" : ""}`} data-document-field="subtitle">
-        {previewing ? <p className="preview-subtitle" ref={subtitleRef}>{document.subtitle}</p> : <>
+        {previewing ? <DocumentSubtitleContent className="preview-subtitle" ref={subtitleRef}>{document.subtitle}</DocumentSubtitleContent> : <>
           <label className="canvas-subtitle-label" htmlFor="document-subtitle">Subtitle</label>
           <AutoResizeTextarea id="document-subtitle" className="canvas-subtitle" value={document.subtitle ?? ""} onFocus={() => onFocus("subtitle")} onChange={(event) => onChange("subtitle", event.target.value)} placeholder="Add a subtitle" />
         </>}
@@ -2757,12 +2756,11 @@ function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockContr
   if (block.type === "field") return <label className="content-field"><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled={!writable} onChange={(event) => { if (writable) onChange({ ...block, value: event.target.value }); }}>{fieldSelectOptions(block).map((option) => <option key={option}>{option}</option>)}</select> : <input value={block.value} readOnly={!writable} onChange={(event) => { if (writable) onChange({ ...block, value: event.target.value }); }} />}</label>;
   if (block.type === "footnotes") return <section className="footnotes-field" aria-label="Footnotes"><strong>Footnotes</strong><ol>{orderedFootnoteEntries(block.notes, footnoteNumbers).map(({ note, number }) => <li key={note.id} value={number} className={number === undefined ? "is-unreferenced" : undefined}>{number === undefined ? <span>Unreferenced footnote</span> : null}<textarea data-studio-footnote-id={note.id} aria-label={number === undefined ? "Unreferenced footnote" : `Footnote ${number}`} rows={2} readOnly={!writable} value={note.text} onChange={event => onChange({ ...block, notes: block.notes.map(item => item.id === note.id ? { ...item, text: event.target.value } : item) })} /></li>)}</ol></section>;
   if (block.type === "document-title") {
-    const TitleElement = block.level === 0 ? "p" : `h${block.level ?? 2}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
     const title = templatePlaceholder ? "Title" : document?.title || "Add a title in Document settings.";
     const href = document?.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null;
-    return documentFieldVisible(documentContext, "title") ? <TitleElement className={`document-dynamic-title block-textarea ${block.level === 0 ? "paragraph-field" : `heading-field is-h${block.level ?? 2}`}${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{block.isLink && href ? <a href={href} onClick={(event) => event.preventDefault()}>{title}</a> : title}</TitleElement> : null;
+    return documentFieldVisible(documentContext, "title") ? <DocumentTitleContent level={block.level ?? 2} className={`document-dynamic-title block-textarea ${block.level === 0 ? "paragraph-field" : `heading-field is-h${block.level ?? 2}`}${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}><DocumentFieldLink href={href} enabled={block.isLink} editing>{title}</DocumentFieldLink></DocumentTitleContent> : null;
   }
-  if (block.type === "document-subtitle") return documentFieldVisible(documentContext, "subtitle") ? <p className={`metadata-block-editor document-dynamic-field template-subtitle${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}`}>{templatePlaceholder ? "Subtitle" : document?.subtitle || "Add a subtitle in Document settings."}</p> : null;
+  if (block.type === "document-subtitle") return documentFieldVisible(documentContext, "subtitle") ? <DocumentSubtitleContent className={`metadata-block-editor document-dynamic-field template-subtitle${templatePlaceholder ? " template-dynamic-placeholder" : ""} align-${block.align ?? "left"}`}>{templatePlaceholder ? "Subtitle" : document?.subtitle || "Add a subtitle in Document settings."}</DocumentSubtitleContent> : null;
   if (block.type === "cover-image") {
     if (!documentFieldVisible(documentContext, "coverImage") || document?.coverImage === null) return null;
     const imageSource = resolveImageSource(document?.coverImage, mediaUrls, coverImageUrl);
@@ -2775,9 +2773,9 @@ function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockContr
     </div>;
   }
   if (block.type === "spacer") return <button type="button" id={paragraphStyleAnchor(block.visualStyle)} className={`spacer-field${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block, spacerOrientation), margin: block.visualStyle?.margin }} data-studio-block-id={block.id} aria-label="Spacer block" />;
-  if (block.type === "reading-time") return <div className={`metadata-block-editor reading-time-block-editor${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`}>{block.presentation !== "plain" ? <span className="reading-time-badge">{block.prefix ?? "Reading Time:"} {readingTimeDisplay(rootBlocks, block)}</span> : <span>{block.prefix ?? "Reading Time:"} {readingTimeDisplay(rootBlocks, block)}</span>}</div>;
-  if (block.type === "post-author") { const author = documentAuthor(documentContext); return <div className={`metadata-block-editor article-byline align-${block.align ?? "left"}`}>{author ? <>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></> : <span className="metadata-missing">Add an author in Document settings.</span>}</div>; }
-  if (block.type === "post-date") { const date = formatDocumentDate(documentContext, block.format, block); const value = date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={block.dateSource === "modified" ? documentContext.updatedAt : documentContext.publishAt ?? documentContext.publishedAt}>{date}</time></> : <span className="metadata-missing">{block.dateSource === "modified" ? "No confirmed modification date is available." : "Add a publication date in Document settings."}</span>; const href = document?.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null; return <div className={`metadata-block-editor article-byline-detail align-${block.align ?? "left"}`}>{block.isLink && href ? <a href={href} onClick={(event) => event.preventDefault()}>{value}</a> : value}</div>; }
+  if (block.type === "reading-time") return <div className={`metadata-block-editor reading-time-block-editor${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`}><ReadingTimeContent blocks={rootBlocks} block={block} wrapPlain /></div>;
+  if (block.type === "post-author") { const author = documentAuthor(documentContext); return <div className={`metadata-block-editor article-byline align-${block.align ?? "left"}`}><DocumentAuthorContent author={author} avatar={block.avatar !== false} prefix={block.prefix} /></div>; }
+  if (block.type === "post-date") { const date = formatDocumentDate(documentContext, block.format, block); const value = <PublicationDateContent label={date} dateTime={block.dateSource === "modified" ? documentContext.updatedAt : documentContext.publishAt ?? documentContext.publishedAt} showIcon={block.showIcon !== false} modified={block.dateSource === "modified"} />; const href = document?.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : null; return <div className={`metadata-block-editor article-byline-detail align-${block.align ?? "left"}`}><DocumentFieldLink href={href} enabled={block.isLink} editing>{value}</DocumentFieldLink></div>; }
   if (block.type === "social-icons") return <SocialIconsEditorBlock htmlEditorBlockId={htmlEditorBlockId} renderBlockControls={renderBlockControls} block={block} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} writable={writable} onChange={onChange} onInsert={type => onInsertNestedBlock?.(type, block.id)} />;
   if (block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel editing />;
   if (block.type === "columns") {

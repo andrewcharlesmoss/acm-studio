@@ -163,6 +163,18 @@ shared controls and overlay dismissal contract. Image resource maps use
 `useBlobUrls`, and simple image choosers use `ImageChoiceGrid`; never allocate
 persistent preview URLs during render. See `docs/studio-ui-library.md`.
 
+Dynamic document fields inherit the pure `document-field-content.tsx` views and
+the existing `FeaturedImage`. Hosts retain visibility, missing-value policy,
+selection, input editing, and media actions. Design canvas, thumbnails, library,
+and raster exports inherit `design-artwork.tsx` and `design-geometry.ts`; keep hit
+targets, selection handles, and inline editing in the canvas adapter. Serialise
+exports through React rather than assembling SVG from model strings. Design
+properties use shared range, colour, font-select, and toggle controls with explicit
+adapters for their stored values. Required colours disable the shared clear action.
+Workspace history and zoom recognition inherit `workspace-shortcuts.mjs`; listeners,
+ownership, bounds, and reset actions remain with each workspace. Preserve Studio's
+explicit rich-text and table history ownership exceptions.
+
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and
 UI Library specimens, including control menus, colour and gradient editors,

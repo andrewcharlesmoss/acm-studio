@@ -1,4 +1,5 @@
 "use client";
+import { isNativeEditingTarget, workspaceHistoryShortcut, workspaceZoomShortcut } from "../workspace-shortcuts.mjs";
 
 import { useEffect, useId, useRef, type Dispatch, type SetStateAction, type KeyboardEvent, type MouseEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
@@ -97,10 +98,11 @@ export function RibbonPreview({ example, tab, setTab, state, setState, showScena
   }, [state.menu]);
   function handleKeys(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape" && state.menu) { event.preventDefault(); event.stopPropagation(); closeMenu(); return; }
-    if (state.menu || example.id !== "studio" || !(event.metaKey || event.ctrlKey)) return;
-    if (event.target instanceof HTMLElement && event.target.closest("input,select,textarea,[contenteditable=true]")) return;
+    if (state.menu || example.id !== "studio" || isNativeEditingTarget(event.target)) return;
     const controls = example.tabs.flatMap((item) => item.groups.flatMap((group) => group.controls));
-    const command = event.key.toLowerCase() === "z" ? event.shiftKey ? "studio.redo" : "studio.undo" : event.key.toLowerCase() === "y" && event.ctrlKey ? "studio.redo" : ["+", "="].includes(event.key) || event.code === "NumpadAdd" ? "studio.zoom-in" : event.key === "-" || event.code === "NumpadSubtract" ? "studio.zoom-out" : event.key === "0" ? "studio.fit" : null;
+    const history = workspaceHistoryShortcut(event, navigator.platform);
+    const zoom = workspaceZoomShortcut(event, true, navigator.platform);
+    const command = history ? `studio.${history}` : zoom === "in" ? "studio.zoom-in" : zoom === "out" ? "studio.zoom-out" : zoom === "reset" ? "studio.fit" : null;
     const control = controls.find((item) => item.id === command);
     if (control) { event.preventDefault(); setState((current) => runDemoCommand(current, control)); }
   }

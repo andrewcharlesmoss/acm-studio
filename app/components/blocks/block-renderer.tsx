@@ -1,3 +1,4 @@
+import { DocumentAuthorContent, DocumentFieldLink, DocumentSubtitleContent, DocumentTitleContent, PublicationDateContent, ReadingTimeContent } from "./document-field-content";
 import { footnoteFragment, visibleFootnoteReferenceAnchors, orderedFootnoteEntries, visibleFootnoteNumbers } from "../../content/footnote-blocks";
 import { fieldSelectOptions } from "../../content/field-options";
 import { buttonItemPresentation, buttonsPresentationStyle } from "../../content/buttons-presentation";
@@ -11,14 +12,12 @@ import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation 
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../../content/layout";
 import { blockAlignmentClass, contentBlockAlignment } from "../../content/block-alignment";
 import { columnsLayoutStyle } from "../../content/columns";
-import { authorInitials, documentAuthor, documentFieldVisible, formatDocumentDate } from "../../content/document-metadata";
-import { readingTimeDisplay } from "../../content/reading-time";
+import { documentAuthor, documentFieldVisible, formatDocumentDate } from "../../content/document-metadata";
 import { imageDisplayStyle, imageWrapperStyle } from "../../content/image-style";
 import { resolveImageSource } from "../../content/image-source";
 import { FeaturedImage } from "./featured-image";
 import { dividerRuleStyle } from "../../content/divider-style";
 import { ImageLightbox } from "../image-lightbox";
-import { ArticleMetaIcon } from "../article-meta-icon";
 import { FitTextHeading, FitTextParagraph } from "../fit-text-paragraph";
 import { StudioIcon } from "../../studio/studio-icons";
 import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, socialIconsGapStyle } from "../social-icons";
@@ -117,38 +116,35 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "document-title") {
           if (!document || !documentFieldVisible(document, "title")) return null;
           const href = safeTextLink(documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
-          // eslint-disable-next-line react/jsx-no-target-blank
-          const title = block.isLink && href ? <a href={href} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={[block.rel, block.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{document.title}</a> : document.title;
-          return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{document.title ? block.level === 0 ? <p className={studio ? "block-textarea paragraph-field" : undefined}>{title}</p> : renderHeading(block.level ?? 2, studio ? `block-textarea heading-field is-h${block.level ?? 2}` : "", block.id, title) : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
+          const title = <DocumentFieldLink href={href} enabled={block.isLink} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={block.rel}>{document.title}</DocumentFieldLink>;
+          return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{document.title ? <DocumentTitleContent level={block.level ?? 2} className={studio ? `block-textarea ${block.level === 0 ? "paragraph-field" : `heading-field is-h${block.level ?? 2}`}` : block.level === 0 ? undefined : ""}>{title}</DocumentTitleContent> : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
         }
         if (block.type === "document-subtitle") {
           if (!document || !documentFieldVisible(document, "subtitle")) return null;
-          return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}`} key={block.id}>{document.subtitle ? <p className={studio ? "template-subtitle" : undefined}>{document.subtitle}</p> : <span className="metadata-missing">Add a subtitle in Document settings.</span>}</div>;
+          return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}`} key={block.id}>{document.subtitle ? <DocumentSubtitleContent className={studio ? "template-subtitle" : undefined}>{document.subtitle}</DocumentSubtitleContent> : <span className="metadata-missing">Add a subtitle in Document settings.</span>}</div>;
         }
         if (block.type === "cover-image") {
           if (!document || !documentFieldVisible(document, "coverImage") || document.coverImage === null || (!studio && !document.coverImage)) return null;
           const source = resolveImageSource(document.coverImage, mediaUrls);
           const href = safeTextLink(documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
           const image = <FeaturedImage source={source} alt={document.coverImage?.alt} style={imageDisplayStyle(block, { includeFrame: false })} />;
-          // eslint-disable-next-line react/jsx-no-target-blank
-          return <figure className={`document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{block.isLink && href ? <a href={href} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={[block.rel, block.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image}</figure>;
+          return <figure className={`document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><DocumentFieldLink href={href} enabled={block.isLink} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={block.rel}>{image}</DocumentFieldLink></figure>;
         }
         if (block.type === "reading-time") {
           if (!documentFieldVisible(document, "readingTime")) return null;
-          const label = `${block.prefix ?? "Reading Time:"} ${readingTimeDisplay(readingTimeBlocks ?? blocks, block)}`;
-          return <p className={`article-reading-time metadata-block${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`} key={block.id}>{block.presentation !== "plain" ? <span className="reading-time-badge">{label}</span> : label}</p>;
+          return <p className={`article-reading-time metadata-block${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`} key={block.id}><ReadingTimeContent blocks={readingTimeBlocks ?? blocks} block={block} /></p>;
         }
         if (block.type === "post-author") {
           if (!documentFieldVisible(document, "author")) return null;
           const author = document ? documentAuthor(document) : null;
-          return author || showMissingMetadata ? <div className={`article-byline metadata-block align-${block.align ?? "left"}`} key={block.id}>{author ? <>{block.avatar !== false ? <span className="article-author-avatar" aria-hidden="true">{authorInitials(author)}</span> : null}<span>{block.prefix ?? "By"} <strong>{author}</strong></span></> : <span className="metadata-missing">Add an author in Document settings.</span>}</div> : null;
+          return author || showMissingMetadata ? <div className={`article-byline metadata-block align-${block.align ?? "left"}`} key={block.id}><DocumentAuthorContent author={author} avatar={block.avatar !== false} prefix={block.prefix} /></div> : null;
         }
         if (block.type === "post-date") {
           if (!documentFieldVisible(document, "publicationDate")) return null;
           const date = document ? formatDocumentDate(document, block.format, block) : null;
           const href = safeTextLink(documentHref ?? (document?.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
-          const value = date ? <>{block.showIcon !== false ? <ArticleMetaIcon name="clock" /> : null}<time dateTime={document ? block.dateSource === "modified" ? document.updatedAt : document.publishAt ?? document.publishedAt : undefined}>{date}</time></> : <span className="metadata-missing">{block.dateSource === "modified" ? "No confirmed modification date is available." : "Add a publication date in Document settings."}</span>;
-          return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}>{block.isLink && href ? <a href={href}>{value}</a> : value}</div> : null;
+          const value = <PublicationDateContent label={date} dateTime={document ? block.dateSource === "modified" ? document.updatedAt : document.publishAt ?? document.publishedAt : undefined} showIcon={block.showIcon !== false} modified={block.dateSource === "modified"} />;
+          return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}><DocumentFieldLink href={href} enabled={block.isLink}>{value}</DocumentFieldLink></div> : null;
         }
         if (block.type === "social-icons") {
           const links = block.children.filter(child => !child.editorial?.hidden && Boolean(safeTextLink(child.url)));

@@ -553,8 +553,8 @@ test("template dynamic fields use neutral placeholders", async () => {
   assert.match(canvas, /templatePlaceholder \? "Subtitle" : document\?\.subtitle \|\| "Add a subtitle in Document settings\."/);
   assert.match(editor, /const contentSlot = <TemplateContentSlot \/>/);
   assert.match(editor, /templatePreview=\{context\.mode === "preview"\}/);
-  assert.ok(renderer.includes("templatePreview ? <TitleElement id={fieldVisualId} className={titleClassName} style={titleStyle}>Title</TitleElement>"));
-  assert.ok(renderer.includes("templatePreview ? <p id={fieldVisualId} className={`template-subtitle template-dynamic-placeholder${subtitleClass}`} style={subtitleStyle}>Subtitle</p>"));
+  assert.ok(renderer.includes("templatePreview ? <DocumentTitleContent level={node.level ?? 1} id={fieldVisualId} className={titleClassName} style={titleStyle}>Title</DocumentTitleContent>"));
+  assert.ok(renderer.includes("templatePreview ? <DocumentSubtitleContent id={fieldVisualId} className={`template-subtitle template-dynamic-placeholder${subtitleClass}`} style={subtitleStyle}>Subtitle</DocumentSubtitleContent>"));
   assert.match(styles, /\.template-dynamic-placeholder \{ color: #7b8088; \}/);
 });
 
@@ -1224,15 +1224,15 @@ test("design canvas resets zoom with the platform zero shortcut", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /const ZOOM_OPTIONS = Array\.from\(\{ length: 491 \}, \(_, index\) => 10 \+ index\)/);
   assert.match(editor, /const ZOOM_SHORTCUT_STEPS = \[10, 25, 50, 75, 100, 125, 200, 300, 500\] as const/);
-  assert.match(editor, /event\.target instanceof HTMLSelectElement/);
+  const shortcuts = readFileSync(new URL("../app/studio/workspace-shortcuts.mjs", import.meta.url), "utf8");
+  assert.match(shortcuts, /isNativeEditingTarget\(event\.target\)/);
   assert.doesNotMatch(editor, /event\.target instanceof HTMLButtonElement/);
-  assert.match(editor, /const zoomReset = event\.key === "0" \|\| event\.code === "Digit0" \|\| event\.code === "Numpad0"/);
-  assert.match(editor, /const zoomIn = event\.key === "\+" \|\| event\.key === "=" \|\| event\.code === "Equal" \|\| event\.code === "NumpadAdd"/);
-  assert.match(editor, /const zoomOut = event\.key === "-" \|\| event\.key === "_" \|\| event\.code === "Minus" \|\| event\.code === "NumpadSubtract"/);
-  assert.match(editor, /const commandOrControl = event\.metaKey \|\| event\.ctrlKey/);
-  assert.match(editor, /if \(commandOrControl && zoomReset\) \{ event\.preventDefault\(\); fitCanvasToView\(\); \}/);
-  assert.match(editor, /else if \(commandOrControl && zoomIn\) \{ event\.preventDefault\(\); changeZoomByKeyboard\(1\); \}/);
-  assert.match(editor, /else if \(commandOrControl && zoomOut\) \{ event\.preventDefault\(\); changeZoomByKeyboard\(-1\); \}/);
+  assert.match(shortcuts, /event\.code === "Numpad0"/);
+  assert.match(shortcuts, /event\.code === "NumpadAdd"/);
+  assert.match(shortcuts, /event\.code === "NumpadSubtract"/);
+  assert.match(editor, /workspaceZoomShortcut\(event, true, navigator\.platform\)/);
+  assert.match(editor, /if \(zoomAction === "reset"\) fitCanvasToView\(\)/);
+  assert.match(editor, /changeZoomByKeyboard\(zoomAction === "in" \? 1 : -1\)/);
   assert.match(editor, /function changeZoomByKeyboard\(direction: 1 \| -1\) \{\s*setZoom\(\(value\) => Math\.max\(ZOOM_OPTIONS\[0\], Math\.min\(ZOOM_OPTIONS\.at\(-1\) \?\? 500, value \+ direction \* 10\)\)\);\s*\}/);
   assert.match(editor, /ZOOM_SHORTCUT_STEPS\.find\(\(option\) => option > value\)/);
   assert.match(editor, /ZOOM_SHORTCUT_STEPS\.findLast\(\(option\) => option < value\)/);
@@ -1240,8 +1240,8 @@ test("design canvas resets zoom with the platform zero shortcut", () => {
 
 test("design canvas history shortcuts survive page and layer button focus", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /else if \(commandOrControl && event\.key\.toLowerCase\(\) === "z"\) \{ event\.preventDefault\(\); if \(event\.shiftKey\) redo\(\); else undo\(\); \}/);
-  assert.match(editor, /else if \(\(event\.ctrlKey && event\.key\.toLowerCase\(\) === "y"\)\) \{ event\.preventDefault\(\); redo\(\); \}/);
+  assert.match(editor, /workspaceHistoryShortcut\(event, navigator\.platform\)/);
+  assert.match(editor, /else if \(historyAction\) \{ event\.preventDefault\(\); if \(historyAction === "redo"\) redo\(\); else undo\(\); \}/);
   assert.doesNotMatch(editor, /event\.target instanceof HTMLButtonElement/);
 });
 
@@ -1398,8 +1398,8 @@ test("the File tab provides a local design library", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(route, /<DesignLibrary \/>/);
   assert.match(library, /window\.setTimeout\(\(\) => \{[\s\S]*loadDesigns\(\)\.sort/);
-  assert.match(library, /<PageSvg page=\{page\} assets=\{design\.assets\}/);
-  assert.match(library, /onObjectPointerDown=\{\(\) => undefined\}/);
+  assert.match(library, /<DesignPageArtwork page=\{page\} assets=\{design\.assets\}/);
+  assert.doesNotMatch(library, /onObjectPointerDown|from "\.\/design-editor"/);
   assert.match(library, /aria-label="Saved Studio designs"/);
   assert.match(library, /\/studio\/designs\?designId=\$\{encodeURIComponent\(design\.id\)\}/);
   assert.match(css, /\.design-library-grid \{ display: grid;/);
@@ -1500,7 +1500,7 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-content \{ border-top: 0; \}/);
   assert.match(editor, /className=\{`design-zoom-dock\$\{pagesCollapsed \? " is-pages-collapsed" : ""\}`\}/);
   assert.match(editor, /className="design-zoom-slider" aria-label="Canvas zoom control"/);
-  assert.match(editor, /id="design-canvas-zoom" className="studio-range-control" type="range" min="10" max="500" step="1" value=\{zoom\}/);
+  assert.match(editor, /id="design-canvas-zoom" className="studio-range-control" min="10" max="500" step="1" value=\{zoom\}/);
   assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: #f7f7f7; border-top: 1px solid #d8d8d8; bottom: 0;[^}]*left: var\(--design-pages-width\);[^}]*position: absolute; right: var\(--design-inspector-width\);[^}]*z-index: 30;/);
   assert.match(designCss, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
@@ -1783,24 +1783,27 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
 
 test("arrowheads use shared base-trimmed geometry in live SVG and export SVG", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /function arrowGeometry\(object: DesignArrowObject\)/);
-  assert.match(editor, /const startDirection = normaliseArrowDirection\(/);
-  assert.match(editor, /const endDirection = normaliseArrowDirection\(/);
-  assert.match(editor, /const requestedHeadLength = Math\.max\(12, object\.strokeWidth \* 2\.5\) \* arrowheadScale\(object\)/);
-  assert.match(editor, /const headLengthLimit = length \* \(startArrowhead && endArrowhead \? 0\.4 : 0\.48\)/);
-  assert.match(editor, /const startBase = \{ x: start\.x \+ startDirection\.x \* startHeadLength, y: start\.y \+ startDirection\.y \* startHeadLength \}/);
-  assert.match(editor, /const endBase = \{ x: end\.x - endDirection\.x \* endHeadLength, y: end\.y - endDirection\.y \* endHeadLength \}/);
-  assert.match(editor, /const path = bends\.length === 1/);
-  assert.match(editor, /geometry\.startArrowhead/);
-  assert.match(editor, /geometry\.endArrowhead/);
-  assert.match(editor, /strokeDasharray=\{dotted \?/);
-  assert.match(editor, /stroke-dasharray="\$\{Math\.max\(1, object\.strokeWidth\)\}/);
+  const geometry = readFileSync(new URL("../app/studio/design-geometry.ts", import.meta.url), "utf8");
+  const artwork = readFileSync(new URL("../app/studio/design-artwork.tsx", import.meta.url), "utf8");
+  assert.match(geometry, /function arrowGeometry\(object: DesignArrowObject\)/);
+  assert.match(geometry, /const startDirection = normaliseArrowDirection\(/);
+  assert.match(geometry, /const endDirection = normaliseArrowDirection\(/);
+  assert.match(geometry, /const requestedHeadLength = Math\.max\(12, object\.strokeWidth \* 2\.5\) \* arrowheadScale\(object\)/);
+  assert.match(geometry, /const headLengthLimit = length \* \(startArrowhead && endArrowhead \? 0\.4 : 0\.48\)/);
+  assert.match(geometry, /const startBase = \{ x: start\.x \+ startDirection\.x \* startHeadLength, y: start\.y \+ startDirection\.y \* startHeadLength \}/);
+  assert.match(geometry, /const endBase = \{ x: end\.x - endDirection\.x \* endHeadLength, y: end\.y - endDirection\.y \* endHeadLength \}/);
+  assert.match(geometry, /const path = bends\.length === 1/);
+  assert.match(artwork, /geometry\.startArrowhead/);
+  assert.match(artwork, /geometry\.endArrowhead/);
+  assert.match(artwork, /strokeDasharray=\{dotted \?/);
+  assert.match(editor, /renderToStaticMarkup\(<DesignPageArtwork page=\{page\} assets=\{assets\} \/>\)/);
+  assert.match(editor, /<DesignObjectArtwork object=\{object\} assets=\{assets\} \/>/);
   assert.match(editor, /selectedObject\.startArrowhead \? "yes" : "no"/);
   assert.match(editor, /End arrowhead/);
   assert.match(editor, /Arrowhead size/);
   assert.match(editor, /Line style/);
-  assert.doesNotMatch(editor, /marker-end=/);
-  assert.doesNotMatch(editor, /<marker id=/);
+  assert.doesNotMatch(artwork, /marker-end=/);
+  assert.doesNotMatch(artwork, /<marker id=/);
 });
 
 test("duplicate design tabs keep the global writer lock and route peer edits through sync", () => {
@@ -1822,13 +1825,15 @@ test("duplicate design tabs keep the global writer lock and route peer edits thr
 
 test("design shapes dropdown includes common geometric shapes and text boxes edit inline", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const geometry = readFileSync(new URL("../app/studio/design-geometry.ts", import.meta.url), "utf8");
+  const artwork = readFileSync(new URL("../app/studio/design-artwork.tsx", import.meta.url), "utf8");
   const model = readFileSync(new URL("../app/studio/design-model.ts", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(model, /export type DesignShapeKind = "rectangle" \| "roundedRectangle" \| "circle" \| "triangle" \| "triangleDown" \| "diamond" \| "pentagon" \| "hexagon" \| "octagon"/);
   assert.match(editor, /const shapeOptions: Array<\{ value: DesignShapeKind; label: string \}>/);
   assert.match(editor, /aria-label="Shapes"/);
-  assert.match(editor, /function polygonPoints\(kind: DesignShapeKind/);
-  assert.match(editor, /<polygon points=\{points\}/);
+  assert.match(geometry, /function polygonPoints\(kind: DesignShapeKind/);
+  assert.match(artwork, /<polygon points=\{points\}/);
   assert.match(editor, /event\.detail > 1/);
   assert.match(editor, /isTextDoubleClick = object\.type === "text" && \(event\.detail > 1 \|\|/);
   assert.match(editor, /lastTextPointerRef\.current\?\.id === object\.id/);
@@ -1838,33 +1843,33 @@ test("design shapes dropdown includes common geometric shapes and text boxes edi
   assert.match(editor, /aria-label="Edit text"/);
   assert.match(editor, /const fontOptions = \[/);
   assert.match(editor, /\{ value: "Inter, Arial, sans-serif", label: "Inter" \}/);
-  assert.match(editor, /<label>Font<select/);
-  assert.match(editor, /className="design-text-wrap-setting"/);
+  assert.match(editor, /<FontFamilySelect value=\{selectedObject\.fontFamily\} options=\{fontOptions\}/);
+  assert.match(editor, /<ToggleSetting label="Word wrap"/);
   assert.match(editor, /function ColourControl\(\{ label, value, opacity = 1/);
   assert.match(editor, /const opacityLabel = label === "Text colour" \? "Text" : label === "Line colour" \? "Line" : label/);
-  assert.match(editor, /\{opacityLabel\} opacity \(\{visibleOpacity\}%\)[^>]*min="0" max="100" step="1" value=\{visibleOpacity\}/);
+  assert.match(editor, /\{opacityLabel\} opacity \(\{visibleOpacity\}%\)[\s\S]*?min="0" max="100" step="1" value=\{visibleOpacity\}/);
   assert.match(editor, /Opacity \(\{Math\.round\(selectedObject\.opacity \* 100\)\}%\).*min="0" max="100" step="1"/);
   assert.match(editor, /Arrowhead size.*min=\{DESIGN_ARROWHEAD_SCALE_MIN \* 100\} max=\{DESIGN_ARROWHEAD_SCALE_MAX \* 100\} step="1"/);
   assert.match(editor, /aria-label=\{`\$\{opacityLabel\} opacity`\}/);
-  assert.match(editor, /const fillOpacity = shape\.fillOpacity \?\? 1/);
-  assert.match(editor, /const strokeOpacity = shape\.strokeOpacity \?\? 1/);
-  assert.match(editor, /strokeOpacity=\{object\.strokeOpacity \?\? 1\}/);
-  assert.match(editor, /fillOpacity=\{object\.fillOpacity \?\? 1\}/);
+  assert.match(artwork, /fillOpacity: object\.fillOpacity \?\? 1/);
+  assert.match(artwork, /strokeOpacity: object\.strokeOpacity \?\? 1/);
+  assert.match(artwork, /strokeOpacity=\{object\.strokeOpacity \?\? 1\}/);
+  assert.match(artwork, /fillOpacity=\{object\.fillOpacity \?\? 1\}/);
   assert.match(editor, /checked=\{selectedObject\.wordWrap !== false\}/);
-  assert.match(editor, /wordWrap: event\.target\.checked/);
+  assert.match(editor, /onChange=\{wordWrap => updateSelected\(object => object\.type === "text" \? \{ \.\.\.object, wordWrap \}/);
   assert.doesNotMatch(editor, /<label>Font family<select/);
   assert.match(editor, /onDoubleClick=\{\(event\) => \{ if \(object\.type === "text"\)/);
   assert.match(editor, /const cancelTextEditRef = useRef\(false\)/);
   assert.match(editor, /cancelTextEditRef\.current = true/);
   assert.match(editor, /onEditingTextCommit/);
   assert.match(css, /\.design-inline-text-editor \{/);
-  assert.match(css, /\.design-text-wrap-setting input\[type="checkbox"\]/);
+  assert.doesNotMatch(css, /\.design-text-wrap-setting/);
   assert.match(css, /\.design-colour-control \{ display: grid; gap: 8px; \}/);
-  assert.match(editor, /className="studio-range-control" type="range"/);
+  assert.match(editor, /<RangeControl/);
   const shared = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(shared, /\.studio-range-control/);
-  assert.match(css, /\.design-inspector input\[type="color"\]:focus-visible \{ border-color: var\(--accent\); outline: 2px solid var\(--focus-ring-colour\); outline-offset: var\(--focus-ring-offset\); \}/);
-  assert.match(css, /\.design-colour-control input\[type="range"\] \{ width: 100%; \}/);
+  assert.match(editor, /<ColourPicker label=\{label\} value=\{value\} disabled=\{disabled\} allowClear=\{false\}/);
+  assert.doesNotMatch(css, /\.design-colour-control input\[type="range"\]/);
 });
 
 test("shared editor toolbar owns history controls and docks a dismissible List View", () => {

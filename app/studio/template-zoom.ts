@@ -1,3 +1,5 @@
+import { workspaceZoomShortcut } from "./workspace-shortcuts.mjs";
+
 export const TEMPLATE_ZOOM_MIN = 50;
 export const TEMPLATE_ZOOM_MAX = 200;
 export const TEMPLATE_ZOOM_STEP = 10;
@@ -15,20 +17,8 @@ type TemplateZoomShortcutEvent = {
   target?: unknown;
 };
 
-function isNativeEditingTarget(target: unknown) {
-  if (!target || typeof target !== "object") return false;
-  const candidate = target as { isContentEditable?: boolean; closest?: (selector: string) => unknown };
-  return Boolean(candidate.isContentEditable || candidate.closest?.('input, textarea, select, [contenteditable="true"], [contenteditable=""]'));
-}
-
-export function templateZoomShortcut(event: TemplateZoomShortcutEvent, ownsWorkspace: boolean): TemplateZoomAction | null {
-  if (!ownsWorkspace || event.defaultPrevented || event.altKey || isNativeEditingTarget(event.target)) return null;
-  if (!event.metaKey && !event.ctrlKey) return null;
-
-  if (event.key === "0" || event.code === "Digit0" || event.code === "Numpad0") return "reset";
-  if (event.key === "+" || event.key === "=" || event.code === "Equal" || event.code === "NumpadAdd") return "in";
-  if (event.key === "-" || event.key === "_" || event.code === "Minus" || event.code === "NumpadSubtract") return "out";
-  return null;
+export function templateZoomShortcut(event: TemplateZoomShortcutEvent, ownsWorkspace: boolean, platform?: string): TemplateZoomAction | null {
+  return workspaceZoomShortcut(event, ownsWorkspace, platform);
 }
 
 export function changeTemplateZoom(value: number, action: TemplateZoomAction) {

@@ -1,4 +1,5 @@
 "use client";
+import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
 
 import { useState, type KeyboardEvent } from "react";
 import { useGapReordering } from "../../use-gap-reordering";
@@ -39,12 +40,11 @@ export function DragPlacementSpecimen() {
     drag.cancel(); setHistory({ ...history, cursor }); setMessage(offset < 0 ? "Move undone." : "Move redone.");
   }
   function shortcut(event: KeyboardEvent) {
-    if ((event.target as HTMLElement).closest("input, textarea, select, [contenteditable=true]")) return;
-    const key = event.key.toLowerCase();
-    if ((event.metaKey || event.ctrlKey) && (key === "z" || (event.ctrlKey && key === "y"))) {
-      event.preventDefault(); event.stopPropagation(); restore(key === "y" || event.shiftKey ? 1 : -1);
-    }
+    if (isNativeEditingTarget(event.target)) return;
+    const action = workspaceHistoryShortcut(event, navigator.platform);
+    if (action) { event.preventDefault(); event.stopPropagation(); restore(action === "redo" ? 1 : -1); }
   }
+  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- The group delegates shortcuts from its focusable controls.
   return <div className="ui-drag-specimen" role="group" aria-label="Drag-to-position controls" onKeyDown={shortcut}>
     <div className="ui-drag-tools">
       <label>Layout <select value={layout} onChange={event => setLayout(event.target.value)}><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option><option value="wrapped">Wrapped</option></select></label>

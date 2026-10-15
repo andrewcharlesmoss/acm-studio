@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { renderTestSite } from "./test-site/render";
 import { localFixtureName } from "./test-site/sites";
 import type { TestSiteDocument } from "./test-site/contract";
+import { workspaceZoomShortcut } from "./workspace-shortcuts.mjs";
 import { StudioIcon } from "./studio-icons";
 import { viewportWidthFor, type StudioViewport, type StudioViewMode } from "./studio-view-menu";
 
@@ -59,11 +60,10 @@ export function StudioSitePreview({ globalTemplates, document, documentId, viewp
     {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- The application workspace owns zoom shortcuts when explicitly focused. */}
     <div className="studio-site-preview-stage" ref={stageRef} role="application" tabIndex={0} aria-label="Preview workspace" onKeyDown={event => {
       if (event.key === "Escape" && full) { event.preventDefault(); onModeChange("website"); }
-      if (full || event.target !== event.currentTarget || !(event.metaKey || event.ctrlKey) || event.altKey) return;
-      if (["+", "=", "-", "0"].includes(event.key)) {
-        event.preventDefault();
-        if (event.key === "0") setZoom(1); else changeZoom(event.key === "-" ? -1 : 1);
-      }
+      const action = workspaceZoomShortcut(event, !full && event.target === event.currentTarget, navigator.platform);
+      if (!action) return;
+      event.preventDefault();
+      if (action === "reset") setZoom(1); else changeZoom(action === "out" ? -1 : 1);
     }}>
       {rendered.error ? <p role="alert">This draft cannot be previewed. Return to Editing View to review it.</p> : <div className="studio-site-preview-frame" style={{ width: width * scale, height: height * scale }}>
         <iframe title={`${localFixtureName(document.siteId)} current draft`} sandbox="allow-scripts" srcDoc={rendered.html} style={{ width, height, transform: `scale(${scale})` }} />

@@ -45,11 +45,12 @@ type ColourPickerProps = {
   paletteClassName?: string;
   trigger?: (props: ColourPickerTriggerProps) => ReactNode;
   clearLabel?: string;
+  allowClear?: boolean;
   disabled?: boolean;
   additionalControls?: ReactNode;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, disabled = false, additionalControls }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, allowClear = true, disabled = false, additionalControls }: ColourPickerProps) {
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
   const [customOpen, setCustomOpen] = useState(false);
@@ -79,7 +80,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const selectedRole = paletteRoles.find(role => role.key === selectedPaletteRole);
   const cssToken = selectedRole ? `--acm-color-${selectedRole.key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}` : activeValue ?? "";
   function changeActiveColour(nextValue?: string) {
-    if (disabled) return;
+    if (disabled || (!allowClear && nextValue === undefined)) return;
     setSelectedPaletteRoles(current => {
       const next = { ...current };
       delete next[activeState];
@@ -136,7 +137,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         {hasHoverState ? <span className="paragraph-palette-trigger-label">{label}</span> : null}
         {warningStates ? <span className="paragraph-palette-warning-icon" title={`Colour warning: ${warningStates.toLowerCase()} link colour`}><AcmIcon name="state.warning" size={18} /><span className="visually-hidden" id={descriptionId}>Colour warning for {warningStates.toLowerCase()} link colour.</span></span> : null}
       </button>
-      {!hasHoverState && !clearLabel ? <button type="button" aria-label={`Reset ${label} colour`} onClick={() => onChange(undefined)} disabled={disabled || !value}>Reset</button> : null}
+      {allowClear && !hasHoverState && !clearLabel ? <button type="button" aria-label={`Reset ${label} colour`} onClick={() => onChange(undefined)} disabled={disabled || !value}>Reset</button> : null}
     </div>}
     {open ? createPortal(<div ref={paletteRef} id={paletteId} className={`paragraph-colour-palette paragraph-theme-colour-palette${paletteClassName ? ` ${paletteClassName}` : ""}`} role="dialog" aria-label={`${colourLabel} palette`} style={{ left: position.left, top: position.top, width: position.width, "--colour-swatch-size": `${position.swatchSize}px`, "--colour-swatch-columns": position.swatchColumns } as CSSProperties}>
       <PopoverHeading closeRef={closeRef} closeLabel={`Close ${label} palette`} onClose={() => close()}>{label}</PopoverHeading>
@@ -149,8 +150,8 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <div><span>{activeValue ? selectedRole?.label ?? "Custom colour" : "No colour selected"}</span><span className="paragraph-colour-preview-value" title={cssToken}>{cssToken || " "}</span></div>
       </div>
       <strong className="paragraph-colour-theme-heading">Theme</strong>
-      <ColourSwatches value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={() => changeActiveColour(undefined)} disabled={disabled} />
-      {activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
+      <ColourSwatches value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={allowClear ? () => changeActiveColour(undefined) : undefined} disabled={disabled} />
+      {allowClear && activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
       {additionalControls}
       {customOpen ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>

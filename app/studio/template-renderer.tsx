@@ -1,3 +1,4 @@
+import { DocumentFieldLink, DocumentSubtitleContent, DocumentTitleContent } from "../components/blocks/document-field-content";
 import type { CSSProperties, ReactNode } from "react";
 import { BlockRenderer } from "../components/content";
 import { FeaturedImage } from "../components/blocks/featured-image";
@@ -168,20 +169,18 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       switch (node.element) {
         case "content": element = <TemplateContentLayout layout={node} visualStyle={node.visualStyle} mediaUrls={mediaUrls}>{content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} documentHref={context.documentHref} />}</TemplateContentLayout>; break;
         case "document-title": {
-          const TitleElement = node.level === 0 ? "p" : `h${node.level ?? 1}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
           const href = safeTextLink(context.documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
-          // eslint-disable-next-line react/jsx-no-target-blank -- blank targets include both safety tokens.
-          const linkedTitle = node.isLink && href ? <a href={href} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={[node.rel, node.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{document.title}</a> : document.title;
+          const linkedTitle = <DocumentFieldLink href={href} enabled={node.isLink} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={node.rel}>{document.title}</DocumentFieldLink>;
           const titleClassName = ["template-dynamic-placeholder", fieldVisualClassName].filter(Boolean).join(" ");
           const titleInputClassName = ["template-title-input", fieldVisualClassName].filter(Boolean).join(" ");
           const titleStyle = paragraphStyleToCss(fieldVisualStyle, fieldVisualStyle?.backgroundImageMediaId ? mediaUrls[fieldVisualStyle.backgroundImageMediaId] : undefined);
-          element = documentFieldVisible(document, "title") ? templatePreview ? <TitleElement id={fieldVisualId} className={titleClassName} style={titleStyle}>Title</TitleElement> : editingDocument ? <input id={fieldVisualId} className={titleInputClassName} data-heading-level={node.level ?? 1} style={titleStyle} aria-label="Document title" value={document.title} onFocus={() => onFocusDocumentField?.("title")} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <TitleElement id={fieldVisualId} className={fieldVisualClassName || undefined} style={titleStyle}>{linkedTitle}</TitleElement> : null;
+          element = documentFieldVisible(document, "title") ? templatePreview ? <DocumentTitleContent level={node.level ?? 1} id={fieldVisualId} className={titleClassName} style={titleStyle}>Title</DocumentTitleContent> : editingDocument ? <input id={fieldVisualId} className={titleInputClassName} data-heading-level={node.level ?? 1} style={titleStyle} aria-label="Document title" value={document.title} onFocus={() => onFocusDocumentField?.("title")} onChange={event => onDocumentChange?.("title", event.target.value)} /> : <DocumentTitleContent level={node.level ?? 1} id={fieldVisualId} className={fieldVisualClassName || undefined} style={titleStyle}>{linkedTitle}</DocumentTitleContent> : null;
           break;
         }
         case "subtitle": {
           const subtitleStyle = paragraphStyleToCss(fieldVisualStyle);
           const subtitleClass = fieldVisualClassName ? ` ${fieldVisualClassName}` : "";
-          element = documentFieldVisible(document, "subtitle") && (templatePreview ? <p id={fieldVisualId} className={`template-subtitle template-dynamic-placeholder${subtitleClass}`} style={subtitleStyle}>Subtitle</p> : editingDocument ? <input id={fieldVisualId} className={`template-subtitle-input${subtitleClass}`} style={subtitleStyle} aria-label="Document subtitle" placeholder="Add a subtitle" value={document.subtitle ?? ""} onFocus={() => onFocusDocumentField?.("subtitle")} onChange={event => onDocumentChange?.("subtitle", event.target.value)} /> : document.subtitle ? <p id={fieldVisualId} className={`template-subtitle${subtitleClass}`} style={subtitleStyle}>{document.subtitle}</p> : null);
+          element = documentFieldVisible(document, "subtitle") && (templatePreview ? <DocumentSubtitleContent id={fieldVisualId} className={`template-subtitle template-dynamic-placeholder${subtitleClass}`} style={subtitleStyle}>Subtitle</DocumentSubtitleContent> : editingDocument ? <input id={fieldVisualId} className={`template-subtitle-input${subtitleClass}`} style={subtitleStyle} aria-label="Document subtitle" placeholder="Add a subtitle" value={document.subtitle ?? ""} onFocus={() => onFocusDocumentField?.("subtitle")} onChange={event => onDocumentChange?.("subtitle", event.target.value)} /> : document.subtitle ? <DocumentSubtitleContent id={fieldVisualId} className={`template-subtitle${subtitleClass}`} style={subtitleStyle}>{document.subtitle}</DocumentSubtitleContent> : null);
           break;
         }
         case "post-metadata": {
@@ -202,8 +201,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const isTemplateExample = Boolean(templatePreview || authoring);
           const image = <FeaturedImage source={isTemplateExample && !fixed ? null : src} alt={isTemplateExample && !fixed ? "" : cover?.alt} style={imageStyle} placeholderLabel={fixed ? "Fixed featured image placeholder" : "Featured image placeholder"} />;
           const href = safeTextLink(context.documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
-          // eslint-disable-next-line react/jsx-no-target-blank -- blank targets include both safety tokens.
-          const linkedImage = !editingDocument && node.isLink && href ? <a href={href} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={[node.rel, node.linkTarget === "_blank" ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined}>{image}</a> : image;
+          const linkedImage = <DocumentFieldLink href={href} enabled={!editingDocument && node.isLink} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={node.rel}>{image}</DocumentFieldLink>;
           const changeImageLabel = authoring ? "Choose fixed featured image" : "Change featured image";
           const actions = onChangeCover || onRemoveCoverImage || onRemoveCoverBlock ? <div className="canvas-cover-actions">
             {onChangeCover ? <button className="cover-action-button" type="button" onClick={onChangeCover} aria-label={changeImageLabel} title={changeImageLabel}><StudioIcon name="image" /></button> : null}

@@ -729,3 +729,39 @@ Design and inline images. File management keeps its richer cards and actions.
 Providers, decode validation, alternative text, insertion freshness, staged
 fixture-image URLs, and persistence remain feature-owned. Download URLs have a
 separate lifetime and are outside this resource hook.
+
+## Shared document fields and Design presentation
+
+`app/components/blocks/document-field-content.tsx` owns title and subtitle
+elements, author/avatar content, publication-date content, reading-time labels,
+and safe document-field links. The canvas, BlockRenderer, and template renderer
+inherit those views; templates already delegate ordinary metadata blocks to
+BlockRenderer. `FeaturedImage` remains the canonical image view. Hosts retain
+field visibility, missing-value prompts or omission, heading defaults, selection,
+editing inputs, complete-document reading scope, image actions, and fixed/hidden
+template-image policy. Date formatting still belongs to document metadata.
+
+Design's `design-artwork.tsx` renders intrinsic object content, with geometry in
+`design-geometry.ts` and existing text layout in `design-text.ts`. Canvas objects,
+page thumbnails, the Design Library, and raster exports share the artwork. Each
+mounted instance has distinct clip/checker identifiers. React serialises the
+same content-only SVG tree for export, escaping text and attributes. Hit targets,
+handles, guides, marquee selection, and the inline text editor stay in PageSvg.
+Checkerboards are authoring presentation; transparent PNG export omits them.
+Raster scale, quality, matte policy, and media-saving ownership remain unchanged.
+
+Design properties inherit `RangeControl`, `ColourPicker`, `FontFamilySelect`, and
+`ToggleSetting`. `FontFamilySetting` maps Paragraph font IDs onto that same select
+presentation; Design keeps its CSS-family strings, including imported values.
+`ColourPicker` defaults to its existing clearable contract. Required Design
+colours opt into `allowClear={false}`, which omits Reset/Clear and prevents a
+selected swatch from clearing the value. Colour opacity remains separate from
+colour; object opacity and percentage sliders retain their stored conversions.
+
+`workspace-shortcuts.mjs` owns platform modifiers, native editing exclusions,
+history-key recognition, and zoom keys, including shifted plus and numpad forms.
+Design, templates, website preview, Ribbon examples, and the drag-placement
+example share it. The Studio history adapter retains its explicit rich-text and
+table ownership exceptions. Callers own listener scope, permissions, history,
+zoom limits, and reset policy: templates and website preview reset to 100%;
+Design and its Ribbon example retain their existing Fit action.

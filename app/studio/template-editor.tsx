@@ -98,7 +98,7 @@ export function TemplateEditor({ viewControls, scopeNotice, previewControls, glo
     const onFocusIn = (event: FocusEvent) => { templateWorkspaceActiveRef.current = isWithinTemplateWorkspace(event.target); };
     const onBlur = () => { templateWorkspaceActiveRef.current = false; };
     const onKeyDown = (event: KeyboardEvent) => {
-      const action = templateZoomShortcut(event, templateWorkspaceActiveRef.current);
+      const action = templateZoomShortcut(event, templateWorkspaceActiveRef.current, navigator.platform);
       if (!action) return;
       event.preventDefault();
       setZoom(value => changeTemplateZoom(value, action));

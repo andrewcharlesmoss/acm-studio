@@ -54,6 +54,11 @@
 
 ### Changed
 
+- Share dynamic document-field presentation across editing, block previews, and
+  templates, retaining each host's visibility and editing rules.
+- Reuse Design artwork across canvas, thumbnails, library, and raster exports;
+  inherit shared property controls and workspace shortcut recognition.
+
 - Reuse shared popover, context-menu, submenu, and native dialog behaviour across
   document/template settings, View, canvas controls, Files, Design, and Site Settings.
 - Share image choice presentation and Blob URL cleanup across Design, inline

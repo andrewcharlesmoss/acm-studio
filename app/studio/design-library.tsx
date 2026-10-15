@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { loadDesigns } from "./design-store";
 import type { DesignProject } from "./design-model";
-import { PageSvg } from "./design-editor";
+import { DesignPageArtwork } from "./design-artwork";
 import { StudioIcon } from "./studio-icons";
 
 function formatUpdatedAt(value: string) {
@@ -14,7 +14,7 @@ function DesignPreview({ design }: { design: DesignProject }) {
   const page = design.pages[0];
   if (!page) return null;
   return <div className="design-library-preview" style={{ aspectRatio: `${page.width} / ${page.height}` }} aria-hidden="true">
-    <PageSvg page={page} assets={design.assets} selectedIds={[]} guides={[]} showHoverHandles={false} onCanvasPointerDown={() => undefined} onObjectPointerDown={() => undefined} onResizePointerDown={() => undefined} onRotatePointerDown={() => undefined} onArrowEndpointPointerDown={() => undefined} onArrowBendPointerDown={() => undefined} />
+    <DesignPageArtwork page={page} assets={design.assets} checkerboard className="design-page-svg" />
     <span>{design.pages.length} {design.pages.length === 1 ? "page" : "pages"}</span>
   </div>;
 }
