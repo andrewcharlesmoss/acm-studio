@@ -106,5 +106,7 @@
 }
 
 .ui-mobile-navigation-example { display:grid; gap:1rem; justify-items:start; min-width:0; }
-.ui-mobile-navigation-frame { box-sizing:border-box; width:min(100%,375px); min-height:420px; border:1px solid var(--rl-line); }
+.ui-mobile-navigation-frame { box-sizing:border-box; width:min(100%,375px); min-height:420px; border:1px solid var(--rl-line); overflow:clip; }
 .ui-mobile-navigation-example > p { margin:0; max-width:48rem; }
+
+.ui-mobile-navigation-frame .template-navigation-overlay-content { inset:1px; }
