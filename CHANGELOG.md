@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Give catalogue section headings slightly larger semibold text and a consistent
+  background across the full section row, without entry hover feedback.
 - Keep complete control specimens available in catalogue previews, including the
   rotation handle, with scaled content sizing and scrolling for longer examples.
 - Position Studio UI Library preview popovers beside the hovered Preview
