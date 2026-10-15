@@ -924,3 +924,11 @@ narrow widths. The searchable catalogue previews the same specimen definition.
 The former `/studio/ui/controls#block-appender` and
 `/studio/ui/controls/block-appender` links redirect to this Workspace example.
 The Controls catalogue no longer lists the composed editor as a foundation control.
+
+### Catalogue navigation hierarchy
+
+Controls and Blocks share 18px semibold group headings with the Panes structure
+navigation, above 16px entries. Group headings use primary text colour. The
+Controls and Blocks navigation title uses 20px text to retain its parent hierarchy.
+These rules live in `catalogue-navigation.css`; compact production inspector
+headings retain their component typography.

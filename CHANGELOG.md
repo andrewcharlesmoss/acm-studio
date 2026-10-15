@@ -110,6 +110,9 @@
 
 ### Changed
 
+- Strengthen shared Controls, Blocks, and Panes navigation headings so groups
+  stand out above their entries.
+
 - Make Design workspaces, their library, and loading screens inherit the block
   editor’s shared workspace background colour.
 

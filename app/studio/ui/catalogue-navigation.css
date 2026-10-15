@@ -1,7 +1,8 @@
 .ui-catalogue-navigation { position:sticky; top:0; max-height:100dvh; min-height:calc(100dvh - 137px); overflow-y:auto; overscroll-behavior:contain; padding:1.25rem 1rem; border-right:1px solid var(--rl-line); background: var(--studio-pane-surface, #fff); }
-.ui-catalogue-navigation h2 { margin:.25rem .65rem 1rem; font-size:.9375rem; }
+.ui-catalogue-navigation h2 { margin:.25rem .65rem 1rem; font-size:1.25rem; }
 .ui-catalogue-navigation-groups { display:grid; gap:1.25rem; }
-.ui-catalogue-navigation-group h3 { margin:0 .65rem .45rem; color:var(--rl-muted); font-size:.8125rem; font-weight:600; }
+.ui-catalogue-navigation-group h3,.pl-navigation h2 { color:var(--rl-ink); font-size:1.125rem; font-weight:600; line-height:1.35; }
+.ui-catalogue-navigation-group h3 { margin:0 .65rem .45rem; }
 .ui-catalogue-navigation-list { display:grid; gap:.2rem; list-style:none; margin:0; padding:0; }
 .ui-catalogue-navigation-list a,.ui-catalogue-navigation-list button { display:block; width:100%; padding:.55rem .65rem; border:0; border-radius:5px; background:transparent; color:var(--rl-muted); font:inherit; text-align:left; text-decoration:none; cursor:pointer; }
 .ui-catalogue-navigation-list a:hover,.ui-catalogue-navigation-list button:hover { background:var(--acm-interaction-neutral-hover-background, #f0f0f0); color:var(--rl-ink); }
