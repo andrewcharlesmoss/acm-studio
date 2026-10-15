@@ -405,6 +405,9 @@ export function PageSvg({ page, assets, selectedIds = [], selectionBox, guides =
     { handle: "w", label: "Resize page from left middle" },
   ];
   const activeRotation = page.objects.find((object) => object.id === rotatingObjectId)?.rotation ?? 0;
+  const activeResizeHandle = activeHandle?.kind === "resize" || activeHandle?.kind === "page-resize" ? activeHandle : null;
+  const activeResizeRotation = activeResizeHandle?.kind === "resize" ? page.objects.find((object) => object.id === activeResizeHandle.objectId)?.rotation ?? 0 : 0;
+  const activeResizeCursor = activeResizeHandle ? resizeCursor(activeResizeHandle.handle, activeResizeRotation) : undefined;
   const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
   const inlineTextEditorRef = useRef<HTMLTextAreaElement>(null);
   const cancelTextEditRef = useRef(false);
@@ -415,7 +418,7 @@ export function PageSvg({ page, assets, selectedIds = [], selectionBox, guides =
     if (inlineTextEditorRef.current) inlineTextEditorRef.current.wrap = editingObject?.wordWrap === false ? "off" : "soft";
   }, [editingTextId, page.objects]);
   useEffect(() => { cancelTextEditRef.current = false; }, [editingTextId]);
-  return <svg ref={svgRef} style={{ "--rotation-cursor": rotationCursorCss(activeRotation) } as CSSProperties} className={`design-page-svg${tool === "select" ? " is-select-mode" : ""}${isRotating ? " is-rotating" : ""}`} viewBox={`0 0 ${page.width} ${page.height}`} role="img" aria-label={page.name} onPointerDown={onCanvasPointerDown}>
+  return <svg ref={svgRef} style={{ "--rotation-cursor": rotationCursorCss(activeRotation), "--resize-cursor": activeResizeCursor } as CSSProperties} className={`design-page-svg${tool === "select" ? " is-select-mode" : ""}${isRotating ? " is-rotating" : ""}${activeResizeCursor ? " is-resizing" : ""}`} viewBox={`0 0 ${page.width} ${page.height}`} role="img" aria-label={page.name} onPointerDown={onCanvasPointerDown}>
     <DesignPageBackground page={page} checkerboard interactive />
     {page.objects.map((object) => { const objectActiveHandle = activeHandle?.objectId === object.id ? activeHandle : null; const showObjectHandles = !activeHandle || Boolean(objectActiveHandle); return <g key={object.id} data-object-id={object.id} transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`} opacity={object.opacity} className={`design-object${selectedIds.includes(object.id) ? " is-selected" : ""}${hoveredObjectId === object.id ? " is-hovered" : ""}${object.locked ? " is-locked" : ""}`} onPointerEnter={() => showHoverHandles && !object.locked && setHoveredObjectId(object.id)} onPointerLeave={() => showHoverHandles && setHoveredObjectId(null)} onPointerDown={(event) => onObjectPointerDown(event, object)} onDoubleClick={(event) => { if (object.type === "text") { event.preventDefault(); event.stopPropagation(); onTextDoubleClick?.(object); } }}>
       <rect width={object.width} height={object.height} fill="transparent" pointerEvents="all" onPointerDown={(event) => onObjectPointerDown(event as unknown as PointerEvent<SVGGElement>, object)} />

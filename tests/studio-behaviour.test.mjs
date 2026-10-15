@@ -1582,6 +1582,16 @@ test("design page resizing keeps proportions by default and uses Shift for freef
   assert.match(editor, /pageResize\.handle, dx, dy, !event\.shiftKey/);
 });
 
+test("active resize cursor stays on the canvas throughout pointer capture", () => {
+  const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  assert.match(editor, /const activeResizeHandle = activeHandle\?\.kind === "resize" \|\| activeHandle\?\.kind === "page-resize" \? activeHandle : null/);
+  assert.match(editor, /const activeResizeCursor = activeResizeHandle \? resizeCursor\(activeResizeHandle\.handle, activeResizeRotation\) : undefined/);
+  assert.match(editor, /"--resize-cursor": activeResizeCursor/);
+  assert.match(editor, /activeResizeCursor \? " is-resizing" : ""/);
+  assert.match(css, /\.design-page-svg\.is-resizing, \.design-page-svg\.is-resizing \* \{ cursor: var\(--resize-cursor\) !important; \}/);
+});
+
 test("design page presets include a 1080 by 1920 portrait format", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /portraitStory: \[1080, 1920\]/);

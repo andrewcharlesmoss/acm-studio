@@ -158,6 +158,7 @@
 .design-arrow-bend-handle:hover, .design-arrow-bend-handle:active { fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; }
 .design-arrow-bend-handle:focus { outline: none; }
 .design-arrow-bend-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: none; stroke: #6b7075; stroke-width: 2; }
+.design-page-svg.is-resizing, .design-page-svg.is-resizing * { cursor: var(--resize-cursor) !important; }
 .design-page-svg.is-rotating, .design-page-svg.is-rotating * { cursor: var(--rotation-cursor) !important; }
 .design-marquee { fill: #cc181822; stroke: #cc1818; stroke-dasharray: 5 4; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; }
 .design-guide { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .95)); opacity: .95; pointer-events: none; shape-rendering: geometricPrecision; stroke: #555; stroke-width: 1.5; vector-effect: non-scaling-stroke; }

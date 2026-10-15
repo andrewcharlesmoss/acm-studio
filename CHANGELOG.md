@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Keep the active canvas resize cursor in place for the full drag.
+
 - Use grab and grabbing cursors for shared slider thumbs, including Design zoom.
 
 - Preserve shapes, images, highlights, redactions, and numbered markers’ aspect
