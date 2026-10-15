@@ -147,7 +147,7 @@ export function GlobalCatalogue() {
     if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current);
     const rect = target.getBoundingClientRect();
     const previewHeight = Math.min(window.innerHeight * 0.8, 680);
-    setActive({ id: entry.id, top: Math.min(Math.max(16, rect.top), Math.max(16, window.innerHeight - previewHeight - 16)), left: Math.min(Math.max(16, rect.left + 24), Math.max(16, window.innerWidth - 470)) });
+    setActive({ id: entry.id, top: Math.min(Math.max(16, rect.top), Math.max(16, window.innerHeight - previewHeight - 16)), left: Math.min(Math.max(16, rect.left + 36), Math.max(16, window.innerWidth - 470)) });
     setPinned(pin);
     returnFocus.current = target;
   }
