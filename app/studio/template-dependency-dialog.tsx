@@ -1,4 +1,5 @@
 "use client";
+import { SelectControl } from "./controls/native-fields";
 import { useState, type RefObject } from "react";
 import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
 import { StudioButton } from "./controls/button";
@@ -44,7 +45,7 @@ export function TemplateDependencyDialog({ name, target, store, rows, unavailabl
     })}</div>
     {!rows.some(row => row.blocking) ? <p>No active dependencies. This template can be moved to the Bin.</p> : null}
     <p>Recovery designs and saved history remain available. Shared-part and site-navigation references must be resolved in their owning templates.</p>
-    {entry ? <label className="template-dependency-replacement">Change selected assignments<select value={choice} disabled={busy || Boolean(unavailable)} onChange={event => { setChoice(event.target.value); setReview(false); }}><option value="detach">Detach — use existing presentation</option>{replacements.map(item => <option key={`${item.target.setId}/${item.target.entryId}`} value={`${item.target.setId}/${item.target.entryId}`}>Replace with {item.name}</option>)}</select></label> : null}
+    {entry ? <label className="template-dependency-replacement">Change selected assignments<SelectControl value={choice} disabled={busy || Boolean(unavailable)} onChange={event => { setChoice(event.target.value); setReview(false); }}><option value="detach">Detach — use existing presentation</option>{replacements.map(item => <option key={`${item.target.setId}/${item.target.entryId}`} value={`${item.target.setId}/${item.target.entryId}`}>Replace with {item.name}</option>)}</SelectControl></label> : null}
     {review ? <p role="status">{choice === "detach" ? "Detach" : "Replace"} {selected.length} selected {selected.length === 1 ? "assignment" : "assignments"}. Each owner saves separately; completed saves are kept if another owner fails.</p> : null}
     {messages.length ? <ul className="template-dependency-results" role="status">{messages.map((message, index) => <li key={index}>{message}</li>)}</ul> : null}
     <StudioDialogActions><StudioButton type="button" variant="secondary" disabled={busy} onClick={() => { setSelected([]); setReview(false); setMessages([]); }}>Refresh selection</StudioButton><StudioButton type="button" variant="secondary" disabled={busy} onClick={onClose}>Close</StudioButton><StudioButton type="button" disabled={busy || Boolean(unavailable) || !selected.length || !entry} onClick={() => review ? void apply() : setReview(true)}>{busy ? "Saving assignments…" : review ? "Apply changes" : "Review changes"}</StudioButton></StudioDialogActions>

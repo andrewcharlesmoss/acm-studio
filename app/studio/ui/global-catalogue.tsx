@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchInput, TextInput } from "../controls/native-fields";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { iconNames, iconMetadata, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
@@ -102,7 +103,7 @@ function RibbonComponentPreview({ name }: { name: keyof typeof componentDescript
   if (name === "RibbonGroup") return <div className="ui-global-preview-ribbon" inert>{sampleGroup}</div>;
   if (name === "RibbonControls") return <div className="ui-global-preview-ribbon" inert><RibbonControls>{button}<RibbonButton><AcmIcon name="action.redo" size={20} /><span>Redo</span></RibbonButton></RibbonControls></div>;
   if (name === "RibbonToggleButton") return <div className="ui-global-preview-ribbon" inert><RibbonToggleButton size="large" pressed><AcmIcon name="view.pages" size={22} /><span>Pages</span></RibbonToggleButton></div>;
-  if (name === "RibbonField") return <div className="ui-global-preview-ribbon" inert><RibbonField><span>Page width</span><input aria-label="Page width" readOnly value="1200 px" /></RibbonField></div>;
+  if (name === "RibbonField") return <div className="ui-global-preview-ribbon" inert><RibbonField><span>Page width</span><TextInput aria-label="Page width" readOnly value="1200 px" /></RibbonField></div>;
   return <div className="ui-global-preview-ribbon" inert>{button}</div>;
 }
 
@@ -202,7 +203,7 @@ export function GlobalCatalogue() {
   return <section className="ui-global-catalogue" aria-labelledby="ui-global-catalogue-title">
     <header className="ui-page-intro"><p className="rl-eyebrow">Studio UI Library / Catalogue</p><h1 id="ui-global-catalogue-title">Browse the whole library.</h1><p>Search shared components, visual building blocks and specimens across every section. Select an entry to open its full example.</p></header>
     <div className="ui-global-catalogue-tools">
-      <label className="ui-global-search"><AcmIcon name="action.search" size={20} /><span className="sr-only">Search the Studio UI Library</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search names, purpose, owner, consumers…" /><button type="button" disabled={!query} aria-label="Clear search" onClick={() => setQuery("")}><AcmIcon name="action.close" size={16} /></button></label>
+      <label className="ui-global-search"><AcmIcon name="action.search" size={20} /><span className="sr-only">Search the Studio UI Library</span><SearchInput  value={query} onChange={event => setQuery(event.target.value)} placeholder="Search names, purpose, owner, consumers…" /><button type="button" disabled={!query} aria-label="Clear search" onClick={() => setQuery("")}><AcmIcon name="action.close" size={16} /></button></label>
       <label className="ui-global-group-toggle"><input type="checkbox" checked={grouped} onChange={event => setGrouped(event.target.checked)} />Group by section</label>
     </div>
     <fieldset className="ui-global-filters"><legend>Sections</legend><button type="button" onClick={() => setSelectedSections(new Set(sections))}>All</button>{sections.map(section => <label key={section}><input type="checkbox" checked={selectedSections.has(section)} onChange={() => toggleSection(section)} />{section}</label>)}</fieldset>

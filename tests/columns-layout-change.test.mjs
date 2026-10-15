@@ -8,6 +8,7 @@ import ts from 'typescript';
 import { loadProductionModule } from './production-module.mjs';
 import { commitHistory, undoHistory, redoHistory } from '../app/studio/studio-command-operations.mjs';
 
+const { SelectControl } = await loadProductionModule(new URL('../app/studio/controls/native-fields.tsx', import.meta.url));
 const { proposeColumnCountChange } = await loadProductionModule(new URL('../app/studio/columns-count-change.ts', import.meta.url));
 const { useStudioBlockCommands: createCommands } = await loadProductionModule(new URL('../app/studio/use-studio-block-commands.ts', import.meta.url));
 const { setColumnCount, columnsLayoutStyle } = await loadProductionModule(new URL('../app/content/columns.ts', import.meta.url));
@@ -134,7 +135,7 @@ test('actual Main, Mini Golf, Template and Library callbacks dispatch the canoni
 
 test('actual Columns inspector disables a refused reduction and exposes its reason',async()=>{
   const ast=await astOf('../app/studio/blocks/inspectors/block-inspector.tsx');const owner=nodes(ast,n=>ts.isFunctionDeclaration(n)&&n.name?.text==='ColumnsInspector')[0];
-  const context={React,useId:()=> 'count-help',proposeColumnCountChange,InspectorAccordionSection:()=>null,AcmIcon:()=>null};
+  const context={React,SelectControl,useId:()=> 'count-help',proposeColumnCountChange,InspectorAccordionSection:()=>null,AcmIcon:()=>null};
   const code=ts.transpileModule(`${owner.getText(ast)}\nColumnsInspector;`,{compilerOptions:{target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.React}}).outputText;
   const Inspector=vm.runInNewContext(code,context);const blocked=fixture();blocked.children[1].editorial={lock:{remove:true}};
   const tree=Inspector({block:blocked,onChange:()=>assert.fail('Wrong owner'),onCountChange:()=>assert.fail('Disabled reduction')});

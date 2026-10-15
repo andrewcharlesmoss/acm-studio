@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "../../controls/native-fields";
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { resizeSpecimenLayout } from "./resize-specimen-layout";
 import { PageResizeSpecimen } from "./page-resize-specimen";
@@ -27,14 +28,14 @@ type Gesture = { mode: "resize" | "move" | "rotate"; startAngle: number; resize:
 export function ResizeHandlesSpecimen() {
   const [target, setTarget] = useState<"rectangle" | "image" | "page">("rectangle");
   return <div role="group" aria-label="Resize handles example">
-    <div className="ui-rotation-tools"><label>Target <select aria-label="Resize example target" value={target} onChange={event => setTarget(event.target.value as typeof target)}><option value="rectangle">Shape</option><option value="image">Image</option><option value="page">Page</option></select></label></div>
+    <div className="ui-rotation-tools"><label>Target <SelectControl aria-label="Resize example target" value={target} onChange={event => setTarget(event.target.value as typeof target)}><option value="rectangle">Shape</option><option value="image">Image</option><option value="page">Page</option></SelectControl></label></div>
     {target === "page" ? <PageResizeSpecimen /> : <ObjectInteractionSpecimen key={target} type={target} />}
   </div>;
 }
 
 export function ObjectManipulationSpecimen() {
   const [type, setType] = useState<"rectangle" | "image">("rectangle");
-  return <div><div className="ui-rotation-tools"><label>Target <select aria-label="Object example target" value={type} onChange={event => setType(event.target.value as typeof type)}><option value="rectangle">Shape</option><option value="image">Image</option></select></label></div><ObjectInteractionSpecimen key={type} type={type} manipulation /></div>;
+  return <div><div className="ui-rotation-tools"><label>Target <SelectControl aria-label="Object example target" value={type} onChange={event => setType(event.target.value as typeof type)}><option value="rectangle">Shape</option><option value="image">Image</option></SelectControl></label></div><ObjectInteractionSpecimen key={type} type={type} manipulation /></div>;
 }
 
 function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rectangle" | "image"; manipulation?: boolean }) {
@@ -126,8 +127,8 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Scoped history and Escape delegate from specimen controls.
   return <div role="group" aria-label={manipulation ? "Object manipulation example" : "Object resize example"} onKeyDown={shortcut}>
     <div className="ui-rotation-tools">
-      <label>Zoom <select aria-label={manipulation ? "Object example zoom" : "Resize example zoom"} value={zoom} disabled={draft !== null} onChange={event => setZoom(Number(event.target.value))}><option value={50}>50%</option><option value={100}>100%</option><option value={200}>200%</option></select></label>
-      <label>Rotation <select aria-label={manipulation ? "Object example rotation" : "Resize example rotation"} value={object.rotation} disabled={draft !== null || readOnly} onChange={event => commit({ ...object, rotation: Number(event.target.value) })}>{![0, 45, 90].includes(object.rotation) ? <option value={object.rotation}>{formatRotationAngle(object.rotation)}</option> : null}<option value={0}>0°</option><option value={45}>45°</option><option value={90}>90°</option></select></label>
+      <label>Zoom <SelectControl aria-label={manipulation ? "Object example zoom" : "Resize example zoom"} value={zoom} disabled={draft !== null} onChange={event => setZoom(Number(event.target.value))}><option value={50}>50%</option><option value={100}>100%</option><option value={200}>200%</option></SelectControl></label>
+      <label>Rotation <SelectControl aria-label={manipulation ? "Object example rotation" : "Resize example rotation"} value={object.rotation} disabled={draft !== null || readOnly} onChange={event => commit({ ...object, rotation: Number(event.target.value) })}>{![0, 45, 90].includes(object.rotation) ? <option value={object.rotation}>{formatRotationAngle(object.rotation)}</option> : null}<option value={0}>0°</option><option value={45}>45°</option><option value={90}>90°</option></SelectControl></label>
       <ToggleSetting label="Read-only example" checked={readOnly} onChange={value => { finish(true, undefined, false); setReadOnly(value); }} />
       <HistoryActions presentation="labelled" canUndo={history.index > 0} canRedo={history.index < history.values.length - 1} disabled={readOnly || draft !== null} onUndo={() => restore(-1)} onRedo={() => restore(1)} />
     </div>

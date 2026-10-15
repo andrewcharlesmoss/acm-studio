@@ -1,4 +1,5 @@
 "use client";
+import { SelectControl } from "./controls/native-fields";
 import type { ListItemBackgroundTarget } from "./list-item-background";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ContentBlock, RichTextRun, SocialIconBlock } from "../content/model";
@@ -301,15 +302,15 @@ export function TemplateEditor({ viewControls, scopeNotice, previewControls, glo
   for (const template of set.templates) if (references(template.nodes)) users.push(template.name);
   const toolbar = <div className="template-toolbar">
     {previewControls}
-    <label>Preview Content<select value={sample.id} disabled={!candidates.length} onChange={event => setSampleId(event.target.value)}>{candidates.length ? candidates.map(document => <option key={document.id} value={document.id}>{document.title}</option>) : <option value={sample.id}>No pages or posts yet</option>}</select></label>
-    {!viewControls ? <label>Width<select value={localViewport} onChange={event => setLocalViewport(event.target.value as StudioViewport)}><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></select></label> : null}
+    <label>Preview Content<SelectControl value={sample.id} disabled={!candidates.length} onChange={event => setSampleId(event.target.value)}>{candidates.length ? candidates.map(document => <option key={document.id} value={document.id}>{document.title}</option>) : <option value={sample.id}>No pages or posts yet</option>}</SelectControl></label>
+    {!viewControls ? <label>Width<SelectControl value={localViewport} onChange={event => setLocalViewport(event.target.value as StudioViewport)}><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></SelectControl></label> : null}
     <div className="template-zoom-control" role="group" aria-label="Template canvas zoom">
       <span className="template-zoom-label">Zoom</span>
       <button type="button" onClick={() => setZoom(value => changeTemplateZoom(value, "out"))} disabled={zoom <= TEMPLATE_ZOOM_MIN} aria-label="Zoom out" title="Zoom out"><StudioIcon name="zoom-out" size={18} /></button>
       <button type="button" className="template-zoom-value" onClick={() => setZoom(TEMPLATE_ZOOM_DEFAULT)} aria-label={`Reset template zoom to 100 percent (currently ${zoom} percent)`} title="Reset zoom to 100 percent">{zoom}%</button>
       <button type="button" onClick={() => setZoom(value => changeTemplateZoom(value, "in"))} disabled={zoom >= TEMPLATE_ZOOM_MAX} aria-label="Zoom in" title="Zoom in"><StudioIcon name="zoom-in" size={18} /></button>
     </div>
-    {!previewing ? <label>Add Template Element<select value="" disabled={!writable} onChange={event => { const value = event.target.value; if (value.startsWith("part:")) insertNode({ id: templateId(), type: "part", partId: value.slice(5) }); else insertNode({ id: templateId(), type: "element", element: value as typeof templateElements[number] }); }}><option value="" disabled>Choose Element</option>{templateElements.filter(element => element !== "post-metadata" && (element !== "content" || allowTemplateContent)).map(element => <option key={element} value={element}>{templateElementLabel(element)}</option>)}{set.parts.filter(part => part.id !== target.id && part.kind !== "overlay").map(part => <option key={part.id} value={`part:${part.id}`}>{part.name} Reference</option>)}</select></label> : null}
+    {!previewing ? <label>Add Template Element<SelectControl value="" disabled={!writable} onChange={event => { const value = event.target.value; if (value.startsWith("part:")) insertNode({ id: templateId(), type: "part", partId: value.slice(5) }); else insertNode({ id: templateId(), type: "element", element: value as typeof templateElements[number] }); }}><option value="" disabled>Choose Element</option>{templateElements.filter(element => element !== "post-metadata" && (element !== "content" || allowTemplateContent)).map(element => <option key={element} value={element}>{templateElementLabel(element)}</option>)}{set.parts.filter(part => part.id !== target.id && part.kind !== "overlay").map(part => <option key={part.id} value={`part:${part.id}`}>{part.name} Reference</option>)}</SelectControl></label> : null}
     {selectedBlock?.type === "group" && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart ? <span>New blocks will be inserted into the selected group.</span> : null}
   </div>;
   return <StudioEditor writable={writable} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}

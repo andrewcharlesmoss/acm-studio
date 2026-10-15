@@ -144,3 +144,7 @@
 .ui-choice-specimen { display:grid; gap:.75rem; min-width:0; }
 .ui-choice-fieldset { display:grid; gap:.25rem; margin:0; padding:0; border:0; min-width:0; }
 .ui-choice-fieldset > legend { margin-bottom:.35rem; font-weight:600; }
+
+.ui-common-control-specimen { display:grid; gap:.9rem; width:min(100%,420px); min-width:0; }
+.ui-common-action-row { display:flex; flex-wrap:wrap; align-items:center; gap:.65rem; }
+.ui-common-control-specimen > p { margin:0; }

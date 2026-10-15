@@ -286,13 +286,13 @@ test("List compatibility records recursive nesting and independent List Item ins
 });
 
 test("every reusable Controls entry has a grouped anchor specimen and compatible direct route", () => {
-  assert.equal(studioControlEntries.length, 28);
-  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 28);
+  assert.equal(studioControlEntries.length, 41);
+  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 41);
   assert.equal(studioControlEntryById["drag-placement"].group, "Foundation");
   for (const entry of studioControlEntries) {
     assert.equal(studioControlEntryById[entry.id], entry);
     assert.ok(entry.purpose && entry.owner && entry.consumers.length && entry.states && entry.compatibility, entry.id);
-    assert.ok(read("app/studio/ui/controls/control-specimen.tsx").includes(`"${entry.id}"`), entry.id);
+    assert.ok((read("app/studio/ui/controls/control-specimen.tsx") + read("app/studio/ui/controls/common-field-specimens.tsx")).includes(`"${entry.id}"`), entry.id);
   }
 
   const route = read("app/studio/ui/controls/[id]/page.tsx");

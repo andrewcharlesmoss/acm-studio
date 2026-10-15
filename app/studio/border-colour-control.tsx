@@ -1,5 +1,6 @@
 "use client";
 
+import { TextInput } from "./controls/native-fields";
 import { useState } from "react";
 
 const SUPPORTED_COLOUR = /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^)]*\))$/i;
@@ -15,6 +16,6 @@ export function BorderColourControl({ value, onChange, disabled = false }: { val
   }
   return <div className="box-border-colour">
     <label><span>Border colour</span><span className="box-border-swatch" style={value ? { backgroundColor: value } : undefined}><input disabled={disabled} aria-label="Choose border colour" type="color" value={value && /^#[0-9a-f]{6}$/i.test(value) ? value : "#d1cfc7"} onChange={event => onChange(event.target.value)} /></span></label>
-    <input disabled={disabled} aria-label="Border colour value" value={draft ?? value ?? ""} placeholder="Default" onChange={event => setDraft(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} />
+    <TextInput disabled={disabled} aria-label="Border colour value" value={draft ?? value ?? ""} placeholder="Default" onChange={event => setDraft(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} />
   </div>;
 }

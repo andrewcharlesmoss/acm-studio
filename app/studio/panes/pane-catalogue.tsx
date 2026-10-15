@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "../controls/native-fields";
 import { useEffect, useRef, useState } from "react";
 import { StudioIcon } from "../studio-icons";
 import { defaultRegions, paneExamples, paneStructure, paneTokens, skeletonDefinition, type RegionOptions } from "./catalogue-model";
@@ -68,22 +69,22 @@ export function PaneCatalogue() {
     <nav className="pl-sections" aria-label="Pane Library Sections">{sections.map((name) => <button type="button" key={name} aria-current={section === name ? "page" : undefined} onClick={() => chooseSection(name)}>{name}</button>)}</nav>
     <div className="pl-catalogue-layout">
       <aside className="pl-navigation" aria-label="Pane Examples and Structure">
-        {studio && <label className="pl-field">Studio Example<select value={exampleId} onChange={(event) => { setExampleId(event.target.value as typeof exampleId); setSelected("workspace"); }}>{paneExamples.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}
+        {studio && <label className="pl-field">Studio Example<SelectControl value={exampleId} onChange={(event) => { setExampleId(event.target.value as typeof exampleId); setSelected("workspace"); }}>{paneExamples.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</SelectControl></label>}
         <h2>Structure</h2><ul className="pl-structure">{structure.map((item) => <li key={item.id} className={item.id.includes(".") ? "pl-structure-child" : ""}><button type="button" aria-pressed={selection.id === item.id} onClick={() => setSelected(item.id)}>{item.label}</button></li>)}</ul>
       </aside>
       <section className="pl-main" aria-label="Pane Specimens">
         <div className="pl-specimen-heading"><p className="pl-eyebrow">{studio ? "Studio example" : "Working skeleton"}</p><h2>{studio ? definition.label : "One pane structure. Either edge."}</h2><p>{studio ? definition.description : "Both sides use the same pane structure. Only the collapse and resize control changes edge and direction."}</p></div>
-        {section === "Skeletons" && <fieldset className="pl-options"><legend>Skeleton Regions</legend><label className="pl-field">Layout<select value={layout} onChange={(event) => setLayout(event.target.value as typeof layout)}><option value="both">Left and Right</option><option value="left">Left Only</option><option value="right">Right Only</option></select></label>{(Object.keys(options) as (keyof RegionOptions)[]).map((key) => <label className="pl-check" key={key}><input type="checkbox" checked={options[key]} onChange={(event) => setOptions((previous) => ({ ...previous, [key]: event.target.checked }))} />{key === "toolbar" ? "Toolbar / Search" : key.charAt(0).toUpperCase() + key.slice(1)}</label>)}</fieldset>}
+        {section === "Skeletons" && <fieldset className="pl-options"><legend>Skeleton Regions</legend><label className="pl-field">Layout<SelectControl value={layout} onChange={(event) => setLayout(event.target.value as typeof layout)}><option value="both">Left and Right</option><option value="left">Left Only</option><option value="right">Right Only</option></SelectControl></label>{(Object.keys(options) as (keyof RegionOptions)[]).map((key) => <label className="pl-check" key={key}><input type="checkbox" checked={options[key]} onChange={(event) => setOptions((previous) => ({ ...previous, [key]: event.target.checked }))} />{key === "toolbar" ? "Toolbar / Search" : key.charAt(0).toUpperCase() + key.slice(1)}</label>)}</fieldset>}
         <div className="pl-preview-tools">
           <label className="pl-check"><input type="checkbox" checked={boundaries} onChange={(event) => setBoundaries(event.target.checked)} />Show Boundaries</label>
-          {sides.length > 1 && <label className="pl-field">Inspect Side<select value={activeInspectedSide} onChange={(event) => {
+          {sides.length > 1 && <label className="pl-field">Inspect Side<SelectControl value={activeInspectedSide} onChange={(event) => {
             const next = event.target.value as "left" | "right";
             setInspectedSide(next);
             setSelected((current) => current === "workspace" || current === "centre" ? current : current.includes(".") ? `${next}${current.slice(current.indexOf("."))}` : next);
-          }}><option value="left">Left Pane</option><option value="right">Right Pane</option></select></label>}
-          <label className="pl-field">Content<select value={content} onChange={(event) => setContent(event.target.value as typeof content)}><option value="normal">Normal</option><option value="empty">Empty</option><option value="long">Long</option></select></label>
-          {regions.tabs && <label className="pl-field">Tab Indicator<select value={indicatorVariant} onChange={(event) => setIndicatorVariant(event.target.value as typeof indicatorVariant)}><option value="selected">Selected only</option><option value="hover">Subtle hover</option></select></label>}
-          <label className="pl-field">Preview Width<select value={width} onChange={(event) => setWidth(event.target.value)}><option value="available">Available Width</option><option value="1280">1280px</option><option value="768">768px</option><option value="390">390px</option></select></label>
+          }}><option value="left">Left Pane</option><option value="right">Right Pane</option></SelectControl></label>}
+          <label className="pl-field">Content<SelectControl value={content} onChange={(event) => setContent(event.target.value as typeof content)}><option value="normal">Normal</option><option value="empty">Empty</option><option value="long">Long</option></SelectControl></label>
+          {regions.tabs && <label className="pl-field">Tab Indicator<SelectControl value={indicatorVariant} onChange={(event) => setIndicatorVariant(event.target.value as typeof indicatorVariant)}><option value="selected">Selected only</option><option value="hover">Subtle hover</option></SelectControl></label>}
+          <label className="pl-field">Preview Width<SelectControl value={width} onChange={(event) => setWidth(event.target.value)}><option value="available">Available Width</option><option value="1280">1280px</option><option value="768">768px</option><option value="390">390px</option></SelectControl></label>
           <button className="pl-button" type="button" onClick={reset}><StudioIcon name="undo" size={18} />Reset Demo</button>
         </div>
         <div className="pl-preview-frame" style={{ width: width === "available" ? "100%" : `${width}px` }}>

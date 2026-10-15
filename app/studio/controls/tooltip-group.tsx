@@ -1,5 +1,6 @@
 "use client";
 
+import { controlLibraryAttributes } from "./control-library-links";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes } from "react";
 import { createPortal } from "react-dom";
 
@@ -78,7 +79,7 @@ export function StudioTooltipGroup(props: HTMLAttributes<HTMLDivElement>) {
     };
   }, [target, id]);
 
-  return <div {...props}
+  return <div {...props} {...controlLibraryAttributes("tooltip")}
     onPointerOver={event => { props.onPointerOver?.(event); if (event.pointerType === "touch") return; const button = buttonFrom(event.target); if (button) show(button, false); }}
     onPointerOut={event => { props.onPointerOut?.(event); if (event.relatedTarget instanceof Node && tooltip.current?.contains(event.relatedTarget)) { clearTimer(); return; } const next = buttonFrom(event.relatedTarget); if (next && event.currentTarget.contains(next)) show(next, false); else if (!pending.current?.matches(":focus-visible")) scheduleHide(); }}
     onFocusCapture={event => { props.onFocusCapture?.(event); const button = buttonFrom(event.target); if (button?.matches(":focus-visible")) show(button, true); }}

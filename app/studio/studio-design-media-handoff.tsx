@@ -1,4 +1,5 @@
 "use client";
+import { TextArea } from "./controls/native-fields";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { loadAndInsertDesignMedia } from "./design-media-handoff-command";
 import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
@@ -59,7 +60,7 @@ export function StudioDesignMediaHandoff({ documentId, writable, media, onInsert
   return <StudioDialog title="Describe this image" className="media-alt-dialog" selectInitialText onClose={closePrompt}>
     <form onSubmit={event => { event.preventDefault(); void insertDesignMedia(); }}>
       <p>Provide alternative text for people who cannot see the image.</p>
-      <label><span>Alternative text</span><textarea rows={4} value={altText} onChange={event => setAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>
+      <label><span>Alternative text</span><TextArea rows={4} value={altText} onChange={event => setAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>
       {error ? <p role="alert">{error}</p> : null}
       <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closePrompt}>Cancel</StudioButton><StudioButton type="submit" disabled={inserting} aria-busy={inserting}>{currentPrompt.target === "cover" ? "Use as featured image" : "Insert image"}</StudioButton></StudioDialogActions>
     </form>

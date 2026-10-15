@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "./native-fields";
 import { NumberUnitField } from "./number-unit-field";
 import { RangeControl } from "./range-control";
 
@@ -49,7 +50,7 @@ function BorderWidthInput({ label, value, mixed = false, colour, borderStyle, di
   return <NumberUnitField className={`studio-border-input is-${label.toLowerCase()}`}
     leadingControl={
     <ColourPicker label="Border colour" value={colour} disabled={disabled} onChange={onColourChange}
-      additionalControls={<><label className="studio-border-style"><span>Border style</span><select aria-label="Border style" value={borderStyle ?? "none"} disabled={disabled} onChange={event => onStyleChange(event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label><p className="studio-border-shared-note">Colour and style apply to all sides.</p></>}
+      additionalControls={<><label className="studio-border-style"><span>Border style</span><SelectControl aria-label="Border style" value={borderStyle ?? "none"} disabled={disabled} onChange={event => onStyleChange(event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></SelectControl></label><p className="studio-border-shared-note">Colour and style apply to all sides.</p></>}
       trigger={({ expanded, controls, onClick }) => <button className="studio-border-colour" type="button" disabled={disabled} aria-label={`Choose border colour for all sides (${label} control)`} title="Border colour and style for all sides" aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={colour} /></button>} />
     }
     inputProps={{ "aria-label": `Border ${label} width`, disabled, min: 0, step: "any", placeholder: mixed ? "Mixed" : "", value: draft ?? (value && !mixed ? amount : ""),

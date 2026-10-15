@@ -1,0 +1,4 @@
+.studio-form-field { display:grid; gap:.35rem; min-width:0; }
+.studio-form-field > label { margin:0; }
+.studio-field-description { color:var(--studio-pane-muted, #62666b); }
+.studio-form-field > .studio-field-error { margin:0; color:var(--studio-field-error, #b32d2e); }

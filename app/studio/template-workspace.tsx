@@ -1,4 +1,5 @@
 "use client";
+import { SelectControl, TextInput } from "./controls/native-fields";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { useLibraryReordering } from "./use-library-reordering";
 import { LibraryDragHandle } from "./library-drag-handle";
@@ -145,7 +146,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
     }
   }
   const editorSet = preview?.set ?? set;
-  const previewControls = editingScope === "global" ? <><label>Preview With<select value={previewSite} onChange={event => onPreviewSiteChange?.(isLocalFixtureSiteId(event.target.value) ? event.target.value : "neutral")}><option value="neutral">Neutral</option><option value="test">Test</option><option value="test2">Test2</option></select></label>{previewStatus ? <span role="status">{previewStatus}</span> : null}</> : undefined;
+  const previewControls = editingScope === "global" ? <><label>Preview With<SelectControl value={previewSite} onChange={event => onPreviewSiteChange?.(isLocalFixtureSiteId(event.target.value) ? event.target.value : "neutral")}><option value="neutral">Neutral</option><option value="test">Test</option><option value="test2">Test2</option></SelectControl></label>{previewStatus ? <span role="status">{previewStatus}</span> : null}</> : undefined;
   const target = set ? [...set.templates, ...set.parts].find(item => item.id === targetId) : undefined;
   const showTemplateLibrary = !target;
   const canvasVisible = Boolean(set && target && !mediaTarget && !siteNavigationEditor);
@@ -449,7 +450,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
   </>;
   const dialogElement = dialog ? <StudioDialog title={dialog.title} className="template-dialog" returnFocus={dialogOpener} selectInitialText onClose={closeDialog}>
     <form onSubmit={event => { event.preventDefault(); if (dialog.confirm(dialog.name.trim()) !== false) closeDialog(); }}>
-      <label>Name<input required maxLength={160} value={dialog.name} onChange={event => setDialog({ ...dialog, name: event.target.value })} /></label>
+      <label>Name<TextInput required maxLength={160} value={dialog.name} onChange={event => setDialog({ ...dialog, name: event.target.value })} /></label>
       <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closeDialog}>Cancel</StudioButton><StudioButton type="submit" disabled={!writable}>Save</StudioButton></StudioDialogActions>
     </form>
   </StudioDialog> : null;

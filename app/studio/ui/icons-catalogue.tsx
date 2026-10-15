@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl, TextInput } from "../controls/native-fields";
 import { useState } from "react";
 import { iconNames, iconMetadata, iconScales, iconAddedAt, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
@@ -150,7 +151,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
       {collection === "keyboard" ? <KeyboardCatalogue /> : collection === "blocks" ? <div className="rl-layout">
         <aside className="rl-sidebar" aria-label="Block Symbol Filters">
           <h2>Block Symbols</h2>
-          <label className="rl-search"><AcmIcon name="action.search" size={18} /><input aria-label="Search Block Symbols" placeholder="Search blocks…" value={blockQuery} onChange={(event) => setBlockQuery(event.target.value)} /></label>
+          <label className="rl-search"><AcmIcon name="action.search" size={18} /><TextInput aria-label="Search Block Symbols" placeholder="Search blocks…" value={blockQuery} onChange={(event) => setBlockQuery(event.target.value)} /></label>
           <label className="rl-check"><input type="checkbox" checked={dark} onChange={(event) => setDark(event.target.checked)} />Dark Specimens</label>
           <p>{filteredBlocks.length} {filteredBlocks.length === 1 ? "block" : "blocks"} · three scales</p>
           <p className="rl-secondary">Regular-S · 16px<br />Regular-M · 24px<br />Regular-L · 32px</p>
@@ -179,10 +180,10 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
       </div> : <div className="rl-layout">
         <aside className="rl-sidebar" aria-label="Icon Filters">
           <h2>Symbols</h2>
-          <label className="rl-search"><AcmIcon name="action.search" size={18} /><input aria-label="Search Icons" placeholder="Search icons…" value={iconQuery} onChange={(event) => setIconQuery(event.target.value)} /></label>
+          <label className="rl-search"><AcmIcon name="action.search" size={18} /><TextInput aria-label="Search Icons" placeholder="Search icons…" value={iconQuery} onChange={(event) => setIconQuery(event.target.value)} /></label>
           <label className="rl-check"><input type="checkbox" checked={golden} onChange={(event) => setGolden(event.target.checked)} />Golden Reference Only</label>
           <label className="rl-check"><input type="checkbox" checked={dark} onChange={(event) => setDark(event.target.checked)} />Dark Specimens</label>
-          <label className="rl-picker ui-icon-sort">Sort By<select value={iconSortOrder} onChange={(event) => setIconSortOrder(event.target.value as IconSortOrder)}><option value="catalogue">Catalogue Order</option><option value="newest">Newest Added</option><option value="oldest">Oldest Added</option></select></label>
+          <label className="rl-picker ui-icon-sort">Sort By<SelectControl value={iconSortOrder} onChange={(event) => setIconSortOrder(event.target.value as IconSortOrder)}><option value="catalogue">Catalogue Order</option><option value="newest">Newest Added</option><option value="oldest">Oldest Added</option></SelectControl></label>
           <p>{filteredIcons.length} {filteredIcons.length === 1 ? "symbol" : "symbols"} · three scales</p>
           <p className="rl-secondary">Regular-S · 16px<br />Regular-M · 24px<br />Regular-L · 32px</p>
         </aside>

@@ -1,5 +1,6 @@
 "use client";
 
+import { NumberInput, SelectControl } from "./native-fields";
 type AspectRatio = "original" | "square" | "portrait" | "landscape" | "wide";
 type ImageScale = "cover" | "contain" | "fill";
 
@@ -17,9 +18,9 @@ export function ImageDimensionsSetting({ aspectRatio = "original", displayWidth,
   disabled?: boolean;
 }) {
   return <fieldset className="image-dimensions-setting" disabled={disabled}><legend className="visually-hidden">Image dimensions</legend>
-    <label><span>Aspect ratio</span><select value={aspectRatio} onChange={(event) => onAspectRatioChange(event.target.value as AspectRatio)}><option value="original">Original</option><option value="square">Square — 1:1</option><option value="portrait">Portrait — 3:4</option><option value="landscape">Landscape — 4:3</option><option value="wide">Wide — 16:9</option></select></label>
-    <label><span>Width (px)</span><input type="number" min="32" max="2400" value={displayWidth ?? ""} placeholder="Auto" onChange={(event) => onWidthChange(event.target.value ? Math.max(32, Math.min(2400, Number(event.target.value) || 32)) : undefined)} /></label>
-    <label><span>Height (px)</span><input type="number" min="32" max="2400" value={displayHeight ?? ""} placeholder="Auto" onChange={(event) => onHeightChange(event.target.value ? Math.max(32, Math.min(2400, Number(event.target.value) || 32)) : undefined)} /></label>
-    {showScale && aspectRatio !== "original" ? <label><span>Scale</span><select value={scale} onChange={(event) => onScaleChange(event.target.value as ImageScale)}>{scaleOptions.map(option => <option value={option} key={option}>{option === "cover" ? "Cover" : option === "contain" ? "Contain" : "Fill"}</option>)}</select></label> : null}
+    <label><span>Aspect ratio</span><SelectControl value={aspectRatio} onChange={(event) => onAspectRatioChange(event.target.value as AspectRatio)}><option value="original">Original</option><option value="square">Square — 1:1</option><option value="portrait">Portrait — 3:4</option><option value="landscape">Landscape — 4:3</option><option value="wide">Wide — 16:9</option></SelectControl></label>
+    <label><span>Width (px)</span><NumberInput  min="32" max="2400" value={displayWidth ?? ""} placeholder="Auto" onChange={(event) => onWidthChange(event.target.value ? Math.max(32, Math.min(2400, Number(event.target.value) || 32)) : undefined)} /></label>
+    <label><span>Height (px)</span><NumberInput  min="32" max="2400" value={displayHeight ?? ""} placeholder="Auto" onChange={(event) => onHeightChange(event.target.value ? Math.max(32, Math.min(2400, Number(event.target.value) || 32)) : undefined)} /></label>
+    {showScale && aspectRatio !== "original" ? <label><span>Scale</span><SelectControl value={scale} onChange={(event) => onScaleChange(event.target.value as ImageScale)}>{scaleOptions.map(option => <option value={option} key={option}>{option === "cover" ? "Cover" : option === "contain" ? "Contain" : "Fill"}</option>)}</SelectControl></label> : null}
   </fieldset>;
 }

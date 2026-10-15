@@ -1,4 +1,5 @@
 "use client";
+import { SelectControl, TextArea, TextInput } from "./controls/native-fields";
 import { useId, useRef, useState } from "react";
 import type { InlineMath } from "../content/model";
 import { mathPresentation } from "../content/math-presentation";
@@ -33,14 +34,14 @@ export function MathPopover({ value, anchor, editor, onChange, onClose, onReturn
   return <StudioAnchoredPopover anchor={anchor} ignoreOutside={target => editor?.contains(target) ?? false} label="Math" onClose={close} className="rich-text-math-popover">
     <PopoverHeading closeLabel="Close Math" onClose={() => onClose(true)}>Math</PopoverHeading>
     <label htmlFor={id}>{format === "mathml" ? "MathML syntax" : "LaTeX syntax"}</label>
-    <textarea data-math-syntax="true" ref={input} id={id} rows={2} value={draft} spellCheck={false} maxLength={12000} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => { if (!(event.nativeEvent as InputEvent).isComposing) update(event.target.value); else setDraft(event.target.value); }} onCompositionEnd={event => update(event.currentTarget.value)} onKeyDown={event => {
+    <TextArea data-math-syntax="true" ref={input} id={id} rows={2} value={draft} spellCheck={false} maxLength={12000} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => { if (!(event.nativeEvent as InputEvent).isComposing) update(event.target.value); else setDraft(event.target.value); }} onCompositionEnd={event => update(event.currentTarget.value)} onKeyDown={event => {
       if (event.key === "Tab" && event.shiftKey) { event.preventDefault(); onReturnToEditor(); }
       if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && !error) { event.preventDefault(); onClose(true); }
     }} />
     {error ? <p id={`${id}-error`} role="alert">{error}</p> : null}
     <details><summary>Expression options</summary>
-      <label>Input format<select value={format} onChange={event => update(draft, event.target.value as "latex" | "mathml")}><option value="latex">LaTeX</option><option value="mathml">MathML</option></select></label>
-      <label>Accessible description<input maxLength={500} value={description} onChange={event => update(draft, format, event.target.value)} /></label>
+      <label>Input format<SelectControl value={format} onChange={event => update(draft, event.target.value as "latex" | "mathml")}><option value="latex">LaTeX</option><option value="mathml">MathML</option></SelectControl></label>
+      <label>Accessible description<TextInput maxLength={500} value={description} onChange={event => update(draft, format, event.target.value)} /></label>
     </details>
   </StudioAnchoredPopover>;
 }

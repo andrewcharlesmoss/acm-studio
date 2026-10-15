@@ -39,6 +39,12 @@
 
 ### Added
 
+- Add shared Text input, Text area, Select dropdown, Search field, Number field,
+  Number with units, Button, Tooltip, and Field label, help and error specimens
+  with temporary states and keyboard interaction. Connect ordinary Studio fields
+  to the production primitives and their canonical Library entries, with a
+  coverage check that records specialised editor exceptions.
+
 - Add shared Checkbox and Radio group Library entries with mixed, disabled,
   independent selection, and native keyboard examples, also used by existing
   template defaults and keyboard collection controls.

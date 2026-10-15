@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "../../controls/native-fields";
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { RotationHandle } from "../../controls/rotation-handle";
 import { formatRotationAngle, rotationFromKey, rotationCursorCss, rotationFromPointer, rotationPointerAngle, type RotationBox, type RotationPoint } from "../../controls/rotation-geometry";
@@ -86,7 +87,7 @@ export function RotationHandleSpecimen() {
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Delegates shortcuts from focusable specimen controls.
   return <div className="ui-rotation-specimen" role="group" aria-label="Rotation handle example" onKeyDown={shortcut}>
     <div className="ui-rotation-tools">
-      <label>Zoom <select aria-label="Rotation example zoom" value={zoom} disabled={draft !== null} onChange={event => setZoom(Number(event.target.value))}><option value={50}>50%</option><option value={100}>100%</option><option value={200}>200%</option></select></label>
+      <label>Zoom <SelectControl aria-label="Rotation example zoom" value={zoom} disabled={draft !== null} onChange={event => setZoom(Number(event.target.value))}><option value={50}>50%</option><option value={100}>100%</option><option value={200}>200%</option></SelectControl></label>
       <ToggleSetting label="Read-only example" checked={readOnly} onChange={value => { finish(true); setReadOnly(value); }} />
       <span className="ui-rotation-history"><HistoryActions presentation="labelled" onUndo={() => restore(-1)} onRedo={() => restore(1)} canUndo={history.index > 0} canRedo={history.index < history.values.length - 1} disabled={readOnly || draft !== null} /></span>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "../../../controls/native-fields";
 import { useState } from "react";
 import { TemplateEditor } from "../../../template-editor";
 import { createTemplateSet, validateTemplateSet, type TemplateSet } from "../../../template-model";
@@ -66,7 +67,7 @@ export default function TemplateDropSpecimen() {
     <h1>Template insertion and column drops</h1>
     <p>This example uses the production Template editor. Content and history remain on this page.</p>
     <button type="button" onClick={() => { setSet(exampleSet()); setPast([]); setFuture([]); }}>Reset Example</button>
-    <label>Example target<select value={targetKind} onChange={event => setTargetKind(event.target.value as typeof targetKind)}><option value="header">Header</option><option value="footer">Footer</option><option value="page">Page</option><option value="post">Post</option></select></label>
+    <label>Example target<SelectControl value={targetKind} onChange={event => setTargetKind(event.target.value as typeof targetKind)}><option value="header">Header</option><option value="footer">Footer</option><option value="page">Page</option><option value="post">Post</option></SelectControl></label>
     <label><input type="checkbox" checked={!writable} onChange={event => setWritable(!event.target.checked)} />Read-only example</label>
     <TemplateEditor key={target.id} set={set} target={target} documents={[document]} mediaUrls={{}} writable={writable} onChange={change} onEditPart={() => {}} onOpenMedia={() => {}} undo={undo} redo={redo} canUndo={past.length > 0} canRedo={future.length > 0} />
   </section></StudioUiSectionHost>;

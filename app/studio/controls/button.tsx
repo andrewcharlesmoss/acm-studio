@@ -1,3 +1,4 @@
+import { controlLibraryAttributes } from "./control-library-links";
 import type { ButtonHTMLAttributes, CSSProperties } from "react";
 import { UNIVERSAL_STYLE_PRESET, universalStylePresetToCssVariables } from "@acm/styles";
 
@@ -18,7 +19,7 @@ export function StudioButton({ variant = "base", className, style: buttonStyle, 
       "--acm-color-accent": UNIVERSAL_STYLE_PRESET.palette.accent,
       ...buttonStyle,
     } as CSSProperties;
-    return <button {...props} style={style} className={`acm-button acm-button-text studio-text-action${className ? ` ${className}` : ""}`} />;
+    return <button {...props} {...controlLibraryAttributes("text-action")} style={style} className={`acm-button acm-button-text studio-text-action${className ? ` ${className}` : ""}`} />;
   }
   const style = {
     ...buttonPreset,
@@ -26,6 +27,6 @@ export function StudioButton({ variant = "base", className, style: buttonStyle, 
     "--studio-button-foreground": `var(--acm-button-${variant}-foreground)`,
   } as CSSProperties;
   return <span className="studio-button acm-universal-style-preset" style={style}>
-    <button {...props} style={{ font: "inherit", ...buttonStyle }} className={`acm-button${variant === "secondary" ? " acm-button-secondary" : ""}${className ? ` ${className}` : ""}`} />
+    <button {...props} {...controlLibraryAttributes("button")} style={{ font: "inherit", ...buttonStyle }} className={`acm-button${variant === "secondary" ? " acm-button-secondary" : ""}${className ? ` ${className}` : ""}`} />
   </span>;
 }

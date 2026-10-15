@@ -1,5 +1,6 @@
 "use client";
 
+import { TextArea } from "./controls/native-fields";
 import { useResponsiveStyleScope } from "./responsive-style-context";
 import { useId, useRef, useState } from "react";
 import { AcmIcon } from "@acm/icons/react";
@@ -47,7 +48,7 @@ export function PageLinkInspector(props: NavigationEditingProps & { onView?: (li
       </fieldset>
         {props.siteId && props.suggestions.some(item => item.href === link.url) ? <ProjectLocalDocumentLink siteId={props.siteId} destination={link.url} /> : props.onView && props.suggestions.some(item => item.href === link.url) ? <button type="button" className="page-link-view" onClick={() => props.onView?.(link)}>View <StudioIcon name="external" size={16} /></button> : destination ? <a className="page-link-view" href={destination} target="_blank" rel="noopener noreferrer">View <StudioIcon name="external" size={16} /></a> : null}
       <fieldset disabled={!props.writable}>
-        <label>Description<textarea key={link.description} defaultValue={link.description ?? ""} maxLength={2000} rows={4} onBlur={event => { if (event.target.value !== (link.description ?? "")) update({ description: event.target.value }); }} /></label>
+        <label>Description<TextArea key={link.description} defaultValue={link.description ?? ""} maxLength={2000} rows={4} onBlur={event => { if (event.target.value !== (link.description ?? "")) update({ description: event.target.value }); }} /></label>
         <p className="setting-note">The description appears as the link’s title.</p>
         <LinkSetting label="Rel attribute" value={link.rel ?? ""} maxLength={200} onDraftChange={rel => { if (/^[a-zA-Z0-9_\s-]*$/.test(rel)) setError(null); }} onCommit={rel => { if (/^[a-zA-Z0-9_\s-]*$/.test(rel)) { update({ rel }); setError(null); } else setError("Use space-separated relationship names."); }} />
         <p className="setting-note">The relationship of the linked URL as space-separated link types.</p>

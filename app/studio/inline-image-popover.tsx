@@ -1,5 +1,6 @@
 "use client";
 
+import { NumberInput, TextInput } from "./controls/native-fields";
 import { useState } from "react";
 import type { InlineImage } from "../content/model";
 import { StudioAnchoredPopover } from "./overlays/anchored-popover";
@@ -30,8 +31,8 @@ export function InlineImagePopover({ value, anchor, onApply, onReplace, onClose 
       if (number === undefined) delete next.width;
       if (!onApply(next)) setConflict(true);
     }}>
-      <label>Width<input data-inline-image-width="true" type="number" min={1} max={2400} step={1} placeholder="Auto" value={width} aria-invalid={!valid || undefined} onChange={event => setWidth(event.target.value)} /></label>
-      <label>Alternative text<input value={alt} maxLength={1000} onChange={event => setAlt(event.target.value)} /></label>
+      <label>Width<NumberInput data-inline-image-width="true"  min={1} max={2400} step={1} placeholder="Auto" value={width} aria-invalid={!valid || undefined} onChange={event => setWidth(event.target.value)} /></label>
+      <label>Alternative text<TextInput value={alt} maxLength={1000} onChange={event => setAlt(event.target.value)} /></label>
       {conflict ? <p role="alert">This image changed elsewhere. Close and reopen it to edit the latest version.</p> : !valid ? <p role="alert">Width must be a whole number from 1 to 2400.</p> : null}
       <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={onReplace}>Replace image</StudioButton><StudioButton type="submit" disabled={!valid || !changed || conflict}>Apply</StudioButton></StudioDialogActions>
     </form>

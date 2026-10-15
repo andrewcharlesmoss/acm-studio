@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "./native-fields";
 import { AcmIcon } from "@acm/icons/react";
 import type { ReactNode } from "react";
 import type { ParagraphAppearance, ParagraphFontSize } from "../../content/model";
@@ -36,6 +37,6 @@ export function FontSizeAppearanceSetting({ size, customSize, appearance, mode, 
   return <fieldset className="paragraph-font-size-setting" disabled={disabled}>
     {showSize ? <><legend className="visually-hidden">Font size</legend><div className="paragraph-font-size-heading"><span>Font size</span><button type="button" className="paragraph-font-size-mode" aria-label={mode === "custom" ? "Use font size presets" : "Use custom font size"} title={mode === "custom" ? "Use font size presets" : "Use custom font size"} aria-pressed={mode === "custom"} onClick={() => onModeChange(mode === "custom" ? "presets" : "custom")}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button></div>{mode === "custom" ? <CustomFontSizeSetting value={customSize} onChange={onCustomSizeChange} /> : <div role="group" aria-label="Font size presets" className="paragraph-font-size-options">{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={size === value} className={size === value ? "is-active" : ""} onClick={() => onSizeChange(size === value ? undefined : value)}>{label}</button>)}</div>}</> : null}
     {fontControl}
-    {showAppearance ? <label><span>Appearance</span><select value={appearance ?? ""} onChange={(event) => onAppearanceChange((event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option>{appearanceWeights.map(([value, label]) => <option key={value} value={value}>{label}</option>)}{appearanceWeights.map(([value, label]) => <option key={`${value}-italic`} value={value === "regular" ? "italic" : `${value}-italic`}>{label} italic</option>)}</select></label> : null}
+    {showAppearance ? <label><span>Appearance</span><SelectControl value={appearance ?? ""} onChange={(event) => onAppearanceChange((event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option>{appearanceWeights.map(([value, label]) => <option key={value} value={value}>{label}</option>)}{appearanceWeights.map(([value, label]) => <option key={`${value}-italic`} value={value === "regular" ? "italic" : `${value}-italic`}>{label} italic</option>)}</SelectControl></label> : null}
   </fieldset>;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { SelectControl, TextInput } from "./controls/native-fields";
 import { useId, useState } from "react";
 import { validLanguageCode, type LanguageMark } from "../content/language-runs";
 import { StudioAnchoredPopover } from "./overlays/anchored-popover";
@@ -22,8 +23,8 @@ export function LanguagePopover({ anchor, anchorRect, onApply, onClose }: {
       event.preventDefault();
       if (valid && !onApply({ type: "language", language: language.trim(), direction })) setConflict(true);
     }}>
-      <label htmlFor={id}>Language code<input id={id} value={language} maxLength={255} placeholder="en, es, fr" aria-invalid={!valid} onChange={event => setLanguage(event.target.value)} /></label>
-      <label>Text direction<select value={direction} onChange={event => setDirection(event.target.value as "ltr" | "rtl")}><option value="ltr">Left to right</option><option value="rtl">Right to left</option></select></label>
+      <label htmlFor={id}>Language code<TextInput id={id} value={language} maxLength={255} placeholder="en, es, fr" aria-invalid={!valid} onChange={event => setLanguage(event.target.value)} /></label>
+      <label>Text direction<SelectControl value={direction} onChange={event => setDirection(event.target.value as "ltr" | "rtl")}><option value="ltr">Left to right</option><option value="rtl">Right to left</option></SelectControl></label>
       {!valid ? <p role="alert">Enter a language tag, or leave it empty to set only the direction.</p> : null}
       {conflict ? <p role="alert">The text changed. Close and reopen Language to use the latest selection.</p> : null}
       <div className="html-editor-actions"><StudioButton variant="secondary" type="button" onClick={() => onClose(true)}>Cancel</StudioButton><StudioButton type="submit" disabled={!valid || conflict}>Apply</StudioButton></div>

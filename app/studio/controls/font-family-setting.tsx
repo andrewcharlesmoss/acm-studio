@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "./native-fields";
 import type { ParagraphFontFamily } from "../../content/model";
 import { PARAGRAPH_FONT_FAMILIES } from "../../content/paragraph-styles";
 
@@ -12,10 +13,10 @@ export function FontFamilySelect({ value, options, onChange, label = "Font", dis
   disabled?: boolean;
 }) {
   const known = options.some(option => option.value === value);
-  return <label><span>{label}</span><select disabled={disabled} value={value} onChange={event => onChange(event.target.value)}>
+  return <label><span>{label}</span><SelectControl disabled={disabled} value={value} onChange={event => onChange(event.target.value)}>
     {!known ? <option value={value}>{value}</option> : null}
     {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-  </select></label>;
+  </SelectControl></label>;
 }
 
 export function FontFamilySetting({ value, onChange, label = "Font", disabled = false }: {

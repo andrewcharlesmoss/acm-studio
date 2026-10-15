@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchInput, SelectControl, TextInput } from "../controls/native-fields";
 import { CheckboxControl } from "../controls/checkbox-control";
 import { RadioGroup } from "../controls/radio-group";
 
@@ -54,7 +55,7 @@ function ColourControl({ label, value, onChange, disabled = false }: { label: st
     <label htmlFor={id}>{label}</label>
     <div className="kb-colour-inputs">
       <input type="color" aria-label={`${label} Picker`} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value.toUpperCase())} />
-      <input id={id} type="text" value={draft} disabled={disabled} spellCheck={false} maxLength={7} aria-invalid={!valid} aria-describedby={!valid ? `${id}-error` : undefined} onChange={(event) => { const next = event.target.value; setDraft(next); if (/^#[0-9A-Fa-f]{6}$/.test(next)) onChange(next.toUpperCase()); }} onBlur={() => setDraft(value)} />
+      <TextInput id={id} type="text" value={draft} disabled={disabled} spellCheck={false} maxLength={7} aria-invalid={!valid} aria-describedby={!valid ? `${id}-error` : undefined} onChange={(event) => { const next = event.target.value; setDraft(next); if (/^#[0-9A-Fa-f]{6}$/.test(next)) onChange(next.toUpperCase()); }} onBlur={() => setDraft(value)} />
     </div>
     {!valid && <small id={`${id}-error`}>Use # followed by six hex digits.</small>}
   </div>;
@@ -106,15 +107,15 @@ export function KeyboardCatalogue() {
   return <section className="kb-catalogue" aria-label="UK Keyboard Collection">
     <div className="kb-intro"><div><p className="rl-eyebrow">KEYBOARD COLLECTION</p><h2>UK Mac and Windows keys.</h2></div><p>Common UK ISO legends, full-size key families and platform-specific keys.</p></div>
     <div className="kb-toolbar">
-      <label>Platform<select value={platform} onChange={(event) => {
+      <label>Platform<SelectControl value={platform} onChange={(event) => {
         const value = event.target.value as KeyboardPlatform | "all";
         if (group !== "all" && !keyboardKeys.some((key) => key.group === group && (value === "all" || key.platforms.includes(value)))) setGroup("all");
         dispatch({ type: "set-platform", value });
-      }}><option value="all">Mac and Windows</option><option value="mac">Mac</option><option value="windows">Windows</option></select></label>
+      }}><option value="all">Mac and Windows</option><option value="mac">Mac</option><option value="windows">Windows</option></SelectControl></label>
       <RadioGroup label="Artwork" value={mode} options={[{ value: "keycap", label: "Keycaps" }, { value: "symbol", label: "Symbols" }]} onChange={value => dispatch({ type: "set-mode", value: value as typeof mode })} />
       <CheckboxControl className="kb-dark-toggle" label="Dark Specimens" checked={dark} onChange={dark => updateAppearance({ dark })} />
-      <label>Section<select value={group} onChange={(event) => setGroup(event.target.value as KeyboardKeyGroup | "all")}><option value="all">All sections</option>{groups.map((item) => <option value={item} key={item}>{item}</option>)}</select></label>
-      <label className="kb-search">Find a key<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or legend" /></label>
+      <label>Section<SelectControl value={group} onChange={(event) => setGroup(event.target.value as KeyboardKeyGroup | "all")}><option value="all">All sections</option>{groups.map((item) => <option value={item} key={item}>{item}</option>)}</SelectControl></label>
+      <label className="kb-search">Find a key<SearchInput  value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or legend" /></label>
       <span className="kb-count">{visibleKeys.length} of {keys.length} keys</span>
     </div>
     <div className="kb-workspace">
@@ -138,9 +139,9 @@ export function KeyboardCatalogue() {
           </details>}
         </details>
         <div className="kb-export-settings">
-          <label>Export Height<select value={height} onChange={(event) => dispatch({ type: "set-height", value: Number(event.target.value) })}>{[64, 128, 256, 512].map((size) => <option value={size} key={size}>{size}px</option>)}</select></label>
+          <label>Export Height<SelectControl value={height} onChange={(event) => dispatch({ type: "set-height", value: Number(event.target.value) })}>{[64, 128, 256, 512].map((size) => <option value={size} key={size}>{size}px</option>)}</SelectControl></label>
           <div className="kb-preset-row">
-            <label>Preset<select value={preset} onChange={(event) => applyPreset(event.target.value)}><option value="default">Default</option><option value="dark">Dark</option><option value="outline">Outline</option><option value="custom" disabled>Custom</option></select></label>
+            <label>Preset<SelectControl value={preset} onChange={(event) => applyPreset(event.target.value)}><option value="default">Default</option><option value="dark">Dark</option><option value="outline">Outline</option><option value="custom" disabled>Custom</option></SelectControl></label>
             <button className="kb-reset-default" type="button" onClick={resetAppearance}><AcmIcon name="action.reset" size={18} />Reset to Default</button>
           </div>
           <ColourControl key={getKeyboardColourControlKey("symbol", resetRevision)} label="Symbol Colour" value={colour} onChange={(value) => dispatch({ type: "set-symbol-colour", value })} />

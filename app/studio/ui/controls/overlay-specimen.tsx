@@ -1,5 +1,6 @@
 "use client";
 
+import { TextInput } from "../../controls/native-fields";
 import { useRef, useState } from "react";
 import { StudioAnchoredPopover } from "../../overlays/anchored-popover";
 import { PopoverHeading } from "../../overlays/popover-heading";
@@ -29,12 +30,12 @@ export function OverlaySpecimen() {
     <p role="status">Selected image: {choice}</p>
     {open ? <StudioAnchoredPopover anchor={() => trigger.current} label="Parent example" focusOnMount className="ui-overlay-example" onClose={close}>
       <PopoverHeading closeLabel="Close parent example" onClose={() => close(true)}>Parent example</PopoverHeading>
-      <label>Temporary value<input value={text} onChange={event => setText(event.target.value)} /></label>
+      <label>Temporary value<TextInput value={text} onChange={event => setText(event.target.value)} /></label>
       <button ref={childTrigger} type="button" onClick={() => setChild(true)}>Open child popup</button>
       <button ref={dialogTrigger} type="button" onClick={() => setDialog(true)}>Open image dialog</button>
       {child ? <StudioAnchoredPopover anchor={() => childTrigger.current} label="Child example" focusOnMount className="ui-overlay-example" onClose={restore => { setChild(false); if (restore) childTrigger.current?.focus(); }}>
         <PopoverHeading closeLabel="Close child example" onClose={() => { setChild(false); childTrigger.current?.focus(); }}>Child example</PopoverHeading>
-        <label>Child value<input defaultValue="Temporary child" /></label>
+        <label>Child value<TextInput defaultValue="Temporary child" /></label>
       </StudioAnchoredPopover> : null}
     </StudioAnchoredPopover> : null}
     {dialog ? <StudioDialog className="ui-overlay-image-dialog" title="Choose example image" returnFocus={dialogTrigger} onClose={() => setDialog(false)}><ImageChoiceGrid choices={images} urls={urls} onChoose={image => { setChoice(image.name); setDialog(false); }} /></StudioDialog> : null}

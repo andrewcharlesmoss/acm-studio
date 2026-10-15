@@ -1,5 +1,6 @@
 "use client";
 
+import { TextInput } from "./native-fields";
 import { useRef, useState, type InputHTMLAttributes, type MouseEventHandler } from "react";
 import { StudioIcon } from "../studio-icons";
 
@@ -7,11 +8,11 @@ export type LinkSuggestion = { id: string; title: string; href: string; kind?: s
 
 /** Owners retain drafts, filtering, destination validation and range transactions. */
 export function LinkUrlField({ inputProps }: { inputProps: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> }) {
-  return <label className="studio-link-url"><span>Link</span><input {...inputProps} type="text" placeholder={inputProps.placeholder ?? "Search or type URL"} autoComplete="url" /></label>;
+  return <label className="studio-link-url"><span>Link</span><TextInput {...inputProps} type="text" placeholder={inputProps.placeholder ?? "Search or type URL"} autoComplete="url" /></label>;
 }
 
 export function LinkTextField({ inputProps }: { inputProps: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> }) {
-  return <label className="studio-link-url"><span>Text</span><input {...inputProps} type="text" /></label>;
+  return <label className="studio-link-url"><span>Text</span><TextInput {...inputProps} type="text" /></label>;
 }
 
 export function LinkSuggestions<T extends LinkSuggestion>({ items, onChoose, onMouseDown }: { items: readonly T[]; onChoose: (item: T) => void; onMouseDown?: MouseEventHandler<HTMLButtonElement> }) {

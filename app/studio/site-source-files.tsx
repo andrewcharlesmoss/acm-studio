@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchInput } from "./controls/native-fields";
 import { useEffect, useMemo, useState } from "react";
 import { StudioIcon } from "./studio-icons";
 
@@ -49,7 +50,7 @@ export function SiteSourceFiles() {
     <header className="source-heading"><div><h1>Project files</h1><p>Local source snapshot · {snapshot.files.length} files · {new Date(snapshot.capturedAt).toLocaleDateString("en-GB")}</p></div><span>Read-only</span></header>
     <p className="source-note">{snapshot.hasLocalChanges ? "Includes local changes that may differ from the live site. " : ""}Private environment files, dependencies and generated output are excluded.</p>
     <div className="source-browser">
-      <nav className="source-tree" aria-label="Project file tree"><label>Find a file<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search file names…" /></label>{filtered.length ? <FolderFiles folder={tree} selected={selected} onSelect={setSelected} /> : <p>No matching files.</p>}</nav>
+      <nav className="source-tree" aria-label="Project file tree"><label>Find a file<SearchInput  value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search file names…" /></label>{filtered.length ? <FolderFiles folder={tree} selected={selected} onSelect={setSelected} /> : <p>No matching files.</p>}</nav>
       <section className="source-file" aria-label="File contents">{file ? <><header><strong>{file.path}</strong><span>{file.size.toLocaleString("en-GB")} bytes</span></header>{file.kind === "text" ? <pre aria-label={`Code for ${file.path}`}><code>{file.content}</code></pre> : file.kind === "image" ? <div className="source-image">{/* Snapshot bytes must render locally without an image optimisation service. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`data:${file.mime};base64,${file.data}`} alt={file.path} /></div> : <p className="source-loading">Binary file · {file.mime}. Code preview is not available for this format.</p>}</> : <p>Select a file to view its contents.</p>}</section>

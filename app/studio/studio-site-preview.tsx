@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "./controls/native-fields";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { renderTestSite } from "./test-site/render";
 import { localFixtureName } from "./test-site/sites";
@@ -45,9 +46,9 @@ export function StudioSitePreview({ globalTemplates, document, documentId, viewp
         <button type="button" aria-pressed={full} onClick={() => onModeChange("full")}>Full Preview</button>
       </div>
       {!full ? <>
-        <label>Viewport <select aria-label="Viewport" value={viewport} onChange={event => onViewportChange(event.target.value as StudioViewport)}>
+        <label>Viewport <SelectControl aria-label="Viewport" value={viewport} onChange={event => onViewportChange(event.target.value as StudioViewport)}>
           <option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option>
-        </select></label>
+        </SelectControl></label>
         <div className="studio-site-preview-zoom" aria-label="Preview scale">
           <button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)} disabled={scale <= 0.25}><StudioIcon name="zoom-out" size={18} /></button>
           <button type="button" aria-pressed={zoom === "fit"} onClick={() => setZoom("fit")}>Fit</button>

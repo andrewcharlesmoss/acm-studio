@@ -15,6 +15,7 @@
     "styles:source": "node scripts/generate-style-guide-source.mjs",
     "styles:source:check": "node scripts/generate-style-guide-source.mjs --check",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "controls:check": "node scripts/check-control-library-links.mjs",
     "typecheck": "tsc --project tsconfig.typecheck.json --noEmit --pretty false"
   },
   "dependencies": {

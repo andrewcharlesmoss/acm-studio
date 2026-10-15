@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "../../controls/native-fields";
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { HistoryActions } from "../../controls/history-actions";
 import { PageResizeHandles } from "../../controls/page-resize-handles";
@@ -72,7 +73,7 @@ export function PageResizeSpecimen() {
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Scoped history and Escape delegate from specimen controls.
   return <div role="group" aria-label="Page resize example" onKeyDown={shortcut}>
     <div className="ui-rotation-tools">
-      <label>Zoom <select aria-label="Resize example zoom" value={zoom} disabled={active !== null} onChange={event => setZoom(Number(event.target.value))}><option value={50}>50%</option><option value={100}>100%</option><option value={200}>200%</option></select></label>
+      <label>Zoom <SelectControl aria-label="Resize example zoom" value={zoom} disabled={active !== null} onChange={event => setZoom(Number(event.target.value))}><option value={50}>50%</option><option value={100}>100%</option><option value={200}>200%</option></SelectControl></label>
       <ToggleSetting label="Read-only example" checked={readOnly} onChange={value => { finish(true, undefined, false); setReadOnly(value); }} />
       <HistoryActions presentation="labelled" canUndo={history.index > 0} canRedo={history.index < history.values.length - 1} disabled={readOnly || active !== null} onUndo={() => restore(-1)} onRedo={() => restore(1)} />
     </div>

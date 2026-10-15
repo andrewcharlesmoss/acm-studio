@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "../../controls/native-fields";
 import { useState } from "react";
 import { StudioIcon } from "../../studio-icons";
 import { createWorkspacePreviewDocument } from "../../editor-model";
@@ -66,8 +67,8 @@ export function BlockEditorPlayground() {
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- History shortcuts are scoped to this temporary editor.
   return <div className="ui-block-editor-specimen" role="group" aria-label="Block editor playground" onKeyDown={event => { if (!readOnly) handleStudioHistoryShortcut(event, navigator.platform, () => restore(-1), () => restore(1)); }}>
     <div className="ui-rotation-tools">
-      <label>Template <select aria-label="Playground template" value={targetKind} onChange={event => setTargetKind(event.target.value as typeof targetKind)}><option value="header">Header</option><option value="navigation">Navigation</option><option value="empty">Empty</option></select></label>
-      <label>Viewport <select aria-label="Playground viewport" value={viewport} onChange={event => setViewport(event.target.value as StudioViewport)}><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></select></label>
+      <label>Template <SelectControl aria-label="Playground template" value={targetKind} onChange={event => setTargetKind(event.target.value as typeof targetKind)}><option value="header">Header</option><option value="navigation">Navigation</option><option value="empty">Empty</option></SelectControl></label>
+      <label>Viewport <SelectControl aria-label="Playground viewport" value={viewport} onChange={event => setViewport(event.target.value as StudioViewport)}><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></SelectControl></label>
       <ToggleSetting label="Read-only example" checked={readOnly} onChange={setReadOnly} />
     </div>
     <p>Try blocks using the plus button, type / to choose a block, or type text and press Enter. Select a block to inspect its contents and settings. Compare appender positioning across the three templates; the production editor supplies the canvas, inspector, insertion, focus, and Undo/Redo.</p>

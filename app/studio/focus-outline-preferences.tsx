@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectControl } from "./controls/native-fields";
 import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { installStudioFocusPolicy } from "./focus-outline-policy.mjs";
 import { createFocusOutlineRepository } from "./focus-outline-repository.mjs";
@@ -54,9 +55,9 @@ export function StudioFocusOutlineSetting() {
   if (!preference) return null;
   return <div className="studio-focus-preference">
     <label className="studio-focus-setting">Focus Outline
-      <select value={preference.mode} onChange={event => preference.setMode(event.target.value as FocusMode)}>
+      <SelectControl value={preference.mode} onChange={event => preference.setMode(event.target.value as FocusMode)}>
         <option value="on">On</option><option value="off">Off</option><option value="keyboard">Keyboard Only</option>
-      </select>
+      </SelectControl>
     </label>
     {preference.status ? <span className="studio-focus-setting-status" role="status">{preference.status}</span> : null}
   </div>;

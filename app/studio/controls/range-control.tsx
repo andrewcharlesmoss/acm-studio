@@ -1,5 +1,6 @@
 "use client";
 
+import { controlLibraryAttributes } from "./control-library-links";
 import { useState, type CSSProperties, type InputHTMLAttributes } from "react";
 
 const thumbSize = 12;
@@ -20,7 +21,7 @@ export function RangeControl({ tooltipText, tooltipPlacement = "below", classNam
   const position = `calc(${fraction * 100}% + ${thumbSize / 2 - fraction * thumbSize}px)`;
   const text = tooltipText ?? String(value ?? "");
   const visible = !disabled && Number.isFinite(amount) && text !== "" && (focused || hovered || dragging);
-  return <span className="studio-range-wrapper" data-tooltip-placement={tooltipPlacement} style={{ "--range-label-position": position, "--range-thumb-size": `${thumbSize}px` } as CSSProperties}>
+  return <span {...controlLibraryAttributes("slider-foundation")} className="studio-range-wrapper" data-tooltip-placement={tooltipPlacement} style={{ "--range-label-position": position, "--range-thumb-size": `${thumbSize}px` } as CSSProperties}>
     <input {...props} className={className} type="range" disabled={disabled} min={min} max={max} value={value}
       onFocus={event => { setFocused(true); onFocus?.(event); }}
       onBlur={event => { setFocused(false); setDragging(false); onBlur?.(event); }}

@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchInput, SelectControl, TextInput } from "../controls/native-fields";
 import { useId, useState } from "react";
 import { StudioIcon } from "../studio-icons";
 import { Pane, PaneSection, PaneTabs, PaneTabPanel, PaneWorkspace, type PaneSide, type PaneTabIndicatorVariant } from "./pane-components";
@@ -31,16 +32,16 @@ export function PaneSpecimen({ definition, regions, layout, content, studio, ind
     const body = <>
       {content === "empty" ? <p className="pl-muted">No items in this example.</p> : isFields ? <>
         <PaneSection title={state.tab === "Styles" ? "Appearance" : "Properties"}>
-          <label className="pl-field">{definition.id === "design-properties" ? "Page Name" : state.tab === "Block" ? "Block Label" : "Title"}<input value={state.value} onChange={(event) => patch({ value: event.target.value })} /></label>
-          <label className="pl-field">Alignment<select defaultValue="Left"><option>Left</option><option>Centre</option><option>Right</option></select></label>
+          <label className="pl-field">{definition.id === "design-properties" ? "Page Name" : state.tab === "Block" ? "Block Label" : "Title"}<TextInput value={state.value} onChange={(event) => patch({ value: event.target.value })} /></label>
+          <label className="pl-field">Alignment<SelectControl defaultValue="Left"><option>Left</option><option>Centre</option><option>Right</option></SelectControl></label>
         </PaneSection>
         <PaneSection title="Display"><label className="pl-check"><input type="checkbox" defaultChecked />Show Label</label><p className="pl-muted">Sample settings, with no product connection.</p></PaneSection>
-        {content === "long" && Array.from({ length: 20 }, (_, i) => <PaneSection key={i} title={`Settings Group ${i + 1}`}><label className="pl-field">Example Value<input defaultValue={`Value ${i + 1}`} /></label></PaneSection>)}
+        {content === "long" && Array.from({ length: 20 }, (_, i) => <PaneSection key={i} title={`Settings Group ${i + 1}`}><label className="pl-field">Example Value<TextInput defaultValue={`Value ${i + 1}`} /></label></PaneSection>)}
       </> : <PaneSection title={definition.id === "skeleton" ? "Scrolling Body" : definition.id === "blocks" ? "Available Blocks" : state.tab}>
         {rows.length ? <div className={definition.id === "blocks" ? "pl-block-grid" : "pl-item-list"}>{rows.map((name) => <button key={name} type="button" className="pl-item" aria-pressed={state.selected === name} onClick={() => patch({ selected: name })}>
           <StudioIcon name={definition.id === "blocks" ? "block" : definition.id === "design-navigation" ? "image" : "file"} size={20} /><span>{name}</span>
         </button>)}</div> : <p className="pl-muted">No matching items.</p>}
-        {definition.id === "skeleton" && <label className="pl-field">Example Field<input value={state.value} onChange={(event) => patch({ value: event.target.value })} /></label>}
+        {definition.id === "skeleton" && <label className="pl-field">Example Field<TextInput value={state.value} onChange={(event) => patch({ value: event.target.value })} /></label>}
       </PaneSection>}
     </>;
     return <Pane side={side} label={label} width={side === "left" ? leftWidth : rightWidth}
@@ -49,7 +50,7 @@ export function PaneSpecimen({ definition, regions, layout, content, studio, ind
       collapseIcon={<StudioIcon name="chevron-right" size={18} />}
       header={regions.header ? <><h2>{studio ? definition.label : "Header"}</h2><button type="button" className="pl-icon-button" aria-label={`Collapse ${label} from Header`} onClick={() => patch(side === "left" ? { leftCollapsed: true } : { rightCollapsed: true })}><StudioIcon name="close" size={20} /></button></> : undefined}
       tabs={regions.tabs ? <PaneTabs id={tabsId} label={`${label} Tabs`} tabs={definition.tabs.map((name) => ({ id: name, label: name }))} active={state.tab} onChange={(tab) => patch({ tab })} indicatorVariant={indicatorVariant} /> : undefined}
-      toolbar={regions.toolbar ? <label className="pl-field">{studio ? "Search" : "Toolbar / Search"}<input type="search" value={state.query} placeholder="Find an item…" onChange={(event) => patch({ query: event.target.value })} /></label> : undefined}
+      toolbar={regions.toolbar ? <label className="pl-field">{studio ? "Search" : "Toolbar / Search"}<SearchInput  value={state.query} placeholder="Find an item…" onChange={(event) => patch({ query: event.target.value })} /></label> : undefined}
       footer={regions.footer ? <button type="button" className="pl-button" onClick={() => setNotice(`${label}: example action selected. No product data was changed.`)}>{studio ? "Example Action" : "Footer Action"}</button> : undefined}>
       {regions.tabs ? definition.tabs.map((tab) => <PaneTabPanel key={tab} id={tabsId} tab={tab} active={state.tab}>{body}</PaneTabPanel>) : body}
     </Pane>;

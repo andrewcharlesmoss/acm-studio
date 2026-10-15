@@ -1,4 +1,6 @@
 "use client";
+import { NumberInput, SelectControl, TextInput } from "../controls/native-fields";
+import { RangeControl } from "../controls/range-control";
 import { HistoryActionButton } from "../controls/history-actions";
 import { isNativeEditingTarget, workspaceHistoryShortcut, workspaceZoomShortcut } from "../workspace-shortcuts.mjs";
 
@@ -30,8 +32,10 @@ function Control({ control, state, setState, rememberTrigger }: ControlProps) {
     const value = state.values[control.id] as string | number;
     return <RibbonField data-region={control.id} className="rl-field">
       <span>{control.label}</span>
-      {control.kind === "select" ? <select aria-label={control.label} value={value} disabled={Boolean(reason)} onChange={(event) => run(event.target.value)}>{control.options?.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select> :
-        <input className={control.kind === "range" ? "studio-range-control" : undefined} aria-label={control.label} type={control.kind} value={value} min={control.min} max={control.max} step={control.step} maxLength={control.kind === "text" ? control.max ?? 100 : undefined} disabled={Boolean(reason)} onChange={(event) => run(control.kind === "number" || control.kind === "range" ? Number(event.target.value) : event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && control.id === "account.search-input") { event.preventDefault(); setState((current) => runDemoCommand(current, { ...control, id: "account.search", command: "account.search", kind: "button", label: "Search" })); } }} />}
+      {control.kind === "select" ? <SelectControl aria-label={control.label} value={value} disabled={Boolean(reason)} onChange={(event) => run(event.target.value)}>{control.options?.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</SelectControl> :
+        control.kind === "range" ? <RangeControl aria-label={control.label} value={value} min={control.min} max={control.max} step={control.step} disabled={Boolean(reason)} onChange={event => run(Number(event.target.value))} /> :
+        control.kind === "number" ? <NumberInput aria-label={control.label} value={value} min={control.min} max={control.max} step={control.step} disabled={Boolean(reason)} onChange={event => run(Number(event.target.value))} /> :
+        <TextInput aria-label={control.label} value={value} maxLength={control.max ?? 100} disabled={Boolean(reason)} onChange={event => run(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && control.id === "account.search-input") { event.preventDefault(); setState((current) => runDemoCommand(current, { ...control, id: "account.search", command: "account.search", kind: "button", label: "Search" })); } }} />}
       {control.kind === "range" ? <output>{value}</output> : null}
     </RibbonField>;
   }
@@ -73,7 +77,7 @@ function Fixture({ example, state, setState }: { example: ExampleDefinition; sta
         const selected = hasAccountSelection(state) && state.selectedRow === row.id && state.selectedColumn === column;
         const highlighted = hasAccountSelection(state) && ((state.highlight === "row" || state.highlight === "both") && state.selectedRow === row.id || (state.highlight === "column" || state.highlight === "both") && state.selectedColumn === column);
         return <td key={column} className={(highlighted ? "rl-highlighted " : "") + (selected ? "rl-cell-selected" : "")}>
-          {selected && state.editing ? <input ref={editField} aria-label={"Edit " + column} value={row[column as keyof typeof row]} onChange={(event) => setState((current) => ({ ...current, rows: current.rows.map((item) => item.id === row.id ? { ...item, [column]: event.target.value } : item) }))} onBlur={() => setState((current) => ({ ...current, editing: false }))} onKeyDown={(event) => { if (event.key === "Enter" || event.key === "Escape") setState((current) => ({ ...current, editing: false })); }} /> :
+          {selected && state.editing ? <TextInput ref={editField} aria-label={"Edit " + column} value={row[column as keyof typeof row]} onChange={(event) => setState((current) => ({ ...current, rows: current.rows.map((item) => item.id === row.id ? { ...item, [column]: event.target.value } : item) }))} onBlur={() => setState((current) => ({ ...current, editing: false }))} onKeyDown={(event) => { if (event.key === "Enter" || event.key === "Escape") setState((current) => ({ ...current, editing: false })); }} /> :
             <button type="button" aria-label={row.name + ", " + column + ": " + row[column as keyof typeof row]} aria-pressed={selected} disabled={!state.values["account.cell"]} onClick={() => setState((current) => ({ ...current, selected: true, selectedRow: row.id, selectedColumn: column, editing: false }))}>{row[column as keyof typeof row]}</button>}
         </td>;
       })}</tr>)}</tbody>

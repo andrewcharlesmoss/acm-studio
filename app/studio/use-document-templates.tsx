@@ -1,4 +1,5 @@
 "use client";
+import { SelectControl } from "./controls/native-fields";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 import { testDocumentHref } from "./test-site/contract";
 import { useTemplates } from "./use-templates";
@@ -87,12 +88,12 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
       updateActiveDocument(current => ({ ...current, templateOverrides: current.templateOverrides ?? { author: true, category: true, tags: true, parentPageId: true } }));
     }
     history.record("template");
-  }} />{projectionError && !siteContext && globals?.library && browserTemplates.store.assignments.some(item => item.documentId === document.id) ? <div role="alert"><p>{projectionError}</p><label>Resolve this document’s template<select aria-label="Resolve shared template assignment" defaultValue="keep" disabled={!browserTemplates.writable || !globals.session.writable} onChange={event => {
+  }} />{projectionError && !siteContext && globals?.library && browserTemplates.store.assignments.some(item => item.documentId === document.id) ? <div role="alert"><p>{projectionError}</p><label>Resolve this document’s template<SelectControl aria-label="Resolve shared template assignment" defaultValue="keep" disabled={!browserTemplates.writable || !globals.session.writable} onChange={event => {
     if (event.target.value === "keep") return;
     const [setId, templateId] = event.target.value.split("/");
     const saved = browserTemplates.commit(source => recoverDraftTemplateAssignment(source, document.id, setId ? { documentId: document.id, kind: document.kind, setId, templateId } : undefined, globals.library!));
     if (saved) history.record("template");
-  }}><option value="keep">Keep recovery assignment</option><option value="">Existing Presentation</option>{globals.library.templates.sets.flatMap(set => set.templates.filter(item => item.kind === document.kind).map(item => <option key={`${set.id}/${item.id}`} value={`${set.id}/${item.id}`}>{item.name}</option>))}</select></label></div> : null}</>;
+  }}><option value="keep">Keep recovery assignment</option><option value="">Existing Presentation</option>{globals.library.templates.sets.flatMap(set => set.templates.filter(item => item.kind === document.kind).map(item => <option key={`${set.id}/${item.id}`} value={`${set.id}/${item.id}`}>{item.name}</option>))}</SelectControl></label></div> : null}</>;
   function templatePresentation(blockUrls: Record<string, string>, onChangeCover: () => void, onRemoveCover: () => void): StudioPresentation | undefined {
     if (!snapshot) return;
     const resolved = snapshot;

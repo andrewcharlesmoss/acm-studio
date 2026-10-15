@@ -1,4 +1,5 @@
 "use client";
+import { SelectControl, TextInput } from "./controls/native-fields";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
@@ -140,7 +141,7 @@ function NavigationCanvasItem({ item, vertical, version, onDragItem, rowProps, h
       <button type="button" disabled={!props.writable} aria-label="Italic Page link" title="Italic" aria-pressed={italic} onClick={() => format(bold, !italic)}><StudioIcon name="format-italic" size={20} /></button>
       <NavigationItemActions {...props} item={item} toolbar onEdit={() => setLinkOpen(true)} />
     </div> : null}
-    <input className="navigation-edit-label" data-navigation-link-id={item.id} aria-label={`Navigation link text: ${item.label || "Untitled"}`} value={item.label} maxLength={160} readOnly={!props.writable} style={{ ...paragraphStyleToCss({ ...item.visualStyle, additionalCss: undefined }), width: `${Math.max(1, item.label.length + 1)}ch` }} onFocus={() => props.onSelect(item.id)} onChange={event => props.onChange(updateNavigationItem(props.links, item.id, current => ({ ...current, label: event.target.value })))} onKeyDown={event => {
+    <TextInput className="navigation-edit-label" data-navigation-link-id={item.id} aria-label={`Navigation link text: ${item.label || "Untitled"}`} value={item.label} maxLength={160} readOnly={!props.writable} style={{ ...paragraphStyleToCss({ ...item.visualStyle, additionalCss: undefined }), width: `${Math.max(1, item.label.length + 1)}ch` }} onFocus={() => props.onSelect(item.id)} onChange={event => props.onChange(updateNavigationItem(props.links, item.id, current => ({ ...current, label: event.target.value })))} onKeyDown={event => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); event.stopPropagation(); setLinkOpen(true); }
       if ((event.metaKey || event.ctrlKey) && ["b", "i"].includes(event.key.toLowerCase())) { event.preventDefault(); event.stopPropagation(); if (event.key.toLowerCase() === "b") format(!bold, italic); else format(bold, !italic); }
       if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
@@ -191,7 +192,7 @@ export function NavigationMenuList(props: NavigationEditingProps) {
 }
 
 export function LinkSetting({ label, value, maxLength = 2000, onCommit, onDraftChange }: { label: string; value: string; maxLength?: number; onCommit: (value: string) => void; onDraftChange?: (value: string) => void }) {
-  return <label>{label}<input key={value} defaultValue={value} maxLength={maxLength} onChange={event => onDraftChange?.(event.target.value)} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
+  return <label>{label}<TextInput key={value} defaultValue={value} maxLength={maxLength} onChange={event => onDraftChange?.(event.target.value)} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
 }
 
 export function NavigationInspector({ linksWritable = true, block, menuName = "Navigation", onBlockChange, overlayContext = false, overlayParts = [], canCreateOverlay = true, onCreateOverlay, onEditOverlay, ...props }: NavigationEditingProps & { linksWritable?: boolean; menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void; overlayContext?: boolean; overlayParts?: TemplatePart[]; canCreateOverlay?: boolean; onCreateOverlay?: () => void; onEditOverlay?: (id: string) => void }) {
@@ -230,7 +231,7 @@ export function NavigationInspector({ linksWritable = true, block, menuName = "N
       <div className="navigation-overlay-toggle"><ToggleSetting label="Show icon button" checked={block.data?.showIcon !== false} disabled={!props.writable} onChange={showIcon => data({ showIcon })} /><p className="setting-note">Configure the visual appearance of the button that toggles the overlay menu.</p></div>
       {block.data?.showIcon !== false ? <fieldset className="navigation-overlay-control navigation-icon-control"><legend>Icon</legend><div role="group" aria-label="Overlay button icon">{(["handle", "menu"] as const).map(icon => <button type="button" key={icon} aria-label={icon === "handle" ? "Two-line menu icon" : "Three-line menu icon"} aria-pressed={(block.data?.icon ?? "menu") === icon} onClick={() => data({ icon })}><AcmIcon name={icon === "handle" ? "navigation.menu-compact" : "navigation.menu"} size={24} /></button>)}</div></fieldset> : null}
       <div className="navigation-overlay-template-heading"><label htmlFor={`${tabId}-overlay-template`}>Overlay template</label>{onCreateOverlay ? <button type="button" aria-label="Create new overlay template" title="Create new overlay template" disabled={!props.writable || !canCreateOverlay} onClick={onCreateOverlay}><StudioIcon name="add" size={24} /></button> : null}</div>
-      <select id={`${tabId}-overlay-template`} value={String(block.data?.overlayPartId ?? "")} onChange={event => data({ overlayPartId: event.target.value || undefined })}><option value="">Default</option>{overlayParts.map(part => <option key={part.id} value={part.id}>{part.name}</option>)}</select>
+      <SelectControl id={`${tabId}-overlay-template`} value={String(block.data?.overlayPartId ?? "")} onChange={event => data({ overlayPartId: event.target.value || undefined })}><option value="">Default</option>{overlayParts.map(part => <option key={part.id} value={part.id}>{part.name}</option>)}</SelectControl>
       <p className="setting-note">Select an overlay for navigation.</p>
       {block.data?.overlayPartId && onEditOverlay ? <button type="button" className="navigation-edit-overlay" onClick={() => onEditOverlay(String(block.data?.overlayPartId))}><StudioIcon name="pencil" />Edit overlay</button> : null}
       <p className="setting-note">An overlay template allows you to customise the appearance of the dialogue that opens when the menu button is pressed.</p>

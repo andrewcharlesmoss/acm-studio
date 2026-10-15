@@ -985,3 +985,43 @@ introduced. Browser differences for entering an initially empty group remain nat
 Examples are memory-only and Reset restores their initial selections. Catalogue
 search and previews derive from these same entries and specimens. Other existing
 native checkbox consumers remain adoptable incrementally when touched.
+
+
+### Common form controls and Library associations
+
+The Foundation group includes Text input, Text area, Select dropdown, Search
+field, Number field, Number with units, Button, Tooltip, and Field label, help
+and error. The specimens use production `TextInput`, `TextArea`, `SelectControl`,
+`SearchInput`, `NumberInput`, `NumberUnitField`, `StudioButton`,
+`StudioTooltipGroup`, and `FormField` components. Their temporary states cover
+empty, populated, disabled, read-only and invalid values where applicable,
+native editing and selection, numeric steps, unit selection, button activation,
+and tooltip focus/Escape behaviour. Reset restores only the relevant specimen.
+
+Ordinary Studio interface fields consume `controls/native-fields.tsx` and its
+canonical stylesheet. The wrappers forward native props, events and DOM refs;
+features retain validation, values, layout and persistence. `FormField` owns
+label/help/error associations, with validation supplied by the feature. Advanced
+inspector fields and the Library specimens share that composition. Existing
+specialised field compositions retain their owning layout styles.
+
+`controls/control-library-links.ts` supplies stable `data-studio-control` and
+`data-studio-library-href` attributes on shared instances, linking consumers to
+their canonical entries without adding navigation actions inside editing flows.
+The composed number/unit field links both its composition and its primitives.
+Checkbox, Radio group, Slider foundation and text-action instances use the same registry.
+
+Run `npm run controls:check` from the repository root to detect ordinary native
+fields that bypass the shared implementations. This read-only TypeScript AST
+check also flags unrecognised dynamic input types. The normal test suite runs
+the same coverage check through `tests/common-controls.test.mjs`.
+
+The checker records explicit exceptions for the canonical rich-text, code,
+appender, footnote, embed and authored form-block editors in `StudioCanvas`,
+rich-text editing, template title/subtitle rendering, Mini Golf runtime fields,
+and static publication rendering. These inherit document or runtime presentation
+and own specialised editing contracts. The two existing password visibility
+fields remain narrow security-specific exceptions. Other native input types
+(such as colour, file, date, range, checkbox and radio) retain their existing
+specialised controls; this ordinary-field audit does not claim complete adoption
+for those families. It does not scan sibling products or generated output.

@@ -1,5 +1,6 @@
 "use client";
 
+import { TextInput } from "./controls/native-fields";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { useBlobUrls } from "./controls/use-blob-urls";
 import { ImageChoiceGrid } from "./controls/image-choice-grid";
@@ -95,8 +96,8 @@ export function InlineImagePicker({ loadImages, replacing, returnFocus, onChoose
       if (!src) { setError("Enter a supported image URL."); return; }
       void choose(src, { type: "image", src, alt });
     }}>
-      <label>Image URL<input type="text" inputMode="url" value={url} maxLength={12000} disabled={busy} onChange={event => setUrl(event.target.value)} /></label>
-      <label>Alternative text<input value={alt} maxLength={1000} disabled={busy} onChange={event => setAlt(event.target.value)} /></label>
+      <label>Image URL<TextInput type="text" inputMode="url" value={url} maxLength={12000} disabled={busy} onChange={event => setUrl(event.target.value)} /></label>
+      <label>Alternative text<TextInput value={alt} maxLength={1000} disabled={busy} onChange={event => setAlt(event.target.value)} /></label>
       <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={() => { generation.current++; onClose(); }}>Cancel</StudioButton><StudioButton type="submit" disabled={busy || !safeImageSource(url.trim())}>{busy ? "Loading…" : replacing ? "Replace image" : "Insert image"}</StudioButton></StudioDialogActions>
     </form>
     {error ? <p role="alert">{error}</p> : null}

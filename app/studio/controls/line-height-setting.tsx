@@ -1,3 +1,4 @@
+import { TextInput } from "./native-fields";
 import type { ParagraphStyle } from "../../content/model";
 
 export function LineHeightSetting({ value, onChange, disabled = false, label = "Line height" }: {
@@ -8,6 +9,6 @@ export function LineHeightSetting({ value, onChange, disabled = false, label = "
 }) {
   return <label>
     <span>{label}</span>
-    <input type="text" inputMode="decimal" value={value ?? ""} onChange={event => onChange(event.target.value || undefined)} placeholder="Default" disabled={disabled} />
+    <TextInput type="text" inputMode="decimal" value={value ?? ""} onChange={event => onChange(event.target.value || undefined)} placeholder="Default" disabled={disabled} />
   </label>;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { NumberInput } from "../../controls/native-fields";
 import { tableRowSections } from "../../../content/table-row-sections";
 import { StudioAnchoredMenu } from "../../overlays/anchored-menu";
 import { TableCaptionControl, useTableCaption } from "../../table-caption-control";
@@ -85,8 +86,8 @@ export function TableField({ block, mediaUrls = {}, writable = true, showCaption
       onChange({ ...block, rows: Array.from({ length: rowCount }, () => Array.from({ length: columns }, () => "")), hasHeader: undefined, hasFooter: undefined, headerRowCount: undefined, footerRowCount: undefined, cellRuns: undefined, cellMetadata: undefined, columnWidths: undefined, rowHeights: undefined, columnAlignments: undefined });
       requestAnimationFrame(() => tableRef.current?.querySelector<HTMLElement>(".table-cell-editor")?.focus());
     }}>
-      <label><span>Column count</span><input type="number" min="1" max="100" step="1" value={initialColumnCount} onChange={event => setInitialColumnCount(event.target.value)} /></label>
-      <label><span>Row count</span><input type="number" min="1" max="100" step="1" value={initialRowCount} onChange={event => setInitialRowCount(event.target.value)} /></label>
+      <label><span>Column count</span><NumberInput  min="1" max="100" step="1" value={initialColumnCount} onChange={event => setInitialColumnCount(event.target.value)} /></label>
+      <label><span>Row count</span><NumberInput  min="1" max="100" step="1" value={initialRowCount} onChange={event => setInitialRowCount(event.target.value)} /></label>
       <button type="submit">Create Table</button>
     </form>
   </div>;

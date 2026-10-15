@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { createRequire } from "node:module";
 import vm from "node:vm";
@@ -16,7 +16,7 @@ function load(file, overrides = {}, cache = new Map()) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const dependency = id => Object.hasOwn(overrides, id) ? overrides[id] : id.startsWith(".")
-    ? load(resolve(dirname(file), id + (id.endsWith("layout") ? ".ts" : ".tsx")), overrides, cache) : require(id);
+    ? load(resolve(dirname(file), id + (existsSync(resolve(dirname(file), `${id}.ts`)) ? ".ts" : ".tsx")), overrides, cache) : require(id);
   vm.runInNewContext(source, { exports, require: dependency });
   return exports;
 }

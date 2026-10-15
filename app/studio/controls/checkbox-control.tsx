@@ -1,5 +1,6 @@
 "use client";
 
+import { controlLibraryAttributes } from "./control-library-links";
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import "./choice-controls.css";
 
@@ -14,5 +15,5 @@ export function CheckboxControl({ label, checked, indeterminate = false, disable
 }) {
   const input = useRef<HTMLInputElement>(null);
   useLayoutEffect(() => { if (input.current) input.current.indeterminate = indeterminate; }, [indeterminate, checked]);
-  return <label className={`studio-choice-control ${className}`}><input ref={input} type="checkbox" checked={checked} disabled={disabled} onChange={event => onChange(event.target.checked)} /><span>{label}</span></label>;
+  return <label className={`studio-choice-control ${className}`} {...controlLibraryAttributes("checkbox")}><input ref={input} type="checkbox" checked={checked} disabled={disabled} onChange={event => onChange(event.target.checked)} /><span>{label}</span></label>;
 }

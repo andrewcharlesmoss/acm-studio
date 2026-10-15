@@ -1,5 +1,6 @@
 "use client";
 
+import { NumberInput } from "./native-fields";
 import { useId, useState } from "react";
 import { SpacingRangeControl } from "./spacing-range-control";
 import { AcmIcon } from "@acm/icons/react";
@@ -44,7 +45,7 @@ export function LayoutSpacingSetting({ label, value, presets, min, max, onChange
     </div>
     {customOpen ? <label className="layout-spacing-custom">
       <span className="visually-hidden">{label} custom value in pixels</span>
-      <input id={`${customId}-custom`} type="number" min={min} max={max} step="any" value={value ?? ""} placeholder="Default" aria-label={`${label} custom value in pixels`} onChange={event => setCustomValue(event.target.value)} />
+      <NumberInput id={`${customId}-custom`}  min={min} max={max} step="any" value={value ?? ""} placeholder="Default" aria-label={`${label} custom value in pixels`} onChange={event => setCustomValue(event.target.value)} />
       <span aria-hidden="true">px</span>
     </label> : null}
     <output className="layout-spacing-value">{value === undefined ? "Default" : `${value}px`}</output>

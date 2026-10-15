@@ -1,4 +1,5 @@
 "use client";
+import { SelectControl } from "../../controls/native-fields";
 import { HistoryActions } from "../../controls/history-actions";
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
 
@@ -47,7 +48,7 @@ export function DragPlacementSpecimen() {
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- The group delegates shortcuts from its focusable controls.
   return <div className="ui-drag-specimen" role="group" aria-label="Drag-to-position controls" onKeyDown={shortcut}>
     <div className="ui-drag-tools">
-      <label>Layout <select value={layout} onChange={event => setLayout(event.target.value)}><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option><option value="wrapped">Wrapped</option></select></label>
+      <label>Layout <SelectControl value={layout} onChange={event => setLayout(event.target.value)}><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option><option value="wrapped">Wrapped</option></SelectControl></label>
       <label><input type="checkbox" checked={readOnly} onChange={event => setReadOnly(event.target.checked)} />Read-only example</label>
       <HistoryActions presentation="labelled" onUndo={() => restore(-1)} onRedo={() => restore(1)} canUndo={history.cursor > 0} canRedo={history.cursor < history.orders.length - 1} disabled={readOnly} />
     </div>

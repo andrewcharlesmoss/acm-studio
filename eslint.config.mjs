@@ -30,6 +30,10 @@ const eslintConfig = defineConfig([
       // Plain links avoid a vinext development-runtime hook conflict while
       // remaining semantic and fully functional for this public foundation.
       "@next/next/no-html-link-for-pages": "off",
+      // These wrappers render a single native field and preserve label nesting.
+      "jsx-a11y/label-has-associated-control": ["error", {
+        controlComponents: ["TextInput", "TextArea", "SelectControl", "SearchInput", "NumberInput"],
+      }],
     },
     languageOptions: {
       globals: {
