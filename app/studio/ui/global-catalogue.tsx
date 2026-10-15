@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { iconNames, iconMetadata, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { PanelCard } from "@acm/panel";
@@ -14,6 +14,7 @@ import { paneExamples, defaultRegions, skeletonDefinition } from "../panes/catal
 import { componentDescriptions } from "../ribbon/catalogue-model";
 import { ApplicationSectionNavigation } from "./application-section-navigation";
 import { ControlSpecimen } from "./controls/control-specimen";
+import { watchAnchoredMenu } from "../overlays/anchored-menu-position.mjs";
 
 const sections = ["Workspace", "Navigation", "Ribbon", "Panes", "Panels", "Blocks", "Controls", "Icons", "Styles"] as const;
 type Section = typeof sections[number];
@@ -98,7 +99,9 @@ export function GlobalCatalogue() {
   const [query, setQuery] = useState("");
   const [selectedSections, setSelectedSections] = useState<Set<Section>>(new Set(sections));
   const [grouped, setGrouped] = useState(true);
-  const [active, setActive] = useState<{ id: string; top: number; left: number } | null>(null);
+  const [active, setActive] = useState<{ id: string; anchor: HTMLElement } | null>(null);
+  const [previewPosition, setPreviewPosition] = useState({ top: 16, left: 16 });
+  const previewRef = useRef<HTMLElement>(null);
   const [pinned, setPinned] = useState(false);
   const openTimer = useRef<number | null>(null);
   const leaveTimer = useRef<number | null>(null);
@@ -117,6 +120,18 @@ export function GlobalCatalogue() {
   }, [query, selectedSections]);
   const sectionsShown = useMemo(() => sections.filter((section) => selectedSections.has(section)), [selectedSections]);
   const activeEntry = active && entries.find((entry) => entry.id === active.id);
+
+  useLayoutEffect(() => {
+    const popup = previewRef.current;
+    if (!active || !popup) return;
+    const rect = active.anchor.getBoundingClientRect();
+    const columnRight = active.anchor.closest("th")?.getBoundingClientRect().right ?? rect.right;
+    // The shared watcher measures the mounted specimen instead of reserving
+    // the maximum preview height, which would detach short previews from rows.
+    return watchAnchoredMenu(active.anchor, popup, "start", ({ top, left }: { top: number; left: number }) => {
+      setPreviewPosition({ top, left });
+    }, undefined, { point: { x: columnRight, y: rect.top } });
+  }, [active]);
 
   useEffect(() => {
     const dismiss = (event: KeyboardEvent) => {
@@ -145,9 +160,7 @@ export function GlobalCatalogue() {
   function show(entry: Entry, target: HTMLElement, pin = false) {
     cancelPendingPreview();
     if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current);
-    const rect = target.getBoundingClientRect();
-    const previewHeight = Math.min(window.innerHeight * 0.8, 680);
-    setActive({ id: entry.id, top: Math.min(Math.max(16, rect.top), Math.max(16, window.innerHeight - previewHeight - 16)), left: Math.min(Math.max(16, rect.right + 8), Math.max(16, window.innerWidth - 470)) });
+    setActive({ id: entry.id, anchor: target });
     setPinned(pin);
     returnFocus.current = target;
   }
@@ -186,7 +199,7 @@ export function GlobalCatalogue() {
           onClick={event => { if (pinned && active?.id === entry.id) dismissPreview(); else show(entry, event.currentTarget, true); }}><AcmIcon name="view.show" size={20} /></button></div></th><td>{entry.section}</td><td>{entry.purpose}</td><td>{entry.owner}</td><td>{entry.consumers}</td><td>{entry.dependencies}</td>
       </tr>)}</Fragment>)}
     </tbody></table>{filtered.length === 0 && <p className="ui-global-empty">No entries match. Try another search or section filter.</p>}</div>
-    {active && activeEntry && <aside id="ui-global-preview" className="ui-global-preview" role="dialog" aria-labelledby="ui-global-preview-title" style={{ top: active.top, left: active.left }} onPointerEnter={() => { if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current); }} onPointerLeave={() => { if (!pinned) dismissPreview(); }}>
+    {active && activeEntry && <aside ref={previewRef} id="ui-global-preview" className="ui-global-preview" role="dialog" aria-labelledby="ui-global-preview-title" style={previewPosition} onPointerEnter={() => { if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current); }} onPointerLeave={() => { if (!pinned) dismissPreview(); }}>
       <button className="ui-global-preview-close" type="button" aria-label="Close preview" onClick={() => dismissPreview(true)}><AcmIcon name="action.close" size={18} /></button><p className="rl-eyebrow">{activeEntry.section} preview</p><h2 id="ui-global-preview-title">{activeEntry.name}</h2><div className="ui-global-preview-body"><PreviewContent entry={activeEntry} /></div><p>{activeEntry.purpose}</p><a href={activeEntry.href}>Open full example</a>
     </aside>}
   </section>;

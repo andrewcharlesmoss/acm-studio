@@ -839,5 +839,9 @@ Preview eye icons visible. Hover the Preview control for 350 ms to preview an
 entry; moving across rows or focusing links does not open previews. Activate
 Preview with pointer, touch, or keyboard for pinned inspection. A pinned preview
 stays unchanged when hovering other entries. Escape and the visible close
-control dismiss the preview. Shared symbols and production specimens supply the
+control dismiss the preview. Preview placement inherits the shared anchored
+overlay watcher, measuring the mounted specimen and keeping it beside its
+trigger. Lower rows shift the popup upwards only enough to fit its actual
+height within the viewport; content resizing updates placement too.
+Shared symbols and production specimens supply the
 visuals; preview-only state remains temporary and isolated.

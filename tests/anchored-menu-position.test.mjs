@@ -87,3 +87,45 @@ test("open menus track anchor/popup resizing and scrolling with complete listene
     assert.equal(visualEvents.size, 0);
   } finally { globalThis.window = previousWindow; globalThis.ResizeObserver = previousObserver; }
 });
+
+test("point-anchored previews stay beside lower rows using their measured height", () => {
+  const previousWindow = globalThis.window;
+  const previousObserver = globalThis.ResizeObserver;
+  let resize;
+  let frame;
+  let height = 200;
+  let position;
+  const anchor = { getBoundingClientRect: () => ({ left: 210, right: 246, top: 500, bottom: 536 }) };
+  const popup = { style: {}, get scrollHeight() { return height; }, getBoundingClientRect: () => ({ width: 430, height }) };
+  globalThis.window = {
+    innerWidth: 1280, innerHeight: 720,
+    requestAnimationFrame: callback => { frame = callback; return 1; },
+    cancelAnimationFrame: () => { frame = null; },
+    addEventListener() {}, removeEventListener() {},
+  };
+  globalThis.ResizeObserver = class { constructor(callback) { resize = callback; } observe() {} disconnect() {} };
+  let stop;
+  try {
+    stop = watchAnchoredMenu(anchor, popup, "start", next => { position = next; }, undefined, { point: { x: 254, y: 500 } });
+    assert.equal(position.left, 254);
+    assert.equal(position.top, 500, "a short preview fits beside its row without reserving the maximum popup height");
+
+    height = 350;
+    resize(); frame();
+    assert.equal(position.top, 362, "growing content moves only enough to fit the actual preview");
+    assert.equal(position.top + height, 712);
+
+    height = 120;
+    resize(); frame();
+    assert.equal(position.top, 500, "shrinking content returns to its trigger");
+
+    height = 1000;
+    resize(); frame();
+    assert.equal(position.top, 8);
+    assert.equal(position.maxHeight, 704, "oversized previews scroll within the viewport");
+  } finally {
+    stop?.();
+    globalThis.window = previousWindow;
+    globalThis.ResizeObserver = previousObserver;
+  }
+});

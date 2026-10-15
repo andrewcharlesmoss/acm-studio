@@ -32,7 +32,7 @@
 .ui-global-group-row th { position:sticky; left:0; z-index:2; min-width:140px; background:#f2f2f0; box-shadow:1px 0 0 var(--rl-line); font-size:.9rem; }
 .ui-global-group-row td { background:#f2f2f0; }
 .ui-global-empty { padding:2rem; color:var(--rl-muted); }
-.ui-global-preview { position:fixed; z-index:10000; width:min(430px,calc(100vw - 32px)); max-height:min(80vh,680px); overflow:auto; border:1px solid var(--rl-line); border-radius:10px; padding:1rem; background:#fff; color:var(--rl-ink); box-shadow:0 8px 32px #0003; }
+.ui-global-preview { position:fixed; z-index:10000; width:min(430px,calc(100vw - 32px)); overflow:auto; border:1px solid var(--rl-line); border-radius:10px; padding:1rem; background:#fff; color:var(--rl-ink); box-shadow:0 8px 32px #0003; }
 .ui-global-preview > .rl-eyebrow { margin:.1rem 2rem .25rem 0; color:var(--rl-muted); font-size:.75rem; text-transform:none; }
 .ui-library-content .ui-global-catalogue .ui-page-intro > .rl-eyebrow { text-transform:none; }
 .ui-global-preview h2 { margin:.2rem 2rem .75rem 0; font-size:1.15rem; }
