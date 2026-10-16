@@ -344,7 +344,8 @@ export function TemplateEditor({ viewControls, scopeNotice, previewControls, glo
             const selectionFrame = <div
               className={`template-node-selectable${node.id !== currentBlock.id ? " studio-nested-block" : ""}`}
               data-studio-nested-block-id={node.id}
-              data-studio-selected={selected === node.id}
+              // The canvas frame owns root selection paint; nested nodes own theirs.
+              data-studio-selected={node.id !== currentBlock.id ? selected === node.id : undefined}
               role="group"
               aria-label={`Template node: ${label}`}
               tabIndex={0}

@@ -18,6 +18,7 @@
 
 ### Fixed
 
+- Use one selection outline for root template blocks, removing mismatched corners.
 - Use shared checkboxes throughout Studio settings, selections, confirmations,
   and library examples, preserving native input state and feature actions.
 - Give background-image width and compound Ribbon sliders the shared thumb,

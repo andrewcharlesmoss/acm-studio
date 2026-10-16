@@ -928,6 +928,10 @@ test("template edit nodes remain keyboard and pointer selectable without visible
   const html = renderToStaticMarkup(createElement(TemplateEditor, { set, target: set.parts[0], documents, mediaUrls: {}, writable: true, onChange: () => true, onEditPart() {}, onOpenMedia() {}, undo() {}, redo() {}, canUndo: false, canRedo: false }));
   assert.doesNotMatch(html, /<button[^>]*class="template-node-select"/);
   assert.match(html, /class="template-node-selectable"[^>]*role="group"[^>]*aria-label="Template node: Group"[^>]*tabindex="0"/);
+  const rootFrame = html.match(/<div class="template-node-selectable"[^>]*>/)?.[0];
+  assert.ok(rootFrame);
+  assert.doesNotMatch(rootFrame, /data-studio-selected=/, "the canvas owns root selection paint; its inner frame must not draw another outline");
+  assert.match(html, /class="template-node-selectable studio-nested-block"[^>]*data-studio-selected="false"/, "nested nodes retain their own selection paint");
   assert.match(html, /aria-label="Template node: Site Identity"/);
   const source = readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
   assert.match(source, /onPointerDown=\{event => \{ event\.stopPropagation\(\); const nestedId = event\.target instanceof Element \? event\.target\.closest<HTMLElement>\("\[data-studio-nested-block-id\]"\)\?\.dataset\.studioNestedBlockId : undefined; selectBlock\(nestedId \?\? node\.id\); \}\}/);
