@@ -19,6 +19,26 @@ const legacy = () => ({ format: "acm-test-site", version: 2, siteId: "test", doc
 const workspace = () => ({ version: 24, activeDocumentId: "page-one", documents: [page("page-one"), page("post-one", "post")], categories: [], bin: [] });
 function imported() { return contract.importBrowserTestContent(legacy(), workspace(), model.emptyTemplateStore()); }
 function valid(value) { assert.equal(contract.validTestSiteDocument(value), true); }
+test("inherited menu links stay in Edit while Preview retains document navigation", () => {
+  const site = imported();
+  const set = site.templates.sets.find(set => set.id === site.siteNavigation.setId);
+  for (const editing of [true, false]) {
+    const edits = [], selections = [];
+    const tree = navigation.TestSiteNavigation({ site, document: site.documents[0], editing,
+      onEdit: (...args) => edits.push(args), onSelectDocument: item => selections.push(item.id) });
+    const nodes = tree.props.children.props.children.props.children;
+    const link = set.navigation.find(item => site.documents.some(document => contract.testDocumentHref(document.id) === item.url));
+    for (const modifiers of [{}, {metaKey:true}, {ctrlKey:true}, {button:1}]) {
+      const anchor = nodes.props.renderNavigationLink(link);
+      assert.equal(anchor.props.href, editing ? undefined : link.url, "Edit has no navigable URL, including auxiliary clicks and the context menu");
+      const event = {button:0, defaultPrevented:false, preventDefault() { this.defaultPrevented = true; }, ...modifiers};
+      anchor.props.onClick?.(event);
+      assert.equal(event.defaultPrevented, editing || Object.keys(modifiers).length === 0);
+    }
+    assert.deepEqual(edits, [], "links never open the navigation editor; its explicit button owns that action");
+    assert.equal(selections.length, editing ? 0 : 1);
+  }
+});
 test("editor navigation renders the shared authored part and preserves the body or assigned template in both modes", () => {
   const site = imported();
   const set = site.templates.sets.find(set => set.id === site.siteNavigation.setId);

@@ -22,14 +22,19 @@ export function TestSiteNavigation({ site, document, editing = false, onEdit, on
         renderNavigationLink={link => {
           const target = site.documents.find(document => testDocumentHref(document.id) === link.url);
           // Dynamic rel adds noopener and noreferrer whenever the link opens in a new tab.
-          // eslint-disable-next-line react/jsx-no-target-blank
-          return <a key={link.id} href={safeTextLink(link.url) ?? undefined} data-test-link={target?.id}
+          // Edit deliberately uses a non-interactive HTML placeholder anchor to retain
+          // inherited link presentation without exposing a destination or button action.
+          // eslint-disable-next-line react/jsx-no-target-blank, jsx-a11y/anchor-is-valid
+          return <a key={link.id} href={editing ? undefined : safeTextLink(link.url) ?? undefined} data-test-link={target?.id}
             target={link.opensInNewTab ? "_blank" : undefined} rel={navigationLinkRel(link)} title={link.description || undefined}
             aria-current={target?.id === document.id ? "page" : undefined}
-            onClick={editing && onEdit || onSelectDocument && target ? event => {
+            onClick={editing || onSelectDocument && target ? event => {
+              // Inherited links are presentation in Edit; the explicit Edit Navigation
+              // control opens menu authoring without changing the selected document.
+              if (editing) { event.preventDefault(); return; }
               if (event.defaultPrevented || link.opensInNewTab || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
               event.preventDefault();
-              if (editing) onEdit?.(set.id, part.id); else if (target) onSelectDocument?.(target);
+              if (target) onSelectDocument?.(target);
             } : undefined}>{link.label}</a>;
         }} />
     </TemplatePartRegion>
