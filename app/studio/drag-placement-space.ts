@@ -6,37 +6,41 @@ export const OUTER_INSERTION_GAP = 24;
 export type PlacementSpace = { element: HTMLElement; axis: DropAxis; rows?: HTMLElement[]; boundary?: HTMLElement };
 
 export type PlacementEdgeGaps = { before: number; after: number };
-const outsideSlots = new WeakMap<HTMLElement, PlacementEdgeGaps>();
+const outsideSlots = new WeakMap<HTMLElement, PlacementEdgeGaps & { axis: DropAxis }>();
 
 /** Real end slots may occupy an existing surface gutter without insetting content. */
 export function placementContainsPoint(element: HTMLElement, x: number, y: number): boolean {
   const box = element.getBoundingClientRect();
   const slots = outsideSlots.get(element);
   const scale = slots ? dropContainerScale(element) : 1;
-  return x >= box.left - (slots?.before ?? 0) * scale && x <= box.right + (slots?.after ?? 0) * scale && y >= box.top && y <= box.bottom;
+  const horizontal = slots?.axis === "x", vertical = slots?.axis === "y";
+  return x >= box.left - (horizontal ? slots.before * scale : 0) && x <= box.right + (horizontal ? slots.after * scale : 0) && y >= box.top - (vertical ? slots.before * scale : 0) && y <= box.bottom + (vertical ? slots.after * scale : 0);
 }
 
 /** Read the same reserved CSS extents used by end-slot feedback. */
 export function placementEdgeGaps(element: HTMLElement, axis: DropAxis = "y"): PlacementEdgeGaps {
   const style = element.ownerDocument.defaultView?.getComputedStyle(element);
   const names = axis === "x" ? ["padding-left", "padding-right"] : ["padding-top", "padding-bottom"];
-  const slots = axis === "x" ? outsideSlots.get(element) : undefined;
+  const reserved = outsideSlots.get(element);
+  const slots = reserved?.axis === axis ? reserved : undefined;
   return { before: (Number.parseFloat(style?.getPropertyValue(names[0]) ?? "") || 0) + (slots?.before ?? 0), after: (Number.parseFloat(style?.getPropertyValue(names[1]) ?? "") || 0) + (slots?.after ?? 0) };
 }
 
-function reserveSurfaceGutter(element: HTMLElement, boundary: HTMLElement, gaps: PlacementEdgeGaps, style: CSSStyleDeclaration): (() => void) | null {
+function reserveSurfaceGutter(element: HTMLElement, boundary: HTMLElement, axis: DropAxis, gaps: PlacementEdgeGaps, style: CSSStyleDeclaration): (() => void) | null {
   const box = element.getBoundingClientRect(), outer = boundary.getBoundingClientRect();
   const scale = dropContainerScale(element);
-  const before = Math.max(0, gaps.before - (Number.parseFloat(style.getPropertyValue("padding-left")) || 0));
-  const after = Math.max(0, gaps.after - (Number.parseFloat(style.getPropertyValue("padding-right")) || 0));
+  const horizontal = axis === "x";
+  const start = horizontal ? "left" : "top", end = horizontal ? "right" : "bottom";
+  const before = Math.max(0, gaps.before - (Number.parseFloat(style.getPropertyValue(`padding-${start}`)) || 0));
+  const after = Math.max(0, gaps.after - (Number.parseFloat(style.getPropertyValue(`padding-${end}`)) || 0));
   // Borrow only a clear gutter at the surface edge, never a neighbouring block.
-  if (box.left - outer.left < before * scale || outer.right - box.right < after * scale) return null;
+  if (box[start] - outer[start] < before * scale || outer[end] - box[end] < after * scale) return null;
   if (!before && !after) return null;
   for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
     const ancestorStyle = element.ownerDocument.defaultView?.getComputedStyle(ancestor);
-    if (/^(hidden|clip|auto|scroll)$/.test(ancestorStyle?.overflowX ?? "")) {
+    if (/^(hidden|clip|auto|scroll)$/.test((horizontal ? ancestorStyle?.overflowX : ancestorStyle?.overflowY) ?? "")) {
       const clip = ancestor.getBoundingClientRect();
-      if (box.left - before * scale < clip.left || box.right + after * scale > clip.right) return null;
+      if (box[start] - before * scale < clip[start] || box[end] + after * scale > clip[end]) return null;
     }
     if (ancestor === boundary) break;
   }
@@ -44,15 +48,16 @@ function reserveSurfaceGutter(element: HTMLElement, boundary: HTMLElement, gaps:
   const originalPriority = element.style.getPropertyPriority("position");
   const positioned = style.position === "static";
   if (positioned) element.style.setProperty("position", "relative");
-  const slots = [before, after].map((width, index) => {
+  const slots = [before, after].map((extent, index) => {
     const slot = element.ownerDocument.createElement("span");
     slot.setAttribute("aria-hidden", "true");
     slot.setAttribute("data-studio-placement-slot", "");
-    slot.style.cssText = `position:absolute;top:0;bottom:0;width:${width}px;${index === 0 ? "right:100%" : "left:100%"};margin:0;padding:0;border:0;pointer-events:auto;`;
+    const dimensions = horizontal ? `top:0;bottom:0;width:${extent}px;${index === 0 ? "right:100%" : "left:100%"}` : `left:0;right:0;height:${extent}px;${index === 0 ? "bottom:100%" : "top:100%"}`;
+    slot.style.cssText = `position:absolute;${dimensions};margin:0;padding:0;border:0;pointer-events:auto;`;
     element.append(slot);
     return slot;
   });
-  outsideSlots.set(element, { before, after });
+  outsideSlots.set(element, { before, after, axis });
   return () => {
     slots.forEach(slot => slot.remove()); outsideSlots.delete(element);
     if (positioned && element.style.getPropertyValue("position") === "relative") {
@@ -92,7 +97,7 @@ export function reservePlacementSpace(spaces: PlacementSpace[]): () => void {
     if (!computed) continue;
     const properties = axis === "x" ? ["padding-left", "padding-right"] : ["padding-top", "padding-bottom"];
     const gaps = siblingGaps(element, axis, computed, rows);
-    const gutter = axis === "x" && boundary ? reserveSurfaceGutter(element, boundary, gaps, computed) : null;
+    const gutter = boundary ? reserveSurfaceGutter(element, boundary, axis, gaps, computed) : null;
     if (gutter) { restores.push(gutter); continue; }
     for (const [index, property] of properties.entries()) {
       const original = element.style.getPropertyValue(property);

@@ -30,6 +30,8 @@
 
 ### Fixed
 
+- Keep Footer, Header, Page, and Post template content in the same position in
+  Edit and Preview by reserving root drag slots within the existing canvas gutters.
 - Keep shared Header content aligned with Page/Post previews while editing,
   using the existing canvas gutter for horizontal drag end slots.
 - Use one selection outline for root template blocks, removing mismatched corners.

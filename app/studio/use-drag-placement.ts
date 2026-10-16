@@ -10,6 +10,7 @@ export type DragPlacementPolicy<S, T> = {
   axis?: DropAxis;
   reserveSpace?: boolean;
   rows?: (root: HTMLElement) => HTMLElement[];
+  boundary?: (root: HTMLElement) => HTMLElement | undefined;
   spaces?: (root: HTMLElement) => PlacementSpace[];
   canStart: (source: S) => boolean;
   effect?: (source: S) => "copy" | "move";
@@ -25,7 +26,7 @@ export function useDragPlacement<S, T>(policy: DragPlacementPolicy<S, T>) {
   const root = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
     if (!root.current || policy.reserveSpace === false) return;
-    return maintainPlacementSpace([{ element: root.current, axis: policy.axis ?? "y", rows: policy.rows?.(root.current) }, ...(policy.spaces?.(root.current) ?? [])]);
+    return maintainPlacementSpace([{ element: root.current, axis: policy.axis ?? "y", rows: policy.rows?.(root.current), boundary: policy.boundary?.(root.current) }, ...(policy.spaces?.(root.current) ?? [])]);
   });
   const latest = useRef(policy);
   useLayoutEffect(() => { latest.current = policy; });

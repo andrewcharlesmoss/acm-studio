@@ -11,10 +11,6 @@ export function blockSiblingAxis(owner: HTMLElement): "x" | "y" {
   const style = owner.ownerDocument.defaultView!.getComputedStyle(owner);
   return style.display.includes("flex") && !style.flexDirection.startsWith("column") || style.display.includes("grid") && style.gridTemplateColumns.split(" ").length > 1 ? "x" : "y";
 }
-function inside(element: HTMLElement, x: number, y: number) {
-  const box = element.getBoundingClientRect();
-  return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
-}
 function lineInCanvas(canvas: HTMLElement, owner: HTMLElement, children: HTMLElement[], index: number, axis: "x" | "y"): DropLine {
   const box = canvas.getBoundingClientRect();
   const scale = dropContainerScale(canvas);
@@ -22,7 +18,7 @@ function lineInCanvas(canvas: HTMLElement, owner: HTMLElement, children: HTMLEle
   return dropLineInContainer(line, owner.getBoundingClientRect(), box, scale, { scrollLeft: canvas.scrollLeft, scrollTop: canvas.scrollTop, borderLeft: canvas.clientLeft, borderTop: canvas.clientTop });
 }
 export function rootBlockDropPosition(canvas: HTMLElement, x: number, y: number): { index: number; line: DropLine } | null {
-  if (!inside(canvas, x, y)) return null;
+  if (!placementContainsPoint(canvas, x, y)) return null;
   const children = Array.from(canvas.querySelectorAll<HTMLElement>(":scope > .block-position > .canvas-block"));
   const index = insertionGapIndex(children.map(child => child.getBoundingClientRect()), x, y);
   return { index, line: lineInCanvas(canvas, canvas, children, index, "y") };
