@@ -3,6 +3,18 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import postcss from "postcss";
 
+test("Fit to Part hides only the trailing part appender without reserving a gutter", async () => {
+  const sheet = postcss.parse(await readFile(new URL("../app/studio/templates.css", import.meta.url), "utf8"));
+  const rules = sheet.nodes.filter(node => node.type === "rule" && node.selector.includes(".template-fit-part"));
+  assert.equal(rules.length, 2);
+  const sizing = rules.find(rule => rule.selector === ".template-editing.template-fit-part :is(.block-canvas, .document-preview)");
+  assert.ok(sizing, "Edit and Preview share the same fitted sizing rule");
+  assert.deepEqual(sizing.nodes.map(({ prop, value }) => [prop, value]), [["min-height", "0"]]);
+  const appender = rules.find(rule => rule.selector === ".template-fit-part .template-part-content > .canvas-blocks > .canvas-appender");
+  assert.ok(appender, "Only the direct part appender is hidden, leaving nested controls and Full Canvas unchanged");
+  assert.deepEqual(appender.nodes.map(({ prop, value }) => [prop, value]), [["display", "none"]]);
+});
+
 test("Template authoring reuses shared spacing without editor-only layout reserves", async () => {
   const templates = postcss.parse(await readFile(new URL("../app/studio/templates.css", import.meta.url), "utf8"));
   const studio = postcss.parse(await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"));

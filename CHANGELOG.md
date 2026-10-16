@@ -33,6 +33,9 @@
 
 ### Fixed
 
+- Hide the trailing appender and remove its reserved space in Header and Footer
+  Fit to Part views, keeping Edit and Preview sizing consistent.
+
 - Remember Header and Footer canvas choices when another Studio tab owns saving,
   using acknowledged preference commands through the existing writer.
 

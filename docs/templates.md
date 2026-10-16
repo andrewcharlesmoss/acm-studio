@@ -53,8 +53,11 @@ social/support links are supplied by the preview choice and remain read-only. St
 Ordinary paragraph style overrides take precedence over those tokens.
 
 Standalone Header and Footer editors offer **Canvas → Fit to Part** beside Zoom.
-It shortens the paper to the part's intrinsic content height plus the editing
-gutter; the appender overlays that gutter without changing the paper height.
+It shortens the paper to the part's intrinsic content height and shared canvas
+padding. Fit to Part hides the trailing appender and removes its reserved gutter;
+use the toolbar's Add Block or Add Template Element controls to insert content.
+Full Canvas retains the trailing appender, and nested insertion controls remain
+available in both views.
 **Full Canvas** remains the default. The choice is remembered separately for
 headers and footers in this browser, across sites and Edit/Preview. Both modes
 use the same sizing, including after zooming, width changes, or content growth.

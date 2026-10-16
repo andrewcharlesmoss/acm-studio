@@ -494,9 +494,8 @@
   .template-dependency-dialog .studio-dialog-actions { justify-content: flex-start; }
 }
 
-/* Fit is a workspace view, never a saved template dimension. Both modes reserve
-   the same 24px gap + 46px appender gutter, independent of authored surface
-   spacing. The appender overlays this gutter only in Edit. */
-.template-editing.template-fit-part :is(.block-canvas, .document-preview) { min-height: 0; padding-bottom: 70px; }
-.template-fit-part .template-part-content > .canvas-blocks > .canvas-appender { position: absolute; top: 100%; margin-top: 24px; }
+/* Fit is a workspace view, never a saved template dimension. Both modes retain
+   the shared canvas padding without a trailing appender or its reserved gutter. */
+.template-editing.template-fit-part :is(.block-canvas, .document-preview) { min-height: 0; }
+.template-fit-part .template-part-content > .canvas-blocks > .canvas-appender { display: none; }
 .template-part-view-status { flex-basis: 100%; color: var(--muted); }
