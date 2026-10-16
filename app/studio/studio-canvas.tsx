@@ -856,6 +856,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   }
 
   const canvasInserterCurrent = Boolean(canvasInserter && writable && !previewing && !codeEditor && canvasInserter.anchor.isConnected && canvasInsertionTargetCurrent(activeDocument, canvasInserter.target));
+  const appenderChooserOpen = canvasInserterCurrent && Boolean(canvasInserter?.anchor.classList.contains("canvas-appender-button"));
   const canvasChoices = canvasInserterCurrent && canvasInserter ? canvasBlockChoices(activeDocument, canvasInserter.target, canvasInserter.query, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation), allowTemplatePageLink: Boolean(onInsertTemplatePageLink) }) : [];
 
   useLayoutEffect(() => {
@@ -2374,7 +2375,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                     setAppenderActive(false);
                   }}
                 />
-                <button className="canvas-appender-button" type="button" disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, activeDocument.blocks.length - 1)} aria-haspopup="dialog" aria-expanded={canvasInserterCurrent && canvasInserter?.anchor.classList.contains("canvas-appender-button")} aria-label="Add block" title="Add block"><StudioIcon name="add" /></button>
+                <button className="canvas-appender-button" type="button" disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, activeDocument.blocks.length - 1)} aria-haspopup="dialog" aria-expanded={appenderChooserOpen} aria-label={appenderChooserOpen ? "Close block chooser" : "Add block"} title={appenderChooserOpen ? "Close block chooser" : "Add block"}><StudioIcon name="add" /></button>
               </div>
             </div>
             {presentation?.renderFooter?.({ document: activeDocument, mode: "edit", writable, selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
