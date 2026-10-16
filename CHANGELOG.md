@@ -4,6 +4,9 @@
 
 ### Added
 
+- Offer optional Fit to Part canvases for Header and Footer editing, remembering
+  each choice separately and keeping Edit and Preview sizing consistent.
+
 - Publish browser-local Pages with immutable snapshots, separate draft edits,
   local page addresses, and shared publication recovery, media, and previews.
 

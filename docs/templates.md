@@ -52,6 +52,20 @@ to the browser. Template design controls edit global originals. Identity, naviga
 social/support links are supplied by the preview choice and remain read-only. Styles lists the entries sharing its presentation settings.
 Ordinary paragraph style overrides take precedence over those tokens.
 
+Standalone Header and Footer editors offer **Canvas → Fit to Part** beside Zoom.
+It shortens the paper to the part's intrinsic content height plus the editing
+gutter; the appender overlays that gutter without changing the paper height.
+**Full Canvas** remains the default. The choice is remembered separately for
+headers and footers in this browser, across sites and Edit/Preview. Both modes
+use the same sizing, including after zooming, width changes, or content growth.
+Fitted parts reserve insertion spaces only while dragging, so missing authored
+padding cannot shift the normal editing layout; cancellation restores that layout.
+This preference does not change authored dimensions, shared template data,
+assignments, or publication output. Page, Post, and Overlay editors retain their
+existing canvas. Saving uses the shared Studio preference repository under
+`studioWriteOwnership`; unavailable or blocked saving keeps the choice on the
+current page and displays its unsaved status.
+
 Template Edit and Preview use a white canvas without a shadow and the same pale
 off-page background as the content editor. These workspace colours do not
 override authored template or block backgrounds.

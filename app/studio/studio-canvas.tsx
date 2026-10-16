@@ -756,12 +756,14 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     focusInsertedBlock(blockId, false);
   }
 
+  const canvasClasses = className?.split(/\s+/) ?? [];
+  const continuousTemplatePlacement = canvasClasses.includes("template-editing") && !canvasClasses.includes("template-fit-part");
   const rootDragTypes = blockInserterOptions(filteredBlocks ?? [], undefined, "", socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation) }).map(item => item.type);
   const blockDrag = useDragPlacement<BlockDragSource, BlockDragTarget>({
     version: JSON.stringify([activeDocument.id, activeDocument.blocks]), writable: writable && !previewing && !codeEditor,
-    // Body slots have no guaranteed gutter before their Header or after their Footer.
-    // Reserve within the body only during a drag, keeping normal editing in place.
-    reserveSpace: previewing || codeEditor ? false : className?.split(/\s+/).includes("template-editing") ? true : "drag",
+    // Bodies and fitted parts have no guaranteed authored gutter. Borrow or
+    // reserve their end slots only during a drag, keeping idle content in place.
+    reserveSpace: previewing || codeEditor ? false : continuousTemplatePlacement ? true : "drag",
     rows: canvas => Array.from(canvas.querySelectorAll<HTMLElement>(":scope > .block-position > .canvas-block")),
     boundary: canvas => canvas.closest<HTMLElement>(".template-authoring-surface") ?? undefined,
     spaces: canvas => blockPlacementSpaces(canvas, activeDocument.blocks),
