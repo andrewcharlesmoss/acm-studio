@@ -49,6 +49,9 @@
 
 ### Fixed
 
+- Capitalise generated List View names for template elements, shared parts,
+  site roles, and components, while preserving custom block names.
+
 - Hide template editing toolbars while a navigation overlay is open, including
   in Full Canvas, restoring them when the menu closes.
 

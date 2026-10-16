@@ -7,6 +7,7 @@ import { LinkPreviewActions, LinkSuggestions, LinkTextField, LinkUrlField } from
 import { HistoryActions } from "./controls/history-actions";
 import { InserterToggleIcon } from "./controls/inserter-toggle-icon";
 import { CanvasInserterAnchorContext, CanvasInserterButton } from "./controls/canvas-inserter-button";
+import { templateElementLabel } from "./template-model";
 import { CanvasBlockChooser } from "./canvas-block-chooser";
 import { captureCanvasInsertionTarget, canvasInsertionTargetCurrent, canvasBlockChoices, type CanvasInsertionTarget } from "./canvas-insertion-target";
 import { useBlockInsertionGaps } from "./use-block-insertion-gaps";
@@ -144,12 +145,12 @@ function lastParagraphBlock(blocks: ContentBlock[]): Extract<ContentBlock, { typ
 
 function blockOutlineLabel(block: ContentBlock) {
   if (block.editorial?.name?.trim()) return block.editorial.name.trim();
-  if (block.type === "group" && block.data?.templateElement) return String(block.data.templateElement).replaceAll("-", " ");
-  if (block.type === "group" && block.data?.templatePart) return "Shared part";
+  if (block.type === "group" && block.data?.templateElement) return templateElementLabel(String(block.data.templateElement));
+  if (block.type === "group" && block.data?.templatePart) return "Shared Part";
   if (block.type === "section" && block.role) return block.role.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
-  if (block.siteRole) return `${block.siteRole.replaceAll("-", " ")}: ${"text" in block ? block.text.slice(0, 36) : "label" in block ? block.label : block.type}`;
+  if (block.siteRole) return `${block.siteRole.charAt(0).toUpperCase() + block.siteRole.slice(1).replaceAll("-", " ")}: ${"text" in block ? block.text.slice(0, 36) : "label" in block ? block.label : block.type}`;
   if (block.type === "heading") return `Heading ${block.level}`;
-  if (block.type === "component") return block.component.replace("mini-golf-", "Mini Golf ");
+  if (block.type === "component") return templateElementLabel(block.component);
   return block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type);
 }
 
