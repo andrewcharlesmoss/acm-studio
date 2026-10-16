@@ -2,7 +2,7 @@
 import { SelectControl, TextInput } from "./controls/native-fields";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 
-import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties, type DragEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import type { ContentBlock, ParagraphAppearance } from "../content/model";
 import { equivalentLinkDestination, updatedLinkDestination } from "../content/link-destination";
@@ -229,8 +229,9 @@ export function LinkSetting({ label, value, maxLength = 2000, onCommit, onDraftC
   return <label>{label}<TextInput key={value} defaultValue={value} maxLength={maxLength} onChange={event => onDraftChange?.(event.target.value)} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
 }
 
-export function NavigationInspector({ linksWritable = true, block, menuName = "Navigation", onBlockChange, overlayContext = false, overlayParts = [], canCreateOverlay = true, onCreateOverlay, onEditOverlay, ...props }: NavigationEditingProps & { linksWritable?: boolean; menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void; overlayContext?: boolean; overlayParts?: TemplatePart[]; canCreateOverlay?: boolean; onCreateOverlay?: () => void; onEditOverlay?: (id: string) => void }) {
+export function NavigationInspector({ linkHistory, linksWritable, block, menuName = "Navigation", onBlockChange, overlayContext = false, overlayParts = [], canCreateOverlay = true, onCreateOverlay, onEditOverlay, ...props }: NavigationEditingProps & { linkHistory?: ReactNode; linksWritable?: boolean; menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void; overlayContext?: boolean; overlayParts?: TemplatePart[]; canCreateOverlay?: boolean; onCreateOverlay?: () => void; onEditOverlay?: (id: string) => void }) {
   const { editingViewport } = useResponsiveStyleScope();
+  const menuWritable = linksWritable ?? props.writable;
   const [activeTab, setActiveTab] = useState("menu");
   const tabId = useId();
   const [menuOptionsOpen, setMenuOptionsOpen] = useState(false);
@@ -242,19 +243,19 @@ export function NavigationInspector({ linksWritable = true, block, menuName = "N
     for (const [key, value] of Object.entries(patch)) { if (value === undefined) delete next[key]; else next[key] = value; }
     if (props.writable) onBlockChange({ ...block, data: next });
   };
-  if (editingViewport !== "desktop") return <div className="navigation-inspector inspector-sections"><h3>Navigation</h3><p className="setting-note">Style {editingViewport} only. Unset values inherit Desktop.</p><ParagraphInspector key={`${block.id}:${editingViewport}`} profileOverride={navigationStyleProfile} block={block} onChange={next => { if (props.writable) onBlockChange(next); }} fontSizeViewMode={fontSizeViewMode} onFontSizeViewModeChange={setFontSizeViewMode} /></div>;
+
   return <div className="navigation-inspector inspector-sections">
     <div className="navigation-block-summary"><h3><AcmIcon name="navigation.menu" size={24} />Navigation</h3><p>A collection of blocks that allow visitors to get around your site.</p></div>
     <PaneTabs id={tabId} label="Navigation controls" indicatorVariant="selected" className="navigation-inspector-tabs" tabs={[{ id: "menu", label: "Menu" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]} active={activeTab} onChange={setActiveTab} renderLabel={tab => <><AcmIcon name={tab.id === "menu" ? "view.list" : tab.id === "settings" ? "action.settings" : "view.styles"} size={24} /><span className="visually-hidden">{tab.label}</span></>} />
     <div role="tabpanel" id={paneTabTarget(tabId, activeTab, "panel")} aria-labelledby={paneTabTarget(tabId, activeTab, "tab")}>
-    {activeTab === "menu" ? <>
+    {editingViewport !== "desktop" && activeTab !== "menu" ? <div className="navigation-inspector inspector-sections"><h3>Navigation</h3><p className="setting-note">Style {editingViewport} only. Unset values inherit Desktop.</p><ParagraphInspector key={`${block.id}:${editingViewport}`} profileOverride={navigationStyleProfile} block={block} onChange={next => { if (props.writable) onBlockChange(next); }} fontSizeViewMode={fontSizeViewMode} onFontSizeViewModeChange={setFontSizeViewMode} /></div> : activeTab === "menu" ? <>
     <section className="navigation-menu-section">
       <div className="navigation-menu-heading"><h2>{menuName}</h2><button ref={menuOptionsTrigger} type="button" className="navigation-item-options" aria-label="Menu options" aria-haspopup="menu" aria-expanded={menuOptionsOpen} onClick={() => setMenuOptionsOpen(open => !open)}><StudioIcon name="more-vertical" size={20} /></button></div>
       {menuOptionsOpen ? <StudioAnchoredMenu inspectorPlacement anchor={() => menuOptionsTrigger.current} aria-label="Menu options" onClose={(focus = true) => { setMenuOptionsOpen(false); if (focus) menuOptionsTrigger.current?.focus(); }}>
         <button type="button" role="menuitem" disabled={!props.links.length} onClick={() => { setMenuOptionsOpen(false); props.onSelect(props.links[0]?.id ?? null); }}>Edit first Page link</button>
         <button type="button" role="menuitem" onClick={() => { setMenuOptionsOpen(false); menuOptionsTrigger.current?.focus(); }}><StudioIcon name="close" />Close</button>
       </StudioAnchoredMenu> : null}
-      <NavigationMenuList {...props} writable={props.writable && linksWritable} blockId={block.id} />{!linksWritable ? <p className="setting-note">Menu links belong to the site. Edit Navigation from that site to change them.</p> : null}
+      {linkHistory}<NavigationMenuList {...props} writable={menuWritable} blockId={block.id} />{linksWritable === false ? <p className="setting-note">Menu links are read-only. Editing requires an active site with editing available; preview selection does not grant permission.</p> : null}
     </section>
     </> : activeTab === "settings" ? <>
     {!overlayContext ? <InspectorAccordionSection title="Overlay" contentDisabled={!props.writable}>

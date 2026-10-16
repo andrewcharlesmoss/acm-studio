@@ -15,6 +15,12 @@
 
 ### Changed
 
+- Collapse Header navigation when its links no longer fit the available width,
+  preserving inline links on wider layouts in Edit, Preview and local output.
+- Allow the active site's links to be added, edited and reordered directly in
+  the Header Navigation pane, with site-owned saving and Undo/Redo. Unscoped
+  previews remain read-only and Header styling remains shared.
+
 - Expose drag handles and Move Up/Move Down controls beside navigation menu items,
   preserving submenu nesting and the existing Undo/Redo history.
 

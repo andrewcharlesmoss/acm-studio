@@ -561,8 +561,12 @@ only; cancelled or stale drags cannot change the menu.
 Template v0.29.0 adds Show icon button, two-line and three-line menu icons,
 and an optional `overlayPartId`. Older menus retain their three-line icon;
 hiding the icon uses visible Menu and Close text. Off hides the overlay controls
-without discarding their saved values. Mobile uses the existing 600px container
-breakpoint; Always uses an overlay at every width.
+without discarding their saved values. Mobile measures natural menu width against the available Header row after
+identity and spacing, collapsing before links wrap; the 600px container rule is
+only a no-script fallback. Always uses an overlay at every width. Active Test or
+Test2 Navigation panes edit canonical site links through their existing owner,
+revision checks and site history. No active site means read-only links, including
+another site selected only for preview. Header layout and styling stay global.
 
 Overlay templates are shared `TemplatePart` records with kind `overlay` in the
 same set. The inspector's + creates, assigns and opens a part in one undoable

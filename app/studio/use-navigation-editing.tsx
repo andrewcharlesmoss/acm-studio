@@ -1,5 +1,6 @@
 "use client";
-import { useRef, useState, type MouseEvent } from "react";
+import { useLayoutEffect, useRef, useState, type MouseEvent } from "react";
+import type { SiteLink } from "./template-model";
 import { copyTemplateData } from "./template-model";
 import { draftGlobalTemplates } from "./draft-global-templates";
 import { draftNavigationReference, retainDraftNavigation } from "./draft-navigation";
@@ -12,6 +13,12 @@ import { useTestSiteContext } from "./test-site/use-test-site-context";
 import type { useStudioWorkspace } from "./use-studio-workspace";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 export type { NavigationEditTarget } from "./navigation-edit-target";
+
+export type SiteNavigationPaneAdapter = {
+  links: SiteLink[]; writable: boolean; ownerName: string; saveLabel: string;
+  change: (links: SiteLink[]) => boolean;
+  undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean;
+};
 
 export function useNavigationEditSelection(site: LocalFixtureSiteId | null) {
   const [editingSiteNavigation, setEditingSiteNavigation] = useState(false);
@@ -55,6 +62,31 @@ export function useNavigationEditing({ target, editing, onEditingChange, browser
   const navigationTemplates = target === "drafts" ? draftNavigationSession : context.templates;
   const navigationReference = target === "drafts" ? draftNavigation : context.siteNavigation;
   const navigationDocuments = target === "drafts" ? documents : context.session.workspace.documents;
+  const paneAuthority = useRef({ target, setId: navigationReference?.setId, partId: navigationReference?.partId });
+  useLayoutEffect(() => { paneAuthority.current = { target, setId: navigationReference?.setId, partId: navigationReference?.partId }; }, [target, navigationReference?.setId, navigationReference?.partId]);
+  const paneSet = navigationTemplates.store.sets.find(item => item.id === navigationReference?.setId);
+  const paneLinks = paneSet?.navigation ?? [];
+  // This adapter carries authority from the active fixture owner, never from a
+  // preview choice or the global template's transient site projection.
+  const pane: SiteNavigationPaneAdapter | undefined = target === "drafts" ? undefined : {
+    links: paneLinks, writable: navigationTemplates.writable && Boolean(paneSet),
+    ownerName: navigationTargetName(target), saveLabel: navigationTemplates.saveLabel,
+    undo: navigationTemplates.undo, redo: navigationTemplates.redo,
+    canUndo: navigationTemplates.canUndo, canRedo: navigationTemplates.canRedo,
+    change(next) {
+      if (!navigationTemplates.writable || !paneSet || paneAuthority.current.target !== target
+        || paneAuthority.current.setId !== paneSet.id || paneAuthority.current.partId !== navigationReference?.partId) return false;
+      try {
+        const accepted = navigationTemplates.commit(store => {
+          const current = store.sets.find(item => item.id === paneSet.id);
+          if (!current || JSON.stringify(current.navigation) !== JSON.stringify(paneLinks)) throw new Error("The menu changed. Reopen the action to edit its latest version.");
+          return { ...store, sets: store.sets.map(item => item.id === current.id ? { ...item, navigation: next } : item) };
+        });
+        setNavigationFeedback(accepted ? null : "Editing is unavailable. Your current menu has been preserved.");
+        return accepted;
+      } catch (failure) { setNavigationFeedback(failure instanceof Error ? failure.message : "The menu could not be changed."); return false; }
+    },
+  };
   async function prepareNavigationLeave(close = true) {
     if (!editing) return true;
     if (navigationTransition.current) return false;
@@ -89,6 +121,6 @@ export function useNavigationEditing({ target, editing, onEditingChange, browser
     if (!editing) return true;
     setNavigationFeedback("Close navigation editing before using browser Back or Forward. Your menu remains here."); return false;
   }
-  return { guardNavigationLink, canLeaveViaHistory, controls: navigationControls, editor: navigationEditor, feedback: navigationFeedback, prepareLeave: prepareNavigationLeave, afterNavigation,
+  return { pane, guardNavigationLink, canLeaveViaHistory, controls: navigationControls, editor: navigationEditor, feedback: navigationFeedback, prepareLeave: prepareNavigationLeave, afterNavigation,
     templates: { ...navigationTemplates, undo: () => { navigationHistoryChangeRef.current?.(); return navigationTemplates.undo(); }, redo: () => { navigationHistoryChangeRef.current?.(); return navigationTemplates.redo(); } } };
 }

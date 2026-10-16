@@ -1,5 +1,70 @@
 /** Self-contained so generated local sites reuse the behaviour without hydration. */
 export function attachNavigationRuntime(root: HTMLElement | Document) {
+  const navigationRoots = () => root instanceof HTMLElement && root.matches(".template-navigation")
+    ? [root] : Array.from(root.querySelectorAll<HTMLElement>(".template-navigation"));
+  function compactHeaderRow(nav: HTMLElement) {
+    const row = nav.closest<HTMLElement>(".template-header [data-compact-navigation-row]");
+    const parentNavigation = nav.parentElement?.closest<HTMLElement>(".template-navigation");
+    return parentNavigation && row?.contains(parentNavigation) ? null : row;
+  }
+  const observationRoot = root instanceof HTMLElement ? compactHeaderRow(root) ?? root : root;
+  const visibilityOptions = { subtree: true, attributes: true, attributeFilter: ["hidden", "style", "class"], childList: true, characterData: true };
+  function refreshCollapse() {
+    for (const nav of navigationRoots()) {
+      if (nav.dataset.navigationOverlay !== "mobile") continue;
+      const desktop = nav.querySelector<HTMLElement>(":scope > .template-navigation-desktop");
+      const list = desktop?.querySelector<HTMLElement>(":scope > .template-navigation-items");
+      if (!desktop || !list) continue;
+      const row = compactHeaderRow(nav);
+      const identity = row?.querySelector<HTMLElement>(".template-brand");
+      const rowStyle = row ? getComputedStyle(row) : undefined;
+      const width = row ? row.clientWidth - (parseFloat(rowStyle!.paddingLeft) || 0) - (parseFloat(rowStyle!.paddingRight) || 0) : nav.clientWidth;
+      if (!width) continue; // Hidden local-publication sections are measured on reveal.
+      const previousDesktop = desktop.getAttribute("style");
+      const previousList = list.getAttribute("style");
+      // Measure the real styled links in their unwrapped state, even when the
+      // overlay is showing. A max-content measurement avoids collapse feedback.
+      desktop.style.cssText += ";display:block;position:absolute;visibility:hidden;width:max-content;max-width:none;";
+      list.style.cssText += ";flex-wrap:nowrap;width:max-content;max-width:none;";
+      const needed = list.offsetWidth;
+      if (previousDesktop === null) desktop.removeAttribute("style"); else desktop.setAttribute("style", previousDesktop);
+      if (previousList === null) list.removeAttribute("style"); else list.setAttribute("style", previousList);
+      function horizontalExtras(element: HTMLElement | null) {
+        if (!element) return 0;
+        const style = getComputedStyle(element);
+        return [style.paddingLeft, style.paddingRight, style.borderLeftWidth, style.borderRightWidth, style.marginLeft, style.marginRight].reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+      }
+      let identityWidth = 0;
+      if (identity && row) {
+        const previousIdentity = identity.getAttribute("style");
+        identity.style.cssText += ";position:absolute;visibility:hidden;width:max-content;max-width:none;";
+        identityWidth = identity.offsetWidth;
+        if (previousIdentity === null) identity.removeAttribute("style"); else identity.setAttribute("style", previousIdentity);
+        const identityChild = Array.from(row.children).find(child => child.contains(identity));
+        const navigationChild = Array.from(row.children).find(child => child.contains(nav));
+        identityWidth += horizontalExtras(identityChild instanceof HTMLElement ? identityChild : null);
+        identityWidth += horizontalExtras(navigationChild instanceof HTMLElement ? navigationChild : null);
+      }
+      const gap = rowStyle ? parseFloat(rowStyle.columnGap) || 0 : 0;
+      const available = width - identityWidth - (identity ? gap : 0) - horizontalExtras(nav);
+      const collapsed = needed > available;
+      nav.dataset.navigationCollapsed = String(collapsed);
+      if (!collapsed) {
+        const overlay = nav.querySelector<HTMLDetailsElement>(":scope > .template-navigation-overlay");
+        if (overlay?.open) {
+          const hadFocus = overlay.contains(document.activeElement);
+          close(overlay, false);
+          if (hadFocus) desktop.querySelector<HTMLElement>("a[href], summary, button")?.focus();
+        }
+      }
+    }
+  }
+  function refresh() {
+    // Own temporary measurement styles must not schedule another measurement.
+    visibilityObserver?.disconnect();
+    try { refreshCollapse(); refreshLinkAnchors(); }
+    finally { visibilityObserver?.observe(observationRoot, visibilityOptions); }
+  }
   // Desktop and overlay copies share one authored link. Only the active
   // presentation owns its anchor, including custom overlay Navigation children.
   function refreshLinkAnchors() {
@@ -97,20 +162,19 @@ export function attachNavigationRuntime(root: HTMLElement | Document) {
       item = item.parentElement?.closest<HTMLElement>(".has-submenu") ?? null;
     }
   }
-  refreshLinkAnchors();
-  const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(refreshLinkAnchors);
-  const navigationRoots = root instanceof HTMLElement && root.matches(".template-navigation")
-    ? [root] : Array.from(root.querySelectorAll<HTMLElement>(".template-navigation"));
-  for (const nav of navigationRoots) observer?.observe(nav);
+  const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(refresh);
+  for (const nav of navigationRoots()) { observer?.observe(nav); const row = compactHeaderRow(nav); if (row) observer?.observe(row); }
   // Generated fixture routing switches authored document sections with hidden.
-  const visibilityObserver = typeof MutationObserver === "undefined" ? undefined : new MutationObserver(refreshLinkAnchors);
-  visibilityObserver?.observe(root, { subtree: true, attributes: true, attributeFilter: ["hidden"] });
+  const visibilityObserver = typeof MutationObserver === "undefined" ? undefined : new MutationObserver(refresh);
+  visibilityObserver?.observe(observationRoot, visibilityOptions);
+  refresh();
   function onPublicationReveal() {
-    for (const navigation of root.querySelectorAll<HTMLElement>(".template-navigation")) observer?.observe(navigation);
-    refreshLinkAnchors();
+    for (const navigation of navigationRoots()) { observer?.observe(navigation); const row = compactHeaderRow(navigation); if (row) observer?.observe(row); }
+    refresh();
   }
   root.addEventListener("acm-local-publication-revealed", onPublicationReveal);
-  window.addEventListener("resize", refreshLinkAnchors);
+  window.addEventListener("resize", refresh);
+  document.fonts?.addEventListener("loadingdone", refresh);
   root.addEventListener("click", onClick);
   root.addEventListener("keydown", onKeyDown);
   root.addEventListener("toggle", onToggle, true);
@@ -120,7 +184,8 @@ export function attachNavigationRuntime(root: HTMLElement | Document) {
     observer?.disconnect();
     visibilityObserver?.disconnect();
     root.removeEventListener("acm-local-publication-revealed", onPublicationReveal);
-    window.removeEventListener("resize", refreshLinkAnchors);
+    window.removeEventListener("resize", refresh);
+    document.fonts?.removeEventListener("loadingdone", refresh);
     root.removeEventListener("click", onClick);
     root.removeEventListener("keydown", onKeyDown);
     root.removeEventListener("toggle", onToggle, true);

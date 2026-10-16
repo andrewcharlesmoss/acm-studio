@@ -34,6 +34,14 @@ Neutral, Test, and Test2 without changing the editing context, URL, saved source
 or history. This choice is temporary: a fresh load returns to Neutral. Loading or unavailable
 active-site content shows a labelled placeholder. Unscoped site previews may
 show labelled neutral examples while their source is unavailable.
+With an active Test or Test2 site, the Navigation pane adds, edits and reorders
+that site's canonical menu links through its existing owner, revision checks,
+saving and history. Its labelled history controls and menu-focused shortcuts
+use site history; Header settings and styles retain global design history.
+Individual links expose content controls; shared Header styling remains global.
+Without an active site, menu links are read-only even when Preview Site shows a
+site's content. Edit Navigation remains available as a dedicated menu workspace.
+
 **Preview Content** selects a document from the chosen preview for Page and Post
 templates. Headers and footers show it only when their authored content contains
 document-dependent fields or a Content slot, including nested blocks, shared-part
@@ -605,11 +613,12 @@ links, Undo/Redo and Reset Example.
   appender. Fixture suggestions use stable document hash routes.
 - **Settings** offers Off, Mobile and Always overlay visibility, click or hover
   submenus, submenu arrows and the navigation landmark's accessible label.
-  Mobile uses the template surface's 600px container boundary, so it responds
-  to the site viewport rather than the surrounding Studio window.
+  Mobile measures the natural single-line links against the available Header
+  width after identity and spacing. It collapses before the links wrap and
+  expands again when they fit, independent of device name or orientation.
   A Header Row containing only Site Identity followed by Navigation keeps the
   identity on the left and the collapsed menu button on the right at that
-  boundary. Edit and Preview share this layout and menu runtime; Edit Navigation
+  available width. Edit and Preview share this layout and menu runtime; Edit Navigation
   retains site-owned link editing. Off retains inline links, and an explicitly
   authored tablet/mobile Row stack still takes precedence.
 - **Styles** reuses the shared typography, colour and flex-layout controls.
@@ -695,8 +704,9 @@ fields are rejected; the next save writes the current template version.
 Template v0.29.0 adds Show icon button, two-line and three-line menu icons,
 and an optional `overlayPartId`. Older menus retain their three-line icon;
 hiding the icon uses visible Menu and Close text. Off hides the overlay controls
-without discarding their saved values. Mobile uses the existing 600px container
-breakpoint; Always uses an overlay at every width.
+without discarding their saved values. Mobile collapses when the real links no
+longer fit the available width; Always uses an overlay at every width. The 600px
+container rule is only a no-script fallback until measurement is available.
 
 Overlay templates are shared `TemplatePart` records with kind `overlay` in the
 same set. The inspector's + creates, assigns and opens a part in one undoable
