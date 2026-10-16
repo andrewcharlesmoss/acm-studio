@@ -1,4 +1,5 @@
 .studio-app-header {
+  --studio-ui-font: var(--font-sans);
   --studio-ui-size: 1rem;
   align-items: center;
   background: var(--acm-color-surface, #fff);
