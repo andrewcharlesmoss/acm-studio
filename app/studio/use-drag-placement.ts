@@ -8,7 +8,7 @@ export type DragPlacement<T> = { target: T; line: DropLine };
 export type DragPlacementPolicy<S, T> = {
   version: string; writable: boolean;
   axis?: DropAxis;
-  reserveSpace?: boolean;
+  reserveSpace?: boolean | "drag";
   rows?: (root: HTMLElement) => HTMLElement[];
   boundary?: (root: HTMLElement) => HTMLElement | undefined;
   spaces?: (root: HTMLElement) => PlacementSpace[];
@@ -24,9 +24,20 @@ export type DragPlacementPolicy<S, T> = {
 export function useDragPlacement<S, T>(policy: DragPlacementPolicy<S, T>) {
   const owner = useId();
   const root = useRef<HTMLElement | null>(null);
+  const [active, setActive] = useState(false);
+  const reservationActive = useRef(false);
+  const previewPoint = useRef<{ x: number; y: number } | null>(null);
   useLayoutEffect(() => {
-    if (!root.current || policy.reserveSpace === false) return;
-    return maintainPlacementSpace([{ element: root.current, axis: policy.axis ?? "y", rows: policy.rows?.(root.current), boundary: policy.boundary?.(root.current) }, ...(policy.spaces?.(root.current) ?? [])]);
+    const wasActive = reservationActive.current;
+    reservationActive.current = active;
+    if (!root.current || policy.reserveSpace === false || policy.reserveSpace === "drag" && !active) return;
+    const restore = maintainPlacementSpace([{ element: root.current, axis: policy.axis ?? "y", rows: policy.rows?.(root.current), boundary: policy.boundary?.(root.current) }, ...(policy.spaces?.(root.current) ?? [])]);
+    // The activating pointer move measured the idle layout. Refresh once after
+    // its slots are installed, before paint, even if the pointer stops moving.
+    if (policy.reserveSpace === "drag" && active && !wasActive && previewPoint.current) {
+      preview(root.current, previewPoint.current.x, previewPoint.current.y);
+    }
+    return restore;
   });
   const latest = useRef(policy);
   useLayoutEffect(() => { latest.current = policy; });
@@ -34,12 +45,11 @@ export function useDragPlacement<S, T>(policy: DragPlacementPolicy<S, T>) {
   const pointer = useRef<{ id: number; x: number; y: number; active: boolean } | null>(null);
   const scroll = useRef<(() => void) | null>(null);
   const suppressClick = useRef(false);
-  const [active, setActive] = useState(false);
   const [indicator, setIndicator] = useState<(DragPlacement<T> & { version: string }) | null>(null);
   const cancel = useCallback(() => {
     scroll.current?.(); scroll.current = null;
     if (pointer.current?.active) suppressClick.current = true;
-    pointer.current = null; session.current = null; setIndicator(null); setActive(false);
+    pointer.current = null; session.current = null; previewPoint.current = null; setIndicator(null); setActive(false);
     latest.current.onCancel?.();
   }, []);
   useLayoutEffect(() => { if (session.current && (!policy.writable || session.current.version !== policy.version)) cancel(); }, [policy.version, policy.writable, cancel]);
@@ -61,6 +71,7 @@ export function useDragPlacement<S, T>(policy: DragPlacementPolicy<S, T>) {
     return current.resolve(source.source, container, x, y);
   }
   function preview(container: HTMLElement, x: number, y: number) {
+    previewPoint.current = { x, y };
     const next = position(container, x, y);
     setIndicator(next ? { ...next, version: latest.current.version } : null);
     latest.current.onPreview?.(next?.target ?? null);
@@ -84,7 +95,7 @@ export function useDragPlacement<S, T>(policy: DragPlacementPolicy<S, T>) {
   const visible = policy.writable && indicator?.version === policy.version ? indicator : null;
   return {
     owner, active: policy.writable && active, placement: visible?.target ?? null, line: visible?.line ?? null, cancel,
-    clearPreview() { setIndicator(null); latest.current.onPreview?.(null); },
+    clearPreview() { previewPoint.current = null; setIndicator(null); latest.current.onPreview?.(null); },
     start(event: DragEvent<HTMLElement>, source: S) {
       event.stopPropagation();
       if (pointer.current || !begin(source)) { event.preventDefault(); return; }
@@ -125,9 +136,9 @@ export function useDragPlacement<S, T>(policy: DragPlacementPolicy<S, T>) {
     listProps: {
       ref: (element: HTMLElement | null) => { root.current = element; },
       "data-drag-placement-owner": owner,
-      onDragOver(event: DragEvent<HTMLElement>) { if (!event.dataTransfer.types.includes(MIME)) { setIndicator(null); return; } const next = preview(event.currentTarget, event.clientX, event.clientY); if (next) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = session.current ? latest.current.effect?.(session.current.source) ?? "move" : "none"; } },
+      onDragOver(event: DragEvent<HTMLElement>) { if (!event.dataTransfer.types.includes(MIME)) { previewPoint.current = null; setIndicator(null); return; } const next = preview(event.currentTarget, event.clientX, event.clientY); if (next) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = session.current ? latest.current.effect?.(session.current.source) ?? "move" : "none"; } },
       onDrop(event: DragEvent<HTMLElement>) { if (!session.current) return; if (event.dataTransfer.getData(MIME) !== owner) { cancel(); return; } event.preventDefault(); event.stopPropagation(); commit(event.currentTarget, event.clientX, event.clientY); cancel(); },
-      onDragLeave(event: DragEvent<HTMLElement>) { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { setIndicator(null); latest.current.onPreview?.(null); } },
+      onDragLeave(event: DragEvent<HTMLElement>) { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { previewPoint.current = null; setIndicator(null); latest.current.onPreview?.(null); } },
       onKeyDown(event: { key: string }) { if (event.key === "Escape") cancel(); },
     },
   };

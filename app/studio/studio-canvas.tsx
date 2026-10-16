@@ -759,7 +759,9 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   const rootDragTypes = blockInserterOptions(filteredBlocks ?? [], undefined, "", socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation) }).map(item => item.type);
   const blockDrag = useDragPlacement<BlockDragSource, BlockDragTarget>({
     version: JSON.stringify([activeDocument.id, activeDocument.blocks]), writable: writable && !previewing && !codeEditor,
-    reserveSpace: !previewing && !codeEditor,
+    // Body slots have no guaranteed gutter before their Header or after their Footer.
+    // Reserve within the body only during a drag, keeping normal editing in place.
+    reserveSpace: previewing || codeEditor ? false : className?.split(/\s+/).includes("template-editing") ? true : "drag",
     rows: canvas => Array.from(canvas.querySelectorAll<HTMLElement>(":scope > .block-position > .canvas-block")),
     boundary: canvas => canvas.closest<HTMLElement>(".template-authoring-surface") ?? undefined,
     spaces: canvas => blockPlacementSpaces(canvas, activeDocument.blocks),

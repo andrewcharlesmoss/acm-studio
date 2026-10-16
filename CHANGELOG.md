@@ -30,6 +30,9 @@
 
 ### Fixed
 
+- Match Page and Post body positions and block gaps between Edit and Preview,
+  with overlay controls and body drag slots reserved only during dragging.
+
 - Align the shared Header between assigned templates and Existing Presentation,
   and keep Edit Header beside its owning part in both Page and Post editors.
 - Keep Footer, Header, Page, and Post template content in the same position in

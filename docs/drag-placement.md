@@ -40,6 +40,12 @@ padding. Every reserved slot has at least
 adding a second reservation. All three DOM adapters read the resulting before/
 after padding and centre the end indicator in that actual space. They do not
 use the full owner height, which can contain unrelated scrollable blank space.
+Actual document body roots and their nested sequences reserve their slots only
+while a drag is active. The reservation stays inside the body, preserving idle
+and selected content positions without borrowing from adjacent Header or Footer
+parts. Ending, cancelling, or losing ownership of the drag restores the authored
+spacing through the same controller cleanup. Template authoring retains its
+continuous gutter reservation.
 Root-width horizontal block rows and the template editor's vertical root sequence
 can instead use the existing document surface gutters. The shared reservation
 adds transparent, out-of-flow end slots there,

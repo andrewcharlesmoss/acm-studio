@@ -643,6 +643,8 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .canvas-add-cover { align-items: center; display: inline-flex; gap: 5px; justify-content: center; margin: 24px 0 34px; width: 100%; }
 .canvas-blocks, .studio-block-preview { display: grid; min-width: 0; }
 .canvas-blocks { padding-top: var(--studio-toolbar-top-space, 52px); position: relative; }
+/* Document controls overlay the body, preserving Preview positions on selection. */
+.block-editor:not(.template-editing) { --studio-toolbar-top-space: 0px; --studio-selected-toolbar-top-space: 0px; --studio-selected-toolbar-gap: 0px; }
 .inline-image-popover { display: grid; gap: 12px; padding: 16px; width: 260px; }
 .inline-image-popover form, .inline-image-picker form { display: grid; gap: 12px; }
 .inline-image-popover label, .inline-image-picker label { display: grid; gap: 4px; }
@@ -657,8 +659,8 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .block-editor:not(.is-block-dragging) .block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom: var(--studio-selected-toolbar-gap, 38px); }
 .block-editor:not(.is-block-dragging) .canvas-blocks:has(> .block-position:nth-child(1 of .block-position) .canvas-block.is-selected) { padding-top: var(--studio-selected-toolbar-top-space, 58px); }
 .between-blocks { align-items: center; background: transparent; border: 0; border-radius: 0; color: transparent; cursor: pointer; display: flex; height: 30px; justify-content: center; left: 0; opacity: 0; padding: 0; position: absolute; top: 0; transition: opacity .15s; width: 100%; z-index: 3; }
-.block-position + .block-position .between-blocks { top: calc(((var(--studio-block-gap) - var(--studio-block-grid-gap, 0px)) / 2) - 15px); }
-.block-editor:not(.is-block-dragging) .block-position:has(+ .block-position .canvas-block.is-selected) + .block-position .between-blocks { top: calc(((var(--studio-block-gap) - var(--studio-block-grid-gap, 0px)) / 2) - 15px - (var(--studio-selected-toolbar-gap, 38px) / 2)); }
+.block-position + .block-position .between-blocks { top: calc(((var(--studio-block-margin, var(--studio-block-gap)) - var(--studio-block-grid-gap, 0px)) / 2) - 15px); }
+.block-editor:not(.is-block-dragging) .block-position:has(+ .block-position .canvas-block.is-selected) + .block-position .between-blocks { top: calc(((var(--studio-block-margin, var(--studio-block-gap)) - var(--studio-block-grid-gap, 0px)) / 2) - 15px - (var(--studio-selected-toolbar-gap, 38px) / 2)); }
 .between-blocks::before { background: #8f8f8f; border-radius: 999px; content: ""; height: 3px; left: 0; position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
 .between-blocks > span { align-items: center; background: var(--studio-shared-button-background); border: 3px solid var(--paper); border-radius: 5px; box-sizing: border-box; color: var(--studio-shared-button-foreground); display: inline-flex; font-size: 20px; height: 30px; justify-content: center; line-height: 1; position: relative; width: 30px; }
 .between-blocks:hover:not(:disabled) > span, .between-blocks:focus-visible > span { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
@@ -674,7 +676,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-block-preview > .content-block > * { margin: 0; }
 .studio-block-preview :is(.document-dynamic-field, .metadata-block, .metadata-block-editor, .paragraph-field, .heading-field, .quote-field, .list-field-preview, .image-field, .embed-field, .button-field, .divider-field, .studio-code-preview) { min-height: 0; }
 .studio-block-preview :is(.document-dynamic-field h1, .document-dynamic-field p, .metadata-block p, .metadata-block-editor p, .embed-field small) { margin-block: 0; }
-.block-position + .block-position .canvas-block { margin-top: var(--studio-block-gap); }
+.block-position + .block-position .canvas-block { margin-top: var(--studio-block-margin, var(--studio-block-gap)); }
 .canvas-block:hover { border-color: #d9d7cf; }
 .canvas-block:not(.is-selected):is(:hover, [data-studio-hovered="true"]) { border-color: #8f8f8f; outline: 1px solid #8f8f8f; outline-offset: -1px; }
 .canvas-block.is-selected { border-color: transparent; outline: none; }
@@ -1765,7 +1767,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 /* The multi-block toolbar overlays the canvas: selection must not move its targets. */
 .editor-canvas-scroll.has-multi-block-selection .block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom: 0; }
 .editor-canvas-scroll.has-multi-block-selection .canvas-blocks:has(> .block-position:nth-child(1 of .block-position) .canvas-block.is-selected) { padding-top: var(--studio-toolbar-top-space, 52px); }
-.editor-canvas-scroll.has-multi-block-selection .block-position + .block-position .between-blocks { top: calc(((var(--studio-block-gap) - var(--studio-block-grid-gap, 0px)) / 2) - 15px); }
+.editor-canvas-scroll.has-multi-block-selection .block-position + .block-position .between-blocks { top: calc(((var(--studio-block-margin, var(--studio-block-gap)) - var(--studio-block-grid-gap, 0px)) / 2) - 15px); }
 
 /* Heading marks reuse the shared three-scale icon catalogue. */
 .heading-level-setting { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; }
@@ -1802,7 +1804,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .inspector-accordion-heading svg.is-expanded-advanced { transform: rotate(180deg); }
 
 /* Include the template grid gap when centring controls between body blocks. */
-.template-content-layout.has-layout-options[data-layout-constrained="true"] > .canvas-blocks { --studio-block-grid-gap: var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 16px))); }
+.template-content-layout.has-layout-options[data-layout-constrained="true"] > .canvas-blocks { --studio-block-grid-gap: var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 16px))); --studio-block-margin: 0px; }
 
 /* Hide hover controls while the ordinary block gaps are restored during dragging. */
 .block-editor.is-block-dragging .canvas-block-toolbar { opacity: 0; pointer-events: none; transition: none; }

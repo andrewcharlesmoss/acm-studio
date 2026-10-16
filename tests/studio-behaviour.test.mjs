@@ -1069,8 +1069,8 @@ test("between-block and drag insertion cues stay centred in the reserved gap", (
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(css, /\.block-position \{ display: flow-root; position: relative; \}/);
-  assert.match(css, /\.block-position \+ \.block-position \.canvas-block \{ margin-top: var\(--studio-block-gap\); \}/);
-  assert.match(css, /\.block-position \+ \.block-position \.between-blocks \{ top: calc\(\(\(var\(--studio-block-gap\) - var\(--studio-block-grid-gap, 0px\)\) \/ 2\) - 15px\); \}/);
+  assert.match(css, /\.block-position \+ \.block-position \.canvas-block \{ margin-top: var\(--studio-block-margin, var\(--studio-block-gap\)\); \}/);
+  assert.match(css, /\.block-position \+ \.block-position \.between-blocks \{ top: calc\(\(\(var\(--studio-block-margin, var\(--studio-block-gap\)\) - var\(--studio-block-grid-gap, 0px\)\) \/ 2\) - 15px\); \}/);
   assert.match(canvas, /useDragPlacement<BlockDragSource, BlockDragTarget>/);
   assert.match(canvas, /onMoveBlockTo\(from, index > from \? index - 1 : index\)/);
   assert.match(canvas, /<div className="canvas-blocks" \{\.\.\.blockDrag\.listProps\}/);

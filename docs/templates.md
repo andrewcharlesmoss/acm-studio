@@ -695,8 +695,13 @@ retain their local Width control when no header view controls are supplied.
 Template authoring surfaces share their rendered spacing with Preview. Their
 editor wrappers add no border dimensions or toolbar reserves; selected controls
 overlay the content without moving it. Shared canvas rules expose the toolbar
-reserve as variables, which retain the content editor's existing defaults.
-Template authoring alone sets them to zero and uses the canonical template gap.
+reserve as variables. Document and template editing set them to zero so
+selection does not move content; template authoring uses the canonical template gap.
+Document body roots and their nested sequences reserve drag end slots only
+while a drag is active, within their own body boundaries. This avoids adding
+idle spacing or borrowing space from a neighbouring Header or Footer.
+Constrained Content slots own their block gap in both modes, without a second
+editor block margin.
 Root template and standalone shared-part wrappers follow the same rule.
 Column insertion controls also overlay the layout rather than adding height.
 Both modes use the same resolved sample document; authoring placeholders for
