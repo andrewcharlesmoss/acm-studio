@@ -10,7 +10,7 @@
   font-family: var(--studio-ui-font);
   font-size: var(--studio-ui-size, 13px);
   gap: 12px 20px;
-  min-height: 66px;
+  min-height: 76px;
   padding: 12px 18px;
 }
 .studio-app-identity { align-items: center; display: flex; flex: none; gap: 18px; min-width: 0; }
