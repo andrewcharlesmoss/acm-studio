@@ -33,6 +33,9 @@
 
 ### Fixed
 
+- Keep floating block toolbars fully visible above fitted Header and Footer
+  canvases, with zoom-aware clearance outside the part's exact boundary.
+
 - Show the exact Header and Footer region in Fit to Part, removing surrounding
   editor and page-surface space from the visible canvas while preserving authored
   spacing, content widths, and matching Edit/Preview sizing.

@@ -65,6 +65,10 @@ available in both views.
 **Full Canvas** remains the default. The choice is remembered separately for
 headers and footers in this browser, across sites and Edit/Preview. Both modes
 use the same sizing, including after zooming, width changes, or content growth.
+The grey workspace above a fitted part reserves 64px at 100% canvas zoom,
+scaled with canvas zoom with a 30px minimum, so floating block toolbars remain
+inside the scrollport. Edit and Preview share this clearance; it adds no space
+inside the visible part or its saved layout.
 Fitted parts reserve insertion spaces only while dragging, so missing authored
 padding cannot shift the normal editing layout; cancellation restores that layout.
 This preference does not change authored dimensions, shared template data,

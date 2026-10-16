@@ -496,6 +496,9 @@
 
 /* Fit paints only the part, not the surrounding editor/page surface. Retain
    transparent inline space for unchanged content widths and authored alignment. */
+/* Floating block toolbars need room inside the scrollport, above the exact part
+   boundary. Keep this zoom-scaled clearance on grey workspace in both modes. */
+.template-editing.template-fit-part .editor-canvas-scroll { padding-top: max(30px, calc(64px * var(--studio-canvas-zoom, 1))); }
 .template-editing.template-fit-part :is(.block-canvas, .document-preview) { min-height: 0; padding-block: 0; background: transparent; }
 .template-editing.template-fit-part .template-authoring-surface { padding-block: 0; background: transparent; }
 .template-editing.template-fit-part .template-authoring-surface > .template-part { background: var(--acm-color-surface, var(--template-background)); }
