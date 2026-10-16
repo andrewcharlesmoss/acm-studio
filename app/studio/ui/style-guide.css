@@ -97,8 +97,7 @@
 .acm-universal-style-preset .sg-swatch[data-source-selected="true"] { border: 1px solid var(--studio-selection-colour); }
 .sg-swatch > span { display: block; min-height: 54px; border-bottom: 1px solid var(--acm-color-border); }
 .sg-swatch strong, .sg-swatch code { padding: .3rem .45rem; overflow-wrap: anywhere; }
-.sg-swatch strong { font-size: .85rem; font-weight: 400; }
-.sg-swatch:is([data-style-path="palette.accent"], [data-style-path="palette.success"], [data-style-path="palette.information"], [data-style-path="palette.alert"], [data-style-path="palette.warning"], [data-style-path="palette.rating"]) strong { font-weight: 700; }
+.sg-swatch strong { font-size: .85rem; font-weight: 700; }
 .sg-swatch code { color: var(--acm-color-text-secondary); font-size: var(--studio-ui-size, .8125rem); font-weight: 400; }
 .sg-type-samples > h1, .sg-type-samples > h2, .sg-type-samples > h3, .sg-type-samples > h4, .sg-type-samples > h5, .sg-type-samples > h6 { margin-block: .6em; }
 /* Restore the shared heading tokens where the enclosing UI-library shell sets compact h2/h3 defaults. */
